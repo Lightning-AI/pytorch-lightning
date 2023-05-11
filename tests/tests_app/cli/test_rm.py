@@ -67,23 +67,24 @@ def test_rm(monkeypatch):
                     V1LightningappInstanceArtifact(filename="folder_2/file_4.txt"),
                 ]
             )
-        elif splits[-1] == "folder_1":
+        if splits[-1] == "folder_1":
             return V1ListLightningappInstanceArtifactsResponse(
                 artifacts=[V1LightningappInstanceArtifact(filename="file_2.txt")]
             )
-        elif splits[-1] == "folder_2":
+        if splits[-1] == "folder_2":
             return V1ListLightningappInstanceArtifactsResponse(
                 artifacts=[
                     V1LightningappInstanceArtifact(filename="folder_3/file_3.txt"),
                     V1LightningappInstanceArtifact(filename="file_4.txt"),
                 ]
             )
-        elif splits[-1] == "folder_3":
+        if splits[-1] == "folder_3":
             return V1ListLightningappInstanceArtifactsResponse(
                 artifacts=[
                     V1LightningappInstanceArtifact(filename="file_3.txt"),
                 ]
             )
+        return None
 
     client.lightningapp_instance_service_list_project_artifacts = fn
 

@@ -1,3 +1,4 @@
+import contextlib
 from time import sleep
 
 import pytest
@@ -21,17 +22,12 @@ def validate_app_functionalities(app_page: "Page") -> None:
     app_page: The UI page of the app to be validated.
     """
     while True:
-        try:
+        with contextlib.suppress(playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
             app_page.reload()
             sleep(5)
             app_label = app_page.frame_locator("iframe").locator("text=Choose your AI task")
             app_label.wait_for(timeout=30 * 1000)
             break
-        except (
-            playwright._impl._api_types.Error,
-            playwright._impl._api_types.TimeoutError,
-        ):
-            pass
 
     input_field = app_page.frame_locator("iframe").locator('input:below(:text("Data URL"))').first
     input_field.wait_for(timeout=1000)
@@ -70,7 +66,7 @@ def validate_app_functionalities(app_page: "Page") -> None:
     expect(runs).to_have_count(1, timeout=120000)
 
 
-@pytest.mark.cloud
+@pytest.mark.cloud()
 def test_app_cloud() -> None:
     with run_app_in_cloud(_PATH_INTEGRATIONS_DIR) as (admin_page, view_page, fetch_logs, _):
         validate_app_functionalities(view_page)

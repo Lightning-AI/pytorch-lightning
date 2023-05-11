@@ -44,9 +44,9 @@ def makedirs(path: str):
     r"""Recursive directory creation function."""
     try:
         os.makedirs(osp.expanduser(osp.normpath(path)))
-    except OSError as e:
-        if e.errno != errno.EEXIST and osp.isdir(path):
-            raise e
+    except OSError as ex:
+        if ex.errno != errno.EEXIST and osp.isdir(path):
+            raise ex
 
 
 class ClientCommand:
@@ -197,12 +197,13 @@ def _upload(name: str, prefix: str, obj: Any) -> Optional[str]:
         from s3fs import S3FileSystem
 
         if not isinstance(fs, S3FileSystem):
-            return
+            return None
 
         source_file = str(inspect.getfile(obj.__class__))
         remote_url = str(_shared_storage_path() / "artifacts" / filepath)
         fs.put(source_file, remote_url)
         return filepath
+    return None
 
 
 def _prepare_commands(app) -> List:
@@ -226,9 +227,9 @@ def _process_api_request(app, request: _APIRequest):
     method = getattr(flow, request.method_name)
     try:
         response = _RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
-    except HTTPException as e:
-        logger.error(repr(e))
-        response = _RequestResponse(status_code=e.status_code, content=e.detail)
+    except HTTPException as ex:
+        logger.error(repr(ex))
+        response = _RequestResponse(status_code=ex.status_code, content=ex.detail)
     except Exception:
         logger.error(traceback.print_exc())
         response = _RequestResponse(status_code=500)
@@ -244,13 +245,14 @@ def _process_command_requests(app, request: _CommandRequest):
                 # Validation is done on the CLI side.
                 try:
                     response = _RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
-                except HTTPException as e:
-                    logger.error(repr(e))
-                    response = _RequestResponse(status_code=e.status_code, content=e.detail)
+                except HTTPException as ex:
+                    logger.error(repr(ex))
+                    response = _RequestResponse(status_code=ex.status_code, content=ex.detail)
                 except Exception:
                     logger.error(traceback.print_exc())
                     response = _RequestResponse(status_code=500)
                 return {"response": response, "id": request.id}
+    return None
 
 
 def _process_requests(app, requests: List[Union[_APIRequest, _CommandRequest]]) -> None:

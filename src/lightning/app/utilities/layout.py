@@ -38,7 +38,7 @@ def _add_comment_to_literal_code(method, contains, comment):
 
         return "\n".join(lines)
 
-    except Exception as e:  # noqa
+    except Exception:
         return ""
 
 
@@ -54,17 +54,18 @@ def _collect_layout(app: "lightning.app.LightningApp", flow: "lightning.app.Ligh
         # When running locally, the target will get overwritten by the dispatcher when launching the frontend servers
         # When running in the cloud, the frontend code will construct the URL based on the flow name
         return flow._layout
-    elif isinstance(layout, _MagicMockJsonSerializable):
+    if isinstance(layout, _MagicMockJsonSerializable):
         # The import was mocked, we set a dummy `Frontend` so that `is_headless` knows there is a UI
         app.frontends.setdefault(flow.name, "mock")
         return flow._layout
-    elif isinstance(layout, dict):
+    if isinstance(layout, dict):
         layout = _collect_content_layout([layout], app, flow)
     elif isinstance(layout, (list, tuple)) and all(isinstance(item, dict) for item in layout):
         layout = _collect_content_layout(layout, app, flow)
     else:
         lines = _add_comment_to_literal_code(flow.configure_layout, contains="return", comment="  <------- this guy")
-        m = f"""
+        raise TypeError(
+            f"""
         The return value of configure_layout() in `{flow.__class__.__name__}`  is an unsupported layout format:
         \n{lines}
 
@@ -85,7 +86,7 @@ def _collect_layout(app: "lightning.app.LightningApp", flow: "lightning.app.Ligh
 
         (see the docs for `LightningFlow.configure_layout`).
         """
-        raise TypeError(m)
+        )
 
     return layout
 
@@ -189,24 +190,24 @@ def _collect_work_layout(work: "lightning.app.LightningWork") -> Union[None, str
 
     if work_layout is None:
         return None
-    elif isinstance(work_layout, str):
+    if isinstance(work_layout, str):
         url = work_layout
         # The URL isn't fully defined yet. Looks something like ``self.work.url + /something``.
         if url and not url.startswith("/"):
             return url
         return ""
-    elif isinstance(work_layout, (Frontend, _MagicMockJsonSerializable)):
+    if isinstance(work_layout, (Frontend, _MagicMockJsonSerializable)):
         return work_layout
-    else:
-        m = f"""
-        The value returned by `{work.__class__.__name__}.configure_layout()` is of an unsupported type.
+    raise TypeError(
+        f"""
+    The value returned by `{work.__class__.__name__}.configure_layout()` is of an unsupported type.
 
-        {repr(work_layout)}
+    {repr(work_layout)}
 
-        Return a `Frontend` or a URL string, for example:
+    Return a `Frontend` or a URL string, for example:
 
-        class {work.__class__.__name__}(LightningWork):
-            def configure_layout(self):
-                return MyFrontend() OR 'http://some/url'
-        """
-        raise TypeError(m)
+    class {work.__class__.__name__}(LightningWork):
+        def configure_layout(self):
+            return MyFrontend() OR 'http://some/url'
+    """
+    )

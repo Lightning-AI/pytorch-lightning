@@ -88,8 +88,7 @@ def _pydantic_column_type(pydantic_type: Any) -> Any:
                         value_to_dump = pydantic_type.from_orm(value)
                     else:
                         value_to_dump = value
-                    value = dumps(jsonable_encoder(value_to_dump))
-                    return value
+                    return dumps(jsonable_encoder(value_to_dump))
 
             return process
 
@@ -104,8 +103,7 @@ def _pydantic_column_type(pydantic_type: Any) -> Any:
 
                     data = value
                     # Explicitly use the generic directly, not type(T)
-                    full_obj = parse_obj_as(pydantic_type, data)
-                    return full_obj
+                    return parse_obj_as(pydantic_type, data)
 
             else:
 
@@ -114,8 +112,7 @@ def _pydantic_column_type(pydantic_type: Any) -> Any:
                         return None
 
                     # Explicitly use the generic directly, not type(T)
-                    full_obj = parse_obj_as(pydantic_type, value)
-                    return full_obj
+                    return parse_obj_as(pydantic_type, value)
 
             return process
 
@@ -225,6 +222,7 @@ class _Update:
             session.add(result)
             session.commit()
             session.refresh(result)
+            return None
 
 
 class _Delete:
@@ -246,6 +244,7 @@ class _Delete:
             result = results.one()
             session.delete(result)
             session.commit()
+            return None
 
 
 def _create_database(db_filename: str, models: List[Type["SQLModel"]], echo: bool = False):
@@ -258,5 +257,5 @@ def _create_database(db_filename: str, models: List[Type["SQLModel"]], echo: boo
     logger.debug(f"Creating the following tables {models}")
     try:
         SQLModel.metadata.create_all(engine)
-    except Exception as e:
-        logger.debug(e)
+    except Exception as ex:
+        logger.debug(ex)

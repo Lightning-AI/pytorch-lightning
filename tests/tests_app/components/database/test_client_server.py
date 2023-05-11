@@ -54,7 +54,7 @@ def test_client_server():
 
     secrets = [Secret(name="example", value="secret")]
 
-    general = _GeneralModel.from_obj(TestConfig(name="name", secrets=secrets), token="a")
+    general = _GeneralModel.from_obj(TestConfig(name="name", secrets=secrets), token="a")  # noqa: S106
     assert general.cls_name == "TestConfig"
     assert general.data == '{"id": null, "name": "name", "secrets": [{"name": "example", "value": "secret"}]}'
 
@@ -136,7 +136,7 @@ def test_work_database_restart():
 
             if not self.db.alive():
                 return
-            elif not self._client:
+            if not self._client:
                 self._client = DatabaseClient(self.db.db_url, None, model=TestConfig)
 
             if not self.restart:
@@ -183,7 +183,7 @@ def test_work_database_periodic_store():
             if not self.db.alive():
                 return
 
-            elif not self._client:
+            if not self._client:
                 self._client = DatabaseClient(self.db.db_url, None, model=TestConfig)
 
             if self._start_time is None:

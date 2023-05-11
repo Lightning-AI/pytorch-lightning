@@ -4,7 +4,7 @@ from functools import partial
 from typing import Any, cast, Iterable, List, Literal, Optional, Tuple, Union
 
 import torch
-from lightning_utilities import apply_to_collection, is_overridden
+from lightning_utilities import apply_to_collection
 from tqdm import tqdm
 
 import lightning as L
@@ -12,6 +12,7 @@ from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.loggers import Logger
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.wrappers import _unwrap_objects
+from lightning.pytorch.utilities.model_helpers import is_overridden
 
 
 class MyCustomTrainer:
@@ -149,10 +150,10 @@ class MyCustomTrainer:
             # currently, there is no way to support fsdp with model.configure_optimizers in fabric
             # as it would require fabric to hold a reference to the model, which we don't want to.
             raise NotImplementedError("BYOT currently does not support FSDP")
-        else:
-            optimizer, scheduler_cfg = self._parse_optimizers_schedulers(model.configure_optimizers())
-            assert optimizer is not None
-            model, optimizer = self.fabric.setup(model, optimizer)
+
+        optimizer, scheduler_cfg = self._parse_optimizers_schedulers(model.configure_optimizers())
+        assert optimizer is not None
+        model, optimizer = self.fabric.setup(model, optimizer)
 
         # assemble state (current epoch and global step will be added in save)
         state = {"model": model, "optim": optimizer, "scheduler": scheduler_cfg}
@@ -274,7 +275,7 @@ class MyCustomTrainer:
             return
 
         # no validation but warning if val_loader was passed, but validation_step not implemented
-        elif val_loader is not None and not is_overridden("validation_step", _unwrap_objects(model), L.LightningModule):
+        if val_loader is not None and not is_overridden("validation_step", _unwrap_objects(model)):
             L.fabric.utilities.rank_zero_warn(
                 "Your LightningModule does not have a validation_step implemented, "
                 "but you passed a validation dataloder. Skipping Validation."
@@ -376,11 +377,11 @@ class MyCustomTrainer:
 
         try:
             monitor = possible_monitor_vals[cast(Optional[str], scheduler_cfg["monitor"])]
-        except KeyError as e:
+        except KeyError as ex:
             possible_keys = list(possible_monitor_vals.keys())
             raise KeyError(
                 f"monitor {scheduler_cfg['monitor']} is invalid. Possible values are {possible_keys}."
-            ) from e
+            ) from ex
 
         # rely on model hook for actual step
         model.lr_scheduler_step(scheduler_cfg["scheduler"], monitor)
@@ -467,16 +468,16 @@ class MyCustomTrainer:
             return configure_optim_output, None
 
         # single lr scheduler
-        elif isinstance(configure_optim_output, L.fabric.utilities.types.LRScheduler):
+        if isinstance(configure_optim_output, L.fabric.utilities.types.LRScheduler):
             return None, _lr_sched_defaults.update(scheduler=configure_optim_output)
 
         # single lr scheduler config
-        elif isinstance(configure_optim_output, Mapping):
+        if isinstance(configure_optim_output, Mapping):
             _lr_sched_defaults.update(configure_optim_output)
             return None, _lr_sched_defaults
 
         # list or tuple
-        elif isinstance(configure_optim_output, (list, tuple)):
+        if isinstance(configure_optim_output, (list, tuple)):
             if all(isinstance(_opt_cand, L.fabric.utilities.types.Optimizable) for _opt_cand in configure_optim_output):
                 # single optimizer in list
                 if len(configure_optim_output) == 1:
@@ -484,7 +485,7 @@ class MyCustomTrainer:
 
                 raise NotImplementedError("BYOT only supports a single optimizer")
 
-            elif all(
+            if all(
                 isinstance(_lr_cand, (L.fabric.utilities.types.LRScheduler, Mapping))
                 for _lr_cand in configure_optim_output
             ):

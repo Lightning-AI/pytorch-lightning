@@ -24,7 +24,7 @@ def mock_plugin_server(mock_uvicorn) -> TestClient:
 
     mock_uvicorn.run.side_effect = create_test_client
 
-    _start_plugin_server("0.0.0.0", 8888)
+    _start_plugin_server("0.0.0.0", 8888)  # noqa: S104
 
     return test_client["client"]
 
@@ -74,7 +74,7 @@ plugin = TestPlugin()
 
 @pytest.mark.skipif(sys.platform == "win32", reason="the plugin server is only intended to run on linux.")
 @pytest.mark.parametrize(
-    "body,message,tar_file_name,content",
+    ("body", "message", "tar_file_name", "content"),
     [
         (
             _Run(
@@ -181,7 +181,7 @@ plugin = TestPlugin()
 
 @pytest.mark.skipif(sys.platform == "win32", reason="the plugin server is only intended to run on linux.")
 @pytest.mark.parametrize(
-    "plugin_source, actions",
+    ("plugin_source", "actions"),
     [
         (_plugin_with_job_run_no_actions, []),
         (_plugin_with_job_run_toast, [{"content": "info:testing", "type": "TOAST"}]),

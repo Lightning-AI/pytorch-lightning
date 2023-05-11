@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest.mock import Mock
 
-from lightning.fabric.plugins import TPUBf16Precision
+from lightning.pytorch.plugins import XLABf16PrecisionPlugin
 
 
-def test_teardown():
-    plugin = TPUBf16Precision()
+def test_teardown(xla_available):
+    plugin = XLABf16PrecisionPlugin()
+    plugin.connect(Mock(), Mock(), Mock())
     assert os.environ.get("XLA_USE_BF16") == "1"
     plugin.teardown()
     assert "XLA_USE_BF16" not in os.environ

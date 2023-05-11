@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import contextlib
 import functools
 import json
 import os
@@ -194,6 +194,7 @@ class _LightningAppOpenAPIRetriever:
                     print("The application is starting. Try in a few moments.")
                     sys.exit(0)
                 return app
+        return None
 
     def _collect_open_api_json(self):
         """This function is used to retrieve the current url associated with an id."""
@@ -209,14 +210,12 @@ class _LightningAppOpenAPIRetriever:
 
         # 2: If no identifier has been provided, evaluate the local application
         if self.app_id_or_name_or_url is None:
-            try:
+            with contextlib.suppress(requests.exceptions.ConnectionError):
                 self.url = f"http://localhost:{APP_SERVER_PORT}"
                 resp = requests.get(f"{self.url}/openapi.json")
                 if resp.status_code != 200:
                     raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
                 self.openapi = resp.json()
-            except requests.exceptions.ConnectionError:
-                pass
 
         # 3: If an identified was provided or the local evaluation has failed, evaluate the cloud.
         else:

@@ -286,7 +286,7 @@ def test_mlflow_logger_with_many_params(client, _, param, tmpdir):
 
 
 @pytest.mark.parametrize(
-    "status,expected",
+    ("status", "expected"),
     [
         ("success", "FINISHED"),
         ("failed", "FAILED"),

@@ -26,7 +26,7 @@ from lightning.pytorch.utilities.migration.utils import _get_version, _set_legac
 
 
 @pytest.mark.parametrize(
-    "old_checkpoint, new_checkpoint",
+    ("old_checkpoint", "new_checkpoint"),
     [
         (
             {"epoch": 1, "global_step": 23, "checkpoint_callback_best": 0.34},

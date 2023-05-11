@@ -25,9 +25,8 @@ from lightning.pytorch.callbacks import Checkpoint
 def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
     if len(loggers) == 1:
         return loggers[0].version
-    else:
-        # Concatenate versions together, removing duplicates and preserving order
-        return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
+    # Concatenate versions together, removing duplicates and preserving order
+    return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
 
 
 def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> List[Tuple[float, str, float, str]]:

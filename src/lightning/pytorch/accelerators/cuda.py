@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 import lightning.pytorch as pl
+from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.cuda import _check_cuda_matmul_precision, _clear_cuda_memory, num_cuda_devices
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.types import _DEVICE
@@ -94,7 +95,7 @@ class CUDAAccelerator(Accelerator):
         return num_cuda_devices() > 0
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cuda",
             cls,
@@ -148,8 +149,7 @@ def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cov
 
     s = result.stdout.strip()
     stats = [_to_float(x) for x in s.split(", ")]
-    gpu_stats = {f"{x} ({unit})": stat for (x, unit), stat in zip(gpu_stat_metrics, stats)}
-    return gpu_stats
+    return {f"{x} ({unit})": stat for (x, unit), stat in zip(gpu_stat_metrics, stats)}
 
 
 def _get_gpu_id(device_id: int) -> str:

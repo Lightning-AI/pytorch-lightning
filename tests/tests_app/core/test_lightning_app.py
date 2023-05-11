@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import pickle
@@ -426,7 +427,7 @@ class EmptyFlow(LightningFlow):
 
 
 @pytest.mark.parametrize(
-    "queue_type_cls, default_timeout",
+    ("queue_type_cls", "default_timeout"),
     [
         (MultiProcessQueue, STATE_UPDATE_TIMEOUT),
         pytest.param(
@@ -437,7 +438,7 @@ class EmptyFlow(LightningFlow):
     ],
 )
 @pytest.mark.parametrize(
-    "sleep_time, expect",
+    ("sleep_time", "expect"),
     [
         (1, 0),
         pytest.param(0, 10.0, marks=pytest.mark.xfail(strict=False, reason="failing...")),  # fixme
@@ -484,8 +485,7 @@ def test_lightning_app_aggregation_empty():
 
     class SlowQueue(MultiProcessQueue):
         def get(self, timeout):
-            out = super().get(timeout)
-            return out
+            return super().get(timeout)
 
     app = LightningApp(EmptyFlow())
     app.delta_queue = SlowQueue("api_delta_queue", 0)
@@ -555,12 +555,11 @@ class CheckpointLightningApp(LightningApp):
 
 
 def test_snap_shotting():
-    try:
+    with contextlib.suppress(SuccessException):
         app = CheckpointLightningApp(FlowA())
         app.checkpointing = True
         MultiProcessRuntime(app, start_server=False).dispatch()
-    except SuccessException:
-        pass
+
     checkpoint_dir = os.path.join(_storage_root_dir(), "checkpoints")
     checkpoints = os.listdir(checkpoint_dir)
     assert len(checkpoints) == 1

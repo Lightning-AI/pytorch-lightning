@@ -48,6 +48,7 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True),
     mock.patch("lightning.pytorch.loggers.neptune.Run", new=mock.Mock),
     mock.patch("lightning.pytorch.loggers.neptune.Handler", new=mock.Mock),
+    mock.patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock()),
     mock.patch("lightning.pytorch.loggers.wandb.wandb"),
     mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock),
 )
@@ -79,8 +80,7 @@ def _get_logger_args(logger_class, save_dir):
 def _instantiate_logger(logger_class, save_dir, **override_kwargs):
     args = _get_logger_args(logger_class, save_dir)
     args.update(**override_kwargs)
-    logger = logger_class(**args)
-    return logger
+    return logger_class(**args)
 
 
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)

@@ -130,8 +130,7 @@ def _update_dataloader(
     dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
 ) -> DataLoader:
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode)
-    dataloader = _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
-    return dataloader
+    return _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
 
 
 def _get_dataloader_init_args_and_kwargs(
@@ -297,10 +296,10 @@ def _dataloader_init_kwargs_resolve_sampler(
                         batch_size=batch_sampler.batch_size,
                         drop_last=(False if is_predicting else batch_sampler.drop_last),
                     )
-                except TypeError as e:
+                except TypeError as ex:
                     import re
 
-                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(e))
+                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(ex))
                     if not match:
                         # an unexpected `TypeError`, continue failure
                         raise
@@ -311,7 +310,7 @@ def _dataloader_init_kwargs_resolve_sampler(
                         "We tried to re-instantiate your custom batch sampler and failed. "
                         "To mitigate this, either follow the API of `BatchSampler` or instantiate "
                         "your custom batch sampler inside `*_dataloader` hooks of your module."
-                    ) from e
+                    ) from ex
 
             if is_predicting:
                 batch_sampler = _IndexBatchSamplerWrapper(batch_sampler)

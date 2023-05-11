@@ -30,6 +30,7 @@ from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.ddp import DDPStrategy
+from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
@@ -339,14 +340,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextmanager
-    def module_init_context(self) -> Generator[None, None, None]:
-        with super().module_init_context(), self.module_sharded_context():
-            yield
-
-    @contextmanager
-    def module_sharded_context(self) -> Generator[None, None, None]:
+    def init_sharded_context(self) -> Generator[None, None, None]:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
-        # manager, which happens at the start of `Fabric.run()`. Later modificatoins through e.g. `Fabric.setup()`
+        # manager, which happens at the start of `Fabric.run()`. Later modifications through e.g. `Fabric.setup()`
         # won't have an effect here.
 
         import deepspeed
@@ -399,7 +395,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " part of the state like so: `save_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before saving the checkpoint."
             )
-        elif len(engines) > 1:
+        if len(engines) > 1:
             raise ValueError(
                 "Found multiple DeepSpeed engine modules in the given state. Saving checkpoints with DeepSpeed is"
                 " currently limited to a single model per checkpoint. To save multiple models, call the"
@@ -462,7 +458,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
             )
-        elif len(engines) > 1:
+        if len(engines) > 1:
             raise ValueError(
                 "Found multiple DeepSpeed engine modules in the given state. Saving and loading checkpoints"
                 " with DeepSpeed is currently limited to a single model per checkpoint. To load multiple model"
@@ -512,7 +508,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
         strategy_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)
         strategy_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
@@ -777,8 +773,7 @@ def _get_deepspeed_engines_from_state(state: Dict[str, Any]) -> List["deepspeed.
     from deepspeed import DeepSpeedEngine
 
     modules = chain(*(module.modules() for module in state.values() if isinstance(module, Module)))
-    engines = [engine for engine in modules if isinstance(engine, DeepSpeedEngine)]
-    return engines
+    return [engine for engine in modules if isinstance(engine, DeepSpeedEngine)]
 
 
 def _validate_state_keys(state: Dict[str, Any]) -> None:

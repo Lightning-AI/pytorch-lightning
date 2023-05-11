@@ -11,20 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
+import os
 
-from lightning.fabric.plugins.precision.precision import Precision
-from lightning.fabric.utilities.types import Optimizable
+from lightning.fabric.plugins import XLABf16Precision
 
 
-class TPUPrecision(Precision):
-    """Precision plugin for TPU integration."""
-
-    def optimizer_step(
-        self,
-        optimizer: Optimizable,
-        **kwargs: Any,
-    ) -> Any:
-        import torch_xla.core.xla_model as xm
-
-        return xm.optimizer_step(optimizer, optimizer_args=kwargs)
+def test_teardown(xla_available):
+    plugin = XLABf16Precision()
+    assert os.environ.get("XLA_USE_BF16") == "1"
+    plugin.teardown()
+    assert "XLA_USE_BF16" not in os.environ

@@ -172,6 +172,5 @@ def _verify_mount_root_dirs_are_unique(mounts: Union[None, Mount, List[Mount], T
 
 def _maybe_create_cloud_compute(state: Dict) -> Union[CloudCompute, Dict]:
     if state and state.get("type", None) == __CLOUD_COMPUTE_IDENTIFIER__:
-        cloud_compute = CloudCompute.from_dict(state)
-        return cloud_compute
+        return CloudCompute.from_dict(state)
     return state

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import asyncio
+import contextlib
 import json
 import os
 import queue
@@ -124,23 +125,19 @@ class UIRefresher(Thread):
             raise ex
 
     def run_once(self) -> None:
-        try:
+        with contextlib.suppress(queue.Empty):
             global app_status
             state, app_status = self.api_publish_state_queue.get(timeout=0)
             with lock:
                 global_app_state_store.set_app_state(TEST_SESSION_UUID, state)
-        except queue.Empty:
-            pass
 
-        try:
+        with contextlib.suppress(queue.Empty):
             responses = self.api_response_queue.get(timeout=0)
             with lock:
                 # TODO: Abstract the responses store to support horizontal scaling.
                 global responses_store
                 for response in responses:
                     responses_store[response["id"]] = response["response"]
-        except queue.Empty:
-            pass
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
@@ -179,7 +176,7 @@ fastapi_service.add_middleware(
 )
 
 if _is_starsessions_available():
-    fastapi_service.add_middleware(SessionMiddleware, secret_key="secret", autoload=True)
+    fastapi_service.add_middleware(SessionMiddleware, secret_key="secret", autoload=True)  # noqa: S106
 
 
 # General sequence is:
@@ -288,6 +285,7 @@ async def post_delta(
     body: Dict = await request.json()
     assert api_app_delta_queue is not None
     api_app_delta_queue.put(_DeltaRequest(delta=Delta(body["delta"])))
+    return None
 
 
 @fastapi_service.post("/api/v1/state")
@@ -326,6 +324,7 @@ async def post_state(
         deep_diff = DeepDiff(last_state, state, verbose_level=2)
     assert api_app_delta_queue is not None
     api_app_delta_queue.put(_DeltaRequest(delta=Delta(deep_diff)))
+    return None
 
 
 @fastapi_service.put("/api/v1/upload_file/{filename}")
@@ -490,7 +489,7 @@ def start_server(
 
     if uvicorn_run:
         host = host.split("//")[-1] if "//" in host else host
-        if host == "0.0.0.0":
+        if host == "0.0.0.0":  # noqa: S104
             logger.info("Your app has started.")
         else:
             logger.info(f"Your app has started. View it in your browser: http://{host}:{port}/view")

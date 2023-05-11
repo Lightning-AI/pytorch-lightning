@@ -105,8 +105,7 @@ class CSVLogger(Logger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, self.name, version)
-        return log_dir
+        return os.path.join(self.root_dir, self.name, version)
 
     @property
     @rank_zero_experiment
@@ -157,9 +156,10 @@ class CSVLogger(Logger):
             return 0
 
         existing_versions = []
-        for d in self._fs.listdir(root_dir, detail=False):
-            name = d[len(root_dir) + 1 :]  # removes parent directories
-            if self._fs.isdir(d) and name.startswith("version_"):
+        for d in self._fs.listdir(root_dir):
+            full_path = d["name"]
+            name = os.path.basename(full_path)
+            if self._fs.isdir(full_path) and name.startswith("version_"):
                 existing_versions.append(int(name.split("_")[1]))
 
         if len(existing_versions) == 0:

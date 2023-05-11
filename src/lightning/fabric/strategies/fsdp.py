@@ -13,7 +13,7 @@
 # limitations under the License.
 import functools
 import os
-from contextlib import _GeneratorContextManager, contextmanager, nullcontext
+from contextlib import _GeneratorContextManager, contextmanager
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
@@ -29,6 +29,7 @@ from lightning.fabric.plugins.collectives.torch_collective import default_pg_tim
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
+from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, _Sharded, TBroadcast
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
@@ -154,6 +155,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return self.mixed_precision
         if isinstance(self.precision, FSDPPrecision):
             return self.precision.mixed_precision_config
+        return None
 
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
@@ -244,13 +246,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     @contextmanager
-    def module_init_context(self) -> Generator[None, None, None]:
-        device_context = torch.device("meta") if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
-        with device_context, self.precision.module_init_context(), self.module_sharded_context():
+    def init_context(self) -> Generator[None, None, None]:
+        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
+        # is resolved. For now, the module will get moved to the device in `setup_module`.
+        with self.precision.init_context():
             yield
 
     @contextmanager
-    def module_sharded_context(self) -> Generator:
+    def init_sharded_context(self) -> Generator:
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
 
@@ -267,7 +270,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
     ) -> Tensor:
         if isinstance(tensor, Tensor):
-            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
@@ -455,7 +458,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return metadata
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         if not _TORCH_GREATER_EQUAL_1_12 or not torch.distributed.is_available():
             return
 
@@ -532,10 +535,10 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
     _FSDP_FLATTENED = "_fsdp_flattened"
     if _TORCH_GREATER_EQUAL_1_13:
         return any(getattr(param, _FSDP_FLATTENED, False) for param in optimizer.param_groups[0]["params"])
-    else:
-        from torch.distributed.fsdp import FlatParameter
 
-        return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
+    from torch.distributed.fsdp import FlatParameter
+
+    return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
 
 
 def _get_state_dict_type(module: "FullyShardedDataParallel") -> _GeneratorContextManager:
@@ -544,10 +547,9 @@ def _get_state_dict_type(module: "FullyShardedDataParallel") -> _GeneratorContex
 
     state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
     optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
-    state_dict_type = FSDP.state_dict_type(
+    return FSDP.state_dict_type(
         module=module,
         state_dict_type=StateDictType.SHARDED_STATE_DICT,
         state_dict_config=state_dict_config,
         optim_state_dict_config=optim_state_dict_config,
     )
-    return state_dict_type
