@@ -134,6 +134,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
 
     # verify the full state can be loaded back into a single-device model/strategy
     fabric = BoringFabric(accelerator="cpu", devices=1)
+    fabric.run()
     metadata = fabric.load(checkpoint_path, {"model": fabric.model, "optimizer": fabric.optimizer})
     assert metadata == {"steps": 1}
 
