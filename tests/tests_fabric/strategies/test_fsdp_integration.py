@@ -131,7 +131,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
         state_dict = fabric.model.state_dict()
         assert set(loaded_state_dict.keys()) == set(state_dict.keys())
         for param_name in state_dict:
-            assert torch.equal(loaded_state_dict[param_name], state_dict[param_name])
+            assert torch.equal(loaded_state_dict[param_name].cpu(), state_dict[param_name].cpu())
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
