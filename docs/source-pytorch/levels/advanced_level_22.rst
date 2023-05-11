@@ -1,7 +1,7 @@
 :orphan:
 
 #############################################
-Level 22: Reach 1 trillion parameters on GPUs
+Level 21: Reach 1 trillion parameters on GPUs
 #############################################
 
 Scale to 1 trillion+ parameters with multiple distributed strategies.
