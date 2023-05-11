@@ -311,7 +311,7 @@ def test_warning_if_tpus_not_used(tpu_available):
         ("2,", [2]),
     ],
 )
-@pytest.mark.parametrize("runtime", ("xrt", "pjrt"))
+@pytest.mark.parametrize("runtime", ["xrt", "pjrt"])
 @RunIf(min_python="3.9")  # mocking issue
 def test_trainer_config_device_ids(devices, expected_device_ids, runtime, tpu_available, monkeypatch):
     from torch_xla.experimental import pjrt

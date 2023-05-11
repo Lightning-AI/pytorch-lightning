@@ -11,7 +11,7 @@ from lightning.app.runners import MultiProcessRuntime
 from lightning.app.testing.helpers import EmptyFlow
 
 
-@pytest.mark.parametrize("return_val", (1, None, set(), "string"))
+@pytest.mark.parametrize("return_val", [1, None, set(), "string"])
 def test_invalid_layout(return_val):
     class Root(EmptyFlow):
         def configure_layout(self):
@@ -87,7 +87,7 @@ class StaticWebFrontendFlow(LightningFlow):
 
 
 @pytest.mark.skip(reason="hanging... need to be fixed")  # fixme
-@pytest.mark.parametrize("flow", (StaticWebFrontendFlow, StreamlitFrontendFlow))
+@pytest.mark.parametrize("flow", [StaticWebFrontendFlow, StreamlitFrontendFlow])
 @mock.patch("lightning.app.runners.multiprocess.find_free_network_port")
 def test_layout_leaf_node(find_ports_mock, flow):
     find_ports_mock.side_effect = lambda: 100

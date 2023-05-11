@@ -71,8 +71,7 @@ class LitClassifier(LightningModule):
 
     def forward(self, x):
         # use forward for inference/predictions
-        embedding = self.backbone(x)
-        return embedding
+        return self.backbone(x)
 
     def training_step(self, batch, batch_idx):
         x, y = batch

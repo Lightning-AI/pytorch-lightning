@@ -344,13 +344,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    ("path", "expected_status_code"),
-    (
-        ("/api/v1", 404),
-        ("/api/v1/asdf", 404),
-        ("/api/asdf", 404),
-        ("/api", 404),
-    ),
+    ("path", "expected_status_code"), [("/api/v1", 404), ("/api/v1/asdf", 404), ("/api/asdf", 404), ("/api", 404)]
 )
 @pytest.mark.anyio()
 async def test_state_api_routes(path, expected_status_code):
@@ -393,11 +387,11 @@ async def test_health_endpoint_failure(monkeypatch):
 
 @pytest.mark.parametrize(
     ("path", "expected_status_code"),
-    (
+    [
         ("/", 200),
         ("/asdf", 200),
         ("/view/component_a", 200),
-    ),
+    ],
 )
 @pytest.mark.anyio()
 async def test_frontend_routes(path, expected_status_code):
@@ -491,6 +485,7 @@ class FlowAPI(LightningFlow):
         assert request.body()
         assert request.json()
         assert request.headers
+        assert request.method
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):

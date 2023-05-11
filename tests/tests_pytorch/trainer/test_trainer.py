@@ -639,8 +639,8 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
 
-@pytest.mark.parametrize("ckpt_path", (None, "last"))
-@pytest.mark.parametrize("fn", (TrainerFn.FITTING, TrainerFn.VALIDATING))
+@pytest.mark.parametrize("ckpt_path", [None, "last"])
+@pytest.mark.parametrize("fn", [TrainerFn.FITTING, TrainerFn.VALIDATING])
 def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
     mc = ModelCheckpoint()
     mc.best_model_path = "foobar"
@@ -668,9 +668,9 @@ def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
     assert ckpt_path == final_path
 
 
-@pytest.mark.parametrize("ckpt_path", (None, "last"))
-@pytest.mark.parametrize("save_last", (True, False))
-@pytest.mark.parametrize("fn", ("fit", "validate"))
+@pytest.mark.parametrize("ckpt_path", [None, "last"])
+@pytest.mark.parametrize("save_last", [True, False])
+@pytest.mark.parametrize("fn", ["fit", "validate"])
 def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
     model = BoringModel()
     mc = ModelCheckpoint(save_last=save_last)
@@ -748,9 +748,9 @@ def test_checkpoint_find_last(tmpdir):
     assert trainer.ckpt_path == str(tmpdir / "checkpoints" / "last.ckpt")
 
 
-@pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
-@pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
-@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
+@pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
+@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
@@ -819,8 +819,8 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
             assert trainer.ckpt_path == ckpt_path
 
 
-@pytest.mark.parametrize("enable_checkpointing", (False, True))
-@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("enable_checkpointing", [False, True])
+@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
@@ -1196,7 +1196,7 @@ def test_trainer_pickle(tmpdir):
     cloudpickle.dumps(trainer)
 
 
-@pytest.mark.parametrize("stage", ("fit", "validate", "test"))
+@pytest.mark.parametrize("stage", ["fit", "validate", "test"])
 def test_trainer_setup_call(tmpdir, stage):
     """Test setup call gets the correct stage."""
 
@@ -1344,7 +1344,7 @@ def test_trainer_predict_no_return(tmpdir):
     class CustomBoringModel(BoringModel):
         def predict_step(self, batch, batch_idx, dataloader_idx=0):
             if (batch_idx + 1) % 2 == 0:
-                return
+                return None
 
             return super().predict_step(batch, batch_idx, dataloader_idx)
 
@@ -1686,7 +1686,7 @@ def test_module_current_fx_attributes_reset(tmpdir):
     assert model._current_fx_name is None
 
 
-@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_exception_when_lightning_module_is_not_set_on_trainer(fn):
     trainer = Trainer()
     trainer_fn = getattr(trainer, fn)

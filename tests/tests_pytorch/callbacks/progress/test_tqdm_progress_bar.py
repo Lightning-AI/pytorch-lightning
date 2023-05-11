@@ -279,7 +279,7 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     assert pbar.test_batches_seen == pbar.test_progress_bar.total
 
 
-@pytest.mark.parametrize("limit_val_batches", (0, 5))
+@pytest.mark.parametrize("limit_val_batches", [0, 5])
 def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
     """Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument."""
 
@@ -337,13 +337,13 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
 @pytest.mark.parametrize(
     ("train_batches", "val_batches", "refresh_rate", "train_updates", "val_updates"),
     [
-        [2, 3, 1, [0, 1, 2], [0, 1, 2, 3]],
-        [0, 0, 3, None, None],
-        [1, 0, 3, [0, 1], None],
-        [1, 1, 3, [0, 1], [0, 1]],
-        [5, 0, 3, [0, 3, 5], None],
-        [5, 2, 3, [0, 3, 5], [0, 2]],
-        [5, 2, 6, [0, 5], [0, 2]],
+        (2, 3, 1, [0, 1, 2], [0, 1, 2, 3]),
+        (0, 0, 3, None, None),
+        (1, 0, 3, [0, 1], None),
+        (1, 1, 3, [0, 1], [0, 1]),
+        (5, 0, 3, [0, 3, 5], None),
+        (5, 2, 3, [0, 3, 5], [0, 2]),
+        (5, 2, 6, [0, 5], [0, 2]),
     ],
 )
 def test_train_progress_bar_update_amount(
@@ -419,14 +419,14 @@ def test_tensor_to_float_conversion(tmpdir):
 @pytest.mark.parametrize(
     ("input_num", "expected"),
     [
-        [1, "1"],
-        [1.0, "1.000"],
-        [0.1, "0.100"],
-        [1e-3, "0.001"],
-        [1e-5, "1e-5"],
-        ["1.0", "1.000"],
-        ["10000", "10000"],
-        ["abc", "abc"],
+        (1, "1"),
+        (1.0, "1.000"),
+        (0.1, "0.100"),
+        (1e-3, "0.001"),
+        (1e-5, "1e-5"),
+        ("1.0", "1.000"),
+        ("10000", "10000"),
+        ("abc", "abc"),
     ],
 )
 def test_tqdm_format_num(input_num: Union[str, int, float], expected: str):
