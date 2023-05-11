@@ -325,10 +325,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         """Save model, optimizer, and other state to a checkpoint on disk.
 
         If the state-dict-type is ``'full'``, the checkpoint will be written to a single file containing the weights,
-        optimizer state and other metadata.
-        If the state-dict-type is ``'sharded'``, the checkpoint gets saved as a directory containing one file per
-        process, with model- and optimizer shards stored per file. Additionally, it creates a metadata file
-        `meta.pt` with the rest of the user's state (only saved from rank 0).
+        optimizer state and other metadata. If the state-dict-type is ``'sharded'``, the checkpoint gets saved as a
+        directory containing one file per process, with model- and optimizer shards stored per file. Additionally, it
+        creates a metadata file `meta.pt` with the rest of the user's state (only saved from rank 0).
         """
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
