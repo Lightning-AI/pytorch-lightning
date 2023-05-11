@@ -425,11 +425,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(path))
-        # if path.is_file():
-        #     raise NotImplementedError(
-        #         f"The path `{path}` is a file, but the `FSDPStrategy` currently only supports loading from a checkpoint"
-        #         f" with sharded states in a directory."
-        #     )
 
         from torch.distributed.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
@@ -451,7 +446,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         module_key, module = list(modules.items())[0]
 
-        if _looks_like_sharded_checkpoint(path):
+        if _is_sharded_checkpoint(path):
             state_dict_ctx = _get_sharded_state_dict_context(module)
             reader = FileSystemReader(path=path)
 
@@ -486,7 +481,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # return the remaining metadata that wasn't requested as part of `state`
             return metadata
 
-        elif path.is_file():
+        elif _is_full_checkpoint(path):
             # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
             # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
             checkpoint = torch.load(path, map_location="cpu")
@@ -632,5 +627,9 @@ def _get_full_state_dict_context(module: "FullyShardedDataParallel") -> _Generat
     return state_dict_type_context
 
 
-def _looks_like_sharded_checkpoint(path: Path) -> bool:
+def _is_sharded_checkpoint(path: Path) -> bool:
     return path.is_dir() and (path / "meta.pt").is_file()
+
+
+def _is_full_checkpoint(path: Path) -> bool:
+    return path.is_file()
