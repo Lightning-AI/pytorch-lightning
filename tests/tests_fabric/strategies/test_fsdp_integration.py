@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from copy import deepcopy
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -117,7 +118,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
     )
     fabric.run()
 
-    checkpoint_path = fabric.broadcast(str(tmp_path / "fsdp-checkpoint"))
+    checkpoint_path = Path(fabric.broadcast(str(tmp_path / "fsdp-checkpoint")))
 
     state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
     fabric.save(checkpoint_path, state)
