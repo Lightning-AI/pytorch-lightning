@@ -340,7 +340,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         path = Path(self.broadcast(path))
         if path.is_dir() and os.listdir(path):
             raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
-        path.mkdir(parents=True)
 
         from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -360,6 +359,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
 
         module = modules[0]
+        path.mkdir(parents=True)
 
         if self._state_dict_type == "sharded":
             state_dict_ctx = _get_sharded_state_dict_context(module)
