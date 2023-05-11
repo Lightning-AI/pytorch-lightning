@@ -263,6 +263,15 @@ def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
         strategy.load_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
 
 
+@RunIf(min_torch="2.0.0")
+@mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
+    strategy = FSDPStrategy(state_dict_type="invalid")
+    model = Mock(spec=FullyShardedDataParallel)
+    with pytest.raises(ValueError, match="Unknown state_dict_type"):
+        strategy.save_checkpoint(path=tmp_path, state={"model": model})
+
+
 @RunIf(min_torch="1.12")
 @mock.patch("torch.distributed.init_process_group")
 def test_set_timeout(init_process_group_mock):

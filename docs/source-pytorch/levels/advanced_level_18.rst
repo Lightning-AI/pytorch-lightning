@@ -1,10 +1,10 @@
 :orphan:
 
 #######################################
-Level 18: Enable advanced checkpointing
+Level 17: Enable advanced checkpointing
 #######################################
 
-This level shows you how to enable composable and/or cloud based checkpoints.
+This level shows you how to enable composable and/or cloud-based checkpoints.
 
 ----
 

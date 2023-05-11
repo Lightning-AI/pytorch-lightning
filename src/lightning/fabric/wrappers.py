@@ -158,7 +158,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             warning_cache.warn(
                 f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
                 " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
-                f" `.backward()`. You should pass your inputs through `{type(self._original_module)}.forward()`.",
+                " `.backward()`. You should pass your inputs through"
+                f" `{type(self._original_module).__name__}.forward()`.",
                 category=PossibleUserWarning,
             )
 

@@ -1,10 +1,10 @@
 :orphan:
 
 ###############################
-Level 16: Customize the trainer
+Level 15: Customize the trainer
 ###############################
 
-In this level, you'll learn to modify the Trainer behavior.
+In this level you'll learn to modify the behavior of the Trainer.
 
 ----
 
