@@ -113,7 +113,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
     fabric = BoringFabric(
         accelerator="cuda",
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type="full"),
-        devices=2
+        devices=2,
     )
     fabric.run()
 
