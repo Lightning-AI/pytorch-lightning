@@ -157,11 +157,6 @@ This eliminates the waiting time to transfer the model parameters from the CPU t
 For strategies that handle large sharded models (FSDP, DeepSpeed), the :meth:`~lightning.fabric.fabric.Fabric.init_module` method will allocate the model parameters on the meta device first before sharding.
 This makes it possible to work with models that are larger than the memory of a single device.
 
-.. tip::
-
-    This is a wrapper over :meth:`~lightning.fabric.fabric.Fabric.init` and :meth:`~lightning.fabric.fabric.Fabric.sharded_model` which implement the features described above.
-    Using these separately can provide more control for expert users.
-
 autocast
 ========
 

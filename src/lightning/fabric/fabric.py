@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_warn
+from lightning_utilities.core.rank_zero import rank_zero_warn, rank_zero_deprecation
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -584,9 +584,12 @@ class Fabric:
 
     @contextmanager
     def sharded_model(self) -> Generator:
-        """Shard the parameters of the model instantly when instantiating the layers."""
-        context = self._strategy.module_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
-        with context:
+        """Instantiate a model under this context manager to prepare it for model-parallel sharding.
+
+        .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
+        """
+        rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
+        with _old_sharded_model_context(self._strategy):
             yield
 
     @contextmanager
@@ -792,7 +795,7 @@ class Fabric:
         self._strategy.setup_environment()
         # TODO: remove sharded_context from here as users are meant to enable it manually
         # apply sharded context to prevent OOM
-        with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
+        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
             BatchSampler
         ):
             return to_run(*args, **kwargs)
@@ -903,3 +906,12 @@ class Fabric:
 
 def _is_using_cli() -> bool:
     return bool(int(os.environ.get("LT_CLI_USED", "0")))
+
+
+@contextmanager
+def _old_sharded_model_context(strategy: Strategy) -> Generator:
+    if isinstance(strategy, _Sharded):
+        with strategy.module_sharded_context():
+            yield
+    else:
+        yield
