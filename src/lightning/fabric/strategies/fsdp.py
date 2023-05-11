@@ -360,9 +360,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
 
         module = modules[0]
-        path.mkdir(parents=True, exist_ok=True)
 
         if self._state_dict_type == "sharded":
+            path.mkdir(parents=True, exist_ok=True)
             state_dict_ctx = _get_sharded_state_dict_context(module)
 
             # replace the modules and optimizer objects in the state with their local state dict
@@ -387,22 +387,18 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         elif self._state_dict_type == "full":
             state_dict_ctx = _get_full_state_dict_context(module)
-            metadata = {}
+            full_state = {}
             with state_dict_ctx:
                 for key, obj in state.items():
                     if isinstance(obj, FSDP):
-                        state_dict = obj.state_dict()
-                        if self.global_rank == 0:
-                            torch.save(state_dict, path / f"{key}.pt")
+                        full_state[key] = obj.state_dict()
                     elif isinstance(obj, Optimizer):
-                        state_dict = FSDP.optim_state_dict(module, obj)
-                        if self.global_rank == 0:
-                            torch.save(state_dict, path / f"{key}.pt")
+                        full_state[key] = FSDP.optim_state_dict(module, obj)
                     else:  # everything not a module or optimizer is considered metadata
-                        metadata[key] = obj
+                        full_state[key] = obj
 
             if self.global_rank == 0:
-                torch.save(metadata, path / "meta.pt")
+                torch.save(full_state, path)
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
