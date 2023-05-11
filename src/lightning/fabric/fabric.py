@@ -599,7 +599,7 @@ class Fabric:
         The parameters get created on the device (if using PyTorch 2.0 or newer) and with the right data type right away
         without wasting memory being allocated unnecessarily.
         """
-        with self._strategy.init_context():
+        with self.device, self._precision.init_context():
             yield
 
     @contextmanager
@@ -619,7 +619,7 @@ class Fabric:
                 " utilize the features in `init_module()`.",
                 category=PossibleUserWarning,
             )
-        with self._strategy.init_context():
+        with self._strategy.module_init_context():
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:

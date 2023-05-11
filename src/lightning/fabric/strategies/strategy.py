@@ -116,8 +116,8 @@ class Strategy(ABC):
         return dataloader
 
     @contextmanager
-    def init_context(self) -> Generator:
-        """A context manager for improved tensor and module instantiation.
+    def module_init_context(self) -> Generator:
+        """A context manager wrapping the model instantiation.
 
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
         patches to the model.

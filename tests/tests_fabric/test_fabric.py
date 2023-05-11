@@ -737,19 +737,19 @@ def test_init_module_context(monkeypatch):
 
     fabric = Fabric(accelerator="cpu")
     strategy = lightning.fabric.strategies.SingleDeviceStrategy(device=torch.device("cuda"))
-    strategy.init_context = Mock(wraps=strategy.init_context)
+    strategy.module_init_context = Mock(wraps=strategy.module_init_context)
     fabric._strategy = strategy
     with fabric.init_module():
         pass
-    strategy.init_context.assert_called_once()
-    strategy.init_context.reset_mock()
+    strategy.module_init_context.assert_called_once()
+    strategy.module_init_context.reset_mock()
 
     # Pretend we are using PyTorch < 2.0
     monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
     with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
         with fabric.init_module():
             pass
-    strategy.init_context.assert_called_once()
+    strategy.module_init_context.assert_called_once()
 
 
 def test_callbacks_input():
