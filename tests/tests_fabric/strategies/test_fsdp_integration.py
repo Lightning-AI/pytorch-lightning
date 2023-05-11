@@ -107,6 +107,32 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
         fabric.load(checkpoint_path, state)
 
 
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+def test_fsdp_save_full_state_dict(tmp_path):
+    """Test FSDP training, saving and loading with different wrapping and precision settings."""
+    fabric = _MyFabric(
+        accelerator="cuda",
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type="full"),
+        devices=2
+    )
+    fabric.run()
+
+    checkpoint_path = fabric.broadcast(str(tmp_path / "fsdp-checkpoint"))
+
+    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
+    fabric.save(checkpoint_path, state)
+    assert set(os.listdir(checkpoint_path)) == {"meta.pt", "model.pt", "optimizer.pt"}
+
+    metadata = torch.load(checkpoint_path / "meta.pt")
+    assert metadata == {"steps": 1}
+    loaded_state_dict = torch.load(checkpoint_path / "model.pt")
+    with FullyShardedDataParallel.summon_full_params(fabric.model):
+        state_dict = fabric.model.state_dict()
+        assert set(loaded_state_dict.keys()) == set(state_dict.keys())
+        for param_name in state_dict:
+            assert torch.equal(loaded_state_dict[param_name], state_dict[param_name])
+
+
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("move_to_device", [True, False])
 @mock.patch("lightning.fabric.wrappers._FabricModule")
