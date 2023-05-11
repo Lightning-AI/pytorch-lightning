@@ -322,10 +322,13 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def save_checkpoint(
         self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
     ) -> None:
-        """Save model, optimizer, and other state in a checkpoint directory.
+        """Save model, optimizer, and other state to a checkpoint on disk.
 
-        The directory will contain one file per process, with model- and optimizer shards stored per file. Additionally,
-        it creates a metadata file `meta.pt` with the rest of the user's state (only saved from rank 0).
+        If the state-dict-type is ``'full'``, the checkpoint will be written to a single file containing the weights,
+        optimizer state and other metadata.
+        If the state-dict-type is ``'sharded'``, the checkpoint gets saved as a directory containing one file per
+        process, with model- and optimizer shards stored per file. Additionally, it creates a metadata file
+        `meta.pt` with the rest of the user's state (only saved from rank 0).
         """
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
@@ -395,7 +398,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                     elif isinstance(obj, Optimizer):
                         full_state[key] = FSDP.optim_state_dict(module, obj)
                     else:  # everything not a module or optimizer is considered metadata
-                        full_state[key] = obj
+                        full_state[key] = obj  # type: ignore[assignment]
 
             if self.global_rank == 0:
                 torch.save(full_state, path)
