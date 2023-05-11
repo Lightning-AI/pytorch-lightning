@@ -30,9 +30,7 @@ from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.rank_zero import rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
-from lightning.fabric.utilities.warnings import PossibleUserWarning
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")

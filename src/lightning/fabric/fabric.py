@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_warn, rank_zero_deprecation
+from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -795,9 +795,9 @@ class Fabric:
         self._strategy.setup_environment()
         # TODO: remove sharded_context from here as users are meant to enable it manually
         # apply sharded context to prevent OOM
-        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
-            BatchSampler
-        ):
+        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(
+            DataLoader, "dataset"
+        ), _replace_dunder_methods(BatchSampler):
             return to_run(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
