@@ -83,9 +83,10 @@ def test_wandb_logger_init(wandb, monkeypatch):
     wandb.init.reset_mock()
     wandb.run = wandb.init()
 
-    monkeypatch.setattr(lightning.pytorch.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
+    logger = WandbLogger()
     with pytest.warns(UserWarning, match="There is a wandb run already in progress"):
-        logger = WandbLogger()
+        _ = logger.experiment
+
     # check that no new run is created
     with no_warning_call(UserWarning, match="There is a wandb run already in progress"):
         _ = logger.experiment
@@ -103,16 +104,30 @@ def test_wandb_logger_init(wandb, monkeypatch):
     wandb.init().log.assert_called_with({"acc": 1.0, "trainer/global_step": 6})
 
     # log hyper parameters
-    logger.log_hyperparams({"test": None, "nested": {"a": 1}, "b": [2, 3, 4]})
-    wandb.init().config.update.assert_called_once_with(
-        {"test": None, "nested/a": 1, "b": [2, 3, 4]}, allow_val_change=True
-    )
+    hparams = {"test": None, "nested": {"a": 1}, "b": [2, 3, 4]}
+    logger.log_hyperparams(hparams)
+    wandb.init().config.update.assert_called_once_with(hparams, allow_val_change=True)
 
     # watch a model
     logger.watch("model", "log", 10, False)
     wandb.init().watch.assert_called_once_with("model", log="log", log_freq=10, log_graph=False)
 
     assert logger.version == wandb.init().id
+
+
+@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
+@mock.patch("lightning.pytorch.loggers.wandb.wandb")
+def test_wandb_logger_init_before_spawn(_, monkeypatch):
+    monkeypatch.setattr(lightning.pytorch.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", False)
+    logger = WandbLogger()
+    assert logger._experiment is None
+    logger.__getstate__()
+    assert logger._experiment is None
+
+    monkeypatch.setattr(lightning.pytorch.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
+    logger = WandbLogger()
+    logger.__getstate__()
+    assert logger._experiment is not None
 
 
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
@@ -161,8 +176,6 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     monkeypatch.setattr(lightning.pytorch.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
     wandb.run = None
     logger = WandbLogger(project="project", save_dir=str(tmpdir), offline=True)
-    # the logger get initialized
-    assert logger.version == wandb.init().id
 
     # mock return values of experiment
     wandb.run = None

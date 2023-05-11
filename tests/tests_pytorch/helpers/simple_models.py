@@ -48,8 +48,7 @@ class ClassificationModel(LightningModule):
         x = self.layer_2(x)
         x = self.layer_2a(x)
         x = self.layer_end(x)
-        logits = F.softmax(x, dim=1)
-        return logits
+        return F.softmax(x, dim=1)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)

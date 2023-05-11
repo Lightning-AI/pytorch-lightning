@@ -33,17 +33,13 @@ def test_init_device_with_wrong_device_type():
 
 @pytest.mark.parametrize(
     ("devices", "expected"),
-    [
-        (1, [torch.device("cpu")]),
-        (2, [torch.device("cpu")] * 2),
-        ("3", [torch.device("cpu")] * 3),
-    ],
+    [(1, [torch.device("cpu")]), (2, [torch.device("cpu")] * 2), ("3", [torch.device("cpu")] * 3)],
 )
 def test_get_parallel_devices(devices, expected):
     assert CPUAccelerator.get_parallel_devices(devices) == expected
 
 
-@pytest.mark.parametrize("devices", ([3], -1))
+@pytest.mark.parametrize("devices", [[3], -1])
 def test_invalid_devices_with_cpu_accelerator(devices):
     """Test invalid device flag raises MisconfigurationException."""
     with pytest.raises(TypeError, match="should be an int > 0"):

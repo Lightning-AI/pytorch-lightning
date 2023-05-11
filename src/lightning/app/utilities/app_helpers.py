@@ -155,6 +155,7 @@ class _LightningAppRef:
     def get_current(cls) -> Optional["LightningApp"]:
         if cls._app_instance:
             return cls._app_instance
+        return None
 
 
 def affiliation(component: "Component") -> Tuple[str, ...]:

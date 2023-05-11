@@ -140,7 +140,7 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
     ],
 )
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
-def test_module_init_context(precision, expected_dtype):
+def test_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
     expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
@@ -149,7 +149,7 @@ def test_module_init_context(precision, expected_dtype):
         parallel_devices=parallel_devices, precision=precision, cluster_environment=LightningEnvironment()
     )
     assert strategy.local_rank == 1
-    with strategy.module_init_context():
+    with strategy.init_context():
         module = torch.nn.Linear(2, 2)
     assert module.weight.device == module.bias.device == expected_device
     assert module.weight.dtype == module.bias.dtype == expected_dtype

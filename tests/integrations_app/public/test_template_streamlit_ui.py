@@ -23,12 +23,13 @@ def test_template_streamlit_ui_example_cloud() -> None:
             if button.all_text_contents() == ["Should print to the terminal ?"]:
                 button.click()
                 return True
+            return None
 
         wait_for(view_page, click_button)
 
         has_logs = False
         while not has_logs:
             for log in fetch_logs():
-                if "0: Hello World!" in log:
+                if "Hello World!" in log:
                     has_logs = True
             sleep(1)

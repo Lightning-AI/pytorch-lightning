@@ -114,7 +114,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "
     For normal users who install via PyPi or Conda, then this function does not do anything.
     """
     if not get_dist_path_if_editable_install(package_name):
-        return
+        return None
 
     os.environ["PACKAGE_NAME"] = "app" if package_name == "lightning" + "_app" else "lightning"
 
@@ -124,7 +124,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "
     is_lightning = git_dir_name and git_dir_name == package_name
 
     if (PACKAGE_LIGHTNING is None and not is_lightning) or PACKAGE_LIGHTNING == "0":
-        return
+        return None
 
     download_frontend(_PROJECT_ROOT)
     _prepare_wheel(_PROJECT_ROOT)

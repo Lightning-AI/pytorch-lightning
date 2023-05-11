@@ -379,8 +379,7 @@ class WorkRunExecutor:
             queue_type = queue.pop("type")
             if queue_type == "redis":
                 return RedisQueue.from_dict(queue)
-            else:
-                return HTTPQueue.from_dict(queue)
+            return HTTPQueue.from_dict(queue)
         return queue
 
 
@@ -681,8 +680,7 @@ class WorkRunner:
                 self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
                 self._proxy_setattr(cleanup=True)
                 return True
-            else:
-                raise Exception("Only the `start` action is supported right now !")
+            raise Exception("Only the `start` action is supported right now !")
         return False
 
 

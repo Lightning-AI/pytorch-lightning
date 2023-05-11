@@ -404,7 +404,7 @@ class HookedModel(BoringModel):
         ),
     ],
 )
-@pytest.mark.parametrize("automatic_optimization", (True, False))
+@pytest.mark.parametrize("automatic_optimization", [True, False])
 def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     called = []
 
@@ -665,7 +665,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
     assert called == expected
 
 
-@pytest.mark.parametrize("batches", (0, 2))
+@pytest.mark.parametrize("batches", [0, 2])
 @pytest.mark.parametrize(
     ("verb", "noun", "dataloader", "key"), [("validate", "validation", "val", "x"), ("test", "test", "test", "y")]
 )

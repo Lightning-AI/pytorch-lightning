@@ -294,7 +294,7 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
 
 
 @pytest.mark.parametrize("scale_method", ["power", "binsearch"])
-@pytest.mark.parametrize("init_batch_size", (8, 17, 64))
+@pytest.mark.parametrize("init_batch_size", [8, 17, 64])
 def test_dataloader_reset_with_scale_batch_size(tmp_path, caplog, scale_method, init_batch_size):
     """Test that train and val dataloaders are reset at every update in scale batch size."""
     model = BatchSizeModel(batch_size=16)

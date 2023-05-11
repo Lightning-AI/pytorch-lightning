@@ -31,7 +31,7 @@ def test_tpu_device_absence():
     assert not XLAAccelerator.is_available()
 
 
-@pytest.mark.parametrize("devices", (1, 8))
+@pytest.mark.parametrize("devices", [1, 8])
 def test_get_parallel_devices(devices, tpu_available):
     expected = XLAAccelerator.get_parallel_devices(devices)
     assert len(expected) == devices
