@@ -425,11 +425,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(path))
-        if path.is_file():
-            raise NotImplementedError(
-                f"The path `{path}` is a file, but the `FSDPStrategy` currently only supports loading from a checkpoint"
-                f" with sharded states in a directory."
-            )
+        # if path.is_file():
+        #     raise NotImplementedError(
+        #         f"The path `{path}` is a file, but the `FSDPStrategy` currently only supports loading from a checkpoint"
+        #         f" with sharded states in a directory."
+        #     )
 
         from torch.distributed.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
@@ -451,39 +451,72 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         module_key, module = list(modules.items())[0]
 
-        state_dict_ctx = _get_sharded_state_dict_context(module)
-        reader = FileSystemReader(path=path)
+        if _looks_like_sharded_checkpoint(path):
+            state_dict_ctx = _get_sharded_state_dict_context(module)
+            reader = FileSystemReader(path=path)
 
-        with state_dict_ctx:
-            module_state = {module_key: module.state_dict()}
-            load_state_dict(module_state, reader)
-            module.load_state_dict(module_state[module_key])
+            with state_dict_ctx:
+                module_state = {module_key: module.state_dict()}
+                load_state_dict(module_state, reader)
+                module.load_state_dict(module_state[module_key])
 
-            # the optimizer states must be loaded separately
+                # the optimizer states must be loaded separately
+                for optim_key, optim in optimizers.items():
+                    optim_state = load_sharded_optimizer_state_dict(
+                        model_state_dict=module_state[module_key],
+                        optimizer_key=optim_key,
+                        storage_reader=reader,
+                    )
+                    flattened_osd = FSDP.optim_state_dict_to_load(
+                        optim_state_dict=optim_state[optim_key],
+                        model=module,
+                        optim=optim,
+                    )
+                    optim.load_state_dict(flattened_osd)
+
+            # Load metadata (anything not a module or optimizer)
+            metadata = torch.load(path / "meta.pt")
+            for key, obj in state.items():
+                if isinstance(obj, (FSDP, Optimizer)):
+                    continue
+                if key not in metadata:
+                    raise KeyError(f"'{key}' not found in the checkpoint.")
+                state[key] = metadata.pop(key)
+
+            # return the remaining metadata that wasn't requested as part of `state`
+            return metadata
+
+        elif path.is_file():
+            # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
+            # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
+            checkpoint = torch.load(path, map_location="cpu")
+            with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
+                module.load_state_dict(checkpoint.pop(module_key))
+
             for optim_key, optim in optimizers.items():
-                optim_state = load_sharded_optimizer_state_dict(
-                    model_state_dict=module_state[module_key],
-                    optimizer_key=optim_key,
-                    storage_reader=reader,
-                )
-                flattened_osd = FSDP.optim_state_dict_to_load(
-                    optim_state_dict=optim_state[optim_key],
+                sharded_optim_state_dict = FSDP.scatter_full_optim_state_dict(
+                    checkpoint.pop(optim_key),
                     model=module,
-                    optim=optim,
+                    optim=optim
                 )
-                optim.load_state_dict(flattened_osd)
+                optim.load_state_dict(sharded_optim_state_dict)
 
-        # Load metadata (anything not a module or optimizer)
-        metadata = torch.load(path / "meta.pt")
-        for key, obj in state.items():
-            if isinstance(obj, (FSDP, Optimizer)):
-                continue
-            if key not in metadata:
-                raise KeyError(f"'{key}' not found in the checkpoint.")
-            state[key] = metadata.pop(key)
+            # Load metadata (anything not a module or optimizer)
+            for key, obj in state.items():
+                if isinstance(obj, (FSDP, Optimizer)):
+                    continue
+                if key not in checkpoint:
+                    raise KeyError(f"'{key}' not found in the checkpoint.")
+                state[key] = checkpoint.pop(key)
 
-        # return the remaining metadata that wasn't requested as part of `state`
-        return metadata
+            # return the remaining metadata that wasn't requested as part of `state`
+            return checkpoint
+
+        else:
+            raise ValueError(
+                f"The path {path} does not point to a valid checkpoint. Make sure the path points to either a"
+                " directory with FSDP checkpoint shards, or a single file with a full checkpoint."
+            )
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
@@ -597,3 +630,7 @@ def _get_full_state_dict_context(module: "FullyShardedDataParallel") -> _Generat
         optim_state_dict_config=optim_state_dict_config,
     )
     return state_dict_type_context
+
+
+def _looks_like_sharded_checkpoint(path: Path) -> bool:
+    return path.is_dir() and (path / "meta.pt").is_file()
