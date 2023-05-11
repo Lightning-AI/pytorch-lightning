@@ -23,7 +23,14 @@ from torch.utils.data.dataloader import DataLoader
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects, is_wrapped, warning_cache
+from lightning.fabric.wrappers import (
+    _FabricDataLoader,
+    _FabricModule,
+    _FabricOptimizer,
+    _unwrap_objects,
+    is_wrapped,
+    warning_cache,
+)
 from tests_fabric.helpers.runif import RunIf
 
 
