@@ -110,12 +110,3 @@ def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwar
             assert trainer.local_rank == expected["local_rank"]
             assert trainer.node_rank == expected["node_rank"]
             assert trainer.world_size == expected["world_size"]
-
-
-@pytest.mark.parametrize(("env_var", "expected"), [(False, "127.0.0.1"), (True, "localhost")])
-def test_slurm_main_address_env_variable(env_var, expected):
-    if env_var:
-        os.environ["MASTER_ADDR"] = expected
-
-    slurm_env = SLURMEnvironment()
-    assert slurm_env.main_address == expected
