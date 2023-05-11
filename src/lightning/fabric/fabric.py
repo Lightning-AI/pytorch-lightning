@@ -619,7 +619,7 @@ class Fabric:
                 " utilize the features in `init_module()`.",
                 category=PossibleUserWarning,
             )
-        with self.init(), self.sharded_model():
+        with self._strategy.init_context():
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
