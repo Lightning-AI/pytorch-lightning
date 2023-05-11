@@ -570,6 +570,7 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
 
     return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
 
+
 def _get_sharded_state_dict_context(module: "FullyShardedDataParallel") -> _GeneratorContextManager:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
