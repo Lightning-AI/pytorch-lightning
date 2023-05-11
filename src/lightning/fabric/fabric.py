@@ -34,6 +34,7 @@ from lightning.fabric.plugins import Precision  # avoid circular imports: # isor
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
+from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, convert_to_tensors
@@ -47,7 +48,17 @@ from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects
+from lightning.fabric.wrappers import (
+    _FabricDataLoader,
+    _FabricModule,
+    _FabricOptimizer,
+    _unwrap_compiled,
+    _unwrap_objects,
+)
+
+
+def _do_nothing(*_: Any) -> None:
+    pass
 
 
 class Fabric:
@@ -105,12 +116,14 @@ class Fabric:
         loggers = loggers if loggers is not None else []
         self._loggers = loggers if isinstance(loggers, list) else [loggers]
         self._models_setup: int = 0
+        self._launched: bool = False
 
         self._prepare_run_method()
         if _is_using_cli():
             # when the CLI is used to launch the script, we need to set up the environment (init processes) here so
             # that the user can immediately use all functionality in strategies
             self._strategy.setup_environment()
+            self._launched = True
 
     @property
     def accelerator(self) -> Accelerator:
@@ -377,9 +390,8 @@ class Fabric:
         """Clip the gradients of the model to a given max value or max norm.
 
         Args:
-            module: The module whose parameters should be clipped. This can also be just one submodule of your model.
-            optimizer: Optional optimizer. If passed, clipping will be applied to only the parameters that the
-                optimizer is referencing.
+            module: The module whose parameters should be clipped.
+            optimizer: The optimizer referencing the parameters to be clipped.
             clip_val: If passed, gradients will be clipped to this value.
             max_norm: If passed, clips the gradients in such a way that the p-norm of the resulting parameters is
                 no larger than the given value.
@@ -395,7 +407,7 @@ class Fabric:
         if clip_val is not None:
             self.strategy.clip_gradients_value(_unwrap_objects(module), _unwrap_objects(optimizer), clip_val=clip_val)
             return None
-        elif max_norm is not None:
+        if max_norm is not None:
             return self.strategy.clip_gradients_norm(
                 _unwrap_objects(module),
                 _unwrap_objects(optimizer),
@@ -459,6 +471,7 @@ class Fabric:
         will cause your program to slow down. This method needs to be called on all processes. Failing to do so will
         cause your program to stall forever.
         """
+        self._validate_launched()
         self._strategy.barrier(name=name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
@@ -474,6 +487,7 @@ class Fabric:
         Return:
             The transferred data, the same value on every rank.
         """
+        self._validate_launched()
         return self._strategy.broadcast(obj, src=src)
 
     def all_gather(
@@ -492,6 +506,7 @@ class Fabric:
             A tensor of shape (world_size, batch, ...), or if the input was a collection
             the output will also be a collection with tensors of this shape.
         """
+        self._validate_launched()
         group = group if group is not None else torch.distributed.group.WORLD
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, self._strategy.all_gather, group=group, sync_grads=sync_grads)
@@ -516,6 +531,7 @@ class Fabric:
             A tensor of the same shape as the input with values reduced pointwise across processes. The same is
             applied to tensors in a collection if a collection is given as input.
         """
+        self._validate_launched()
         group = group if group is not None else torch.distributed.group.WORLD
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, self._strategy.all_reduce, group=group, reduce_op=reduce_op)
@@ -543,7 +559,7 @@ class Fabric:
             enabled: Whether the context manager is enabled or not. ``True`` means skip the sync, ``False`` means do not
                 skip.
         """
-
+        module = _unwrap_compiled(module)
         if not isinstance(module, _FabricModule):
             raise TypeError(
                 "You need to set up the model first before you can call `self.no_backward_sync()`:"
@@ -568,21 +584,28 @@ class Fabric:
 
     @contextmanager
     def sharded_model(self) -> Generator:
-        """Shard the parameters of the model instantly when instantiating the layers.
+        """Shard the parameters of the model instantly when instantiating the layers."""
+        context = self._strategy.init_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
+        with context:
+            yield
 
-        Use this context manager with strategies that support sharding the model parameters to save peak memory usage.
+    @contextmanager
+    def init(self) -> Generator:
+        """Instantiate under this context manager to apply improvements based on your configuration.
 
-        Example::
-
-            with self.sharded_model():
-                model = MyModel()
-
-        The context manager is strategy-agnostic and for the ones that don't do sharding, it is a no-op.
+        The parameters get created on the device (if using PyTorch 2.0 or newer) and with the right data type right away
+        without wasting memory being allocated unnecessarily.
         """
-        if isinstance(self._strategy, _Sharded):
-            with self._strategy.module_sharded_context():
-                yield
-        else:
+        with self._strategy.init_context():
+            yield
+
+    @contextmanager
+    def init_module(self) -> Generator:
+        """Convenience context manager that will call :meth:`efficient_init` and :meth:`sharded_model`.
+
+        It is recommended to instantiate your modules under this.
+        """
+        with self.init(), self.sharded_model():
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
@@ -624,12 +647,13 @@ class Fabric:
             # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
             # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
             for k in list(unwrapped_state.keys()):
-                if isinstance(state[k], (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
+                obj = _unwrap_compiled(state[k])
+                if isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
                     continue
                 state[k] = unwrapped_state[k]
         return remainder
 
-    def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
+    def launch(self, function: Callable[["Fabric"], Any] = _do_nothing, *args: Any, **kwargs: Any) -> Any:
         """Launch and initialize all the processes needed for distributed execution.
 
         Args:
@@ -653,16 +677,23 @@ class Fabric:
                 "This script was launched through the CLI, and processes have already been created. Calling "
                 " `.launch()` again is not allowed."
             )
-        if function is not None and not inspect.signature(function).parameters:
+        if function is not _do_nothing:
+            if not callable(function):
+                raise TypeError(
+                    f"`Fabric.launch(...)` needs to be a callable, but got {function}."
+                    " HINT: do `.launch(your_fn)` instead of `.launch(your_fn())`"
+                )
+            if not inspect.signature(function).parameters:
+                raise TypeError(
+                    f"`Fabric.launch(function={function})` needs to take at least one argument. The launcher will"
+                    " pass in the `Fabric` object so you can use it inside the function."
+                )
+        elif isinstance(self.strategy.launcher, (_MultiProcessingLauncher, _XLALauncher)):
             raise TypeError(
-                "The function passed to `Fabric.launch()` needs to take at least one argument. The launcher will pass"
-                " in the `Fabric` object so you can use it inside the function."
+                f"To use the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called with a function"
+                " that contains the code to launch in processes."
             )
-        function = partial(self._run_with_setup, function or _do_nothing)
-        args = [self, *args]
-        if self._strategy.launcher is not None:
-            return self._strategy.launcher.launch(function, *args, **kwargs)
-        return function(*args, **kwargs)
+        return self._wrap_and_launch(function, self, *args, **kwargs)
 
     def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
         """Trigger the callback methods with the given name and arguments.
@@ -739,20 +770,21 @@ class Fabric:
             workers = True
         return seed_everything(seed=seed, workers=workers)
 
-    def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        run_method = partial(self._run_with_setup, run_method)
-        if self._strategy.launcher is not None:
-            return self._strategy.launcher.launch(run_method, *args, **kwargs)
-        else:
-            return run_method(*args, **kwargs)
+    def _wrap_and_launch(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
+        self._launched = True
+        to_run = partial(self._wrap_with_setup, to_run)
+        if (launcher := self._strategy.launcher) is not None:
+            return launcher.launch(to_run, *args, **kwargs)
+        return to_run(*args, **kwargs)
 
-    def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _wrap_with_setup(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
+        # TODO: remove sharded_context from here as users are meant to enable it manually
         # apply sharded context to prevent OOM
         with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
             BatchSampler
         ):
-            return run_function(*args, **kwargs)
+            return to_run(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         initial_device = next(model.parameters(), torch.tensor(0)).device
@@ -803,9 +835,17 @@ class Fabric:
                 " or change your code to directly call `fabric = Fabric(...); fabric.setup(...)` etc."
             )
         # wrap the run method, so we can inject setup logic or spawn processes for the user
-        setattr(self, "run", partial(self._run_impl, self.run))
+        setattr(self, "run", partial(self._wrap_and_launch, self.run))
+
+    def _validate_launched(self) -> None:
+        if not self._launched and not isinstance(self._strategy, SingleDeviceStrategy):
+            raise RuntimeError(
+                "To use Fabric with more than one device, you must call `.launch()` or use the CLI:"
+                " `lightning run model --help`."
+            )
 
     def _validate_setup(self, module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
+        self._validate_launched()
         if isinstance(module, _FabricModule):
             raise ValueError("A model should be passed only once to the `setup` method.")
 
@@ -815,15 +855,17 @@ class Fabric:
         if isinstance(self._strategy, FSDPStrategy) and not _TORCH_GREATER_EQUAL_2_0:
             raise RuntimeError(
                 f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
-                " Create and set up the model first through `model = self.setup_model(model)`. Then create the"
+                " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
                 " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
             )
 
     def _validate_setup_module(self, module: nn.Module) -> None:
+        self._validate_launched()
         if isinstance(module, _FabricModule):
             raise ValueError("A model should be passed only once to the `setup_module` method.")
 
     def _validate_setup_optimizers(self, optimizers: Sequence[Optimizer]) -> None:
+        self._validate_launched()
         if isinstance(self._strategy, (DeepSpeedStrategy, XLAStrategy)):
             raise RuntimeError(
                 f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
@@ -836,8 +878,8 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup_optimizers` method.")
 
-    @staticmethod
-    def _validate_setup_dataloaders(dataloaders: Sequence[DataLoader]) -> None:
+    def _validate_setup_dataloaders(self, dataloaders: Sequence[DataLoader]) -> None:
+        self._validate_launched()
         if not dataloaders:
             raise ValueError("`setup_dataloaders` requires at least one dataloader as input.")
 
@@ -850,7 +892,3 @@ class Fabric:
 
 def _is_using_cli() -> bool:
     return bool(int(os.environ.get("LT_CLI_USED", "0")))
-
-
-def _do_nothing(*_: Any) -> None:
-    pass

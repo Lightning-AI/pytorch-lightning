@@ -8,3 +8,4 @@ recursive-include src/lightning_app/cli/*-template *
 # TODO: remove this once lightning-ui package is ready as a dependency
 recursive-include src/lightning_app/ui *
 include src/lightning_app/components/serve/catimage.png
+include src/lightning_app/py.typed  # marker file for PEP 561

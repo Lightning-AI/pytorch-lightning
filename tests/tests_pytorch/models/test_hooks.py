@@ -58,13 +58,13 @@ def test_on_before_zero_grad_called(tmpdir, max_steps):
     model = CurrentTestModel()
 
     trainer = Trainer(default_root_dir=tmpdir, max_steps=max_steps, max_epochs=2)
-    assert 0 == model.on_before_zero_grad_called
+    assert model.on_before_zero_grad_called == 0
     trainer.fit(model)
     assert max_steps == model.on_before_zero_grad_called
 
     model.on_before_zero_grad_called = 0
     trainer.test(model)
-    assert 0 == model.on_before_zero_grad_called
+    assert model.on_before_zero_grad_called == 0
 
 
 def test_on_train_epoch_end_metrics_collection(tmpdir):
@@ -100,7 +100,7 @@ def test_on_train_epoch_end_metrics_collection(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "accelerator,expected_device_str",
+    ("accelerator", "expected_device_str"),
     [
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
@@ -404,7 +404,7 @@ class HookedModel(BoringModel):
         ),
     ],
 )
-@pytest.mark.parametrize("automatic_optimization", (True, False))
+@pytest.mark.parametrize("automatic_optimization", [True, False])
 def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     called = []
 
@@ -665,9 +665,9 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
     assert called == expected
 
 
-@pytest.mark.parametrize("batches", (0, 2))
+@pytest.mark.parametrize("batches", [0, 2])
 @pytest.mark.parametrize(
-    ["verb", "noun", "dataloader", "key"], [("validate", "validation", "val", "x"), ("test", "test", "test", "y")]
+    ("verb", "noun", "dataloader", "key"), [("validate", "validation", "val", "x"), ("test", "test", "test", "y")]
 )
 def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader, key):
     called = []
@@ -794,7 +794,6 @@ def test_hooks_with_different_argument_names(tmpdir):
 
 def test_trainer_datamodule_hook_system(tmpdir):
     """Test the LightningDataModule hook system."""
-
     model = BoringModel()
     batches = 2
     trainer = Trainer(

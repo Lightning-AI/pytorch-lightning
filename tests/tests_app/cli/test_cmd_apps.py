@@ -19,7 +19,7 @@ from lightning.app.cli.cmd_apps import _AppList, _AppManager
 
 
 @pytest.mark.parametrize(
-    "current_state,desired_state,expected",
+    ("current_state", "desired_state", "expected"),
     [
         (
             V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
@@ -81,7 +81,7 @@ def test_list_all_apps_paginated(list_memberships: mock.MagicMock, list_instance
     list_memberships.assert_called_once()
     assert list_instances.mock_calls == [
         mock.call(project_id="default-project", limit=100, phase_in=[]),
-        mock.call(project_id="default-project", page_token="page-2", limit=100, phase_in=[]),
+        mock.call(project_id="default-project", page_token="page-2", limit=100, phase_in=[]),  # noqa: S106
     ]
 
 

@@ -51,7 +51,6 @@ class BoringApp(L.LightningFlow):
         self.dict["src_w"].run()
 
         if self.dict["src_w"].has_succeeded:
-
             # create dynamically the dst_w at runtime
             if "dst_w" not in self.dict:
                 self.dict["dst_w"] = DestinationFileAndServeWork(

@@ -67,30 +67,31 @@ def test_ls(monkeypatch):
                     V1LightningappInstanceArtifact(filename="folder_2/file_4.txt"),
                 ]
             )
-        elif splits[-1] == "folder_1":
+        if splits[-1] == "folder_1":
             return V1ListLightningappInstanceArtifactsResponse(
                 artifacts=[V1LightningappInstanceArtifact(filename="file_2.txt")]
             )
-        elif splits[-1] == "folder_2":
+        if splits[-1] == "folder_2":
             return V1ListLightningappInstanceArtifactsResponse(
                 artifacts=[
                     V1LightningappInstanceArtifact(filename="folder_3/file_3.txt"),
                     V1LightningappInstanceArtifact(filename="file_4.txt"),
                 ]
             )
-        elif splits[-1] == "folder_3":
+        if splits[-1] == "folder_3":
             return V1ListLightningappInstanceArtifactsResponse(
                 artifacts=[
                     V1LightningappInstanceArtifact(filename="file_3.txt"),
                 ]
             )
+        return None
 
     client.lightningapp_instance_service_list_project_artifacts = fn
 
     monkeypatch.setattr(ls, "LightningClient", MagicMock(return_value=client))
 
     assert ls.ls() == ["project-0", "project-1", "project 2"]
-    assert "/project-0" == cd.cd("project-0", verify=False)
+    assert cd.cd("project-0", verify=False) == "/project-0"
 
     assert ls.ls() == ["app name 2", "app-name-0", "app-name-1"]
     assert f"/project-0{os.sep}app-name-1" == cd.cd("app-name-1", verify=False)
@@ -102,9 +103,9 @@ def test_ls(monkeypatch):
     assert f"/project-0{os.sep}app-name-1{os.sep}folder_2{os.sep}folder_3" == cd.cd("folder_3", verify=False)
     assert ls.ls() == ["file_3.txt"]
 
-    assert "/project 2" == cd.cd("/project 2", verify=False)
+    assert cd.cd("/project 2", verify=False) == "/project 2"
     assert ls.ls() == ["app name 2", "app-name-0", "app-name-1"]
-    assert "/project 2/app name 2" == cd.cd("app name 2", verify=False)
+    assert cd.cd("app name 2", verify=False) == "/project 2/app name 2"
     assert ls.ls() == ["file_1.txt", "folder_1", "folder_2"]
 
     os.remove(cd._CD_FILE)

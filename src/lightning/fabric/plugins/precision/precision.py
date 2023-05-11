@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
+from contextlib import contextmanager
 from typing import Any, Dict, Generator, Literal, Optional, Union
 
 from torch import Tensor
@@ -23,7 +23,7 @@ from lightning.fabric.utilities.types import _PARAMETERS, Optimizable
 _PRECISION_INPUT_INT = Literal[64, 32, 16]
 _PRECISION_INPUT_STR_ALIAS_CONVERSION = {"64": "64-true", "32": "32-true", "16": "16-mixed", "bf16": "bf16-mixed"}
 _PRECISION_INPUT_STR_ALIAS = Literal["64", "32", "16", "bf16"]
-_PRECISION_INPUT_STR = Literal["16-mixed", "bf16-mixed", "32-true", "64-true"]
+_PRECISION_INPUT_STR = Literal["16-true", "16-mixed", "bf16-true", "bf16-mixed", "32-true", "64-true"]
 _PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS]
 
 
@@ -42,7 +42,15 @@ class Precision:
         """
         return module
 
-    @contextlib.contextmanager
+    @contextmanager
+    def init_context(self) -> Generator[None, None, None]:
+        """Instantiate module parameters or tensors in the precision type this plugin handles.
+
+        This is optional and depends on the precision limitations during optimization.
+        """
+        yield
+
+    @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         yield

@@ -101,13 +101,13 @@ _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
 
 @pytest.mark.parametrize(
     ("keyword", "value"),
-    (
+    [
         ("train_dataloaders", _loader_no_len),
         ("val_dataloaders", _loader_no_len),
         ("test_dataloaders", _loader_no_len),
         ("predict_dataloaders", _loader_no_len),
         ("val_dataloaders", [_loader, _loader_no_len]),
-    ),
+    ],
 )
 def test_process_dataloader_gets_called_as_expected(keyword, value, monkeypatch):
     trainer = Trainer()

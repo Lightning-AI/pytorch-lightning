@@ -138,8 +138,7 @@ def _basic_subprocess_cmd() -> Sequence[str]:
 
     if __main__.__spec__ is None:  # pragma: no-cover
         return [sys.executable, os.path.abspath(sys.argv[0])] + sys.argv[1:]
-    else:
-        return [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
+    return [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
 
 def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:

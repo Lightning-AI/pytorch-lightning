@@ -129,7 +129,7 @@ class Path(PathlibPath):
         if self._origin is None:
             return None
         contents = f"{self.origin_name}/{self}"
-        return hashlib.sha1(contents.encode("utf-8")).hexdigest()
+        return hashlib.sha1(contents.encode("utf-8")).hexdigest()  # noqa: S324
 
     @property
     def parents(self) -> Sequence["Path"]:
@@ -363,8 +363,8 @@ class Path(PathlibPath):
         try:
             _copy_files(source_path, destination_path)
             _logger.debug(f"All files copied from {request.path} to {response.path}.")
-        except Exception as e:
-            response.exception = e
+        except Exception as ex:
+            response.exception = ex
         return response
 
 

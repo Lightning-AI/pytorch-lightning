@@ -34,7 +34,7 @@ def async_or_interrupt(request, monkeypatch):
     return request.param
 
 
-@pytest.fixture
+@pytest.fixture()
 def spec():
     return V1ClusterSpec(
         driver=V1ClusterDriver(

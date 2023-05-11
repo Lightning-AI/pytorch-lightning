@@ -106,21 +106,16 @@ def _execute_app_commands(cl: CommandLines) -> None:
 def run_app_commands(file: str) -> None:
     """Extract all lines at the top of the file which contain commands & execute them.
 
-    Commands to execute are comment lines whose first non-whitespace character
-    begins with the "bang" symbol (`!`).  After the first non comment line we
-    stop parsing the rest of the file. Running environment is preserved in the
+    Commands to execute are comment lines whose first non-whitespace character begins with the "bang" symbol (`!`).
+    After the first non comment line we stop parsing the rest of the file. Running environment is preserved in the
     subprocess shell.
 
     For example:
 
-        # some file           <--- not a command
-        # !echo "hello world" <--- a command
-        # ! pip install foo   <--- a command
-        # foo! bar            <--- not a command
-        import lightning      <--- not a command, end parsing.
+    # some file           <--- not a command # !echo "hello world" <--- a command # ! pip install foo   <--- a command #
+    foo! bar            <--- not a command import lightning      <--- not a command, end parsing.
 
-        where `echo "hello world" && pip install foo` would be executed in the current
-        running environment.
+    where `echo "hello world" && pip install foo` would be executed in the current running environment.
     """
     cl = _extract_commands_from_file(file_name=file)
     if len(cl.commands) == 0:

@@ -47,7 +47,9 @@ def check_lightning_fabric_mps():
 
 
 @pytest.mark.skipif(not check_lightning_fabric_mps(), reason="Fabric not available or mps not available")
-@pytest.mark.parametrize("accelerator_given,accelerator_expected", [("cpu", "cpu"), ("auto", "cpu"), ("gpu", "cpu")])
+@pytest.mark.parametrize(
+    ("accelerator_given", "accelerator_expected"), [("cpu", "cpu"), ("auto", "cpu"), ("gpu", "cpu")]
+)
 def test_fabric_run_executor_mps_forced_cpu(accelerator_given, accelerator_expected):
     warning_str = (
         r"Forcing accelerator=cpu as other accelerators \(specifically MPS\) are not supported "
@@ -64,7 +66,7 @@ def test_fabric_run_executor_mps_forced_cpu(accelerator_given, accelerator_expec
 
 
 @pytest.mark.parametrize(
-    "args_given,args_expected",
+    ("args_given", "args_expected"),
     [
         ({"devices": 1, "num_nodes": 1, "accelerator": "gpu"}, {"devices": 8, "num_nodes": 7, "accelerator": "auto"}),
         ({"strategy": "ddp_spawn"}, {"strategy": "ddp"}),
@@ -73,7 +75,6 @@ def test_fabric_run_executor_mps_forced_cpu(accelerator_given, accelerator_expec
 )
 @pytest.mark.skipif(not module_available("lightning"), reason="Lightning is required for this test")
 def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected: dict):
-
     # ddp with mps devices not available (tested separately, just patching here for cross-os testing of other args)
     if lf.accelerators.MPSAccelerator.is_available():
         args_expected["accelerator"] = "cpu"

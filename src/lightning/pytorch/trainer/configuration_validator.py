@@ -14,21 +14,19 @@
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 def _verify_loop_configurations(trainer: "pl.Trainer") -> None:
-    r"""
-    Checks that the model is configured correctly before the run is started.
+    r"""Checks that the model is configured correctly before the run is started.
 
     Args:
         trainer: Lightning Trainer. Its `lightning_module` (the model) to check the configuration.
-
     """
     model = trainer.lightning_module
 
@@ -99,7 +97,7 @@ def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) ->
     if stage == "predict":
         if model.predict_step is None:
             raise MisconfigurationException("`predict_step` cannot be None to run `Trainer.predict`")
-        elif not has_step and not is_overridden("forward", model):
+        if not has_step and not is_overridden("forward", model):
             raise MisconfigurationException("`Trainer.predict` requires `forward` method to run.")
     else:
         # verify minimum evaluation requirements
@@ -123,10 +121,15 @@ def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
     datahook_selector = trainer._data_connector._datahook_selector
     assert datahook_selector is not None
     for hook in batch_transfer_hooks:
-        if isinstance(trainer.accelerator, IPUAccelerator) and (
-            is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
-        ):
-            raise MisconfigurationException(f"Overriding `{hook}` is not supported with IPUs.")
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator
+
+            # TODO: This code could be done in a hook in the IPUAccelerator as it's a simple error check
+            #  through the Trainer. It doesn't need to stay in Lightning
+            if isinstance(trainer.accelerator, IPUAccelerator) and (
+                is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
+            ):
+                raise MisconfigurationException(f"Overriding `{hook}` is not supported with IPUs.")
 
 
 def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:

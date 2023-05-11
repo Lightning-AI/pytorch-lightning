@@ -53,9 +53,9 @@ wheels/
 .installed.cfg
 *.egg
 src/*/version.info
-src/lightning_app/
-src/lightning_fabric/
-src/pytorch_lightning/
+src/lightning_app/*
+src/lightning_fabric/*
+src/pytorch_lightning/*
 !src/*/__about__.py
 !src/*/__main__.py
 !src/*/__setup__.py
@@ -63,7 +63,7 @@ src/pytorch_lightning/
 !src/*/MANIFEST.in
 !src/*/py.typed
 !src/*/README.md
-!src/*/*.info
+!src/*/shell-folder_code-lives-lightning.info
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

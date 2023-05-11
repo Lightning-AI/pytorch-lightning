@@ -109,7 +109,8 @@ jobs:
     - name: Install package & dependencies
       run: |
         python -m pip install -q pip -U
-        pip install -e .[test] "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
+        extra=$(python -c "print({'lightning': 'fabric-'}.get('${{ matrix.pkg-name }}', ''))")
+        pip install -e ".[${extra}test]" "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip install -r requirements/fabric/strategies.txt -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
     - name: Dump handy wheels
@@ -136,8 +137,9 @@ jobs:
       working-directory: tests/tests_fabric
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: |
+        echo $GITHUB_RUN_ID
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-          -m pytest -v --timeout=30 --durations=50
+          -m pytest -v --timeout=30 --durations=50 --random-order-seed=$GITHUB_RUN_ID
 
     - name: Statistics
       if: success()

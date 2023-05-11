@@ -1,3 +1,4 @@
+import contextlib
 import random
 from unittest.mock import Mock
 
@@ -137,7 +138,7 @@ class ChangingDataLoader(DataLoader):
 
 
 @pytest.mark.parametrize(
-    ["cls", "args", "kwargs", "arg_names", "dataset", "checked_values"],
+    ("cls", "args", "kwargs", "arg_names", "dataset", "checked_values"),
     [
         pytest.param(
             DataLoaderSubclass1,
@@ -270,10 +271,8 @@ def test_replace_dunder_methods_attrs():
         dataloader.my_arg = 10
         dataloader.another_arg = 100
         del dataloader.dataset
-        try:
+        with contextlib.suppress(AttributeError):
             del dataloader.abc_arg
-        except AttributeError:
-            pass
 
     assert dataloader.__pl_saved_args == (range(10),)
     assert dataloader.__pl_saved_kwargs == {}
@@ -336,7 +335,7 @@ def test_replace_dunder_methods_restore_methods():
 
 
 @pytest.mark.parametrize(
-    [
+    (
         "args",
         "kwargs",
         "default_kwargs",
@@ -346,7 +345,7 @@ def test_replace_dunder_methods_restore_methods():
         "expected_status",
         "expected_args",
         "expected_kwargs",
-    ],
+    ),
     [
         pytest.param((), {}, {}, [], "a", 1, False, (), {}, id="empty"),
         pytest.param((1,), {}, {}, ["a"], "a", 2, True, (2,), {}, id="simple1"),

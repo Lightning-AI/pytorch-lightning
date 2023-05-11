@@ -1,3 +1,4 @@
+import contextlib
 import pickle
 import warnings
 from typing import Any, Callable
@@ -11,7 +12,7 @@ def _patch_pl_to_mirror_if_necessary(module: str) -> str:
     if module.startswith(pl):
         # for the standalone package this won't do anything,
         # for the unified mirror package it will redirect the imports
-        module = "lightning.pytorch" + module[len(pl) :]
+        return "lightning.pytorch" + module[len(pl) :]
     return module
 
 
@@ -32,15 +33,12 @@ def compare_version(package: str, op: Callable, version: str, use_base_version: 
 # patching is necessary, since up to v.0.7.3 torchmetrics has a hardcoded reference to lightning.pytorch,
 # which has to be redirected to the unified package:
 # https://github.com/Lightning-AI/metrics/blob/v0.7.3/torchmetrics/metric.py#L96
-try:
+with contextlib.suppress(AttributeError):
     if hasattr(torchmetrics.utilities.imports, "_compare_version"):
         torchmetrics.utilities.imports._compare_version = compare_version  # type: ignore
-except AttributeError:
-    pass
 
-try:
+with contextlib.suppress(AttributeError):
     if hasattr(torchmetrics.metric, "_compare_version"):
         torchmetrics.metric._compare_version = compare_version
-except AttributeError:
-    pass
+
 pickle.Unpickler = RedirectingUnpickler  # type: ignore

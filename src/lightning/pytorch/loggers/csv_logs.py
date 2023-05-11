@@ -36,8 +36,7 @@ log = logging.getLogger(__name__)
 
 
 class ExperimentWriter(_FabricExperimentWriter):
-    r"""
-    Experiment writer for CSVLogger.
+    r"""Experiment writer for CSVLogger.
 
     Currently, supports to log hyperparameters and metrics in YAML and CSV
     format, respectively.
@@ -66,8 +65,7 @@ class ExperimentWriter(_FabricExperimentWriter):
 
 
 class CSVLogger(Logger, FabricCSVLogger):
-    r"""
-    Log to local file system in yaml and CSV format.
+    r"""Log to local file system in yaml and CSV format.
 
     Logs are saved to ``os.path.join(save_dir, name, version)``.
 
@@ -123,8 +121,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, version)
-        return log_dir
+        return os.path.join(self.root_dir, version)
 
     @property
     def save_dir(self) -> str:

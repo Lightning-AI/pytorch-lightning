@@ -28,6 +28,7 @@ from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 
@@ -49,9 +50,7 @@ class _FabricOptimizer:
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
         # not want to call on destruction of the `_FabricOptimizer
-        self.__dict__ = {
-            k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "zero_grad", "__del__")
-        }
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "__del__")}
         self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._strategy = strategy
@@ -74,10 +73,6 @@ class _FabricOptimizer:
             optimizer,
             **kwargs,
         )
-
-    def zero_grad(self, **kwargs: Any) -> None:
-        kwargs = _process_optimizer_zero_grad_kwargs(self.optimizer, kwargs)
-        self.optimizer.zero_grad(**kwargs)
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
@@ -154,7 +149,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         def call_forward_module(*args: Any, **kwargs: Any) -> Any:
             # Patch the original_module's forward so we can redirect the arguments back to the real method
             self._original_module.forward = wrapped_forward
-            return self._forward_module(*args, **kwargs)
+            return self.forward(*args, **kwargs)
 
         return call_forward_module
 
@@ -244,26 +239,39 @@ class _FabricDataLoader:
                 yield move_data_to_device(item, self._device)
 
 
-def _process_optimizer_zero_grad_kwargs(optimizer: Optimizer, kwargs: Dict[str, Any]) -> Dict[str, Any]:
-    if "set_to_none" in kwargs and "set_grads_to_None" in inspect.signature(optimizer.zero_grad).parameters:
-        # Some optimizers out there, for example DeepSpeedZeroOptimizer, use a different name than PyTorch
-        kwargs["set_grads_to_None"] = kwargs.pop("set_to_none")
-    return kwargs
-
-
 def _unwrap_objects(collection: Any) -> Any:
     def _unwrap(
         obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
     ) -> Union[nn.Module, Optimizer, DataLoader]:
-        if isinstance(obj, _FabricModule):
-            return obj._forward_module
+        if isinstance(unwrapped := _unwrap_compiled(obj), _FabricModule):
+            return unwrapped._forward_module
         if isinstance(obj, _FabricOptimizer):
             return obj.optimizer
         if isinstance(obj, _FabricDataLoader):
             return obj._dataloader
         return obj
 
-    return apply_to_collection(collection, dtype=(_FabricModule, _FabricOptimizer, _FabricDataLoader), function=_unwrap)
+    types = [_FabricModule, _FabricOptimizer, _FabricDataLoader]
+    if _TORCH_GREATER_EQUAL_2_0:
+        from torch._dynamo import OptimizedModule
+
+        types.append(OptimizedModule)
+
+    return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
+
+
+def _unwrap_compiled(obj: Any) -> Any:
+    """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
+
+    Use this function before instance checks against e.g. :class:`_FabricModule`.
+    """
+    if not _TORCH_GREATER_EQUAL_2_0:
+        return obj
+    from torch._dynamo import OptimizedModule
+
+    if isinstance(obj, OptimizedModule):
+        return obj._orig_mod
+    return obj
 
 
 def is_wrapped(obj: object) -> bool:
@@ -276,4 +284,5 @@ def is_wrapped(obj: object) -> bool:
     Args:
         obj: The object to test.
     """
+    obj = _unwrap_compiled(obj)
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))

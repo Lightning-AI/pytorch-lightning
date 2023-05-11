@@ -21,8 +21,9 @@ from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
 from lightning.fabric.fabric import Fabric
+from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, is_wrapped
+from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects, is_wrapped
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -155,7 +156,7 @@ def test_fabric_module_state_dict_access():
 
 
 @pytest.mark.parametrize(
-    "precision, input_type, expected_type, accelerator, device_str",
+    ("precision", "input_type", "expected_type", "accelerator", "device_str"),
     [
         pytest.param(32, torch.float16, torch.float16, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(32, torch.float32, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
@@ -218,7 +219,6 @@ def test_fabric_module_forward_conversion(precision, input_type, expected_type, 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
 def test_fabric_module_device_dtype_propagation(device_str, dtype):
     """Test that the FabricModule propagates device and dtype properties to its submodules (e.g. torchmetrics)."""
-
     device = torch.device(device_str)
 
     class DeviceModule(_DeviceDtypeModuleMixin):
@@ -257,7 +257,7 @@ def test_fabric_dataloader_iterator():
 
 
 @pytest.mark.parametrize(
-    "src_device_str, dest_device_str",
+    ("src_device_str", "dest_device_str"),
     [
         ("cpu", "cpu"),
         pytest.param("cpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
@@ -288,7 +288,7 @@ def test_fabric_dataloader_device_placement(src_device_str, dest_device_str):
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 
-@pytest.mark.parametrize("use_batch_sampler", (False, True))
+@pytest.mark.parametrize("use_batch_sampler", [False, True])
 def test_fabric_dataloader_distributed_sampler_set_epoch(use_batch_sampler):
     """Test that the FabricDataLoader calls `set_epoch()` on the wrapped sampler if applicable."""
     dataset = range(3)
@@ -364,7 +364,6 @@ def test_fabric_optimizer_steps():
 
 def test_fabric_optimizer_zero_grad_kwargs():
     """Test that Fabric can adapt the `.zero_grad()` arguments to the underlying optimizer."""
-
     # Test PyTorch's standard `.zero_grad()` signature
     with mock.patch("torch.optim.SGD.zero_grad") as zero_grad_mock:
         optimizer = torch.optim.SGD(torch.nn.Linear(1, 1).parameters(), 0.1)
@@ -387,13 +386,10 @@ def test_fabric_optimizer_zero_grad_kwargs():
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=Mock())
     fabric_optimizer.zero_grad()
     custom_zero_grad.assert_called_with(set_grads_to_None=False)
-    fabric_optimizer.zero_grad(set_to_none=False)
-    custom_zero_grad.assert_called_with(set_grads_to_None=False)
-    fabric_optimizer.zero_grad(set_to_none=True)
-    custom_zero_grad.assert_called_with(set_grads_to_None=True)
 
 
-def test_is_wrapped():
+@pytest.mark.parametrize("compile", [False, pytest.param(True, marks=RunIf(dynamo=True))])
+def test_is_wrapped(compile):
     """Test that the `is_wrapped` utility recognizes when an object was wrapped by Fabric."""
     assert not is_wrapped(None)
 
@@ -402,6 +398,15 @@ def test_is_wrapped():
     assert not is_wrapped(module)
     wrapped = _FabricModule(module, Mock())
     assert is_wrapped(wrapped)
+
+    # _FabricModule inside an OptimizedModule
+    if compile:
+        from torch._dynamo import OptimizedModule
+
+        module = torch.nn.Linear(2, 2)
+        wrapped = torch.compile(_FabricModule(module, Mock()))
+        assert isinstance(wrapped, OptimizedModule)
+        assert is_wrapped(wrapped)
 
     # _FabricOptimizer
     optimizer = torch.optim.Adam(module.parameters())
@@ -414,6 +419,43 @@ def test_is_wrapped():
     assert not is_wrapped(dataloader)
     wrapped = _FabricDataLoader(dataloader)
     assert is_wrapped(wrapped)
+
+
+@pytest.mark.parametrize("compile", [False, pytest.param(True, marks=RunIf(dynamo=True))])
+def test_unwrap_objects(compile):
+    # empty container
+    assert _unwrap_objects({}) == {}
+
+    # container with pure objects and wrapped objects
+    module = torch.nn.Linear(1, 1)
+    wrapped_module = _FabricModule(module, Mock())
+    if compile:
+        wrapped_module = torch.compile(wrapped_module)
+    optimizer = torch.optim.Adam(module.parameters())
+    wrapped_optimizer = _FabricOptimizer(optimizer, Mock())
+    dataloader = DataLoader([1, 2, 3])
+    wrapped_dataloader = _FabricDataLoader(dataloader)
+    container = {
+        "int": 1,
+        "module": module,
+        "wrapped_module": wrapped_module,
+        "optimizer": optimizer,
+        "wrapped_optimizer": wrapped_optimizer,
+        "dataloader": dataloader,
+        "wrapped_dataloader": wrapped_dataloader,
+        "nested": [module, wrapped_module, optimizer, wrapped_optimizer, dataloader, wrapped_dataloader],
+    }
+    expected = {
+        "int": 1,
+        "module": module,
+        "wrapped_module": wrapped_module._forward_module,
+        "optimizer": optimizer,
+        "wrapped_optimizer": optimizer,
+        "dataloader": dataloader,
+        "wrapped_dataloader": dataloader,
+        "nested": [module, wrapped_module._forward_module, optimizer, optimizer, dataloader, dataloader],
+    }
+    assert _unwrap_objects(container) == expected
 
 
 def test_step_method_redirection():
@@ -447,9 +489,10 @@ def test_step_method_redirection():
         def normal_method(self):
             pass
 
+    precision = Mock(wraps=Precision())
     original_module = LightningModule()
     forward_module = DDP(original_module)
-    fabric_module = _FabricModule(forward_module=forward_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=forward_module, precision=precision, original_module=original_module)
 
     # Regular methods on the original_module are visible and identical on the fabric_module ...
     assert fabric_module.normal_method == original_module.normal_method
@@ -471,6 +514,7 @@ def test_step_method_redirection():
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"  # call 2nd time
     assert fabric_module.validation_step("val_arg", kwarg="val_kwarg") == "validation_step_return"
+    precision.forward_context.assert_called()
 
     # The forward method remains untouched/unpatched after the special methods have been called
     assert original_module.forward.__name__ == "forward"

@@ -91,7 +91,8 @@ class ModelCheckpoint(Checkpoint):
             Please note that the monitors are checked every ``every_n_epochs`` epochs.
             if ``save_top_k >= 2`` and the callback is called multiple
             times inside an epoch, the name of the saved file will be
-            appended with a version count starting with ``v1``.
+            appended with a version count starting with ``v1``
+            unless ``enable_version_counter`` is set to False.
         mode: one of {min, max}.
             If ``save_top_k != 0``, the decision to overwrite the current save file is made
             based on either the maximization or the minimization of the monitored quantity.
@@ -129,6 +130,8 @@ class ModelCheckpoint(Checkpoint):
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         save_on_train_epoch_end: Whether to run checkpointing at the end of the training epoch.
             If this is ``False``, then the check runs at the end of the validation.
+        enable_version_counter: Whether to append a version to the existing file name.
+            If this is ``False``, then the checkpoint files will be overwritten.
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -217,6 +220,7 @@ class ModelCheckpoint(Checkpoint):
         train_time_interval: Optional[timedelta] = None,
         every_n_epochs: Optional[int] = None,
         save_on_train_epoch_end: Optional[bool] = None,
+        enable_version_counter: bool = True,
     ):
         super().__init__()
         self.monitor = monitor
@@ -226,6 +230,7 @@ class ModelCheckpoint(Checkpoint):
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
         self._save_on_train_epoch_end = save_on_train_epoch_end
+        self._enable_version_counter = enable_version_counter
         self._last_global_step_saved = 0  # no need to save when no steps were taken
         self._last_time_checked: Optional[float] = None
         self.current_score: Optional[Tensor] = None
@@ -458,7 +463,6 @@ class ModelCheckpoint(Checkpoint):
         every_n_epochs: Optional[int],
         train_time_interval: Optional[timedelta],
     ) -> None:
-
         # Default to running once after each validation epoch if neither
         # every_n_train_steps nor every_n_epochs is set
         if every_n_train_steps is None and every_n_epochs is None and train_time_interval is None:
@@ -618,10 +622,11 @@ class ModelCheckpoint(Checkpoint):
     ) -> str:
         filepath = self.format_checkpoint_name(monitor_candidates)
 
-        version_cnt = self.STARTING_VERSION
-        while self.file_exists(filepath, trainer) and filepath != del_filepath:
-            filepath = self.format_checkpoint_name(monitor_candidates, ver=version_cnt)
-            version_cnt += 1
+        if self._enable_version_counter:
+            version_cnt = self.STARTING_VERSION
+            while self.file_exists(filepath, trainer) and filepath != del_filepath:
+                filepath = self.format_checkpoint_name(monitor_candidates, ver=version_cnt)
+                version_cnt += 1
 
         return filepath
 
@@ -641,10 +646,11 @@ class ModelCheckpoint(Checkpoint):
 
         filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST)
 
-        version_cnt = self.STARTING_VERSION
-        while self.file_exists(filepath, trainer) and filepath != self.last_model_path:
-            filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST, ver=version_cnt)
-            version_cnt += 1
+        if self._enable_version_counter:
+            version_cnt = self.STARTING_VERSION
+            while self.file_exists(filepath, trainer) and filepath != self.last_model_path:
+                filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST, ver=version_cnt)
+                version_cnt += 1
 
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath

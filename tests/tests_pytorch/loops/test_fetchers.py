@@ -142,8 +142,8 @@ def get_cycles_per_ms() -> float:
         torch.cuda._sleep(1000000)
         end.record()
         end.synchronize()
-        cycles_per_ms = 1000000 / start.elapsed_time(end)
-        return cycles_per_ms
+        # cycles_per_ms
+        return 1000000 / start.elapsed_time(end)
 
     num = 10
     vals = []
@@ -199,7 +199,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
     class TestModel(BoringModel):
         def fetch(self, data_fetcher, dataloader_iter, batch_idx):
@@ -230,7 +230,7 @@ def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
     trainer_fn(model)
 
 
-@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_fetching_dataloader_iter_running_stages_multiple_dataloaders(fn, tmp_path):
     class MyModel(BoringModel):
         def validation_step(self, dataloader_iter, batch_idx, dataloader_idx):
@@ -369,7 +369,6 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
 
 
 def test_transfer_hooks_with_unpacking(tmpdir):
-
     """This test asserts the `transfer_batch` hooks are called only once per batch."""
 
     class RandomDictDataset(RandomDataset):
@@ -377,7 +376,6 @@ def test_transfer_hooks_with_unpacking(tmpdir):
             return {"x": self.data[index], "y_true": torch.ones((2,)), "other": torch.ones((1,))}
 
     class BoringDataModule(LightningDataModule):
-
         count_called_on_before_batch_transfer = 0
         count_called_transfer_batch_to_device = 0
         count_called_on_after_batch_transfer = 0

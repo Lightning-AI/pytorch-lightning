@@ -83,7 +83,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         return False
 
 
-@pytest.fixture
+@pytest.fixture()
 def deepspeed_config():
     return {
         "optimizer": {"type": "SGD", "params": {"lr": 3e-5}},
@@ -94,13 +94,13 @@ def deepspeed_config():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def deepspeed_zero_config(deepspeed_config):
     return {**deepspeed_config, "zero_allow_untested_optimizer": True, "zero_optimization": {"stage": 2}}
 
 
 @RunIf(deepspeed=True)
-@pytest.mark.parametrize("strategy", ("deepspeed", DeepSpeedStrategy))
+@pytest.mark.parametrize("strategy", ["deepspeed", DeepSpeedStrategy])
 def test_deepspeed_strategy_string(tmpdir, strategy):
     """Test to ensure that the strategy can be passed via string or instance, and parallel devices is correctly
     set."""
@@ -151,7 +151,6 @@ def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
 @RunIf(deepspeed=True)
 def test_deepspeed_with_invalid_config_path():
     """Test to ensure if we pass an invalid config path we throw an exception."""
-
     with pytest.raises(
         MisconfigurationException, match="You passed in a path to a DeepSpeed config but the path does not exist"
     ):
@@ -200,7 +199,7 @@ def test_warn_deepspeed_ignored(tmpdir):
 
 @RunIf(min_cuda_gpus=1, deepspeed=True)
 @pytest.mark.parametrize(
-    ["dataset_cls", "value"],
+    ("dataset_cls", "value"),
     [(RandomDataset, "auto"), (RandomDataset, 10), (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)],
 )
 @mock.patch("deepspeed.init_distributed", autospec=True)
@@ -426,7 +425,6 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
 @RunIf(min_cuda_gpus=1, deepspeed=True)
 def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
     """Ensure if we use a config and turn off offload_optimizer, that this is set to False within the config."""
-
     deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
 
     class TestCallback(Callback):
@@ -583,8 +581,7 @@ class ModelParallelClassificationModel(LightningModule):
         x = self.model(x)
         # Ensure output is in float32 for softmax operation
         x = x.float()
-        logits = F.softmax(x, dim=1)
-        return logits
+        return F.softmax(x, dim=1)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -688,10 +685,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
 @pytest.mark.parametrize(("accumulate_grad_batches", "automatic_optimization"), [(1, False), (2, True)])
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches):
-    if automatic_optimization:
-        model = ModelParallelClassificationModel()
-    else:
-        model = ManualModelParallelClassificationModel()
+    model = ModelParallelClassificationModel() if automatic_optimization else ManualModelParallelClassificationModel()
     dm = ClassifDataModule()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
@@ -712,10 +706,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
     saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
     assert saved_results == results
 
-    if automatic_optimization:
-        model = ModelParallelClassificationModel()
-    else:
-        model = ManualModelParallelClassificationModel()
+    model = ModelParallelClassificationModel() if automatic_optimization else ManualModelParallelClassificationModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
@@ -847,13 +838,15 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
     verification_callback = VerificationCallback()
+    strategy = DeepSpeedStrategy(stage=2, offload_optimizer=offload_optimizer)
+    strategy.config["zero_force_ds_cpu_optimizer"] = False
     trainer = Trainer(
         default_root_dir=tmpdir,
         # TODO: this test fails with max_epochs >1 as there are leftover batches per epoch.
         # there's divergence in how Lightning handles the last batch of the epoch with how DeepSpeed does it.
         # we step the optimizers on the last batch but DeepSpeed keeps the accumulation for the next epoch
         max_epochs=1,
-        strategy=DeepSpeedStrategy(stage=2, offload_optimizer=offload_optimizer),
+        strategy=strategy,
         accelerator="gpu",
         devices=2,
         limit_train_batches=5,
@@ -906,7 +899,7 @@ def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
             return self.layer(x)
 
         def on_train_epoch_start(self) -> None:
-            assert all([x.dtype == torch.float16 for x in self.parameters()])
+            assert all(x.dtype == torch.float16 for x in self.parameters())
 
     model = TestModel()
     trainer = Trainer(
@@ -933,7 +926,7 @@ def test_deepspeed_multigpu_test_rnn(tmpdir):
             self.rnn = torch.nn.GRU(32, 32)
 
         def on_train_epoch_start(self) -> None:
-            assert all([x.dtype == torch.float16 for x in self.parameters()])
+            assert all(x.dtype == torch.float16 for x in self.parameters())
 
     model = TestModel()
     trainer = Trainer(

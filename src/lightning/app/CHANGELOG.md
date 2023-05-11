@@ -9,12 +9,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Allow customize `gradio` components with lightning colors ([#17054](https://github.com/Lightning-AI/lightning/pull/17054))
 
 
 ### Changed
 
--
+- Changed `LocalSourceCodeDir` cache_location to not use home in some certain cases ([#17491](https://github.com/Lightning-AI/lightning/pull/17491))
 
 
 ### Deprecated
