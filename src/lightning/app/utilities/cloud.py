@@ -18,7 +18,7 @@ from typing import Optional
 from lightning_cloud.openapi import V1Membership
 
 import lightning.app
-from lightning.app.core.constants import LIGHTNING_CLOUD_PROJECT_ID, LIGHTNING_CLOUD_ORGANIZATION_ID
+from lightning.app.core import constants
 from lightning.app.utilities.enum import AppStage
 from lightning.app.utilities.network import LightningClient
 
@@ -26,9 +26,9 @@ from lightning.app.utilities.network import LightningClient
 def _get_project(client: LightningClient, organization_id: Optional[str] = None, project_id: Optional[str] = None, verbose: bool = True) -> V1Membership:
     """Get a project membership for the user from the backend."""
     if project_id is None:
-        project_id = LIGHTNING_CLOUD_PROJECT_ID
+        project_id = constants.LIGHTNING_CLOUD_PROJECT_ID
     if organization_id is None:
-        organization_id = LIGHTNING_CLOUD_ORGANIZATION_ID
+        organization_id = constants.LIGHTNING_CLOUD_ORGANIZATION_ID
 
     projects = client.projects_service_list_memberships(organization_id=organization_id)
     if project_id is not None:
