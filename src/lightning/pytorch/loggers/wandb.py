@@ -260,7 +260,8 @@ class WandbLogger(Logger):
         dir: Same as save_dir.
         id: Same as version.
         anonymous: Enables or explicitly disables anonymous logging.
-        project: The name of the project to which this run will belong.
+        project: The name of the project to which this run will belong. If not set, the environment variable
+            `WANDB_PROJECT` will be used as a fallback. If both are not set, it defaults to ``'lightning_logs'``.
         log_model: Log checkpoints created by :class:`~lightning.pytorch.callbacks.ModelCheckpoint`
             as W&B artifacts. `latest` and `best` aliases are automatically set.
 
@@ -293,7 +294,7 @@ class WandbLogger(Logger):
         dir: Optional[_PATH] = None,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
-        project: str = "lightning_logs",
+        project: Optional[str] = None,
         log_model: Union[str, bool] = False,
         experiment: Union[Run, RunDisabled, None] = None,
         prefix: str = "",
@@ -334,8 +335,7 @@ class WandbLogger(Logger):
         elif dir is not None:
             dir = os.fspath(dir)
 
-        if project == "lightning_logs" and "WANDB_PROJECT" in os.environ:
-            project = os.environ["WANDB_PROJECT"]
+        project = project or os.environ.get("WANDB_PROJECT", "lightning_logs")
 
         # set wandb init arguments
         self._wandb_init: Dict[str, Any] = {
