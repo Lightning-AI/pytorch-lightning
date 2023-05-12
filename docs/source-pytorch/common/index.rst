@@ -176,8 +176,8 @@ How-to Guides
 .. displayitem::
    :header: Track and Visualize Experiments
    :description: Learn to track and visualize experiments
-   :col_css: col-md-14
-   :button_link: visualize/logging_intermediate.html
+   :col_css: col-md-4
+   :button_link: ../visualize/logging_intermediate.html
    :height: 180
 
 .. displayitem::
