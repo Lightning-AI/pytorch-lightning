@@ -53,9 +53,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added error messaging for missed `.launch()` when it is required ([#17570](https://github.com/Lightning-AI/lightning/pull/17570))
 
 
-- Added support for setting the root node address in `SLURMEnvironment` via the environment variable ([#17596](https://github.com/Lightning-AI/lightning/pull/17596))
-
-
 - Added support for saving checkpoints with either full state-dict or sharded state dict via `FSDPStrategy(state_dict_type="full"|"sharded")` ([#17526](https://github.com/Lightning-AI/lightning/pull/17526))
 
 

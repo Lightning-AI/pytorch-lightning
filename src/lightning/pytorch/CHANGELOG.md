@@ -54,9 +54,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added non-layer param count to the model summary ([#17005](https://github.com/Lightning-AI/lightning/pull/17005))
 
 
-- Added support for setting the root node address in `SLURMEnvironment` via the environment variable ([#17596](https://github.com/Lightning-AI/lightning/pull/17596))
-
-
 ### Changed
 
 - Removed the limitation to call `self.trainer.model.parameters()` in `LightningModule.configure_optimizers()` ([#17309](https://github.com/Lightning-AI/lightning/pull/17309))
