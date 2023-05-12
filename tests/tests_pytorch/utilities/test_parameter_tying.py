@@ -35,7 +35,7 @@ class ParameterSharingModule(BoringModel):
 
 
 @pytest.mark.parametrize(
-    ["model", "expected_shared_params"],
+    ("model", "expected_shared_params"),
     [(BoringModel, []), (ParameterSharingModule, [["layer_1.weight", "layer_3.weight"]])],
 )
 def test_find_shared_parameters(model, expected_shared_params):

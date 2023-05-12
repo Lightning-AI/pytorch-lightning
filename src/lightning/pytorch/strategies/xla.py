@@ -20,7 +20,7 @@ from torch import Tensor
 from torch.nn import Module
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
@@ -56,6 +56,7 @@ class XLAStrategy(DDPStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
+        sync_module_states: bool = True,
         **_: Any,
     ) -> None:
         if not _XLA_AVAILABLE:
@@ -71,6 +72,7 @@ class XLAStrategy(DDPStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self.debug = debug
         self._launched = False
+        self._sync_module_states = sync_module_states
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -115,9 +117,10 @@ class XLAStrategy(DDPStrategy):
         set_shared_parameters(self.lightning_module, shared_params)
         self.setup_precision_plugin()
 
-        from torch_xla.experimental import pjrt
+        if self._sync_module_states:
+            from torch_xla.experimental import pjrt
 
-        pjrt.broadcast_master_param(self.model)
+            pjrt.broadcast_master_param(self.model)
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
@@ -222,7 +225,7 @@ class XLAStrategy(DDPStrategy):
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
                 "The `XLAStrategy` does not support running on a single device with the PjRT runtime."
-                " Try using all devices or the `SingleTPUStrategy` strategy"
+                " Try using all devices or the `SingleDeviceXLAStrategy` strategy"
             )
 
         self._launched = True

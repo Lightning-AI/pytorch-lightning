@@ -24,7 +24,7 @@ import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
-from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
+from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
@@ -352,14 +352,17 @@ class WandbLogger(Logger):
         self._save_dir = self._wandb_init.get("dir")
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
-        # start wandb run (to create an attach_id for distributed modes)
+        self._checkpoint_name = checkpoint_name
+
+    def __getstate__(self) -> Dict[str, Any]:
+        # Hack: If the 'spawn' launch method is used, the logger will get pickled and this `__getstate__` gets called.
+        # We create an experiment here in the main process, and attach to it in the worker process.
+        # Using wandb-service, we persist the same experiment even if multiple `Trainer.fit/test/validate` calls
+        # are made.
         if _WANDB_GREATER_EQUAL_0_12_10:
             wandb.require("service")
             _ = self.experiment
 
-        self._checkpoint_name = checkpoint_name
-
-    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
         # args needed to reload correct experiment
         if self._experiment is not None:
@@ -421,7 +424,6 @@ class WandbLogger(Logger):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
-        params = _flatten_dict(params)
         params = _sanitize_callable_params(params)
         self.experiment.config.update(params, allow_val_change=True)
 

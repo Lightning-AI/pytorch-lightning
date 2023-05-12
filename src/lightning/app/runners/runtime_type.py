@@ -28,7 +28,6 @@ class RuntimeType(Enum):
     def get_runtime(self) -> Type["Runtime"]:
         if self == RuntimeType.MULTIPROCESS:
             return MultiProcessRuntime
-        elif self == RuntimeType.CLOUD:
+        if self == RuntimeType.CLOUD:
             return CloudRuntime
-        else:
-            raise ValueError("Unknown runtime type")
+        raise ValueError("Unknown runtime type")

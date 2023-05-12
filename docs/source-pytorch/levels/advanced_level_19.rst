@@ -1,7 +1,7 @@
 :orphan:
 
 ######################
-Level 19: Explore IPUs
+Level 18: Explore IPUs
 ######################
 
 Explore Intelligence Processing Unit (IPU) for model scaling.

@@ -85,8 +85,7 @@ class Profiler(ABC):
             args.append(str(self._local_rank))
         if action_name is not None:
             args.append(action_name)
-        filename = split_token.join(args) + extension
-        return filename
+        return split_token.join(args) + extension
 
     def _prepare_streams(self) -> None:
         if self._write_stream is not None:

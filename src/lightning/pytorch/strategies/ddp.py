@@ -185,7 +185,7 @@ class DDPStrategy(ParallelStrategy):
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
-        ctx = torch.cuda.stream(torch.cuda.Stream()) if torch.cuda.is_available() else nullcontext()
+        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
         with ctx:
             return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
@@ -326,7 +326,7 @@ class DDPStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
@@ -341,10 +341,9 @@ class DDPStrategy(ParallelStrategy):
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                 # used when calling `trainer.fit`
                 return self.model(*args, **kwargs)
-            else:
-                # used when calling `trainer.validate`
-                assert isinstance(self.model, ValidationStep)
-                return self.model.validation_step(*args, **kwargs)
+            # used when calling `trainer.validate`
+            assert isinstance(self.model, ValidationStep)
+            return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.test_step_context():

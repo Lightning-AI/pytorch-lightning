@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
@@ -46,6 +46,7 @@ class XLAStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
+        sync_module_states: bool = True,
     ) -> None:
         super().__init__(
             accelerator=accelerator,
@@ -57,6 +58,7 @@ class XLAStrategy(ParallelStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = None  # XLA synchronizes gradients in the optimizer.step() call
         self._launched = False
+        self._sync_module_states = sync_module_states
 
     @property
     def root_device(self) -> torch.device:
@@ -92,7 +94,7 @@ class XLAStrategy(ParallelStrategy):
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
                 "The `XLAStrategy` does not support running on a single device with the PjRT runtime."
-                " Try using all devices or the `SingleTPUStrategy` strategy"
+                " Try using all devices or the `SingleDeviceXLAStrategy` strategy"
             )
 
         self._launched = True
@@ -100,9 +102,11 @@ class XLAStrategy(ParallelStrategy):
         super().setup_environment()
 
     def setup_module(self, module: Module) -> Module:
-        from torch_xla.experimental import pjrt
+        if self._sync_module_states:
+            from torch_xla.experimental import pjrt
 
-        pjrt.broadcast_master_param(module)
+            pjrt.broadcast_master_param(module)
+
         return module
 
     def module_to_device(self, module: Module) -> None:

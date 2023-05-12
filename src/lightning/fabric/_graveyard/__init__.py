@@ -11,18 +11,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import mock
-from unittest.mock import Mock
-
-from lightning.pytorch.plugins import TPUPrecisionPlugin
-from tests_pytorch.helpers.runif import RunIf
-
-
-@RunIf(tpu=True)
-def test_optimizer_step_calls_mark_step():
-    plugin = TPUPrecisionPlugin()
-    optimizer = Mock()
-    with mock.patch("torch_xla.core.xla_model") as xm_mock:
-        plugin.optimizer_step(optimizer=optimizer, model=Mock(), closure=Mock())
-    optimizer.step.assert_called_once()
-    xm_mock.mark_step.assert_called_once()
+import lightning.fabric._graveyard.tpu  # noqa: F401

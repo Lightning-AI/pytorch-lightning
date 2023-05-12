@@ -20,9 +20,7 @@ def _list_sys_modules(pattern: str) -> str:
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
-@pytest.mark.skipif(
-    not module_available("lightning_pytorch"), reason="This test is ONLY relevant for the STANDALONE package"
-)
+@pytest.mark.skipif(module_available("lightning"), reason="This test is ONLY relevant for the STANDALONE package")
 def test_imports_standalone(pl_version: str):
     assert any(
         key.startswith("pytorch_lightning") for key in sys.modules
@@ -61,7 +59,7 @@ def test_imports_unified(pl_version: str):
     path_ckpt = path_ckpts[-1]
 
     # only below version 1.5.0 we pickled stuff in checkpoints
-    if Version(pl_version) < Version("1.5.0"):
+    if pl_version != "local" and Version(pl_version) < Version("1.5.0"):
         context = pytest.warns(UserWarning, match="Redirecting import of")
     else:
         context = no_warning_call(match="Redirecting import of*")

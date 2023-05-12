@@ -18,6 +18,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Check for invalid TPU device inputs ([#17227](https://github.com/Lightning-AI/lightning/pull/17227))
 
 
+- Added `XLAStrategy(sync_module_states=bool)` to control whether to broadcast the parameters to all devices ([#17522](https://github.com/Lightning-AI/lightning/pull/17522))
+
+
 - Added support for joint setup of model and optimizer with FSDP ([#17305](https://github.com/Lightning-AI/lightning/pull/17305))
 
 
@@ -30,16 +33,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a warning when calling methods on `_FabricModule` that bypass the strategy-specific wrappers ([#17424](https://github.com/Lightning-AI/lightning/pull/17424))
 
 
-- Added `Fabric.init_module()` context manager to instantiate large models efficiently ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
+- Added `Fabric.init()` context manager to instantiate tensors or models efficiently directly on device and dtype ([#17488](https://github.com/Lightning-AI/lightning/pull/17488))
 
-- Added `lightning.fabric.strategies.Strategy.module_init_context()` context manager to control the model instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
+- Added `Fabric.init_module()` context manager to instantiate large models efficiently directly on device, dtype, and sharding them ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
+
+- Added `lightning.fabric.plugins.Precision.init_context()` context manager to control model and tensor instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
   * Creates the model parameters in the desired dtype (`torch.float32`, `torch.float64`, `torch.float16`, or `torch.bfloat16`) depending on the 'true' precision choice in `Fabric(precision='32-true'|'64-true'|'16-true'|'bf16-true')`
-  * Initializes empty weights on the meta device for FSDP models and handles the Zero stage 3 initialization for DeepSpeed before sharding
+
+- Added `lightning.fabric.strategies.Strategy.init_context()` context manager to control the model and tensor instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
+  * Calls `lightning.fabric.plugins.Precision.init_context()`
+  * Initializes empty weights on the root device.
 
 - Run the DDP wrapper in a CUDA stream ([#17334](https://github.com/Lightning-AI/lightning/pull/17334))
 
 
 - Added support for true half-precision as `L.Fabric(precision="16-true"|"bf16-true")` ([#17287](https://github.com/Lightning-AI/lightning/pull/17287))
+
+
+- Added error messaging for missed `.launch()` when it is required ([#17570](https://github.com/Lightning-AI/lightning/pull/17570))
+
+
+- Added support for saving checkpoints with either full state-dict or sharded state dict via `FSDPStrategy(state_dict_type="full"|"sharded")` ([#17526](https://github.com/Lightning-AI/lightning/pull/17526))
 
 
 ### Changed
@@ -58,8 +72,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
+- Deprecated the `DDPStrategy.is_distributed` property. This strategy is distributed by definition ([#17381](https://github.com/Lightning-AI/lightning/pull/17381))
 
-- Deprecated the `Fabric.sharded_model()` context manager in favor of `Fabric.init_module()` ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
+
+- Deprecated the `SingleTPUStrategy` (`strategy="single_tpu"`) in favor of `SingleDeviceXLAStrategy` (`strategy="single_xla"`) ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
+
+
+- Deprecated the `TPUAccelerator` in favor of `XLAAccelerator` ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
+
+
+- Deprecated the `TPUPrecision` in favor of `XLAPrecision` ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
+
+
+- Deprecated the `TPUBf16Precision` in favor of `XLABf16Precision` ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
+
+
+-
 
 
 ### Removed
@@ -79,6 +107,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed device handling in `Fabric.setup()` when the model has no parameters ([#17441](https://github.com/Lightning-AI/lightning/pull/17441))
+
+
+- Fixed computing the next version folder in `CSVLogger` ([#17139](https://github.com/Lightning-AI/lightning/pull/17139))
 
 
 ## [2.0.1.post0] - 2023-04-11

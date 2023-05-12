@@ -28,6 +28,7 @@ from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 
@@ -157,7 +158,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             warning_cache.warn(
                 f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
                 " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
-                f" `.backward()`. You should pass your inputs through `{type(self._original_module)}.forward()`.",
+                " `.backward()`. You should pass your inputs through"
+                f" `{type(self._original_module).__name__}.forward()`.",
                 category=PossibleUserWarning,
             )
 
@@ -218,15 +220,35 @@ def _unwrap_objects(collection: Any) -> Any:
     def _unwrap(
         obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
     ) -> Union[nn.Module, Optimizer, DataLoader]:
-        if isinstance(obj, _FabricModule):
-            return obj._forward_module
+        if isinstance(unwrapped := _unwrap_compiled(obj), _FabricModule):
+            return unwrapped._forward_module
         if isinstance(obj, _FabricOptimizer):
             return obj.optimizer
         if isinstance(obj, _FabricDataLoader):
             return obj._dataloader
         return obj
 
-    return apply_to_collection(collection, dtype=(_FabricModule, _FabricOptimizer, _FabricDataLoader), function=_unwrap)
+    types = [_FabricModule, _FabricOptimizer, _FabricDataLoader]
+    if _TORCH_GREATER_EQUAL_2_0:
+        from torch._dynamo import OptimizedModule
+
+        types.append(OptimizedModule)
+
+    return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
+
+
+def _unwrap_compiled(obj: Any) -> Any:
+    """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
+
+    Use this function before instance checks against e.g. :class:`_FabricModule`.
+    """
+    if not _TORCH_GREATER_EQUAL_2_0:
+        return obj
+    from torch._dynamo import OptimizedModule
+
+    if isinstance(obj, OptimizedModule):
+        return obj._orig_mod
+    return obj
 
 
 def is_wrapped(obj: object) -> bool:
@@ -239,4 +261,5 @@ def is_wrapped(obj: object) -> bool:
     Args:
         obj: The object to test.
     """
+    obj = _unwrap_compiled(obj)
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))

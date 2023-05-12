@@ -96,5 +96,6 @@ def rm(rm_path: str, r: bool = False, recursive: bool = False) -> None:
 
     if succeeded:
         rich.print(_add_colors(f"Successfuly deleted `{prefix}`.", color="green"))
-    else:
-        return _error_and_exit(f"No file or folder named `{prefix}` was found.")
+        return None
+
+    return _error_and_exit(f"No file or folder named `{prefix}` was found.")

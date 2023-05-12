@@ -206,7 +206,7 @@ class MNISTDataModule(LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         """MNIST train set removes a subset to use for validation."""
-        loader = DataLoader(
+        return DataLoader(
             self.dataset_train,
             batch_size=self.batch_size,
             shuffle=True,
@@ -214,11 +214,10 @@ class MNISTDataModule(LightningDataModule):
             drop_last=True,
             pin_memory=True,
         )
-        return loader
 
     def val_dataloader(self) -> DataLoader:
         """MNIST val set uses a subset of the training set for validation."""
-        loader = DataLoader(
+        return DataLoader(
             self.dataset_val,
             batch_size=self.batch_size,
             shuffle=False,
@@ -226,13 +225,12 @@ class MNISTDataModule(LightningDataModule):
             drop_last=True,
             pin_memory=True,
         )
-        return loader
 
     def test_dataloader(self) -> DataLoader:
         """MNIST test set uses the test split."""
         extra = {"transform": self.default_transforms} if self.default_transforms else {}
         dataset = MNIST(self.data_dir, train=False, download=False, **extra)
-        loader = DataLoader(
+        return DataLoader(
             dataset,
             batch_size=self.batch_size,
             shuffle=False,
@@ -240,7 +238,6 @@ class MNISTDataModule(LightningDataModule):
             drop_last=True,
             pin_memory=True,
         )
-        return loader
 
     @property
     def default_transforms(self) -> Optional[Callable]:
