@@ -23,7 +23,12 @@ from lightning.app.utilities.enum import AppStage
 from lightning.app.utilities.network import LightningClient
 
 
-def _get_project(client: LightningClient, organization_id: Optional[str] = None, project_id: Optional[str] = None, verbose: bool = True) -> V1Membership:
+def _get_project(
+    client: LightningClient,
+    organization_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    verbose: bool = True,
+) -> V1Membership:
     """Get a project membership for the user from the backend."""
     if project_id is None:
         project_id = constants.LIGHTNING_CLOUD_PROJECT_ID

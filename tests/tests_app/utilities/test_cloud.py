@@ -1,14 +1,14 @@
 import os
 from unittest import mock
 
-from lightning.app.utilities.cloud import _get_project, is_running_in_cloud
 from lightning_cloud.openapi.models import V1ListMembershipsResponse, V1Membership
-from lightning.app.utilities.network import LightningClient
+
+from lightning.app.utilities.cloud import _get_project, is_running_in_cloud
 
 
 @mock.patch("lightning.app.core.constants.LIGHTNING_CLOUD_ORGANIZATION_ID", "organization_id")
 def test_get_project_picks_up_organization_id():
-    """Uses organization_id from `LIGHTNING_CLOUD_ORGANIZATION_ID` config var if none passed"""
+    """Uses organization_id from `LIGHTNING_CLOUD_ORGANIZATION_ID` config var if none passed."""
     lightning_client = mock.MagicMock()
     lightning_client.projects_service_list_memberships = mock.MagicMock(
         return_value=V1ListMembershipsResponse(memberships=[V1Membership(project_id="project_id")]),
