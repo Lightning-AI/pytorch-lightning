@@ -17,6 +17,15 @@ def test_get_project_picks_up_organization_id():
     lightning_client.projects_service_list_memberships.assert_called_once_with(organization_id="organization_id")
 
 
+def test_get_project_doesnt_pass_organization_id_if_its_not_set():
+    lightning_client = LightningClient()
+    lightning_client.projects_service_list_memberships = mock.MagicMock(
+        return_value=V1ListMembershipsResponse(memberships=[V1Membership(project_id="project_id")]),
+    )
+    _get_project(lightning_client)
+    lightning_client.projects_service_list_memberships.assert_called_once_with()
+
+
 def test_is_running_cloud():
     """We can determine if Lightning is running in the cloud."""
     with mock.patch.dict(os.environ, {}, clear=True):

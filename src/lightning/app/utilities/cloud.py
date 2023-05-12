@@ -30,7 +30,9 @@ def _get_project(client: LightningClient, organization_id: Optional[str] = None,
     if organization_id is None:
         organization_id = constants.LIGHTNING_CLOUD_ORGANIZATION_ID
 
-    projects = client.projects_service_list_memberships(organization_id=organization_id)
+    projects = client.projects_service_list_memberships(
+        **({"organization_id": organization_id} if organization_id is not None else {})
+    )
     if project_id is not None:
         for membership in projects.memberships:
             if membership.project_id == project_id:
