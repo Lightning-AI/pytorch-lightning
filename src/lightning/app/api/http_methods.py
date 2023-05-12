@@ -71,7 +71,7 @@ class _FastApiMockRequest:
 
     @property
     def method(self):
-        raise self._method
+        return self._method
 
     @property
     def headers(self):
