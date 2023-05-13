@@ -490,9 +490,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             for optim_key, optim in optimizers.items():
                 sharded_optim_state_dict = FSDP.scatter_full_optim_state_dict(
-                    checkpoint.pop(optim_key),
-                    model=module,
-                    optim=optim
+                    checkpoint.pop(optim_key), model=module, optim=optim
                 )
                 optim.load_state_dict(sharded_optim_state_dict)
 
