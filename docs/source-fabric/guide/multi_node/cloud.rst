@@ -103,8 +103,8 @@ Next steps
         <div class="row">
 
 .. displayitem::
-    :header: Lightning App Docs
-    :description: Learn more about apps and the Lightning cloud.
+    :header: Lightning Platform
+    :description: Develop, Train and Deploy models on the cloud
     :col_css: col-md-4
     :button_link: https://lightning.ai
     :height: 150
