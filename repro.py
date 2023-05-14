@@ -1,8 +1,7 @@
 import torch
 
-from lightning.pytorch import LightningDataModule, LightningModule, Trainer
-from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DeepSpeedStrategy
 
 
@@ -17,7 +16,7 @@ class ModelParallelBoringModel(BoringModel):
     def on_load_checkpoint(self, checkpoint) -> None:
         self.configure_sharded_model()
 
-    
+
 def main():
     model = ModelParallelBoringModel()
     trainer = Trainer(
