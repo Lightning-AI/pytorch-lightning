@@ -44,6 +44,5 @@ class _EmptyInit(TorchFunctionMode):
         if getattr(func, "__module__", None) == "torch.nn.init":
             if "tensor" in kwargs:
                 return kwargs["tensor"]
-            else:
-                return args[0]
+            return args[0]
         return func(*args, **kwargs)
