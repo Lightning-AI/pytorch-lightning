@@ -611,6 +611,11 @@ class Fabric:
 
         Note:
             The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
+
+        Args:
+            empty_weights: Whether to initialize the model with empty weights (uninitialized memory).
+                If ``None``, the strategy will decide. Some strategies may not support all options.
+                Set this to ``True`` if you are loading a checkpoint into a large model.
         """
         if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
             rank_zero_warn(
