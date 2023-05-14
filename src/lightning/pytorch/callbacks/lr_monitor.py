@@ -23,6 +23,7 @@ import itertools
 from collections import defaultdict
 from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple, Type
 
+from torch import tensor
 from torch.optim.optimizer import Optimizer
 
 import lightning.pytorch as pl
@@ -192,6 +193,8 @@ class LearningRateMonitor(Callback):
         for opt, names in zip(optimizers_without_scheduler, optimizer_hparam_keys):
             current_stat = self._get_lr_momentum_stat(opt, names)
             latest_stat.update(current_stat)
+
+        trainer.callback_metrics.update({name: tensor(value) for name, value in latest_stat.items()})
 
         return latest_stat
 
