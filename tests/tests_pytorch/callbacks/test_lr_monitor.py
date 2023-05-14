@@ -16,7 +16,7 @@ import torch
 from torch import optim
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import LearningRateMonitor, EarlyStopping
+from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -632,22 +632,18 @@ def test_lr_monitor_early_stopping(tmpdir):
     """Test that the `LearningRateMonitor` logs are accessible by the `EarlyStopping` callback."""
 
     class TestModel(BoringModel):
-
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
             return [optimizer], [lr_scheduler]
 
-    monitor_key = 'lr-SGD'
+    monitor_key = "lr-SGD"
     stop_threshold = 0.02
     expected_stop_epoch = 3
 
     lr_monitor = LearningRateMonitor()
     lr_es = EarlyStopping(
-        monitor=monitor_key,
-        mode='min',
-        stopping_threshold=stop_threshold,
-        check_on_train_epoch_end=True
+        monitor=monitor_key, mode="min", stopping_threshold=stop_threshold, check_on_train_epoch_end=True
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
