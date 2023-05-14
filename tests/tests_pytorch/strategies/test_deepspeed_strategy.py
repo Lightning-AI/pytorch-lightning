@@ -658,7 +658,6 @@ def test_deepspeed_multigpu_stage_3(tmpdir):
         enable_model_summary=False,
     )
     trainer.test(model)
-    print(model.ds_inflight_param_registry)
     trainer.fit(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
