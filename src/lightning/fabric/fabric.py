@@ -603,7 +603,7 @@ class Fabric:
             yield
 
     @contextmanager
-    def init_module(self) -> Generator:
+    def init_module(self, empty_weights: Optional[bool] = None) -> Generator:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
