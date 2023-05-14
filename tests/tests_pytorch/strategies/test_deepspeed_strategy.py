@@ -49,7 +49,8 @@ class ModelParallelBoringModel(BoringModel):
         self.layer = None
 
     def configure_sharded_model(self) -> None:
-        self.layer = torch.nn.Linear(32, 2)
+        if self.layer is None:
+            self.layer = torch.nn.Linear(32, 2)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.configure_sharded_model()
@@ -73,7 +74,8 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         opt.step()
 
     def configure_sharded_model(self) -> None:
-        self.layer = torch.nn.Linear(32, 2)
+        if self.layer is None:
+            self.layer = torch.nn.Linear(32, 2)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.configure_sharded_model()
