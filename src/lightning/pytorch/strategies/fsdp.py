@@ -160,8 +160,7 @@ class FSDPStrategy(ParallelStrategy):
             state_dict_type=StateDictType.FULL_STATE_DICT,
             state_dict_config=FullStateDictConfig(offload_to_cpu=(self.world_size > 1), rank0_only=True),
         ):
-            state_dict = self.model.state_dict()
-            return _strip_prefix_from_state_dict(state_dict, prefix="_forward_module.")
+            return self.model.state_dict()
 
     @property
     def root_device(self) -> torch.device:
@@ -397,8 +396,3 @@ class FSDPStrategy(ParallelStrategy):
             cpu_offload=True,
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
-
-
-def _strip_prefix_from_state_dict(state_dict: Dict[str, Any], prefix: str) -> Dict[str, Any]:
-    prefix_len = len(prefix)
-    return {k[prefix_len:]: v for k, v in state_dict.items()}
