@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Sequence, Any, Optional, Dict
+from typing import Any, Callable, Dict, Optional, Sequence
 
 from torch.overrides import TorchFunctionMode
 
@@ -26,6 +26,7 @@ class _EmptyInit(TorchFunctionMode):
             model = BigModel()
         model.load_state_dict(torch.load("checkpoint.pt"))
     """
+
     def __init__(self, enabled: bool = True):
         super().__init__()
         self.enabled = enabled

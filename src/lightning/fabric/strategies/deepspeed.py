@@ -26,7 +26,6 @@ from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.precision import Precision
