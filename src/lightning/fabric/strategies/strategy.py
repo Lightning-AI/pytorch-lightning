@@ -22,6 +22,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
+from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
@@ -114,14 +115,19 @@ class Strategy(ABC):
         return dataloader
 
     @contextmanager
-    def module_init_context(self) -> Generator:
+    def module_init_context(self, empty_weights: Optional[bool] = None) -> Generator:
         """A context manager wrapping the model instantiation.
 
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
         patches to the model.
+
+        Args:
+            empty_weights: Whether to initialize the model with empty weights (uninitialized memory).
+                If ``None``, the strategy will decide. Some strategies may not support all options.
         """
         device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
-        with device_context, self.precision.init_context():
+        empty_init_context = _EmptyInit(enabled=(empty_weights is not False))
+        with device_context, empty_init_context, self.precision.init_context():
             yield
 
     def setup_module_and_optimizers(

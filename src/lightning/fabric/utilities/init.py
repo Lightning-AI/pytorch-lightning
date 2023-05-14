@@ -17,15 +17,18 @@ from torch.overrides import TorchFunctionMode
 
 
 # From https://lernapparat.de/faster-model-init by Thomas Viehmann
-class EmptyInit(TorchFunctionMode):
+class _EmptyInit(TorchFunctionMode):
     """Initialize `nn.Module` with empty tensors, i.e., uninitialized memory.
 
     Example::
 
-        with EmptyInit():
+        with _EmptyInit():
             model = BigModel()
         model.load_state_dict(torch.load("checkpoint.pt"))
     """
+    def __init__(self, enabled: bool = True):
+        super().__init__()
+        self.enabled = enabled
 
     def __torch_function__(
         self,
@@ -35,6 +38,8 @@ class EmptyInit(TorchFunctionMode):
         kwargs: Optional[Dict] = None,
     ):
         kwargs = kwargs or {}
+        if not self.enabled:
+            return func(*args, **kwargs)
         if getattr(func, "__module__", None) == "torch.nn.init":
             if "tensor" in kwargs:
                 return kwargs["tensor"]

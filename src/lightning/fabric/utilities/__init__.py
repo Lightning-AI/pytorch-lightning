@@ -14,6 +14,7 @@
 """General utilities."""
 
 from lightning.fabric.utilities.apply_func import move_data_to_device  # noqa: F401
+from lightning.fabric.utilities.init import EmptyInit  # noqa: F401
 from lightning.fabric.utilities.enums import LightningEnum  # noqa: F401
 from lightning.fabric.utilities.rank_zero import (  # noqa: F401
     rank_zero_deprecation,

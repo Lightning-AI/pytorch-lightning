@@ -619,7 +619,7 @@ class Fabric:
                 " utilize the features in `init_module()`.",
                 category=PossibleUserWarning,
             )
-        with self._strategy.module_init_context():
+        with self._strategy.module_init_context(empty_weights=empty_weights):
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:

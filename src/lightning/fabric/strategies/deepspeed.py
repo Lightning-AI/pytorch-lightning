@@ -26,6 +26,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Module
 from torch.optim import Optimizer
 
+from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.precision import Precision
@@ -340,8 +341,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextmanager
-    def module_init_context(self) -> Generator[None, None, None]:
-        with super().module_init_context(), self.module_sharded_context():
+    def module_init_context(self, empty_weights: Optional[bool] = None) -> Generator[None, None, None]:
+        if self.zero_stage_3 and empty_weights is False:
+            raise NotImplementedError(
+                f"`{empty_weights=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
+            )
+        empty_weights = empty_weights is not False and not self.zero_stage_3
+        with super().module_init_context(empty_weights=empty_weights), self.module_sharded_context():
             yield
 
     @contextmanager
