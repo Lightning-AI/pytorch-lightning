@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Literal, Optional, Generator
+from typing import Any, Generator, Literal, Optional
 
 import torch
 
@@ -71,5 +71,7 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """For FSDP, this context manager is a no-op since conversion is already handled internally.
-        See: https://pytorch.org/docs/stable/fsdp.html for more details on mixed precision."""
+
+        See: https://pytorch.org/docs/stable/fsdp.html for more details on mixed precision.
+        """
         yield
