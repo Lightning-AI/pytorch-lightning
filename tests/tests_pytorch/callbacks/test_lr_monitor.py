@@ -656,6 +656,7 @@ def test_lr_monitor_early_stopping(tmpdir):
     model = TestModel()
     trainer.fit(model)
 
+    assert monitor_key in trainer.callback_metrics
     assert lr_monitor.lrs[monitor_key] == [0.1, 0.05, 0.025, 0.0125]
     assert min(lr_monitor.lrs[monitor_key][:expected_stop_epoch]) > stop_threshold
     assert len(lr_monitor.lrs[monitor_key][expected_stop_epoch:]) == 1
