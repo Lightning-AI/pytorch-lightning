@@ -13,11 +13,15 @@
 # limitations under the License.
 from typing import Dict, Optional
 
+import torch
+
 from lightning.fabric.accelerators import Accelerator
+from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.single_device import SingleDeviceStrategy
+from lightning.fabric.utilities.types import _DEVICE
 
 
 class SingleTPUStrategy(SingleDeviceStrategy):
@@ -25,11 +29,17 @@ class SingleTPUStrategy(SingleDeviceStrategy):
 
     def __init__(
         self,
-        device: int,
+        device: _DEVICE,
         accelerator: Optional[Accelerator] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
     ):
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
+        if isinstance(device, torch.device):
+            # unwrap the `torch.device` in favor of `xla_device`
+            device = device.index
+
         import torch_xla.core.xla_model as xm
 
         super().__init__(

@@ -78,7 +78,6 @@ from lightning.app.core.constants import (
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
     get_cloud_queue_type,
-    get_cluster_driver,
     get_lightning_cloud_url,
     LIGHTNING_CLOUD_PRINT_SPECS,
     SYS_CUSTOMIZATIONS_SYNC_ROOT,
@@ -484,7 +483,7 @@ class CloudRuntime(Runtime):
             work_lightningignores = [work.lightningignore for work in self.app.works]
             lightningignores = flow_lightningignores + work_lightningignores
             if lightningignores:
-                merged = sum(lightningignores, tuple())
+                merged = sum(lightningignores, ())
                 logger.debug(f"Found the following lightningignores: {merged}")
                 patterns = _parse_lightningignore(merged)
                 ignore_functions = [*ignore_functions, partial(_filter_ignored, root, patterns)]
@@ -905,12 +904,6 @@ class CloudRuntime(Runtime):
 
         if not ENABLE_PUSHING_STATE_ENDPOINT:
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
-
-        if get_cloud_queue_type():
-            v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLOUD_QUEUE_TYPE", value=get_cloud_queue_type()))
-
-        if get_cluster_driver():
-            v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLUSTER_DRIVER", value=get_cluster_driver()))
 
         if enable_interruptible_works():
             v1_env_vars.append(

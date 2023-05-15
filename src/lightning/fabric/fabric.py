@@ -28,6 +28,7 @@ from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from lightning.fabric.loggers import Logger
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
 from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
@@ -204,7 +205,7 @@ class Fabric:
         module = _FabricModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
-        module.to(self.device if move_to_device else next(module.parameters()).device)
+        module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
 
         optimizers = [_FabricOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
 
@@ -216,7 +217,7 @@ class Fabric:
 
         if optimizers:
             # join both types in a tuple for API convenience
-            return tuple((module, *optimizers))
+            return (module, *optimizers)
         return module
 
     def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _FabricModule:
@@ -248,7 +249,7 @@ class Fabric:
 
         if not isinstance(self._strategy, FSDPStrategy):
             # Update the _DeviceDtypeModuleMixin's device parameter
-            module.to(self.device if move_to_device else next(module.parameters()).device)
+            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self  # type: ignore[assignment]
@@ -362,7 +363,7 @@ class Fabric:
                 # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
-        self._precision.backward(tensor, module, *args, **kwargs)
+        self._strategy.backward(tensor, module, *args, **kwargs)
 
     def clip_gradients(
         self,
@@ -589,20 +590,23 @@ class Fabric:
 
         How and which processes save gets determined by the `strategy`. For example, the `ddp` strategy
         saves checkpoints only on process 0, while the `fsdp` strategy saves files from every rank.
+        This method must be called on all processes!
 
         Args:
             path: A path to where the file(s) should be saved
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
         """
-        return self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state))
+        self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state))
+        self.barrier()
 
     def load(
         self, path: Union[str, Path], state: Optional[Dict[str, Union[nn.Module, Optimizer, Any]]] = None
     ) -> Dict[str, Any]:
         """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
 
-        How and which processes load gets determined by the `strategy`
+        How and which processes load gets determined by the `strategy`.
+        This method must be called on all processes!
 
         Args:
             path: A path to where the file is located
@@ -613,7 +617,17 @@ class Fabric:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
             given, the full checkpoint will be returned.
         """
-        return self._strategy.load_checkpoint(path=path, state=state)
+        unwrapped_state = _unwrap_objects(state)
+        remainder = self._strategy.load_checkpoint(path=path, state=unwrapped_state)
+        self.barrier()
+        if state is not None:
+            # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
+            # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
+            for k in list(unwrapped_state.keys()):
+                if isinstance(state[k], (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
+                    continue
+                state[k] = unwrapped_state[k]
+        return remainder
 
     def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
         """Launch and initialize all the processes needed for distributed execution.
@@ -741,7 +755,7 @@ class Fabric:
             return run_function(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
-        initial_device = next(model.parameters()).device
+        initial_device = next(model.parameters(), torch.tensor(0)).device
         if any(param.device != initial_device for param in model.parameters()):
             rank_zero_warn(
                 "The model passed to `Fabric.setup()` has parameters on different devices. Since `move_to_device=True`,"
@@ -798,7 +812,7 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        if isinstance(self._strategy, FSDPStrategy):
+        if isinstance(self._strategy, FSDPStrategy) and not _TORCH_GREATER_EQUAL_2_0:
             raise RuntimeError(
                 f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
                 " Create and set up the model first through `model = self.setup_model(model)`. Then create the"
