@@ -52,7 +52,6 @@ def test_all_gather_ddp_spawn():
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_all_gather_collection(tmpdir):
     class TestModel(BoringModel):
-
         on_train_epoch_end_called = False
 
         def on_train_epoch_end(self):
@@ -108,7 +107,6 @@ def test_all_gather_collection(tmpdir):
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_all_gather_sync_grads(tmpdir):
     class TestModel(BoringModel):
-
         training_step_called = False
 
         def training_step(self, batch, batch_idx):
@@ -116,8 +114,7 @@ def test_all_gather_sync_grads(tmpdir):
             tensor = torch.rand(2, 2, requires_grad=True, device=self.device)
             gathered_tensor = self.all_gather(tensor, sync_grads=True)
             assert gathered_tensor.shape == torch.Size([2, 2, 2])
-            loss = gathered_tensor.sum()
-            return loss
+            return gathered_tensor.sum()
 
     model = TestModel()
     trainer = Trainer(

@@ -155,6 +155,7 @@ class _LightningAppRef:
     def get_current(cls) -> Optional["LightningApp"]:
         if cls._app_instance:
             return cls._app_instance
+        return None
 
 
 def affiliation(component: "Component") -> Tuple[str, ...]:
@@ -318,12 +319,11 @@ def _set_child_name(component: "Component", child: "Component", new_name: str) -
 def _delta_to_app_state_delta(root: "LightningFlow", component: "Component", delta: Delta) -> Delta:
     delta_dict = delta.to_dict()
     for changed in delta_dict.values():
-        for delta_key in changed.copy().keys():
+        for delta_key in changed.copy():
             val = changed[delta_key]
 
             new_prefix = "root"
             for p, c in _walk_to_component(root, component):
-
                 if isinstance(c, lightning.app.core.LightningWork):
                     new_prefix += "['works']"
 

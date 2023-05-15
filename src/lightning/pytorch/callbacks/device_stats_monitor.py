@@ -44,11 +44,12 @@ class DeviceStatsMonitor(Callback):
         ModuleNotFoundError:
             If ``psutil`` is not installed and CPU stats are monitored.
 
-    Example:
-        >>> from lightning.pytorch import Trainer
-        >>> from lightning.pytorch.callbacks import DeviceStatsMonitor
-        >>> device_stats = DeviceStatsMonitor() # doctest: +SKIP
-        >>> trainer = Trainer(callbacks=[device_stats]) # doctest: +SKIP
+    Example::
+
+        from lightning import Trainer
+        from lightning.pytorch.callbacks import DeviceStatsMonitor
+        device_stats = DeviceStatsMonitor()
+        trainer = Trainer(callbacks=[device_stats])
     """
 
     def __init__(self, cpu_stats: Optional[bool] = None) -> None:

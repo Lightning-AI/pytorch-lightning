@@ -28,8 +28,6 @@ from lightning.app.source_code.uploader import FileUploader
 class LocalSourceCodeDir:
     """Represents the source code directory and provide the utilities to manage it."""
 
-    cache_location: Path = Path.home() / ".lightning" / "cache" / "repositories"
-
     def __init__(
         self,
         path: Path,
@@ -38,6 +36,12 @@ class LocalSourceCodeDir:
         package_source: bool = True,
         sys_customizations_root: Optional[Path] = None,
     ) -> None:
+        if "LIGHTNING_VSCODE_WORKSPACE" in os.environ:
+            # Don't use home to store the tar ball. This won't play nice with symlinks
+            self.cache_location: Path = Path("/tmp", ".lightning", "cache", "repositories")
+        else:
+            self.cache_location: Path = Path.home() / ".lightning" / "cache" / "repositories"
+
         self.path = path
         self.ignore_functions = ignore_functions
         self.package_source = package_source

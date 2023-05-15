@@ -35,8 +35,7 @@ log = logging.getLogger(__name__)
 
 
 class ModelSummary(Callback):
-    r"""
-    Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule`.
+    r"""Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule`.
 
     Args:
         max_depth: The maximum depth of layer nesting that the summary will include. A value of 0 turns the
@@ -56,7 +55,7 @@ class ModelSummary(Callback):
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._max_depth:
-            return None
+            return
 
         model_summary = self._summary(trainer, pl_module)
         summary_data = model_summary._get_summary_data()

@@ -39,12 +39,8 @@ def test_valid_unpublished_app_name():
 
     # assert warning of non official app given
     real_app = "https://github.com/Lightning-AI/install-app"
-    try:
+    with pytest.raises(subprocess.CalledProcessError, match="WARNING"):
         subprocess.check_output(f"lightning install app {real_app}", shell=True, stderr=subprocess.STDOUT)
-        # this condition should never be hit
-        assert False
-    except subprocess.CalledProcessError as e:
-        assert "WARNING" in str(e.output)
 
     # assert aborted install
     result = runner.invoke(lightning_cli.cmd_install.install_app, [real_app], input="q")
@@ -63,7 +59,6 @@ def test_valid_unpublished_app_name():
 @pytest.mark.skip(reason="need to figure out how to authorize git clone from the private repo")
 def test_app_install(tmpdir, monkeypatch):
     """Tests unpublished app install."""
-
     monkeypatch.chdir(tmpdir)
 
     real_app = "https://github.com/Lightning-AI/install-app"
@@ -112,7 +107,7 @@ def test_unpublished_component_url_parsing():
 
 @pytest.mark.skip(reason="need to figure out how to authorize pip install from the private repo")
 @pytest.mark.parametrize(
-    "real_component, test_component_pip_name",
+    ("real_component", "test_component_pip_name"),
     [
         ("lightning/lit-slack-messenger", "lit-slack"),
         (
@@ -195,7 +190,6 @@ def test_version_arg_component(tmpdir, monkeypatch):
 @mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 @mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
 def test_version_arg_app(tmpdir):
-
     # Version does not exist
     app_name = "lightning/invideo"
     version_arg = "NOT-EXIST"
@@ -215,7 +209,6 @@ def test_version_arg_app(tmpdir):
 @mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
 @mock.patch("lightning.app.cli.cmd_install._show_install_app_prompt")
 def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
-
     app_name = "lightning/invideo"
     runner = CliRunner()
     with mock.patch("lightning.app.cli.cmd_install.requests.get") as get_api_mock:
@@ -246,7 +239,6 @@ def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
 
 
 def test_proper_url_parsing():
-
     name = "lightning/invideo"
 
     # make sure org/app-name name is correct
@@ -273,7 +265,6 @@ def test_proper_url_parsing():
 
 @_RunIf(skip_windows=True)
 def test_install_app_shows_error(tmpdir):
-
     app_folder_dir = Path(tmpdir / "some_random_directory").absolute()
     app_folder_dir.mkdir()
 
@@ -358,7 +349,7 @@ def test_private_component_registry():
 @mock.patch("lightning.app.cli.cmd_install.subprocess")
 @mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
 @pytest.mark.parametrize(
-    "source_url, git_url, git_sha",
+    ("source_url", "git_url", "git_sha"),
     [
         (
             "https://github.com/PyTorchLightning/lightning-quick-start",

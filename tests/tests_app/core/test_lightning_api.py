@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import multiprocessing as mp
 import os
@@ -192,7 +193,6 @@ def test_update_publish_state_and_maybe_refresh_ui():
     - receives the state from the `publish_state_queue` and populates the app_state_store
     - receives a notification to refresh the UI and makes a GET Request (streamlit).
     """
-
     app = AppStageTestingApp(FlowA(), log_level="debug")
     publish_state_queue = _MockQueue("publish_state_queue")
     api_response_queue = _MockQueue("api_response_queue")
@@ -208,7 +208,7 @@ def test_update_publish_state_and_maybe_refresh_ui():
 
 
 @pytest.mark.parametrize("x_lightning_type", ["DEFAULT", "STREAMLIT"])
-@pytest.mark.anyio
+@pytest.mark.anyio()
 async def test_start_server(x_lightning_type, monkeypatch):
     """This test relies on FastAPI TestClient and validates that the REST API properly provides:
 
@@ -241,7 +241,6 @@ async def test_start_server(x_lightning_type, monkeypatch):
     headers = headers_for({"type": x_lightning_type})
 
     async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
-
         with pytest.raises(Exception, match="X-Lightning-Session-UUID"):
             await client.get("/api/v1/spec")
 
@@ -345,15 +344,9 @@ async def test_start_server(x_lightning_type, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "path, expected_status_code",
-    (
-        ("/api/v1", 404),
-        ("/api/v1/asdf", 404),
-        ("/api/asdf", 404),
-        ("/api", 404),
-    ),
+    ("path", "expected_status_code"), [("/api/v1", 404), ("/api/v1/asdf", 404), ("/api/asdf", 404), ("/api", 404)]
 )
-@pytest.mark.anyio
+@pytest.mark.anyio()
 async def test_state_api_routes(path, expected_status_code):
     async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
         response = await client.get(path)
@@ -361,7 +354,7 @@ async def test_state_api_routes(path, expected_status_code):
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="redis not running")
-@pytest.mark.anyio
+@pytest.mark.anyio()
 async def test_health_endpoint_success():
     global_app_state_store.store = {}
     global_app_state_store.add("1234")
@@ -382,7 +375,7 @@ async def test_health_endpoint_success():
 @pytest.mark.skipif(
     check_if_redis_running(), reason="this is testing the failure condition " "for which the redis should not run"
 )
-@pytest.mark.anyio
+@pytest.mark.anyio()
 async def test_health_endpoint_failure(monkeypatch):
     monkeypatch.setenv("LIGHTNING_APP_STATE_URL", "http://someurl")  # adding this to make is_running_in_cloud pass
     monkeypatch.setitem(os.environ, "LIGHTNING_CLOUD_QUEUE_TYPE", "redis")
@@ -393,14 +386,14 @@ async def test_health_endpoint_failure(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "path, expected_status_code",
-    (
+    ("path", "expected_status_code"),
+    [
         ("/", 200),
         ("/asdf", 200),
         ("/view/component_a", 200),
-    ),
+    ],
 )
-@pytest.mark.anyio
+@pytest.mark.anyio()
 async def test_frontend_routes(path, expected_status_code):
     async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
         response = await client.get(path)
@@ -492,6 +485,7 @@ class FlowAPI(LightningFlow):
         assert request.body()
         assert request.json()
         assert request.headers
+        assert request.method
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
@@ -524,7 +518,8 @@ def test_configure_api():
             time_left -= 0.1
 
     # Test Upload File
-    files = {"uploaded_file": open(__file__, "rb")}
+    with open(__file__, "rb") as fo:
+        files = {"uploaded_file": fo}
 
     response = requests.put(f"http://localhost:{APP_SERVER_PORT}/api/v1/upload_file/test", files=files)
     assert response.json() == "Successfully uploaded 'test' to the Drive"
@@ -550,10 +545,8 @@ def test_configure_api():
     assert response.status_code == 200
 
     # Stop the Application
-    try:
+    with contextlib.suppress(Exception):
         response = requests.post(url, json=InputRequestModel(index=0, name="hello").dict())
-    except Exception:
-        pass
 
     # Teardown
     time_left = 5
@@ -566,7 +559,7 @@ def test_configure_api():
     process.kill()
 
 
-@pytest.mark.anyio
+@pytest.mark.anyio()
 @mock.patch("lightning.app.core.api.UIRefresher", mock.MagicMock())
 async def test_get_annotations(tmpdir):
     cwd = os.getcwd()

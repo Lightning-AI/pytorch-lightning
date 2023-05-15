@@ -74,10 +74,9 @@ class QueuingSystem(Enum):
     def get_queue(self, queue_name: str) -> "BaseQueue":
         if self == QueuingSystem.MULTIPROCESS:
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
-        elif self == QueuingSystem.REDIS:
+        if self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
-        else:
-            return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
+        return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
 
     def get_api_response_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{API_RESPONSE_QUEUE_CONSTANT}" if queue_id else API_RESPONSE_QUEUE_CONSTANT
@@ -287,7 +286,6 @@ class RedisQueue(BaseQueue):
             Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
             A timeout of None can be used to block indefinitely.
         """
-
         if timeout is None:
             # this means it's blocking in redis
             timeout = 0
@@ -420,7 +418,7 @@ class HTTPQueue(BaseQueue):
                 # than the default timeout
                 if timeout > self.default_timeout:
                     time.sleep(0.05)
-                pass
+        return None
 
     def _get(self) -> Any:
         try:

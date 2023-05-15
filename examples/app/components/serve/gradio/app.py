@@ -14,7 +14,7 @@ from lightning.app.components import ServeGradio
 class AnimeGANv2UI(ServeGradio):
     inputs = gr.inputs.Image(type="pil")
     outputs = gr.outputs.Image(type="pil")
-    elon = "https://upload.wikimedia.org/wikipedia/commons/3/34/Elon_Musk_Royal_Society_%28crop2%29.jpg"
+    elon = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Elon_Musk_Royal_Society_%28crop2%29.jpg/330px-Elon_Musk_Royal_Society_%28crop2%29.jpg"
     img = Image.open(requests.get(elon, stream=True).raw)
     img.save("elon.jpg")
     examples = [["elon.jpg"]]

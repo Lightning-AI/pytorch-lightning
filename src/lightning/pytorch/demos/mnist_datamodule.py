@@ -98,7 +98,7 @@ class _MNIST(Dataset):
         for url in self.RESOURCES:
             logging.info(f"Downloading {url}")
             fpath = os.path.join(data_folder, os.path.basename(url))
-            urllib.request.urlretrieve(url, fpath)
+            urllib.request.urlretrieve(url, fpath)  # noqa: S310
 
     @staticmethod
     def _try_load(path_data: str, trials: int = 30, delta: float = 1.0) -> Tuple[Tensor, Tensor]:
@@ -112,7 +112,7 @@ class _MNIST(Dataset):
             # todo: specify the possible exception
             except Exception as ex:
                 exception = ex
-                time.sleep(delta * random.random())
+                time.sleep(delta * random.random())  # noqa: S311
             else:
                 break
         assert res is not None
@@ -135,8 +135,8 @@ def MNIST(*args: Any, **kwargs: Any) -> Dataset:
             from torchvision.datasets import MNIST
 
             MNIST(_DATASETS_PATH, download=True)
-        except HTTPError as e:
-            print(f"Error {e} downloading `torchvision.datasets.MNIST`")
+        except HTTPError as ex:
+            print(f"Error {ex} downloading `torchvision.datasets.MNIST`")
             torchvision_mnist_available = False
     if not torchvision_mnist_available:
         print("`torchvision.datasets.MNIST` not available. Using our hosted version")
@@ -206,7 +206,7 @@ class MNISTDataModule(LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         """MNIST train set removes a subset to use for validation."""
-        loader = DataLoader(
+        return DataLoader(
             self.dataset_train,
             batch_size=self.batch_size,
             shuffle=True,
@@ -214,11 +214,10 @@ class MNISTDataModule(LightningDataModule):
             drop_last=True,
             pin_memory=True,
         )
-        return loader
 
     def val_dataloader(self) -> DataLoader:
         """MNIST val set uses a subset of the training set for validation."""
-        loader = DataLoader(
+        return DataLoader(
             self.dataset_val,
             batch_size=self.batch_size,
             shuffle=False,
@@ -226,13 +225,12 @@ class MNISTDataModule(LightningDataModule):
             drop_last=True,
             pin_memory=True,
         )
-        return loader
 
     def test_dataloader(self) -> DataLoader:
         """MNIST test set uses the test split."""
         extra = {"transform": self.default_transforms} if self.default_transforms else {}
         dataset = MNIST(self.data_dir, train=False, download=False, **extra)
-        loader = DataLoader(
+        return DataLoader(
             dataset,
             batch_size=self.batch_size,
             shuffle=False,
@@ -240,7 +238,6 @@ class MNISTDataModule(LightningDataModule):
             drop_last=True,
             pin_memory=True,
         )
-        return loader
 
     @property
     def default_transforms(self) -> Optional[Callable]:

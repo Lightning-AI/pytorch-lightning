@@ -16,10 +16,9 @@ from tests_app import _PROJECT_ROOT
 
 
 @mock.patch("click.launch")
-@pytest.mark.parametrize("open_ui", (True, False))
+@pytest.mark.parametrize("open_ui", [True, False])
 def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypatch):
     """This test validates the command is runned properly and the LightningApp method is being executed."""
-
     monkeypatch.setattr("lightning.app._logger", logging.getLogger())
 
     original_method = LightningApp._run
@@ -50,7 +49,6 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
                 os.environ["PYTEST_CURRENT_TEST"] = pytest_env
             # capture logs.
             if open_ui:
-
                 # Get the designated port
                 port = constants.APP_SERVER_PORT
 
@@ -84,7 +82,7 @@ def test_lightning_run_cluster_without_cloud(monkeypatch):
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})
 @mock.patch("lightning.app.cli.lightning_cli.dispatch")
-@pytest.mark.parametrize("open_ui", (True, False))
+@pytest.mark.parametrize("open_ui", [True, False])
 def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog, monkeypatch):
     """This test validates the command has ran properly when --cloud argument is passed.
 
@@ -134,7 +132,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})
 @mock.patch("lightning.app.cli.lightning_cli.dispatch")
-@pytest.mark.parametrize("open_ui", (True, False))
+@pytest.mark.parametrize("open_ui", [True, False])
 def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.MagicMock, open_ui, caplog, monkeypatch):
     """This test validates the command has ran properly when --cloud argument is passed.
 

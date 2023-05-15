@@ -213,24 +213,24 @@ def _submit_data_to_url(url: str, tmpdir: str, progress_bar: bool) -> None:
 
     def upload_from_file(src, dst):
         file_size = os.path.getsize(src)
-        with open(src, "rb") as fd:
-            with tqdm(
-                desc="Uploading",
-                total=file_size,
-                unit="B",
-                unit_scale=True,
-                unit_divisor=1024,
-            ) as t:
-                reader_wrapper = CallbackIOWrapper(t.update, fd, "read")
-                response = requests.put(dst, data=reader_wrapper)
-                response.raise_for_status()
+        with open(src, "rb") as fd, tqdm(
+            desc="Uploading",
+            total=file_size,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+        ) as t:
+            reader_wrapper = CallbackIOWrapper(t.update, fd, "read")
+            response = requests.put(dst, data=reader_wrapper)
+            response.raise_for_status()
 
     archive_path = f"{tmpdir}/data.tar.gz"
     _make_tar(tmpdir, archive_path)
     if progress_bar:
         upload_from_file(archive_path, url)
     else:
-        requests.put(url, data=open(archive_path, "rb"))
+        with open(archive_path, "rb") as fo:
+            requests.put(url, data=fo)
 
 
 def _download_tarfile(download_url: str, output_dir: str, progress_bar: bool) -> None:
@@ -299,6 +299,6 @@ def _get_linked_output_dir(src_dir: str):
 
     if version_folder_name == "latest":
         return str(PurePath(src_dir).parent.joinpath("version_latest"))
-    else:
-        replaced_ver = version_folder_name.replace(".", "_")
-        return str(PurePath(src_dir).parent.joinpath(f"version_{replaced_ver}"))
+
+    replaced_ver = version_folder_name.replace(".", "_")
+    return str(PurePath(src_dir).parent.joinpath(f"version_{replaced_ver}"))

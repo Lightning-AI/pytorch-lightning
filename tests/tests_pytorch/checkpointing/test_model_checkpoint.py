@@ -78,7 +78,7 @@ def mock_training_epoch_loop(trainer):
 
 
 @pytest.mark.parametrize(
-    "validation_step_none,val_dataloaders_none,monitor",
+    ("validation_step_none", "val_dataloaders_none", "monitor"),
     [(False, False, "val_log"), (True, False, "train_log_epoch"), (False, True, "val_log")],
 )
 @pytest.mark.parametrize("reduce_lr_on_plateau", [False, True])
@@ -184,7 +184,7 @@ def test_model_checkpoint_score_and_ckpt(
 
 
 @pytest.mark.parametrize(
-    "val_check_interval,reduce_lr_on_plateau,epoch_aligned",
+    ("val_check_interval", "reduce_lr_on_plateau", "epoch_aligned"),
     [(0.25, True, True), (0.25, False, True), (0.42, False, False)],
 )
 def test_model_checkpoint_score_and_ckpt_val_check_interval(
@@ -324,12 +324,15 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
 
     path_yaml = os.path.join(tmpdir, "best_k_models.yaml")
     checkpoint.to_yaml(path_yaml)
-    d = yaml.full_load(open(path_yaml))
+    with open(path_yaml) as fo:
+        d = yaml.full_load(fo)
     best_k = dict(checkpoint.best_k_models.items())
     assert d == best_k
 
 
-@pytest.mark.parametrize("logger_version,expected", [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")])
+@pytest.mark.parametrize(
+    ("logger_version", "expected"), [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")]
+)
 def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], expected: str):
     """Test that "version_" prefix is only added when logger's version is an integer."""
     model = LogInTwoMethods()
@@ -414,6 +417,10 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     # no prefix
     ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch:03d}-{acc}", {"epoch": 3, "acc": 0.03})
     assert ckpt_name == "epoch=003-acc=0.03"
+
+    # one metric name is substring of another
+    ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch:03d}-{epoch_test:03d}", {"epoch": 3, "epoch_test": 3})
+    assert ckpt_name == "epoch=003-epoch_test=003"
 
     # prefix
     char_org = ModelCheckpoint.CHECKPOINT_JOIN_CHAR
@@ -618,7 +625,6 @@ def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
 
 def test_ckpt_every_n_train_steps(tmpdir):
     """Tests that the checkpoints are saved every n training steps."""
-
     model = LogInTwoMethods()
     every_n_train_steps = 16
     max_epochs = 2
@@ -1171,6 +1177,40 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     assert set(os.listdir(tmpdir)) == expected
 
 
+def test_ckpt_version_counter_disabled_after_rerun_new_trainer(tmpdir):
+    """Check that previous checkpoints get overwritten and no suffixes are generated when new trainer instances are
+    used."""
+    epochs = 2
+    for i in range(epochs):
+        mc = ModelCheckpoint(
+            dirpath=tmpdir,
+            save_top_k=-1,
+            save_last=True,
+            monitor="epoch",
+            filename="{epoch}",
+            enable_version_counter=False,
+        )
+        trainer = Trainer(
+            max_epochs=epochs,
+            limit_train_batches=1,
+            limit_val_batches=1,
+            default_root_dir=tmpdir,
+            callbacks=[mc],
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+        )
+        trainer.fit(BoringModel())
+
+        # check best_k_models and last state
+        assert {Path(f).name for f in mc.best_k_models} == {"epoch=0.ckpt", "epoch=1.ckpt"}
+        assert Path(mc.last_model_path).name == "last.ckpt"
+
+    # check created ckpts
+    actual = {f.basename for f in tmpdir.listdir()}
+    assert actual == {"epoch=0.ckpt", "epoch=1.ckpt", "last.ckpt"}
+
+
 def test_model_checkpoint_mode_options():
     with pytest.raises(MisconfigurationException, match="`mode` can be .* but got unknown_option"):
         ModelCheckpoint(mode="unknown_option")
@@ -1343,7 +1383,7 @@ def test_last_global_step_saved():
     assert model_checkpoint._last_global_step_saved == 0
 
 
-@pytest.mark.parametrize("every_n_epochs", (0, 5))
+@pytest.mark.parametrize("every_n_epochs", [0, 5])
 def test_save_last_every_n_epochs_interaction(tmpdir, every_n_epochs):
     """Test that `save_last` ignores `every_n_epochs`."""
     mc = ModelCheckpoint(every_n_epochs=every_n_epochs, save_last=True, save_top_k=0, save_on_train_epoch_end=True)

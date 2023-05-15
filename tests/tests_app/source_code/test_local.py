@@ -1,6 +1,11 @@
+import os
+import sys
 import tarfile
 import uuid
 from pathlib import Path
+from unittest import mock
+
+import pytest
 
 from lightning.app.source_code import LocalSourceCodeDir
 
@@ -17,6 +22,20 @@ def test_repository_checksum(tmp_path):
     assert version_a != version_b
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="this runs only on linux")
+@mock.patch.dict(os.environ, {"LIGHTNING_VSCODE_WORKSPACE": "something"})
+def test_local_cache_path_tmp(tmp_path):
+    """LocalRepository.cache_location is under tmp."""
+    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    assert str(repository.cache_location).startswith("/tmp")
+
+
+def test_local_cache_path_home(tmp_path):
+    """LocalRepository.cache_location is under home."""
+    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    assert str(repository.cache_location).startswith(str(Path.home()))
+
+
 def test_repository_package(tmp_path, monkeypatch):
     """LocalRepository.package() creates package from local dir."""
     cache_path = Path(tmp_path)
@@ -24,10 +43,8 @@ def test_repository_package(tmp_path, monkeypatch):
     source_path.mkdir(parents=True, exist_ok=True)
     (source_path / "test.txt").write_text("test")
 
-    # set cache location to temp dir
-    monkeypatch.setattr(LocalSourceCodeDir, "cache_location", cache_path)
-
     repository = LocalSourceCodeDir(path=source_path)
+    repository.cache_location = cache_path
     repository.package()
 
     # test that package is created
@@ -262,12 +279,9 @@ def test_repository_lightningignore_supports_different_patterns(tmp_path):
 
 def test_repository_lightningignore_unpackage(tmp_path, monkeypatch):
     """.lightningignore behaves similarly to the gitignore standard."""
-
     lorem_ipsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 
     cache_path = tmp_path / "cache"
-    monkeypatch.setattr(LocalSourceCodeDir, "cache_location", cache_path)
-
     source_path = tmp_path / "source"
     source_path.mkdir()
 
@@ -335,6 +349,7 @@ def test_repository_lightningignore_unpackage(tmp_path, monkeypatch):
 
     # create repo object
     repository = LocalSourceCodeDir(path=source_path)
+    repository.cache_location = cache_path
     repository.package()
 
     unpackage_path = tmp_path / "unpackage"

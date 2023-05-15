@@ -30,24 +30,14 @@ from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.ddp import DDPStrategy
+from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
-_DEEPSPEED_AVAILABLE = (
-    # DeepSpeed fails under 0.8.2 with torch 2.0: https://github.com/microsoft/DeepSpeed/pull/2863
-    RequirementCache("deepspeed>=0.8.2")
-    or (
-        not _TORCH_GREATER_EQUAL_2_0
-        and RequirementCache("deepspeed")
-        # check packaging because of https://github.com/microsoft/DeepSpeed/pull/2771
-        # remove the packaging check when min version is >=0.8.1
-        and RequirementCache("packaging>=20.0")
-    )
-)
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
@@ -350,9 +340,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextmanager
-    def module_sharded_context(self) -> Generator[None, None, None]:
+    def init_sharded_context(self) -> Generator[None, None, None]:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
-        # manager, which happens at the start of `Fabric.run()`. Later modificatoins through e.g. `Fabric.setup()`
+        # manager, which happens at the start of `Fabric.run()`. Later modifications through e.g. `Fabric.setup()`
         # won't have an effect here.
 
         import deepspeed
@@ -360,9 +350,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision.precision == "16-mixed":
+            # Note: For the mixed settings '16-mixed' and 'bf16-mixed', we shouldn't convert the weights to half
+            # precision, but we are keeping the 'bug' for backward compatibility.
+            # TODO: This can be properly implemented once https://github.com/Lightning-AI/lightning/issues/17581
+            #   gets resolved
+            if self.precision.precision in ("16-mixed", "16-true"):
                 dtype = torch.float16
-            elif self.precision.precision == "bf16-mixed":
+            elif self.precision.precision in ("bf16-mixed", "bf16-true"):
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float32
@@ -405,7 +399,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " part of the state like so: `save_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before saving the checkpoint."
             )
-        elif len(engines) > 1:
+        if len(engines) > 1:
             raise ValueError(
                 "Found multiple DeepSpeed engine modules in the given state. Saving checkpoints with DeepSpeed is"
                 " currently limited to a single model per checkpoint. To save multiple models, call the"
@@ -468,7 +462,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
             )
-        elif len(engines) > 1:
+        if len(engines) > 1:
             raise ValueError(
                 "Found multiple DeepSpeed engine modules in the given state. Saving and loading checkpoints"
                 " with DeepSpeed is currently limited to a single model per checkpoint. To load multiple model"
@@ -518,7 +512,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
         strategy_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)
         strategy_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
@@ -634,7 +628,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision.precision == "16-mixed":
+        if self.precision.precision in ("16-mixed", "16-true"):
             if "fp16" not in self.config:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -646,7 +640,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-        elif "bf16" not in self.config and self.precision.precision == "bf16-mixed":
+        elif "bf16" not in self.config and self.precision.precision in ("bf16-mixed", "bf16-true"):
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 
@@ -783,8 +777,7 @@ def _get_deepspeed_engines_from_state(state: Dict[str, Any]) -> List["deepspeed.
     from deepspeed import DeepSpeedEngine
 
     modules = chain(*(module.modules() for module in state.values() if isinstance(module, Module)))
-    engines = [engine for engine in modules if isinstance(engine, DeepSpeedEngine)]
-    return engines
+    return [engine for engine in modules if isinstance(engine, DeepSpeedEngine)]
 
 
 def _validate_state_keys(state: Dict[str, Any]) -> None:

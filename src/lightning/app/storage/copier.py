@@ -102,6 +102,7 @@ def _find_matching_path(work, request: _GetRequest) -> Optional["lightning.app.s
         candidate: lightning.app.storage.Path = getattr(work, name)
         if candidate.hash == request.hash:
             return candidate
+    return None
 
 
 def _copy_files(
@@ -128,9 +129,9 @@ def _copy_files(
                 fs.makedirs(str(to_path.parent), exist_ok=True)
 
             fs.put(str(from_path), str(to_path), recursive=False)
-        except Exception as e:
+        except Exception as ex:
             # Return the exception so that it can be handled in the main thread
-            return e
+            return ex
 
     # NOTE: Cannot use `S3FileSystem.put(recursive=True)` because it tries to access parent directories
     #       which it does not have access to.

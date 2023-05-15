@@ -62,6 +62,7 @@ DISABLE_DEPENDENCY_CACHE = bool(int(os.getenv("DISABLE_DEPENDENCY_CACHE", "0")))
 # Project under which the resources need to run in cloud. If this env is not set,
 # cloud runner will try to get the default project from the cloud
 LIGHTNING_CLOUD_PROJECT_ID = os.getenv("LIGHTNING_CLOUD_PROJECT_ID")
+LIGHTNING_CLOUD_ORGANIZATION_ID = os.getenv("LIGHTNING_CLOUD_ORGANIZATION_ID")
 LIGHTNING_CLOUD_PRINT_SPECS = os.getenv("LIGHTNING_CLOUD_PRINT_SPECS")
 LIGHTNING_DIR = os.getenv("LIGHTNING_DIR", str(Path.home() / ".lightning"))
 LIGHTNING_CREDENTIAL_PATH = os.getenv("LIGHTNING_CREDENTIAL_PATH", str(Path(LIGHTNING_DIR) / "credentials.json"))
@@ -93,7 +94,7 @@ ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "1")))
 ENABLE_UPLOAD_ENDPOINT = bool(int(os.getenv("ENABLE_UPLOAD_ENDPOINT", "1")))
 
 # directory where system customization sync files stored
-SYS_CUSTOMIZATIONS_SYNC_ROOT = "/tmp/sys-customizations-sync"
+SYS_CUSTOMIZATIONS_SYNC_ROOT = "/tmp/sys-customizations-sync"  # noqa: S108 # todo
 # directory where system customization sync files will be copied to be packed into app tarball
 SYS_CUSTOMIZATIONS_SYNC_PATH = ".sys-customizations-sync"
 

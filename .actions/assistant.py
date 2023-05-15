@@ -158,7 +158,8 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     '...PyTorch Lightning is just organized PyTorch...'
     """
     path_readme = os.path.join(path_dir, "README.md")
-    text = open(path_readme, encoding="utf-8").read()
+    with open(path_readme, encoding="utf-8") as fo:
+        text = fo.read()
 
     # drop images from readme
     text = text.replace(
@@ -331,7 +332,7 @@ def copy_replace_imports(
             if not isfile(fp_new):
                 shutil.copy(fp, fp_new)
             continue
-        elif ext in (".pyc",):
+        if ext in (".pyc",):
             continue
         # Try to parse everything else
         with open(fp, encoding="utf-8") as fo:
@@ -394,8 +395,10 @@ class AssistantCLI:
 
     @staticmethod
     def _replace_min(fname: str) -> None:
-        req = open(fname, encoding="utf-8").read().replace(">=", "==")
-        open(fname, "w", encoding="utf-8").write(req)
+        with open(fname, encoding="utf-8") as fo:
+            req = fo.read().replace(">=", "==")
+        with open(fname, "w", encoding="utf-8") as fw:
+            fw.write(req)
 
     @staticmethod
     def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:

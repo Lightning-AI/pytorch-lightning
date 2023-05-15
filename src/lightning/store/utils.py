@@ -30,10 +30,7 @@ def _check_version(version: str) -> bool:
     allowed_chars = "0123456789."
     if version == "latest":
         return True
-    for version_char in version:
-        if version_char not in allowed_chars:
-            return False
-    return True
+    return all(version_char in allowed_chars for version_char in version)
 
 
 def _split_name(name: str, version: str, l_stage: stage) -> Tuple[str, str, str]:
@@ -73,6 +70,4 @@ def _get_model_data(name: str, version: str):
     version = version or "latest"
     if version not in model_data:
         raise KeyError(f"No data found for the given version: {version}, did you download the model successfully?")
-    model_version_data = model_data[version]
-
-    return model_version_data
+    return model_data[version]

@@ -23,7 +23,6 @@ from typing_extensions import TypedDict
 
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
-from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -180,7 +179,7 @@ class _Metadata:
         return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction or self.is_sum_reduction)
 
 
-class _ResultMetric(Metric, _DeviceDtypeModuleMixin):  # type: ignore[misc]  # torchmetrics methods should return Self
+class _ResultMetric(Metric):
     """Wraps the value provided to `:meth:`~lightning.pytorch.core.module.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
@@ -314,10 +313,9 @@ class _ResultCollection(dict):
 
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
 
-    def __init__(self, training: bool, device: Optional[Union[str, torch.device]] = None) -> None:
+    def __init__(self, training: bool) -> None:
         super().__init__()
         self.training = training
-        self.device: Optional[Union[str, torch.device]] = device
         self.batch: Optional[Any] = None
         self.batch_size: Optional[int] = None
         self.dataloader_idx: Optional[int] = None
@@ -366,10 +364,6 @@ class _ResultCollection(dict):
         if not enable_graph:
             value = recursive_detach(value)
 
-        # move metrics to cpu on TPU.
-        if isinstance(value, Tensor) and value.device.type == "xla":
-            value = value.cpu()
-
         # storage key
         key = f"{fx}.{name}"
         # add dataloader_suffix to both key and fx
@@ -410,13 +404,13 @@ class _ResultCollection(dict):
 
         Value can be provided as a nested collection
         """
-        metric = _ResultMetric(meta, isinstance(value, Tensor)).to(self.device)
+        metric = _ResultMetric(meta, isinstance(value, Tensor)).to(value.device)
         self[key] = metric
 
     def update_metrics(self, key: str, value: _VALUE, batch_size: int) -> None:
         result_metric = self[key]
         # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
-        result_metric.forward(value.to(self.device), batch_size)
+        result_metric.forward(value, batch_size)
         result_metric.has_reset = False
 
     @staticmethod
@@ -509,9 +503,6 @@ class _ResultCollection(dict):
     def to(self, *args: Any, **kwargs: Any) -> "_ResultCollection":
         """Move all data to the given device."""
         self.update(apply_to_collection(dict(self), (Tensor, Metric), move_data_to_device, *args, **kwargs))
-
-        if "device" in kwargs:
-            self.device = kwargs["device"]
         return self
 
     def cpu(self) -> "_ResultCollection":
@@ -524,4 +515,4 @@ class _ResultCollection(dict):
         return f"{self.__class__.__name__}({self_str})"
 
     def __repr__(self) -> str:
-        return f"{{{self.training}, {repr(self.device)}, {super().__repr__()}}}"
+        return f"{{{self.training}, {super().__repr__()}}}"
