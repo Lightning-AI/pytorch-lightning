@@ -628,8 +628,8 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
     assert all(all(val == lr for val in lr_monitor.lrs[lr_key]) for lr_key in lr_monitor.lrs)
 
 
-def test_lr_monitor_early_stopping(tmpdir):
-    """Test that the `LearningRateMonitor` logs are accessible by the `EarlyStopping` callback."""
+def test_lr_monitor_update_callback_metrics(tmpdir):
+    """Test that the `LearningRateMonitor` callback updates trainer.callback_metrics."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
