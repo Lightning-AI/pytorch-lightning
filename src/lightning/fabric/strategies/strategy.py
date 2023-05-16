@@ -308,7 +308,7 @@ class Strategy(ABC):
                 continue
             if isinstance(obj, _Stateful):
                 if isinstance(obj, Module):
-                    obj.load_state_dict(checkpoint.pop(name), strict=strict)
+                    obj.load_state_dict(checkpoint.pop(name), strict=bool(strict))
                 else:
                     obj.load_state_dict(checkpoint.pop(name))
             else:
