@@ -211,7 +211,7 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded():
         accelerator="cuda",
         devices=1,
     )
-    fabric.launcy(run)
+    fabric.launch(run)
 
 
 class ModelParallelClassification(BoringFabric):
