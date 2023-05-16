@@ -422,7 +422,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 
     def load_checkpoint(
-        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None, strict: Optional[bool] = None
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -446,7 +446,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
             # a consolidated checkpoint
             path = self.broadcast(path)
-            return super().load_checkpoint(path=path, state=state)
+            return super().load_checkpoint(path=path, state=state, strict=strict)
 
         if not state:
             raise ValueError(
