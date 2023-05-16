@@ -405,7 +405,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     def load_checkpoint(
-        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None, strict: Optional[bool] = None
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -457,7 +457,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         with state_dict_ctx:
             module_state = {module_key: module.state_dict()}
             load_state_dict(module_state, reader)
-            module.load_state_dict(module_state[module_key])
+            module.load_state_dict(module_state[module_key], strict=bool(strict))
 
             # the optimizer states must be loaded separately
             for optim_key, optim in optimizers.items():
