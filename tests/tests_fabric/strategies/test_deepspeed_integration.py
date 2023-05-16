@@ -28,9 +28,9 @@ from tests_fabric.helpers.models import BoringFabric, RandomDataset, RandomItera
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
+
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multiple_models():
-
     def run(fabric_obj):
         model = BoringModel()
         optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
