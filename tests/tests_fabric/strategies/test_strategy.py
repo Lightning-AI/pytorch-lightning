@@ -119,4 +119,30 @@ def test_load_checkpoint_strict_loading(tmp_path):
     load_checkpoint_mock = Mock(return_value=saved_state)
     strategy.checkpoint_io.load_checkpoint = load_checkpoint_mock
     with pytest.raises(KeyError, match="contains a key 'c' that does not exist"):
-        strategy.load_checkpoint(tmp_path, requested_state)
+        strategy.load_checkpoint(tmp_path, requested_state, strict=True)
+
+
+def test_load_checkpoint_non_strict_loading(tmp_path):
+    """Test that no error is raised when requested to load a key that does not exist in the checkpoint if strict is
+    set to False, and test that this key is not loaded into the object."""
+    strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
+
+    # objects with initial state
+    saved_model = nn.Linear(2, 2)
+    saved_optimizer = torch.optim.Adam(saved_model.parameters(), lr=0.1)
+    saved_state = {"model": saved_model, "optimizer": saved_optimizer, "int": 1, "str": "test"}
+    strategy.save_checkpoint(tmp_path / "checkpoint", state=saved_state)
+
+    # same objects with different state
+    model = nn.Linear(2, 2)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.3)
+    state = {"model": model, "optimizer": optimizer, "int": 2}
+    assert not torch.equal(model.weight, saved_model.weight)
+    assert optimizer.state_dict() != saved_optimizer.state_dict()
+
+    remainder = strategy.load_checkpoint(tmp_path / "checkpoint", state, strict=False)
+    assert torch.equal(model.weight, saved_model.weight)
+    assert optimizer.state_dict() == saved_optimizer.state_dict()
+    assert state["int"] == saved_state["int"]
+    assert "str" not in state
+    assert "str" in remainder

@@ -273,7 +273,7 @@ class Strategy(ABC):
         return optimizer.state_dict()
 
     def load_checkpoint(
-        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None, strict: Optional[bool] = True
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -281,6 +281,8 @@ class Strategy(ABC):
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 If no state is given, then the checkpoint will be returned in full.
+            strict (bool, optional): whether to strictly enforce that the keys
+                in `state` match the keys in the checkpoint. Default: ``True``
 
         Returns:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
@@ -292,10 +294,10 @@ class Strategy(ABC):
             return checkpoint
 
         invalid_keys = [k for k in state if k not in checkpoint]
-        if invalid_keys:
-            # TODO(fabric): Make strict loading configurable to avoid this error if desired.
+        if strict and invalid_keys:
             raise KeyError(
-                f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint."
+                f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint. "
+                f"To disable strict loading, set strict to False."
             )
 
         for name, obj in state.copy().items():
@@ -303,8 +305,7 @@ class Strategy(ABC):
                 continue
             if isinstance(obj, _Stateful):
                 if isinstance(obj, Module):
-                    # TODO(fabric): Make strict loading configurable
-                    obj.load_state_dict(checkpoint.pop(name), strict=True)
+                    obj.load_state_dict(checkpoint.pop(name), strict=strict)
                 else:
                     obj.load_state_dict(checkpoint.pop(name))
             else:
