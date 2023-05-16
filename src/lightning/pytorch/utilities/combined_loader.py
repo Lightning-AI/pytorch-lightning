@@ -108,7 +108,7 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
         self._limits = limits
 
     def __next__(self) -> Tuple[Any, int, int]:
-        n = len(self.iterators)
+        n = len(self.iterables)
         if n == 0 or self._iterator_idx >= n:
             raise StopIteration
 
@@ -120,7 +120,7 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
                     raise StopIteration
 
         try:
-            out = next(self.iterators[self._iterator_idx])
+            out = next(self.iterators[0])
             index = self._idx
             self._idx += 1
             # batch, batch_idx, dataloader_idx
@@ -131,9 +131,9 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
             return self.__next__()
 
     def __iter__(self) -> Self:
-        super().__iter__()
         self._iterator_idx = 0
         self._idx = 0
+        self._load_current_iterator()
         return self
 
     def reset(self) -> None:
@@ -141,9 +141,14 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
         self._iterator_idx = 0
         self._idx = 0
 
+    def _load_current_iterator(self) -> None:
+        # Load a single DataLoader, prevents multiple sets of workers from starting unnecessarily
+        self.iterators = [iter(iterable) for idx, iterable in enumerate(self.iterables) if idx == self._iterator_idx]
+
     def _use_next_iterator(self) -> None:
         self._iterator_idx += 1
         self._idx = 0
+        self._load_current_iterator()
 
 
 class _MaxSize(_ModeIterator[List]):
