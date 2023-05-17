@@ -1,11 +1,11 @@
 from typing import Any
 
 import datasets
-import deepspeed
-import lightning.pytorch as pl
 import torch
 import transformers
-from lightning.pytorch import strategies
+
+import lightning.pytorch as pl
+
 
 class Collate:
     def __init__(self, tokenizer, max_length=512):
@@ -57,10 +57,12 @@ class DummyModel(pl.LightningModule):
 
 
 if __name__ == "__main__":
-    dataset = datasets.DatasetDict(dict(
-        train=datasets.load_dataset("squad", split="train[:1%]"),
-        validation=datasets.load_dataset("squad", split="validation[:1%]"),
-    ))
+    dataset = datasets.DatasetDict(
+        {
+            "train": datasets.load_dataset("squad", split="train[:1%]"),
+            "validation": datasets.load_dataset("squad", split="validation[:1%]"),
+        }
+    )
     model = DummyModel()
     tokenizer = transformers.AutoTokenizer.from_pretrained("bert-base-uncased")
 
@@ -84,5 +86,7 @@ if __name__ == "__main__":
         strategy=pl.strategies.DeepSpeedStrategy(stage=3),
     )
 
-    trainer.test(model, dataloaders=val_dataloader) # <-- no problem when commenting this, the problem is probably related to `lightning`
+    trainer.test(
+        model, dataloaders=val_dataloader
+    )  # <-- no problem when commenting this, the problem is probably related to `lightning`
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)

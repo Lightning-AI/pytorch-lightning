@@ -1,15 +1,13 @@
+import argparse
+import os
+
+import deepspeed
 import torch
 import torch.distributed
-import os
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.strategies import DeepSpeedStrategy
-import deepspeed
-import argparse
+
 
 
 def main():
-
     config = {
         "train_micro_batch_size_per_gpu": 2,
         "zero_optimization": {"stage": 3},
@@ -26,7 +24,9 @@ def main():
     loss = engine(input).sum()
 
     optimizer = torch.optim.Adam(model.parameters())
-    engine, opt, _, _ = deepspeed.initialize(args=argparse.Namespace(device_rank=0), model=model, optimizer=optimizer, config=config)
+    engine, opt, _, _ = deepspeed.initialize(
+        args=argparse.Namespace(device_rank=0), model=model, optimizer=optimizer, config=config
+    )
     input = torch.rand(2, 32).to("cuda:0")
     loss = engine(input).sum()
     engine.backward(loss)
