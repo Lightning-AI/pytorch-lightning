@@ -553,8 +553,7 @@ class _ForwardRedirection:
     def __call__(
         self, wrapper_module: Module, original_module: "pl.LightningModule", method_name: str, *args: Any, **kwargs: Any
     ) -> STEP_OUTPUT:
-        """
-        Reroutes a method call through the `wrapper_module`'s `forward` method.
+        """Reroutes a method call through the `wrapper_module`'s `forward` method.
 
         Args:
             wrapper_module: The module that has `original_module` wrapped.
