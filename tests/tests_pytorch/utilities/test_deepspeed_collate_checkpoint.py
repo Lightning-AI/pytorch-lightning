@@ -40,20 +40,11 @@ def test_deepspeed_collate_checkpoint(tmpdir):
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-
-    output_path = trainer.strategy.broadcast(os.path.join(tmpdir, "single_model.pt"))
     if trainer.is_global_zero:
+        # ensure function call works
+        output_path = os.path.join(tmpdir, "single_model.pt")
         convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, output_path)
-    
-    trainer.strategy.barrier()
-
-    import deepspeed
-    with deepspeed.zero.GatheredParameters(model.parameters()):
-        _inspect(output_path)
-
-    # import deepspeed
-    # with deepspeed.zero.GatheredParameters(model.parameters()):
-    #     _assert_checkpoint_equal(model, output_path)
+        _assert_checkpoint_equal(model, output_path)
 
 
 def _assert_checkpoint_equal(model, output_path):
@@ -63,15 +54,5 @@ def _assert_checkpoint_equal(model, output_path):
     for orig_param, saved_model_param in zip(state_dict.values(), single_output["state_dict"].values()):
         if model.dtype == torch.half:
             # moved model to float32 for comparison with single fp32 saved weights
-            saved_model_param = saved_model_param
-        print(orig_param.shape, saved_model_param.shape)
-        # assert torch.allclose(orig_param.cpu(), saved_model_param.half())
-
-
-def _inspect(output_path):
-    assert os.path.exists(output_path)
-    single_output = torch.load(output_path)
-    print(list(single_output["state_dict"].keys()))
-    for saved_model_param in single_output["state_dict"].values():
-        print(saved_model_param.shape)
-        # assert torch.allclose(orig_param.cpu(), saved_model_param.half())
+            saved_model_param = saved_model_param.half()
+        assert torch.equal(orig_param.cpu(), saved_model_param)
