@@ -404,12 +404,14 @@ class DDPStrategy(ParallelStrategy):
 
 
 class _DDPForwardRedirection(_ForwardRedirection):
-    def on_after_inner_forward(self, wrapper_module: DistributedDataParallel, original_module: "pl.LightningModule"):
+    def on_after_inner_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
         # In manual_optimization, we need to prevent DDP reducer as
         # it is done manually in `LightningModule.manual_backward`
+        assert isinstance(wrapper_module, DistributedDataParallel)
         if not original_module.automatic_optimization:
             wrapper_module.require_backward_grad_sync = False
 
-    def on_after_outer_forward(self, wrapper_module: DistributedDataParallel, original_module: "pl.LightningModule"):
+    def on_after_outer_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
+        assert isinstance(wrapper_module, DistributedDataParallel)
         if not original_module.automatic_optimization:
             wrapper_module.require_backward_grad_sync = True

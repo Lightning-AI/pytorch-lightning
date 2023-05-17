@@ -357,6 +357,7 @@ class Strategy(ABC):
         See :meth:`~lightning.pytorch.core.module.LightningModule.training_step` for more details
         """
         assert self.lightning_module is not None
+        assert self.model is not None
         with self.precision_plugin.train_step_context():
             if self.model != self.lightning_module:
                 return self._forward_redirection(self.model, self.lightning_module, "training_step", *args, **kwargs)
@@ -375,6 +376,7 @@ class Strategy(ABC):
         See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
         """
         assert self.lightning_module is not None
+        assert self.model is not None
         with self.precision_plugin.val_step_context():
             if self.model != self.lightning_module:
                 return self._forward_redirection(self.model, self.lightning_module, "validation_step", *args, **kwargs)
@@ -386,6 +388,7 @@ class Strategy(ABC):
         See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
         """
         assert self.lightning_module is not None
+        assert self.model is not None
         with self.precision_plugin.test_step_context():
             if self.model != self.lightning_module:
                 return self._forward_redirection(self.model, self.lightning_module, "test_step", *args, **kwargs)
@@ -397,6 +400,7 @@ class Strategy(ABC):
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
         """
         assert self.lightning_module is not None
+        assert self.model is not None
         with self.precision_plugin.predict_step_context():
             if self.model != self.lightning_module:
                 return self._forward_redirection(self.model, self.lightning_module, "predict_step", *args, **kwargs)
@@ -564,8 +568,8 @@ class _ForwardRedirection:
         self.on_after_outer_forward(wrapper_module, original_module)
         return wrapper_output
 
-    def on_after_inner_forward(self, wrapper_module: Module, original_module: "pl.LightningModule"):
+    def on_after_inner_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
         pass
 
-    def on_after_outer_forward(self, wrapper_module: Module, original_module: "pl.LightningModule"):
+    def on_after_outer_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
         pass
