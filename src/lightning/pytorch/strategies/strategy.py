@@ -545,16 +545,34 @@ class Strategy(ABC):
 
 
 class _ForwardRedirection:
+    """Implements the `forward-redirection`.
+
+    A method call to a wrapped module gets rerouted through the wrapper's `forward` method instead.
+    """
+
     def __call__(
         self, wrapper_module: Module, original_module: "pl.LightningModule", method_name: str, *args: Any, **kwargs: Any
     ) -> STEP_OUTPUT:
+        """
+        Reroutes a method call through the `wrapper_module`'s `forward` method.
+
+        Args:
+            wrapper_module: The module that has `original_module` wrapped.
+            original_module: The module that was wrapped inside `wrapper_module`.
+            method_name: The name of the method that should be called on the `original_module` after inputs get
+                redirected through the `wrapper_module`'s `forward` method.
+            *args: The positional arguments to the method `method_name`. They will get passed to a patched
+                `forward` method instead.
+            **kwargs: The keyword arguments to the method `method_name`. They will get passed to a patched
+                `forward` method instead.
+        """
         assert method_name != "forward"
         original_forward = original_module.forward
 
         def wrapped_forward(*_args: Any, **_kwargs: Any) -> Any:
             # Unpatch ourselves immediately before calling the method `method_name`
             # because itself may want to call the real `forward`
-            original_module.forward = original_forward  # type: ignore[assignment]
+            original_module.forward = original_forward  # type: ignore[method-assign]
             # Call the actual method e.g. `.training_step(...)`
             method = getattr(original_module, method_name)
             out = method(*_args, **_kwargs)
@@ -562,7 +580,7 @@ class _ForwardRedirection:
             return out
 
         # Patch the original_module's forward so we can redirect the arguments back to the real method
-        original_module.forward = wrapped_forward  # type: ignore[assignment]
+        original_module.forward = wrapped_forward  # type: ignore[method-assign]
 
         wrapper_output = wrapper_module(*args, **kwargs)
         self.on_after_outer_forward(wrapper_module, original_module)
