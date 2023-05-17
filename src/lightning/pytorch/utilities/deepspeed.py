@@ -108,4 +108,4 @@ def convert_zero_checkpoint_to_fp32_state_dict(
 
 
 def _remove_prefix(key: str, prefix: str) -> str:
-    return key[len(prefix):] if key.startswith(prefix) else key
+    return key[len(prefix) :] if key.startswith(prefix) else key
