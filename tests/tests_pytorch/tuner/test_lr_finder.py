@@ -477,3 +477,29 @@ def test_lr_finder_with_ddp(tmpdir):
     lr = trainer.strategy.broadcast(lr)
     assert trainer.lightning_module.lr == lr
     assert lr != init_lr
+
+
+def test_lr_finder_callback_val_batches(tmpdir):
+    """Test that `LearningRateFinder` does not limit the number of val batches during training."""
+
+    class CustomBoringModel(BoringModel):
+        def __init__(self, lr):
+            super().__init__()
+            self.lr = lr
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=self.lr)
+
+    num_lr_tuner_training_steps = 5
+    model = CustomBoringModel(0.1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        enable_model_summary=False,
+        callbacks=[LearningRateFinder(num_training_steps=num_lr_tuner_training_steps)],
+    )
+    trainer.fit(model)
+
+    assert trainer.num_val_batches[0] == len(trainer.val_dataloaders)
+    assert trainer.num_val_batches[0] != num_lr_tuner_training_steps
