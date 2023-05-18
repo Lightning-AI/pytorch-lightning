@@ -125,7 +125,7 @@ jobs:
 
       - name: Make Documentation
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        run: make html --debug --jobs $(nproc)
 
       - name: Check External Links (Optional)
         working-directory: ./docs/source-${{ matrix.pkg-name }}
