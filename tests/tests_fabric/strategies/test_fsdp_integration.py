@@ -142,6 +142,29 @@ def test_fsdp_save_load_full_state_dict(tmp_path):
     assert all(torch.equal(p0, p1) for p0, p1 in zip(params_before, params_after))
 
 
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+def test_fsdp_save_load_full_state_dict_2(tmp_path):  # TODO: better name
+    """"""
+    fabric = BoringFabric(accelerator="cuda", devices=1)
+    fabric.run()
+
+    # Save a full-state-dict checkpoint
+    checkpoint_path = Path(fabric.broadcast(str(tmp_path / "full-checkpoint.pt")))
+    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
+    fabric.save(checkpoint_path, state)
+
+    # Create a FSDP sharded model
+    fabric = BoringFabric(
+        accelerator="cuda",
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
+        devices=2,
+    )
+    fabric.run()
+
+    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
+    fabric.load(checkpoint_path, state)
+
+
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("move_to_device", [True, False])
 @mock.patch("lightning.fabric.wrappers._FabricModule")
