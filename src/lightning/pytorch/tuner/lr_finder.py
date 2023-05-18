@@ -295,6 +295,7 @@ def _lr_find(
     trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     trainer.fit_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
+    trainer.fit_loop.epoch_loop.val_loop._combined_loader = None
 
     return lr_finder
 
