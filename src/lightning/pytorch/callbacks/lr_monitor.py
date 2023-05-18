@@ -194,7 +194,9 @@ class LearningRateMonitor(Callback):
             current_stat = self._get_lr_momentum_stat(opt, names)
             latest_stat.update(current_stat)
 
-        trainer.callback_metrics.update({name: torch.tensor(value, device=trainer.strategy.root_device) for name, value in latest_stat.items()})
+        trainer.callback_metrics.update(
+            {name: torch.tensor(value, device=trainer.strategy.root_device) for name, value in latest_stat.items()}
+        )
 
         return latest_stat
 
