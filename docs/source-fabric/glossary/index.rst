@@ -40,7 +40,7 @@ Glossary
 
 .. displayitem::
     :header: Checkpoint
-    :button_link: ../guide/checkpoints.html
+    :button_link: ../guide/checkpoint.html
     :col_css: col-md-4
 
 .. displayitem::
@@ -80,7 +80,7 @@ Glossary
 
 .. displayitem::
     :header: Jypyter
-    :button_link: ../launch/notebook.html
+    :button_link: ../launch/notebooks.html
     :col_css: col-md-4
 
 .. displayitem::
