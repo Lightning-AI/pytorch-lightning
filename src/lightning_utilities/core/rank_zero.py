@@ -7,19 +7,24 @@ import logging
 import warnings
 from functools import wraps
 from platform import python_version
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, TypeVar, Union
+
+from typing_extensions import ParamSpec
 
 log = logging.getLogger(__name__)
 
+T = TypeVar("T")
+P = ParamSpec("P")
 
-def rank_zero_only(fn: Callable) -> Callable:
+
+def rank_zero_only(fn: Callable[P, T]) -> Callable[P, Optional[T]]:
     """Wrap a function to call internal function only in rank zero.
 
     Function that can be used as a decorator to enable a function/method being called only on global rank 0.
     """
 
     @wraps(fn)
-    def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def wrapped_fn(*args: P.args, **kwargs: P.kwargs) -> Optional[T]:
         rank = getattr(rank_zero_only, "rank", None)
         if rank is None:
             raise RuntimeError("The `rank_zero_only.rank` needs to be set before use")
