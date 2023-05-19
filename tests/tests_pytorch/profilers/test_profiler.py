@@ -625,8 +625,8 @@ def test_profiler_table_kwargs_summary_length(tmpdir):
     """Test if setting max_name_column_width in table_kwargs changes summary length."""
 
     summaries = []
-    # Empty dictionary table_kwargs sets max_name_column_width to 55
-    for table_kwargs in [{}, {"max_name_column_width": 20}, {"max_name_column_width": 100}]:
+    # Default table_kwargs (None) sets max_name_column_width to 55
+    for table_kwargs in [None, {"max_name_column_width": 20}, {"max_name_column_width": 100}]:
         pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", table_kwargs=table_kwargs)
         model = BoringModel()
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=1, profiler=pytorch_profiler)
