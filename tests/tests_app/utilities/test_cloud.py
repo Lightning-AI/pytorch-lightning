@@ -1,29 +1,19 @@
 import os
 from unittest import mock
 
-from lightning_cloud.openapi.models import V1ListMembershipsResponse, V1Membership
+from lightning_cloud.openapi.models import V1Project
 
 from lightning.app.utilities.cloud import _get_project, is_running_in_cloud
 
 
-@mock.patch("lightning.app.core.constants.LIGHTNING_CLOUD_ORGANIZATION_ID", "organization_id")
-def test_get_project_picks_up_organization_id():
-    """Uses organization_id from `LIGHTNING_CLOUD_ORGANIZATION_ID` config var if none passed."""
+def test_get_project_queries_by_project_id_directly_if_it_is_passed():
     lightning_client = mock.MagicMock()
-    lightning_client.projects_service_list_memberships = mock.MagicMock(
-        return_value=V1ListMembershipsResponse(memberships=[V1Membership(project_id="project_id")]),
+    lightning_client.projects_service_get_project = mock.MagicMock(
+        return_value=V1Project(id="project_id"),
     )
-    _get_project(lightning_client)
-    lightning_client.projects_service_list_memberships.assert_called_once_with(organization_id="organization_id")
-
-
-def test_get_project_doesnt_pass_organization_id_if_its_not_set():
-    lightning_client = mock.MagicMock()
-    lightning_client.projects_service_list_memberships = mock.MagicMock(
-        return_value=V1ListMembershipsResponse(memberships=[V1Membership(project_id="project_id")]),
-    )
-    _get_project(lightning_client)
-    lightning_client.projects_service_list_memberships.assert_called_once_with()
+    project = _get_project(lightning_client, project_id="project_id")
+    assert project.project_id == "project_id"
+    lightning_client.projects_service_get_project.assert_called_once_with("project_id")
 
 
 def test_is_running_cloud():
