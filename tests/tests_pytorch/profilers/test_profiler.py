@@ -623,20 +623,21 @@ def test_profile_callbacks(tmpdir):
 
 @RunIf(min_python="3.10")
 def test_profiler_table_kwargs_summary_length(tmpdir):
-    """Test if setting max_name_column_width in table_kwargs changes summary length."""
+    """Test if setting max_name_column_width in table_kwargs changes table width."""
 
     summaries = []
     # Default table_kwargs (None) sets max_name_column_width to 55
-    for table_kwargs in [None, {"max_name_column_width": 20}, {"max_name_column_width": 100}]:
-        pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", table_kwargs=table_kwargs)
-        model = BoringModel()
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=1, profiler=pytorch_profiler)
-        trainer.fit(model)
+    for table_kwargs in [{"max_name_column_width": 1}, {"max_name_column_width": 5}, None]:
+        pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None, table_kwargs=table_kwargs)
+
+        with pytorch_profiler.profile("a"):
+            torch.ones(1)
+        pytorch_profiler.describe()
         summaries.append(pytorch_profiler.summary())
 
-    # Check if setting max_name_column_width results in a different number of characters in the summary
-    assert len(summaries[0]) > len(summaries[1])
-    assert len(summaries[0]) < len(summaries[2])
+    # Check if setting max_name_column_width results in a wider table (more dashes)
+    assert summaries[0].count('-') < summaries[1].count('-')
+    assert summaries[1].count('-') < summaries[2].count('-')
 
 
 def test_profiler_invalid_table_kwargs(tmpdir):
