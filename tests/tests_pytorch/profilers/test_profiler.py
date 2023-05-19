@@ -619,3 +619,38 @@ def test_profile_callbacks(tmpdir):
         e.name == "[pl][profile][Callback]EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
         for e in pytorch_profiler.function_events
     )
+
+
+@pytest.mark.parametrize(
+    ("table_kwargs", "n_table_chars"),
+    [
+        ({}, 3484),
+        ({"max_name_column_width": 20}, 2644),
+        ({"max_name_column_width": 100}, 4564),
+    ]
+)
+def test_profiler_table_kwargs(tmpdir, table_kwargs, n_table_chars):
+    """Test if passing table formatting args to profiler works correctly"""
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", table_kwargs=table_kwargs)
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=1, profiler=pytorch_profiler)
+    trainer.fit(model)
+
+    summary = pytorch_profiler.summary()
+    assert len(summary) == n_table_chars
+
+
+def test_profiler_invalid_table_kwargs(tmpdir):
+    """Test if passing invalid keyword arguments raise expected error"""
+
+    for key in {"row_limit", "sort_by"}:
+        with pytest.raises(
+                KeyError,
+                match=f"Found invalid table_kwargs key: {key}. This is already a positional argument of the Profiler."
+        ):
+            PyTorchProfiler(table_kwargs={key: None}, dirpath=tmpdir, filename="profile")
+
+    for key in {"self", "non_existent_keyword_arg"}:
+        with pytest.raises(KeyError) as exc_info:
+            PyTorchProfiler(table_kwargs={key: None}, dirpath=tmpdir, filename="profile")
+        assert exc_info.value.args[0].startswith(f"Found invalid table_kwargs key: {key}.")
