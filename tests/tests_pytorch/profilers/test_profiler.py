@@ -622,7 +622,7 @@ def test_profile_callbacks(tmpdir):
     )
 
 
-@pytest.mark.skipif(sys.version_info < (3, 10), reason="requires Python 3.10 or higher")
+@RunIf(min_python="3.10")
 def test_profiler_table_kwargs_summary_length(tmpdir):
     """Test if setting max_name_column_width in table_kwargs changes summary length."""
 
