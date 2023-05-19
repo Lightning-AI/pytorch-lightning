@@ -238,7 +238,7 @@ class PyTorchProfiler(Profiler):
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
         record_module_names: bool = True,
-        table_kwargs: Dict[str, Any] = None,
+        table_kwargs: Optional[Dict[str, Any]] = None,
         **profiler_kwargs: Any,
     ) -> None:
         r"""This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of.
