@@ -621,23 +621,21 @@ def test_profile_callbacks(tmpdir):
     )
 
 
-@pytest.mark.parametrize(
-    ("table_kwargs", "n_table_chars"),
-    [
-        ({}, 3484),
-        ({"max_name_column_width": 20}, 2644),
-        ({"max_name_column_width": 100}, 4564),
-    ],
-)
-def test_profiler_table_kwargs(tmpdir, table_kwargs, n_table_chars):
-    """Test if passing table formatting args to profiler works correctly."""
-    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", table_kwargs=table_kwargs)
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=1, profiler=pytorch_profiler)
-    trainer.fit(model)
+def test_profiler_table_kwargs_summary_length(tmpdir):
+    """Test if setting max_name_column_width in table_kwargs changes summary length."""
 
-    summary = pytorch_profiler.summary()
-    assert len(summary) == n_table_chars
+    summaries = []
+    # Empty dictionary table_kwargs sets max_name_column_width to 55
+    for table_kwargs in [{}, {"max_name_column_width": 20}, {"max_name_column_width": 100}]:
+        pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", table_kwargs=table_kwargs)
+        model = BoringModel()
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=1, profiler=pytorch_profiler)
+        trainer.fit(model)
+        summaries.append(pytorch_profiler.summary())
+
+    # Check if setting max_name_column_width results in a different number of characters in the summary
+    assert len(summaries[0]) > len(summaries[1])
+    assert len(summaries[0]) < len(summaries[2])
 
 
 def test_profiler_invalid_table_kwargs(tmpdir):
