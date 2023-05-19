@@ -433,7 +433,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 This should contain exactly one model, and the model must already be set up by DeepSpeed.
-            strict: Whether to strictly enforce that the keys in `state` match the keys in the checkpoint. Default: ``True``
+            strict: Whether to strictly enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
             Dictionary with the state inside DeepSpeed's engine
