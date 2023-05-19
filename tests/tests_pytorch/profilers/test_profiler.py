@@ -636,8 +636,8 @@ def test_profiler_table_kwargs_summary_length(tmpdir):
         summaries.append(pytorch_profiler.summary())
 
     # Check if setting max_name_column_width results in a wider table (more dashes)
-    assert summaries[0].count('-') < summaries[1].count('-')
-    assert summaries[1].count('-') < summaries[2].count('-')
+    assert summaries[0].count("-") < summaries[1].count("-")
+    assert summaries[1].count("-") < summaries[2].count("-")
 
 
 def test_profiler_invalid_table_kwargs(tmpdir):
