@@ -18,36 +18,35 @@ from typing import Optional
 from lightning_cloud.openapi import V1Membership
 
 import lightning.app
-from lightning.app.core import constants
+from lightning.app.core.constants import LIGHTNING_CLOUD_PROJECT_ID
 from lightning.app.utilities.enum import AppStage
 from lightning.app.utilities.network import LightningClient
 
 
-def _get_project(
-    client: LightningClient,
-    organization_id: Optional[str] = None,
-    project_id: Optional[str] = None,
-    verbose: bool = True,
-) -> V1Membership:
+def _get_project(client: LightningClient, project_id: Optional[str] = None, verbose: bool = True) -> V1Membership:
     """Get a project membership for the user from the backend."""
     if project_id is None:
-        project_id = constants.LIGHTNING_CLOUD_PROJECT_ID
-    if organization_id is None:
-        organization_id = constants.LIGHTNING_CLOUD_ORGANIZATION_ID
+        project_id = LIGHTNING_CLOUD_PROJECT_ID
 
-    projects = client.projects_service_list_memberships(
-        **({"organization_id": organization_id} if organization_id is not None else {})
-    )
     if project_id is not None:
-        for membership in projects.memberships:
-            if membership.project_id == project_id:
-                break
-        else:
+        project = client.projects_service_get_project(project_id)
+        if not project:
             raise ValueError(
                 "Environment variable `LIGHTNING_CLOUD_PROJECT_ID` is set but could not find an associated project."
             )
-        return membership
+        return V1Membership(
+            name=project.name,
+            display_name=project.display_name,
+            description=project.description,
+            created_at=project.created_at,
+            project_id=project.id,
+            owner_id=project.owner_id,
+            owner_type=project.owner_type,
+            quotas=project.quotas,
+            updated_at=project.updated_at,
+        )
 
+    projects = client.projects_service_list_memberships()
     if len(projects.memberships) == 0:
         raise ValueError("No valid projects found. Please reach out to lightning.ai team to create a project")
     if len(projects.memberships) > 1 and verbose:
