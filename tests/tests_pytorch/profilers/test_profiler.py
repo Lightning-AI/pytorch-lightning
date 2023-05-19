@@ -14,7 +14,6 @@
 import logging
 import os
 import platform
-import sys
 import time
 from copy import deepcopy
 from unittest.mock import patch
