@@ -627,10 +627,10 @@ def test_profile_callbacks(tmpdir):
         ({}, 3484),
         ({"max_name_column_width": 20}, 2644),
         ({"max_name_column_width": 100}, 4564),
-    ]
+    ],
 )
 def test_profiler_table_kwargs(tmpdir, table_kwargs, n_table_chars):
-    """Test if passing table formatting args to profiler works correctly"""
+    """Test if passing table formatting args to profiler works correctly."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", table_kwargs=table_kwargs)
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=1, profiler=pytorch_profiler)
@@ -641,12 +641,12 @@ def test_profiler_table_kwargs(tmpdir, table_kwargs, n_table_chars):
 
 
 def test_profiler_invalid_table_kwargs(tmpdir):
-    """Test if passing invalid keyword arguments raise expected error"""
+    """Test if passing invalid keyword arguments raise expected error."""
 
     for key in {"row_limit", "sort_by"}:
         with pytest.raises(
-                KeyError,
-                match=f"Found invalid table_kwargs key: {key}. This is already a positional argument of the Profiler."
+            KeyError,
+            match=f"Found invalid table_kwargs key: {key}. This is already a positional argument of the Profiler.",
         ):
             PyTorchProfiler(table_kwargs={key: None}, dirpath=tmpdir, filename="profile")
 

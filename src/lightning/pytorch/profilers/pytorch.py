@@ -21,7 +21,7 @@ from typing import Any, Callable, ContextManager, Dict, List, Optional, Type, TY
 
 import torch
 from torch import nn, Tensor
-from torch.autograd.profiler import record_function, EventList
+from torch.autograd.profiler import EventList, record_function
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.pytorch.profilers.profiler import Profiler
@@ -322,11 +322,13 @@ class PyTorchProfiler(Profiler):
                 raise KeyError(
                     f"Found invalid table_kwargs key: {key}. This is already a positional argument of the Profiler."
                 )
-            valid_table_keys = set(inspect.signature(EventList.table).parameters.keys()) - {"self", "sort_by", "row_limit"}
+            valid_table_keys = set(inspect.signature(EventList.table).parameters.keys()) - {
+                "self",
+                "sort_by",
+                "row_limit",
+            }
             if key not in valid_table_keys:
-                raise KeyError(
-                    f"Found invalid table_kwargs key: {key}. Should be within {valid_table_keys}."
-                )
+                raise KeyError(f"Found invalid table_kwargs key: {key}. Should be within {valid_table_keys}.")
 
     def _init_kineto(self, profiler_kwargs: Any) -> None:
         has_schedule = "schedule" in profiler_kwargs
