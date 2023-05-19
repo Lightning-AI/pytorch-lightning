@@ -425,7 +425,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self,
         path: _PATH,
         state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
-        strict: Optional[bool] = None,
+        strict: Optional[bool] = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -433,6 +433,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 This should contain exactly one model, and the model must already be set up by DeepSpeed.
+            strict: Whether to strictly enforce that the keys in `state` match the keys in the checkpoint. Default: ``True``
 
         Returns:
             Dictionary with the state inside DeepSpeed's engine
