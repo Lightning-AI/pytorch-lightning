@@ -81,7 +81,6 @@ class LightningPlugin:
         os.environ["LIGHTNING_DISPATCHED"] = "1"
 
         url = runtime.cloudspace_dispatch(
-            organization_id=self.organization_id,
             project_id=self.project_id,
             cloudspace_id=self.cloudspace_id,
             name=name,
@@ -92,12 +91,10 @@ class LightningPlugin:
 
     def _setup(
         self,
-        organization_id: str,
         project_id: str,
         cloudspace_id: str,
         cluster_id: str,
     ) -> None:
-        self.organization_id = organization_id
         self.project_id = project_id
         self.cloudspace_id = cloudspace_id
         self.cluster_id = cluster_id
@@ -106,7 +103,6 @@ class LightningPlugin:
 class _Run(BaseModel):
     plugin_entrypoint: str
     source_code_url: str
-    organization_id: str
     project_id: str
     cloudspace_id: str
     cluster_id: str
@@ -163,7 +159,6 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
         # Setup and run the plugin
         try:
             plugin._setup(
-                organization_id=run.organization_id,
                 project_id=run.project_id,
                 cloudspace_id=run.cloudspace_id,
                 cluster_id=run.cluster_id,
