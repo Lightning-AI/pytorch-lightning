@@ -481,7 +481,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             tag="checkpoint",
             load_optimizer_states=optimzer_state_requested,
             load_lr_scheduler_states=False,
-            load_module_strict=True,  # TODO(fabric): make strict loading configurable
+            load_module_strict=strict,
         )
         if client_state is None:
             raise RuntimeError(
