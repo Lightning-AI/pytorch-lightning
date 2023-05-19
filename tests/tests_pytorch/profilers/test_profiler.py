@@ -14,6 +14,7 @@
 import logging
 import os
 import platform
+import sys
 import time
 from copy import deepcopy
 from unittest.mock import patch
@@ -621,6 +622,7 @@ def test_profile_callbacks(tmpdir):
     )
 
 
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="requires Python 3.10 or higher")
 def test_profiler_table_kwargs_summary_length(tmpdir):
     """Test if setting max_name_column_width in table_kwargs changes summary length."""
 
