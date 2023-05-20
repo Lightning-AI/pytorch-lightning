@@ -12,7 +12,7 @@ def test_template_react_ui_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "template_react_ui")) as (
         _,
         view_page,
-        fetch_logs,
+        _,
         _,
     ):
 
