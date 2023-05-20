@@ -22,7 +22,6 @@ import sys
 import tempfile
 import time
 from contextlib import contextmanager, nullcontext
-from multiprocessing import Process
 from subprocess import Popen
 from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Optional, Type
@@ -360,9 +359,9 @@ def run_app_in_cloud(
         app_id = app.id
         print(f"The Lightning App ID is: {app.id}")  # useful for Grafana
 
-        if debug:
-            process = Process(target=_print_logs, kwargs={"app_id": app_id})
-            process.start()
+        # if debug:
+        #     process = Process(target=_print_logs, kwargs={"app_id": app_id})
+        #     process.start()
 
         admin_page = context.new_page()
         admin_page.goto(admin_url)

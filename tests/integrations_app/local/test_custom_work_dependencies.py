@@ -14,6 +14,7 @@ def test_custom_work_dependencies_example_cloud() -> None:
         os.path.join(_PATH_APPS, "custom_work_dependencies"),
         app_name="app.py",
     ) as (_, _, fetch_logs, _):
+        sleep(120)
         has_logs = False
         while not has_logs:
             for log in fetch_logs(["flow"]):
