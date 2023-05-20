@@ -52,6 +52,7 @@ jobs:
       FREEZE_REQUIREMENTS: 1
       TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
       PYPI_CACHE_DIR: "_pip-wheels"
+      LIGHTING_TESTING: "1"
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
