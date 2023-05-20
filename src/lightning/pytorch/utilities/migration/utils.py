@@ -102,7 +102,8 @@ class pl_legacy_patch:
     ) -> None:
         if hasattr(pl.utilities.argparse, "_gpus_arg_default"):
             delattr(pl.utilities.argparse, "_gpus_arg_default")
-        del sys.modules["lightning.pytorch.utilities.argparse_utils"]
+        if "lightning.pytorch.utilities.argparse_utils" in sys.modules:
+            del sys.modules["lightning.pytorch.utilities.argparse_utils"]
 
 
 def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_PATH] = None) -> _CHECKPOINT:
