@@ -16,7 +16,7 @@ import os
 from contextlib import _GeneratorContextManager, contextmanager
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
+from typing import Any, Dict, Generator, List, Literal, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -77,6 +77,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             checkpointing. This is typically your transformer block (including attention + feed-forward).
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
+        state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
+
+            - ``"full"``: The full weights and optimizer states get assembled on rank 0 and saved to a single file.
+            - ``"sharded"``: Each rank saves its shard of weights and optimizer states to a file. The checkpoint is
+              a folder with as many files as the world size.
+
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
     """
 
@@ -92,6 +98,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         cpu_offload: Union[bool, "CPUOffload", None] = None,
         mixed_precision: Optional["MixedPrecision"] = None,
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
+        state_dict_type: Literal["full", "sharded"] = "sharded",
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -120,7 +127,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._activation_checkpointing = (
             [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
         )
-
+        self._state_dict_type = state_dict_type
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
 
@@ -315,10 +322,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def save_checkpoint(
         self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
     ) -> None:
-        """Save model, optimizer, and other state in a checkpoint directory.
+        """Save model, optimizer, and other state to a checkpoint on disk.
 
-        The directory will contain one file per process, with model- and optimizer shards stored per file. Additionally,
-        it creates a metadata file `meta.pt` with the rest of the user's state (only saved from rank 0).
+        If the state-dict-type is ``'full'``, the checkpoint will be written to a single file containing the weights,
+        optimizer state and other metadata. If the state-dict-type is ``'sharded'``, the checkpoint gets saved as a
+        directory containing one file per process, with model- and optimizer shards stored per file. Additionally, it
+        creates a metadata file `meta.pt` with the rest of the user's state (only saved from rank 0).
         """
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
@@ -354,27 +363,46 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         module = modules[0]
 
-        state_dict_type = _get_state_dict_type(module)
+        if self._state_dict_type == "sharded":
+            path.mkdir(parents=True, exist_ok=True)
+            state_dict_ctx = _get_sharded_state_dict_context(module)
 
-        # replace the modules and optimizer objects in the state with their local state dict
-        # and separate the user's metadata
-        converted_state = {}
-        metadata = {}
-        with state_dict_type:
-            for key, obj in state.items():
-                if isinstance(obj, FSDP):
-                    converted_state[key] = obj.state_dict()
-                elif isinstance(obj, Optimizer):
-                    converted_state[key] = FSDP.optim_state_dict(module, obj)
-                else:  # everything not a module or optimizer is considered metadata
-                    metadata[key] = obj
+            # replace the modules and optimizer objects in the state with their local state dict
+            # and separate the user's metadata
+            converted_state = {}
+            metadata = {}
+            with state_dict_ctx:
+                for key, obj in state.items():
+                    if isinstance(obj, FSDP):
+                        converted_state[key] = obj.state_dict()
+                    elif isinstance(obj, Optimizer):
+                        converted_state[key] = FSDP.optim_state_dict(module, obj)
+                    else:  # everything not a module or optimizer is considered metadata
+                        metadata[key] = obj
 
-        # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
-        writer = FileSystemWriter(path=path, single_file_per_rank=True)
-        save_state_dict(converted_state, writer)
+            # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
+            writer = FileSystemWriter(path=path, single_file_per_rank=True)
+            save_state_dict(converted_state, writer)
 
-        if self.global_rank == 0:
-            torch.save(metadata, path / "meta.pt")
+            if self.global_rank == 0:
+                torch.save(metadata, path / "meta.pt")
+
+        elif self._state_dict_type == "full":
+            state_dict_ctx = _get_full_state_dict_context(module)
+            full_state = {}
+            with state_dict_ctx:
+                for key, obj in state.items():
+                    if isinstance(obj, FSDP):
+                        full_state[key] = obj.state_dict()
+                    elif isinstance(obj, Optimizer):
+                        full_state[key] = FSDP.optim_state_dict(module, obj)
+                    else:  # everything not a module or optimizer is considered metadata
+                        full_state[key] = obj  # type: ignore[assignment]
+
+            if self.global_rank == 0:
+                torch.save(full_state, path)
+        else:
+            raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     def load_checkpoint(
         self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
@@ -423,10 +451,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         module_key, module = list(modules.items())[0]
 
-        state_dict_type = _get_state_dict_type(module)
+        state_dict_ctx = _get_sharded_state_dict_context(module)
         reader = FileSystemReader(path=path)
 
-        with state_dict_type:
+        with state_dict_ctx:
             module_state = {module_key: module.state_dict()}
             load_state_dict(module_state, reader)
             module.load_state_dict(module_state[module_key])
@@ -541,15 +569,31 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
     return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
 
 
-def _get_state_dict_type(module: "FullyShardedDataParallel") -> _GeneratorContextManager:
+def _get_sharded_state_dict_context(module: "FullyShardedDataParallel") -> _GeneratorContextManager:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
     state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
     optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
-    return FSDP.state_dict_type(
+    state_dict_type_context = FSDP.state_dict_type(
         module=module,
         state_dict_type=StateDictType.SHARDED_STATE_DICT,
         state_dict_config=state_dict_config,
         optim_state_dict_config=optim_state_dict_config,
     )
+    return state_dict_type_context
+
+
+def _get_full_state_dict_context(module: "FullyShardedDataParallel") -> _GeneratorContextManager:
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+    from torch.distributed.fsdp.api import FullOptimStateDictConfig, FullStateDictConfig, StateDictType
+
+    state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
+    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True)
+    state_dict_type_context = FSDP.state_dict_type(
+        module=module,
+        state_dict_type=StateDictType.FULL_STATE_DICT,
+        state_dict_config=state_dict_config,
+        optim_state_dict_config=optim_state_dict_config,
+    )
+    return state_dict_type_context
