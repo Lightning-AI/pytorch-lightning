@@ -27,9 +27,9 @@ jobs:
     runs-on: ubuntu-22.04
     # run only when the PR title contains '[TPU]' or is a merge to master
     if: |
-      (${{ startsWith(github.event_name, 'pull_request') &&
+      (startsWith(github.event_name, 'pull_request') &&
        (contains(github.event.pull_request.title, 'TPU') || contains(github.event.pull_request_target.title, 'TPU'))) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
+      (github.event_name == 'push' && github.ref == 'refs/heads/master')
     strategy:
       fail-fast: false
       matrix:
