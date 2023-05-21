@@ -319,8 +319,8 @@ def test_setup_dataloaders_return_type():
 
 @mock.patch("lightning.fabric.fabric._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
-    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager when launching
-    a function."""
+    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager when launching a
+    function."""
 
     def run(_):
         # One for BatchSampler, another for DataLoader
