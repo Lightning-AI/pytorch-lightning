@@ -5,6 +5,7 @@ on:
     branches: [master, "release/*"]
   pull_request_target:
     branches: [master, "release/*"]
+    types: [ opened, reopened, ready_for_review, synchronize ]  # added `ready_for_review` since draft is skipped
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
