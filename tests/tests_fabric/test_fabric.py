@@ -55,13 +55,17 @@ class BoringModel(nn.Module):
 def test_run_input_output():
     """Test that the dynamically patched run() method receives the input arguments and returns the result."""
 
-    def run(fabric_obj, *args, **kwargs):
-        fabric_obj.run_args = args
-        fabric_obj.run_kwargs = kwargs
-        return "result"
+    class RunFabric(Fabric):
+        run_args = ()
+        run_kwargs = {}
 
-    fabric = Fabric()
-    result = fabric.launch(run, 1, 2, three=3)
+        def run(self, *args, **kwargs):
+            self.run_args = args
+            self.run_kwargs = kwargs
+            return "result"
+
+    fabric = RunFabric()
+    result = fabric.run(1, 2, three=3)
     assert result == "result"
     assert fabric.run_args == (1, 2)
     assert fabric.run_kwargs == {"three": 3}
@@ -315,8 +319,8 @@ def test_setup_dataloaders_return_type():
 
 @mock.patch("lightning.fabric.fabric._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
-    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager in its run
-    method."""
+    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager when launching
+    a function."""
 
     def run(_):
         # One for BatchSampler, another for DataLoader
@@ -534,26 +538,25 @@ def test_to_device(accelerator, expected):
         if not pjrt.using_pjrt():
             expected = "xla:1"
 
-    def run(_):
-        expected_device = torch.device(expected)
-
-        # module
-        module = torch.nn.Linear(2, 3)
-        module = fabric.to_device(module)
-        assert all(param.device == expected_device for param in module.parameters())
-
-        # tensor
-        tensor = torch.rand(2, 2)
-        tensor = fabric.to_device(tensor)
-        assert tensor.device == expected_device
-
-        # collection
-        collection = {"data": torch.rand(2, 2), "int": 1}
-        collection = fabric.to_device(collection)
-        assert collection["data"].device == expected_device
-
     fabric = Fabric(accelerator=accelerator, devices=1)
-    fabric.launch(run)
+    fabric.launch()
+
+    expected_device = torch.device(expected)
+
+    # module
+    module = torch.nn.Linear(2, 3)
+    module = fabric.to_device(module)
+    assert all(param.device == expected_device for param in module.parameters())
+
+    # tensor
+    tensor = torch.rand(2, 2)
+    tensor = fabric.to_device(tensor)
+    assert tensor.device == expected_device
+
+    # collection
+    collection = {"data": torch.rand(2, 2), "int": 1}
+    collection = fabric.to_device(collection)
+    assert collection["data"].device == expected_device
 
 
 def test_rank_properties():
