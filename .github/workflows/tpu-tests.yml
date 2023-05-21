@@ -5,7 +5,7 @@ on:
     branches: [master, "release/*"]
   pull_request_target:
     branches: [master, "release/*"]
-    types: [ opened, reopened, ready_for_review, synchronize ]  # added `ready_for_review` since draft is skipped
+    types: [ opened, reopened, edited, ready_for_review, synchronize ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -29,9 +29,7 @@ jobs:
     # run only when the PR title contains '[TPU]' or is a merge to master
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
-      ( startsWith(github.event_name, 'pull_request') &&
-        ( contains(github.event.pull_request.title, 'TPU') || contains(github.event.pull_request_target.title, 'TPU') )
-      )
+      (startsWith(github.event_name, 'pull_request') && ( contains(github.event.pull_request.title, 'TPU'))
 
     strategy:
       fail-fast: false
