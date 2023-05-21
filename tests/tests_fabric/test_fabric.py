@@ -319,15 +319,15 @@ def test_setup_dataloaders_return_type():
 
 @mock.patch("lightning.fabric.fabric._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
-    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager in its run
-    method."""
+    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager when launching a
+    function."""
 
-    class RunFabric(Fabric):
-        def run(self):
-            # One for BatchSampler, another for DataLoader
-            assert ctx_manager().__enter__.call_count == 2
+    def run(_):
+        # One for BatchSampler, another for DataLoader
+        assert ctx_manager().__enter__.call_count == 2
 
-    RunFabric().run()
+    fabric = Fabric()
+    fabric.launch(run)
     assert ctx_manager().__exit__.call_count == 2
 
 
@@ -538,27 +538,25 @@ def test_to_device(accelerator, expected):
         if not pjrt.using_pjrt():
             expected = "xla:1"
 
-    class RunFabric(Fabric):
-        def run(self):
-            expected_device = torch.device(expected)
+    fabric = Fabric(accelerator=accelerator, devices=1)
+    fabric.launch()
 
-            # module
-            module = torch.nn.Linear(2, 3)
-            module = fabric.to_device(module)
-            assert all(param.device == expected_device for param in module.parameters())
+    expected_device = torch.device(expected)
 
-            # tensor
-            tensor = torch.rand(2, 2)
-            tensor = fabric.to_device(tensor)
-            assert tensor.device == expected_device
+    # module
+    module = torch.nn.Linear(2, 3)
+    module = fabric.to_device(module)
+    assert all(param.device == expected_device for param in module.parameters())
 
-            # collection
-            collection = {"data": torch.rand(2, 2), "int": 1}
-            collection = fabric.to_device(collection)
-            assert collection["data"].device == expected_device
+    # tensor
+    tensor = torch.rand(2, 2)
+    tensor = fabric.to_device(tensor)
+    assert tensor.device == expected_device
 
-    fabric = RunFabric(accelerator=accelerator, devices=1)
-    fabric.run()
+    # collection
+    collection = {"data": torch.rand(2, 2), "int": 1}
+    collection = fabric.to_device(collection)
+    assert collection["data"].device == expected_device
 
 
 def test_rank_properties():
@@ -720,35 +718,36 @@ def test_module_sharding_context():
     """Test that the sharding context manager gets applied when the strategy supports it and is a no-op
     otherwise."""
     fabric = Fabric()
-    fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
-    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
+    fabric._strategy = MagicMock(spec=DDPStrategy, init_sharded_context=Mock())
+    with fabric.sharded_model():
         pass
-    fabric._strategy.module_sharded_context.assert_not_called()
+    fabric._strategy.init_sharded_context.assert_not_called()
 
     fabric._strategy = MagicMock(spec=_Sharded)
-    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
+    with fabric.sharded_model():
         pass
-    fabric._strategy.module_sharded_context.assert_called_once()
+    fabric._strategy.init_sharded_context.assert_called_once()
 
 
 def test_init_module_context(monkeypatch):
-    """Test that the stratey returns the context manager for initializing the module."""
+    """Test that the strategy returns the context manager for initializing the module."""
     import lightning.fabric
 
     fabric = Fabric(accelerator="cpu")
-    strategy = MagicMock(spec=Strategy, module_init_context=MagicMock(), root_device=torch.device("cuda", 0))
+    strategy = lightning.fabric.strategies.SingleDeviceStrategy(device=torch.device("cuda"))
+    strategy.init_context = Mock(wraps=strategy.init_context)
     fabric._strategy = strategy
     with fabric.init_module():
         pass
-    strategy.module_init_context.assert_called_once()
-    strategy.reset_mock()
+    strategy.init_context.assert_called_once()
+    strategy.init_context.reset_mock()
 
     # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
+    monkeypatch.setattr(lightning.fabric.strategies.strategy, "_TORCH_GREATER_EQUAL_2_0", False)
     with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
         with fabric.init_module():
             pass
-    strategy.module_init_context.assert_called_once()
+    strategy.init_context.assert_called_once()
 
 
 def test_callbacks_input():

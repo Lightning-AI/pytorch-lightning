@@ -1360,6 +1360,18 @@ both conditions are met. If any of these arguments is not set, it won't be consi
     model = LitModel()
     trainer.fit(model)
 
+sanity_checking
+***************
+
+Indicates if the trainer is currently running sanity checking. This property can be useful to disable some hooks,
+logging or callbacks during the sanity checking.
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        ...
+        if not self.trainer.sanity_checking:
+            self.log("value", value)
 
 num_training_batches
 ********************
