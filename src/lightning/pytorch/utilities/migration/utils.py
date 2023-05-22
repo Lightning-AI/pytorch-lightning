@@ -17,15 +17,12 @@ import sys
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
 
-import torch
 from packaging.version import Version
-from torch.serialization import FILE_LIKE
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.types import _PATH
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.utilities.migration import pickle as legacy_checkpoint_pickle
 from lightning.pytorch.utilities.migration.migration import _migration_index
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
@@ -72,10 +69,6 @@ def migrate_checkpoint(
     return checkpoint, applied_migrations
 
 
-def load_legacy_checkpoint(f: FILE_LIKE, **torch_load_kwargs):
-    return torch.load(f, pickle_module=legacy_checkpoint_pickle, **torch_load_kwargs)
-
-
 class pl_legacy_patch:
     """Registers legacy artifacts (classes, methods, etc.) that were removed but still need to be included for
     unpickling old checkpoints. The following patches apply.
@@ -109,7 +102,8 @@ class pl_legacy_patch:
     ) -> None:
         if hasattr(pl.utilities.argparse, "_gpus_arg_default"):
             delattr(pl.utilities.argparse, "_gpus_arg_default")
-        del sys.modules["lightning.pytorch.utilities.argparse_utils"]
+        if "lightning.pytorch.utilities.argparse_utils" in sys.modules:
+            del sys.modules["lightning.pytorch.utilities.argparse_utils"]
 
 
 def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_PATH] = None) -> _CHECKPOINT:

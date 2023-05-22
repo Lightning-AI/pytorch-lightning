@@ -95,30 +95,6 @@ def test_legacy_ckpt_threading(tmpdir, pl_version: str):
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @RunIf(sklearn=True)
-def test_load_legacy_checkpoint_threading(tmpdir, pl_version: str):
-    PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
-    path_ckpts = sorted(glob.glob(os.path.join(PATH_LEGACY, f"*{CHECKPOINT_EXTENSION}")))
-    assert path_ckpts, f'No checkpoints found in folder "{PATH_LEGACY}"'
-    path_ckpt = path_ckpts[-1]
-
-    def load_model():
-        from lightning.pytorch.utilities.migration.utils import load_legacy_checkpoint
-
-        _ = load_legacy_checkpoint(path_ckpt)    
-
-    with patch("sys.path", [PATH_LEGACY] + sys.path):
-        t1 = ThreadExceptionHandler(target=load_model)
-        t2 = ThreadExceptionHandler(target=load_model)
-
-        t1.start()
-        t2.start()
-
-        t1.join()
-        t2.join()
-
-
-@pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
-@RunIf(sklearn=True)
 def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     with patch("sys.path", [PATH_LEGACY] + sys.path):
