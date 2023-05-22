@@ -32,7 +32,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
 from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
-from lightning.fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
+from lightning.fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT, _is_using_cli
 from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
@@ -888,7 +888,3 @@ class Fabric:
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
-
-
-def _is_using_cli() -> bool:
-    return bool(int(os.environ.get("LT_CLI_USED", "0")))
