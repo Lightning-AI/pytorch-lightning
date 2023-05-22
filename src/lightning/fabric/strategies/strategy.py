@@ -300,7 +300,7 @@ class Strategy(ABC):
         if strict and invalid_keys:
             raise KeyError(
                 f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint. "
-                f"To disable strict loading, set strict to False."
+                f"To disable strict loading, set `strict=False`."
             )
 
         for name, obj in state.copy().items():
