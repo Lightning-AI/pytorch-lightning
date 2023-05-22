@@ -539,8 +539,6 @@ class _Connector:
                 f"`--{name}={env_value}` set through the CLI. "
                 " Remove it either from the CLI or from the Lightning Fabric object."
             )
-        if env_value is None:
-            return current
         return env_value
 
 
