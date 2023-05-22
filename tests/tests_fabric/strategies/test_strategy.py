@@ -136,7 +136,7 @@ def test_load_checkpoint_non_strict_loading(tmp_path):
     # same objects with different state
     model = nn.Linear(2, 2)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.3)
-    state = {"model": model, "optimizer": optimizer, "int": 2}
+    state = {"model": model, "optimizer": optimizer, "int": 2, "new": "not_present_in_saved_state"}
     assert not torch.equal(model.weight, saved_model.weight)
     assert optimizer.state_dict() != saved_optimizer.state_dict()
 
@@ -146,3 +146,5 @@ def test_load_checkpoint_non_strict_loading(tmp_path):
     assert state["int"] == saved_state["int"]
     assert "str" not in state
     assert "str" in remainder
+    assert "new" in state
+    assert "new" not in remainder
