@@ -489,9 +489,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
         for k in client_state.copy():
-            if k not in state:
-                if not strict:
-                    continue
+            if k not in state and not strict:
+                continue
             state[k] = client_state.pop(k)
         return client_state
 
