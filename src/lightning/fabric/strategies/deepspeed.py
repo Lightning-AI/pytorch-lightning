@@ -425,7 +425,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self,
         path: _PATH,
         state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
-        strict: Optional[bool] = None,
+        strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -481,7 +481,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             tag="checkpoint",
             load_optimizer_states=optimzer_state_requested,
             load_lr_scheduler_states=False,
-            load_module_strict=True if strict is None else strict,
+            load_module_strict=strict,
         )
         if client_state is None:
             raise RuntimeError(

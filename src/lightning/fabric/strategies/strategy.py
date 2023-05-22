@@ -276,7 +276,7 @@ class Strategy(ABC):
         self,
         path: _PATH,
         state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
-        strict: Optional[bool] = True,
+        strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -308,7 +308,7 @@ class Strategy(ABC):
                 continue
             if isinstance(obj, _Stateful):
                 if isinstance(obj, Module):
-                    obj.load_state_dict(checkpoint.pop(name), strict=bool(strict))
+                    obj.load_state_dict(checkpoint.pop(name), strict=strict)
                 else:
                     obj.load_state_dict(checkpoint.pop(name))
             else:
