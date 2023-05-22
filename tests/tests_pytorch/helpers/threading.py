@@ -13,14 +13,14 @@
 # limitations under the License.
 from threading import Thread
 
+
 class ThreadExceptionHandler(Thread):
-    """
-    Adopted from https://stackoverflow.com/a/67022927
-    """
+    """Adopted from https://stackoverflow.com/a/67022927."""
+
     def __init__(self, target, args=(), kwargs={}):
         Thread.__init__(self, target=target, args=args, kwargs=kwargs)
         self.exception = None
-    
+
     def run(self):
         try:
             self._target(*self._args, **self._kwargs)
