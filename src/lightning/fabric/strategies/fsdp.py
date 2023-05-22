@@ -481,7 +481,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         for key, obj in state.items():
             if isinstance(obj, (FSDP, Optimizer)):
                 continue
-            if key not in metadata:
+            if strict and key not in metadata:
                 raise KeyError(f"'{key}' not found in the checkpoint.")
             state[key] = metadata.pop(key)
 
