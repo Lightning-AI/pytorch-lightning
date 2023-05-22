@@ -284,7 +284,7 @@ class Strategy(ABC):
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 If no state is given, then the checkpoint will be returned in full.
-            strict (bool, optional): whether to strictly enforce that the keys
+            strict: whether to strictly enforce that the keys
                 in `state` match the keys in the checkpoint. Default: ``True``
 
         Returns:
