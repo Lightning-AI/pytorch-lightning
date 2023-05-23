@@ -16,7 +16,7 @@ from typing import Dict, List, Optional, Tuple
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.testing import _run_if_reasons as FabricRunIf
+from lightning.fabric.utilities.testing import _runif_reasons as FabricRunIf
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.core.module import _ONNX_AVAILABLE
@@ -25,7 +25,7 @@ from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
 
-def _run_if_reasons(
+def _runif_reasons(
     *,
     min_cuda_gpus: int = 0,
     min_torch: Optional[str] = None,

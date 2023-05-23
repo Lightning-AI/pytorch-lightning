@@ -27,7 +27,7 @@ from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
 
-def _run_if_reasons(
+def _runif_reasons(
     *,
     min_cuda_gpus: int = 0,
     min_torch: Optional[str] = None,

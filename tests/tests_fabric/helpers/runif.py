@@ -13,9 +13,9 @@
 # limitations under the License.
 import pytest
 
-from lightning.fabric.utilities.testing import _run_if_reasons
+from lightning.fabric.utilities.testing import _runif_reasons
 
 
 def RunIf(**kwargs):
-    reasons, marker_kwargs = _run_if_reasons(**kwargs)
+    reasons, marker_kwargs = _runif_reasons(**kwargs)
     return pytest.mark.skipif(condition=len(reasons) > 0, reason=f"Requires: [{' + '.join(reasons)}]", **marker_kwargs)
