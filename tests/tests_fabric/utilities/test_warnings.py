@@ -39,7 +39,7 @@ if __name__ == "__main__":
         cache.deprecation("test7")
 
     output = stderr.getvalue()
-    base_line = 30
+    base_line = 28
     expected_lines = [
         f"test_warnings.py:{base_line}: UserWarning: test1",
         f"test_warnings.py:{base_line+1}: DeprecationWarning: test2",
