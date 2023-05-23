@@ -67,6 +67,7 @@ select = [
     "S",  # see: https://pypi.org/project/flake8-bandit
 ]
 extend-select = [
+    "I",  # see: isort
     "C4",  # see: https://pypi.org/project/flake8-comprehensions
     "SIM",  # see: https://pypi.org/project/flake8-simplify
     "RET",  # see: https://pypi.org/project/flake8-return

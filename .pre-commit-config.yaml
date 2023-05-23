@@ -75,13 +75,6 @@ repos:
           - flake8-simplify
           - flake8-return
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-        name: Format imports
-        exclude: docs/source-app
-
   - repo: https://github.com/psf/black
     rev: 23.3.0
     hooks:
