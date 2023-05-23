@@ -29,7 +29,7 @@ def test_channels_last_callback():
     model = DummyModule()
 
     # create a dummy Trainer
-    trainer = Trainer(gpus=1, max_epochs=1)
+    trainer = Trainer(max_epochs=1, devices=1)
 
     # create the callback
     callback = ChannelsLast()

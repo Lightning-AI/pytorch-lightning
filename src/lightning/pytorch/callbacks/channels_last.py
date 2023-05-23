@@ -18,6 +18,7 @@ ChannelsLast
 changes the model memory format to channels_last
 """
 
+import torch
 from typing import Optional
 
 from lightning.pytorch.callbacks.callback import Callback
