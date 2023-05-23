@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
 import torch
-from lightning.pytorch import Trainer, LightningModule
+
+from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import ChannelsLast
 
-def test_channels_last_callback():
 
+def test_channels_last_callback():
     class DummyModule(LightningModule):
         def __init__(self):
             super().__init__()

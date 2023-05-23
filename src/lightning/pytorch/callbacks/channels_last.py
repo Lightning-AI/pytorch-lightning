@@ -20,7 +20,6 @@ changes the model memory format to channels_last
 
 from typing import Optional
 
-import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 
 
@@ -30,8 +29,8 @@ class ChannelsLast(Callback):
 
     This usually improves GPU utilization.
 
-    Runs on setup, so it can set the memory format before the model is DDP wrapped. 
-    
+    Runs on setup, so it can set the memory format before the model is DDP wrapped.
+
     Has no parameters.
     """
 
