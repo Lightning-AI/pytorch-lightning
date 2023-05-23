@@ -13,11 +13,21 @@
 # limitations under the License.
 """General utilities."""
 
-from lightning.fabric.utilities.apply_func import move_data_to_device  # noqa: F401
-from lightning.fabric.utilities.enums import LightningEnum  # noqa: F401
-from lightning.fabric.utilities.rank_zero import (  # noqa: F401
+from lightning_utilities.core.enums import StrEnum as LightningEnum
+
+from lightning.fabric.utilities.apply_func import move_data_to_device
+from lightning.fabric.utilities.rank_zero import (
     rank_zero_deprecation,
     rank_zero_info,
     rank_zero_only,
     rank_zero_warn,
 )
+
+__all__ = [
+    "LightningEnum",
+    "move_data_to_device",
+    "rank_zero_deprecation",
+    "rank_zero_info",
+    "rank_zero_only",
+    "rank_zero_warn",
+]
