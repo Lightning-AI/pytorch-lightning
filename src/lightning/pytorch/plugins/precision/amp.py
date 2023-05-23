@@ -29,7 +29,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     """Plugin for Automatic Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:
-        precision: Whether to use ``torch.float16`` (``16``) or ``torch.bfloat16`` (``'bf16'``).
+        precision: Whether to use ``torch.float16`` (``'16-mixed'``) or ``torch.bfloat16`` (``'bf16-mixed'``).
         device: The device for ``torch.autocast``.
         scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
     """
@@ -40,6 +40,9 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         device: str,
         scaler: Optional[torch.cuda.amp.GradScaler] = None,
     ) -> None:
+        if precision not in ["16-mixed", "bf16-mixed"]:
+            raise MisconfigurationException("`precision` must be '16-mixed' or 'bf16-mixed'")
+
         self.precision = cast(Literal["16-mixed", "bf16-mixed"], str(precision))
         if scaler is None and self.precision == "16-mixed":
             with _patch_cuda_is_available():

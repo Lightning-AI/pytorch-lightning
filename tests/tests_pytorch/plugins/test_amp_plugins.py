@@ -22,6 +22,7 @@ from torch import Tensor
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import MixedPrecisionPlugin
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -193,3 +194,17 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     assert isinstance(context_manager, torch.autocast)
     # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
     assert str(context_manager.fast_dtype) == str(torch.bfloat16)
+
+
+def test_amp_precision_plugin_parameter_validation():
+    MixedPrecisionPlugin("16-mixed", "cpu")  # should not raise exception
+    MixedPrecisionPlugin("bf16-mixed", "cpu")
+
+    with pytest.raises(MisconfigurationException):
+        MixedPrecisionPlugin("16", "cpu")
+
+    with pytest.raises(MisconfigurationException):
+        MixedPrecisionPlugin(16, "cpu")
+
+    with pytest.raises(MisconfigurationException):
+        MixedPrecisionPlugin("bf16", "cpu")
