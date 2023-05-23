@@ -29,10 +29,20 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 @mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_project_name(*_):
-    logger = WandbLogger()
+    with mock.patch.dict(os.environ, {}):
+        logger = WandbLogger()
     assert logger.name == "lightning_logs"
 
-    logger = WandbLogger(project="project")
+    with mock.patch.dict(os.environ, {}):
+        logger = WandbLogger(project="project")
+    assert logger.name == "project"
+
+    with mock.patch.dict(os.environ, {"WANDB_PROJECT": "env_project"}):
+        logger = WandbLogger()
+    assert logger.name == "env_project"
+
+    with mock.patch.dict(os.environ, {"WANDB_PROJECT": "env_project"}):
+        logger = WandbLogger(project="project")
     assert logger.name == "project"
 
 
