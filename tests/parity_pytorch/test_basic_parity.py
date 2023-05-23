@@ -19,7 +19,8 @@ import torch
 
 from lightning.pytorch import LightningModule, seed_everything, Trainer
 from parity_pytorch.measure import measure_loops
-from parity_pytorch.models import ParityModuleCIFAR, ParityModuleMNIST, ParityModuleRNN
+from parity_pytorch.models import ParityModuleCIFAR
+from tests_pytorch.helpers.advanced_models import ParityModuleMNIST, ParityModuleRNN
 
 _EXTEND_BENCHMARKS = os.getenv("PL_RUNNING_BENCHMARKS", "0") == "1"
 _SHORT_BENCHMARKS = not _EXTEND_BENCHMARKS
