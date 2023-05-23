@@ -23,3 +23,10 @@ def reset_deterministic_algorithm():
     yield
     os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)
     torch.use_deterministic_algorithms(False)
+
+
+@pytest.fixture()
+def reset_cudnn_benchmark():
+    """Ensures that the `torch.backends.cudnn.benchmark` setting gets reset before the next test runs."""
+    yield
+    torch.backends.cudnn.benchmark = False
