@@ -17,7 +17,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, DistributedSampler
 
 from lightning.pytorch import LightningModule, seed_everything, Trainer
-from lightning.pytorch.utilities.testing import _RunIf as RunIf
+from parity_pytorch import RunIf
 
 
 class SyncBNModule(LightningModule):

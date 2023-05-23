@@ -44,7 +44,8 @@ def _RunIf(
     sklearn: bool = False,
     onnx: bool = False,
 ) -> Tuple[List[str], Dict[str, bool]]:
-    """
+    """Internal wrapper for filtering test cases.
+
     Args:
         min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
         min_torch: Require that PyTorch is greater or equal than this version.
