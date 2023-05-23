@@ -94,7 +94,7 @@ def _convert_layers(module: torch.nn.Module) -> None:
                 rank_zero_warn(
                     "Support for FP8 in the linear layers with `precision='8-mixed'` is currently limited to tensors"
                     f" with shapes where both dimensions are divisible by 16. The layer {name!r} does not fit this"
-                    " criteria.You might want to add padding to your inputs."
+                    " criteria. You might want to add padding to your inputs."
                 )
                 continue
             has_bias = child.bias is not None
@@ -113,4 +113,4 @@ def _convert_layers(module: torch.nn.Module) -> None:
         else:
             # there are other transformer engine layers that we could convert but are more niche. full list at:
             # https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html
-            _convert_layers(module)
+            _convert_layers(child)
