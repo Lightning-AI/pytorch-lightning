@@ -34,5 +34,5 @@ class ChannelsLast(Callback):
     Has no parameters.
     """
 
-    def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         pl_module.to(memory_format=torch.channels_last)
