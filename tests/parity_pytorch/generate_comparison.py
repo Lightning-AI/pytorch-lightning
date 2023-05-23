@@ -14,7 +14,7 @@
 import os
 
 from parity_pytorch.measure import measure_loops
-from tests_pytorch.helpers.advanced_models import ParityModuleMNIST, ParityModuleRNN
+from parity_pytorch.models import ParityModuleMNIST, ParityModuleRNN
 
 NUM_EPOCHS = 20
 NUM_RUNS = 50

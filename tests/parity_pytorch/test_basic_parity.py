@@ -19,7 +19,7 @@ import torch
 
 from lightning.pytorch import LightningModule, seed_everything, Trainer
 from parity_pytorch.measure import measure_loops
-from tests_pytorch.helpers.advanced_models import ParityModuleCIFAR, ParityModuleMNIST, ParityModuleRNN
+from parity_pytorch.models import ParityModuleCIFAR, ParityModuleMNIST, ParityModuleRNN
 
 _EXTEND_BENCHMARKS = os.getenv("PL_RUNNING_BENCHMARKS", "0") == "1"
 _SHORT_BENCHMARKS = not _EXTEND_BENCHMARKS
@@ -135,4 +135,4 @@ def lightning_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
     )
     trainer.fit(model)
 
-    return trainer.fit_loop.running_loss.last().item(), _hook_memory()
+    return model._loss[-1], _hook_memory()
