@@ -36,10 +36,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as T
-from lightning.fabric import (
-    Fabric,  # import Fabric
-    seed_everything,
-)
+from lightning.fabric import Fabric, seed_everything
 from torch.optim.lr_scheduler import StepLR
 from torchmetrics.classification import Accuracy
 from torchvision.datasets import MNIST
