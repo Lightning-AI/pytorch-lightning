@@ -14,5 +14,5 @@ pandas >1.0, <2.0.2  # needed in benchmarks
 fastapi <0.87.0  # for `ServableModuleValidator`
 uvicorn <0.22.1  # for `ServableModuleValidator`
 
-tensorboard >=2.9.1, <2.12.0  # for `TensorBoardLogger`
+tensorboard >=2.9.1, <2.14.0  # for `TensorBoardLogger`
 protobuf <=3.20.1 # strict  # an extra is updating protobuf, this pin prevents TensorBoard failure
