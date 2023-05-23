@@ -53,16 +53,28 @@ def _step(fabric, model, batch):
     assert isinstance(forward_module, FullyShardedDataParallel)
     assert isinstance(fabric._precision, FSDPPrecision)
 
-    precision = torch.float16 if fabric._precision.precision == "16" else torch.bfloat16
-    assert forward_module.mixed_precision.param_dtype == precision
-    assert forward_module.mixed_precision.reduce_dtype == precision
-    assert forward_module.mixed_precision.buffer_dtype == precision
+    if fabric._precision.precision == "16-mixed":
+        param_dtype = torch.float32
+        reduce_dtype = buffer_dtype = torch.float16
+    elif fabric._precision.precision == "bf16-mixed":
+        param_dtype = torch.float32
+        reduce_dtype = buffer_dtype = torch.bfloat16
+    elif fabric._precision.precision == "16-true":
+        param_dtype = reduce_dtype = buffer_dtype = torch.float16
+    elif fabric._precision.precision == "bf16-true":
+        param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
+    else:
+        raise ValueError(f"Unknown precision {fabric._precision.precision}")
+
+    assert forward_module.mixed_precision.param_dtype == param_dtype
+    assert forward_module.mixed_precision.reduce_dtype == reduce_dtype
+    assert forward_module.mixed_precision.buffer_dtype == buffer_dtype
 
     for layer_num in [0, 2]:
         assert isinstance(original_module[layer_num], FullyShardedDataParallel)
-        assert original_module[layer_num].mixed_precision.param_dtype == precision
-        assert original_module[layer_num].mixed_precision.reduce_dtype == precision
-        assert original_module[layer_num].mixed_precision.buffer_dtype == precision
+        assert original_module[layer_num].mixed_precision.param_dtype == param_dtype
+        assert original_module[layer_num].mixed_precision.reduce_dtype == reduce_dtype
+        assert original_module[layer_num].mixed_precision.buffer_dtype == buffer_dtype
 
     output = model(batch)
     return torch.nn.functional.mse_loss(output, torch.ones_like(output))

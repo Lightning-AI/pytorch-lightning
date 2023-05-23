@@ -72,16 +72,29 @@ class TestFSDPModel(BoringModel):
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, FullyShardedDataParallel)
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPMixedPrecisionPlugin)
-        precision = torch.float16 if self.trainer.precision == "16-mixed" else torch.bfloat16
-        assert self.layer.mixed_precision.param_dtype == precision
-        assert self.layer.mixed_precision.reduce_dtype == precision
-        assert self.layer.mixed_precision.buffer_dtype == precision
+
+        if self.trainer.precision == "16-mixed":
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.float16
+        elif self.trainer.precision == "bf16-mixed":
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self.trainer.precision == "16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.float16
+        elif self.trainer.precision == "bf16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
+        else:
+            raise ValueError(f"Unknown precision {self.trainer.precision}")
+
+        assert self.layer.mixed_precision.param_dtype == param_dtype
+        assert self.layer.mixed_precision.reduce_dtype == reduce_dtype
+        assert self.layer.mixed_precision.buffer_dtype == buffer_dtype
 
         for layer_num in [0, 2]:
             assert isinstance(self.layer.module[layer_num], FullyShardedDataParallel)
-            assert self.layer[layer_num].mixed_precision.param_dtype == precision
-            assert self.layer[layer_num].mixed_precision.reduce_dtype == precision
-            assert self.layer[layer_num].mixed_precision.buffer_dtype == precision
+            assert self.layer[layer_num].mixed_precision.param_dtype == param_dtype
+            assert self.layer[layer_num].mixed_precision.reduce_dtype == reduce_dtype
+            assert self.layer[layer_num].mixed_precision.buffer_dtype == buffer_dtype
 
 
 class TestFSDPModelAutoWrapped(BoringModel):
@@ -108,12 +121,24 @@ class TestFSDPModelAutoWrapped(BoringModel):
         assert isinstance(self.layer, torch.nn.Sequential)
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPMixedPrecisionPlugin)
 
-        precision = torch.float16 if self.trainer.precision == "16-mixed" else torch.bfloat16
+        if self.trainer.precision == "16-mixed":
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.float16
+        elif self.trainer.precision == "bf16-mixed":
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self.trainer.precision == "16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.float16
+        elif self.trainer.precision == "bf16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
+        else:
+            raise ValueError(f"Unknown precision {self.trainer.precision}")
+
         for layer_num in [0, 2]:
             assert isinstance(self.layer[layer_num], FullyShardedDataParallel)
-            assert self.layer[layer_num].mixed_precision.param_dtype == precision
-            assert self.layer[layer_num].mixed_precision.reduce_dtype == precision
-            assert self.layer[layer_num].mixed_precision.buffer_dtype == precision
+            assert self.layer[layer_num].mixed_precision.param_dtype == param_dtype
+            assert self.layer[layer_num].mixed_precision.reduce_dtype == reduce_dtype
+            assert self.layer[layer_num].mixed_precision.buffer_dtype == buffer_dtype
 
 
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
@@ -164,13 +189,22 @@ def test_invalid_on_cpu(tmpdir):
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
-@pytest.mark.parametrize(("precision", "expected"), [("16-mixed", torch.float16), ("bf16-mixed", torch.bfloat16)])
+@pytest.mark.parametrize(
+    ("precision", "expected"),
+    [
+        ("16-mixed", (torch.float32, torch.float16, torch.float16)),
+        ("bf16-mixed", (torch.float32, torch.bfloat16, torch.bfloat16)),
+        ("16-true", (torch.float16, torch.float16, torch.float16)),
+        ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
+    ],
+)
 def test_precision_plugin_config(precision, expected):
     plugin = FSDPMixedPrecisionPlugin(precision=precision, device="cuda")
     config = plugin.mixed_precision_config
-    assert config.param_dtype == expected
-    assert config.buffer_dtype == expected
-    assert config.reduce_dtype == expected
+
+    assert config.param_dtype == expected[0]
+    assert config.buffer_dtype == expected[1]
+    assert config.reduce_dtype == expected[2]
 
 
 @RunIf(min_torch="1.12")
