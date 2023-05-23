@@ -21,7 +21,7 @@ from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from tests_pytorch import _PATH_DATASETS
-from tests_pytorch.helpers.datasets import AverageDataset, MNIST, TrialMNIST
+from tests_pytorch.helpers.datasets import AverageDataset, MNIST
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms

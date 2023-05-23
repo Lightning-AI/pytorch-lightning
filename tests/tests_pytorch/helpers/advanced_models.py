@@ -19,9 +19,8 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from lightning.pytorch.core.module import LightningModule
-from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from tests_pytorch import _PATH_DATASETS
-from tests_pytorch.helpers.datasets import AverageDataset, MNIST, TrialMNIST
+from tests_pytorch.helpers.datasets import TrialMNIST
 
 
 class Generator(nn.Module):
