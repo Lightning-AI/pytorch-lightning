@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from datetime import timedelta
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -19,7 +20,7 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from lightning.fabric.plugins import DoublePrecision, Precision
+from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
@@ -29,7 +30,7 @@ from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFab
 
 
 @pytest.mark.parametrize(
-    ["process_group_backend", "device_str", "expected_process_group_backend"],
+    ("process_group_backend", "device_str", "expected_process_group_backend"),
     [
         pytest.param("foo", "cpu", "foo"),
         pytest.param("foo", "cuda:0", "foo"),
@@ -107,7 +108,7 @@ def test_ddp_module_state_dict():
 
 
 @pytest.mark.parametrize(
-    "clip_type,accelerator,precision",
+    ("clip_type", "accelerator", "precision"),
     [
         ("norm", "cpu", "32-true"),
         ("val", "cpu", "32-true"),
@@ -130,14 +131,16 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    "precision,expected_dtype",
+    ("precision", "expected_dtype"),
     [
         (Precision(), torch.float32),
+        (HalfPrecision("16-true"), torch.float16),
+        pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(bf16_cuda=True)),
         (DoublePrecision(), torch.float64),
     ],
 )
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
-def test_module_init_context(precision, expected_dtype):
+def test_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
     expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
@@ -146,7 +149,38 @@ def test_module_init_context(precision, expected_dtype):
         parallel_devices=parallel_devices, precision=precision, cluster_environment=LightningEnvironment()
     )
     assert strategy.local_rank == 1
-    with strategy.module_init_context():
+    with strategy.init_context():
         module = torch.nn.Linear(2, 2)
     assert module.weight.device == module.bias.device == expected_device
     assert module.weight.dtype == module.bias.dtype == expected_dtype
+
+
+@mock.patch.dict(os.environ, {"LOCAL_RANK": "0"})
+@mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel")
+@mock.patch("torch.cuda.Stream")
+@mock.patch("torch.cuda.stream")
+def test_setup_with_cuda_stream(cuda_stream_mock, *_):
+    model = torch.nn.Linear(2, 2)
+    strategy = DDPStrategy(parallel_devices=[torch.device("cpu")], cluster_environment=LightningEnvironment())
+    strategy.setup_module(model)
+    cuda_stream_mock.assert_not_called()
+
+    strategy = DDPStrategy(parallel_devices=[torch.device("cuda", 0)], cluster_environment=LightningEnvironment())
+    strategy.setup_module(model)
+    cuda_stream_mock.assert_called_once()
+
+
+@mock.patch("torch.distributed.init_process_group")
+def test_set_timeout(init_process_group_mock):
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
+    test_timedelta = timedelta(seconds=30)
+    strategy = DDPStrategy(timeout=test_timedelta, parallel_devices=[torch.device("cpu")])
+    strategy.cluster_environment = LightningEnvironment()
+    strategy.accelerator = Mock()
+    strategy.setup_environment()
+    process_group_backend = strategy._get_process_group_backend()
+    global_rank = strategy.cluster_environment.global_rank()
+    world_size = strategy.cluster_environment.world_size()
+    init_process_group_mock.assert_called_with(
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+    )

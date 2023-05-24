@@ -57,7 +57,6 @@ def test_error_with_multiple_optimizers(tmpdir):
 
 def test_model_reset_correctly(tmpdir):
     """Check that model weights are correctly reset after _lr_find()"""
-
     model = BoringModel()
     model.lr = 0.1
 
@@ -80,7 +79,6 @@ def test_model_reset_correctly(tmpdir):
 
 def test_trainer_reset_correctly(tmpdir):
     """Check that all trainer parameters are reset correctly after lr_find()"""
-
     model = BoringModel()
     model.lr = 0.1
 
@@ -122,8 +120,7 @@ def test_tuner_lr_find(tmpdir, use_hparams):
             self.lr = lr
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.parameters(), lr=self.hparams.lr if use_hparams else self.lr)
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=self.hparams.lr if use_hparams else self.lr)
 
     before_lr = 1e-2
     model = CustomBoringModel(lr=before_lr)
@@ -149,10 +146,7 @@ def test_trainer_arg_str(tmpdir, use_hparams):
             self.my_fancy_lr = my_fancy_lr
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(
-                self.parameters(), lr=self.hparams.my_fancy_lr if use_hparams else self.my_fancy_lr
-            )
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=self.hparams.my_fancy_lr if use_hparams else self.my_fancy_lr)
 
     before_lr = 1e-2
     model = CustomBoringModel(my_fancy_lr=before_lr)
@@ -176,12 +170,11 @@ def test_call_to_trainer_method(tmpdir, opt):
             self.save_hyperparameters()
 
         def configure_optimizers(self):
-            optimizer = (
+            return (
                 torch.optim.Adagrad(self.parameters(), lr=self.hparams.lr)
                 if opt == "Adagrad"
                 else torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
             )
-            return optimizer
 
     before_lr = 1e-2
     model = CustomBoringModel(1e-2)
@@ -250,8 +243,7 @@ def test_suggestion_parameters_work(tmpdir):
             self.lr = lr
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=self.lr)
 
     # logger file to get meta
     model = CustomBoringModel(lr=1e-2)
@@ -276,8 +268,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
             self.lr = lr
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.parameters(), lr=self.lr)
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=self.lr)
 
     model = CustomBoringModel(lr=1e-2)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=3)
@@ -365,7 +356,7 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "skip_begin,skip_end,losses,expected_error",
+    ("skip_begin", "skip_end", "losses", "expected_error"),
     [
         (0, 0, [], True),
         (10, 1, [], True),
@@ -419,7 +410,6 @@ def test_lr_attribute_when_suggestion_invalid(tmpdir):
 
 def test_lr_finder_callback_restarting(tmpdir):
     """Test that `LearningRateFinder` does not set restarting=True when loading checkpoint."""
-
     num_lr_steps = 100
 
     class MyBoringModel(BoringModel):
@@ -487,3 +477,29 @@ def test_lr_finder_with_ddp(tmpdir):
     lr = trainer.strategy.broadcast(lr)
     assert trainer.lightning_module.lr == lr
     assert lr != init_lr
+
+
+def test_lr_finder_callback_val_batches(tmpdir):
+    """Test that `LearningRateFinder` does not limit the number of val batches during training."""
+
+    class CustomBoringModel(BoringModel):
+        def __init__(self, lr):
+            super().__init__()
+            self.lr = lr
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=self.lr)
+
+    num_lr_tuner_training_steps = 5
+    model = CustomBoringModel(0.1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        enable_model_summary=False,
+        callbacks=[LearningRateFinder(num_training_steps=num_lr_tuner_training_steps)],
+    )
+    trainer.fit(model)
+
+    assert trainer.num_val_batches[0] == len(trainer.val_dataloaders)
+    assert trainer.num_val_batches[0] != num_lr_tuner_training_steps

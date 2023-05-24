@@ -55,14 +55,22 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
     @property
     def mixed_precision_config(self) -> Optional[MixedPrecision]:
         assert MixedPrecision is not None
+
         if self.precision == "16-mixed":
-            dtype = torch.float16
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-mixed":
-            dtype = torch.bfloat16
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self.precision == "16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.float16
+        elif self.precision == "bf16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         else:
             raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision!r}.")
+
         return MixedPrecision(
-            param_dtype=dtype,
-            reduce_dtype=dtype,
-            buffer_dtype=dtype,
+            param_dtype=param_dtype,
+            reduce_dtype=reduce_dtype,
+            buffer_dtype=buffer_dtype,
         )

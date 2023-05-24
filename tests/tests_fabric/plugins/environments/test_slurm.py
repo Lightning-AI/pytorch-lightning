@@ -86,7 +86,7 @@ def test_attributes_from_environment_variables(caplog):
 
 
 @pytest.mark.parametrize(
-    "slurm_node_list,expected",
+    ("slurm_node_list", "expected"),
     [
         ("127.0.0.1", "127.0.0.1"),
         ("alpha", "alpha"),
@@ -106,6 +106,13 @@ def test_main_address_from_slurm_node_list(slurm_node_list, expected):
     with mock.patch.dict(os.environ, {"SLURM_NODELIST": slurm_node_list}):
         env = SLURMEnvironment()
         assert env.main_address == expected
+
+
+def test_main_address_and_port_from_env_variable():
+    env = SLURMEnvironment()
+    with mock.patch.dict(os.environ, {"MASTER_ADDR": "1.2.3.4", "MASTER_PORT": "1234"}):
+        assert env.main_address == "1.2.3.4"
+        assert env.main_port == 1234
 
 
 def test_detect():

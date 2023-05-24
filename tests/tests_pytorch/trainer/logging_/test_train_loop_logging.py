@@ -142,7 +142,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["batches", "fx", "result"], [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, "avg", 2), (5, "SUM", 10)]
+    ("batches", "fx", "result"), [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, "avg", 2), (5, "SUM", 10)]
 )
 def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     """Tests that log works correctly with different tensor types."""
@@ -212,7 +212,6 @@ def test_log_works_in_train_callback(tmpdir):
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
-
         count = 0
         choices = [False, True]
 
@@ -344,7 +343,7 @@ class LoggingSyncDistModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "devices, accelerator",
+    ("devices", "accelerator"),
     [
         (1, "cpu"),
         (2, "cpu"),
@@ -352,7 +351,6 @@ class LoggingSyncDistModel(BoringModel):
     ],
 )
 def test_logging_sync_dist_true(tmpdir, devices, accelerator):
-
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)

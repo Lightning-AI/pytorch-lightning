@@ -57,7 +57,7 @@ repos:
         name: Upgrade code
 
   - repo: https://github.com/PyCQA/docformatter
-    rev: v1.4
+    rev: v1.6.3
     hooks:
       - id: docformatter
         args: [--in-place, --wrap-summaries=115, --wrap-descriptions=120]
@@ -68,7 +68,11 @@ repos:
       - id: yesqa
         name: Unused noqa
         additional_dependencies:
+          #- pep8-naming
+          - flake8-pytest-style
+          - flake8-bandit
           - flake8-simplify
+          - flake8-return
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
@@ -78,7 +82,7 @@ repos:
         exclude: docs/source-app
 
   - repo: https://github.com/psf/black
-    rev: 22.12.0
+    rev: 23.3.0
     hooks:
       - id: black
         name: Format code
@@ -108,7 +112,7 @@ repos:
           )$
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: 'v0.0.261'
+    rev: 'v0.0.262'
     hooks:
       - id: ruff
         args: ["--fix"]

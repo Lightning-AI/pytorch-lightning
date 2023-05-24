@@ -49,7 +49,8 @@ class ModelParallelBoringModel(BoringModel):
         self.layer = None
 
     def configure_sharded_model(self) -> None:
-        self.layer = torch.nn.Linear(32, 2)
+        if self.layer is None:
+            self.layer = torch.nn.Linear(32, 2)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.configure_sharded_model()
@@ -73,7 +74,8 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         opt.step()
 
     def configure_sharded_model(self) -> None:
-        self.layer = torch.nn.Linear(32, 2)
+        if self.layer is None:
+            self.layer = torch.nn.Linear(32, 2)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.configure_sharded_model()
@@ -83,7 +85,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         return False
 
 
-@pytest.fixture
+@pytest.fixture()
 def deepspeed_config():
     return {
         "optimizer": {"type": "SGD", "params": {"lr": 3e-5}},
@@ -94,13 +96,13 @@ def deepspeed_config():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def deepspeed_zero_config(deepspeed_config):
     return {**deepspeed_config, "zero_allow_untested_optimizer": True, "zero_optimization": {"stage": 2}}
 
 
 @RunIf(deepspeed=True)
-@pytest.mark.parametrize("strategy", ("deepspeed", DeepSpeedStrategy))
+@pytest.mark.parametrize("strategy", ["deepspeed", DeepSpeedStrategy])
 def test_deepspeed_strategy_string(tmpdir, strategy):
     """Test to ensure that the strategy can be passed via string or instance, and parallel devices is correctly
     set."""
@@ -151,7 +153,6 @@ def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
 @RunIf(deepspeed=True)
 def test_deepspeed_with_invalid_config_path():
     """Test to ensure if we pass an invalid config path we throw an exception."""
-
     with pytest.raises(
         MisconfigurationException, match="You passed in a path to a DeepSpeed config but the path does not exist"
     ):
@@ -200,7 +201,7 @@ def test_warn_deepspeed_ignored(tmpdir):
 
 @RunIf(min_cuda_gpus=1, deepspeed=True)
 @pytest.mark.parametrize(
-    ["dataset_cls", "value"],
+    ("dataset_cls", "value"),
     [(RandomDataset, "auto"), (RandomDataset, 10), (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)],
 )
 @mock.patch("deepspeed.init_distributed", autospec=True)
@@ -426,7 +427,6 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
 @RunIf(min_cuda_gpus=1, deepspeed=True)
 def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
     """Ensure if we use a config and turn off offload_optimizer, that this is set to False within the config."""
-
     deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
 
     class TestCallback(Callback):
@@ -573,18 +573,20 @@ class ModelParallelClassificationModel(LightningModule):
         self.valid_acc = metric.clone()
         self.test_acc = metric.clone()
 
+        self.model = None
+
     def make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
 
     def configure_sharded_model(self) -> None:
-        self.model = nn.Sequential(*(self.make_block() for x in range(self.num_blocks)), nn.Linear(32, 3))
+        if self.model is None:
+            self.model = nn.Sequential(*(self.make_block() for x in range(self.num_blocks)), nn.Linear(32, 3))
 
     def forward(self, x):
         x = self.model(x)
         # Ensure output is in float32 for softmax operation
         x = x.float()
-        logits = F.softmax(x, dim=1)
-        return logits
+        return F.softmax(x, dim=1)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -895,14 +897,15 @@ def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
             self.layer_2 = torch.nn.Linear(32, 32)
 
         def configure_sharded_model(self) -> None:
-            self.layer = torch.nn.Linear(32, 2)
+            if self.layer is None:
+                self.layer = torch.nn.Linear(32, 2)
 
         def forward(self, x):
             x = self.layer_2(x)
             return self.layer(x)
 
         def on_train_epoch_start(self) -> None:
-            assert all([x.dtype == torch.float16 for x in self.parameters()])
+            assert all(x.dtype == torch.float16 for x in self.parameters())
 
     model = TestModel()
     trainer = Trainer(
@@ -929,7 +932,7 @@ def test_deepspeed_multigpu_test_rnn(tmpdir):
             self.rnn = torch.nn.GRU(32, 32)
 
         def on_train_epoch_start(self) -> None:
-            assert all([x.dtype == torch.float16 for x in self.parameters()])
+            assert all(x.dtype == torch.float16 for x in self.parameters())
 
     model = TestModel()
     trainer = Trainer(

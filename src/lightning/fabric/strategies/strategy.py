@@ -27,9 +27,12 @@ from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.launchers.launcher import _Launcher
+from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.rank_zero import rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -113,14 +116,24 @@ class Strategy(ABC):
         return dataloader
 
     @contextmanager
-    def module_init_context(self) -> Generator:
-        """A context manager wrapping the model instantiation.
+    def init_context(self) -> Generator:
+        """A context manager for improved tensor and module instantiation.
 
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
         patches to the model.
         """
-        device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
-        with device_context, self.precision.module_init_context():
+        if not _TORCH_GREATER_EQUAL_2_0:
+            if self.root_device.type != "cpu":
+                rank_zero_warn(
+                    "`Fabric.init_module()` or `Fabric.init()` can't place the model parameters on the device directly"
+                    " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
+                    " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
+                    category=PossibleUserWarning,
+                )
+            device_context = nullcontext()
+        else:
+            device_context = self.root_device  # type: ignore[assignment]
+        with device_context, self.precision.init_context():
             yield
 
     def setup_module_and_optimizers(
@@ -288,7 +301,7 @@ class Strategy(ABC):
         for name, obj in state.copy().items():
             if name not in checkpoint:
                 continue
-            elif isinstance(obj, _Stateful):
+            if isinstance(obj, _Stateful):
                 if isinstance(obj, Module):
                     # TODO(fabric): Make strict loading configurable
                     obj.load_state_dict(checkpoint.pop(name), strict=True)
@@ -339,7 +352,7 @@ class Strategy(ABC):
         return torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         pass
 
     def _err_msg_joint_setup_required(self) -> str:
@@ -383,7 +396,7 @@ class _Sharded(ABC):
 
     @abstractmethod
     @contextmanager
-    def module_sharded_context(self) -> Generator:
+    def init_sharded_context(self) -> Generator:
         """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding
         of parameters on creation.
 

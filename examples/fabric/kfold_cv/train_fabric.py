@@ -53,8 +53,7 @@ class Net(nn.Module):
         x = F.relu(x)
         x = self.dropout2(x)
         x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+        return F.log_softmax(x, dim=1)
 
 
 def train_dataloader(model, data_loader, optimizer, fabric, epoch, hparams, fold):
@@ -141,7 +140,6 @@ def run(hparams):
 
     # loop over epochs
     for epoch in range(1, hparams.epochs + 1):
-
         # loop over folds
         epoch_acc = 0
         for fold, (train_ids, val_ids) in enumerate(kfold.split(dataset)):

@@ -438,7 +438,7 @@ class LightningWork:
                     f"such as ``LightningWork`` or ``LightningFlow``. Found {value}."
                 )
 
-            elif isinstance(value, Path):
+            if isinstance(value, Path):
                 value._attach_work(work=self)
                 value._attach_queues(self._request_queue, self._response_queue)  # type: ignore[arg-type]
                 value._name = name
@@ -483,10 +483,10 @@ class LightningWork:
     def __getattribute__(self, name: str) -> Any:
         try:
             attr = object.__getattribute__(self, name)
-        except AttributeError as e:
-            if str(e).endswith("'_state'"):
+        except AttributeError as ex:
+            if str(ex).endswith("'_state'"):
                 raise AttributeError(f"Did you forget to call super().__init__() in {self}")
-            raise e
+            raise ex
 
         if isinstance(attr, ProxyWorkRun):
             return attr

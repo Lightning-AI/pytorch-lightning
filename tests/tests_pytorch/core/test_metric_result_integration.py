@@ -220,11 +220,9 @@ def test_result_collection_restoration(tmpdir):
         current_fx_name = fx
 
     for epoch in range(2):
-
         cumulative_sum = 0
 
         for i in range(3):
-
             a = metric_a(i)
             b = metric_b(i)
             c = metric_c(i)
@@ -396,13 +394,13 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
 
 @pytest.mark.parametrize(
     "kwargs",
-    (
+    [
         {},
         pytest.param({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
             {"strategy": "ddp", "accelerator": "gpu", "devices": 2}, marks=RunIf(min_cuda_gpus=2, standalone=True)
         ),
-    ),
+    ],
 )
 def test_result_collection_reload(tmpdir, kwargs):
     result_collection_reload(default_root_dir=tmpdir, **kwargs)
@@ -481,8 +479,12 @@ def test_metric_result_computed_check():
     assert cache is computed_value
 
 
-@pytest.mark.parametrize("floating_dtype", (torch.float, torch.double))
+@pytest.mark.parametrize("floating_dtype", [torch.float, torch.double])
 def test_metric_result_respects_dtype(floating_dtype):
+    from lightning.pytorch.trainer.connectors.logger_connector.result import warning_cache
+
+    warning_cache.clear()
+
     torch.set_default_dtype(floating_dtype)
     fixed_dtype = torch.long  # default by PyTorch
 
@@ -512,7 +514,7 @@ def test_metric_result_respects_dtype(floating_dtype):
     torch.set_default_dtype(torch.float)
 
 
-@pytest.mark.parametrize("reduce_fx", ("mean", sum))
+@pytest.mark.parametrize("reduce_fx", ["mean", sum])
 def test_metric_result_dtype_promotion(reduce_fx):
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
     metadata.sync = _Sync()
@@ -532,7 +534,7 @@ def test_metric_result_dtype_promotion(reduce_fx):
     assert total.dtype == torch.double
 
 
-@pytest.mark.parametrize(["reduce_fx", "expected"], [(max, -2), (min, 2)])
+@pytest.mark.parametrize(("reduce_fx", "expected"), [(max, -2), (min, 2)])
 def test_result_metric_max_min(reduce_fx, expected):
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
     metadata.sync = _Sync()

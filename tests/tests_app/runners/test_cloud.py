@@ -116,7 +116,7 @@ def get_cloud_runtime_request_body(**kwargs) -> "CloudspaceIdRunsBody":
     return CloudspaceIdRunsBody(**default_request_body)
 
 
-@pytest.fixture
+@pytest.fixture()
 def cloud_backend(monkeypatch):
     cloud_backend = mock.MagicMock()
     monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
@@ -125,7 +125,7 @@ def cloud_backend(monkeypatch):
     return cloud_backend
 
 
-@pytest.fixture
+@pytest.fixture()
 def project_id():
     return "test-project-id"
 
@@ -169,7 +169,7 @@ class TestAppCreationClient:
             cloud_runtime.dispatch(name=app_name, cluster_id="unknown-cluster")
 
     @pytest.mark.parametrize(
-        "old_cluster,new_cluster",
+        ("old_cluster", "new_cluster"),
         [
             ("test", "other"),
             ("test", "test"),
@@ -578,7 +578,7 @@ class TestAppCreationClient:
 
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize(
-        "lightningapps,start_with_flow",
+        ("lightningapps", "start_with_flow"),
         [([], False), ([MagicMock()], False), ([MagicMock()], True)],
     )
     def test_call_with_work_app(self, lightningapps, start_with_flow, monkeypatch, tmpdir):
@@ -1456,11 +1456,8 @@ class TestOpen:
         assert mock_client.cloud_space_service_create_cloud_space.call_args.kwargs["body"].name == "test_space"
 
     @pytest.mark.parametrize(
-        "path, expected_root, entries, expected_filtered_entries",
-        [
-            [".", ".", ["a.py", "b.ipynb"], ["a.py", "b.ipynb"]],
-            ["a.py", ".", ["a.py", "b.ipynb"], ["a.py"]],
-        ],
+        ("path", "expected_root", "entries", "expected_filtered_entries"),
+        [(".", ".", ["a.py", "b.ipynb"], ["a.py", "b.ipynb"]), ("a.py", ".", ["a.py", "b.ipynb"], ["a.py"])],
     )
     def test_open_repo(self, tmpdir, monkeypatch, path, expected_root, entries, expected_filtered_entries):
         """Tests that the local source code repo is set up with the correct path and ignore functions."""
@@ -1604,20 +1601,20 @@ class TestOpen:
 class TestCloudspaceDispatch:
     @mock.patch.object(pathlib.Path, "exists")
     @pytest.mark.parametrize(
-        "custom_env_sync_path_value, cloudspace",
+        ("custom_env_sync_path_value", "cloudspace"),
         [
-            [None, V1CloudSpace(id="test_id", code_config=V1CloudSpaceInstanceConfig())],
-            [
+            (None, V1CloudSpace(id="test_id", code_config=V1CloudSpaceInstanceConfig())),
+            (
                 Path("/tmp/sys-customizations-sync"),
                 V1CloudSpace(id="test_id", code_config=V1CloudSpaceInstanceConfig()),
-            ],
-            [
+            ),
+            (
                 Path("/tmp/sys-customizations-sync"),
                 V1CloudSpace(
                     id="test_id",
                     code_config=V1CloudSpaceInstanceConfig(data_connection_mounts=[V1DataConnectionMount(id="test")]),
                 ),
-            ],
+            ),
         ],
     )
     def test_cloudspace_dispatch(self, custom_env_sync_root, custom_env_sync_path_value, cloudspace, monkeypatch):
@@ -1833,7 +1830,7 @@ def test_load_app_from_file():
 
 
 @pytest.mark.parametrize(
-    "print_format,expected",
+    ("print_format", "expected"),
     [
         (
             "web",
@@ -1911,7 +1908,7 @@ def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
 
         expected = re.escape(str(expected).replace("'", '"').replace(" ", "")).replace('"\\*"', "(.*)")
         expected = "INFO(.*)works: " + expected
-        assert any([re.fullmatch(expected, line) for line in lines])
+        assert any(re.fullmatch(expected, line) for line in lines)
     finally:
         cloud.LIGHTNING_CLOUD_PRINT_SPECS = None
 
@@ -2067,7 +2064,7 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
 
 
 @pytest.mark.parametrize(
-    "project, run_instance, user, tab, lightning_cloud_url, expected_url",
+    ("project", "run_instance", "user", "tab", "lightning_cloud_url", "expected_url"),
     [
         # Old style
         (
@@ -2120,7 +2117,7 @@ def test_get_app_url(monkeypatch, project, run_instance, user, tab, lightning_cl
 
 
 @pytest.mark.parametrize(
-    "user, project, cloudspace_name, tab, lightning_cloud_url, expected_url",
+    ("user", "project", "cloudspace_name", "tab", "lightning_cloud_url", "expected_url"),
     [
         (
             V1GetUserResponse(username="tester", features=V1UserFeatures()),

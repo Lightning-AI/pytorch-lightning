@@ -27,10 +27,19 @@ def test_fsdp_precision_support(*_):
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
-@pytest.mark.parametrize("precision, expected", [("16-mixed", torch.float16), ("bf16-mixed", torch.bfloat16)])
+@pytest.mark.parametrize(
+    ("precision", "expected"),
+    [
+        ("16-mixed", (torch.float32, torch.float16, torch.float16)),
+        ("bf16-mixed", (torch.float32, torch.bfloat16, torch.bfloat16)),
+        ("16-true", (torch.float16, torch.float16, torch.float16)),
+        ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
+    ],
+)
 def test_fsdp_precision_config(precision, expected):
     plugin = FSDPPrecision(precision=precision, device="cuda")
     config = plugin.mixed_precision_config
-    assert config.param_dtype == expected
-    assert config.buffer_dtype == expected
-    assert config.reduce_dtype == expected
+
+    assert config.param_dtype == expected[0]
+    assert config.buffer_dtype == expected[1]
+    assert config.reduce_dtype == expected[2]

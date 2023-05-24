@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import TPUAccelerator
+from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.strategies import XLAStrategy
@@ -245,10 +245,10 @@ def test_tpu_misconfiguration(devices, tpu_available):
         Trainer(accelerator="tpu", devices=devices)
 
 
-@pytest.mark.skipif(TPUAccelerator.is_available(), reason="test requires missing TPU")
+@pytest.mark.skipif(XLAAccelerator.is_available(), reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(xla_available):
     """Test if exception is thrown when xla devices are not available."""
-    with pytest.raises(MisconfigurationException, match="TPUAccelerator` can not run on your system"):
+    with pytest.raises(MisconfigurationException, match="XLAAccelerator` can not run on your system"):
         Trainer(accelerator="tpu", devices=8)
 
 
@@ -257,14 +257,13 @@ def test_exception_when_no_tpu_found(xla_available):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_accelerator_set_when_using_tpu(devices):
     """Test if the accelerator is set to `tpu` when devices is not None."""
-    assert isinstance(Trainer(accelerator="tpu", devices=devices).accelerator, TPUAccelerator)
+    assert isinstance(Trainer(accelerator="tpu", devices=devices).accelerator, XLAAccelerator)
 
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_if_test_works_with_checkpoint_false(tmpdir):
     """Ensure that model trains properly when `enable_checkpointing` is set to False."""
-
     # Train a model on TPU
     model = BoringModel()
     trainer = Trainer(
@@ -288,10 +287,10 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
 
 def xla_launch(fn):
     # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
-    accelerator = TPUAccelerator()
+    accelerator = XLAAccelerator()
     strategy = XLAStrategy(
         accelerator=accelerator,
-        parallel_devices=TPUAccelerator.get_parallel_devices(TPUAccelerator.auto_device_count()),
+        parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
     )
     launcher = _XLALauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
@@ -302,7 +301,7 @@ def tpu_sync_dist_fn(strategy):
     sync = _Sync(strategy.reduce, _should=True, _op=torch.distributed.ReduceOp.SUM)
     value = torch.tensor([1.0])
     value = sync(value)
-    world_size = TPUAccelerator.auto_device_count()
+    world_size = XLAAccelerator.auto_device_count()
     assert value.item() == world_size
 
 
@@ -374,4 +373,4 @@ def test_tpu_host_world_size(tmpdir):
 def test_device_type_when_tpu_strategy_passed(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, strategy=XLAStrategy(), accelerator="tpu", devices="auto")
     assert isinstance(trainer.strategy, XLAStrategy)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert isinstance(trainer.accelerator, XLAAccelerator)

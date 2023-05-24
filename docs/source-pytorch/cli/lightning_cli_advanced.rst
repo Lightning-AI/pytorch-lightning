@@ -60,6 +60,36 @@ with ``save_config_callback=None``.
 
         cli = LightningCLI(..., save_config_kwargs={"config_filename": "name.yaml"})
 
+It is also possible to extend the :class:`~lightning.pytorch.cli.SaveConfigCallback` class, for instance to additionally
+save the config in a logger. An example of this is:
+
+    .. code:: python
+
+        class LoggerSaveConfigCallback(SaveConfigCallback):
+            def save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+                if isinstance(trainer.logger, Logger):
+                    config = self.parser.dump(self.config, skip_none=False)  # Required for proper reproducibility
+                    trainer.logger.log_hyperparams({"config": config})
+
+
+        cli = LightningCLI(..., save_config_callback=LoggerSaveConfigCallback)
+
+.. tip::
+
+    If you want to disable the standard behavior of saving the config to the ``log_dir``, then you can either implement
+    ``__init__`` and call ``super().__init__(*args, save_to_log_dir=False, **kwargs)`` or instantiate the
+    ``LightningCLI`` as:
+
+    .. code:: python
+
+        cli = LightningCLI(..., save_config_kwargs={"save_to_log_dir": False})
+
+.. note::
+
+    The ``save_config``method is only called on rank zero. This allows to implement a custom save config without having
+    to worry about ranks or race conditions. Since it only runs on rank zero, any collective call will make the process
+    hang waiting for a broadcast. If you need to make collective calls, implement the ``setup`` method instead.
+
 
 ----
 

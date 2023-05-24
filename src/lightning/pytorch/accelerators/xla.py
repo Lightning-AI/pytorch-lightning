@@ -13,22 +13,23 @@
 # limitations under the License.
 from typing import Any, Dict
 
-from lightning.fabric.accelerators.tpu import TPUAccelerator as FabricTPUAccelerator
+from lightning.fabric.accelerators import _AcceleratorRegistry
+from lightning.fabric.accelerators.xla import XLAAccelerator as FabricXLAAccelerator
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
 
 
-class TPUAccelerator(Accelerator, FabricTPUAccelerator):
-    """Accelerator for TPU devices.
+class XLAAccelerator(Accelerator, FabricXLAAccelerator):
+    """Accelerator for XLA devices, normally TPUs.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
     """
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
-        """Gets stats for the given TPU device.
+        """Gets stats for the given XLA device.
 
         Args:
-            device: TPU device for which to get stats
+            device: XLA device for which to get stats
 
         Returns:
             A dictionary mapping the metrics (free memory and peak memory) to their values.
@@ -38,16 +39,11 @@ class TPUAccelerator(Accelerator, FabricTPUAccelerator):
         memory_info = xm.get_memory_info(device)
         free_memory = memory_info["kb_free"]
         peak_memory = memory_info["kb_total"] - free_memory
-        device_stats = {
+        return {
             "avg. free memory (MB)": free_memory,
             "avg. peak memory (MB)": peak_memory,
         }
-        return device_stats
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
-        accelerator_registry.register(
-            "tpu",
-            cls,
-            description=cls.__class__.__name__,
-        )
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
+        accelerator_registry.register("tpu", cls, description=cls.__class__.__name__)

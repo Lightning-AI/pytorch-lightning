@@ -90,8 +90,8 @@ def _install_app_command(name: str, yes: bool, version: str, overwrite: bool = F
                 f"The provided version ({version}) will be ignored."
             )
         return non_gallery_app(name, yes, overwrite=overwrite)
-    else:
-        return gallery_app(name, yes, version, overwrite=overwrite)
+
+    return gallery_app(name, yes, version, overwrite=overwrite)
 
 
 def _install_component_command(name: str, yes: bool, version: str, overwrite: bool = False) -> None:
@@ -102,14 +102,13 @@ def _install_component_command(name: str, yes: bool, version: str, overwrite: bo
                 f"The provided version ({version}) will be ignored."
             )
         return non_gallery_component(name, yes)
-    else:
-        return gallery_component(name, yes, version)
+
+    return gallery_component(name, yes, version)
 
 
 def gallery_apps_and_components(
     name: str, yes_arg: bool, version_arg: str, cwd: Optional[str] = None, overwrite: bool = False
 ) -> Optional[str]:
-
     try:
         org, app_or_component = name.split("/")
     except Exception:
@@ -127,7 +126,7 @@ def gallery_apps_and_components(
 
         return os.path.join(os.getcwd(), *entry["appEntrypointFile"].split("/"))
 
-    elif kind == "component":
+    if kind == "component":
         # give the user the chance to do a manual install
         source_url, git_url, folder_name, git_sha = _show_install_app_prompt(
             entry, app_or_component, org, yes_arg, resource_type="component"
@@ -228,13 +227,14 @@ def _show_install_component_prompt(entry: Dict[str, str], component: str, org: s
         return git_url
     except KeyboardInterrupt:
         repo = entry["sourceUrl"]
-        m = f"""
+        raise SystemExit(
+            f"""
         ⚡ Installation aborted! ⚡
 
         Install the component yourself by visiting:
         {repo}
         """
-        raise SystemExit(m)
+        )
 
 
 def _show_non_gallery_install_component_prompt(gh_url: str, yes_arg: bool) -> str:
@@ -283,13 +283,14 @@ def _show_non_gallery_install_component_prompt(gh_url: str, yes_arg: bool) -> st
 
         return gh_url
     except KeyboardInterrupt:
-        m = f"""
+        raise SystemExit(
+            f"""
         ⚡ Installation aborted! ⚡
 
         Install the component yourself by visiting:
         {repo_url}
         """
-        raise SystemExit(m)
+        )
 
 
 def _show_install_app_prompt(
@@ -333,13 +334,14 @@ def _show_install_app_prompt(
         return source_url, git_url, folder_name, git_sha
     except KeyboardInterrupt:
         repo = entry["sourceUrl"]
-        m = f"""
+        raise SystemExit(
+            f"""
         ⚡ Installation aborted! ⚡
 
         Install the {resource_type} yourself by visiting:
         {repo}
         """
-        raise SystemExit(m)
+        )
 
 
 def _show_non_gallery_install_app_prompt(gh_url: str, yes_arg: bool) -> Tuple[str, str]:
@@ -353,15 +355,16 @@ def _show_non_gallery_install_app_prompt(gh_url: str, yes_arg: bool) -> Tuple[st
             folder_name = gh_url.split("/")[-1]
 
         org = re.search(r"github.com\/(.*)\/", gh_url).group(1)  # type: ignore
-    except Exception as e:  # noqa
-        m = """
+    except Exception:
+        raise SystemExit(
+            """
         Your github url is not supported. Here's the supported format:
         https://github.com/YourOrgName/your-repo-name
 
         Example:
         https://github.com/Lightning-AI/lightning
         """
-        raise SystemExit("")
+        )
 
     # yes arg does not prompt the user for permission to install anything
     # automatically creates env and sets up the project
@@ -397,20 +400,22 @@ def _show_non_gallery_install_app_prompt(gh_url: str, yes_arg: bool) -> Tuple[st
 
         return gh_url, folder_name
     except KeyboardInterrupt:
-        m = f"""
+        raise SystemExit(
+            f"""
         ⚡ Installation aborted! ⚡
 
         Install the app yourself by visiting {gh_url}
         """
-        raise SystemExit(m)
+        )
 
 
 def _validate_name(name: str, resource_type: str, example: str) -> Tuple[str, str]:
     # ensure resource identifier is properly formatted
     try:
         org, resource = name.split("/")
-    except Exception as e:  # noqa
-        m = f"""
+    except Exception:
+        raise SystemExit(
+            f"""
         {resource_type} name format must have organization/{resource_type}-name
 
         Examples:
@@ -419,12 +424,7 @@ def _validate_name(name: str, resource_type: str, example: str) -> Tuple[str, st
 
         You passed in: {name}
         """
-        raise SystemExit(m)
-    m = f"""
-    ⚡ Installing Lightning {resource_type} ⚡
-    {resource_type} name: {resource}
-    developer: {org}
-    """
+        )
     return org, resource
 
 
@@ -439,7 +439,6 @@ def _resolve_entry(name, version_arg) -> Tuple[Optional[Dict], Optional[str]]:
     entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="app", raise_error=False)
 
     if not entry:
-
         registry_url = _resolve_component_registry()
 
         # load the component resource
@@ -468,13 +467,14 @@ def _resolve_resource(
         elif resource_type == "component":
             gallery_entries = data["components"]
     except requests.ConnectionError:
-        m = f"""
+        sys.tracebacklimit = 0
+        raise SystemError(
+            f"""
         Network connection error, could not load list of available Lightning {resource_type}s.
 
         Try again when you have a network connection!
         """
-        sys.tracebacklimit = 0
-        raise SystemError(m)
+        )
 
     entries = []
     all_versions = []
@@ -486,8 +486,8 @@ def _resolve_resource(
     if len(entries) == 0:
         if raise_error:
             raise SystemExit(f"{resource_type}: '{name}' is not available on ⚡ Lightning AI ⚡")
-        else:
-            return None
+
+        return None
 
     entry = None
     if version_arg == "latest":
@@ -503,8 +503,7 @@ def _resolve_resource(
                 f"{resource_type}: 'Version {version_arg} for {name}' is not available on ⚡ Lightning AI ⚡. "
                 f"Here is the list of all availables versions:{os.linesep}{os.linesep.join(all_versions)}"
             )
-        else:
-            return None
+        return None
 
     return entry
 
@@ -584,15 +583,15 @@ def _install_app_from_source(
     logger.info(f"⚡ RUN: git clone {source_url}")
     try:
         subprocess.check_output(["git", "clone", git_url], stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as e:
-        if "Repository not found" in str(e.output):
-            m = f"""
+    except subprocess.CalledProcessError as ex:
+        if "Repository not found" in str(ex.output):
+            raise SystemExit(
+                f"""
             Looks like the github url was not found or doesn't exist. Do you have a typo?
             {source_url}
             """
-            raise SystemExit(m)
-        else:
-            raise Exception(e)
+            )
+        raise Exception(ex)
 
     # step into the repo folder
     os.chdir(f"{folder_name}")
@@ -601,11 +600,10 @@ def _install_app_from_source(
     try:
         if git_sha:
             subprocess.check_output(["git", "checkout", git_sha], stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as e:
-        if "did not match any" in str(e.output):
+    except subprocess.CalledProcessError as ex:
+        if "did not match any" in str(ex.output):
             raise SystemExit("Looks like the git SHA is not valid or doesn't exist in app repo.")
-        else:
-            raise Exception(e)
+        raise Exception(ex)
 
     # activate and install reqs
     # TODO: remove shell=True... but need to run command in venv
@@ -651,10 +649,8 @@ def _install_component_from_source(git_url: str) -> None:
 
 
 def _resolve_app_registry() -> str:
-    registry = os.environ.get("LIGHTNING_APP_REGISTRY", LIGHTNING_APPS_PUBLIC_REGISTRY)
-    return registry
+    return os.environ.get("LIGHTNING_APP_REGISTRY", LIGHTNING_APPS_PUBLIC_REGISTRY)
 
 
 def _resolve_component_registry() -> str:
-    registry = os.environ.get("LIGHTNING_COMPONENT_REGISTRY", LIGHTNING_COMPONENT_PUBLIC_REGISTRY)
-    return registry
+    return os.environ.get("LIGHTNING_COMPONENT_REGISTRY", LIGHTNING_COMPONENT_PUBLIC_REGISTRY)

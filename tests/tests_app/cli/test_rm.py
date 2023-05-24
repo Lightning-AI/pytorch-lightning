@@ -19,7 +19,6 @@ from lightning.app.cli.commands import cd, ls, rm
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_rm(monkeypatch):
     """This test validates rm behaves as expected."""
-
     if os.path.exists(cd._CD_FILE):
         os.remove(cd._CD_FILE)
 
@@ -68,23 +67,24 @@ def test_rm(monkeypatch):
                     V1LightningappInstanceArtifact(filename="folder_2/file_4.txt"),
                 ]
             )
-        elif splits[-1] == "folder_1":
+        if splits[-1] == "folder_1":
             return V1ListLightningappInstanceArtifactsResponse(
                 artifacts=[V1LightningappInstanceArtifact(filename="file_2.txt")]
             )
-        elif splits[-1] == "folder_2":
+        if splits[-1] == "folder_2":
             return V1ListLightningappInstanceArtifactsResponse(
                 artifacts=[
                     V1LightningappInstanceArtifact(filename="folder_3/file_3.txt"),
                     V1LightningappInstanceArtifact(filename="file_4.txt"),
                 ]
             )
-        elif splits[-1] == "folder_3":
+        if splits[-1] == "folder_3":
             return V1ListLightningappInstanceArtifactsResponse(
                 artifacts=[
                     V1LightningappInstanceArtifact(filename="file_3.txt"),
                 ]
             )
+        return None
 
     client.lightningapp_instance_service_list_project_artifacts = fn
 
