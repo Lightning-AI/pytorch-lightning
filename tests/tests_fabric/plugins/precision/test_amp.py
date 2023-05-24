@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
 from unittest.mock import Mock
 
 import pytest
@@ -83,3 +84,23 @@ def test_amp_precision_optimizer_step_without_scaler():
 
     precision.optimizer_step(optimizer, keyword="arg")
     optimizer.step.assert_called_once_with(keyword="arg")
+
+
+def test_amp_precisionparameter_validation():
+    MixedPrecision("16-mixed", "cpu")  # should not raise exception
+    MixedPrecision("bf16-mixed", "cpu")
+
+    with pytest.raises(
+        ValueError, match=re.escape("`MixedPrecision(precision='16')` must be '16-mixed' or 'bf16-mixed'")
+    ):
+        MixedPrecision("16", "cpu")
+
+    with pytest.raises(
+        ValueError, match=re.escape("`MixedPrecision(precision=16)` must be '16-mixed' or 'bf16-mixed'")
+    ):
+        MixedPrecision(16, "cpu")
+
+    with pytest.raises(
+        ValueError, match=re.escape("`MixedPrecision(precision='bf16')` must be '16-mixed' or 'bf16-mixed'")
+    ):
+        MixedPrecision("bf16", "cpu")

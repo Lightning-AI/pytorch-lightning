@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import re
 from unittest import mock
 
 import pytest
@@ -200,11 +201,17 @@ def test_amp_precision_plugin_parameter_validation():
     MixedPrecisionPlugin("16-mixed", "cpu")  # should not raise exception
     MixedPrecisionPlugin("bf16-mixed", "cpu")
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(
+        ValueError, match=re.escape("`MixedPrecisionPlugin(precision='16')` must be '16-mixed' or 'bf16-mixed'")
+    ):
         MixedPrecisionPlugin("16", "cpu")
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(
+        ValueError, match=re.escape("`MixedPrecisionPlugin(precision=16)` must be '16-mixed' or 'bf16-mixed'")
+    ):
         MixedPrecisionPlugin(16, "cpu")
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(
+        ValueError, match=re.escape("`MixedPrecisionPlugin(precision='bf16')` must be '16-mixed' or 'bf16-mixed'")
+    ):
         MixedPrecisionPlugin("bf16", "cpu")
