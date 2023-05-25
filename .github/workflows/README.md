@@ -5,7 +5,7 @@
 ## Unit and Integration Testing
 
 | workflow file                          | action                                                                                                                                                                      | accelerator\* |
-|----------------------------------------| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific, standalone and slow tests.                                                                                                   | CPU           |
 | .azure-pipelines/ipu-tests.yml         | Run only IPU-specific tests.                                                                                                                                                | IPU           |
 | .azure-pipelines/gpu-tests-pytorch.yml | Run all CPU and GPU-specific tests, standalone, and examples. Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases. | GPU           |
