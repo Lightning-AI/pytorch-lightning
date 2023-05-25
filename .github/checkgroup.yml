@@ -70,7 +70,7 @@ subprojects:
 
   - id: "pytorch_lightning: Benchmarks"
     paths:
-      - ".azure/gpu-benchmark.yml"
+      - ".azure/gpu-benchmarks.yml"
       - "tests/tests_pytorch/benchmarks/**"
       - "requirements/pytorch/**"
       - "!requirements/pytorch/docs.txt"
