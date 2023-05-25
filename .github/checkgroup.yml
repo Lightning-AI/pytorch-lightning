@@ -77,7 +77,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "pytorch-lightning.Benchmark"
+      - "lightning.Benchmarks"
 
   - id: "pytorch-lightning: TPU workflow"
     paths:
