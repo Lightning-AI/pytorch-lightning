@@ -93,6 +93,11 @@ assist_local.AssistantCLI.pull_docs_files(
     target_dir="docs/source-pytorch/integrations/hpu",
     checkout="refs/tags/1.4.0",
 )
+assist_local.AssistantCLI.pull_docs_files(
+    gh_user_repo="Lightning-AI/lightning-XPU",
+    target_dir="docs/source-pytorch/integrations/xpu",
+    checkout="tags/1.0.0",
+)
 
 # Copy strategies docs as single pages
 assist_local.AssistantCLI.pull_docs_files(
@@ -355,6 +360,7 @@ intersphinx_mapping = {
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://lightning.ai/docs/torchmetrics/stable/", None),
     "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
+    "intel-xpu": ("https://lightning-ai.github.io/lightning-XPU/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
     # needed for referencing Fabric from lightning scope
     "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),

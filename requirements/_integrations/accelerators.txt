@@ -1,2 +1,5 @@
 # validation accelerator connectors
 lightning-habana >=1.2.0, <1.3.0
+
+# validation XPU connectors
+lightning-xpu >=0.1.0

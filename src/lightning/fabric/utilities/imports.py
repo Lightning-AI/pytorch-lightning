@@ -17,7 +17,7 @@ import operator
 import platform
 import sys
 
-from lightning_utilities.core.imports import compare_version
+from lightning_utilities.core.imports import RequirementCache, compare_version
 
 _IS_WINDOWS = platform.system() == "Windows"
 
@@ -26,14 +26,34 @@ _IS_WINDOWS = platform.system() == "Windows"
 # 2. The inspection mode via `python -i`: https://stackoverflow.com/a/6879085/1162383
 _IS_INTERACTIVE = hasattr(sys, "ps1") or bool(sys.flags.interactive)
 
-_TORCH_GREATER_EQUAL_2_1 = compare_version("torch", operator.ge, "2.1.0")
-_TORCH_GREATER_EQUAL_2_2 = compare_version("torch", operator.ge, "2.2.0")
-_TORCH_GREATER_EQUAL_2_3 = compare_version("torch", operator.ge, "2.3.0")
+_TORCH_GREATER_EQUAL_2_1 = compare_version("torch", operator.ge, "2.1.0", use_base_version=True)
+_TORCH_GREATER_EQUAL_2_2 = compare_version("torch", operator.ge, "2.2.0", use_base_version=True)
+_TORCH_GREATER_EQUAL_2_3 = compare_version("torch", operator.ge, "2.3.0", use_base_version=True)
 _TORCH_GREATER_EQUAL_2_4 = compare_version("torch", operator.ge, "2.4.0", use_base_version=True)
 
-_TORCH_EQUAL_2_0 = compare_version("torch", operator.ge, "2.0.0") and not _TORCH_GREATER_EQUAL_2_1
+_TORCH_EQUAL_2_0 = (
+    compare_version("torch", operator.ge, "2.0.0", use_base_version=True) and not _TORCH_GREATER_EQUAL_2_1
+)
 
 _PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
 _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
 
 _UTILITIES_GREATER_EQUAL_0_10 = compare_version("lightning_utilities", operator.ge, "0.10.0")
+
+
+@functools.lru_cache(maxsize=128)
+def _try_import_module(module_name: str) -> bool:
+    try:
+        __import__(module_name)
+        return True
+    # added also AttributeError fro case of impoerts like pl.LightningModule
+    except (ImportError, AttributeError) as err:
+        rank_zero_warn(f"Import of {module_name} package failed for some compatibility issues: \n{err}")
+        return False
+
+
+@functools.lru_cache(maxsize=1)
+def _lightning_xpu_available() -> bool:
+    # This is defined as a function instead of a constant to avoid circular imports, because `lightning_xpu`
+    # also imports Lightning
+    return bool(RequirementCache("lightning-xpu")) and _try_import_module("lightning_xpu")

@@ -21,6 +21,7 @@
    GPU <../accelerators/gpu>
    Half precision <../common/precision>
    HPU <../integrations/hpu/index>
+   XPU <../integrations/xpu/index>
    Inference <../deploy/production_intermediate>
    Lightning CLI <../cli/lightning_cli>
    LightningDataModule <../data/datamodule>
@@ -184,6 +185,13 @@ Glossary
    :description: Habana Gaudi AI Processor Unit for faster training
    :col_css: col-md-12
    :button_link: ../integrations/hpu/index.html
+   :height: 100
+
+.. displayitem::
+   :header: XPU
+   :description: Intel® Graphics Cards for faster training
+   :col_css: col-md-12
+   :button_link: ../integrations/xpu/index.html
    :height: 100
 
 .. displayitem::

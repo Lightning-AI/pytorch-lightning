@@ -93,8 +93,9 @@ This is essentially the same as running ``python path/to/your/script.py``, but i
       itself and are expected to be parsed there.
 
     Options:
-      --accelerator [cpu|gpu|cuda|mps|tpu]
+      --accelerator [cpu|gpu|cuda|mps|tpu|xpu]
                                       The hardware accelerator to run on.
+                                      Install Lightning-XPU to enable ``xpu``.
       --strategy [ddp|dp|deepspeed]   Strategy for how to run across multiple
                                       devices.
       --devices TEXT                  Number of devices to run on (``int``), which

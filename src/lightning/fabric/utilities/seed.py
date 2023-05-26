@@ -14,6 +14,7 @@ log = logging.getLogger(__name__)
 
 max_seed_value = np.iinfo(np.uint32).max
 min_seed_value = np.iinfo(np.uint32).min
+from lightning.fabric.utilities.imports import _lightning_xpu_available
 
 
 def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
@@ -56,6 +57,8 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    if _lightning_xpu_available() and torch.xpu.is_available():
+        torch.xpu.manual_seed_all(seed)
 
     os.environ["PL_SEED_WORKERS"] = f"{int(workers)}"
 
@@ -102,8 +105,8 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     random.seed(stdlib_seed)
 
 
-def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
-    r"""Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
+def _collect_rng_states(include_cuda: bool = True, include_xpu: bool = True) -> Dict[str, Any]:
+    """Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
     states = {
         "torch": torch.get_rng_state(),
         "numpy": np.random.get_state(),
@@ -111,6 +114,8 @@ def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
     }
     if include_cuda:
         states["torch.cuda"] = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []
+    if include_xpu and _lightning_xpu_available():
+        states["torch.xpu"] = torch.xpu.get_rng_state_all() if torch.xpu.is_available() else []
     return states
 
 
@@ -121,6 +126,8 @@ def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
     # torch.cuda rng_state is only included since v1.8.
     if "torch.cuda" in rng_state_dict:
         torch.cuda.set_rng_state_all(rng_state_dict["torch.cuda"])
+    if "torch.xpu" in rng_state_dict and _lightning_xpu_available() and torch.xpu.is_available():
+        torch.xpu.set_rng_state_all(rng_state_dict["torch.xpu"])
     np.random.set_state(rng_state_dict["numpy"])
     version, state, gauss = rng_state_dict["python"]
     python_set_rng_state((version, tuple(state), gauss))

@@ -63,7 +63,7 @@ from lightning.pytorch.strategies import (
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _habana_available_and_importable
+from lightning.pytorch.utilities.imports import _habana_available_and_importable, _lightning_xpu_available
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -337,6 +337,11 @@ class _AcceleratorConnector:
 
             if HPUAccelerator.is_available():
                 return "hpu"
+        if _lightning_xpu_available():
+            from lightning_xpu.pytorch import XPUAccelerator
+
+            if XPUAccelerator.is_available():
+                return "xpu"
         if MPSAccelerator.is_available():
             return "mps"
         if CUDAAccelerator.is_available():
@@ -349,6 +354,11 @@ class _AcceleratorConnector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
+        if _lightning_xpu_available():
+            from lightning_xpu.pytorch import XPUAccelerator
+
+            if XPUAccelerator.is_available():
+                return "xpu"
         raise MisconfigurationException("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
@@ -428,6 +438,12 @@ class _AcceleratorConnector:
                 " in https://github.com/Lightning-AI/lightning-Habana/."
             )
 
+        if self._accelerator_flag == "xpu" and not _lightning_xpu_available():
+            raise ImportError(
+                "You have asked for XPU but you miss install related integration."
+                " Please run `pip install lightning-xpu` or see for further instructions"
+                " in https://github.com/Lightning-AI/lightning-XPU/."
+            )
         if self._accelerator_flag == "tpu" or isinstance(self._accelerator_flag, XLAAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return XLAStrategy.strategy_name
@@ -436,8 +452,16 @@ class _AcceleratorConnector:
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
-            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
-                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
+            accelerator_flags_obj = (CUDAAccelerator, MPSAccelerator)
+            accelerator_flags_str = ("cuda", "gpu", "mps")
+            if _lightning_xpu_available():
+                from lightning_xpu.pytorch import XPUAccelerator
+
+                if XPUAccelerator.is_available():
+                    accelerator_flags_obj += (XPUAccelerator,)
+                    accelerator_flags_str += ("xpu",)
+            if isinstance(self._accelerator_flag, accelerator_flags_obj) or (
+                isinstance(self._accelerator_flag, str) and self._accelerator_flag in accelerator_flags_str
             ):
                 device = _determine_root_gpu_device(self._parallel_devices)
             else:
@@ -518,7 +542,7 @@ class _AcceleratorConnector:
             rank_zero_info(
                 f"Using {'16bit' if self._precision_flag == '16-mixed' else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
-            device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
+            device = "cpu" if self._accelerator_flag == "cpu" else "xpu" if _lightning_xpu_available() else "cuda"
             return MixedPrecision(self._precision_flag, device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
@@ -663,3 +687,10 @@ def _register_external_accelerators_and_strategies() -> None:
             HPUParallelStrategy.register_strategies(StrategyRegistry)
         if "hpu_single" not in StrategyRegistry:
             SingleHPUStrategy.register_strategies(StrategyRegistry)
+
+    if _lightning_xpu_available():
+        from lightning_xpu.pytorch import XPUAccelerator
+
+        # TODO: Prevent registering multiple times
+        if "xpu" not in AcceleratorRegistry:
+            XPUAccelerator.register_accelerators(AcceleratorRegistry)

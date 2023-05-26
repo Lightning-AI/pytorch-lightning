@@ -34,6 +34,7 @@ from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
+from lightning.fabric.utilities.imports import _lightning_xpu_available
 from lightning.fabric.utilities.load import _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
@@ -41,6 +42,9 @@ from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
     from deepspeed import DeepSpeedEngine
+
+if _lightning_xpu_available():
+    from lightning_xpu.fabric import XPUAccelerator
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 
@@ -218,7 +222,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             contiguous_memory_optimization: Copies partitioned activations so that they are contiguous in memory.
                 Not supported by all models.
 
-            synchronize_checkpoint_boundary: Insert :func:`torch.cuda.synchronize` at each checkpoint boundary.
+            synchronize_checkpoint_boundary: Insert :func:`torch.cuda.synchronize` or :func:`torch.xpu.synchronize`
+                at each checkpoint boundary.
 
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
@@ -503,6 +508,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         optimzer_state_requested = any(isinstance(item, (Optimizer, DeepSpeedOptimizer)) for item in state.values())
 
         torch.cuda.empty_cache()
+        with suppress(AttributeError):
+            if _lightning_xpu_available():
+                XPUAccelerator.teardown()
+
         _, client_state = engine.load_checkpoint(
             path,
             tag="checkpoint",
@@ -612,10 +621,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @override
     def setup_environment(self) -> None:
-        if not isinstance(self.accelerator, CUDAAccelerator):
+        ds_support = False
+        if isinstance(self.accelerator, CUDAAccelerator):
+            ds_support = True
+        if _lightning_xpu_available() and isinstance(self.accelerator, XPUAccelerator):
+            ds_support = True
+        if not ds_support:
             raise RuntimeError(
-                f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
-                " is used."
+                f"The DeepSpeed strategy is only supported on CUDA/Intel(R) GPUs but `{self.accelerator.__class__.__name__}` is used."
             )
         super().setup_environment()
 
