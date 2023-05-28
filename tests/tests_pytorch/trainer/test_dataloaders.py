@@ -804,6 +804,41 @@ def test_dataloader_distributed_sampler(tmpdir):
     trainer.test(model)
 
 
+class TestModelUniqueDDPSampling(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.seen_samples = []
+
+    def training_step(self, batch):
+        self.seen_samples.extend(batch.tolist())
+
+    def on_train_end(self):
+        print(self.global_rank, self.seen_samples)
+        seen_samples = self.all_gather(self.seen_samples)
+
+        assert set(torch.cat(seen_samples).view(-1).tolist()) == set(range(32))
+
+
+@RunIf(standalone=True)
+@patch.dict(os.environ, {}, clear=True)
+def test_distributed_sampler_without_global_seed(tmpdir):
+    """Test that the samples are non-overlapping in DDP when shuffling is enabled and no global seed is set."""
+    # This test must run without a global seed set (e.g. through `seed_everything`), to ensure that each process
+    # starts with a different initial state.
+    assert 'PL_GLOBAL_SEED' not in os.environ
+    train_dataloader = DataLoader(range(32), shuffle=True, batch_size=4)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=False,
+        enable_progress_bar=False,
+        accelerator='cpu',
+        devices=2,
+        strategy='ddp',
+        max_epochs=1,
+    )
+    trainer.fit(TestModelUniqueDDPSampling(), train_dataloader)
+
+
 class ModelWithDataLoaderDistributedSampler(BoringModel):
     def train_dataloader(self):
         dataloader = super().train_dataloader()
