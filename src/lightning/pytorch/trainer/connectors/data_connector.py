@@ -16,7 +16,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional, Tuple, Union
 
-from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import lightning.pytorch as pl
@@ -251,8 +251,11 @@ def _get_distributed_sampler(
     """This function is used to created the distributed sampler injected within the user DataLoader."""
     kwargs["shuffle"] = shuffle and not overfit_batches
     kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-    cls = UnrepeatedDistributedSamplerWrapper if mode == RunningStage.PREDICTING else DistributedSamplerWrapper
-    return cls(dataloader.sampler, **kwargs)
+    if mode == RunningStage.PREDICTING:
+        return UnrepeatedDistributedSamplerWrapper(dataloader.sampler, **kwargs)
+    if isinstance(dataloader.sampler, (RandomSampler, SequentialSampler)):
+        return DistributedSampler(dataloader.dataset, **kwargs)
+    return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
 
 def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:
