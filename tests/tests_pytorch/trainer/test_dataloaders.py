@@ -813,9 +813,8 @@ class TestModelUniqueDDPSampling(BoringModel):
         self.seen_samples.extend(batch.tolist())
 
     def on_train_end(self):
-        print(self.global_rank, self.seen_samples)
         seen_samples = self.all_gather(self.seen_samples)
-
+        # The samples should be unique across all processes
         assert set(torch.cat(seen_samples).view(-1).tolist()) == set(range(32))
 
 
