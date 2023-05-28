@@ -62,6 +62,13 @@ class LayerSummary:
         >>> summary.out_size
         [1, 8, 3, 3]
 
+        >>> summary = LayerSummary(model)
+        >>> output = model(input=torch.rand(1, 3, 5, 5))
+        >>> summary.in_size
+        [1, 3, 5, 5]
+        >>> summary.out_size
+        [1, 8, 3, 3]
+
     Args:
         module: A module to summarize
     """
@@ -86,7 +93,8 @@ class LayerSummary:
             A handle for the installed hook, or ``None`` if registering the hook is not possible.
         """
 
-        def hook(_: nn.Module, inp: Any, out: Any) -> None:
+        def hook(_: nn.Module, args: Any, kwargs: Any, out: Any) -> None:
+            inp = (*args, *kwargs.values())
             if len(inp) == 1:
                 inp = inp[0]
             self._in_size = parse_batch_shape(inp)
@@ -96,7 +104,7 @@ class LayerSummary:
 
         handle = None
         if not isinstance(self._module, torch.jit.ScriptModule):
-            handle = self._module.register_forward_hook(hook)
+            handle = self._module.register_forward_hook(hook, with_kwargs=True)
         return handle
 
     def detach_hook(self) -> None:
