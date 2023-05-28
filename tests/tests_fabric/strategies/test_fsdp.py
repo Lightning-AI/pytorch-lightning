@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from datetime import timedelta
 import functools
 import os
+from datetime import timedelta
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
@@ -22,14 +22,16 @@ import pytest
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-from torch.distributed.fsdp.wrap import lambda_auto_wrap_policy
 
 from lightning.fabric import Fabric
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import _FSDPBackwardSyncControl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from lightning.fabric.utilities.optimizer import _apply_optimizers_during_fsdp_backward, SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD
+from lightning.fabric.utilities.optimizer import (
+    _apply_optimizers_during_fsdp_backward,
+    SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD,
+)
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
 
@@ -325,16 +327,19 @@ class Block(nn.Module):
 
 
 @RunIf(min_torch="2.0.0", min_cuda_gpus=2)
-@pytest.mark.skipif(
-    not SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD,
-    reason="Not supported in this version of PyTorch"
-)
+@pytest.mark.skipif(not SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD, reason="Not supported in this version of PyTorch")
 @pytest.mark.parametrize(
-    ("checkpoint",),
-    (((Block,),), ((SubBlock,),), ((Block, SubBlock, nn.Linear),), (None,)),
+    "checkpoint",
+    ((Block,), (SubBlock,), (Block, SubBlock, nn.Linear), None),
 )
 def test_apply_optimizer_in_backward(checkpoint):
+    try:
+        from torch.distributed.fsdp.wrap import lambda_auto_wrap_policy
+    except ImportError:
+        pytest.skip("Failed to import `lambda_auto_wrap_policy`")
+
     from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
+
     num_gpus = 2
     num_blocks = 8
     feature_dim = 1024  # 256
@@ -354,15 +359,12 @@ def test_apply_optimizer_in_backward(checkpoint):
     # in memory.) It's difficult to estimate the exact correction factor
     # (particularly since it varies with activation checkpointing strategy), but
     # three is close enough for our purposes.
-    upper_savings_bound = 4 * feature_dim ** 2 * 2 * (num_blocks - 1)
+    upper_savings_bound = 4 * feature_dim**2 * 2 * (num_blocks - 1)
     lower_savings_bound = upper_savings_bound / 3
 
-    auto_wrap_policy = functools.partial(
-        lambda_auto_wrap_policy,
-        lambda_fn=lambda module: isinstance(module, Block)
-    )
+    auto_wrap_policy = functools.partial(lambda_auto_wrap_policy, lambda_fn=lambda module: isinstance(module, Block))
     strategy = FSDPStrategy(
-        auto_wrap_policy=auto_wrap_policy, 
+        auto_wrap_policy=auto_wrap_policy,
         activation_checkpointing=checkpoint,
     )
     fabric = Fabric(accelerator="cuda", devices=num_gpus, strategy=strategy)
@@ -373,8 +375,7 @@ def test_apply_optimizer_in_backward(checkpoint):
 
         with fabric.device:
             model = nn.Sequential(
-                *[Block(feature_dim) for _ in range(num_blocks)],
-                nn.Linear(feature_dim, 1, bias=False)
+                *[Block(feature_dim) for _ in range(num_blocks)], nn.Linear(feature_dim, 1, bias=False)
             )
 
             optimizers = [torch.optim.SGD(layer.parameters(), lr=0.1, momentum=0.9) for layer in model]
@@ -406,7 +407,7 @@ def test_apply_optimizer_in_backward(checkpoint):
 
                 # Normal pattern: `.backward()` followed by `.step()`
                 y_baseline = baseline_model(x)
-    
+
                 torch.cuda.empty_cache()
                 torch.cuda.reset_peak_memory_stats(fabric.device)
                 baseline_start_memory = torch.cuda.max_memory_allocated(fabric.device)
@@ -415,7 +416,7 @@ def test_apply_optimizer_in_backward(checkpoint):
                 for optimizer in baseline_optimizers:
                     optimizer.step()
                     optimizer.zero_grad(set_to_none=True)
-                    
+
                     # FSDP sometimes holds onto grad memory until the next forward
                     # pass. In order to provide a fair comparison (and thus an
                     # accurate check that moving the step call into backward actually
@@ -424,7 +425,7 @@ def test_apply_optimizer_in_backward(checkpoint):
                     param_handles = _get_fsdp_handles(baseline_model._forward_module)
                     for h in param_handles:
                         h._clear_grads_if_needed()
-                
+
                 baseline_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
 
                 # `.step()` interleaved with `.backward()`
@@ -435,7 +436,7 @@ def test_apply_optimizer_in_backward(checkpoint):
                 with _apply_optimizers_during_fsdp_backward(test_optimizers, test_model):
                     fabric.backward(y_test.mean().abs())
                     del y_test
-                
+
                 test_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
 
                 # Make sure the parameter updates match.
