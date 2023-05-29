@@ -108,6 +108,13 @@ def test_main_address_from_slurm_node_list(slurm_node_list, expected):
         assert env.main_address == expected
 
 
+def test_main_address_and_port_from_env_variable():
+    env = SLURMEnvironment()
+    with mock.patch.dict(os.environ, {"MASTER_ADDR": "1.2.3.4", "MASTER_PORT": "1234"}):
+        assert env.main_address == "1.2.3.4"
+        assert env.main_port == 1234
+
+
 def test_detect():
     """Test the detection of a SLURM environment configuration."""
     with mock.patch.dict(os.environ, {}, clear=True):

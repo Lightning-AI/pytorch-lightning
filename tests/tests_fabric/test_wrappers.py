@@ -23,7 +23,14 @@ from torch.utils.data.dataloader import DataLoader
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects, is_wrapped
+from lightning.fabric.wrappers import (
+    _FabricDataLoader,
+    _FabricModule,
+    _FabricOptimizer,
+    _unwrap_objects,
+    is_wrapped,
+    warning_cache,
+)
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -99,7 +106,6 @@ def test_fabric_module_setattr():
 
 def test_fabric_module_method_lookup():
     """Test that access to methods warns about improper use when a wrapper from a strategy is involved."""
-    from lightning.fabric.wrappers import warning_cache
 
     class OriginalModule(torch.nn.Module):
         def method(self):
