@@ -25,6 +25,7 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
 log = logging.getLogger(__name__)
@@ -93,18 +94,29 @@ class LayerSummary:
             A handle for the installed hook, or ``None`` if registering the hook is not possible.
         """
 
-        def hook(_: nn.Module, args: Any, kwargs: Any, out: Any) -> None:
-            inp = (*args, *kwargs.values())
+        def hook(_: nn.Module, inp: Any, out: Any) -> None:
             if len(inp) == 1:
                 inp = inp[0]
+
             self._in_size = parse_batch_shape(inp)
             self._out_size = parse_batch_shape(out)
             assert self._hook_handle is not None
             self._hook_handle.remove()
 
+        def hook_with_kwargs(_: nn.Module, args: Any, kwargs: Any, out: Any) -> None:
+            # We can't write them in the same function, since the forward hook
+            # uses positional arguments.
+
+            inp = (*args, *kwargs.values()) if kwargs is not None else args
+            hook(_, inp, out)
+
         handle = None
         if not isinstance(self._module, torch.jit.ScriptModule):
-            handle = self._module.register_forward_hook(hook, with_kwargs=True)
+            if _TORCH_GREATER_EQUAL_2_0:
+                handle = self._module.register_forward_hook(hook_with_kwargs, with_kwargs=True)
+            else:
+                handle = self._module.register_forward_hook(hook)
+
         return handle
 
     def detach_hook(self) -> None:
