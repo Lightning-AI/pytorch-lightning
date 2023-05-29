@@ -844,9 +844,9 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
             # iterable check
             0,
             # epoch ends
+            0,
             1,
             # teardown
-            1,
         ]
     else:
         expected = [
@@ -855,9 +855,9 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
             # iterable check
             0,
             # epoch ends
+            0,
             1,
             2,
             # teardown
-            3,
         ]
     assert val_dataloader.shutdown_workers_epochs == expected
