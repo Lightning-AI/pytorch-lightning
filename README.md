@@ -364,6 +364,7 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 -         loss.backward()
 +         fabric.backward(loss)
           optimizer.step()
+          print(loss.data)
 ```
 
 </sub>
@@ -397,6 +398,7 @@ for epoch in range(num_epochs):
         loss = torch.nn.functional.cross_entropy(outputs, labels)
         fabric.backward(loss)
         optimizer.step()
+        print(loss.data)
 ```
 
 </sub>

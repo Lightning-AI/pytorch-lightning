@@ -114,7 +114,7 @@ def test_early_stopping_cpu_model(tmpdir):
         "gradient_clip_val": 1.0,
         "enable_progress_bar": False,
         "accumulate_grad_batches": 2,
-        "limit_train_batches": 0.1,
+        "limit_train_batches": 0.3,
         "limit_val_batches": 0.1,
     }
 
