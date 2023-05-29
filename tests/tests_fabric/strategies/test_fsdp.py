@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import functools
 import os
 from datetime import timedelta
@@ -374,109 +375,92 @@ def test_apply_optimizer_in_backward(checkpoint):
         torch.manual_seed(0)
 
         with fabric.device:
-            model = nn.Sequential(
-                *[Block(feature_dim) for _ in range(num_blocks)], nn.Linear(feature_dim, 1, bias=False)
-            )
-
+            backbone = [Block(feature_dim) for _ in range(num_blocks)]
+            model = nn.Sequential(*backbone, nn.Linear(feature_dim, 1, bias=False))
             optimizers = [torch.optim.SGD(layer.parameters(), lr=0.1, momentum=0.9) for layer in model]
 
         model = fabric.setup_module(model)
         optimizers = [fabric.setup_optimizers(optimizer) for optimizer in optimizers]
         return model, optimizers
-
-    try:
+    
+    @contextlib.contextmanager
+    def fail_if_any_rank_fails():
         success = False
-        early_exit = False
+        try:
+            yield
+            success = True
 
+        finally:
+            rank_success = fabric.all_gather(success)
+            if not rank_success.all():
+                # `pytest` interprets SystemExit as a faiure, so it will interpret
+                # shutdown of non-zero ranks as a test failure. It doesn't affect the
+                # suite result (due to the rank zero effect mentioned above), but it is
+                # confusing to see "FAILED" when all tests pass.
+                if fabric.global_rank > 0:
+                    os._exit(0)
+
+                elif success:
+                    raise RuntimeError(f"Failure on different rank: {rank_success}")
+
+    with fail_if_any_rank_fails():
         baseline_model, baseline_optimizers = make_model_and_optimizers()
         test_model, test_optimizers = make_model_and_optimizers()
+        fabric.seed_everything(1337 + fabric.global_rank)
 
         # Check that initialization is identical.
         for p0, p1 in zip(baseline_model.parameters(), test_model.parameters()):
             assert (p0 == p1).all()
 
-        fabric.seed_everything(1337 + fabric.global_rank)
+    for step in range(50):
+        # Normal pattern: `.backward()` followed by `.step()`
+        with fail_if_any_rank_fails():
+            x = torch.randn((4, feature_dim), device=fabric.device)
+            y_baseline = baseline_model(x)
 
-        # FSDP uses streams under the hood, so it's very important to test on a
-        # non-trivial case to maximize the chance of detecting any race conditions.
-        #
-        # It's also very easy to deadlock, hence the double nested try-finally.
-        for step in range(50):
-            try:
-                x = torch.randn((4, feature_dim), device="cuda")
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats(fabric.device)
+            baseline_start_memory = torch.cuda.max_memory_allocated(fabric.device)
+            fabric.backward(y_baseline.mean().abs())
+            del y_baseline
+            for optimizer in baseline_optimizers:
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
 
-                # Normal pattern: `.backward()` followed by `.step()`
-                y_baseline = baseline_model(x)
+                # FSDP sometimes holds onto grad memory until the next forward
+                # pass. In order to provide a fair comparison (and thus an
+                # accurate check that moving the step call into backward actually
+                # delivers the expected memory savings) we need to "help" the
+                # baseline case a bit.
+                param_handles = _get_fsdp_handles(baseline_model._forward_module)
+                for h in param_handles:
+                    h._clear_grads_if_needed()
 
-                torch.cuda.empty_cache()
-                torch.cuda.reset_peak_memory_stats(fabric.device)
-                baseline_start_memory = torch.cuda.max_memory_allocated(fabric.device)
-                fabric.backward(y_baseline.mean().abs())
-                del y_baseline
-                for optimizer in baseline_optimizers:
-                    optimizer.step()
-                    optimizer.zero_grad(set_to_none=True)
+            baseline_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
 
-                    # FSDP sometimes holds onto grad memory until the next forward
-                    # pass. In order to provide a fair comparison (and thus an
-                    # accurate check that moving the step call into backward actually
-                    # delivers the expected memory savings) we need to "help" the
-                    # baseline case a bit.
-                    param_handles = _get_fsdp_handles(baseline_model._forward_module)
-                    for h in param_handles:
-                        h._clear_grads_if_needed()
+        # `.step()` interleaved with `.backward()`
+        with fail_if_any_rank_fails():
+            y_test = test_model(x)
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats(fabric.device)
+            test_start_memory = torch.cuda.memory_allocated(fabric.device)
+            with _apply_optimizers_during_fsdp_backward(test_optimizers, test_model):
+                fabric.backward(y_test.mean().abs())
+                del y_test
 
-                baseline_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
+            test_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
 
-                # `.step()` interleaved with `.backward()`
-                y_test = test_model(x)
-                torch.cuda.empty_cache()
-                torch.cuda.reset_peak_memory_stats(fabric.device)
-                test_start_memory = torch.cuda.memory_allocated(fabric.device)
-                with _apply_optimizers_during_fsdp_backward(test_optimizers, test_model):
-                    fabric.backward(y_test.mean().abs())
-                    del y_test
+        # Make sure the parameter updates match.
+        with fail_if_any_rank_fails():
+            for idx, (p0, p1) in enumerate(zip(baseline_model.parameters(), test_model.parameters())):
+                assert (p0 == p1).all(), (step, idx, p0, p1)
 
-                test_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
+        # The first step is going to be odd due to lazy initialization of optimizer state.
+        if not step:
+            continue
 
-                # Make sure the parameter updates match.
-                for idx, (p0, p1) in enumerate(zip(baseline_model.parameters(), test_model.parameters())):
-                    assert (p0 == p1).all(), (step, idx, p0, p1)
-
-                # The first step is going to be odd due to lazy initialization of optimizer state.
-                if not step:
-                    continue
-
-                baseline_delta = baseline_peak_memory - baseline_start_memory
-                test_delta = test_peak_memory - test_start_memory
-                assert (baseline_delta - test_delta) >= lower_savings_bound, (baseline_delta, test_delta)
-                assert (baseline_delta - test_delta) <= upper_savings_bound, (baseline_delta, test_delta)
-
-            except Exception:
-                early_exit = True
-                raise
-
-            finally:
-                # If one rank fails we need to tell the rest to stop. Otherwise
-                # the test will deadlock as workers wait on different barriers.
-                # This isn't perfect, but it will catch a large fraction of cases.
-                rank_early_exit = fabric.all_gather(early_exit)
-                if rank_early_exit.any():
-                    break
-
-        success = not early_exit
-
-    finally:
-        # Only failures on rank zero will cause the test to fail, so if another
-        # rank fails we need to fail rank zero.
-        rank_success = fabric.all_gather(success)
-
-        # `pytest` interprets SystemExit as a faiure, so it will interpret
-        # shutdown of non-zero ranks as a test failure. It doesn't affect the
-        # suite result (due to the rank zero effect mentioned above), but it is
-        # confusing to see "FAILED" when all tests pass.
-        if fabric.global_rank > 0:
-            os._exit(0)
-
-        if success and not rank_success.all():
-            raise AssertionError(f"Unknown failure on non-zero rank: {rank_success}")
+        with fail_if_any_rank_fails():
+            baseline_delta = baseline_peak_memory - baseline_start_memory
+            test_delta = test_peak_memory - test_start_memory
+            assert (baseline_delta - test_delta) >= lower_savings_bound, (baseline_delta, test_delta)
+            assert (baseline_delta - test_delta) <= upper_savings_bound, (baseline_delta, test_delta)

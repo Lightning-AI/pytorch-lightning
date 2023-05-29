@@ -15,7 +15,7 @@
 import contextlib
 import functools
 import threading
-from typing import Dict, Generator, Iterable, TYPE_CHECKING
+from typing import Callable, Dict, Generator, Iterable, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -98,7 +98,7 @@ def _apply_optimizers_during_fsdp_backward(
                     unfinished[p] = None
                     remaining[p] = (optimizer, unfinished)
 
-    def maybe_step(parameters: Iterable[torch.nn.Parameter], post_step=lambda: None) -> None:
+    def maybe_step(parameters: Iterable[torch.nn.Parameter], post_step: Callable[[], None]=lambda: None) -> None:
         for p in tuple(parameters):
             optimizer, unfinished = remaining.pop(p)
             unfinished.pop(p)
@@ -128,6 +128,8 @@ def _apply_optimizers_during_fsdp_backward(
                     assert hasattr(prepare_gradient, "__func__"), prepare_gradient
                     assert prepare_gradient.__func__ is FlatParamHandle.prepare_gradient_for_optim
                     prepare_gradient()
+
+                    # type: ignore[assignment]
                     h.prepare_gradient_for_optim = _no_op
 
                     maybe_step(flat_param._params or (), h._clear_grads_if_needed)
@@ -149,4 +151,5 @@ def _apply_optimizers_during_fsdp_backward(
         # And lastly back out the handle monkey patches.
         for h in param_handles:
             if h.prepare_gradient_for_optim is _no_op:
+                # type: ignore[assignment]
                 del h.prepare_gradient_for_optim
