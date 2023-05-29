@@ -604,17 +604,16 @@ class Fabric:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
-        allocated unnecessarily.
-        The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
+        allocated unnecessarily. The automatic device placement under this context manager is only supported with
+        PyTorch 2.0 and newer.
         """
-        if not _TORCH_GREATER_EQUAL_2_0:
-            if self.device.type != "cpu":
-                rank_zero_warn(
-                    "`Fabric.init_module()` or `Fabric.init()` can't place the model parameters on the device directly"
-                    " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
-                    " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
-                    category=PossibleUserWarning,
-                )
+        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
+            rank_zero_warn(
+                "`Fabric.init_module()` or `Fabric.init()` can't place the model parameters on the device directly"
+                " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
+                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
+                category=PossibleUserWarning,
+            )
         with self.init(), self.sharded_model():
             yield
 
