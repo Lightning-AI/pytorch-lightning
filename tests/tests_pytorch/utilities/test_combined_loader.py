@@ -335,12 +335,8 @@ def test_combined_loader_simultaneous_workers(mode):
     for loader in loaders:
         workers_active.append(loader.workers_active)
 
-    if mode == "sequential":
-        # Only starts the first dataloader
-        expected = [True, False]
-    else:
-        # Starts all dataloaders in order to iterate through one at a time
-        expected = [True, True]
+    # Sequential only starts the first dataloader, other modes start both
+    expected = [True, False] if mode == "sequential" else [True, True]
     assert workers_active == expected
 
 
