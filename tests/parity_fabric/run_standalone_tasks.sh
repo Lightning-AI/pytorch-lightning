@@ -39,4 +39,5 @@ retry_command() {
   return $exit_code
 }
 
+retry_command "python -m test_parity_ddp --accelerator="cpu" --devices=2 --tolerance=0.02"
 retry_command "python -m test_parity_ddp --accelerator="cuda" --devices=2 --tolerance=0.01"
