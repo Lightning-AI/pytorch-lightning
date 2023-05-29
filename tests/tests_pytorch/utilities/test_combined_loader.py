@@ -305,6 +305,45 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
     assert idx == expected - 1
 
 
+@pytest.mark.parametrize("mode", ["min_size", "max_size_cycle", "max_size", "sequential"])
+def test_combined_loader_simultaneous_workers(mode):
+    """Test `CombinedLoader` to check how it initializes dataloader workers."""
+
+    class TestDataLoader(DataLoader):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.workers_active = False
+
+        def _get_iterator(self):
+            self.workers_active = True
+            return super()._get_iterator()
+
+        def _shutdown_workers(self):
+            self.workers_active = False
+            super()._shutdown_workers()
+
+    loaders = [
+        TestDataLoader(range(10), batch_size=2, num_workers=0),
+        TestDataLoader(range(20), batch_size=2, num_workers=0),
+    ]
+    combined_loader = CombinedLoader(loaders, mode)
+
+    for idx, item in enumerate(combined_loader):
+        break
+
+    workers_active = []
+    for loader in loaders:
+        workers_active.append(loader.workers_active)
+
+    if mode == "sequential":
+        # Only starts the first dataloader
+        expected = [True, False]
+    else:
+        # Starts all dataloaders in order to iterate through one at a time
+        expected = [True, True]
+    assert workers_active == expected
+
+
 @pytest.mark.parametrize(
     ("limits", "expected"),
     [
