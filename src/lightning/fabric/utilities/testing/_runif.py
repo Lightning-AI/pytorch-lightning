@@ -27,7 +27,7 @@ from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
 
-def _RunIf(
+def _runif_reasons(
     *,
     min_cuda_gpus: int = 0,
     min_torch: Optional[str] = None,
@@ -41,7 +41,8 @@ def _RunIf(
     deepspeed: bool = False,
     dynamo: bool = False,
 ) -> Tuple[List[str], Dict[str, bool]]:
-    """
+    """Construct reasons for pytest skipif.
+
     Args:
         min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
         min_torch: Require that PyTorch is greater or equal than this version.
