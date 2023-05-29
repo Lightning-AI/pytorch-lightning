@@ -1,3 +1,3 @@
 # validation HPU connectors
 lightning-habana >=0.1.0
-lightning-graphcore @ git+https://github.com/Lightning-AI/lightning-Graphcore.git@refactor/wrapper
+lightning-graphcore >=0.1.0.rc3
