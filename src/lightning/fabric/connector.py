@@ -533,14 +533,12 @@ class _Connector:
         if env_value is None:
             return current
 
-        if env_value is not None and env_value != str(current) and str(current) != str(default):
+        if env_value is not None and env_value != str(current) and str(current) != str(default) and _is_using_cli():
             raise ValueError(
                 f"Your code has `Fabric({name}={current!r}, ...)` but it conflicts with the value "
                 f"`--{name}={env_value}` set through the CLI. "
                 " Remove it either from the CLI or from the Lightning Fabric object."
             )
-        if env_value is None:
-            return current
         return env_value
 
 
@@ -561,3 +559,7 @@ def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISIO
             )
         precision = _PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]
     return cast(_PRECISION_INPUT_STR, precision)
+
+
+def _is_using_cli() -> bool:
+    return bool(int(os.environ.get("LT_CLI_USED", "0")))
