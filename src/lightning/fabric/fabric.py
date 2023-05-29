@@ -585,7 +585,7 @@ class Fabric:
     @contextmanager
     def sharded_model(self) -> Generator:
         """Shard the parameters of the model instantly when instantiating the layers."""
-        context = self._strategy.init_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
+        context = self._strategy.module_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
         with context:
             yield
 
