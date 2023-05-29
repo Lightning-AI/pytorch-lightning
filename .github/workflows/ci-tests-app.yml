@@ -123,8 +123,10 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: us-east-1
       run: |
+        echo $GITHUB_RUN_ID
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-          -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --durations=50
+          -m pytest -m "not cloud" tests_app -vvvv \
+          --timeout=300 --durations=50 --random-order-seed=$GITHUB_RUN_ID
 
     - name: Statistics
       if: success()
