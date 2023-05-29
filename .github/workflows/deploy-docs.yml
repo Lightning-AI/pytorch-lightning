@@ -49,7 +49,7 @@ jobs:
       run: make html --jobs 2
 
     - name: Deploy 🚀
-      uses: JamesIves/github-pages-deploy-action@v4.4.1
+      uses: JamesIves/github-pages-deploy-action@v4.4.2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         branch: gh-pages # The branch the action should deploy to.
