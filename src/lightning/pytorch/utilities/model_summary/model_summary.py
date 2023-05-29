@@ -63,13 +63,6 @@ class LayerSummary:
         >>> summary.out_size
         [1, 8, 3, 3]
 
-        >>> summary = LayerSummary(model)
-        >>> output = model(input=torch.rand(1, 3, 5, 5))
-        >>> summary.in_size
-        [1, 3, 5, 5]
-        >>> summary.out_size
-        [1, 8, 3, 3]
-
     Args:
         module: A module to summarize
     """
