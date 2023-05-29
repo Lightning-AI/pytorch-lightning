@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
+from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -32,7 +32,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
 from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
-from lightning.fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
+from lightning.fabric.connector import _Connector, _is_using_cli, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
@@ -584,32 +584,28 @@ class Fabric:
 
     @contextmanager
     def sharded_model(self) -> Generator:
-        """Shard the parameters of the model instantly when instantiating the layers.
+        """Shard the parameters of the model instantly when instantiating the layers."""
+        context = self._strategy.init_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
+        with context:
+            yield
 
-        .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
+    @contextmanager
+    def init(self) -> Generator:
+        """Instantiate under this context manager to apply improvements based on your configuration.
+
+        The parameters get created on the device (if using PyTorch 2.0 or newer) and with the right data type right away
+        without wasting memory being allocated unnecessarily.
         """
-        rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
-        with _old_sharded_model_context(self._strategy):
+        with self._strategy.init_context():
             yield
 
     @contextmanager
     def init_module(self) -> Generator:
-        """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
+        """Convenience context manager that will call :meth:`efficient_init` and :meth:`sharded_model`.
 
-        The parameters get created on the device and with the right data type right away without wasting memory being
-        allocated unnecessarily.
-
-        Note:
-            The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
+        It is recommended to instantiate your modules under this.
         """
-        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
-            rank_zero_warn(
-                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
-                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
-                " utilize the features in `init_module()`.",
-                category=PossibleUserWarning,
-            )
-        with self._strategy.module_init_context():
+        with self.init(), self.sharded_model():
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
@@ -783,10 +779,11 @@ class Fabric:
 
     def _wrap_with_setup(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
+        # TODO: remove sharded_context from here as users are meant to enable it manually
         # apply sharded context to prevent OOM
-        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(
-            DataLoader, "dataset"
-        ), _replace_dunder_methods(BatchSampler):
+        with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
+            BatchSampler
+        ):
             return to_run(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
@@ -891,16 +888,3 @@ class Fabric:
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
-
-
-def _is_using_cli() -> bool:
-    return bool(int(os.environ.get("LT_CLI_USED", "0")))
-
-
-@contextmanager
-def _old_sharded_model_context(strategy: Strategy) -> Generator:
-    if isinstance(strategy, _Sharded):
-        with strategy.module_sharded_context():
-            yield
-    else:
-        yield

@@ -340,12 +340,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextmanager
-    def module_init_context(self) -> Generator[None, None, None]:
-        with super().module_init_context(), self.module_sharded_context():
-            yield
-
-    @contextmanager
-    def module_sharded_context(self) -> Generator[None, None, None]:
+    def init_sharded_context(self) -> Generator[None, None, None]:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
         # manager, which happens at the start of `Fabric.run()`. Later modifications through e.g. `Fabric.setup()`
         # won't have an effect here.
@@ -355,9 +350,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision.precision == "16-mixed":
+            # Note: For the mixed settings '16-mixed' and 'bf16-mixed', we shouldn't convert the weights to half
+            # precision, but we are keeping the 'bug' for backward compatibility.
+            # TODO: This can be properly implemented once https://github.com/Lightning-AI/lightning/issues/17581
+            #   gets resolved
+            if self.precision.precision in ("16-mixed", "16-true"):
                 dtype = torch.float16
-            elif self.precision.precision == "bf16-mixed":
+            elif self.precision.precision in ("bf16-mixed", "bf16-true"):
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float32
@@ -629,7 +628,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision.precision == "16-mixed":
+        if self.precision.precision in ("16-mixed", "16-true"):
             if "fp16" not in self.config:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -641,7 +640,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-        elif "bf16" not in self.config and self.precision.precision == "bf16-mixed":
+        elif "bf16" not in self.config and self.precision.precision in ("bf16-mixed", "bf16-true"):
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 

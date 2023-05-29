@@ -18,6 +18,7 @@ import torch
 import lightning.pytorch as pl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy
+from lightning.pytorch.utilities.model_helpers import _check_mixed_imports
 
 
 def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
@@ -42,6 +43,7 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
     orig_module = model._orig_mod
 
     if not isinstance(orig_module, pl.LightningModule):
+        _check_mixed_imports(model)
         raise ValueError(
             f"`model` is expected to be a compiled LightingModule. Found a `{type(orig_module).__name__}` instead"
         )
@@ -114,6 +116,7 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
 def _maybe_unwrap_optimized(model: object) -> "pl.LightningModule":
     if not _TORCH_GREATER_EQUAL_2_0:
         if not isinstance(model, pl.LightningModule):
+            _check_mixed_imports(model)
             raise TypeError(f"`model` must be a `LightningModule`, got `{type(model).__qualname__}`")
         return model
     from torch._dynamo import OptimizedModule
@@ -122,6 +125,7 @@ def _maybe_unwrap_optimized(model: object) -> "pl.LightningModule":
         return from_compiled(model)
     if isinstance(model, pl.LightningModule):
         return model
+    _check_mixed_imports(model)
     raise TypeError(
         f"`model` must be a `LightningModule` or `torch._dynamo.OptimizedModule`, got `{type(model).__qualname__}`"
     )
