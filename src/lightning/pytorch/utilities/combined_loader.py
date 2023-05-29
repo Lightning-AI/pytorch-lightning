@@ -143,7 +143,11 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
 
     def _load_current_iterator(self) -> None:
         # Load a single DataLoader, prevents multiple sets of workers from starting unnecessarily
-        self.iterators = [iter(self.iterables[self._iterator_idx])]
+        if self._iterator_idx < len(self.iterables):
+            self.iterators = [iter(self.iterables[self._iterator_idx])]
+        else:
+            # No more iterables to step through, return an empty list
+            self.iterators = []
 
     def _use_next_iterator(self) -> None:
         self._iterator_idx += 1
