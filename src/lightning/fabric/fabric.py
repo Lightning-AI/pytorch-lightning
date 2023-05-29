@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_warn
+from lightning_utilities.core.rank_zero import rank_zero_warn, rank_zero_deprecation
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -584,8 +584,8 @@ class Fabric:
 
     @contextmanager
     def sharded_model(self) -> Generator:
-        """Shard the parameters of the model instantly when instantiating the layers."""
         """Instantiate a model under this context manager to prepare it for model-parallel sharding.
+
         .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
         """
         rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
@@ -604,9 +604,11 @@ class Fabric:
 
     @contextmanager
     def init_module(self) -> Generator:
-        """Convenience context manager that will call :meth:`efficient_init` and :meth:`sharded_model`.
+        """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
-        It is recommended to instantiate your modules under this.
+        The parameters get created on the device and with the right data type right away without wasting memory being
+        allocated unnecessarily.
+        The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
         """
         with self._strategy.init_context(), _old_sharded_model_context(self.strategy):
             yield
