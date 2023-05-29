@@ -86,7 +86,7 @@ def test_amp_precision_optimizer_step_without_scaler():
     optimizer.step.assert_called_once_with(keyword="arg")
 
 
-def test_amp_precisionparameter_validation():
+def test_amp_precision_parameter_validation():
     MixedPrecision("16-mixed", "cpu")  # should not raise exception
     MixedPrecision("bf16-mixed", "cpu")
 
