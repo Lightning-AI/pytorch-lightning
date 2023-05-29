@@ -122,17 +122,7 @@ class Strategy(ABC):
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
         patches to the model.
         """
-        if not _TORCH_GREATER_EQUAL_2_0:
-            if self.root_device.type != "cpu":
-                rank_zero_warn(
-                    "`Fabric.init_module()` or `Fabric.init()` can't place the model parameters on the device directly"
-                    " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
-                    " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
-                    category=PossibleUserWarning,
-                )
-            device_context = nullcontext()
-        else:
-            device_context = self.root_device  # type: ignore[assignment]
+        device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
         with device_context, self.precision.init_context():
             yield
 

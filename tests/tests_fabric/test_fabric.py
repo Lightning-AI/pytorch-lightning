@@ -743,7 +743,7 @@ def test_init_module_context(monkeypatch):
     strategy.init_context.reset_mock()
 
     # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.fabric.strategies.strategy, "_TORCH_GREATER_EQUAL_2_0", False)
+    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
     with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
         with fabric.init_module():
             pass
