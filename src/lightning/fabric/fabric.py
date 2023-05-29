@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_warn, rank_zero_deprecation
+from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -607,8 +607,8 @@ class Fabric:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
-        allocated unnecessarily.
-        The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
+        allocated unnecessarily. The automatic device placement under this context manager is only supported with
+        PyTorch 2.0 and newer.
         """
         with self._strategy.init_context(), _old_sharded_model_context(self.strategy):
             yield
