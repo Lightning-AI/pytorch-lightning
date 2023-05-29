@@ -89,8 +89,10 @@ RUN \
     # https://github.com/pytorch/xla/issues/1666
     pip install mkl==2021.4.0 && \
     # set particular PyTorch version \
+    pip install -q wget packaging && \
+    python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py  && \
     for fpath in `ls requirements/**/*.txt`; do \
-      python requirements/pytorch/adjust-versions.py $fpath ${XLA_VERSION}; \
+      python adjust-torch-versions.py $fpath ${XLA_VERSION}; \
     done && \
     # install PL dependencies
     pip install --requirement requirements/pytorch/devel.txt && \
