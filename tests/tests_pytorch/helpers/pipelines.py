@@ -51,6 +51,7 @@ def run_model_test(
     version=None,
     with_hpc: bool = True,
     min_acc: float = 0.25,
+    min_change_ratio: float = 0.03,
 ):
     save_dir = trainer_options["default_root_dir"]
 
@@ -65,7 +66,7 @@ def run_model_test(
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     # Check that the model is actually changed post-training
     change_ratio = torch.norm(initial_values - post_train_values)
-    assert change_ratio > 0.03, f"the model is changed of {change_ratio}"
+    assert change_ratio >= min_change_ratio, f"the model is changed of {change_ratio} and shall be >={min_change_ratio}"
 
     # test model loading
     _ = load_model_from_checkpoint(trainer.checkpoint_callback.best_model_path, type(model))
