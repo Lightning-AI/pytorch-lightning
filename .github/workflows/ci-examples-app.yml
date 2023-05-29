@@ -119,7 +119,7 @@ jobs:
         echo $GITHUB_RUN_ID
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
           -m pytest -m "not cloud" integrations_app -vvvv \
-          --timeout=300 --durations=0 --random-order-seed=$GITHUB_RUN_ID
+          --timeout=90 --durations=0 --random-order-seed=$GITHUB_RUN_ID
 
     - name: Statistics
       if: success()
