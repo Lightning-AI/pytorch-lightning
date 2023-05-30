@@ -481,7 +481,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # return the remaining metadata that wasn't requested as part of `state`
             return metadata
 
-        elif _is_full_checkpoint(path):
+        if _is_full_checkpoint(path):
             # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
             # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
             checkpoint = torch.load(path, map_location="cpu")
@@ -505,11 +505,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # return the remaining metadata that wasn't requested as part of `state`
             return checkpoint
 
-        else:
-            raise ValueError(
-                f"The path {path} does not point to a valid checkpoint. Make sure the path points to either a"
-                " directory with FSDP checkpoint shards, or a single file with a full checkpoint."
-            )
+        raise ValueError(
+            f"The path {path} does not point to a valid checkpoint. Make sure the path points to either a"
+            " directory with FSDP checkpoint shards, or a single file with a full checkpoint."
+        )
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
