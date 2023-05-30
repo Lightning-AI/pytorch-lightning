@@ -17,13 +17,13 @@ from threading import Thread
 class ThreadExceptionHandler(Thread):
     """Adopted from https://stackoverflow.com/a/67022927."""
 
-    def __init__(self, target):
-        super().__init__(target=target)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.exception = None
 
     def run(self):
         try:
-            self._target()
+            super().run()
         except Exception as e:
             self.exception = e
 
