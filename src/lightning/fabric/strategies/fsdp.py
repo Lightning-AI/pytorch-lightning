@@ -626,6 +626,7 @@ def _get_full_state_dict_context(module: "FullyShardedDataParallel") -> _Generat
 
 
 def _is_sharded_checkpoint(path: Path) -> bool:
+    """A heuristic check to determine whether the path points to a directory with checkpoint shards."""
     return path.is_dir() and (path / _METADATA_FILENAME).is_file()
 
 
