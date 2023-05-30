@@ -483,17 +483,17 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return metadata
 
         if _is_full_checkpoint(path):
-            # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
-            # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
-            checkpoint = torch.load(path, map_location="cpu")
-            with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
-                module.load_state_dict(checkpoint.pop(module_key))
-
             if optimizers:
                 rank_zero_warn(
                     "Loading a full-state checkpoint into FSDP currently only supports loading the model weights."
                     " The optimizer state won't be reloaded."
                 )
+
+            # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
+            # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
+            checkpoint = torch.load(path, map_location="cpu")
+            with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
+                module.load_state_dict(checkpoint.pop(module_key))
 
             # Load metadata (anything not a module or optimizer)
             for key, obj in state.items():
