@@ -157,7 +157,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
-def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):  # TODO: better name
+def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
     fabric = BoringFabric(accelerator="cuda", devices=1)
     fabric.run()
