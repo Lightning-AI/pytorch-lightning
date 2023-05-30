@@ -272,6 +272,7 @@ def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
         strategy.save_checkpoint(path=tmp_path, state={"model": model})
 
 
+@RunIf(min_torch="2.0.0")
 def test_fsdp_load_unkown_checkpoint_type(tmp_path):
     """Test that the strategy validates the contents at the checkpoint path."""
     strategy = FSDPStrategy()
