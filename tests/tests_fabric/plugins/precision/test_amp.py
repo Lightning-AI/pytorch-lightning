@@ -91,16 +91,19 @@ def test_amp_precision_parameter_validation():
     MixedPrecision("bf16-mixed", "cpu")
 
     with pytest.raises(
-        ValueError, match=re.escape("`MixedPrecision(precision='16')` must be '16-mixed' or 'bf16-mixed'")
+        ValueError,
+        match=re.escape("Passed `MixedPrecision(precision='16')`. Precision must be '16-mixed' or 'bf16-mixed'"),
     ):
         MixedPrecision("16", "cpu")
 
     with pytest.raises(
-        ValueError, match=re.escape("`MixedPrecision(precision=16)` must be '16-mixed' or 'bf16-mixed'")
+        ValueError,
+        match=re.escape("Passed `MixedPrecision(precision=16)`. Precision must be '16-mixed' or 'bf16-mixed'"),
     ):
         MixedPrecision(16, "cpu")
 
     with pytest.raises(
-        ValueError, match=re.escape("`MixedPrecision(precision='bf16')` must be '16-mixed' or 'bf16-mixed'")
+        ValueError,
+        match=re.escape("Passed `MixedPrecision(precision='bf16')`. Precision must be '16-mixed' or 'bf16-mixed'"),
     ):
         MixedPrecision("bf16", "cpu")

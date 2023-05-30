@@ -201,16 +201,21 @@ def test_amp_precision_plugin_parameter_validation():
     MixedPrecisionPlugin("bf16-mixed", "cpu")
 
     with pytest.raises(
-        ValueError, match=re.escape("`MixedPrecisionPlugin(precision='16')` must be '16-mixed' or 'bf16-mixed'")
+        ValueError,
+        match=re.escape("Passed `MixedPrecisionPlugin(precision='16')`. Precision must be '16-mixed' or 'bf16-mixed'"),
     ):
         MixedPrecisionPlugin("16", "cpu")
 
     with pytest.raises(
-        ValueError, match=re.escape("`MixedPrecisionPlugin(precision=16)` must be '16-mixed' or 'bf16-mixed'")
+        ValueError,
+        match=re.escape("Passed `MixedPrecisionPlugin(precision=16)`. Precision must be '16-mixed' or 'bf16-mixed'"),
     ):
         MixedPrecisionPlugin(16, "cpu")
 
     with pytest.raises(
-        ValueError, match=re.escape("`MixedPrecisionPlugin(precision='bf16')` must be '16-mixed' or 'bf16-mixed'")
+        ValueError,
+        match=re.escape(
+            "Passed `MixedPrecisionPlugin(precision='bf16')`. Precision must be '16-mixed' or 'bf16-mixed'"
+        ),
     ):
         MixedPrecisionPlugin("bf16", "cpu")
