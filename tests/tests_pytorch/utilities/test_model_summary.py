@@ -272,6 +272,8 @@ def test_summary_with_scripted_modules(max_depth):
         ((1, 2, 3), [UNKNOWN_SIZE] * 3),
         (torch.tensor(0), UNKNOWN_SIZE),
         ({"tensor": torch.zeros(1, 2, 3)}, [1, 2, 3]),
+        ({"tensor0": torch.zeros(1, 2, 3), "tensor1": torch.zeros(4, 5, 6)}, [[1, 2, 3], [4, 5, 6]]),
+
         (torch.zeros(2, 3, 4), [2, 3, 4]),
         ([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
         ((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
