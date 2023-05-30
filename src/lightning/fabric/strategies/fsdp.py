@@ -488,11 +488,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
                 module.load_state_dict(checkpoint.pop(module_key))
 
-            for optim_key, optim in optimizers.items():
-                sharded_optim_state_dict = FSDP.scatter_full_optim_state_dict(
-                    checkpoint.pop(optim_key), model=module, optim=optim
+            if optimizers:
+                rank_zero_warn(
+                    "Loading a full-state checkpoint into FSDP currently only supports loading the model weights."
+                    " The optimizer state won't be reloaded."
                 )
-                optim.load_state_dict(sharded_optim_state_dict)
 
             # Load metadata (anything not a module or optimizer)
             for key, obj in state.items():

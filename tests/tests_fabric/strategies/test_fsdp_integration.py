@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
 from unittest import mock
 
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.nn import Parameter
 
 from lightning.fabric import Fabric
@@ -121,7 +123,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
-def test_fsdp_save_load_full_state_dict(tmp_path):
+def test_fsdp_save_full_state_dict(tmp_path):
     """Test that FSDP saves the full state into a single file with `state_dict_type="full"`."""
     fabric = BoringFabric(
         accelerator="cuda",
@@ -155,8 +157,8 @@ def test_fsdp_save_load_full_state_dict(tmp_path):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
-def test_fsdp_save_load_full_state_dict_2(tmp_path):  # TODO: better name
-    """"""
+def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):  # TODO: better name
+    """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
     fabric = BoringFabric(accelerator="cuda", devices=1)
     fabric.run()
 
@@ -173,8 +175,15 @@ def test_fsdp_save_load_full_state_dict_2(tmp_path):  # TODO: better name
     )
     fabric.run()
 
-    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
-    fabric.load(checkpoint_path, state)
+    warning_msg = "currently only supports loading the model weights"
+    warns = pytest.warns(UserWarning, match=warning_msg) if fabric.global_rank == 0 else nullcontext()
+    with warns:
+        state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
+        fabric.load(checkpoint_path, state)
+
+    with no_warning_call(UserWarning, match=warning_msg):
+        state = {"model": fabric.model}
+        fabric.load(checkpoint_path, state)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
