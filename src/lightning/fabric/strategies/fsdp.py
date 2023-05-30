@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
+_METADATA_FILENAME = "meta.pt"
 
 
 class FSDPStrategy(ParallelStrategy, _Sharded):
@@ -385,7 +386,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             save_state_dict(converted_state, writer)
 
             if self.global_rank == 0:
-                torch.save(metadata, path / "meta.pt")
+                torch.save(metadata, path / _METADATA_FILENAME)
 
         elif self._state_dict_type == "full":
             state_dict_ctx = _get_full_state_dict_context(module)
@@ -470,7 +471,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                     optim.load_state_dict(flattened_osd)
 
             # Load metadata (anything not a module or optimizer)
-            metadata = torch.load(path / "meta.pt")
+            metadata = torch.load(path / _METADATA_FILENAME)
             for key, obj in state.items():
                 if isinstance(obj, (FSDP, Optimizer)):
                     continue
@@ -625,7 +626,7 @@ def _get_full_state_dict_context(module: "FullyShardedDataParallel") -> _Generat
 
 
 def _is_sharded_checkpoint(path: Path) -> bool:
-    return path.is_dir() and (path / "meta.pt").is_file()
+    return path.is_dir() and (path / _METADATA_FILENAME).is_file()
 
 
 def _is_full_checkpoint(path: Path) -> bool:
