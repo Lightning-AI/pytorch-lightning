@@ -16,6 +16,7 @@ from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 import torch
@@ -177,13 +178,15 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
 
     warning_msg = "currently only supports loading the model weights"
     warns = pytest.warns(UserWarning, match=warning_msg) if fabric.global_rank == 0 else nullcontext()
+    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 44}
     with warns:
-        state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
         fabric.load(checkpoint_path, state)
+    assert state["steps"] == 1
 
+    state = {"model": fabric.model}
     with no_warning_call(UserWarning, match=warning_msg):
-        state = {"model": fabric.model}
-        fabric.load(checkpoint_path, state)
+        remainder = fabric.load(checkpoint_path, state)
+    assert remainder == {"steps": 1, "optimizer": ANY}
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
