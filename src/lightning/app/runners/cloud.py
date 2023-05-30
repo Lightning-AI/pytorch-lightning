@@ -895,6 +895,9 @@ class CloudRuntime(Runtime):
 
         Return the cloudspace ID.
         """
+        cloud_space_id = os.getenv("LIGHTNING_CLOUD_SPACE_ID", None)
+        if cloud_space_id is not None:
+            return cloud_space_id
         if existing_cloudspace is None:
             cloudspace_body = ProjectIdCloudspacesBody(name=name, can_download_source_code=True)
             cloudspace = self.backend.client.cloud_space_service_create_cloud_space(
