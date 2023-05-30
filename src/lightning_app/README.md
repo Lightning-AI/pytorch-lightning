@@ -14,6 +14,11 @@ ______________________________________________________________________
   <a href="https://www.pytorchlightning.ai/community">Slack</a>
 </p>
 
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/lightning_app)](https://pypi.org/project/lightning_app/)
+[![PyPI Status](https://badge.fury.io/py/lightning_app.svg)](https://badge.fury.io/py/lightning_app)
+[![PyPI Status](https://pepy.tech/badge/lightning_app)](https://pepy.tech/project/lightning_app)
+[![Conda](https://img.shields.io/conda/v/conda-forge/lightning_app?label=conda&color=success)](https://anaconda.org/conda-forge/lightning_app)
+
 ![readme-gif](https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lightning-gif-888777nslpiijdbcvctyvwhe.gif)
 
 </div>
@@ -33,7 +38,7 @@ With Lightning Apps, your favorite components can work together on any machine a
 <summary>Prerequisites</summary>
 
 > TIP: We strongly recommend creating a virtual environment first.
-> Don’t know what this is? Follow our [beginner guide here](https://lightning.ai/lightning-docs/install_beginner.html).
+> Don’t know what this is? Follow our [beginner guide here](https://lightning.ai/docs/stable/install/installation.html).
 
 - Python 3.8.x or later (3.8.x, 3.9.x, 3.10.x, ...)
 - Git
@@ -73,11 +78,11 @@ lightning run app app.py
 lightning run app app.py --cloud
 ```
 
-[Read this guide](https://lightning.ai/lightning-docs/lightning_apps_intro.html) to learn the basics of Lightning Apps in 15 minutes.
+[Read this guide](https://lightning.ai/docs/stable/levels/basic/) to learn the basics of Lightning Apps in 15 minutes.
 
 # Features
 
-Lightning Apps consist of a root [LightningFlow](https://lightning.ai/lightning-docs/lightning_apps_intro.html#define-root-component) component, that optionally contains a tree of 2 types of components: [LightningFlow](https://lightning.ai/lightning-docs/core_api/lightning_flow.html) 🌊 and [LightningWork](https://lightning.ai/lightning-docs/core_api/lightning_work/) ⚒️. Key functionality includes:
+Lightning Apps consist of a root [LightningFlow](https://lightning.ai/docs/stable/glossary/app_tree.html) component, that optionally contains a tree of 2 types of components: [LightningFlow](https://lightning.ai/lightning-docs/core_api/lightning_flow.html) 🌊 and [LightningWork](https://lightning.ai/lightning-docs/core_api/lightning_work/) ⚒️. Key functionality includes:
 
 - A shared state between components.
 - A constantly running event loop for reactivity.
@@ -90,15 +95,15 @@ Easy communication 🛰️ between components is supported with:
 
 - [Directional state updates](https://lightning.ai/lightning-docs/core_api/lightning_app/communication.html?highlight=directional%20state) from the Works to the Flow creating an event: When creating interactive apps, you will likely want your components to share information with each other. You might to rely on that information to control their execution, share progress in the UI, trigger a sequence of operations, or more.
 - [Storage](https://lightning.ai/lightning-docs/api_reference/storage.html): The Lightning Storage system makes it easy to share files between LightningWork so you can run your app both locally and in the cloud without changing the code.
-  - [Path](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.storage.path.Path.html#lightning_app.storage.path.Path): The Path object is a reference to a specific file or directory from a LightningWork and can be used to transfer those files to another LightningWork (one way, from source to destination).
-  - [Payload](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.storage.payload.Payload.html#lightning_app.storage.payload.Payload): The Payload object enables transferring of Python objects from one work to another in a similar fashion as Path.
-  - [Drive](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.storage.drive.Drive.html#lightning_app.storage.drive.Drive): The Drive object provides a central place for your components to share data. The drive acts as an isolated folder and any component can access it by knowing its name.
+  - [Path](https://lightning.ai/docs/app/stable/api_reference/generated/lightning.app.storage.path.Path.html#lightning_app.storage.path.Path): The Path object is a reference to a specific file or directory from a LightningWork and can be used to transfer those files to another LightningWork (one way, from source to destination).
+  - [Payload](https://lightning.ai/docs/app/stable/api_reference/generated/lightning.app.storage.payload.Payload.html#lightning_app.storage.payload.Payload): The Payload object enables transferring of Python objects from one work to another in a similar fashion as Path.
+  - [Drive](https://lightning.ai/docs/app/stable/api_reference/generated/lightning.app.storage.drive.Drive.html#lightning_app.storage.drive.Drive): The Drive object provides a central place for your components to share data. The drive acts as an isolated folder and any component can access it by knowing its name.
 
 Lightning Apps have built-in support for [adding UIs](https://lightning.ai/lightning-docs/workflows/add_web_ui/) 🎨:
 
-- [StaticWebFrontEnd](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.frontend.web.StaticWebFrontend.html#lightning_app.frontend.web.StaticWebFrontend): A frontend that serves static files from a directory using FastAPI.
-- [StreamlitFrontend](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.frontend.stream_lit.StreamlitFrontend.html#lightning_app.frontend.stream_lit.StreamlitFrontend): A frontend for wrapping Streamlit code in your LightingFlow.
-- [ServeGradio](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.components.serve.gradio.ServeGradio.html#lightning_app.components.serve.gradio.ServeGradio): This class enables you to quickly create a `gradio` based UI for your Lightning App.
+- [StaticWebFrontEnd](https://lightning.ai/docs/app/stable/api_reference/generated/lightning.app.frontend.web.StaticWebFrontend.html#lightning_app.frontend.web.StaticWebFrontend): A frontend that serves static files from a directory using FastAPI.
+- [StreamlitFrontend](https://lightning.ai/docs/app/stable/api_reference/generated/lightning.app.frontend.stream_lit.StreamlitFrontend.html#lightning_app.frontend.stream_lit.StreamlitFrontend): A frontend for wrapping Streamlit code in your LightingFlow.
+- [ServeGradio](https://lightning.ai/docs/app/stable/api_reference/generated/lightning.app.components.serve.gradio_server.ServeGradio.html#servegradio): This class enables you to quickly create a `gradio` based UI for your Lightning App.
 
 [Scheduling](https://lightning.ai/lightning-docs/glossary/scheduling.html) ⏲️: The Lightning Scheduling system makes it easy to schedule your components execution with any arbitrary conditions.
 
@@ -108,12 +113,12 @@ Advanced users who need full control over the environment a LightningWork runs i
 
 Ready to use [built-in components](https://lightning.ai/lightning-docs/api_reference/components.html?highlight=built%20components) 🧱:
 
-- [PopenPythonScript](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.components.python.popen.PopenPythonScript.html#lightning_app.components.python.popen.PopenPythonScript): This class enables you to easily run a Python Script.
-- [ModelInferenceAPI](https://lightning.ai/lightning-docs/api_reference/generated/lightning_app.components.serve.serve.ModelInferenceAPI.html#lightning_app.components.serve.serve.ModelInferenceAPI): This class enables you to easily get your model served.
+- [PopenPythonScript](https://lightning.ai/docs/app/stable/api_reference/generated/lightning.app.components.python.popen.PopenPythonScript.html#lightning_app.components.python.popen.PopenPythonScript): This class enables you to easily run a Python Script.
+- [ModelInferenceAPI](https://lightning.ai/docs/app/stable/api_reference/generated/lightning.app.components.serve.serve.ModelInferenceAPI.html#lightning_app.components.serve.serve.ModelInferenceAPI): This class enables you to easily get your model served.
 
 # App gallery
 
-The [Lightning AI website](https://www.lightning.ai/) features a curated gallery of Lightning Apps and components that makes it easy to get started. A few highlights:
+The [Lightning AI website](https://lightning.ai/) features a curated gallery of Lightning Apps and components that makes it easy to get started. A few highlights:
 
 | App                            | Description                                                                                                                                                                                                  |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -138,4 +143,4 @@ If you have any questions please:
 
 1. [Read the docs](https://lightning.ai/lightning-docs/).
 1. [Search through existing Discussions](https://github.com/Lightning-ai/lightning/discussions), or [add a new question](https://github.com/Lightning-ai/lightning/discussions/new)
-1. [Join our Slack community](https://www.pytorchlightning.ai/community).
+1. [Join our Discord community ](https://discord.gg/VptPCZkGNa).

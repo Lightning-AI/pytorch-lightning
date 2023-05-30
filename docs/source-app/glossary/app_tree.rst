@@ -22,7 +22,7 @@ This design enables users to organize and maintain their code with more ease, bu
 
 Here's a basic application with four flows and two works (associated tree structure):
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/tree.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/tree.gif
     :alt: Basic App Components
     :width: 100 %
 
@@ -89,11 +89,11 @@ You can simply attach your components in the **run** method of a flow using the 
             getattr(self, "wonested_flowrk").run()
 
 
-But it is usually more readable to use Lightning built-in :class:`~lightning_app.structures.Dict` or :class:`~lightning_app.structures.List` as follows:
+But it is usually more readable to use Lightning built-in :class:`~lightning.app.structures.Dict` or :class:`~lightning.app.structures.List` as follows:
 
 .. code-block:: python
 
-    from lightning_app.structures import Dict
+    from lightning.app.structures import Dict
 
 
     class RootFlow(L.LightningFlow):

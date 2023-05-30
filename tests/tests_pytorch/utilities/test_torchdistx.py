@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@ import pytest
 from lightning_utilities.core.imports import RequirementCache
 from torch import nn
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.meta import _is_deferred
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.meta import _is_deferred
 from tests_pytorch.helpers.runif import RunIf
 
 _TORCHDISTX_AVAILABLE = RequirementCache("torchdistx")
@@ -52,13 +52,13 @@ def test_deferred_init_with_lightning_module():
 @pytest.mark.skipif(not _TORCHDISTX_AVAILABLE, reason=_TORCHDISTX_AVAILABLE.message)
 @pytest.mark.parametrize(
     "trainer_kwargs",
-    (
+    [
         {"accelerator": "auto", "devices": 1},
         pytest.param(
-            {"strategy": "deepspeed_stage_3", "accelerator": "gpu", "devices": 2, "precision": 16},
+            {"strategy": "deepspeed_stage_3", "accelerator": "gpu", "devices": 2, "precision": "16-mixed"},
             marks=RunIf(min_cuda_gpus=2, deepspeed=True),
         ),
-    ),
+    ],
 )
 def test_deferred_init_with_trainer(tmpdir, trainer_kwargs):
     from torchdistx.deferred_init import deferred_init
@@ -88,5 +88,5 @@ def test_deferred_init_ddp_spawn(tmpdir):
         devices="1",
         strategy="ddp_spawn",
     )
-    with pytest.raises(NotImplementedError, match="DDPSpawnStrategy` strategy does not support.*torchdistx"):
+    with pytest.raises(NotImplementedError, match="DDPStrategy` strategy does not support.*torchdistx"):
         trainer.fit(model)

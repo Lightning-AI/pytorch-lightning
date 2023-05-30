@@ -16,10 +16,6 @@ Advanced skills
 ###############
 Learn to build nested components with advanced functionality.
 
-.. join_slack::
-   :align: left
-
-----
 
 .. raw:: html
 

@@ -29,7 +29,7 @@ Below is a pseudo-code using the lightning framework that uses a LightningFlow t
             self.train_work.run(...)
             self.serve_work.run(...)
 
-Below is a pseudo-code to run several works in parallel using a built-in :class:`~lightning_app.structures.Dict`.
+Below is a pseudo-code to run several works in parallel using a built-in :class:`~lightning.app.structures.Dict`.
 
 .. code-block:: python
 

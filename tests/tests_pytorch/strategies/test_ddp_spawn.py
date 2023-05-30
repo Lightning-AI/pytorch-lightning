@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,27 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
+from torch.multiprocessing import ProcessRaisedException
+
 import tests_pytorch.helpers.pipelines as tpipes
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer import Trainer
+from lightning.pytorch.callbacks import EarlyStopping
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer import Trainer
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
+from tests_pytorch.strategies.test_ddp_strategy import UnusedParametersModel
 
 
 @RunIf(min_cuda_gpus=2, sklearn=True)
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        callbacks=[EarlyStopping(monitor="train_acc")],
-        max_epochs=50,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        accelerator="gpu",
-        devices=[0, 1],
-        strategy="ddp_spawn",
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "callbacks": [EarlyStopping(monitor="train_acc")],
+        "max_epochs": 50,
+        "limit_train_batches": 10,
+        "limit_val_batches": 10,
+        "accelerator": "gpu",
+        "devices": [0, 1],
+        "strategy": "ddp_spawn",
+    }
 
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -40,16 +44,16 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
 
 @RunIf(min_cuda_gpus=2)
 def test_multi_gpu_model_ddp_spawn(tmpdir):
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        accelerator="gpu",
-        devices=[0, 1],
-        strategy="ddp_spawn",
-        enable_progress_bar=False,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 10,
+        "limit_val_batches": 10,
+        "accelerator": "gpu",
+        "devices": [0, 1],
+        "strategy": "ddp_spawn",
+        "enable_progress_bar": False,
+    }
 
     model = BoringModel()
 
@@ -73,3 +77,13 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     )
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert trainer.state.finished, "DDP doesn't work with dataloaders passed to fit()."
+
+
+def test_ddp_spawn_find_unused_parameters_exception():
+    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning
+    users."""
+    trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp_spawn", max_steps=2)
+    with pytest.raises(
+        ProcessRaisedException, match="It looks like your LightningModule has parameters that were not used in"
+    ):
+        trainer.fit(UnusedParametersModel())

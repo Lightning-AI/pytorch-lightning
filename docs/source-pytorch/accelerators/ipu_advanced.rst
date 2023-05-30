@@ -6,6 +6,8 @@ Accelerator: IPU training
 =========================
 **Audience:** Users looking to customize IPU training for massive models.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 Advanced IPU options
@@ -19,8 +21,8 @@ IPUs provide further optimizations to speed up training. By using the ``IPUStrat
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
-    from pytorch_lightning.strategies import IPUStrategy
+    import lightning.pytorch as pl
+    from lightning_graphcore import IPUStrategy
 
     model = MyLightningModule()
     trainer = pl.Trainer(accelerator="ipu", devices=8, strategy=IPUStrategy(device_iterations=32))
@@ -31,8 +33,8 @@ Note that by default we return the last device iteration loss. You can override 
 .. code-block:: python
 
     import poptorch
-    import pytorch_lightning as pl
-    from pytorch_lightning.strategies import IPUStrategy
+    import lightning.pytorch as pl
+    from lightning_graphcore import IPUStrategy
 
     model = MyLightningModule()
     inference_opts = poptorch.Options()
@@ -71,7 +73,7 @@ Below is an example using the block annotation in a LightningModule.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
     import poptorch
 
 
@@ -104,7 +106,7 @@ You can also use the block context manager within the forward function, or any o
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
     import poptorch
 
 
@@ -120,7 +122,6 @@ You can also use the block context manager within the forward function, or any o
             self.softmax = torch.nn.Softmax(dim=1)
 
         def forward(self, x):
-
             with poptorch.Block(ipu_id=0):
                 x = self.act(self.layer1(x))
 

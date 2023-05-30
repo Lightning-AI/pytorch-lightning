@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,14 +21,13 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import Logger, TensorBoardLogger
-from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params, _scan_checkpoints
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from tests_pytorch.helpers.runif import RunIf
+from lightning.fabric.utilities.logger import _convert_params, _sanitize_params
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning.pytorch.loggers import Logger, TensorBoardLogger
+from lightning.pytorch.loggers.logger import DummyExperiment, DummyLogger
+from lightning.pytorch.loggers.utilities import _scan_checkpoints
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 
 class CustomLogger(Logger):
@@ -79,8 +78,7 @@ class CustomLogger(Logger):
 def test_custom_logger(tmpdir):
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 
@@ -97,8 +95,7 @@ def test_custom_logger(tmpdir):
 def test_multiple_loggers(tmpdir):
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 
@@ -121,7 +118,6 @@ def test_multiple_loggers(tmpdir):
 
 def test_multiple_loggers_pickle(tmpdir):
     """Verify that pickling trainer with multiple loggers works."""
-
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
@@ -148,11 +144,11 @@ def test_adding_step_key(tmpdir):
             super().log_metrics(metrics, step)
 
     class CustomModel(BoringModel):
-        def training_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             self.logger.logged_step += 1
             self.log_dict({"step": self.logger.logged_step, "train_acc": self.logger.logged_step / 10})
 
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             self.logger.logged_step += 1
             self.log_dict({"step": self.logger.logged_step, "val_acc": self.logger.logged_step / 10})
 
@@ -230,7 +226,7 @@ def test_np_sanitization():
 
 
 @pytest.mark.parametrize("logger", [True, False])
-@patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
+@patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
 def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
     class TestModel(BoringModel):
         def __init__(self, param_one, param_two):
@@ -239,7 +235,12 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
 
     model = TestModel("pytorch", "lightning")
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0.1, limit_val_batches=0.1, num_sanity_val_steps=0
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -249,8 +250,8 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
         log_hyperparams_mock.assert_not_called()
 
 
-@patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
-def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
+@patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
+def test_log_hyperparams_key_collision(_, tmpdir):
     class TestModel(BoringModel):
         def __init__(self, hparams: Dict[str, Any]) -> None:
             super().__init__()
@@ -266,10 +267,10 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
 
     same_params = {1: 1, "2": 2, "three": 3.0, "test": _Test(), "4": torch.tensor(4)}
     model = TestModel(same_params)
-    dm = TestDataModule(same_params)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
+        logger=TensorBoardLogger(tmpdir),
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
@@ -285,7 +286,6 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     obj_params = deepcopy(same_params)
     obj_params["test"] = _Test()
     model = TestModel(same_params)
-    dm = TestDataModule(obj_params)
     trainer.fit(model)
 
     diff_params = deepcopy(same_params)
@@ -294,6 +294,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     dm = TestDataModule(diff_params)
     trainer = Trainer(
         default_root_dir=tmpdir,
+        logger=TensorBoardLogger(tmpdir),
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
@@ -302,7 +303,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
+    with pytest.raises(RuntimeError, match="Error while merging hparams"):
         trainer.fit(model, dm)
 
     tensor_params = deepcopy(same_params)
@@ -311,6 +312,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     dm = TestDataModule(tensor_params)
     trainer = Trainer(
         default_root_dir=tmpdir,
+        logger=TensorBoardLogger(tmpdir),
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
@@ -319,13 +321,12 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
+    with pytest.raises(RuntimeError, match="Error while merging hparams"):
         trainer.fit(model, dm)
 
 
-@RunIf(min_python="3.8")
 @pytest.mark.parametrize("save_top_k", [0, 1, 2, 5])
-@patch("pytorch_lightning.callbacks.ModelCheckpoint")
+@patch("lightning.pytorch.callbacks.ModelCheckpoint")
 def test_scan_checkpoints(checkpoint_callback_mock, tmpdir, save_top_k: int):
     """Checks if the expected number of checkpoints is returned."""
     # Test first condition of _scan_checkpoints: if c[1] not in logged_model_time.keys()

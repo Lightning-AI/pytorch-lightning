@@ -1,10 +1,11 @@
 import random
+from unittest import mock
 
 import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning.utilities.seed import isolate_rng
+from lightning.pytorch.utilities.seed import isolate_rng
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -35,3 +36,16 @@ def test_isolate_rng(with_torch_cuda):
     with isolate_rng():
         generated = [random.random() for _ in range(3)]
     assert random.random() == generated[0]
+
+
+@mock.patch("torch.cuda.set_rng_state_all")
+@mock.patch("torch.cuda.get_rng_state_all")
+def test_isolate_rng_cuda(get_cuda_rng, set_cuda_rng):
+    """Test that `include_cuda` controls whether isolate_rng also manages torch.cuda's rng."""
+    with isolate_rng(include_cuda=False):
+        get_cuda_rng.assert_not_called()
+    set_cuda_rng.assert_not_called()
+
+    with isolate_rng(include_cuda=True):
+        get_cuda_rng.assert_called_once()
+    set_cuda_rng.assert_called_once()

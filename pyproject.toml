@@ -1,3 +1,22 @@
+# Copyright The Lightning AI team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[metadata]
+name = "pytorch-lightning"
+author = "Lightning-AI et al."
+url = "https://github.com/Lightning-AI/lightning"
+
 [build-system]
 requires = [
     "setuptools",
@@ -7,9 +26,17 @@ requires = [
 
 [tool.isort]
 known_first_party = [
-    "pl_examples",
+    "examples",
+    "lightning",
+    "lightning_app",
+    "lightning_fabric",
     "pytorch_lightning",
-    "lightning_lite",
+    "parity_fabric",
+    "parity_pytorch",
+    "integrations_app",
+    "tests_app",
+    "tests_cloud",
+    "tests_fabric",
     "tests_pytorch",
 ]
 profile = "black"
@@ -24,20 +51,95 @@ line-length = 120
 exclude = '(_notebooks/.*)'
 
 
+[tool.ruff]
+line-length = 120
+# Enable Pyflakes `E` and `F` codes by default.
+select = [
+    "E", "W",  # see: https://pypi.org/project/pycodestyle
+    "F",  # see: https://pypi.org/project/pyflakes
+    "S",  # see: https://pypi.org/project/flake8-bandit
+]
+extend-select = [
+    "C4",  # see: https://pypi.org/project/flake8-comprehensions
+    "SIM",  # see: https://pypi.org/project/flake8-simplify
+    "RET",  # see: https://pypi.org/project/flake8-return
+    "PT",  # see: https://pypi.org/project/flake8-pytest-style
+]
+ignore = [
+    "E731",  # Do not assign a lambda expression, use a def
+    "S108",
+]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    "docs",
+    "_notebooks"
+]
+ignore-init-module-imports = true
+
+[tool.ruff.per-file-ignores]
+".actions/*" = ["S101", "S310"]
+"setup.py" = ["S101"]
+"examples/**" = [
+    "S101",  # Use of `assert` detected
+    "S113",  # todo: Probable use of requests call without
+    "S104",  # Possible binding to all interface
+    "F821",  # Undefined name `...`
+    "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "S501",  # Probable use of `requests` call with `verify=False` disabling SSL certificate checks
+    "S108",  # Probable insecure usage of temporary file or directory: "/tmp/data/MNIST"
+]
+"src/**" = [
+    "S101",  # todo: Use of `assert` detected
+    "S105", "S106", "S107",  # todo: Possible hardcoded password: ...
+    "S113",  # todo: Probable use of requests call without timeout
+    "S301",  # todo: `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
+    "S324",  # todo: Probable use of insecure hash functions in `hashlib`
+    "S602",  # todo: `subprocess` call with `shell=True` identified, security issue
+    "S603",  # todo: `subprocess` call: check for execution of untrusted input
+    "S605",  # todo: Starting a process with a shell: seems safe, but may be changed in the future; consider rewriting without `shell`
+    "S607",  # todo: Starting a process with a partial executable path
+    "RET504",  # todo:Unnecessary variable assignment before `return` statement
+]
+"tests/**" = [
+    "S101",  # Use of `assert` detected
+    "S105", "S106",  # todo: Possible hardcoded password: ...
+    "S301",  # `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
+    "S113",  # todo: Probable use of requests call without timeout
+    "S311",  # todo: Standard pseudo-random generators are not suitable for cryptographic purposes
+    "S108",  # todo: Probable insecure usage of temporary file or directory: "/tmp/sys-customizations-sync"
+    "S602",  # todo: `subprocess` call with `shell=True` identified, security issue
+    "S603",  # todo: `subprocess` call: check for execution of untrusted input
+    "S605",  # todo: Starting a process with a shell: seems safe, but may be changed in the future; consider rewriting without `shell`
+    "S607",  # todo: Starting a process with a partial executable path
+    "RET504",  # todo:Unnecessary variable assignment before `return` statement
+    "PT004",  # todo: Fixture `tmpdir_unittest_fixture` does not return anything, add leading underscore
+    "PT011",  # todo: `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
+    "PT012",  # todo: `pytest.raises()` block should contain a single simple statement
+    "PT019",  # todo: Fixture `_` without value is injected as parameter, use `@pytest.mark.usefixtures` instead
+]
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
+
 [tool.mypy]
 files = [
-    "src/pytorch_lightning",
-    "src/lightning_lite",
-    "src/lightning_app",
+    "src/lightning",
 ]
+# This section is for folders with "-" as they are not valid python modules
 exclude = [
-    "src/lightning_app/cli/component-template",
-    "src/lightning_app/cli/pl-app-template",
-    "src/lightning_app/cli/react-ui-template",
-    "src/lightning_app/cli/app-template",
-    "src/lightning_app/components/database",
-    "src/lightning_app/components/multi_node",
-    "src/lightning_app/frontend/just_py/just_py",
+    "src/lightning_app/__about__.py",
+    "src/lightning_app/__setup__.py",
+    "src/lightning_app/__version__.py",
+    "src/lightning_fabric/__about__.py",
+    "src/lightning_fabric/__setup__.py",
+    "src/lightning_fabric/__version__.py",
+    "src/lightning/app/cli/app-template",
+    "src/lightning/app/cli/component-template",
+    "src/lightning/app/cli/pl-app-template",
+    "src/lightning/app/cli/react-ui-template",
 ]
 install_types = "True"
 non_interactive = "True"
@@ -59,90 +161,126 @@ warn_no_return = "False"
 # the list can be generated with:
 # mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
-    "lightning_app.components.multi_node.lite",
-    "lightning_app.components.multi_node.base",
-    "lightning_app.components.multi_node.pytorch_spawn",
-    "lightning_app.components.multi_node.trainer",
-    "lightning_app.api.http_methods",
-    "lightning_app.api.request_types",
-    "lightning_app.cli.commands.app_commands",
-    "lightning_app.cli.commands.connection",
-    "lightning_app.cli.react-ui-template.example_app",
-    "lightning_app.components.database.client",
-    "lightning_app.components.database.server",
-    "lightning_app.components.database.utilities",
-    "lightning_app.components.python.popen",
-    "lightning_app.components.python.tracer",
-    "lightning_app.components.serve.gradio",
-    "lightning_app.components.serve.serve",
-    "lightning_app.components.serve.streamlit",
-    "lightning_app.components.serve.types.image",
-    "lightning_app.components.serve.types.type",
-    "lightning_app.components.serve.python_server",
-    "lightning_app.components.training",
-    "lightning_app.core.api",
-    "lightning_app.core.app",
-    "lightning_app.core.flow",
-    "lightning_app.core.queues",
-    "lightning_app.core.work",
-    "lightning_app.frontend.panel.app_state_comm",
-    "lightning_app.frontend.panel.app_state_watcher",
-    "lightning_app.frontend.panel.panel_frontend",
-    "lightning_app.frontend.panel.panel_serve_render_fn",
-    "lightning_app.frontend.stream_lit",
-    "lightning_app.frontend.streamlit_base",
-    "lightning_app.frontend.utils",
-    "lightning_app.frontend.web",
-    "lightning_app.runners.backends.__init__",
-    "lightning_app.runners.backends.backend",
-    "lightning_app.runners.backends.cloud",
-    "lightning_app.runners.backends.docker",
-    "lightning_app.runners.backends.mp_process",
-    "lightning_app.runners.cloud",
-    "lightning_app.runners.multiprocess",
-    "lightning_app.runners.runtime",
-    "lightning_app.runners.singleprocess",
-    "lightning_app.source_code.copytree",
-    "lightning_app.source_code.hashing",
-    "lightning_app.source_code.local",
-    "lightning_app.source_code.tar",
-    "lightning_app.source_code.uploader",
-    "lightning_app.storage.copier",
-    "lightning_app.storage.drive",
-    "lightning_app.storage.orchestrator",
-    "lightning_app.storage.path",
-    "lightning_app.storage.payload",
-    "lightning_app.structures.dict",
-    "lightning_app.structures.list",
-    "lightning_app.testing.helpers",
-    "lightning_app.testing.testing",
-    "lightning_app.utilities.app_helpers",
-    "lightning_app.utilities.app_logs",
-    "lightning_app.utilities.cli_helpers",
-    "lightning_app.utilities.cloud",
-    "lightning_app.utilities.cluster_logs",
-    "lightning_app.utilities.commands.base",
-    "lightning_app.utilities.component",
-    "lightning_app.utilities.enum",
-    "lightning_app.utilities.exceptions",
-    "lightning_app.utilities.git",
-    "lightning_app.utilities.imports",
-    "lightning_app.utilities.introspection",
-    "lightning_app.utilities.layout",
-    "lightning_app.utilities.load_app",
-    "lightning_app.utilities.log_helpers",
-    "lightning_app.utilities.login",
-    "lightning_app.utilities.name_generator",
-    "lightning_app.utilities.network",
-    "lightning_app.utilities.openapi",
-    "lightning_app.utilities.packaging.cloud_compute",
-    "lightning_app.utilities.packaging.docker",
-    "lightning_app.utilities.packaging.lightning_utils",
-    "lightning_app.utilities.port",
-    "lightning_app.utilities.proxies",
-    "lightning_app.utilities.scheduler",
-    "lightning_app.utilities.state",
-    "lightning_app.utilities.tracer",
-    "lightning_app.utilities.tree",
+    "lightning.app.api.http_methods",
+    "lightning.app.api.request_types",
+    "lightning.app.cli.cmd_install",
+    "lightning.app.cli.commands.app_commands",
+    "lightning.app.cli.commands.cd",
+    "lightning.app.cli.commands.cp",
+    "lightning.app.cli.commands.ls",
+    "lightning.app.cli.connect.app",
+    "lightning.app.components.database.client",
+    "lightning.app.components.database.server",
+    "lightning.app.components.database.utilities",
+    "lightning.app.components.multi_node.base",
+    "lightning.app.components.multi_node.fabric",
+    "lightning.app.components.multi_node.pytorch_spawn",
+    "lightning.app.components.multi_node.trainer",
+    "lightning.app.components.python.popen",
+    "lightning.app.components.python.tracer",
+    "lightning.app.components.serve.auto_scaler",
+    "lightning.app.components.serve.gradio_server",
+    "lightning.app.components.serve.python_server",
+    "lightning.app.components.serve.serve",
+    "lightning.app.components.serve.streamlit",
+    "lightning.app.components.serve.types.image",
+    "lightning.app.components.serve.types.type",
+    "lightning.app.components.training",
+    "lightning.app.frontend.panel.app_state_comm",
+    "lightning.app.frontend.panel.app_state_watcher",
+    "lightning.app.frontend.panel.panel_frontend",
+    "lightning.app.frontend.panel.panel_serve_render_fn",
+    "lightning.app.frontend.streamlit_base",
+    "lightning.app.frontend.stream_lit",
+    "lightning.app.frontend.utils",
+    "lightning.app.frontend.web",
+    "lightning.app.perf.pdb",
+    "lightning.app.runners.backends.backend",
+    "lightning.app.runners.backends.cloud",
+    "lightning.app.runners.backends.docker",
+    "lightning.app.runners.backends.mp_process",
+    "lightning.app.runners.cloud",
+    "lightning.app.runners.multiprocess",
+    "lightning.app.runners.runtime",
+    "lightning.app.source_code.copytree",
+    "lightning.app.source_code.hashing",
+    "lightning.app.source_code.local",
+    "lightning.app.source_code.tar",
+    "lightning.app.source_code.uploader",
+    "lightning.app.storage.copier",
+    "lightning.app.storage.drive",
+    "lightning.app.storage.filesystem",
+    "lightning.app.storage.orchestrator",
+    "lightning.app.storage.path",
+    "lightning.app.storage.payload",
+    "lightning.app.structures.dict",
+    "lightning.app.structures.list",
+    "lightning.app.testing.helpers",
+    "lightning.app.testing.testing",
+    "lightning.app.utilities.app_helpers",
+    "lightning.app.utilities.app_logs",
+    "lightning.app.utilities.cli_helpers",
+    "lightning.app.utilities.cloud",
+    "lightning.app.utilities.cluster_logs",
+    "lightning.app.utilities.commands.base",
+    "lightning.app.utilities.component",
+    "lightning.app.utilities.enum",
+    "lightning.app.utilities.exceptions",
+    "lightning.app.utilities.git",
+    "lightning.app.utilities.imports",
+    "lightning.app.utilities.introspection",
+    "lightning.app.utilities.layout",
+    "lightning.app.utilities.load_app",
+    "lightning.app.utilities.log_helpers",
+    "lightning.app.utilities.login",
+    "lightning.app.utilities.name_generator",
+    "lightning.app.utilities.network",
+    "lightning.app.utilities.openapi",
+    "lightning.app.utilities.packaging.cloud_compute",
+    "lightning.app.utilities.packaging.lightning_utils",
+    "lightning.app.utilities.proxies",
+    "lightning.app.utilities.scheduler",
+    "lightning.app.utilities.state",
+    "lightning.app.utilities.tracer",
+    "lightning.app.utilities.tree",
+    "lightning.store.authentication",
+    "lightning.store.cloud_api",
+    "lightning.store.save",
+    "lightning.store.utils",
 ]
 ignore_errors = "True"
+
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "warnings",
+    "pass",
+    "rank_zero_warn",
+    "raise NotImplementedError",
+]
+
+
+[tool.pytest.ini_options]
+norecursedirs = [
+    ".git",
+    ".github",
+    "dist",
+    "build",
+    "docs",
+]
+addopts = [
+    "--strict-markers",
+    "--doctest-modules",
+    "--color=yes",
+    "--disable-pytest-warnings",
+    "--ignore=legacy/checkpoints",
+]
+markers = [
+    "cloud:Run the cloud tests for example",
+]
+filterwarnings = [
+    "error::FutureWarning",
+]
+xfail_strict = true
+junit_duration_report = "call"

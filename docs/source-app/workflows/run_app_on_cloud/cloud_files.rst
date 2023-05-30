@@ -30,7 +30,6 @@ For example, the source code directory below with the ``.lightningignore`` file 
     ├── requirements.txt
     └── model.pt
 
-
 .. code:: bash
 
     ~/project/home ❯ cat .lightningignore
@@ -39,6 +38,18 @@ For example, the source code directory below with the ``.lightningignore`` file 
 
 A sample ``.lightningignore`` file can be found `here <https://github.com/Lightning-AI/lightning.beta/blob/master/.lightningignore>`_.
 
+If you are a component author and your components creates local files that you want to ignore, you can do:
+
+.. code-block:: python
+
+    class MyComponent(L.LightningWork):  # or L.LightningFlow
+        def __init__(self):
+            super().__init__()
+            self.lightningignore = ("model.pt", "data_dir")
+
+
+This has the benefit that the files will be ignored automatically for all the component users, making an easier
+transition between running locally vs in the cloud.
 
 ----
 

@@ -10,11 +10,11 @@ from uuid import uuid4
 
 import pytest
 
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.components.database import Database, DatabaseClient
-from lightning_app.components.database.utilities import _GeneralModel, _pydantic_column_type
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.utilities.imports import _is_sqlmodel_available
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.components.database import Database, DatabaseClient
+from lightning.app.components.database.utilities import _GeneralModel, _pydantic_column_type
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.utilities.imports import _is_sqlmodel_available
 
 if _is_sqlmodel_available():
     from sqlalchemy import Column
@@ -48,14 +48,13 @@ class Work(LightningWork):
 
 @pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
 def test_client_server():
-
     database_path = Path("database.db").resolve()
     if database_path.exists():
         os.remove(database_path)
 
     secrets = [Secret(name="example", value="secret")]
 
-    general = _GeneralModel.from_obj(TestConfig(name="name", secrets=secrets), token="a")
+    general = _GeneralModel.from_obj(TestConfig(name="name", secrets=secrets), token="a")  # noqa: S106
     assert general.cls_name == "TestConfig"
     assert general.data == '{"id": null, "name": "name", "secrets": [{"name": "example", "value": "secret"}]}'
 
@@ -109,7 +108,7 @@ def test_client_server():
                 self._client.insert(TestConfig(name="name", secrets=secrets))
 
                 assert self._client.select_all(TestConfig)
-                self._exit()
+                self.stop()
 
     app = LightningApp(Flow())
     MultiProcessRuntime(app, start_server=False).dispatch()
@@ -122,7 +121,6 @@ def test_client_server():
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
 @pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
 def test_work_database_restart():
-
     id = str(uuid4()).split("-")[0]
 
     class Flow(LightningFlow):
@@ -138,16 +136,16 @@ def test_work_database_restart():
 
             if not self.db.alive():
                 return
-            elif not self._client:
+            if not self._client:
                 self._client = DatabaseClient(self.db.db_url, None, model=TestConfig)
 
             if not self.restart:
                 self._client.insert(TestConfig(name="echo", secrets=[Secret(name="example", value="secret")]))
-                self._exit()
+                self.stop()
             else:
                 assert os.path.exists(self._db_filename)
                 assert len(self._client.select_all()) == 1
-                self._exit()
+                self.stop()
 
     with tempfile.TemporaryDirectory() as tmpdir:
         app = LightningApp(Flow(db_root=tmpdir))
@@ -166,7 +164,6 @@ def test_work_database_restart():
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
 @pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
 def test_work_database_periodic_store():
-
     id = str(uuid4()).split("-")[0]
 
     class Flow(LightningFlow):
@@ -186,7 +183,7 @@ def test_work_database_periodic_store():
             if not self.db.alive():
                 return
 
-            elif not self._client:
+            if not self._client:
                 self._client = DatabaseClient(self.db.db_url, None, model=TestConfig)
 
             if self._start_time is None:
@@ -196,7 +193,7 @@ def test_work_database_periodic_store():
             elif (time.time() - self._start_time) > 2:
                 assert os.path.exists(self._db_filename)
                 assert len(self._client.select_all()) == 1
-                self._exit()
+                self.stop()
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:

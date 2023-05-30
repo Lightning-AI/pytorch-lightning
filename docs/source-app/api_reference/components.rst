@@ -7,7 +7,7 @@ lightning.app.components
     :local:
     :backlinks: top
 
-.. currentmodule:: lightning_app.components
+.. currentmodule:: lightning.app.components
 
 
 Built-in Components
@@ -18,8 +18,18 @@ ___________________
     :nosignatures:
     :template: classtemplate.rst
 
+    ~database.client.DatabaseClient
+    ~database.server.Database
     ~python.popen.PopenPythonScript
     ~python.tracer.TracerPythonScript
     ~training.LightningTrainerScript
-    ~serve.gradio.ServeGradio
+    ~serve.gradio_server.ServeGradio
     ~serve.serve.ModelInferenceAPI
+    ~serve.python_server.PythonServer
+    ~serve.streamlit.ServeStreamlit
+    ~multi_node.base.MultiNode
+    ~multi_node.fabric.FabricMultiNode
+    ~multi_node.pytorch_spawn.PyTorchSpawnMultiNode
+    ~multi_node.trainer.LightningTrainerMultiNode
+    ~serve.auto_scaler.AutoScaler
+    ~serve.auto_scaler.ColdStartProxy

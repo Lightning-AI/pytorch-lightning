@@ -15,12 +15,12 @@ Integrate your own cluster
 Lightning provides an interface for providing your own definition of a cluster environment. It mainly consists of
 parsing the right environment variables to access information such as world size, global and local rank (process id),
 and node rank (node id). Here is an example of a custom
-:class:`~pytorch_lightning.plugins.environments.cluster_environment.ClusterEnvironment`:
+:class:`~lightning.pytorch.plugins.environments.cluster_environment.ClusterEnvironment`:
 
 .. code-block:: python
 
     import os
-    from pytorch_lightning.plugins.environments import ClusterEnvironment
+    from lightning.pytorch.plugins.environments import ClusterEnvironment
 
 
     class MyClusterEnvironment(ClusterEnvironment):
@@ -49,32 +49,3 @@ and node rank (node id). Here is an example of a custom
 
 
     trainer = Trainer(plugins=[MyClusterEnvironment()])
-
-----
-
-********
-Get help
-********
-Setting up a cluster for distributed training is not trivial. Lightning offers lightning-grid which allows you to configure a cluster easily and run experiments via the CLI and web UI.
-
-Try it out for free today:
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. Add callout items below this line
-
-.. displayitem::
-   :header: Train models on the cloud
-   :description: Learn to run a model in the background on a cloud machine.
-   :col_css: col-md-6
-   :button_link: cloud_training.html
-   :height: 150
-   :tag: intermediate
-
-.. raw:: html
-
-        </div>
-    </div

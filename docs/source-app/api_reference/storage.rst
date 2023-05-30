@@ -10,7 +10,7 @@ ______________
     :local:
     :backlinks: top
 
-.. currentmodule:: lightning_app.storage
+.. currentmodule:: lightning.app.storage
 
 .. autosummary::
     :toctree: generated/
@@ -20,6 +20,7 @@ ______________
     ~path.Path
     ~drive.Drive
     ~payload.Payload
+    ~mount.Mount
 
 ----
 
@@ -53,6 +54,14 @@ Learn more about Storage
    :description: Transfer Files From One Component to Another by Reference.
    :col_css: col-md-4
    :button_link:  ../glossary/storage/path.html
+   :height: 180
+   :tag: Intermediate
+
+.. displayitem::
+   :header: The Mount Object.
+   :description: Mount an AWS S3 Bucket When Running on the Cloud.
+   :col_css: col-md-4
+   :button_link:  ../workflows/mount_aws_s3_bucket.html
    :height: 180
    :tag: Intermediate
 

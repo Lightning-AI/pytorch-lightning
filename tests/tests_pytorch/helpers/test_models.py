@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@ import os
 
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleMNIST, ParityModuleRNN
 from tests_pytorch.helpers.datamodules import ClassifDataModule, RegressDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -24,14 +24,14 @@ from tests_pytorch.helpers.simple_models import ClassificationModel, RegressionM
 
 
 @pytest.mark.parametrize(
-    "data_class,model_class",
+    ("data_class", "model_class"),
     [
         (None, BoringModel),
         (None, BasicGAN),
         (None, ParityModuleRNN),
         (None, ParityModuleMNIST),
-        pytest.param(ClassifDataModule, ClassificationModel, marks=RunIf(sklearn=True)),
-        pytest.param(RegressDataModule, RegressionModel, marks=RunIf(sklearn=True)),
+        pytest.param(ClassifDataModule, ClassificationModel, marks=RunIf(sklearn=True, onnx=True)),
+        pytest.param(RegressDataModule, RegressionModel, marks=RunIf(sklearn=True, onnx=True)),
     ],
 )
 def test_models(tmpdir, data_class, model_class):

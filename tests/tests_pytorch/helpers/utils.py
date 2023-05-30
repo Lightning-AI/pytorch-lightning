@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,22 +13,16 @@
 # limitations under the License.
 import functools
 import os
-import re
-from contextlib import contextmanager
-from typing import Optional, Type
 
-import pytest
-
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import TensorBoardLogger
 from tests_pytorch import _TEMP_PATH
 
 
 def get_default_logger(save_dir, version=None):
     # set up logger object without actually saving logs
-    logger = TensorBoardLogger(save_dir, name="lightning_logs", version=version)
-    return logger
+    return TensorBoardLogger(save_dir, name="lightning_logs", version=version)
 
 
 def get_data_path(expt_logger, path_dir=None):
@@ -39,10 +33,7 @@ def get_data_path(expt_logger, path_dir=None):
 
     # the other experiments...
     if not path_dir:
-        if hasattr(expt_logger, "save_dir") and expt_logger.save_dir:
-            path_dir = expt_logger.save_dir
-        else:
-            path_dir = _TEMP_PATH
+        path_dir = expt_logger.save_dir if hasattr(expt_logger, "save_dir") and expt_logger.save_dir else _TEMP_PATH
     path_expt = os.path.join(path_dir, name, "version_%s" % version)
 
     # try if the new sub-folder exists, typical case for test-tube
@@ -64,31 +55,8 @@ def assert_ok_model_acc(trainer, key="test_acc", thr=0.5):
 
 
 def init_checkpoint_callback(logger):
-    checkpoint = ModelCheckpoint(dirpath=logger.save_dir)
-    return checkpoint
+    return ModelCheckpoint(dirpath=logger.save_dir)
 
 
 def getattr_recursive(obj, attr):
     return functools.reduce(getattr, [obj] + attr.split("."))
-
-
-@contextmanager
-def no_warning_call(expected_warning: Type[Warning] = UserWarning, match: Optional[str] = None):
-    with pytest.warns(None) as record:
-        yield
-
-    if match is None:
-        try:
-            w = record.pop(expected_warning)
-        except AssertionError:
-            # no warning raised
-            return
-    else:
-        for w in record.list:
-            if w.category is expected_warning and re.compile(match).search(w.message.args[0]):
-                break
-        else:
-            return
-
-    msg = "A warning" if expected_warning is None else f"`{expected_warning.__name__}`"
-    raise AssertionError(f"{msg} was raised: {w}")

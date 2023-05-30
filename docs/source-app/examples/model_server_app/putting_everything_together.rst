@@ -17,11 +17,11 @@ To run the app, simply open a terminal and execute this command:
 
 .. code-block:: bash
 
-    lightning run app docs/source-app/examples/model_deploy_app/app.py
+    lightning run app docs/source/examples/model_deploy_app/app.py
 
 Here is a gif of the UI.
 
-.. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/ml_server_2.gif
+.. figure::  https://pl-public-data.s3.amazonaws.com/assets_lightning/ml_server_2.gif
 
 .. raw:: html
 

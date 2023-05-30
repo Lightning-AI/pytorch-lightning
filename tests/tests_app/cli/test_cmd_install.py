@@ -6,30 +6,30 @@ from unittest import mock
 import pytest
 from click.testing import CliRunner
 
-from lightning_app.cli import cmd_install, lightning_cli
-from lightning_app.testing.helpers import _RunIf
+from lightning.app.cli import cmd_install, lightning_cli
+from lightning.app.testing.helpers import _RunIf
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_app_name():
     """Valid organization name."""
     runner = CliRunner()
 
     # assert a bad app name should fail
     fake_app = "fakeuser/impossible/name"
-    result = runner.invoke(lightning_cli.install_app, [fake_app])
+    result = runner.invoke(lightning_cli.cmd_install.install_app, [fake_app])
     assert "app name format must have organization/app-name" in result.output
 
     # assert a good name (but unavailable name) should work
     fake_app = "fakeuser/ALKKLJAUHREKJ21234KLAKJDLF"
-    result = runner.invoke(lightning_cli.install_app, [fake_app])
+    result = runner.invoke(lightning_cli.cmd_install.install_app, [fake_app])
     assert f"app: '{fake_app}' is not available on ⚡ Lightning AI ⚡" in result.output
     assert result.exit_code
 
     # assert a good (and availablea name) works
     # This should be an app that's always in the gallery
     real_app = "lightning/invideo"
-    result = runner.invoke(lightning_cli.install_app, [real_app])
+    result = runner.invoke(lightning_cli.cmd_install.install_app, [real_app])
     assert "Press enter to continue:" in result.output
 
 
@@ -39,31 +39,26 @@ def test_valid_unpublished_app_name():
 
     # assert warning of non official app given
     real_app = "https://github.com/Lightning-AI/install-app"
-    try:
+    with pytest.raises(subprocess.CalledProcessError, match="WARNING"):
         subprocess.check_output(f"lightning install app {real_app}", shell=True, stderr=subprocess.STDOUT)
-        # this condition should never be hit
-        assert False
-    except subprocess.CalledProcessError as e:
-        assert "WARNING" in str(e.output)
 
     # assert aborted install
-    result = runner.invoke(lightning_cli.install_app, [real_app], input="q")
+    result = runner.invoke(lightning_cli.cmd_install.install_app, [real_app], input="q")
     assert "Installation aborted!" in result.output
 
     # assert a bad app name should fail
     fake_app = "https://github.com/Lightning-AI/install-appdd"
-    result = runner.invoke(lightning_cli.install_app, [fake_app, "--yes"])
+    result = runner.invoke(lightning_cli.cmd_install.install_app, [fake_app, "--yes"])
     assert "Looks like the github url was not found" in result.output
 
     # assert a good (and availablea name) works
-    result = runner.invoke(lightning_cli.install_app, [real_app])
+    result = runner.invoke(lightning_cli.cmd_install.install_app, [real_app])
     assert "Press enter to continue:" in result.output
 
 
 @pytest.mark.skip(reason="need to figure out how to authorize git clone from the private repo")
 def test_app_install(tmpdir, monkeypatch):
     """Tests unpublished app install."""
-
     monkeypatch.chdir(tmpdir)
 
     real_app = "https://github.com/Lightning-AI/install-app"
@@ -75,23 +70,23 @@ def test_app_install(tmpdir, monkeypatch):
     assert test_app_pip_name in str(new_env_output), f"{test_app_pip_name} should be in the env"
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_component_name():
     runner = CliRunner()
 
     # assert a bad name should fail
     fake_component = "fakeuser/impossible/name"
-    result = runner.invoke(lightning_cli.install_component, [fake_component])
+    result = runner.invoke(lightning_cli.cmd_install.install_component, [fake_component])
     assert "component name format must have organization/component-name" in result.output
 
     # assert a good name (but unavailable name) should work
     fake_component = "fakeuser/ALKKLJAUHREKJ21234KLAKJDLF"
-    result = runner.invoke(lightning_cli.install_component, [fake_component])
+    result = runner.invoke(lightning_cli.cmd_install.install_component, [fake_component])
     assert f"component: '{fake_component}' is not available on ⚡ Lightning AI ⚡" in result.output
 
     # assert a good (and availablea name) works
     fake_component = "lightning/lit-slack-messenger"
-    result = runner.invoke(lightning_cli.install_component, [fake_component])
+    result = runner.invoke(lightning_cli.cmd_install.install_component, [fake_component])
     assert "Press enter to continue:" in result.output
 
 
@@ -100,19 +95,19 @@ def test_unpublished_component_url_parsing():
 
     # assert a bad name should fail (no git@)
     fake_component = "https://github.com/Lightning-AI/LAI-slack-messenger"
-    result = runner.invoke(lightning_cli.install_component, [fake_component])
+    result = runner.invoke(lightning_cli.cmd_install.install_component, [fake_component])
     assert "Error, your github url must be in the following format" in result.output
 
     # assert a good (and availablea name) works
     sha = "14f333456ffb6758bd19458e6fa0bf12cf5575e1"
     real_component = f"git+https://github.com/Lightning-AI/LAI-slack-messenger.git@{sha}"
-    result = runner.invoke(lightning_cli.install_component, [real_component])
+    result = runner.invoke(lightning_cli.cmd_install.install_component, [real_component])
     assert "Press enter to continue:" in result.output
 
 
 @pytest.mark.skip(reason="need to figure out how to authorize pip install from the private repo")
 @pytest.mark.parametrize(
-    "real_component, test_component_pip_name",
+    ("real_component", "test_component_pip_name"),
     [
         ("lightning/lit-slack-messenger", "lit-slack"),
         (
@@ -148,29 +143,29 @@ def test_prompt_actions():
     runner = CliRunner()
 
     # assert that the user can cancel the command with any letter other than y
-    result = runner.invoke(lightning_cli.install_app, [app_to_use], input="b")
+    result = runner.invoke(lightning_cli.cmd_install.install_app, [app_to_use], input="b")
     assert "Installation aborted!" in result.output
 
     # assert that the install happens with --yes
-    # result = runner.invoke(lightning_cli.install_app, [app_to_use, "--yes"])
+    # result = runner.invoke(lightning_cli.cmd_install.install_app, [app_to_use, "--yes"])
     # assert result.exit_code == 0
 
     # assert that the install happens with y
-    # result = runner.invoke(lightning_cli.install_app, [app_to_use], input='y')
+    # result = runner.invoke(lightning_cli.cmd_install.install_app, [app_to_use], input='y')
     # assert result.exit_code == 0
 
     # # assert that the install happens with yes
-    # result = runner.invoke(lightning_cli.install_app, [app_to_use], input='yes')
+    # result = runner.invoke(lightning_cli.cmd_install.install_app, [app_to_use], input='yes')
     # assert result.exit_code == 0
 
     # assert that the install happens with pressing enter
-    # result = runner.invoke(lightning_cli.install_app, [app_to_use])
+    # result = runner.invoke(lightning_cli.cmd_install.install_app, [app_to_use])
 
     # TODO: how to check the output when the user types ctrl+c?
-    # result = runner.invoke(lightning_cli.install_app, [app_to_use], input='')
+    # result = runner.invoke(lightning_cli.cmd_install.install_app, [app_to_use], input='')
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_version_arg_component(tmpdir, monkeypatch):
     monkeypatch.chdir(tmpdir)
     runner = CliRunner()
@@ -178,7 +173,7 @@ def test_version_arg_component(tmpdir, monkeypatch):
     # Version does not exist
     component_name = "lightning/lit-slack-messenger"
     version_arg = "NOT-EXIST"
-    result = runner.invoke(lightning_cli.install_component, [component_name, f"--version={version_arg}"])
+    result = runner.invoke(lightning_cli.cmd_install.install_component, [component_name, f"--version={version_arg}"])
     assert f"component: 'Version {version_arg} for {component_name}' is not" in str(result.exception)
     assert result.exit_code == 1
 
@@ -186,37 +181,37 @@ def test_version_arg_component(tmpdir, monkeypatch):
     # This somwehow fail in test but not when you actually run it
     version_arg = "0.0.1"
     runner = CliRunner()
-    result = runner.invoke(lightning_cli.install_component, [component_name, f"--version={version_arg}", "--yes"])
+    result = runner.invoke(
+        lightning_cli.cmd_install.install_component, [component_name, f"--version={version_arg}", "--yes"]
+    )
     assert result.exit_code == 0
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
-@mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
 def test_version_arg_app(tmpdir):
-
     # Version does not exist
     app_name = "lightning/invideo"
     version_arg = "NOT-EXIST"
     runner = CliRunner()
-    result = runner.invoke(lightning_cli.install_app, [app_name, f"--version={version_arg}"])
+    result = runner.invoke(lightning_cli.cmd_install.install_app, [app_name, f"--version={version_arg}"])
     assert f"app: 'Version {version_arg} for {app_name}' is not" in str(result.exception)
     assert result.exit_code == 1
 
     # Version exists
     version_arg = "0.0.2"
     runner = CliRunner()
-    result = runner.invoke(lightning_cli.install_app, [app_name, f"--version={version_arg}", "--yes"])
+    result = runner.invoke(lightning_cli.cmd_install.install_app, [app_name, f"--version={version_arg}", "--yes"])
     assert result.exit_code == 0
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
-@mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
-@mock.patch("lightning_app.cli.cmd_install._show_install_app_prompt")
+@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install._show_install_app_prompt")
 def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
-
     app_name = "lightning/invideo"
     runner = CliRunner()
-    with mock.patch("lightning_app.cli.cmd_install.requests.get") as get_api_mock:
+    with mock.patch("lightning.app.cli.cmd_install.requests.get") as get_api_mock:
         get_api_mock.return_value.json.return_value = {
             "apps": [
                 {
@@ -236,13 +231,14 @@ def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
                 },
             ]
         }
-        runner.invoke(lightning_cli.install_app, [app_name, "--yes"])  # no version specified so latest is installed
+        runner.invoke(
+            lightning_cli.cmd_install.install_app, [app_name, "--yes"]
+        )  # no version specified so latest is installed
         assert mock_show_install_app_prompt.called
         assert mock_show_install_app_prompt.call_args[0][0]["version"] == "0.0.4"
 
 
 def test_proper_url_parsing():
-
     name = "lightning/invideo"
 
     # make sure org/app-name name is correct
@@ -269,12 +265,11 @@ def test_proper_url_parsing():
 
 @_RunIf(skip_windows=True)
 def test_install_app_shows_error(tmpdir):
-
     app_folder_dir = Path(tmpdir / "some_random_directory").absolute()
     app_folder_dir.mkdir()
 
     with pytest.raises(SystemExit, match=f"Folder {str(app_folder_dir)} exists, please delete it and try again."):
-        cmd_install._install_app(
+        cmd_install._install_app_from_source(
             source_url=mock.ANY, git_url=mock.ANY, folder_name=str(app_folder_dir), overwrite=False
         )
 
@@ -317,6 +312,18 @@ def test_install_app_shows_error(tmpdir):
 # os.chdir(cwd)
 
 
+def test_app_and_component_gallery_app(monkeypatch):
+    monkeypatch.setattr(cmd_install, "_install_app_from_source", mock.MagicMock())
+    path = cmd_install.gallery_apps_and_components("lightning/flashy", True, "latest")
+    assert path == os.path.join(os.getcwd(), "app.py")
+
+
+def test_app_and_component_gallery_component(monkeypatch):
+    monkeypatch.setattr(cmd_install, "_install_app_from_source", mock.MagicMock())
+    path = cmd_install.gallery_apps_and_components("lightning/lit-jupyter", True, "latest")
+    assert path == os.path.join(os.getcwd(), "app.py")
+
+
 @mock.patch.dict(os.environ, {"LIGHTNING_APP_REGISTRY": "https://TODO/other_non_PL_registry"})
 def test_private_app_registry():
     registry = cmd_install._resolve_app_registry()
@@ -339,10 +346,10 @@ def test_private_component_registry():
     assert registry == "https://TODO/other_non_PL_registry"
 
 
-@mock.patch("lightning_app.cli.cmd_install.subprocess")
-@mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning.app.cli.cmd_install.subprocess")
+@mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
 @pytest.mark.parametrize(
-    "source_url, git_url, git_sha",
+    ("source_url", "git_url", "git_sha"),
     [
         (
             "https://github.com/PyTorchLightning/lightning-quick-start",
@@ -360,7 +367,9 @@ def test_install_app_process(subprocess_mock, source_url, git_url, git_sha, tmpd
     app_folder_dir = Path(tmpdir / "some_random_directory").absolute()
     app_folder_dir.mkdir()
 
-    cmd_install._install_app(source_url, git_url, folder_name=str(app_folder_dir), overwrite=True, git_sha=git_sha)
+    cmd_install._install_app_from_source(
+        source_url, git_url, folder_name=str(app_folder_dir), overwrite=True, git_sha=git_sha
+    )
     assert subprocess_mock.check_output.call_args_list[0].args == (["git", "clone", git_url],)
     if git_sha:
         assert subprocess_mock.check_output.call_args_list[1].args == (["git", "checkout", git_sha],)

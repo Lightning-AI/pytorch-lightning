@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
 import os
 from unittest import mock
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 def test_passing_no_env_variables():
@@ -43,7 +43,7 @@ def test_passing_env_variables_only():
 @mock.patch.dict(os.environ, {"PL_TRAINER_LOGGER": "True", "PL_TRAINER_MAX_STEPS": "7"})
 def test_passing_env_variables_defaults():
     """Testing overwriting trainer arguments."""
-    trainer = Trainer(False, max_steps=42)
+    trainer = Trainer(logger=False, max_steps=42)
     assert trainer.logger is None
     assert trainer.max_steps == 42
 

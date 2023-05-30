@@ -1,14 +1,16 @@
 import os
+import pathlib
 from copy import deepcopy
 from time import sleep
 
 import pytest
+from deepdiff import DeepDiff
 
-from lightning_app import LightningFlow, LightningWork
-from lightning_app.core.app import LightningApp
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage.drive import _maybe_create_drive, Drive
-from lightning_app.utilities.component import _set_flow_context
+from lightning.app import LightningFlow, LightningWork
+from lightning.app.core.app import LightningApp
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage.drive import _maybe_create_drive, Drive
+from lightning.app.utilities.component import _set_flow_context
 
 
 class SyncWorkLITDriveA(LightningWork):
@@ -42,7 +44,7 @@ class SyncFlowLITDrives(LightningFlow):
     def run(self):
         self.work_a.run(self.log_dir)
         self.work_b.run(self.log_dir)
-        self._exit()
+        self.stop()
 
 
 def test_synchronization_lit_drive(tmpdir):
@@ -100,7 +102,7 @@ class LITDriveFlow(LightningFlow):
         if self.work2.has_succeeded:
             self.work.run("1")
         if self.work.counter == 2:
-            self._exit()
+            self.stop()
 
 
 def test_lit_drive_transferring_files():
@@ -218,10 +220,19 @@ def test_lit_drive():
 def test_maybe_create_drive(drive_id):
     drive = Drive(drive_id, allow_duplicates=False)
     drive.component_name = "root.work1"
+    assert isinstance(drive.root_folder, pathlib.Path)
+    drive_state = drive.to_dict()
+    assert isinstance(drive_state["root_folder"], str)
     new_drive = _maybe_create_drive(drive.component_name, drive.to_dict())
+    assert isinstance(drive.root_folder, pathlib.Path)
     assert new_drive.protocol == drive.protocol
     assert new_drive.id == drive.id
     assert new_drive.component_name == drive.component_name
+    drive_state["root_folder"] = pathlib.Path(drive_state["root_folder"])
+    copy_drive_state = deepcopy(drive_state)
+    deep_diff = DeepDiff(copy_drive_state, drive_state)
+    assert "unprocessed" in deep_diff
+    deep_diff.pop("unprocessed")
 
 
 @pytest.mark.parametrize("drive_id", ["lit://drive"])

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import urllib.request
 from typing import Optional, Sequence, Tuple
 
 import torch
+from torch import Tensor
 from torch.utils.data import Dataset
 
 
@@ -69,7 +70,7 @@ class MNIST(Dataset):
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
         self.data, self.targets = self._try_load(os.path.join(self.cached_folder_path, data_file))
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
+    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
         img = self.data[idx].float().unsqueeze(0)
         target = int(self.targets[idx])
 
@@ -102,7 +103,7 @@ class MNIST(Dataset):
         for url in self.RESOURCES:
             logging.info(f"Downloading {url}")
             fpath = os.path.join(data_folder, os.path.basename(url))
-            urllib.request.urlretrieve(url, fpath)
+            urllib.request.urlretrieve(url, fpath)  # noqa: S310
 
     @staticmethod
     def _try_load(path_data, trials: int = 30, delta: float = 1.0):
@@ -114,8 +115,8 @@ class MNIST(Dataset):
             try:
                 res = torch.load(path_data)
             # todo: specify the possible exception
-            except Exception as e:
-                exception = e
+            except Exception as ex:
+                exception = ex
                 time.sleep(delta * random.random())
             else:
                 break
@@ -125,7 +126,7 @@ class MNIST(Dataset):
         return res
 
     @staticmethod
-    def normalize_tensor(tensor: torch.Tensor, mean: float = 0.0, std: float = 1.0) -> torch.Tensor:
+    def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Tensor:
         mean = torch.as_tensor(mean, dtype=tensor.dtype, device=tensor.device)
         std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
         return tensor.sub(mean).div(std)
@@ -160,7 +161,7 @@ class TrialMNIST(MNIST):
         super().__init__(root, normalize=(0.5, 1.0), **kwargs)
 
     @staticmethod
-    def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor, num_samples: int, digits: Sequence):
+    def _prepare_subset(full_data: Tensor, full_targets: Tensor, num_samples: int, digits: Sequence):
         classes = {d: 0 for d in digits}
         indexes = []
         for idx, target in enumerate(full_targets):

@@ -2,6 +2,9 @@ name: Install and validate the package
 description: Install and validate the package
 
 inputs:
+  pkg-folder:
+    description: Define folder with packages
+    required: true
   pkg-name:
     description: Package name to import
     required: true
@@ -14,22 +17,26 @@ runs:
   using: "composite"
   steps:
   - name: Choose package import
+    working-directory: ${{ inputs.pkg-folder }}
     run: |
-      python -c "print('PKG_IMPORT=' + {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])" >> $GITHUB_ENV
+      ls -l
+      python -c "print('PKG_IMPORT=' + {'app': 'lightning_app', 'fabric': 'lightning_fabric', 'pytorch': 'pytorch_lightning'}.get('${{matrix.pkg-name}}', 'lightning'))" >> $GITHUB_ENV
+      python -c "import glob ; ls = glob.glob('*.tar.gz') ; print('PKG_SOURCE=' + ls[0])" >> $GITHUB_ENV
+      python -c "import glob ; ls = glob.glob('*.whl') ; print('PKG_WHEEL=' + ls[0])" >> $GITHUB_ENV
     shell: bash
 
-  - name: Install package - archive
-    working-directory: ./dist
+  - name: Install package - wheel
+    working-directory: ${{ inputs.pkg-folder }}
     run: |
-      pip install *.tar.gz ${{ inputs.pip-flags }}
+      pip install ${PKG_WHEEL} ${{ inputs.pip-flags }}
       pip list | grep lightning
       python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
     shell: bash
 
-  - name: Install package - wheel
-    working-directory: ./dist
+  - name: Install package - archive
+    working-directory: ${{ inputs.pkg-folder }}
     run: |
-      pip install *.whl ${{ inputs.pip-flags }}
+      pip install ${PKG_SOURCE} ${{ inputs.pip-flags }}
       pip list | grep lightning
       python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
     shell: bash

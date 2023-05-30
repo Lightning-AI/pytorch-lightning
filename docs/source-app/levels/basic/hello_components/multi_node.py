@@ -12,7 +12,7 @@ class MultiNodeComponent(L.LightningWork):
         world_size: int,
     ):
         print(f"ADD YOUR DISTRIBUTED CODE: {main_address=} {main_port=} {node_rank=} {world_size=}")
-        print(f"supports ANY ML library")
+        print("supports ANY ML library")
 
 
 

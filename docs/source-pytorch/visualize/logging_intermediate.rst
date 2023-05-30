@@ -14,7 +14,7 @@ To track other artifacts, such as histograms or model topology graphs first sele
 
 .. code-block:: python
 
-    from pytorch_lightning import loggers as pl_loggers
+    from lightning.pytorch import loggers as pl_loggers
 
     tensorboard = pl_loggers.TensorBoardLogger(save_dir="")
     trainer = Trainer(logger=tensorboard)
@@ -32,17 +32,6 @@ then access the logger's API directly
 ----
 
 .. include:: supported_exp_managers.rst
-
-----
-
-****************************************
-Track multiple metrics in the same chart
-****************************************
-If your logger supports plotting multiple metrics on the same chart, pass in a dictionary to *self.log*.
-
-.. code-block:: python
-
-    self.log("performance", {"acc": acc, "recall": recall})
 
 ----
 

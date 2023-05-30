@@ -5,12 +5,12 @@ from unittest.mock import MagicMock
 import pytest
 from lightning_cloud.openapi import V1ListMembershipsResponse, V1ListSecretsResponse, V1Membership, V1Secret
 
-import lightning_app
-from lightning_app.utilities.secrets import _names_to_ids
+import lightning.app
+from lightning.app.utilities.secrets import _names_to_ids
 
 
 @pytest.mark.parametrize(
-    "secret_names, secrets, expected, expected_exception",
+    ("secret_names", "secrets", "expected", "expected_exception"),
     [
         ([], [], {}, False),
         (
@@ -44,7 +44,7 @@ def test_names_to_ids(
         def secret_service_list_secrets(self, *_, **__):
             return V1ListSecretsResponse(secrets=secrets)
 
-    monkeypatch.setattr(lightning_app.utilities.secrets, "LightningClient", FakeLightningClient)
+    monkeypatch.setattr(lightning.app.utilities.secrets, "LightningClient", FakeLightningClient)
 
     if expected_exception:
         with pytest.raises(ValueError):

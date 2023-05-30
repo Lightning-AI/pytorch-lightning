@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,11 +22,11 @@ import pytest
 import torch
 import yaml
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.loggers.tensorboard import _TENSORBOARD_AVAILABLE
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -39,7 +39,7 @@ def test_tensorboard_hparams_reload(tmpdir):
             super().__init__()
             self.save_hyperparameters()
 
-    trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=TensorBoardLogger(tmpdir))
     model = CustomModel()
     assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
@@ -62,7 +62,6 @@ def test_tensorboard_hparams_reload(tmpdir):
 
 def test_tensorboard_automatic_versioning(tmpdir):
     """Verify that automatic versioning works."""
-
     root_dir = tmpdir / "tb_versioning"
     root_dir.mkdir()
     (root_dir / "version_0").mkdir()
@@ -74,7 +73,6 @@ def test_tensorboard_automatic_versioning(tmpdir):
 
 def test_tensorboard_manual_versioning(tmpdir):
     """Verify that manual versioning works."""
-
     root_dir = tmpdir / "tb_versioning"
     root_dir.mkdir()
     (root_dir / "version_0").mkdir()
@@ -88,7 +86,6 @@ def test_tensorboard_manual_versioning(tmpdir):
 
 def test_tensorboard_named_version(tmpdir):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
-
     name = "tb_versioning"
     (tmpdir / name).mkdir()
     expected_version = "2020-02-05-162402"
@@ -122,7 +119,7 @@ def test_tensorboard_log_sub_dir(tmpdir):
         def name(self):
             return "name"
 
-    trainer_args = dict(default_root_dir=tmpdir, max_steps=1)
+    trainer_args = {"default_root_dir": tmpdir, "max_steps": 1}
 
     # no sub_dir specified
     save_dir = tmpdir / "logs"
@@ -144,8 +141,8 @@ def test_tensorboard_log_sub_dir(tmpdir):
 
     # test env var (`$`) handling
     test_env_dir = "some_directory"
-    os.environ["test_env_dir"] = test_env_dir
-    save_dir = "$test_env_dir/tmp"
+    os.environ["TEST_ENV_DIR"] = test_env_dir
+    save_dir = "$TEST_ENV_DIR/tmp"
     explicit_save_dir = f"{test_env_dir}/tmp"
     logger = TestLogger(save_dir, sub_dir="sub_dir")
     trainer = Trainer(**trainer_args, logger=logger)
@@ -234,14 +231,14 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     ):
         logger.log_graph(model)
 
-    model.example_input_array = dict(x=1, y=2)
+    model.example_input_array = {"x": 1, "y": 2}
     with pytest.warns(
         UserWarning, match="Could not log computational graph to TensorBoard: .* can't be traced by TensorBoard"
     ):
         logger.log_graph(model)
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
     """Tests to ensure that tensorboard log properly when accumulated_gradients > 1."""
 
@@ -252,13 +249,11 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
 
         def training_step(self, *args):
             self.log("foo", 1, on_step=True, on_epoch=True)
-            if not self.trainer.fit_loop._should_accumulate():
-                if self.trainer._logger_connector.should_update_logs:
-                    self.indexes.append(self.trainer.global_step)
+            if not self.trainer.fit_loop._should_accumulate() and self.trainer._logger_connector.should_update_logs:
+                self.indexes.append(self.trainer.global_step)
             return super().training_step(*args)
 
     model = TestModel()
-    model.training_epoch_end = None
     logger_0 = TensorBoardLogger(tmpdir, default_hp_metric=False)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -315,7 +310,7 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
     assert not os.path.isfile(os.path.join(tmpdir, hparams_file))
 
 
-@mock.patch("pytorch_lightning.loggers.tensorboard.log")
+@mock.patch("lightning.pytorch.loggers.tensorboard.log")
 def test_tensorboard_with_symlink(log, tmpdir):
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``,
     and relative paths."""
@@ -334,7 +329,6 @@ def test_tensorboard_with_symlink(log, tmpdir):
 
 def test_tensorboard_missing_folder_warning(tmpdir, caplog):
     """Verify that the logger throws a warning for invalid directory."""
-
     name = "fake_dir"
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)
 

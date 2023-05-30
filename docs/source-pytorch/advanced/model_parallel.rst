@@ -6,8 +6,6 @@ Train 1 trillion+ parameter models
 
 When training large models, fitting larger batch sizes, or trying to increase throughput using multi-GPU compute, Lightning provides advanced optimized distributed training strategies to support these cases and offer substantial improvements in memory usage.
 
-In many cases these strategies are some flavour of model parallelism however we only introduce concepts at a high level to get you started. Refer to the `FairScale documentation <https://fairscale.readthedocs.io/en/latest/deep_dive/oss_sdp_fsdp.html>`_ for more information about model parallelism.
-
 Note that some of the extreme memory saving configurations will affect the speed of training. This Speed/Memory trade-off in most cases can be adjusted.
 
 Some of these memory-efficient strategies rely on offloading onto other forms of memory, such as CPU RAM or NVMe. This means you can even see memory benefits on a **single GPU**, using a strategy such as :ref:`deepspeed-zero-stage-3-offload`.
@@ -38,9 +36,9 @@ This means we cannot sacrifice throughput as much as if we were fine-tuning, bec
 
 Overall:
 
-* When **fine-tuning** a model, use advanced memory efficient strategies such as :ref:`deepspeed-zero-stage-3` or :ref:`deepspeed-zero-stage-3-offload`, allowing you to fine-tune larger models if you are limited on compute
-* When **pre-training** a model, use simpler optimizations such :ref:`sharded-training`, :ref:`deepspeed-zero-stage-2` or :ref:`fully-sharded-training`, scaling the number of GPUs to reach larger parameter sizes
-* For both fine-tuning and pre-training, use :ref:`deepspeed-activation-checkpointing` or :ref:`fairscale-activation-checkpointing` as the throughput degradation is not significant
+* When **fine-tuning** a model, use advanced memory efficient strategies such as :ref:`fully-sharded-training`, :ref:`deepspeed-zero-stage-3` or :ref:`deepspeed-zero-stage-3-offload`, allowing you to fine-tune larger models if you are limited on compute
+* When **pre-training** a model, use simpler optimizations such as :ref:`deepspeed-zero-stage-2`, scaling the number of GPUs to reach larger parameter sizes
+* For both fine-tuning and pre-training, use :ref:`deepspeed-activation-checkpointing` as the throughput degradation is not significant
 
 For example when using 128 GPUs, you can **pre-train** large 10 to 20 Billion parameter models using :ref:`deepspeed-zero-stage-2` without having to take a performance hit with more advanced optimized multi-gpu strategy.
 
@@ -50,299 +48,36 @@ When Shouldn't I use an Optimized Distributed Strategy?
 =======================================================
 
 Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in the following cases, we recommend sticking to ordinary distributed strategies
+
 * When your model is small (ResNet50 of around 80M Parameters), unless you are using unusually large batch sizes or inputs.
 * Due to high distributed communication between devices, if running on a slow network/interconnect, the training might be much slower than expected and then it's up to you to determince the tradeoff here.
 
-----------
 
-.. _colossalai:
+Cutting-edge and third-party Strategies
+=======================================
 
-***********
-Colossal-AI
-***********
+Cutting-edge Lightning strategies are being developed by third-parties outside of Lightning.
 
-:class:`~pytorch_lightning.strategies.colossalai.ColossalAIStrategy` implements ZeRO-DP with chunk-based memory management.
-With this chunk mechanism, really large models can be trained with a small number of GPUs.
-It supports larger trainable model size and batch size than usual heterogeneous training by reducing CUDA memory fragments and CPU memory consumption.
-Also, it speeds up this kind of heterogeneous training by fully utilizing all kinds of resources.
+If you want to try some of the latest and greatest features for model-parallel training, check out the :doc:`Colossal-AI Strategy <./third_party/colossalai>` integration.
 
-When enabling chunk mechanism, a set of consecutive parameters are stored in a chunk, and then the chunk is sharded across different processes.
-This can reduce communication and data transmission frequency and fully utilize communication and PCI-E bandwidth, which makes training faster.
+Another integration is :doc:`Bagua Strategy <./third_party/bagua>`, deep learning training acceleration framework for PyTorch, with advanced distributed training algorithms and system optimizations.
 
-Unlike traditional implementations, which adopt static memory partition, we implemented a dynamic heterogeneous memory management system named Gemini.
-During the first training step, the warmup phase will sample the maximum non-model data memory (memory usage expect parameters, gradients, and optimizer states).
-In later training, it will use the collected memory usage information to evict chunks dynamically.
-Gemini allows you to fit much larger models with limited GPU memory.
-
-According to our benchmark results, we can train models with up to 24 billion parameters in 1 GPU.
-You can install colossalai by consulting `how to download colossalai <https://colossalai.org/download>`_.
-Then, run this benchmark in `Colossalai-PL/gpt <https://github.com/hpcaitech/ColossalAI-Pytorch-lightning/tree/main/benchmark/gpt>`_.
-
-Here is an example showing how to use ColossalAI:
-
-.. code-block:: python
-
-    from colossalai.nn.optimizer import HybridAdam
-
-
-    class MyBert(LightningModule):
-        ...
-
-        def configure_sharded_model(self) -> None:
-            # create your model here
-            self.model = BertForSequenceClassification.from_pretrained("bert-base-uncased")
-
-        def configure_optimizers(self):
-            # use the specified optimizer
-            optimizer = HybridAdam(self.model.parameters(), self.lr)
-
-        ...
-
-
-    model = MyBert()
-    trainer = Trainer(accelerator="gpu", devices=1, precision=16, strategy="colossalai")
-    trainer.fit(model)
-
-You can find more examples in the `Colossalai-PL <https://github.com/hpcaitech/ColossalAI-Pytorch-lightning>`_ repository.
-
-.. note::
-
-    *   The only accelerator which ColossalAI supports is ``"gpu"``. But CPU resources will be used when the placement policy is set to "auto" or "cpu".
-
-    *   The only precision which ColossalAI allows is 16 (FP16).
-
-    *   It only supports a single optimizer, which must be ``colossalai.nn.optimizer.CPUAdam`` or ``colossalai.nn.optimizer.
-        HybridAdam`` now. You can set ``adamw_mode`` to False to use normal Adam. Noticing that ``HybridAdam`` is highly optimized, it uses fused CUDA kernel and parallel CPU kernel.
-        It is recomended to use ``HybridAdam``, since it updates parameters in GPU and CPU both.
-
-    *   Your model must be created using the :meth:`~pytorch_lightning.core.module.LightningModule.configure_sharded_model` method.
-
-    *   ``ColossalaiStrategy`` doesn't support gradient accumulation as of now.
-
-.. _colossal_placement_policy:
-
-Placement Policy
-================
-
-Placement policies can help users fully exploit their GPU-CPU heterogeneous memory space for better training efficiency.
-There are three options for the placement policy.
-They are "cpu", "cuda" and "auto" respectively.
-
-When the placement policy is set to "cpu", all participated parameters will be offloaded into CPU memory immediately at the end of every auto-grad operation.
-In this way, "cpu" placement policy uses the least CUDA memory.
-It is the best choice for users who want to exceptionally enlarge their model size or training batch size.
-
-When using "cuda" option, all parameters are placed in the CUDA memory, no CPU resources will be used during the training.
-It is for users who get plenty of CUDA memory.
-
-The third option, "auto", enables Gemini.
-It monitors the consumption of CUDA memory during the warmup phase and collects CUDA memory usage of all auto-grad operations.
-In later training steps, Gemini automatically manages the data transmission between GPU and CPU according to collected CUDA memory usage information.
-It is the fastest option when CUDA memory is enough.
-
-Here's an example of changing the placement policy to "cpu".
-
-.. code-block:: python
-
-    from pytorch_lightning.strategies import ColossalAIStrategy
-
-    model = MyModel()
-    my_strategy = ColossalAIStrategy(placement_policy="cpu")
-    trainer = Trainer(accelerator="gpu", devices=4, precision=16, strategy=my_strategy)
-    trainer.fit(model)
-
-.. _sharded-training:
-
-**************************
-FairScale Sharded Training
-**************************
-
-Lightning integration of optimizer sharded training provided by `FairScale <https://github.com/facebookresearch/fairscale>`_.
-The technique can be found within `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
-`ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_,
-however the implementation is built from the ground up to be PyTorch compatible and standalone.
-Sharded Training allows you to maintain GPU scaling efficiency, whilst reducing memory overhead drastically. In short, expect near-normal linear scaling (if your network allows), and significantly reduced memory usage when training large models.
-
-Sharded Training still utilizes Data Parallel Training under the hood, except optimizer states and gradients are sharded across GPUs.
-This means the memory overhead per GPU is lower, as each GPU only has to maintain a partition of your optimizer state and gradients.
-
-The benefits vary by model and parameter sizes, but we've recorded up to a 63% memory reduction per GPU allowing us to double our model sizes. Because of efficient communication,
-these benefits in multi-GPU setups are almost free and throughput scales well with multi-node setups.
-
-It is highly recommended to use Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (500M+ parameter models).
-A technical note: as batch size scales, storing activations for the backwards pass becomes the bottleneck in training. As a result, sharding optimizer state and gradients becomes less impactful.
-Use :ref:`fairscale-activation-checkpointing` to see even more benefit at the cost of some throughput.
-
-To use Sharded Training, you need to first install FairScale using the command below.
-
-.. code-block:: bash
-
-    pip install fairscale
-
-
-.. code-block:: python
-
-    # train using Sharded DDP
-    trainer = Trainer(strategy="ddp_sharded")
-
-Sharded Training can work across all DDP variants by adding the additional ``--strategy ddp_sharded`` flag via command line using a PyTorch Lightning script.
-
-Internally we re-initialize your optimizers and shard them across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
+For training on unreliable mixed GPUs across the internet check out the :doc:`Hivemind Strategy <./third_party/hivemind>` integration.
 
 ----
+
 
 .. _fully-sharded-training:
 
-FairScale Fully Sharded Training
-================================
-
-.. warning::
-    FairScale Fully Sharded Training is in BETA and the API is subject to change. Please create an `issue <https://github.com/Lightning-AI/lightning/issues>`_ if you run into any problems.
-
-`Fully Sharded <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`_ shards optimizer state, gradients, and parameters across data parallel workers. This allows you to fit much larger models onto multiple GPUs into memory.
-
-Fully Sharded Training alleviates the need to worry about balancing layers onto specific devices using some form of pipe parallelism, and optimizes for distributed communication with minimal effort.
-
-Shard Parameters to Reach 10+ Billion Parameters
-------------------------------------------------
-
-To reach larger parameter sizes and to be memory efficient, we have to shard parameters. There are various ways to enable this.
-
-.. note::
-    Currently Fully Sharded Training relies on the user to wrap the model with Fully Sharded within the ``LightningModule``.
-    This means you must create a single model that is treated as a ``torch.nn.Module`` within the ``LightningModule``.
-    This is a limitation of Fully Sharded Training that will be resolved in the future.
-
-Enabling Module Sharding for Maximum Memory Efficiency
-------------------------------------------------------
-
-Auto Wrapping
-^^^^^^^^^^^^^
-
-Model layers should be wrapped in FSDP in a nested way to save peak memory and enable communication and computation overlapping. The
-simplest way to do it is auto wrapping, which can serve as a drop-in replacement for DDP without changing the rest of the code. You don't
-have to ``wrap`` layers manually as in the case of manual wrapping.
-
-.. note::
-    While initializing the optimizers inside ``configure_optimizers`` hook, make sure to use ``self.trainer.model.parameters()``, else
-    PyTorch will raise an error. This is required because when you use auto-wrap, the model layers are sharded and your
-    ``lightning_module.parameters()`` will return a generator with no params. This inconvenience will be addressed in the future.
-
-.. code-block:: python
-
-    class MyModel(BoringModel):
-        def configure_optimizers(self):
-            return torch.optim.AdamW(self.trainer.model.parameters(), lr=1e-2)
-
-
-    model = MyModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
-    trainer.fit(model)
-
-
-Manual Wrapping
-^^^^^^^^^^^^^^^
-
-Manual wrapping can be useful to explore complex sharding strategies by applying ``wrap`` selectively to some parts of the model. To activate
-parameter sharding with manual wrapping, you can wrap your model using the ``wrap`` function. Internally in Lightning, we enable a context manager around the ``configure_sharded_model`` function to make sure the ``wrap`` parameters are passed correctly.
-
-When not using Fully Sharded Training these wrap functions are a no-op. That means once the changes have been made, there is no need to remove the changes for other strategies.
-
-``auto_wrap`` recursively wraps :class:`~torch.nn.Module` within the ``LightningModule`` with nested Fully Sharded Wrappers,
-signalling that we'd like to partition these modules across data parallel devices, discarding the full weights when not required (information :class:`here <fairscale.nn.fsdp>`).
-
-``auto_wrap`` can have varying levels of success based on the complexity of your model. **Auto Wrap does not support models with shared parameters**.
-
-``wrap`` simply wraps the module with a Fully Sharded Parallel class with the correct parameters from the Lightning context manager.
-
-Here's an example using both ``wrap`` and ``auto_wrap`` to create your model:
-
-.. code-block:: python
-
-    import torch
-    import torch.nn as nn
-    import pytorch_lightning as pl
-    from pytorch_lightning import Trainer
-    from fairscale.nn import checkpoint_wrapper, auto_wrap, wrap
-
-
-    class MyModel(pl.LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.linear_layer = nn.Linear(32, 32)
-            self.block = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
-            self.final_block = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
-
-        def configure_sharded_model(self):
-            # modules are sharded across processes
-            # as soon as they are wrapped with `wrap` or `auto_wrap`.
-            # During the forward/backward passes, weights get synced across processes
-            # and de-allocated once computation is complete, saving memory.
-
-            # Wraps the layer in a Fully Sharded Wrapper automatically
-            linear_layer = wrap(self.linear_layer)
-
-            # Wraps the module recursively
-            # based on a minimum number of parameters (default 100M parameters)
-            block = auto_wrap(self.block)
-
-            # For best memory efficiency,
-            # add FairScale activation checkpointing
-            final_block = auto_wrap(checkpoint_wrapper(self.final_block))
-            self.model = nn.Sequential(linear_layer, nn.ReLU(), block, final_block)
-
-        def configure_optimizers(self):
-            return torch.optim.AdamW(self.model.parameters(), lr=1e-2)
-
-
-    model = MyModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
-    trainer.fit(model)
-
-    trainer.test()
-    trainer.predict()
-
-----
-
-.. _fairscale-activation-checkpointing:
-
-Activation Checkpointing
-------------------------
-
-Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass. They are then re-computed for the backwards pass as needed. Activation checkpointing is very useful when you have intermediate layers that produce large activations.
-
-FairScale's checkpointing wrapper also handles batch norm layers correctly, unlike the PyTorch implementation, ensuring stats are tracked correctly due to the multiple forward passes.
-
-This saves memory when training larger models, however it requires wrapping modules you'd like to use activation checkpointing on. See :class:`here <fairscale.nn.checkpoint.checkpoint_wrapper>` for more information.
-
-.. warning::
-
-    Do not wrap the entire model with activation checkpointing. This is not the intended use of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/Lightning-AI/lightning/discussions/9144>`_.
-
-.. code-block:: python
-
-    from pytorch_lightning import Trainer
-    from fairscale.nn import checkpoint_wrapper
-
-
-    class MyModel(pl.LightningModule):
-        def __init__(self):
-            super().__init__()
-            # Wrap layers using checkpoint_wrapper
-            self.block_1 = checkpoint_wrapper(nn.Sequential(nn.Linear(32, 32), nn.ReLU()))
-            self.block_2 = nn.Linear(32, 2)
-
-----
-
-.. _fully-sharded-native-training:
-
-******************************
-PyTorch Fully Sharded Training
-******************************
+**********************
+Fully Sharded Training
+**********************
 
 PyTorch has it's own version of `FSDP <https://pytorch.org/docs/stable/fsdp.html>`_ which is upstreamed from their `fairscale <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__ project.
 It was introduced in their `v1.11.0 release <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_ but it is recommended to use it with PyTorch v1.12 or more and that's what
-Lightning supports. The API is pretty similar to that of FairScale.
+Lightning supports.
+
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 
 Auto Wrapping
@@ -353,15 +88,15 @@ simplest way to do it is auto wrapping, which can serve as a drop-in replacement
 have to ``wrap`` layers manually as in the case of manual wrapping.
 
 .. note::
-    While initializing the optimizers inside ``configure_optimizers`` hook, make sure to use ``self.trainer.model.parameters()``, else
+    For users of PyTorch < 2.0: While initializing the optimizers inside ``configure_optimizers`` hook, make sure to use ``self.trainer.model.parameters()``, else
     PyTorch will raise an error. This is required because when you use auto-wrap, the model layers are sharded and your
-    ``lightning_module.parameters()`` will return a generator with no params. This inconvenience will be addressed in the future.
+    ``lightning_module.parameters()`` will return a generator with no params.
 
 
 .. code-block:: python
 
     model = BoringModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp_native", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
 
 
@@ -384,8 +119,8 @@ Here's an example using that uses ``wrap`` to create your model:
 
     import torch
     import torch.nn as nn
-    import pytorch_lightning as pl
-    from pytorch_lightning import Trainer
+    import lightning.pytorch as pl
+    from lightning.pytorch import Trainer
     from torch.distributed.fsdp.wrap import wrap
 
 
@@ -414,26 +149,49 @@ Here's an example using that uses ``wrap`` to create your model:
 
 
     model = MyModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp_native", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
 
 
-You can customize the strategy configuration by adjusting the arguments of :class:`~pytorch_lightning.strategies.fully_sharded_native.DDPFullyShardedNativeStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
+You can customize the strategy configuration by adjusting the arguments of :class:`~lightning.pytorch.strategies.FSDPStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import FSDPStrategy
 
 
-    native_fsdp = DDPFullyShardedNativeStrategy(cpu_offload=CPUOffload(offload_params=True))
-    trainer = pl.Trainer(strategy=native_fsdp, accelerator="gpu", device=4)
+    fsdp = FSDPStrategy(cpu_offload=True)
+    # equivalent to passing `"fsdp_cpu_offload"`
+    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
 
 
-Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about the native support.
+Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about it.
 
 ----
+
+
+Activation Checkpointing
+========================
+
+Activation checkpointing reduces GPU memory usage by avoiding the storage of intermediate activation tensors in
+selected layers. The tradeoff is that computation cost for the backpropagation increases, as the dropped activations
+need to be recomputed.
+
+Enable checkpointing on large layers (like Transformers) by providing the layer class/type to the strategy:
+
+.. code-block:: python
+
+    from lightning.pytorch.strategies import FSDPStrategy
+
+    fsdp = FSDPStrategy(
+        activation_checkpointing=MyTransformerBlock,  # or pass a list with multiple types
+    )
+    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
+
+
+----
+
 
 .. _deepspeed_advanced:
 
@@ -441,12 +199,11 @@ Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutori
 DeepSpeed
 *********
 
-.. note::
-    The DeepSpeed strategy is in beta and the API is subject to change. Please create an `issue <https://github.com/Lightning-AI/lightning/issues>`_ if you run into any issues.
-
 `DeepSpeed <https://github.com/microsoft/DeepSpeed>`__ is a deep learning training optimization library, providing the means to train massive billion parameter models at scale.
 Using the DeepSpeed strategy, we were able to **train model sizes of 10 Billion parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and the `DeepSpeed docs <https://www.deepspeed.ai/tutorials/megatron/>`__.
 DeepSpeed also offers lower level training optimizations, and efficient optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_. We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models).
+
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
 Below is a summary of all the configurations of DeepSpeed.
 
@@ -488,7 +245,7 @@ It is recommended to skip Stage 1 and use Stage 2, which comes with larger memor
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
+    from lightning.pytorch import Trainer
 
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_1", precision=16)
@@ -505,7 +262,7 @@ As a result, benefits can also be seen on a single GPU. Do note that the default
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
+    from lightning.pytorch import Trainer
 
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_2", precision=16)
@@ -525,7 +282,7 @@ Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tuto
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
+    from lightning.pytorch import Trainer
 
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_2_offload", precision=16)
@@ -543,8 +300,8 @@ You can also modify the ZeRO-Offload parameters via the strategy as below.
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DeepSpeedStrategy
 
     model = MyModel()
     trainer = Trainer(
@@ -568,8 +325,8 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
 
 .. code-block:: python
 
-    import pytorch_lightning
-    from pytorch_lightning import Trainer
+    import lightning.pytorch
+    from lightning.pytorch import Trainer
     from deepspeed.ops.adam import DeepSpeedCPUAdam
 
 
@@ -592,7 +349,7 @@ DeepSpeed ZeRO Stage 3
 ======================
 
 DeepSpeed ZeRO Stage 3 shards the optimizer states, gradients and the model parameters (also optionally activations). Sharding model parameters and activations comes with an increase in distributed communication, however allows you to scale your models massively from one GPU to multiple GPUs.
-**The DeepSpeed team report the ability to fine-tune models with over 40B parameters on a single GPU and over 2 Trillion parameters on 512 GPUs.** For more information we suggest checking the `DeepSpeed ZeRO-3 Offload documentation <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`__.
+**The DeepSpeed team report the ability to fine-tune models with over 40B parameters on a single GPU and over 2 Trillion parameters on 512 GPUs.** For more information we suggest checking the `DeepSpeed ZeRO-3 Offload documentation <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`__.
 
 We've ran benchmarks for all these features and given a simple example of how all these features work in Lightning, which you can see at `minGPT <https://github.com/SeanNaren/minGPT/tree/stage3>`_.
 
@@ -612,7 +369,7 @@ Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
+    from lightning.pytorch import Trainer
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -635,7 +392,7 @@ You can also use the Lightning Trainer to run predict or evaluate with DeepSpeed
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
+    from lightning.pytorch import Trainer
 
 
     class MyModel(pl.LightningModule):
@@ -660,7 +417,7 @@ This reduces the time taken to initialize very large models, as well as ensure w
 .. code-block:: python
 
     import torch.nn as nn
-    from pytorch_lightning import Trainer
+    from lightning.pytorch import Trainer
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -697,8 +454,8 @@ DeepSpeed ZeRO Stage 3 Offloads optimizer state, gradients to the host CPU to re
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DeepSpeedStrategy
 
     # Enable CPU Offloading
     model = MyModel()
@@ -727,8 +484,8 @@ Additionally, DeepSpeed supports offloading to NVMe drives for even larger model
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DeepSpeedStrategy
 
     # Enable CPU Offloading
     model = MyModel()
@@ -773,7 +530,7 @@ This saves memory when training larger models, however requires using a checkpoi
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
+    from lightning.pytorch import Trainer
     import deepspeed
 
 
@@ -795,8 +552,8 @@ This saves memory when training larger models, however requires using a checkpoi
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DeepSpeedStrategy
     import deepspeed
 
 
@@ -852,7 +609,7 @@ After training using ZeRO Stage 3, you'll notice that your checkpoints are a dir
 
 .. code-block:: python
 
-    from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
+    from lightning.pytorch.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
 
     # lightning deepspeed has saved a directory instead of a file
     save_path = "lightning_logs/version_0/checkpoints/epoch=0-step=0.ckpt/"
@@ -875,8 +632,8 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DeepSpeedStrategy
 
     deepspeed_config = {
         "zero_allow_untested_optimizer": True,
@@ -918,8 +675,8 @@ We support taking the config as a json formatted file:
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DeepSpeedStrategy
 
     model = MyModel()
     trainer = Trainer(
@@ -943,36 +700,6 @@ DDP Optimizations
 *****************
 
 
-When Using DDP Strategies, Set find_unused_parameters=False
-===========================================================
-
-By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/Lightning-AI/lightning/discussions/6219>`_ for more details).
-When enabled, it can result in a performance hit and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
-
-.. tip::
-    It applies to all DDP strategies that support ``find_unused_parameters`` as input.
-
-.. code-block:: python
-
-    from pytorch_lightning.strategies import DDPStrategy
-
-    trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=2,
-        strategy=DDPStrategy(find_unused_parameters=False),
-    )
-
-.. code-block:: python
-
-    from pytorch_lightning.strategies import DDPSpawnStrategy
-
-    trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=2,
-        strategy=DDPSpawnStrategy(find_unused_parameters=False),
-    )
-
-
 DDP Static Graph
 ================
 
@@ -985,8 +712,8 @@ training and apply special optimizations during runtime.
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DDPStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DDPStrategy
 
     trainer = Trainer(devices=4, strategy=DDPStrategy(static_graph=True))
 
@@ -1025,8 +752,8 @@ This can reduce peak memory usage and throughput as saved memory will be equal t
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DDPStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DDPStrategy
 
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy=DDPStrategy(gradient_as_bucket_view=True))
@@ -1042,8 +769,8 @@ Enable `FP16 Compress Hook for multi-node throughput improvement <https://pytorc
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DDPStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as default
 
     model = MyModel()
@@ -1058,8 +785,8 @@ Enable `PowerSGD for multi-node throughput improvement <https://pytorch.org/docs
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DDPStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
 
     model = MyModel()
@@ -1082,8 +809,8 @@ Combine hooks for accumulated benefit:
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DDPStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import (
         default_hooks as default,
         powerSGD_hook as powerSGD,
@@ -1108,13 +835,10 @@ Combine hooks for accumulated benefit:
 
 When using Post-localSGD, you must also pass ``model_averaging_period`` to allow for model parameter averaging:
 
-.. note::
-    Post-localSGD support requires PyTorch>=1.10.0
-
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DDPStrategy
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import post_localSGD_hook as post_localSGD
 
     model = MyModel()

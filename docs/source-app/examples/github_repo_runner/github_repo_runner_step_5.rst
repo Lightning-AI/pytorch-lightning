@@ -16,13 +16,13 @@ Clone the Lightning repo and run the following command:
 
 .. code-block:: bash
 
-   lightning run app docs/source-app/examples/github_repo_runner/app.py
+   lightning run app docs/source/examples/github_repo_runner/app.py
 
 Add ``--cloud`` to run this application in the cloud.
 
 .. code-block:: bash
 
-   lightning run app docs/source-app/examples/github_repo_runner/app.py --cloud
+   lightning run app docs/source/examples/github_repo_runner/app.py --cloud
 
 ----
 

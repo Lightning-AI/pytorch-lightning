@@ -58,56 +58,17 @@ FP16 Mixed Precision
 ********************
 
 In most cases, mixed precision uses FP16. Supported `PyTorch operations <https://pytorch.org/docs/stable/amp.html#op-specific-behavior>`__ automatically run in FP16, saving memory and improving throughput on the supported accelerators.
+Since computation happens in FP16, there is a chance of numerical instability during training. This is handled internally by a dynamic grad scaler which skips invalid steps and adjusts the scaler to ensure subsequent steps fall within a finite range. For more information `see the autocast docs <https://pytorch.org/docs/stable/amp.html#gradient-scaling>`__.
 
 
 .. note::
 
-    When using TPUs, setting ``precision=16`` will enable bfloat16, the only supported half precision type on TPUs.
+    When using TPUs, setting ``precision='16-mixed'`` will enable bfloat16, the only supported half precision type on TPUs.
 
 .. testcode::
     :skipif: not torch.cuda.is_available()
 
     Trainer(accelerator="gpu", devices=1, precision=16)
-
-
-PyTorch Native
---------------
-
-PyTorch 1.6 release introduced mixed precision functionality into their core as the AMP package, `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`__. It is more flexible and intuitive compared to `NVIDIA APEX <https://github.com/NVIDIA/apex>`__.
-Since computation happens in FP16, there is a chance of numerical instability during training. This is handled internally by a dynamic grad scaler which skips invalid steps and adjusts the scaler to ensure subsequent steps fall within a finite range. For more information `see the autocast docs <https://pytorch.org/docs/stable/amp.html#gradient-scaling>`__.
-Lightning uses native amp by default with ``precision=16|"bf16"``. You can also set it using:
-
-.. testcode::
-
-    Trainer(precision=16, amp_backend="native")
-
-
-NVIDIA APEX
------------
-
-.. warning::
-
-    We strongly recommend using the above native mixed precision rather than NVIDIA APEX unless you require more refined control.
-
-`NVIDIA APEX <https://github.com/NVIDIA/apex>`__ offers additional flexibility in setting mixed precision. This can be useful when trying out different precision configurations, such as keeping most of your weights in FP16 and running computation in FP16.
-
-.. testcode::
-    :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
-
-    Trainer(accelerator="gpu", devices=1, amp_backend="apex", precision=16)
-
-Set the `NVIDIA optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`__ via the precision plugin.
-
-.. testcode::
-    :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
-
-    from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
-
-
-    apex_plugin = ApexMixedPrecisionPlugin(amp_level="O3")
-    Trainer(accelerator="gpu", devices=1, precision=16, plugins=[apex_plugin])
-
-----
 
 ************************
 BFloat16 Mixed Precision
@@ -115,10 +76,7 @@ BFloat16 Mixed Precision
 
 .. warning::
 
-    BFloat16 requires PyTorch 1.10 or later and is only supported with PyTorch Native AMP.
-
-    BFloat16 is also experimental and may not provide significant speedups or memory improvements, offering better numerical stability.
-
+    BFloat16 may not provide significant speedups or memory improvements or offer better numerical stability.
     Do note for GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`__ based GPUs, such as A100s or 3090s.
 
 BFloat16 Mixed precision is similar to FP16 mixed precision, however, it maintains more of the "dynamic range" that FP32 offers. This means it is able to improve numerical stability than FP16 mixed precision. For more information, see `this TPU performance blogpost <https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus>`__.
@@ -126,14 +84,13 @@ BFloat16 Mixed precision is similar to FP16 mixed precision, however, it maintai
 Under the hood, we use `torch.autocast <https://pytorch.org/docs/stable/amp.html>`__ with the dtype set to ``bfloat16``, with no gradient scaling.
 
 .. testcode::
-    :skipif: not _TORCH_GREATER_EQUAL_1_10 or not torch.cuda.is_available()
+    :skipif: not torch.cuda.is_available()
 
     Trainer(accelerator="gpu", devices=1, precision="bf16")
 
 It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDNN under the hood.
 
 .. testcode::
-    :skipif: not _TORCH_GREATER_EQUAL_1_10
 
     Trainer(precision="bf16")
 
@@ -149,6 +106,7 @@ Lightning doesn't support it out of the box yet but you can still use it by conf
 .. code-block:: python
 
     import bitsandbytes as bnb
+
 
     # in your LightningModule, return the 8-bit optimizer
     def configure_optimizers(self):

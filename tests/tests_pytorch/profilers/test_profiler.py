@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,14 +22,14 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, StochasticWeightAveraging
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
-from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
-from pytorch_lightning.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.profilers.pytorch import RegisterRecordFunction, warning_cache
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
+from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning.pytorch.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
+from lightning.pytorch.profilers.pytorch import RegisterRecordFunction, warning_cache
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
@@ -47,16 +47,15 @@ def _sleep_generator(durations):
         yield duration
 
 
-@pytest.fixture
+@pytest.fixture()
 def simple_profiler():
     return SimpleProfiler()
 
 
 @pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(("action", "expected"), [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
-
     for duration in expected:
         with simple_profiler.profile(action):
             time.sleep(duration)
@@ -78,7 +77,6 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
 
 def test_simple_profiler_value_errors(simple_profiler):
     """Ensure errors are raised where expected."""
-
     action = "test"
     with pytest.raises(ValueError):
         simple_profiler.stop(action)
@@ -103,13 +101,12 @@ def test_simple_profiler_dirpath(tmpdir):
     assert profiler.dirpath is None
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler, logger=False)
     trainer.fit(model)
 
-    expected = tmpdir / "lightning_logs" / "version_0"
-    assert trainer.log_dir == expected
+    assert trainer.log_dir == tmpdir
     assert profiler.dirpath == trainer.log_dir
-    assert expected.join("fit-profiler.txt").exists()
+    assert tmpdir.join("fit-profiler.txt").exists()
 
 
 def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
@@ -121,15 +118,19 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=nonexisting_tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+        default_root_dir=nonexisting_tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        profiler=profiler,
+        logger=False,
     )
     trainer.fit(model)
 
-    expected = nonexisting_tmpdir / "lightning_logs" / "version_0"
-    assert expected.exists()
-    assert trainer.log_dir == expected
+    assert nonexisting_tmpdir.exists()
+    assert trainer.log_dir == nonexisting_tmpdir
     assert profiler.dirpath == trainer.log_dir
-    assert expected.join("fit-profiler.txt").exists()
+    assert nonexisting_tmpdir.join("fit-profiler.txt").exists()
 
 
 def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
@@ -178,7 +179,7 @@ def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
     """Ensure that the number of printed logs is correct."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, profiler=simple_profiler, logger=False)
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler"):
+    with caplog.at_level(logging.INFO, logger="lightning.pytorch.profiler"):
         trainer.fit(model)
         trainer.test(model)
 
@@ -255,15 +256,14 @@ def test_simple_profiler_summary(tmpdir, extended):
     assert expected_text == summary
 
 
-@pytest.fixture
+@pytest.fixture()
 def advanced_profiler(tmpdir):
     return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
 
 
 @pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(("action", "expected"), [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
-
     for duration in expected:
         with advanced_profiler.profile(action):
             time.sleep(duration)
@@ -302,7 +302,6 @@ def test_advanced_profiler_describe(tmpdir, advanced_profiler):
 
 def test_advanced_profiler_value_errors(advanced_profiler):
     """Ensure errors are raised where expected."""
-
     action = "test"
     with pytest.raises(ValueError):
         advanced_profiler.stop(action)
@@ -316,7 +315,7 @@ def test_advanced_profiler_deepcopy(advanced_profiler):
     assert deepcopy(advanced_profiler)
 
 
-@pytest.fixture
+@pytest.fixture()
 def pytorch_profiler(tmpdir):
     return PyTorchProfiler(dirpath=tmpdir, filename="profiler")
 
@@ -410,7 +409,7 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
         assert any(f"fit-{pytorch_profiler.filename}" in f for f in files)
 
 
-@pytest.mark.parametrize("fn, step_name", [("test", "test"), ("validate", "validation"), ("predict", "predict")])
+@pytest.mark.parametrize(("fn", "step_name"), [("test", "test"), ("validate", "validation"), ("predict", "predict")])
 @pytest.mark.parametrize("boring_model_cls", [BoringModel, ManualOptimBoringModel])
 def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
@@ -432,7 +431,6 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
 
 def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context."""
-
     pytorch_profiler = PyTorchProfiler(use_cuda=False, dirpath=tmpdir, filename="profiler", schedule=None)
 
     with pytorch_profiler.profile("a"):
@@ -490,7 +488,6 @@ def test_pytorch_profiler_nested_emit_nvtx():
 
 
 def test_register_record_function(tmpdir):
-
     use_cuda = torch.cuda.is_available()
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
@@ -513,9 +510,8 @@ def test_register_record_function(tmpdir):
         model = model.cuda()
         input = input.cuda()
 
-    with pytorch_profiler.profile("a"):
-        with RegisterRecordFunction(model):
-            model(input)
+    with pytorch_profiler.profile("a"), RegisterRecordFunction(model):
+        model(input)
 
     pytorch_profiler.describe()
     event_names = [e.name for e in pytorch_profiler.function_events]
@@ -525,7 +521,7 @@ def test_register_record_function(tmpdir):
     assert "[pl][module]torch.nn.modules.linear.Linear: layer.2" in event_names
 
 
-@pytest.mark.parametrize("cls", (SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
+@pytest.mark.parametrize("cls", [SimpleProfiler, AdvancedProfiler, PyTorchProfiler])
 def test_profiler_teardown(tmpdir, cls):
     """This test checks if profiler teardown method is called when trainer is exiting."""
 
@@ -551,7 +547,7 @@ def test_pytorch_profiler_deepcopy(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["profiler", "expected"],
+    ("profiler", "expected"),
     [
         (None, PassThroughProfiler),
         (SimpleProfiler(), SimpleProfiler),
@@ -578,7 +574,7 @@ def test_trainer_profiler_incorrect_str_arg():
 
 @pytest.mark.skipif(not _KINETO_AVAILABLE, reason="Requires PyTorch Profiler Kineto")
 @pytest.mark.parametrize(
-    ["trainer_config", "trainer_fn"],
+    ("trainer_config", "trainer_fn"),
     [
         ({"limit_train_batches": 4, "limit_val_batches": 7}, "fit"),
         ({"limit_train_batches": 7, "limit_val_batches": 4, "num_sanity_val_steps": 0}, "fit"),
@@ -606,7 +602,6 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_confi
 
 def test_profile_callbacks(tmpdir):
     """Checks if profiling callbacks works correctly, specifically when there are two of the same callback type."""
-
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
@@ -624,3 +619,38 @@ def test_profile_callbacks(tmpdir):
         e.name == "[pl][profile][Callback]EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
         for e in pytorch_profiler.function_events
     )
+
+
+@RunIf(min_python="3.10")
+def test_profiler_table_kwargs_summary_length(tmpdir):
+    """Test if setting max_name_column_width in table_kwargs changes table width."""
+
+    summaries = []
+    # Default table_kwargs (None) sets max_name_column_width to 55
+    for table_kwargs in [{"max_name_column_width": 1}, {"max_name_column_width": 5}, None]:
+        pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None, table_kwargs=table_kwargs)
+
+        with pytorch_profiler.profile("a"):
+            torch.ones(1)
+        pytorch_profiler.describe()
+        summaries.append(pytorch_profiler.summary())
+
+    # Check if setting max_name_column_width results in a wider table (more dashes)
+    assert summaries[0].count("-") < summaries[1].count("-")
+    assert summaries[1].count("-") < summaries[2].count("-")
+
+
+def test_profiler_invalid_table_kwargs(tmpdir):
+    """Test if passing invalid keyword arguments raise expected error."""
+
+    for key in {"row_limit", "sort_by"}:
+        with pytest.raises(
+            KeyError,
+            match=f"Found invalid table_kwargs key: {key}. This is already a positional argument of the Profiler.",
+        ):
+            PyTorchProfiler(table_kwargs={key: None}, dirpath=tmpdir, filename="profile")
+
+    for key in {"self", "non_existent_keyword_arg"}:
+        with pytest.raises(KeyError) as exc_info:
+            PyTorchProfiler(table_kwargs={key: None}, dirpath=tmpdir, filename="profile")
+        assert exc_info.value.args[0].startswith(f"Found invalid table_kwargs key: {key}.")

@@ -56,8 +56,8 @@ To support multiple models, when instantiating ``LightningCLI`` omit the ``model
 .. code:: python
 
     # main.py
-    from pytorch_lightning.cli import LightningCLI
-    from pytorch_lightning.demos.boring_classes import DemoModel
+    from lightning.pytorch.cli import LightningCLI
+    from lightning.pytorch.demos.boring_classes import DemoModel, BoringDataModule
 
 
     class Model1(DemoModel):
@@ -100,8 +100,8 @@ To support multiple data modules, when instantiating ``LightningCLI`` omit the `
 
     # main.py
     import torch
-    from pytorch_lightning.cli import LightningCLI
-    from pytorch_lightning.demos.boring_classes import BoringDataModule
+    from lightning.pytorch.cli import LightningCLI
+    from lightning.pytorch.demos.boring_classes import DemoModel, BoringDataModule
 
 
     class FakeDataset1(BoringDataModule):
@@ -156,8 +156,8 @@ Furthermore, any custom subclass of :class:`torch.optim.Optimizer` can be used a
 
     # main.py
     import torch
-    from pytorch_lightning.cli import LightningCLI
-    from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
+    from lightning.pytorch.cli import LightningCLI
+    from lightning.pytorch.demos.boring_classes import DemoModel, BoringDataModule
 
 
     class LitAdam(torch.optim.Adam):
@@ -193,22 +193,24 @@ Standard learning rate schedulers from ``torch.optim.lr_scheduler``  work out of
 
 .. code:: bash
 
-    python main.py fit --lr_scheduler CosineAnnealingLR
+    python main.py fit --optimizer=Adam --lr_scheduler CosineAnnealingLR
+
+Please note that ``--optimizer`` must be added for ``--lr_scheduler`` to have an effect.
 
 If the scheduler you want needs other arguments, add them via the CLI (no need to change your code)!
 
 .. code:: bash
 
-    python main.py fit --lr_scheduler=ReduceLROnPlateau --lr_scheduler.monitor=epoch
+    python main.py fit --optimizer=Adam --lr_scheduler=ReduceLROnPlateau --lr_scheduler.monitor=epoch
 
-Furthermore, any custom subclass of ``torch.optim.lr_scheduler._LRScheduler`` can be used as learning rate scheduler:
+Furthermore, any custom subclass of ``torch.optim.lr_scheduler.LRScheduler`` can be used as learning rate scheduler:
 
 .. code:: python
 
     # main.py
     import torch
-    from pytorch_lightning.cli import LightningCLI
-    from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
+    from lightning.pytorch.cli import LightningCLI
+    from lightning.pytorch.demos.boring_classes import DemoModel, BoringDataModule
 
 
     class LitLRScheduler(torch.optim.lr_scheduler.CosineAnnealingLR):
@@ -224,7 +226,7 @@ Now you can choose between any learning rate scheduler at runtime:
 .. code:: bash
 
     # LitLRScheduler
-    python main.py fit --lr_scheduler LitLRScheduler
+    python main.py fit --optimizer=Adam --lr_scheduler LitLRScheduler
 
 
 ----
@@ -237,7 +239,7 @@ is run. To select classes from any package by using only the class name, import 
 
 .. code:: python
 
-    from pytorch_lightning.cli import LightningCLI
+    from lightning.pytorch.cli import LightningCLI
     import my_code.models  # noqa: F401
     import my_code.data_modules  # noqa: F401
     import my_code.optimizers  # noqa: F401

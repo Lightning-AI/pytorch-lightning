@@ -63,7 +63,6 @@ which prints:
         validate            Perform one evaluation epoch over the validation set.
         test                Perform one evaluation epoch over the test set.
         predict             Run inference on your data.
-        tune                Runs routines to tune hyperparameters before training.
 
 use a subcommand as follows:
 
@@ -78,9 +77,9 @@ use a subcommand as follows:
 What is the relation between LightningCLI and argparse?
 *******************************************************
 
-:class:`~pytorch_lightning.cli.LightningCLI` makes use of `jsonargparse <https://github.com/omni-us/jsonargparse>`__
+:class:`~lightning.pytorch.cli.LightningCLI` makes use of `jsonargparse <https://github.com/omni-us/jsonargparse>`__
 which is an extension of `argparse <https://docs.python.org/3/library/argparse.html>`__. Due to this,
-:class:`~pytorch_lightning.cli.LightningCLI` follows the same arguments style as many POSIX command line tools. Long
+:class:`~lightning.pytorch.cli.LightningCLI` follows the same arguments style as many POSIX command line tools. Long
 options are prefixed with two dashes and its corresponding values are separated by space or an equal sign, as ``--option
 value`` or ``--option=value``. Command line options are parsed from left to right, therefore if a setting appears
 multiple times, the value most to the right will override the previous ones.
@@ -91,7 +90,7 @@ multiple times, the value most to the right will override the previous ones.
 What is the override order of LightningCLI?
 *******************************************
 
-The final configuration of CLIs implemented with :class:`~pytorch_lightning.cli.LightningCLI` can depend on default
+The final configuration of CLIs implemented with :class:`~lightning.pytorch.cli.LightningCLI` can depend on default
 config files (if defined), environment variables (if enabled) and command line arguments. The override order between
 these is the following:
 

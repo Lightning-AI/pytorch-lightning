@@ -14,21 +14,21 @@ In this guide, we'll cover the basic terminology associated with the Lightning f
 Lightning App
 **************
 
-The :class:`~lightning_app.core.app.LightningApp` runs a tree of one or more components that interact to create end-to-end applications. There are two kinds of components: :class:`~lightning_app.core.flow.LightningFlow` and :class:`~lightning_app.core.work.LightningWork`. This modular design enables you to reuse components created by other users.
+The :class:`~lightning.app.core.app.LightningApp` runs a tree of one or more components that interact to create end-to-end applications. There are two kinds of components: :class:`~lightning.app.core.flow.LightningFlow` and :class:`~lightning.app.core.work.LightningWork`. This modular design enables you to reuse components created by other users.
 
 ----
 
 Lightning Work
 ^^^^^^^^^^^^^^
 
-The :class:`~lightning_app.core.work.LightningWork` component is a building block optimized for long-running jobs or integrating third-party services. LightningWork can be used for training large models, downloading a dataset, or any long-lasting operation.
+The :class:`~lightning.app.core.work.LightningWork` component is a building block optimized for long-running jobs or integrating third-party services. LightningWork can be used for training large models, downloading a dataset, or any long-lasting operation.
 
 ----
 
 Lightning Flow
 ^^^^^^^^^^^^^^
 
-The :class:`~lightning_app.core.flow.LightningFlow` component coordinates long-running tasks :class:`~lightning_app.core.work.LightningWork` and runs its children :class:`~lightning_app.core.flow.LightningFlow` components.
+The :class:`~lightning.app.core.flow.LightningFlow` component coordinates long-running tasks :class:`~lightning.app.core.work.LightningWork` and runs its children :class:`~lightning.app.core.flow.LightningFlow` components.
 
 ----
 
@@ -43,7 +43,7 @@ Here's a basic application with four flows and two works:
 
 And here's its associated tree structure:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/tree.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/tree.gif
     :alt: Basic App Components
     :width: 100 %
 
@@ -56,9 +56,9 @@ Lightning Distributed Event Loop
 
 Drawing inspiration from modern web frameworks like `React.js <https://reactjs.org/>`_, the Lightning app runs all flows in an **event loop** (forever), which is triggered every 0.1 seconds after collecting any works' state change.
 
-.. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/lightning_loop.gif
+.. figure::  https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_loop.gif
 
-When running an app in the cloud, the :class:`~lightning_app.core.work.LightningWork` run on different machines. Lightning communicates any :class:`~lightning_app.core.work.LightningWork` state changes to the **event loop** which re-executes the flow with the newly-collected works' state.
+When running an app in the cloud, the :class:`~lightning.app.core.work.LightningWork` run on different machines. Lightning communicates any :class:`~lightning.app.core.work.LightningWork` state changes to the **event loop** which re-executes the flow with the newly-collected works' state.
 
 ----
 
@@ -77,7 +77,7 @@ You can easily check the state of your entire app:
 
 Here's the entire tree structure associated with your app:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/parent_child.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/parent_child.png
     :alt: Parent Child Components
     :width: 100 %
 
@@ -85,7 +85,7 @@ And here's the output you get when running the above application using **Lightni
 
 .. code-block:: console
 
-    $ lightning run app docs/source-app/code_samples/quickstart/app_01.py
+    $ lightning run app docs/source/code_samples/quickstart/app_01.py
       INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
       State: {'works': {'w_1': {'vars': {'counter': 1}}, 'w_2': {'vars': {'counter': 0}}}}
 
@@ -114,10 +114,10 @@ LightningWork: To Cache or Not to Cache Calls
 
 With Lightning, you can control how to run your components.
 
-By default, the :class:`~lightning_app.core.flow.LightningFlow` is executed infinitely by the **Lightning Infinite Loop** and the :class:`~lightning_app.core.work.LightningWork` does not run in **parallel**,
+By default, the :class:`~lightning.app.core.flow.LightningFlow` is executed infinitely by the **Lightning Infinite Loop** and the :class:`~lightning.app.core.work.LightningWork` does not run in **parallel**,
 meaning the **Lightning Infinite Loop** (a.k.a the flow) waits until that long-running work is completed to continue.
 
-Similar to `React.js Components and Props <https://reactjs.org/docs/components-and-props.html>`_, the :class:`~lightning_app.core.work.LightningWork`
+Similar to `React.js Components and Props <https://reactjs.org/docs/components-and-props.html>`_, the :class:`~lightning.app.core.work.LightningWork`
 component accepts arbitrary inputs (the "props") to its **run** method and by default runs **once** for each unique input provided.
 
 Here's an example of this behavior:
@@ -175,7 +175,7 @@ Here's the output you get when running the above application using **Lightning C
 
 .. code-block:: console
 
-    $ lightning run app docs/source-app/code_samples/quickstart/app_02.py
+    $ lightning run app docs/source/code_samples/quickstart/app_02.py
       INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
       # After you have clicked `run` on the UI.
       0.0 0.0
@@ -209,11 +209,11 @@ Multiple works
 In practical use cases, you might want to execute multiple long-running works in parallel.
 
 To enable this behavior, set ``parallel=True`` in the ``__init__`` method of
-your :class:`~lightning_app.core.work.LightningWork`.
+your :class:`~lightning.app.core.work.LightningWork`.
 
 Here's an example of the interaction between parallel and non-parallel behaviors:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/blocking_non_blocking.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/blocking_non_blocking.gif
     :alt: mnist GPU bar
     :width: 100 %
 
@@ -230,7 +230,7 @@ When running the above app, we see the following logs:
 
 .. code-block:: console
 
-    $ lightning run app docs/source-app/code_samples/quickstart/app/app_0.py
+    $ lightning run app docs/source/code_samples/quickstart/app/app_0.py
       INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
       # After you have clicked `run` on the UI.
       0.0, 0.0

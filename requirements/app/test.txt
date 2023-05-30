@@ -1,14 +1,16 @@
-coverage==6.5.0
-codecov==2.1.12
-pytest==7.2.0
-pytest-timeout==2.1.0
-pytest-cov==4.0.0
-pytest-doctestplus>=0.9.0
-playwright==1.27.1
-httpx
-trio<0.22.0
+coverage ==7.2.5
+pytest ==7.3.1
+pytest-timeout ==2.1.0
+pytest-cov ==4.0.0
+pytest-doctestplus >=0.9.0
+pytest-asyncio ==0.20.3
+# pytest-random-order ==1.1.0
+pytest-rerunfailures <=11.1.2
+
+playwright ==1.32.1
+httpx ==0.24.0
+trio <0.22.0  # strict https://github.com/python-trio/trio/pull/2213
 pympler
-psutil
-setuptools<65.6.0
-sqlmodel
-requests-mock
+psutil <=5.9.5
+setuptools <67.7.0
+requests-mock <=1.10.0

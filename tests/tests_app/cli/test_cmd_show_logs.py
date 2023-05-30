@@ -2,19 +2,19 @@ from unittest import mock
 
 from click.testing import CliRunner
 
-from lightning_app.cli.lightning_cli import show
+from lightning.app.cli.lightning_cli import show
 
 
-@mock.patch("lightning_app.cli.commands.logs.LightningClient")
-@mock.patch("lightning_app.cli.commands.logs._get_project")
+@mock.patch("lightning.app.cli.commands.logs.LightningClient")
+@mock.patch("lightning.app.cli.commands.logs._get_project")
 def test_show_logs_errors(_, client):
     """Test that the CLI prints the errors for the show logs command."""
-
     runner = CliRunner()
 
     # Response prep
     app = mock.MagicMock()
-    app.name = "MyFakeApp"
+    app.name = "My-FakeApp"
+    app.display_name = "My_FakeApp"
     work = mock.MagicMock()
     work.name = "MyFakeWork"
     flow = mock.MagicMock()
@@ -36,7 +36,7 @@ def test_show_logs_errors(_, client):
     result = runner.invoke(show.commands["logs"])
 
     assert result.exit_code == 1
-    assert "Please select one of available: [MyFakeApp]" in str(result.output)
+    assert "Please select one of the following: [My_FakeApp]" in str(result.output)
 
     # App does not exit
     apps = {app}
@@ -55,7 +55,7 @@ def test_show_logs_errors(_, client):
     client.return_value.lightningwork_service_list_lightningwork.return_value.lightningworks = works
     app.spec.flow_servers = flows
 
-    result = runner.invoke(show.commands["logs"], ["MyFakeApp", "NonExistentComponent"])
+    result = runner.invoke(show.commands["logs"], ["My_FakeApp", "NonExistentComponent"])
 
     assert result.exit_code == 1
-    assert "Component 'root.NonExistentComponent' does not exist in app MyFakeApp." in result.output
+    assert "Component 'root.NonExistentComponent' does not exist in app My_FakeApp." in result.output

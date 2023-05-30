@@ -13,7 +13,7 @@ Configure hyperparameters from the CLI (Intermediate)
 LightningCLI requirements
 *************************
 
-The :class:`~pytorch_lightning.cli.LightningCLI` class is designed to significantly ease the implementation of CLIs. To
+The :class:`~lightning.pytorch.cli.LightningCLI` class is designed to significantly ease the implementation of CLIs. To
 use this class, an additional Python requirement is necessary than the minimal installation of Lightning provides. To
 enable, either install all extras:
 
@@ -32,16 +32,16 @@ or if only interested in ``LightningCLI``, just install jsonargparse:
 ******************
 Implementing a CLI
 ******************
-Implementing a CLI is as simple as instantiating a :class:`~pytorch_lightning.cli.LightningCLI` object giving as
+Implementing a CLI is as simple as instantiating a :class:`~lightning.pytorch.cli.LightningCLI` object giving as
 arguments classes for a ``LightningModule`` and optionally a ``LightningDataModule``:
 
 .. code:: python
 
     # main.py
-    from pytorch_lightning.cli import LightningCLI
+    from lightning.pytorch.cli import LightningCLI
 
     # simple demo classes for your convenience
-    from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
+    from lightning.pytorch.demos.boring_classes import DemoModel, BoringDataModule
 
 
     def cli_main():
@@ -64,7 +64,7 @@ which prints out:
 .. code:: bash
 
     usage: main.py [-h] [-c CONFIG] [--print_config [={comments,skip_null,skip_default}+]]
-            {fit,validate,test,predict,tune} ...
+            {fit,validate,test,predict} ...
 
     pytorch-lightning trainer command line tool
 
@@ -78,12 +78,11 @@ which prints out:
     subcommands:
     For more details of each subcommand add it as argument followed by --help.
 
-    {fit,validate,test,predict,tune}
+    {fit,validate,test,predict}
         fit                 Runs the full optimization routine.
         validate            Perform one evaluation epoch over the validation set.
         test                Perform one evaluation epoch over the test set.
         predict             Run inference on your data.
-        tune                Runs routines to tune hyperparameters before training.
 
 
 The message tells us that we have a few available subcommands:
@@ -100,7 +99,6 @@ which you can use depending on your use case:
     $ python main.py validate
     $ python main.py test
     $ python main.py predict
-    $ python main.py tune
 
 ----
 
@@ -131,7 +129,7 @@ View all available options with the ``--help`` argument given after the subcomma
                                 (type: int, default: 10)
         --model.learning_rate LEARNING_RATE
                                 (type: float, default: 0.02)
-    <class 'pytorch_lightning.demos.boring_classes.BoringDataModule'>:
+    <class 'lightning.pytorch.demos.boring_classes.BoringDataModule'>:
     --data CONFIG         Path to a configuration file.
     --data.data_dir DATA_DIR
                             (type: str, default: ./)

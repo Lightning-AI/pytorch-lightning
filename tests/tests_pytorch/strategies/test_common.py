@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,26 +14,25 @@
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
+from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 @pytest.mark.parametrize(
     "trainer_kwargs",
-    (
-        pytest.param(dict(accelerator="gpu", devices=1), marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(dict(strategy="dp", accelerator="gpu", devices=2), marks=RunIf(min_cuda_gpus=2)),
-        pytest.param(dict(strategy="ddp_spawn", accelerator="gpu", devices=2), marks=RunIf(min_cuda_gpus=2)),
-        pytest.param(dict(accelerator="mps", devices=1), marks=RunIf(mps=True)),
-    ),
+    [
+        pytest.param({"accelerator": "gpu", "devices": 1}, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param({"strategy": "ddp_spawn", "accelerator": "gpu", "devices": 2}, marks=RunIf(min_cuda_gpus=2)),
+        pytest.param({"accelerator": "mps", "devices": 1}, marks=RunIf(mps=True)),
+    ],
 )
 @RunIf(sklearn=True)
 def test_evaluate(tmpdir, trainer_kwargs):
     dm = ClassifDataModule()
-    model = CustomClassificationModelDP()
+    model = ClassificationModel()
     trainer = Trainer(
         default_root_dir=tmpdir, max_epochs=2, limit_train_batches=10, limit_val_batches=10, **trainer_kwargs
     )

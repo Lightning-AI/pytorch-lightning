@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
-from pytorch_lightning.loggers.mlflow import MLFLOW_RUN_NAME, resolve_tags
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
+from lightning.pytorch.loggers.mlflow import MLFLOW_RUN_NAME, resolve_tags
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
@@ -33,11 +33,10 @@ def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, r
     return logger
 
 
-@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_logger_exists(client, mlflow, tmpdir):
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_exists(client, _, tmpdir):
     """Test launching three independent loggers with either same or different experiment name."""
-
     run1 = MagicMock()
     run1.info.run_id = "run-id-1"
     run1.info.experiment_id = "exp-id-1"
@@ -87,11 +86,10 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
     assert logger3.run_id == "run-id-3"
 
 
-@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_run_name_setting(client, mlflow, tmpdir):
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+def test_mlflow_run_name_setting(client, _, tmpdir):
     """Test that the run_name argument makes the MLFLOW_RUN_NAME tag."""
-
     tags = resolve_tags({MLFLOW_RUN_NAME: "run-name-1"})
 
     # run_name is appended to tags
@@ -114,11 +112,10 @@ def test_mlflow_run_name_setting(client, mlflow, tmpdir):
     client.return_value.create_run.assert_called_with(experiment_id="exp-id", tags=default_tags)
 
 
-@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_run_id_setting(client, mlflow, tmpdir):
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+def test_mlflow_run_id_setting(client, _, tmpdir):
     """Test that the run_id argument uses the provided run_id."""
-
     run = MagicMock()
     run.info.run_id = "run-id"
     run.info.experiment_id = "experiment-id"
@@ -135,11 +132,10 @@ def test_mlflow_run_id_setting(client, mlflow, tmpdir):
     client.reset_mock(return_value=True)
 
 
-@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_log_dir(client, mlflow, tmpdir):
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+def test_mlflow_log_dir(client, _, tmpdir):
     """Test that the trainer saves checkpoints in the logger's save dir."""
-
     # simulate experiment creation with mlflow client mock
     run = MagicMock()
     run.info.run_id = "run-id"
@@ -165,7 +161,7 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
 def test_mlflow_logger_dirs_creation(tmpdir):
     """Test that the logger creates the folders and files in the right place."""
     if not _MLFLOW_AVAILABLE:
-        pytest.xfail("test for explicit file creation requires mlflow dependency to be installed.")
+        pytest.skip("test for explicit file creation requires mlflow dependency to be installed.")
 
     assert not os.listdir(tmpdir)
     logger = MLFlowLogger("test", save_dir=tmpdir)
@@ -201,9 +197,9 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert os.listdir(trainer.checkpoint_callback.dirpath) == [f"epoch=0-step={limit_batches}.ckpt"]
 
 
-@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_experiment_id_retrieved_once(client, mlflow, tmpdir):
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+def test_mlflow_experiment_id_retrieved_once(client, tmpdir):
     """Test that the logger experiment_id retrieved only once."""
     logger = MLFlowLogger("test", save_dir=tmpdir)
     _ = logger.experiment
@@ -212,9 +208,10 @@ def test_mlflow_experiment_id_retrieved_once(client, mlflow, tmpdir):
     assert logger.experiment.get_experiment_by_name.call_count == 1
 
 
-@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
+@mock.patch("lightning.pytorch.loggers.mlflow.Metric")
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_with_unexpected_characters(client, _, __, tmpdir):
     """Test that the logger raises warning with special characters not accepted by MLFlow."""
     logger = MLFlowLogger("test", save_dir=tmpdir)
     metrics = {"[some_metric]": 10}
@@ -223,23 +220,12 @@ def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
         logger.log_metrics(metrics)
 
 
-@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
-    """Test that the logger raises warning with special characters not accepted by MLFlow."""
-    logger = MLFlowLogger("test", save_dir=tmpdir)
-    value = "test" * 100
-    key = "test_param"
-    params = {key: value}
-
-    with pytest.warns(RuntimeWarning, match=f"Discard {key}={value}"):
-        logger.log_hyperparams(params)
-
-
-@mock.patch("pytorch_lightning.loggers.mlflow.time")
-@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
+@mock.patch("lightning.pytorch.loggers.mlflow.Metric")
+@mock.patch("lightning.pytorch.loggers.mlflow.Param")
+@mock.patch("lightning.pytorch.loggers.mlflow.time")
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_experiment_calls(client, _, time, param, metric, tmpdir):
     """Test that the logger calls methods on the mlflow experiment correctly."""
     time.return_value = 1
 
@@ -249,20 +235,79 @@ def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
     params = {"test": "test_param"}
     logger.log_hyperparams(params)
 
-    logger.experiment.log_param.assert_called_once_with(logger.run_id, "test", "test_param")
+    logger.experiment.log_batch.assert_called_once_with(
+        run_id=logger.run_id, params=[param(key="test", value="test_param")]
+    )
+    param.assert_called_with(key="test", value="test_param")
 
     metrics = {"some_metric": 10}
     logger.log_metrics(metrics)
 
-    logger.experiment.log_metric.assert_called_once_with(logger.run_id, "some_metric", 10, 1000, None)
+    logger.experiment.log_batch.assert_called_with(
+        run_id=logger.run_id, metrics=[metric(key="some_metric", value=10, timestamp=1000, step=0)]
+    )
+    metric.assert_called_with(key="some_metric", value=10, timestamp=1000, step=0)
 
     logger._mlflow_client.create_experiment.assert_called_once_with(
         name="test", artifact_location="my_artifact_location"
     )
 
 
-@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+def _check_value_length(value, *args, **kwargs):
+    assert len(value) <= 250
+
+
+@mock.patch("lightning.pytorch.loggers.mlflow.Param", side_effect=_check_value_length)
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_with_long_param_value(client, _, param, tmpdir):
+    """Test that long parameter values are truncated to 250 characters."""
+    logger = MLFlowLogger("test", save_dir=tmpdir)
+
+    params = {"test": "test_param" * 50}
+    logger.log_hyperparams(params)
+
+    # assert_called_once_with() won't properly check the parameter value.
+    logger.experiment.log_batch.assert_called_once()
+
+
+@mock.patch("lightning.pytorch.loggers.mlflow.Param")
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_with_many_params(client, _, param, tmpdir):
+    """Test that the when logging more than 100 parameters, it will be split into batches of at most 100
+    parameters."""
+    logger = MLFlowLogger("test", save_dir=tmpdir)
+
+    params = {f"test_{idx}": f"test_param_{idx}" for idx in range(150)}
+    logger.log_hyperparams(params)
+
+    assert logger.experiment.log_batch.call_count == 2
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        ("success", "FINISHED"),
+        ("failed", "FAILED"),
+        ("finished", "FINISHED"),
+    ],
+)
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_finalize(_, __, status, expected):
+    logger = MLFlowLogger("test")
+
+    # Pretend we are in a worker process and finalizing
+    _ = logger.experiment
+    assert logger._initialized
+
+    logger.finalize(status)
+    logger.experiment.set_terminated.assert_called_once_with(logger.run_id, expected)
+
+
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_finalize_when_exception(*_):
     logger = MLFlowLogger("test")
 
@@ -279,8 +324,8 @@ def test_mlflow_logger_finalize_when_exception(*_):
     logger.experiment.set_terminated.assert_called_once_with(logger.run_id, "FAILED")
 
 
-@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
 @pytest.mark.parametrize("log_model", ["all", True, False])
 def test_mlflow_log_model(client, _, tmpdir, log_model):
     """Test that the logger creates the folders and files in the right place."""

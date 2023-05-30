@@ -17,11 +17,11 @@ Advanced users who need full control over the environment a LightningWork runs i
 Use a docker image
 ******************
 
-Create a :class:`~lightning_app.utilities.packaging.build_config.BuildConfig` and provide a **publicly accessible** link to where the image is hosted:
+Create a :class:`~lightning.app.utilities.packaging.build_config.BuildConfig` and provide a **publicly accessible** link to where the image is hosted:
 
 .. code-block:: python
 
-    from lightning_app import LightningWork, BuildConfig
+    from lightning.app import LightningWork, BuildConfig
 
 
     class MyWork(LightningWork):

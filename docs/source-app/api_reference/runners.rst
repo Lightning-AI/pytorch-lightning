@@ -7,7 +7,7 @@ lightning.app.runners
     :local:
     :backlinks: top
 
-.. currentmodule:: lightning_app.runners
+.. currentmodule:: lightning.app.runners
 
 Lightning Core
 ______________
@@ -18,5 +18,4 @@ ______________
     :template: classtemplate.rst
 
     ~cloud.CloudRuntime
-    ~singleprocess.SingleProcessRuntime
     ~multiprocess.MultiProcessRuntime

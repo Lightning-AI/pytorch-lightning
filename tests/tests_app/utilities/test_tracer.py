@@ -1,10 +1,9 @@
 import os
 import sys
 
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.utilities.tracer import Tracer
 from tests_app import _PROJECT_ROOT
-
-from lightning_app.testing.helpers import _RunIf
-from lightning_app.utilities.tracer import Tracer
 
 
 @_RunIf(pl=True)

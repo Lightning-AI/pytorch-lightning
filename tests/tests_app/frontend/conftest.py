@@ -46,7 +46,7 @@ def flow():
 @pytest.fixture(autouse=True, scope="module")
 def mock_request_state():
     """Avoid requests to the api."""
-    with mock.patch("lightning_app.utilities.state.AppState._request_state", _request_state):
+    with mock.patch("lightning.app.utilities.state.AppState._request_state", _request_state):
         yield
 
 
@@ -57,17 +57,17 @@ def do_nothing():
 @pytest.fixture(autouse=True, scope="module")
 def mock_start_websocket():
     """Avoid starting the websocket."""
-    with mock.patch("lightning_app.frontend.panel.app_state_comm._start_websocket", do_nothing):
+    with mock.patch("lightning.app.frontend.panel.app_state_comm._start_websocket", do_nothing):
         yield
 
 
-@pytest.fixture
+@pytest.fixture()
 def app_state_state():
     """Returns an AppState dict."""
     return APP_STATE.copy()
 
 
-@pytest.fixture
+@pytest.fixture()
 def flow_state_state():
     """Returns an AppState dict scoped to the flow."""
     return FLOW_STATE.copy()

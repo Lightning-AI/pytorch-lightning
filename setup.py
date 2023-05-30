@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,13 +25,13 @@ There are considered three main scenarios for installing this project:
     In case you want to install just one package you need to export env. variable before calling `pip`
 
      - for `pytorch-lightning` use `export PACKAGE_NAME=pytorch ; pip install .`
-     - for `lightning-lite` use `export PACKAGE_NAME=lite ; pip install .`
+     - for `lightning-fabric` use `export PACKAGE_NAME=fabric ; pip install .`
      - for `lightning-app` use `export PACKAGE_NAME=app ; pip install .`
 
 3. Building packages as sdist or binary wheel and installing or publish to PyPI afterwords you use command
     `python setup.py sdist` or `python setup.py bdist_wheel` accordingly.
    In case you want to build just a particular package you want to set an environment variable:
-   `PACKAGE_NAME=lightning|pytorch|app|lite python setup.py sdist|bdist_wheel`
+   `PACKAGE_NAME=lightning|pytorch|app|fabric python setup.py sdist|bdist_wheel`
 
 4. Automated releasing with GitHub action is natural extension of 3) is composed of three consecutive steps:
     a) determine which packages shall be released based on version increment in `__version__.py` and eventually
@@ -40,11 +40,12 @@ There are considered three main scenarios for installing this project:
     c) validate packages and publish to PyPI
 """
 import contextlib
+import glob
 import os
 import tempfile
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
-from typing import Generator, Optional
+from typing import Generator, Mapping, Optional
 
 import setuptools
 import setuptools.command.egg_info
@@ -54,14 +55,14 @@ _PACKAGE_MAPPING = {
     "lightning": "lightning",
     "pytorch": "pytorch_lightning",
     "app": "lightning_app",
-    "lite": "lightning_lite",
+    "fabric": "lightning_fabric",
 }
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
 _PATH_SRC = os.path.join(_PATH_ROOT, "src")
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
-_FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
+_FREEZE_REQUIREMENTS = os.environ.get("FREEZE_REQUIREMENTS", "0").lower() in ("1", "true")
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -82,19 +83,27 @@ def _named_temporary_file(directory: Optional[str] = None) -> str:
 
 
 @contextlib.contextmanager
-def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
+def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: Mapping = _PACKAGE_MAPPING) -> Generator:
     if aggregate:
         # aggregate all MANIFEST.in contents into a single temporary file
         manifest_path = _named_temporary_file(manifest_dir)
-        mapping = _PACKAGE_MAPPING.copy()
-        del mapping["lightning"]
-        lines = ["include src/lightning/version.info\n"]
+        lines = [
+            "include src/lightning/version.info\n",
+            "include src/lightning/py.typed\n",
+            "include requirements/base.txt\n",
+        ]
+        # load manifest and aggregated all manifests
         for pkg in mapping.values():
-            with open(os.path.join(_PATH_SRC, pkg, "MANIFEST.in")) as fh:
-                lines.extend(fh.readlines())
+            pkg_manifest = os.path.join(_PATH_SRC, pkg, "MANIFEST.in")
+            if os.path.isfile(pkg_manifest):
+                with open(pkg_manifest) as fh:
+                    lines.extend(fh.readlines())
         # convert lightning_foo to lightning/foo
         for new, old in mapping.items():
-            lines = [line.replace(old, f"lightning/{new}") for line in lines]
+            if old == "lightning":
+                continue  # avoid `lightning` -> `lightning/lightning`
+            lines = [ln.replace(old, f"lightning/{new}") for ln in lines]
+        lines = sorted(set(filter(lambda ln: not ln.strip().startswith("#"), lines)))
         with open(manifest_path, mode="w") as fp:
             fp.writelines(lines)
     else:
@@ -112,43 +121,52 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
 
 
 if __name__ == "__main__":
-    setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
-    if os.path.exists(_PATH_SRC):
+    if os.path.isdir(_PATH_SRC):
         # copy the version information to all packages
-        setup_tools.distribute_version(_PATH_SRC)
+        assistant.distribute_version(_PATH_SRC)
+    print(f"Requested package: '{_PACKAGE_NAME}'")  # requires `-v` to appear
 
-    package_to_install = _PACKAGE_NAME or "lightning"
-    print(f"Installing the {package_to_install} package")  # requires `-v` to appear
-    is_wheel_install = "PEP517_BUILD_BACKEND" in os.environ
-    print("is_wheel_install:", is_wheel_install)
-    if package_to_install not in _PACKAGE_MAPPING or (not is_wheel_install and _PACKAGE_NAME is None):
-        raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
-    is_wheel_install &= _PACKAGE_NAME is None
-
-    if package_to_install == "lightning":  # install everything
-        # merge all requirements files
-        setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
-        # replace imports and copy the code
-        assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
-
-    # if it's a wheel install (hence _PACKAGE_NAME should not be set), iterate over all possible packages until we find
-    # one that can be installed. the wheel should have included only the relevant files of the package to install
-    possible_packages = _PACKAGE_MAPPING.values() if is_wheel_install else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
-    for pkg in possible_packages:
-        pkg_path = os.path.join(_PATH_SRC, pkg)
-        pkg_setup = os.path.join(pkg_path, "__setup__.py")
-        if os.path.exists(pkg_setup):
-            print(f"{pkg_setup} exists. Running `setuptools.setup`")
-            setup_module = _load_py_module(name=f"{pkg}_setup", location=pkg_setup)
-            setup_args = setup_module._setup_args()
-            if is_wheel_install:
-                setuptools.setup(**setup_args)
-            else:
-                # we are installing from source, set the correct manifest path
-                with _set_manifest_path(pkg_path, aggregate=pkg == "lightning"):
-                    setuptools.setup(**setup_args)
-            break
+    local_pkgs = [
+        os.path.basename(p)
+        for p in glob.glob(os.path.join(_PATH_SRC, "*"))
+        if os.path.isdir(p) and not p.endswith(".egg-info")
+    ]
+    print(f"Local package candidates: {local_pkgs}")
+    is_source_install = len(local_pkgs) > 2
+    print(f"Installing from source: {is_source_install}")
+    if is_source_install:
+        if _PACKAGE_NAME is not None and _PACKAGE_NAME not in _PACKAGE_MAPPING:
+            raise ValueError(
+                f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}"
+            )
+        package_to_install = _PACKAGE_MAPPING.get(_PACKAGE_NAME, "lightning")
+        if package_to_install == "lightning":
+            # merge all requirements files
+            assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
+        else:
+            # replace imports and copy the code
+            assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
     else:
+        assert len(local_pkgs) > 0
+        # PL as a package is distributed together with Fabric, so in such case there are more than one candidate
+        package_to_install = "pytorch_lightning" if "pytorch_lightning" in local_pkgs else local_pkgs[0]
+    print(f"Installing package: {package_to_install}")
+
+    # going to install with `setuptools.setup`
+    pkg_path = os.path.join(_PATH_SRC, package_to_install)
+    pkg_setup = os.path.join(pkg_path, "__setup__.py")
+    if not os.path.exists(pkg_setup):
         raise RuntimeError(f"Something's wrong, no package was installed. Package name: {_PACKAGE_NAME}")
+    setup_module = _load_py_module(name=f"{package_to_install}_setup", location=pkg_setup)
+    setup_args = setup_module._setup_args()
+    is_main_pkg = package_to_install == "lightning"
+    print(f"Installing as the main package: {is_main_pkg}")
+    if is_source_install:
+        # we are installing from source, set the correct manifest path
+        with _set_manifest_path(pkg_path, aggregate=is_main_pkg):
+            setuptools.setup(**setup_args)
+    else:
+        setuptools.setup(**setup_args)
+    print("Finished setup configuration.")

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,15 +17,15 @@ from unittest import mock
 import pytest
 import torch
 
-from lightning_lite.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
-from pytorch_lightning import Trainer
-from pytorch_lightning.strategies import DDPShardedStrategy, DDPStrategy, DeepSpeedStrategy
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning.fabric.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from lightning.pytorch import Trainer
+from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 
 def environment_combinations():
-    expected = dict(global_rank=3, local_rank=1, node_rank=1, world_size=4)
+    expected = {"global_rank": 3, "local_rank": 1, "node_rank": 1, "world_size": 4}
     # Lightning
     variables = {"CUDA_VISIBLE_DEVICES": "0,1,2,4", "LOCAL_RANK": "1", "NODE_RANK": "1", "WORLD_SIZE": "8"}
     environment = LightningEnvironment()
@@ -56,12 +56,13 @@ def environment_combinations():
     yield environment, variables, expected
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize(
     "strategy_cls",
-    [DDPStrategy, DDPShardedStrategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
+    [DDPStrategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
-@mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
-def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strategy_cls):
+@mock.patch("lightning.pytorch.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
+def test_ranks_available_manual_strategy_selection(_, strategy_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
@@ -80,13 +81,13 @@ def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strat
 @pytest.mark.parametrize(
     "trainer_kwargs",
     [
-        dict(strategy="ddp", accelerator="gpu", devices=[1, 2]),
-        dict(strategy="ddp_sharded", accelerator="gpu", devices=[1, 2]),
-        dict(strategy="ddp_spawn", accelerator="cpu", devices=2),
-        dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]),
+        {"strategy": "ddp", "accelerator": "cpu", "devices": 2},
+        {"strategy": "ddp_spawn", "accelerator": "cpu", "devices": 2},
+        pytest.param({"strategy": "ddp", "accelerator": "gpu", "devices": [1, 2]}, marks=RunIf(mps=False)),
+        pytest.param({"strategy": "ddp_spawn", "accelerator": "gpu", "devices": [1, 2]}, marks=RunIf(mps=False)),
     ],
 )
-def test_ranks_available_automatic_strategy_selection(mps_count_4, cuda_count_4, trainer_kwargs):
+def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwargs):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     trainer_kwargs.update(num_nodes=num_nodes)
@@ -97,7 +98,9 @@ def test_ranks_available_automatic_strategy_selection(mps_count_4, cuda_count_4,
                 # slurm and torchelastic do not work with spawn strategies
                 continue
             # when using spawn, we don't reach rank > 0 until we call Trainer.fit()
-            expected.update(global_rank=(expected["node_rank"] * 2), local_rank=0)
+            # LOCAL_RANK is only set after we spawned
+            if "LOCAL_RANK" not in variables:
+                expected.update(global_rank=(expected["node_rank"] * 2), local_rank=0)
 
         with mock.patch.dict(os.environ, variables):
             trainer = Trainer(**trainer_kwargs)

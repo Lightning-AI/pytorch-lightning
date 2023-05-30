@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities import find_shared_parameters, set_shared_parameters
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 
 
 class ParameterSharingModule(BoringModel):
@@ -35,11 +35,10 @@ class ParameterSharingModule(BoringModel):
 
 
 @pytest.mark.parametrize(
-    ["model", "expected_shared_params"],
+    ("model", "expected_shared_params"),
     [(BoringModel, []), (ParameterSharingModule, [["layer_1.weight", "layer_3.weight"]])],
 )
 def test_find_shared_parameters(model, expected_shared_params):
-
     assert expected_shared_params == find_shared_parameters(model())
 
 

@@ -90,7 +90,7 @@ class FileServer(L.LightningWork):
             "size": full_size,
             "drive_path": uploaded_file,
         }
-        with open(self.get_filepath(meta_file), "wt") as f:
+        with open(self.get_filepath(meta_file), "w") as f:
             json.dump(meta, f)
 
         # 5: Put the file to the drive.
@@ -163,7 +163,6 @@ from lightning import LightningWork
 
 
 class TestFileServer(LightningWork):
-
     def __init__(self, drive: Drive):
         super().__init__(cache_calls=True)
         self.drive = drive
@@ -188,7 +187,6 @@ from lightning import LightningApp, LightningFlow
 
 
 class Flow(LightningFlow):
-
     def __init__(self):
         super().__init__()
         # 1: Create a drive to share data between works
@@ -210,7 +208,7 @@ class Flow(LightningFlow):
 
         # 4 When both execution are successful, exit the app.
         if self.test_file_server.num_successes == 2:
-            self._exit()
+            self.stop()
 
     def configure_layout(self):
         # Expose the file_server component
@@ -232,7 +230,7 @@ from lightning.app.testing import run_app_in_cloud
 def test_file_server_in_cloud():
     # You need to provide the directory containing the app file.
     app_dir = "docs/source-app/examples/file_server"
-    with run_app_in_cloud(app_dir) as (admin_page, view_page, get_logs_fn):
+    with run_app_in_cloud(app_dir) as (admin_page, view_page, get_logs_fn, name):
         """# 1. `admin_page` and `view_page` are playwright Page Objects.
 
         # Check out https://playwright.dev/python/ doc to learn more.

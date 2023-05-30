@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@ import pytest
 import torch
 import torch.nn as nn
 
-from pytorch_lightning.utilities import grad_norm
+from lightning.pytorch.utilities import grad_norm
 
 
 @pytest.mark.parametrize(
-    "norm_type,expected",
+    ("norm_type", "expected"),
     [
         (
             1,
@@ -68,8 +68,10 @@ def test_grad_norm(norm_type, expected):
 
     model = Model()
     norms = grad_norm(model, norm_type)
-    expected = {k: round(v, 4) for k, v in expected.items()}
-    assert norms == expected
+
+    assert norms.keys() == expected.keys()
+    for k in norms:
+        assert norms[k] == pytest.approx(expected[k])
 
 
 @pytest.mark.parametrize("norm_type", [-1, 0])

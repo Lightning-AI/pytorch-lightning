@@ -5,24 +5,24 @@ import time
 from unittest import mock
 
 import pytest
-import redis
 import requests_mock
 
-from lightning_app import LightningFlow
-from lightning_app.core import queues
-from lightning_app.core.constants import HTTP_QUEUE_URL
-from lightning_app.core.queues import BaseQueue, QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
-from lightning_app.utilities.imports import _is_redis_available
-from lightning_app.utilities.redis import check_if_redis_running
+from lightning.app import LightningFlow
+from lightning.app.core import queues
+from lightning.app.core.constants import HTTP_QUEUE_URL
+from lightning.app.core.queues import BaseQueue, QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
+from lightning.app.utilities.imports import _is_redis_available
+from lightning.app.utilities.redis import check_if_redis_running
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="Redis is not running")
-@pytest.mark.parametrize("queue_type", [QueuingSystem.REDIS, QueuingSystem.MULTIPROCESS, QueuingSystem.SINGLEPROCESS])
+@pytest.mark.parametrize("queue_type", [QueuingSystem.REDIS, QueuingSystem.MULTIPROCESS])
 def test_queue_api(queue_type, monkeypatch):
     """Test the Queue API.
 
     This test run all the Queue implementation but we monkeypatch the Redis Queues to avoid external interaction
     """
+    import redis
 
     blpop_out = (b"entry-id", pickle.dumps("test_entry"))
 
@@ -84,7 +84,7 @@ def test_redis_credential(monkeypatch):
 
 
 @pytest.mark.skipif(not _is_redis_available(), reason="redis isn't installed.")
-@mock.patch("lightning_app.core.queues.redis.Redis")
+@mock.patch("lightning.app.core.queues.redis.Redis")
 def test_redis_queue_read_timeout(redis_mock):
     redis_mock.return_value.blpop.return_value = (b"READINESS_QUEUE", pickle.dumps("test_entry"))
     redis_queue = QueuingSystem.REDIS.get_readiness_queue()
@@ -103,13 +103,14 @@ def test_redis_queue_read_timeout(redis_mock):
 
 
 @pytest.mark.parametrize(
-    "queue_type, queue_process_mock",
-    [(QueuingSystem.SINGLEPROCESS, queue), (QueuingSystem.MULTIPROCESS, multiprocessing)],
+    ("queue_type", "queue_process_mock"),
+    [(QueuingSystem.MULTIPROCESS, multiprocessing)],
 )
 def test_process_queue_read_timeout(queue_type, queue_process_mock, monkeypatch):
-
+    context = mock.MagicMock()
     queue_mocked = mock.MagicMock()
-    monkeypatch.setattr(queue_process_mock, "Queue", queue_mocked)
+    context.Queue = queue_mocked
+    monkeypatch.setattr(queue_process_mock, "get_context", mock.MagicMock(return_value=context))
     my_queue = queue_type.get_readiness_queue()
 
     # default timeout
@@ -126,7 +127,7 @@ def test_process_queue_read_timeout(queue_type, queue_process_mock, monkeypatch)
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="Redis is not running")
-@mock.patch("lightning_app.core.queues.WARNING_QUEUE_SIZE", 2)
+@mock.patch("lightning.app.core.queues.WARNING_QUEUE_SIZE", 2)
 def test_redis_queue_warning():
     my_queue = QueuingSystem.REDIS.get_api_delta_queue(queue_id="test_redis_queue_warning")
     my_queue.clear()
@@ -137,7 +138,7 @@ def test_redis_queue_warning():
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="Redis is not running")
-@mock.patch("lightning_app.core.queues.redis.Redis")
+@mock.patch("lightning.app.core.queues.redis.Redis")
 def test_redis_raises_error_if_failing(redis_mock):
     import redis
 
@@ -212,3 +213,17 @@ class TestHTTPQueue:
             content=pickle.dumps("test"),
         )
         assert test_queue.get() == "test"
+
+
+def test_unreachable_queue(monkeypatch):
+    monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
+    test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
+
+    resp = mock.MagicMock()
+    resp.status_code = 204
+
+    test_queue.client = mock.MagicMock()
+    test_queue.client.post.return_value = resp
+
+    with pytest.raises(queue.Empty):
+        test_queue._get()

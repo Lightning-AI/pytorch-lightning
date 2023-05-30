@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loops.optimization.manual_loop import ManualResult
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loops.optimization.manual import ManualResult
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 def test_manual_result():
@@ -41,5 +41,5 @@ def test_warning_invalid_trainstep_output(tmpdir):
     model = InvalidTrainStepModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
 
-    with pytest.raises(MisconfigurationException, match="return a Tensor, a dict with extras .* or have no return"):
+    with pytest.raises(MisconfigurationException, match="return a Tensor or have no return"):
         trainer.fit(model)

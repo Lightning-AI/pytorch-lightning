@@ -1,27 +1,33 @@
 app:
-- any: ['src/lightning/**/*']
-  all: ['!src/pytorch_lightning/**/*', '!tests/tests_pytorch/**/*', '!docs/source-pytorch/**/*', '!requirements/pytorch/*']
-- any: ['src/lightning_app/**/*']
-  all: ['!src/pytorch_lightning/**/*', '!tests/tests_pytorch/**/*', '!docs/source-pytorch/**/*', '!requirements/pytorch/*']
-- any: ['tests/tests_app/**/*']
-  all: ['!src/pytorch_lightning/**/*', '!tests/tests_pytorch/**/*', '!docs/source-pytorch/**/*', '!requirements/pytorch/*']
-- any: ['tests/tests_examples_app/**/*']
-  all: ['!src/pytorch_lightning/**/*', '!tests/tests_pytorch/**/*', '!docs/source-pytorch/**/*', '!requirements/pytorch/*']
-- any: ['examples/app_*/**/*']
-  all: ['!src/pytorch_lightning/**/*', '!tests/tests_pytorch/**/*', '!docs/source-pytorch/**/*', '!requirements/pytorch/*']
-- any: ['docs/source-app/**/*']
-  all: ['!src/pytorch_lightning/**/*', '!tests/tests_pytorch/**/*', '!docs/source-pytorch/**/*', '!requirements/pytorch/*']
-- any: ['requirements/app/*']
-  all: ['!src/pytorch_lightning/**/*', '!tests/tests_pytorch/**/*', '!docs/source-pytorch/**/*', '!requirements/pytorch/*']
+  - 'src/lightning/app/**'
+  - "src/lightning_app/*"
+  - 'tests/tests_app/**'
+  - 'tests/integrations_app/**'
+  - 'tests/integrations_app_examples/**'
+  - 'examples/app/**'
+  - 'docs/source-app/**'
+  - 'requirements/app/**'
 
 pl:
-- any: ['src/pytorch_lightning/**/*']
-  all: ['!src/lightning/**/*', '!src/lightning_app/**/*', '!tests/tests_app/**/*', '!tests/tests_examples_app/**/*', '!docs/source-app/**/*', '!requirements/app/*']
-- any: ['examples/*pl_*/**/*']
-  all: ['!src/lightning/**/*', '!src/lightning_app/**/*', '!tests/tests_app/**/*', '!tests/tests_examples_app/**/*', '!docs/source-app/**/*', '!requirements/app/*']
-- any: ['tests/tests_pytorch/**/*']
-  all: ['!src/lightning/**/*', '!src/lightning_app/**/*', '!tests/tests_app/**/*', '!tests/tests_examples_app/**/*', '!docs/source-app/**/*', '!requirements/app/*']
-- any: ['docs/source-pytorch/**/*']
-  all: ['!src/lightning/**/*', '!src/lightning_app/**/*', '!tests/tests_app/**/*', '!tests/tests_examples_app/**/*', '!docs/source-app/**/*', '!requirements/app/*']
-- any: ['requirements/pytorch/*']
-  all: ['!src/lightning/**/*', '!src/lightning_app/**/*', '!tests/tests_app/**/*', '!tests/tests_examples_app/**/*', '!docs/source-app/**/*', '!requirements/app/*']
+  - "src/lightning/pytorch/**"
+  - "src/pytorch_lightning/*"
+  - 'tests/tests_pytorch/**'
+  - 'tests/legacy/**'
+  - 'examples/pytorch/**'
+  - 'docs/source-pytorch/**'
+  - 'requirements/pytorch/**'
+
+fabric:
+  - 'src/lightning/fabric/**'
+  - 'src/lightning_fabric/*'
+  - 'tests/tests_fabric/**'
+  - 'examples/fabric/**'
+  - 'docs/source-fabric/**'
+  - 'requirements/fabric/**'
+
+ci:
+  - '.actions/**'
+  - '.azure/**'
+  - '.github/**'
+  - 'dockers/**'
+  - '.pre-commit-config.yml'

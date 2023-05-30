@@ -1,0 +1,19 @@
+name: Check Markdown links
+# https://github.com/gaurav-nelson/github-action-markdown-link-check
+
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]
+    paths:
+      - ".github/workflows/ci-check-md-links.yml"
+      - ".github/workflows/markdown.links.config.json"
+      - "**/*.md"
+
+jobs:
+  check-md-links:
+    uses: Lightning-AI/utilities/.github/workflows/check-md-links.yml@v0.8.0
+    with:
+      config-file: ".github/workflows/markdown.links.config.json"

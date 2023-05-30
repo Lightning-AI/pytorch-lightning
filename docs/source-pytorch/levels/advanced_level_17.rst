@@ -1,10 +1,10 @@
 :orphan:
 
 ###############################
-Level 17: Own the training loop
+Level 16: Own the training loop
 ###############################
 
-Learn all the ways of owning your raw PyTorch loops with Lighting.
+Learn all the ways of owning your raw PyTorch loops with Lightning.
 
 ----
 
@@ -24,20 +24,12 @@ Learn all the ways of owning your raw PyTorch loops with Lighting.
    :tag: advanced
 
 .. displayitem::
-   :header: Use a Raw PyTorch Loop
-   :description: Migrate complex PyTorch projects to Lightning and push bleeding-edge research with the raw PyTorch loop.
+   :header: Use Lightning Fabric
+   :description: Write your own training loops using lightning Fabric.
    :col_css: col-md-4
-   :button_link: ../model/build_model_expert.html
+   :button_link: https://lightning.ai/docs/fabric/stable/
    :height: 150
    :tag: advanced
-
-.. displayitem::
-   :header: Make a custom Lightning Loop
-   :description: Conduct bleeding-edge research like meta-learning and RL with a custom Loop.
-   :col_css: col-md-4
-   :button_link: ../extensions/loops.html
-   :height: 150
-   :tag: expert
 
 .. raw:: html
 

@@ -6,10 +6,6 @@ Level 1: Package code in a lightning component
 
 **Goal:** In this guide you'll learn to develop `a Lightning component <https://lightning.ai/components>`_.
 
-.. join_slack::
-   :align: left
-
-----
 
 *********************************
 Why you need Lightning components
@@ -51,7 +47,7 @@ Organizing your code into Lightning components offers these benefits:
 
    Lightning embeds the best practices of building production-ready full stack AI apps into your
    coding experience. You can write code like you normally do, and the Lightning structure
-   ensures your code is implicitely production ready... even if you're just doing research.
+   ensures your code is implicitly production ready... even if you're just doing research.
 
 .. collapse:: For experts: Scale with full control
 
@@ -65,7 +61,7 @@ Organizing your code into Lightning components offers these benefits:
 
    |
 
-   Lightning components are self-contained pieces of funcionality. Add them to your current workflow
+   Lightning components are self-contained pieces of functionality. Add them to your current workflow
    tools to quickly fill in gaps in your ML workflow such as monitoring drift, training LLMs and more.
    You can (optionally) use the Lightning App to integrate components into a cohesive workflow.
 

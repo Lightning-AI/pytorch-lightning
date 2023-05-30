@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,25 +17,25 @@ from unittest.mock import ANY
 
 import pytest
 
-import pytorch_lightning as pl
-from lightning_lite.utilities.warnings import PossibleUserWarning
-from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
-from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
+import lightning.pytorch as pl
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch.utilities.migration import migrate_checkpoint, pl_legacy_patch
+from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
 
 
 def test_patch_legacy_argparse_utils():
     with pl_legacy_patch():
-        from pytorch_lightning.utilities import argparse_utils
+        from lightning.pytorch.utilities import argparse_utils
 
         assert callable(argparse_utils._gpus_arg_default)
-        assert "pytorch_lightning.utilities.argparse_utils" in sys.modules
+        assert "lightning.pytorch.utilities.argparse_utils" in sys.modules
 
-    assert "pytorch_lightning.utilities.argparse_utils" not in sys.modules
+    assert "lightning.pytorch.utilities.argparse_utils" not in sys.modules
 
 
 def test_patch_legacy_gpus_arg_default():
     with pl_legacy_patch():
-        from pytorch_lightning.utilities.argparse import _gpus_arg_default
+        from lightning.pytorch.utilities.argparse import _gpus_arg_default
 
         assert callable(_gpus_arg_default)
     assert not hasattr(pl.utilities.argparse, "_gpus_arg_default")
@@ -44,7 +44,6 @@ def test_patch_legacy_gpus_arg_default():
 
 def test_migrate_checkpoint(monkeypatch):
     """Test that the correct migration function gets executed given the current version of the checkpoint."""
-
     # A checkpoint that is older than any migration point in the index
     old_checkpoint = {"pytorch-lightning_version": "0.0.0", "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
@@ -108,7 +107,6 @@ def test_migrate_checkpoint_too_new():
 
 def test_migrate_checkpoint_for_pl(caplog):
     """Test that the automatic migration in Lightning informs the user about how to make the upgrade permanent."""
-
     # simulate a very recent checkpoint, no migrations needed
     loaded_checkpoint = {"pytorch-lightning_version": pl.__version__, "global_step": 2, "epoch": 0}
     new_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, "path/to/ckpt")
@@ -116,7 +114,7 @@ def test_migrate_checkpoint_for_pl(caplog):
 
     # simulate an old checkpoint that needed an upgrade
     loaded_checkpoint = {"pytorch-lightning_version": "0.0.1", "global_step": 2, "epoch": 0}
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.utilities.migration.utils"):
+    with caplog.at_level(logging.INFO, logger="lightning.pytorch.utilities.migration.utils"):
         new_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, "path/to/ckpt")
     assert new_checkpoint == {
         "legacy_pytorch-lightning_version": "0.0.1",

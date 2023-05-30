@@ -6,7 +6,6 @@ from lightning.app.structures import Dict
 
 
 class Flow(L.LightningFlow):
-
     def __init__(self):
         super().__init__()
         self.notebooks = Dict()

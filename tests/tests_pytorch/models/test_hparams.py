@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,18 +25,18 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.mixins import HyperparametersMixin
-from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.core.datamodule import LightningDataModule
+from lightning.pytorch.core.mixins import HyperparametersMixin
+from lightning.pytorch.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
@@ -160,7 +160,7 @@ def test_dict_hparams(tmpdir, cls):
     "cls", [SaveHparamsModel, SaveHparamsDecoratedModel, SaveHparamsDataModule, SaveHparamsDecoratedDataModule]
 )
 def test_omega_conf_hparams(tmpdir, cls):
-    conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))
+    conf = OmegaConf.create({"test_arg": 14, "mylist": [15.4, {"a": 1, "b": 2}]})
     if issubclass(cls, LightningDataModule):
         model = BoringModel()
         obj = datamodule = cls(hparams=conf)
@@ -295,6 +295,24 @@ class SubClassBoringModel(CustomBoringModel):
         self.save_hyperparameters()
 
 
+class MixinForBoringModel:
+    any_other_loss = torch.nn.CrossEntropyLoss()
+
+    def __init__(self, *args, subclass_arg=1200, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.save_hyperparameters()
+
+
+class BoringModelWithMixin(MixinForBoringModel, CustomBoringModel):
+    pass
+
+
+class BoringModelWithMixinAndInit(MixinForBoringModel, CustomBoringModel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.save_hyperparameters()
+
+
 class NonSavingSubClassBoringModel(CustomBoringModel):
     any_other_loss = torch.nn.CrossEntropyLoss()
 
@@ -324,7 +342,7 @@ class UnconventionalArgsBoringModel(CustomBoringModel):
 if _OMEGACONF_AVAILABLE:
 
     class DictConfSubClassBoringModel(SubClassBoringModel):
-        def __init__(self, *args, dict_conf=OmegaConf.create(dict(my_param="something")), **kwargs):
+        def __init__(self, *args, dict_conf=OmegaConf.create({"my_param": "something"}), **kwargs):
             super().__init__(*args, **kwargs)
             self.save_hyperparameters()
 
@@ -344,6 +362,8 @@ else:
         AggSubClassBoringModel,
         UnconventionalArgsBoringModel,
         pytest.param(DictConfSubClassBoringModel, marks=RunIf(omegaconf=True)),
+        BoringModelWithMixin,
+        BoringModelWithMixinAndInit,
     ],
 )
 def test_collect_init_arguments(tmpdir, cls):
@@ -352,14 +372,14 @@ def test_collect_init_arguments(tmpdir, cls):
     if cls is AggSubClassBoringModel:
         extra_args.update(my_loss=torch.nn.CosineEmbeddingLoss())
     elif cls is DictConfSubClassBoringModel:
-        extra_args.update(dict_conf=OmegaConf.create(dict(my_param="anything")))
+        extra_args.update(dict_conf=OmegaConf.create({"my_param": "anything"}))
 
     model = cls(**extra_args)
     assert model.hparams.batch_size == 64
     model = cls(batch_size=179, **extra_args)
     assert model.hparams.batch_size == 179
 
-    if isinstance(model, (SubClassBoringModel, NonSavingSubClassBoringModel)):
+    if isinstance(model, (SubClassBoringModel, NonSavingSubClassBoringModel, MixinForBoringModel)):
         assert model.hparams.subclass_arg == 1200
 
     if isinstance(model, AggSubClassBoringModel):
@@ -400,7 +420,7 @@ def _raw_checkpoint_path(trainer) -> str:
     return raw_checkpoint_path
 
 
-@pytest.mark.parametrize("base_class", (HyperparametersMixin, LightningModule, LightningDataModule))
+@pytest.mark.parametrize("base_class", [HyperparametersMixin, LightningModule, LightningDataModule])
 def test_save_hyperparameters_under_composition(base_class):
     """Test that in a composition where the parent is not a Lightning-like module, the parent's arguments don't get
     collected."""
@@ -415,7 +435,7 @@ def test_save_hyperparameters_under_composition(base_class):
             self.child = ChildInComposition(same_arg="cocofruit")
 
     parent = NotPLSubclass()
-    assert parent.child.hparams == dict(same_arg="cocofruit")
+    assert parent.child.hparams == {"same_arg": "cocofruit"}
 
 
 class LocalVariableModelSuperLast(BoringModel):
@@ -462,13 +482,12 @@ class AnotherArgModel(BoringModel):
 
 class OtherArgsModel(BoringModel):
     def __init__(self, arg1, arg2):
-
         super().__init__()
         self.save_hyperparameters(arg1, arg2)
 
 
 @pytest.mark.parametrize(
-    "cls,config", [(AnotherArgModel, dict(arg1=42)), (OtherArgsModel, dict(arg1=3.14, arg2="abc"))]
+    ("cls", "config"), [(AnotherArgModel, {"arg1": 42}), (OtherArgsModel, {"arg1": 3.14, "arg2": "abc"})]
 )
 def test_single_config_models_fail(tmpdir, cls, config):
     """Test fail on passing unsupported config type."""
@@ -530,13 +549,13 @@ def test_hparams_save_yaml(tmpdir):
         option2name = "option2val"
         option3name = "option3val"
 
-    hparams = dict(
-        batch_size=32,
-        learning_rate=0.001,
-        data_root="./any/path/here",
-        nested=dict(any_num=123, anystr="abcd"),
-        switch=Options.option3name,
-    )
+    hparams = {
+        "batch_size": 32,
+        "learning_rate": 0.001,
+        "data_root": "./any/path/here",
+        "nested": {"any_num": 123, "anystr": "abcd"},
+        "switch": Options.option3name,
+    }
     path_yaml = os.path.join(tmpdir, "testing-hparams.yaml")
 
     def _compare_params(loaded_params, default_params: dict):
@@ -570,7 +589,6 @@ class NoArgsSubClassBoringModel(CustomBoringModel):
 @pytest.mark.parametrize("cls", [BoringModel, NoArgsSubClassBoringModel])
 def test_model_nohparams_train_test(tmpdir, cls):
     """Test models that do not take any argument in init."""
-
     model = cls()
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
 
@@ -617,7 +635,7 @@ class SubClassVarArgs(SuperClassPositionalArgs):
 
 def test_args(tmpdir):
     """Test for inheritance: super class takes positional arg, subclass takes varargs."""
-    hparams = dict(test=1)
+    hparams = {"test": 1}
     model = SubClassVarArgs(hparams)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
@@ -642,7 +660,12 @@ def test_init_arg_with_runtime_change(tmpdir, cls):
     assert model.hparams.running_arg == -1
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, max_epochs=1
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=1,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -700,7 +723,7 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
         _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)
 
 
-@pytest.mark.parametrize("ignore", ("arg2", ("arg2", "arg3")))
+@pytest.mark.parametrize("ignore", ["arg2", ("arg2", "arg3")])
 def test_ignore_args_list_hparams(tmpdir, ignore):
     """Tests that args can be ignored in save_hyperparameters."""
 
@@ -745,13 +768,7 @@ class NoParametersModel(BoringModel):
         self.save_hyperparameters()
 
 
-@pytest.mark.parametrize(
-    "model",
-    (
-        IgnoreAllParametersModel(arg1=14, arg2=90, arg3=50),
-        NoParametersModel(),
-    ),
-)
+@pytest.mark.parametrize("model", [IgnoreAllParametersModel(arg1=14, arg2=90, arg3=50), NoParametersModel()])
 def test_save_no_parameters(model):
     """Test that calling save_hyperparameters works if no parameters need saving."""
     assert model.hparams == {}
@@ -788,7 +805,6 @@ def test_hparams_name_from_container(tmpdir):
 
 @dataclass
 class DataClassModel(BoringModel):
-
     mandatory: int
     optional: str = "optional"
     ignore_me: bool = False
@@ -801,7 +817,7 @@ class DataClassModel(BoringModel):
 def test_dataclass_lightning_module(tmpdir):
     """Test that save_hyperparameters() works with a LightningModule as a dataclass."""
     model = DataClassModel(33, optional="cocofruit")
-    assert model.hparams == dict(mandatory=33, optional="cocofruit")
+    assert model.hparams == {"mandatory": 33, "optional": "cocofruit"}
 
 
 class NoHparamsModel(BoringModel):
@@ -831,8 +847,8 @@ def _get_mock_logger(tmpdir):
     return mock_logger
 
 
-@pytest.mark.parametrize("model", (SaveHparamsModel({"arg1": 5, "arg2": "abc"}), NoHparamsModel()))
-@pytest.mark.parametrize("data", (DataModuleWithHparams({"data_dir": "foo"}), DataModuleWithoutHparams()))
+@pytest.mark.parametrize("model", [SaveHparamsModel({"arg1": 5, "arg2": "abc"}), NoHparamsModel()])
+@pytest.mark.parametrize("data", [DataModuleWithHparams({"data_dir": "foo"}), DataModuleWithoutHparams()])
 def test_adding_datamodule_hparams(tmpdir, model, data):
     """Test that hparams from datamodule and model are logged."""
     org_model_hparams = copy.deepcopy(model.hparams_initial)
@@ -871,12 +887,10 @@ def test_no_datamodule_for_hparams(tmpdir):
 
 
 def test_colliding_hparams(tmpdir):
-
     model = SaveHparamsModel({"data_dir": "abc", "arg2": "abc"})
     data = DataModuleWithHparams({"data_dir": "foo"})
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    with pytest.raises(MisconfigurationException, match=r"Error while merging hparams:"):
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=CSVLogger(tmpdir))
+    with pytest.raises(RuntimeError, match=r"Error while merging hparams:"):
         trainer.fit(model, datamodule=data)
 
 

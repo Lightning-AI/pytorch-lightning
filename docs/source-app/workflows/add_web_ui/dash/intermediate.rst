@@ -18,7 +18,7 @@ and another work process the associated data frame with the provided year.
 
 Here is how the app looks like once running:
 
-.. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/dash_plot.gif
+.. figure::  https://pl-public-data.s3.amazonaws.com/assets_lightning/dash_plot.gif
 
 ----
 
@@ -39,4 +39,4 @@ pip install dash_daq dash_renderjson
 
 Here is how the app looks like once running:
 
-.. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/dash_state.gif
+.. figure::  https://pl-public-data.s3.amazonaws.com/assets_lightning/dash_state.gif

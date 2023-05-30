@@ -4,6 +4,8 @@ TPU training (Intermediate)
 ===========================
 **Audience:** Users looking to use cloud TPUs.
 
+.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
 ----
 
 DistributedSamplers
@@ -42,7 +44,7 @@ To use a full TPU pod skip to the TPU pod section.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
     my_model = MyLightningModule()
     trainer = pl.Trainer(accelerator="tpu", devices=8)
@@ -62,19 +64,26 @@ better performance and usability while working with TPUs.
 
 The TPUVMs come pre-installed with latest versions of PyTorch and PyTorch XLA.
 After connecting to the VM and before running your Lightning code, you would need
-to set the XRT TPU device configuration.
+to set the `XRT TPU device configuration <https://cloud.google.com/tpu/docs/v4-users-guide#train_ml_workloads_with_pytorch_xla>`__.
 
 .. code-block:: bash
 
-    $ export XRT_TPU_CONFIG="localservice;0;localhost:51011"
+    export XRT_TPU_CONFIG="localservice;0;localhost:51011"
 
-You could learn more about the Cloud TPU VM architecture `here <https://cloud.google.com/tpu/docs/system-architecture-tpu-vm#tpu_vms_3>`_
+    # Set the environment variable to visible devices.
+    # You might need to change the value depending on how many chips you have
+    export TPU_NUM_DEVICES=4
+
+    # Allow LIBTPU LOAD by multiple processes
+    export ALLOW_MULTIPLE_LIBTPU_LOAD=1
+
+You can learn more about the Cloud TPU VM architecture `here <https://cloud.google.com/tpu/docs/system-architecture-tpu-vm#tpu_vms_3>`_
 
 ----------------
 
 TPU Pod
 -------
-To train on more than 8 cores, your code actually doesn't change!
+To train on more than the number of cores in a node, your code actually doesn't change!
 
 All TPU VMs in a Pod setup are required to access the model code and data.
 One easy way to achieve this is to use the following startup script when creating the TPU VM pod.
@@ -100,15 +109,14 @@ on how to set up the instance groups and VMs needed to run TPU Pods.
 16 bit precision
 ----------------
 Lightning also supports training in 16-bit precision with TPUs.
-By default, TPU training will use 32-bit precision. To enable 16-bit,
-set the 16-bit flag.
+By default, TPU training will use 32-bit precision. To enable it, do
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(accelerator="tpu", devices=8, precision=16)
+    trainer = pl.Trainer(accelerator="tpu", precision="16-mixed")
     trainer.fit(my_model)
 
 Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.

@@ -9,17 +9,12 @@ Lightning in 15 minutes
 
 PyTorch Lightning is the deep learning framework with "batteries included" for professional AI researchers and machine learning engineers who need maximal flexibility while super-charging performance at scale.
 
-.. join_slack::
-   :align: left
-   :margin: 20
-
-
 Lightning organizes PyTorch code to remove boilerplate and unlock scalability.
 
 .. raw:: html
 
     <video width="100%" max-width="800px" controls autoplay muted playsinline
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_docs_animation_final.m4v"></video>
+    src="https://pl-public-data.s3.amazonaws.com/assets_lightning/pl_readme_gif_2_0.m4v"></video>
 
 |
 
@@ -81,7 +76,7 @@ For `pip <https://pypi.org/project/pytorch-lightning/>`_ users
 
 .. code-block:: bash
 
-    pip install pytorch-lightning
+    pip install lightning
 
 .. raw:: html
 
@@ -92,7 +87,7 @@ For `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_ users
 
 .. code-block:: bash
 
-    conda install pytorch-lightning -c conda-forge
+    conda install lightning -c conda-forge
 
 .. raw:: html
 
@@ -118,11 +113,12 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
     from torch import optim, nn, utils, Tensor
     from torchvision.datasets import MNIST
     from torchvision.transforms import ToTensor
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
 
     # define any number of nn.Modules (or use your current ones)
     encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
     decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
+
 
     # define the LightningModule
     class LitAutoEncoder(pl.LightningModule):
@@ -139,7 +135,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
             z = self.encoder(x)
             x_hat = self.decoder(z)
             loss = nn.functional.mse_loss(x_hat, x)
-            # Logging to TensorBoard by default
+            # Logging to TensorBoard (if installed) by default
             self.log("train_loss", loss)
             return loss
 
@@ -218,7 +214,7 @@ Once you've trained the model you can export to onnx, torchscript and put it int
 *********************
 6: Visualize training
 *********************
-Lightning comes with a *lot* of batteries included. A helpful one is Tensorboard for visualizing experiments.
+If you have tensorboard installed, you can use it for visualizing experiments.
 
 Run this on your commandline and open your browser to **http://localhost:6006/**
 
@@ -282,7 +278,7 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 .. testcode::
 
     class LitAutoEncoder(pl.LightningModule):
-        def backward(self, loss, optimizer, optimizer_idx):
+        def backward(self, loss):
             loss.backward()
 
 ----
@@ -306,7 +302,7 @@ If you have multiple lines of code with similar functionalities, you can use cal
 Use a raw PyTorch loop
 ======================
 
-For certain types of work at the bleeding-edge of research, Lightning offers experts full control of their training loops in various ways.
+For certain types of work at the bleeding-edge of research, Lightning offers experts full control of optimization or the training loop in various ways.
 
 .. raw:: html
 
@@ -321,24 +317,6 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/manual_opt.png
    :button_link: ../model/build_model_advanced.html#manual-optimization
-   :image_height: 220px
-   :height: 320
-
-.. displayitem::
-   :header: Lightning Lite
-   :description: Full control over loop for migrating complex PyTorch projects.
-   :col_css: col-md-4
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lite.png
-   :button_link: ../model/build_model_expert.html
-   :image_height: 220px
-   :height: 320
-
-.. displayitem::
-   :header: Loops
-   :description: Enable meta-learning, reinforcement learning, GANs with full control.
-   :col_css: col-md-4
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/loops.png
-   :button_link: ../extensions/loops.html
    :image_height: 220px
    :height: 320
 
@@ -378,14 +356,6 @@ Depending on your use case, you might want to check one of these out next.
    :button_link: ../tutorials.html
    :height: 180
    :tag: basic
-
-.. displayitem::
-   :header: I need my raw PyTorch Loop
-   :description: Expert-level control for researchers working on the bleeding-edge
-   :col_css: col-md-3
-   :button_link: ../model/build_model_expert.html
-   :height: 180
-   :tag: expert
 
 .. displayitem::
    :header: Deploy your model

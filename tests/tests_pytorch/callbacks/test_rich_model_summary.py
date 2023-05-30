@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import RichModelSummary, RichProgressBar
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.model_summary import summarize
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import RichModelSummary, RichProgressBar
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.model_summary import summarize
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -33,7 +33,7 @@ def test_rich_model_summary_callback():
 
 
 def test_rich_progress_bar_import_error(monkeypatch):
-    import pytorch_lightning.callbacks.rich_model_summary as imports
+    import lightning.pytorch.callbacks.rich_model_summary as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
     with pytest.raises(ModuleNotFoundError, match="`RichModelSummary` requires `rich` to be installed."):

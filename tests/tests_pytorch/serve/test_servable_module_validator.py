@@ -2,10 +2,11 @@ from typing import Dict
 
 import pytest
 import torch
+from torch import Tensor
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.serve.servable_module_validator import ServableModule, ServableModuleValidator
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.serve.servable_module_validator import ServableModule, ServableModuleValidator
 
 
 class ServableBoringModel(BoringModel, ServableModule):
@@ -21,7 +22,7 @@ class ServableBoringModel(BoringModel, ServableModule):
 
         return {"x": deserialize}, {"output": serialize}
 
-    def serve_step(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def serve_step(self, x: Tensor) -> Dict[str, Tensor]:
         assert torch.equal(x, torch.arange(32, dtype=torch.float))
         return {"output": torch.tensor([0, 1])}
 

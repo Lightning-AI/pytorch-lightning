@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-from lightning_lite.plugins.environments import TorchElasticEnvironment
-from lightning_lite.utilities.device_parser import _parse_gpu_ids
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning.fabric.plugins.environments import TorchElasticEnvironment
+from lightning.fabric.utilities.device_parser import _parse_gpu_ids
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -36,15 +36,16 @@ PRETEND_N_OF_GPUS = 16
 @RunIf(min_cuda_gpus=2, sklearn=True)
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `accelerator = None`."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.2,
-        limit_val_batches=0.2,
-        accelerator="gpu",
-        devices=2,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "limit_train_batches": 0.2,
+        "limit_val_batches": 0.2,
+        "accelerator": "gpu",
+        "strategy": "ddp_spawn",
+        "devices": 2,
+    }
 
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -54,16 +55,16 @@ def test_multi_gpu_none_backend(tmpdir):
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("devices", [1, [0], [1]])
 def test_single_gpu_model(tmpdir, devices):
-    """Make sure single GPU works (DP mode)."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        accelerator="gpu",
-        devices=devices,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "limit_train_batches": 0.1,
+        "limit_val_batches": 0.1,
+        "accelerator": "gpu",
+        "devices": devices,
+        "strategy": "ddp_spawn",
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
@@ -99,18 +100,17 @@ def test_root_gpu_property_0_raising(mps_count_0, cuda_count_0, devices):
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0", [0, 2]])
-def test_torchelastic_gpu_parsing(cuda_count_1, gpus):
-    """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
+@pytest.mark.parametrize("devices", [[0, 1, 2], 2, "0,", [0, 2]])
+def test_torchelastic_gpu_parsing(cuda_count_1, devices):
+    """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device that we omit
     sanitizing the gpus as only one of the GPUs is visible."""
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        trainer = Trainer(gpus=gpus)
+    trainer = Trainer(accelerator="cuda", devices=devices)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
-    # when use gpu
-    if _parse_gpu_ids(gpus, include_cuda=True) is not None:
+    # when using gpu
+    if _parse_gpu_ids(devices, include_cuda=True) is not None:
         assert isinstance(trainer.accelerator, CUDAAccelerator)
-        assert trainer.num_devices == len(gpus) if isinstance(gpus, list) else gpus
-        assert trainer.device_ids == _parse_gpu_ids(gpus, include_cuda=True)
+        assert trainer.num_devices == len(devices) if isinstance(devices, list) else devices
+        assert trainer.device_ids == _parse_gpu_ids(devices, include_cuda=True)
     # fall back to cpu
     else:
         assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -131,30 +131,38 @@ def test_single_gpu_batch_parse():
     # batch is just a tensor
     batch = torch.rand(2, 3)
     batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
-    assert batch.device.index == 0 and batch.type() == "torch.cuda.FloatTensor"
+    assert batch.device.index == 0
+    assert batch.type() == "torch.cuda.FloatTensor"
 
     # tensor list
     batch = [torch.rand(2, 3), torch.rand(2, 3)]
     batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
-    assert batch[0].device.index == 0 and batch[0].type() == "torch.cuda.FloatTensor"
-    assert batch[1].device.index == 0 and batch[1].type() == "torch.cuda.FloatTensor"
+    assert batch[0].device.index == 0
+    assert batch[0].type() == "torch.cuda.FloatTensor"
+    assert batch[1].device.index == 0
+    assert batch[1].type() == "torch.cuda.FloatTensor"
 
     # tensor list of lists
     batch = [[torch.rand(2, 3), torch.rand(2, 3)]]
     batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
-    assert batch[0][0].device.index == 0 and batch[0][0].type() == "torch.cuda.FloatTensor"
-    assert batch[0][1].device.index == 0 and batch[0][1].type() == "torch.cuda.FloatTensor"
+    assert batch[0][0].device.index == 0
+    assert batch[0][0].type() == "torch.cuda.FloatTensor"
+    assert batch[0][1].device.index == 0
+    assert batch[0][1].type() == "torch.cuda.FloatTensor"
 
     # tensor dict
     batch = [{"a": torch.rand(2, 3), "b": torch.rand(2, 3)}]
     batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
-    assert batch[0]["a"].device.index == 0 and batch[0]["a"].type() == "torch.cuda.FloatTensor"
-    assert batch[0]["b"].device.index == 0 and batch[0]["b"].type() == "torch.cuda.FloatTensor"
+    assert batch[0]["a"].device.index == 0
+    assert batch[0]["a"].type() == "torch.cuda.FloatTensor"
+    assert batch[0]["b"].device.index == 0
+    assert batch[0]["b"].type() == "torch.cuda.FloatTensor"
 
     # tuple of tensor list and list of tensor dict
     batch = ([torch.rand(2, 3) for _ in range(2)], [{"a": torch.rand(2, 3), "b": torch.rand(2, 3)} for _ in range(2)])
     batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
-    assert batch[0][0].device.index == 0 and batch[0][0].type() == "torch.cuda.FloatTensor"
+    assert batch[0][0].device.index == 0
+    assert batch[0][0].type() == "torch.cuda.FloatTensor"
 
     assert batch[1][0]["a"].device.index == 0
     assert batch[1][0]["a"].type() == "torch.cuda.FloatTensor"
@@ -184,7 +192,7 @@ def test_single_gpu_batch_parse():
 
 @RunIf(min_cuda_gpus=1)
 def test_non_blocking():
-    """Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects."""
+    """Tests that non_blocking=True only gets passed on Tensor.to, but not on other objects."""
     trainer = Trainer()
 
     batch = torch.zeros(2, 3)

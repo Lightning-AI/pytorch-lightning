@@ -32,15 +32,15 @@ Testing a Lightning app is unique. It is a superset of an application that conve
 Anatomy of a Lightning integration test
 ****************************************
 
-The following is a PyTest example of an integration test using the ``lightning_app.testing`` module.
+The following is a PyTest example of an integration test using the ``lightning.app.testing`` module.
 
 .. code-block:: python
 
    import os
 
-   from lightning_app import _PROJECT_ROOT
-   from lightning_app.testing import application_testing, LightningTestApp
-   from lightning_app.utilities.enum import AppStage
+   from lightning.app import _PROJECT_ROOT
+   from lightning.app.testing import application_testing, LightningTestApp
+   from lightning.app.utilities.enum import AppStage
 
 
    class TestLightningAppInt(TestLightningApp):
@@ -76,7 +76,7 @@ To get started, you simply need to import the following:
 
 .. code-block:: python
 
-    from lightning_app.testing import application_testing, LightningTestApp
+    from lightning.app.testing import application_testing, LightningTestApp
 
 We will discuss ``application_testing`` in a bit, but first let's review the structure of ``LightningTestApp``.
 
@@ -85,7 +85,7 @@ We will discuss ``application_testing`` in a bit, but first let's review the str
 LightningTestApp
 ^^^^^^^^^^^^^^^^^
 
-The :class:`lightning_app.testing.testing.LightningTestApp` class is available to use for provisioning and setting up your testing needs. Note that you do not need this class to move forward with testing. Any application that inherits ``LightningApp`` should suffice as long as you override the correct methods. Reviewing the TestLightnigApp we see some overrides that are already there. Please revuew the class for more information.
+The :class:`lightning.app.testing.testing.LightningTestApp` class is available to use for provisioning and setting up your testing needs. Note that you do not need this class to move forward with testing. Any application that inherits ``LightningApp`` should suffice as long as you override the correct methods. Reviewing the TestLightnigApp we see some overrides that are already there. Please revuew the class for more information.
 
 .. code-block:: python
 
@@ -120,7 +120,6 @@ We provide ``application_testing`` as a helper funtion to get your application u
        os.path.join(_PROJECT_ROOT, "examples/app_v0/app.py"),
        "--blocking",
        "False",
-       "--multiprocess",
        "--open-ui",
        "False",
    ]
@@ -129,9 +128,7 @@ First in the list for ``command_line`` is the location of your script. It is an 
 
 Next there are a couple of options you can leverage:
 
-
 * ``blocking`` - Blocking is an app status that says "Do not run until I click run in the UI". For our integration test, since we are not using the UI, we are setting this to "False".
-* ``multiprocess/singleprocess`` - This is the runtime your app is expected to run under.
 * ``open-ui`` - We set this to false since this is the routine that opens a browser for your local execution.
 
 Once you have your commandline ready, you will then be able to kick off the test and gather results:

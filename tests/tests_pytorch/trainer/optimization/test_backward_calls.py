@@ -3,8 +3,8 @@ from unittest.mock import patch
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 @pytest.mark.parametrize("num_steps", [1, 2, 3])

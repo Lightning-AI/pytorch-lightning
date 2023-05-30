@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,13 +20,14 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.utilities.test_model_summary import UnorderedModel
 
 
+@RunIf(onnx=True)
 def test_model_saves_with_input_sample(tmpdir):
     """Test that ONNX model saves with input sample and size is greater than 3 MB."""
     model = BoringModel()
@@ -43,6 +44,7 @@ def test_model_saves_with_input_sample(tmpdir):
 @pytest.mark.parametrize(
     "accelerator", [pytest.param("mps", marks=RunIf(mps=True)), pytest.param("gpu", marks=RunIf(min_cuda_gpus=True))]
 )
+@RunIf(onnx=True)
 def test_model_saves_on_gpu(tmpdir, accelerator):
     """Test that model saves on gpu."""
     model = BoringModel()
@@ -57,12 +59,13 @@ def test_model_saves_on_gpu(tmpdir, accelerator):
 
 
 @pytest.mark.parametrize(
-    ["modelclass", "input_sample"],
+    ("modelclass", "input_sample"),
     [
         (BoringModel, torch.randn(1, 32)),
         (UnorderedModel, (torch.rand(2, 3), torch.rand(2, 10))),
     ],
 )
+@RunIf(onnx=True)
 def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
     """Test that ONNX model saves with example_input_array and size is greater than 3 MB."""
     model = modelclass()
@@ -74,19 +77,19 @@ def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
     assert os.path.getsize(file_path) > 4e2
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, onnx=True)
 def test_model_saves_on_multi_gpu(tmpdir):
     """Test that ONNX model saves on a distributed backend."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        accelerator="gpu",
-        devices=[0, 1],
-        strategy="ddp_spawn",
-        enable_progress_bar=False,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 10,
+        "limit_val_batches": 10,
+        "accelerator": "gpu",
+        "devices": [0, 1],
+        "strategy": "ddp_spawn",
+        "enable_progress_bar": False,
+    }
 
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
@@ -98,6 +101,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
     assert os.path.exists(file_path) is True
 
 
+@RunIf(onnx=True)
 def test_verbose_param(tmpdir, capsys):
     """Test that output is present when verbose parameter is set."""
     model = BoringModel()
@@ -116,6 +120,7 @@ def test_verbose_param(tmpdir, capsys):
         assert "graph(%" in captured.out
 
 
+@RunIf(onnx=True)
 def test_error_if_no_input(tmpdir):
     """Test that an error is thrown when there is no input tensor."""
     model = BoringModel()
@@ -129,6 +134,7 @@ def test_error_if_no_input(tmpdir):
         model.to_onnx(file_path)
 
 
+@RunIf(onnx=True)
 def test_if_inference_output_is_valid(tmpdir):
     """Test that the output inferred from ONNX model is same as from PyTorch."""
     model = BoringModel()

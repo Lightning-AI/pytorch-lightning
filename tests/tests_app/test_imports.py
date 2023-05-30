@@ -4,7 +4,7 @@ import os
 import types
 from typing import TypeVar
 
-import lightning_app
+import lightning.app
 
 
 def _is_attribute(member, module):
@@ -41,11 +41,11 @@ def _find_exports(module):
 
 def test_import_depth(
     ignore=[
-        "lightning_app.cli",
-        "lightning_app.components.serve.types",
-        "lightning_app.core",
-        "lightning_app.runners",
-        "lightning_app.utilities",
+        "lightning.app.cli",
+        "lightning.app.components.serve.types",
+        "lightning.app.core",
+        "lightning.app.runners",
+        "lightning.app.utilities",
     ]
 ):
     """This test ensures that any public exports (functions, classes, etc.) can be imported by users with at most a
@@ -54,8 +54,8 @@ def test_import_depth(
     Args:
         ignore: Sub-module paths to ignore (usually sub-modules that are not intended to be user-facing).
     """
-    exports = _find_exports(lightning_app)
-    depths = {export: len(path.replace("lightning_app", "").split(".")) for export, path in exports.items()}
+    exports = _find_exports(lightning.app)
+    depths = {export: len(path.replace("lightning.app", "").split(".")) for export, path in exports.items()}
     deep_exports = [export for export, depth in depths.items() if depth > 2]
     deep_exports = list(
         filter(lambda export: not any(exports[export].startswith(path) for path in ignore), deep_exports)

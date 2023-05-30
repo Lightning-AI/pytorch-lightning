@@ -24,7 +24,7 @@ PyTorch Lightning follows the design of `PyTorch distributed communication packa
 
 - *MASTER_PORT* - required; has to be a free port on machine with NODE_RANK 0
 - *MASTER_ADDR* - required (except for NODE_RANK 0); address of NODE_RANK 0 node
-- *WORLD_SIZE* - required; how many nodes are in the cluster
+- *WORLD_SIZE* - required; the total number of GPUs/processes that you will use
 - *NODE_RANK* - required; id of the node in the cluster
 
 .. _training_script_setup:
@@ -68,32 +68,3 @@ Set the ``NCCL_DEBUG=INFO`` environment variable to see the ACTUAL error.
 .. code-block:: bash
 
     NCCL_DEBUG=INFO python train.py ...
-
-----
-
-********
-Get help
-********
-Setting up a cluster for distributed training is not trivial. Lightning offers lightning-grid which allows you to configure a cluster easily and run experiments via the CLI and web UI.
-
-Try it out for free today:
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. Add callout items below this line
-
-.. displayitem::
-   :header: Train models on the cloud
-   :description: Learn to run a model in the background on a cloud machine.
-   :col_css: col-md-6
-   :button_link: cloud_training.html
-   :height: 150
-   :tag: intermediate
-
-.. raw:: html
-
-        </div>
-    </div

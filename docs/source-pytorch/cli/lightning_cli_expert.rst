@@ -6,8 +6,8 @@
     import torch
     from unittest import mock
     from typing import List
-    import pytorch_lightning.cli as pl_cli
-    from pytorch_lightning import LightningModule, LightningDataModule, Trainer, Callback
+    import lightning.pytorch.cli as pl_cli
+    from lightning.pytorch import LightningModule, LightningDataModule, Trainer, Callback
 
 
     class NoFitTrainer(Trainer):
@@ -62,22 +62,22 @@ Configure hyperparameters from the CLI (Expert)
 Customize the LightningCLI
 **************************
 
-The init parameters of the :class:`~pytorch_lightning.cli.LightningCLI` class can be used to customize some things,
+The init parameters of the :class:`~lightning.pytorch.cli.LightningCLI` class can be used to customize some things,
 e.g., the description of the tool, enabling parsing of environment variables, and additional arguments to instantiate
 the trainer and configuration parser.
 
 Nevertheless, the init arguments are not enough for many use cases. For this reason, the class is designed so that it
 can be extended to customize different parts of the command line tool. The argument parser class used by
-:class:`~pytorch_lightning.cli.LightningCLI` is :class:`~pytorch_lightning.cli.LightningArgumentParser`, which is an
+:class:`~lightning.pytorch.cli.LightningCLI` is :class:`~lightning.pytorch.cli.LightningArgumentParser`, which is an
 extension of python's argparse, thus adding arguments can be done using the :func:`add_argument` method. In contrast to
 argparse, it has additional methods to add arguments. For example :func:`add_class_arguments` add all arguments from the
 init of a class. For more details, see the `respective documentation
 <https://jsonargparse.readthedocs.io/en/stable/#classes-methods-and-functions>`_.
 
-The :class:`~pytorch_lightning.cli.LightningCLI` class has the
-:meth:`~pytorch_lightning.cli.LightningCLI.add_arguments_to_parser` method can be implemented to include more arguments.
+The :class:`~lightning.pytorch.cli.LightningCLI` class has the
+:meth:`~lightning.pytorch.cli.LightningCLI.add_arguments_to_parser` method can be implemented to include more arguments.
 After parsing, the configuration is stored in the ``config`` attribute of the class instance. The
-:class:`~pytorch_lightning.cli.LightningCLI` class also has two methods that can be used to run code before and after
+:class:`~lightning.pytorch.cli.LightningCLI` class also has two methods that can be used to run code before and after
 the trainer runs: ``before_<subcommand>`` and ``after_<subcommand>``. A realistic example of this would be to send an
 email before and after the execution. The code for the ``fit`` subcommand would be something like this:
 
@@ -102,7 +102,7 @@ trainer class can be found in ``self.config['fit']['trainer']``.
 
 .. tip::
 
-    Have a look at the :class:`~pytorch_lightning.cli.LightningCLI` class API reference to learn about other methods
+    Have a look at the :class:`~lightning.pytorch.cli.LightningCLI` class API reference to learn about other methods
     that can be extended to customize a CLI.
 
 ----
@@ -118,7 +118,7 @@ implemented as follows:
 
 .. testcode::
 
-    from pytorch_lightning.callbacks import EarlyStopping
+    from lightning.pytorch.callbacks import EarlyStopping
 
 
     class MyLightningCLI(LightningCLI):
@@ -211,7 +211,7 @@ A more compact version that avoids writing a dictionary would be:
 ****************
 Argument linking
 ****************
-Another case in which it might be desired to extend :class:`~pytorch_lightning.cli.LightningCLI` is that the model and
+Another case in which it might be desired to extend :class:`~lightning.pytorch.cli.LightningCLI` is that the model and
 data module depends on a common parameter. For example, in some cases, both classes require to know the ``batch_size``.
 It is a burden and error-prone to give the same value twice in a config file. To avoid this, the parser can be
 configured so that a value is only given once and then propagated accordingly. With a tool implemented like the one
@@ -264,4 +264,4 @@ Instantiation links are used to automatically determine the order of instantiati
 
     The linking of arguments can be used for more complex cases. For example to derive a value via a function that takes
     multiple settings as input. For more details have a look at the API of `link_arguments
-    <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.ArgumentParser.link_arguments>`_.
+    <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.ArgumentLinking.link_arguments>`_.

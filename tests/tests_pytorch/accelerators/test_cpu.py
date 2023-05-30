@@ -6,13 +6,13 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-import pytorch_lightning as pl
-from lightning_lite.plugins import TorchCheckpointIO
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import CPUAccelerator
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.strategies import SingleDeviceStrategy
+import lightning.pytorch as pl
+from lightning.fabric.plugins import TorchCheckpointIO
+from lightning.pytorch import Trainer
+from lightning.pytorch.accelerators import CPUAccelerator
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.strategies import SingleDeviceStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -34,7 +34,7 @@ def test_get_device_stats(tmpdir):
     fields = ["cpu_vm_percent", "cpu_percent", "cpu_swap_percent"]
 
     for f in fields:
-        assert any(f in h for h in gpu_stats.keys())
+        assert any(f in h for h in gpu_stats)
 
 
 @pytest.mark.parametrize("restore_after_pre_setup", [True, False])

@@ -32,7 +32,6 @@ def render_fn(state: AppState):
 
 # Step 4: Implement a Static Web Frontend. This could be react, vue, etc.
 class UIStatic(L.LightningFlow):
-
     # Step 5:
     def configure_layout(self):
         return StaticWebFrontend(os.path.join(os.path.dirname(__file__), "ui"))

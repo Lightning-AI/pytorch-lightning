@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,21 +13,20 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import ANY
+from unittest.mock import ANY, Mock
 
 import pytest
 import torch
 
-import pytorch_lightning as pl
-from lightning_lite.plugins import TorchCheckpointIO, XLACheckpointIO
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
+import lightning.pytorch as pl
+from lightning.fabric.plugins import TorchCheckpointIO, XLACheckpointIO
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 def test_finetuning_with_ckpt_path(tmpdir):
     """This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test."""
-
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
 
     class ExtendedBoringModel(BoringModel):
@@ -37,12 +36,10 @@ def test_finetuning_with_ckpt_path(tmpdir):
             return [optimizer], [lr_scheduler]
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("val_loss", loss, on_epoch=True, prog_bar=True)
 
     model = ExtendedBoringModel()
-    model.validation_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -89,19 +86,22 @@ def test_trainer_save_checkpoint_storage_options(tmpdir, xla_available):
     instance_path = tmpdir + "/path.ckpt"
     instance_storage_options = "my instance storage options"
 
-    with mock.patch("lightning_lite.plugins.io.torch_io.TorchCheckpointIO.save_checkpoint") as io_mock:
+    with mock.patch("lightning.fabric.plugins.io.torch_io.TorchCheckpointIO.save_checkpoint") as io_mock:
         trainer.save_checkpoint(instance_path, storage_options=instance_storage_options)
         io_mock.assert_called_with(ANY, instance_path, storage_options=instance_storage_options)
         trainer.save_checkpoint(instance_path)
         io_mock.assert_called_with(ANY, instance_path, storage_options=None)
 
-    with mock.patch(
-        "pytorch_lightning.trainer.connectors.checkpoint_connector.CheckpointConnector.save_checkpoint"
-    ) as cc_mock:
+    checkpoint_mock = Mock()
+    with mock.patch.object(trainer.strategy, "save_checkpoint") as save_mock, mock.patch.object(
+        trainer._checkpoint_connector, "dump_checkpoint", return_value=checkpoint_mock
+    ) as dump_mock:
         trainer.save_checkpoint(instance_path, True)
-        cc_mock.assert_called_with(instance_path, weights_only=True, storage_options=None)
+        dump_mock.assert_called_with(True)
+        save_mock.assert_called_with(checkpoint_mock, instance_path, storage_options=None)
         trainer.save_checkpoint(instance_path, False, instance_storage_options)
-        cc_mock.assert_called_with(instance_path, weights_only=False, storage_options=instance_storage_options)
+        dump_mock.assert_called_with(False)
+        save_mock.assert_called_with(checkpoint_mock, instance_path, storage_options=instance_storage_options)
 
     torch_checkpoint_io = TorchCheckpointIO()
     with pytest.raises(

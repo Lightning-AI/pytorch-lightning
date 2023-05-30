@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
 
 import pytest
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -29,7 +29,6 @@ class TrainerGetModel(BoringModel):
 
 def test_get_model(tmpdir):
     """Tests that `trainer.lightning_module` extracts the model correctly."""
-
     model = TrainerGetModel()
 
     limit_train_batches = 2
@@ -42,7 +41,6 @@ def test_get_model(tmpdir):
 @RunIf(skip_windows=True)
 def test_get_model_ddp_cpu(tmpdir):
     """Tests that `trainer.lightning_module` extracts the model correctly when using ddp on cpu."""
-
     model = TrainerGetModel()
 
     limit_train_batches = 2
@@ -67,7 +65,6 @@ def test_get_model_ddp_cpu(tmpdir):
 )
 def test_get_model_gpu(tmpdir, accelerator):
     """Tests that `trainer.lightning_module` extracts the model correctly when using GPU."""
-
     model = TrainerGetModel()
 
     limit_train_batches = 2

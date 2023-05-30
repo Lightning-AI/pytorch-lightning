@@ -1,20 +1,6 @@
 """Root package info."""
 import logging
 import os
-from typing import Any
-
-_DETAIL = 15  # between logging.INFO and logging.DEBUG, used for logging in production use cases
-
-
-def _detail(self: Any, message: str, *args: Any, **kwargs: Any) -> None:
-    if self.isEnabledFor(_DETAIL):
-        # logger takes its '*args' as 'args'
-        self._log(_DETAIL, message, args, **kwargs)
-
-
-logging.addLevelName(_DETAIL, "DETAIL")
-logging.detail = _detail
-logging.Logger.detail = _detail
 
 # explicitly don't set root logger's propagation and leave this to subpackages to manage
 _logger = logging.getLogger(__name__)
@@ -36,11 +22,11 @@ from lightning.app.core.work import LightningWork  # noqa: E402
 from lightning.app.perf import pdb  # noqa: E402
 from lightning.app.utilities.packaging.build_config import BuildConfig  # noqa: E402
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute  # noqa: E402
-from lightning.lite.lite import LightningLite  # noqa: E402
+from lightning.fabric.fabric import Fabric  # noqa: E402
+from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402
-from lightning.pytorch.utilities.seed import seed_everything  # noqa: E402
 
 import lightning.app  # isort: skip # noqa: E402
 
@@ -60,7 +46,7 @@ __all__ = [
     "LightningModule",
     "Callback",
     "seed_everything",
-    "LightningLite",
+    "Fabric",
     "storage",
     "pdb",
 ]

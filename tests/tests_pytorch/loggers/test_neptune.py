@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,15 +21,15 @@ from unittest.mock import call, MagicMock, patch
 import pytest
 import torch
 
-from pytorch_lightning import __version__, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import NeptuneLogger
+from lightning.pytorch import __version__, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import NeptuneLogger
 
 
 def fetchable_paths(value):
     if value == "sys/id":
         return MagicMock(fetch=MagicMock(return_value="TEST-1"))
-    elif value == "sys/name":
+    if value == "sys/name":
         return MagicMock(fetch=MagicMock(return_value="Run test name"))
     return MagicMock()
 
@@ -37,8 +37,7 @@ def fetchable_paths(value):
 def create_run_mock(mode="async", **kwargs):
     if mode == "offline":
         return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=False))
-    else:
-        return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=True))
+    return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=True))
 
 
 def create_neptune_mock():
@@ -51,6 +50,7 @@ def create_neptune_mock():
     return MagicMock(init_run=MagicMock(side_effect=create_run_mock))
 
 
+# Note: For testing purpose this mock `Run` will also be used to mock `Handler`.
 class Run:
     _project_name = "test-project"
 
@@ -66,10 +66,10 @@ class Run:
     def __getitem__(self, item):
         if item == "sys/name":
             return MagicMock(fetch=MagicMock(return_value="Test name"))
-        elif item == "sys/id":
+        if item == "sys/id":
             return MagicMock(fetch=MagicMock(return_value="TEST-42"))
 
-        assert False, f"Unexpected call '{item}'"
+        pytest.fail(f"Unexpected call '{item}'")
 
     def __getstate__(self):
         raise pickle.PicklingError("Runs are unpickleable")
@@ -77,10 +77,14 @@ class Run:
     def exists(self, value):
         return True
 
+    def get_root_object(self):
+        return self
 
-@pytest.fixture
+
+@pytest.fixture()
 def tmpdir_unittest_fixture(request, tmpdir):
     """Proxy for pytest `tmpdir` fixture between pytest and unittest.
+
     Resources:
      * https://docs.pytest.org/en/6.2.x/tmpdir.html#the-tmpdir-fixture
      * https://towardsdatascience.com/mixing-pytest-fixture-and-unittest-testcase-for-selenium-test-9162218e8c8e
@@ -88,58 +92,65 @@ def tmpdir_unittest_fixture(request, tmpdir):
     request.cls.tmpdir = tmpdir
 
 
-@patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock)
+@patch("lightning.pytorch.loggers.neptune.neptune", new_callable=create_neptune_mock)
 class TestNeptuneLogger(unittest.TestCase):
     def run(self, *args, **kwargs):
-        with mock.patch("pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True):
+        with mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True):
             super().run(*args, **kwargs)
 
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_neptune_online(self, neptune):
         logger = NeptuneLogger(api_key="test", project="project")
         created_run_mock = logger.run
 
-        self.assertEqual(logger._run_instance, created_run_mock)
+        assert logger._run_instance == created_run_mock
         created_run_mock.exists.assert_called_once_with("sys/id")
-        self.assertEqual(logger.name, "Run test name")
-        self.assertEqual(logger.version, "TEST-1")
-        self.assertEqual(neptune.init_run.call_count, 1)
-        self.assertEqual(created_run_mock.__getitem__.call_count, 2)
-        self.assertEqual(created_run_mock.__setitem__.call_count, 1)
+        assert logger.name == "Run test name"
+        assert logger.version == "TEST-1"
+        assert neptune.init_run.call_count == 1
+        assert created_run_mock.__getitem__.call_count == 2
+        assert created_run_mock.__setitem__.call_count == 1
         created_run_mock.__getitem__.assert_has_calls([call("sys/id"), call("sys/name")], any_order=True)
         created_run_mock.__setitem__.assert_called_once_with("source_code/integrations/pytorch-lightning", __version__)
 
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_neptune_offline(self, neptune):
         logger = NeptuneLogger(mode="offline")
         created_run_mock = logger.run
         logger.experiment["foo"] = "bar"
 
         created_run_mock.exists.assert_called_once_with("sys/id")
-        self.assertEqual(logger._run_short_id, "OFFLINE")
-        self.assertEqual(logger._run_name, "offline-name")
+        assert logger._run_short_id == "OFFLINE"
+        assert logger._run_name == "offline-name"
 
-    @patch("pytorch_lightning.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_online_with_custom_run(self, neptune):
         created_run = Run()
         logger = NeptuneLogger(run=created_run)
 
         assert logger._run_instance == created_run
-        self.assertEqual(logger._run_instance, created_run)
-        self.assertEqual(logger.version, "TEST-42")
-        self.assertEqual(neptune.init_run.call_count, 0)
+        assert logger._run_instance == created_run
+        assert logger.version == "TEST-42"
+        assert neptune.init_run.call_count == 0
 
-    @patch("pytorch_lightning.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_neptune_pickling(self, neptune):
         unpickleable_run = Run()
         logger = NeptuneLogger(run=unpickleable_run)
-        self.assertEqual(0, neptune.init_run.call_count)
+        assert neptune.init_run.call_count == 0
 
         pickled_logger = pickle.dumps(logger)
         unpickled = pickle.loads(pickled_logger)
 
         neptune.init_run.assert_called_once_with(name="Test name", run="TEST-42")
-        self.assertIsNotNone(unpickled.experiment)
+        assert unpickled.experiment is not None
 
-    @patch("pytorch_lightning.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Run", Run)
+    @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_online_with_wrong_kwargs(self, neptune):
         """Tests combinations of kwargs together with `run` kwarg which makes some of other parameters unavailable
         in init."""
@@ -189,6 +200,7 @@ class TestNeptuneLogger(unittest.TestCase):
         assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
 
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
+    @patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock())
     def test_neptune_leave_open_experiment_after_fit(self, neptune):
         """Verify that neptune experiment was NOT closed after training."""
         # given
@@ -204,11 +216,13 @@ class TestNeptuneLogger(unittest.TestCase):
         assert run_instance_mock.stop.call_count == 0
 
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
+    @patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock())
     def test_neptune_log_metrics_on_trained_model(self, neptune):
         """Verify that trained models do log data."""
+
         # given
         class LoggingModel(BoringModel):
-            def validation_epoch_end(self, outputs):
+            def on_validation_epoch_end(self):
                 self.log("some/key", 42)
 
         # and
@@ -222,8 +236,9 @@ class TestNeptuneLogger(unittest.TestCase):
 
         # then
         run_instance_mock.__getitem__.assert_any_call("training/some/key")
-        run_instance_mock.__getitem__.return_value.log.assert_has_calls([call(42)])
+        run_instance_mock.__getitem__.return_value.append.assert_has_calls([call(42)])
 
+    @patch("lightning.pytorch.loggers.neptune.stringify_unsupported", lambda x: x)
     def test_log_hyperparams(self, neptune):
         params = {"foo": "bar", "nested_foo": {"bar": 42}}
         test_variants = [
@@ -239,8 +254,8 @@ class TestNeptuneLogger(unittest.TestCase):
             logger.log_hyperparams(params)
 
             # then
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
-            self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
+            assert run_instance_mock.__setitem__.call_count == 1
+            assert run_instance_mock.__getitem__.call_count == 0
             run_instance_mock.__setitem__.assert_called_once_with(hyperparams_key, params)
 
     def test_log_metrics(self, neptune):
@@ -264,11 +279,11 @@ class TestNeptuneLogger(unittest.TestCase):
             logger.log_metrics(metrics)
 
             # then:
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 0)
-            self.assertEqual(run_instance_mock.__getitem__.call_count, 2)
+            assert run_instance_mock.__setitem__.call_count == 0
+            assert run_instance_mock.__getitem__.call_count == 2
             run_instance_mock.__getitem__.assert_any_call(metrics_foo_key)
             run_instance_mock.__getitem__.assert_any_call(metrics_bar_key)
-            run_attr_mock.log.assert_has_calls([call(42), call(555)])
+            run_attr_mock.append.assert_has_calls([call(42), call(555)])
 
     def test_log_model_summary(self, neptune):
         model = BoringModel()
@@ -287,10 +302,11 @@ class TestNeptuneLogger(unittest.TestCase):
             logger.log_model_summary(model)
 
             # then:
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
-            self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
+            assert run_instance_mock.__setitem__.call_count == 1
+            assert run_instance_mock.__getitem__.call_count == 0
             run_instance_mock.__setitem__.assert_called_once_with(model_summary_key, file_from_content_mock)
 
+    @patch("builtins.open", mock.mock_open(read_data="test"))
     def test_after_save_checkpoint(self, neptune):
         test_variants = [
             ({}, "training/model"),
@@ -315,26 +331,24 @@ class TestNeptuneLogger(unittest.TestCase):
                 best_model_score=None,
             )
 
-            # when: save checkpoint
-            logger.after_save_checkpoint(cb_mock)
+            with patch("lightning.pytorch.loggers.neptune.File", side_effect=mock.Mock()) as mock_file:
+                # when: save checkpoint
+                logger.after_save_checkpoint(cb_mock)
 
             # then:
-            self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
-            self.assertEqual(run_instance_mock.__getitem__.call_count, 4)
-            self.assertEqual(run_attr_mock.upload.call_count, 4)
-            run_instance_mock.__setitem__.assert_called_once_with(
-                f"{model_key_prefix}/best_model_path", os.path.join(models_root_dir, "best_model")
-            )
-            run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/last")
+            assert run_instance_mock.__setitem__.call_count == 3
+            assert run_instance_mock.__getitem__.call_count == 2
+            assert run_attr_mock.upload.call_count == 2
+
+            assert mock_file.from_stream.call_count == 2
+
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
-            run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/best_model")
+
             run_attr_mock.upload.assert_has_calls(
                 [
-                    call(os.path.join(models_root_dir, "last")),
                     call(os.path.join(models_root_dir, "model1")),
                     call(os.path.join(models_root_dir, "model2/with/slashes")),
-                    call(os.path.join(models_root_dir, "best_model")),
                 ]
             )
 
@@ -343,7 +357,7 @@ class TestNeptuneLogger(unittest.TestCase):
         logger = NeptuneLogger(api_key="test", project="project")
 
         # expect
-        self.assertEqual(logger.save_dir, os.path.join(os.getcwd(), ".neptune"))
+        assert logger.save_dir == os.path.join(os.getcwd(), ".neptune")
 
 
 class TestNeptuneLoggerUtils(unittest.TestCase):
@@ -361,7 +375,7 @@ class TestNeptuneLoggerUtils(unittest.TestCase):
 
         # expect:
         for expected_model_name, *key_and_path in test_input_data:
-            self.assertEqual(NeptuneLogger._get_full_model_name(*key_and_path), expected_model_name)
+            assert NeptuneLogger._get_full_model_name(*key_and_path) == expected_model_name
 
     def test__get_full_model_names_from_exp_structure(self):
         # given:
@@ -378,4 +392,4 @@ class TestNeptuneLoggerUtils(unittest.TestCase):
         expected_keys = {"lvl1_1/lvl2/lvl3_1", "lvl1_1/lvl2/lvl3_2", "lvl1_2"}
 
         # expect:
-        self.assertEqual(NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar"), expected_keys)
+        assert NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar") == expected_keys

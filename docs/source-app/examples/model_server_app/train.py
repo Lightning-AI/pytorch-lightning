@@ -7,7 +7,6 @@ from lightning.app.storage import Path
 
 
 class TrainModel(LightningWork):
-
     """This component trains a Sklearn SVC model on digits dataset."""
 
     def __init__(self):

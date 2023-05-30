@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
+
 import torch
 from torchmetrics.functional import accuracy
 
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.utils import get_default_logger, load_model_from_checkpoint
 
 
@@ -48,6 +51,7 @@ def run_model_test(
     version=None,
     with_hpc: bool = True,
     min_acc: float = 0.25,
+    min_change_ratio: float = 0.03,
 ):
     save_dir = trainer_options["default_root_dir"]
 
@@ -62,7 +66,7 @@ def run_model_test(
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     # Check that the model is actually changed post-training
     change_ratio = torch.norm(initial_values - post_train_values)
-    assert change_ratio > 0.03, f"the model is changed of {change_ratio}"
+    assert change_ratio >= min_change_ratio, f"the model is changed of {change_ratio} and shall be >={min_change_ratio}"
 
     # test model loading
     _ = load_model_from_checkpoint(trainer.checkpoint_callback.best_model_path, type(model))
@@ -100,7 +104,8 @@ def run_model_prediction(trained_model, dataloader, min_acc=0.50):
     x = x.flatten(1)
 
     y_hat = trained_model(x)
-    acc = accuracy(y_hat.cpu(), y.cpu(), top_k=2).item()
+    metric = partial(accuracy, task="multiclass") if _TM_GE_0_11 else accuracy
+    acc = metric(y_hat.cpu(), y.cpu(), top_k=2, num_classes=y_hat.size(-1)).item()
 
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
     trained_model.to(orig_device)

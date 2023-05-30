@@ -9,6 +9,9 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
+      - ".github/actions/pkg-check/*"
+      - ".github/actions/pkg-install/*"
+      - ".github/workflows/_build-packages.yml"
       - ".github/workflows/ci-pkg-install.yml"
       - "setup.py"
       - "src/**"
@@ -28,43 +31,64 @@ defaults:
 
 jobs:
 
+  build-packages:
+    uses: ./.github/workflows/_build-packages.yml
+    with:
+      artifact-name: dist-packages-${{ github.sha }}
+
   install-pkg:
+    needs: build-packages
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macOS-12, windows-2022]
-        pkg-name: ["app", "lite", "pytorch", "lightning"]
-        python-version: ["3.7" , "3.10"]
+        pkg-name: ["app", "fabric", "pytorch", "lightning", "notset"]
+        python-version: ["3.8" , "3.10"]
+        # TODO: add also install from source
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+      - uses: actions/download-artifact@v3
+        with:
+          name: dist-packages-${{ github.sha }}
+          path: dist
+
+      - run: |
+          python -c "print('PKG_DIR=' + {'notset': 'lightning'}.get('${{matrix.pkg-name}}', '${{matrix.pkg-name}}'))" >> $GITHUB_ENV
+      - name: Install package - wheel & archive
+        uses: ./.github/actions/pkg-install
+        with:
+          pkg-folder: dist/${{ env.PKG_DIR }}
+          pkg-name: ${{ matrix.pkg-name }}
+
+      - name: Run CLI (via python)
+        if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset' }}
+        run: python -m lightning --version
+      - name: Run CLI (direct bash)
+        if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset' || matrix.pkg-name == 'app' }}
+        run: lightning --version
 
       - name: DocTests actions
         working-directory: .actions/
         run: |
-          pip install -q pytest
-          python -m pytest setup_tools.py
+          pip install -q pytest -r requirements.txt
+          python -m pytest assistant.py
 
-      - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
-
-      - uses: ./.github/actions/pkg-check
-        with:
-          pkg-name: ${{ matrix.pkg-name }}
-          nb-dirs: ${{ env.NB_DIRS }}
-
-      - uses: ./.github/actions/pkg-install
-        with:
-          pkg-name: ${{ matrix.pkg-name }}
-
-      - name: Run CLI
-        # todo: add testing for `lightning_app`
-        if: ${{ matrix.pkg-name == 'lightning' }}
-        run: python -m lightning --version
-
+      - name: build source
+        run: python setup.py build
+      - name: Adjust code for standalone
+        if: contains(fromJSON('["app", "fabric", "pytorch"]'), matrix.pkg-name)
+        run: |
+          python .actions/assistant.py copy_replace_imports --source_dir="./src" \
+            --source_import="lightning.pytorch,lightning.fabric,lightning.app" \
+            --target_import="pytorch_lightning,lightning_fabric,lightning_app"
+          rm src/lightning/__*.py
+      - name: Rename src folders
+        working-directory: src/
+        run: mv lightning lit
       - name: DocTest package
         env:
           LIGHTING_TESTING: 1  # path for require wrapper
@@ -72,5 +96,6 @@ jobs:
         run: |
           pip install -q "pytest-doctestplus>=0.9.0"
           pip list
-          PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
-          python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"
+          PKG_NAME=$(python -c "n = '${{matrix.pkg-name}}'; print(n if n in ('app', 'fabric', 'pytorch') else '')")
+          echo $PKG_NAME
+          python -m pytest src/lit/${PKG_NAME} --ignore-glob="**/cli/*-template/**" --doctest-plus

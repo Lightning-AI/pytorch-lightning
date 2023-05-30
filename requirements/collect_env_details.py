@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ def info_system() -> dict:
         "OS": platform.system(),
         "architecture": platform.architecture(),
         "version": platform.version(),
+        "release": platform.release(),
         "processor": platform.processor(),
         "python": platform.python_version(),
     }
@@ -79,7 +80,7 @@ def main() -> None:
     details["Lightning"] = {k: v for k, v in details["Packages"].items() if "torch" in k or "lightning" in k}
     lines = nice_print(details)
     text = os.linesep.join(lines)
-    print(text)
+    print(f"<details>\n  <summary>Current environment</summary>\n\n{text}\n\n</details>")
 
 
 if __name__ == "__main__":

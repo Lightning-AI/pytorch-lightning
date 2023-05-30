@@ -3,12 +3,12 @@ from copy import deepcopy
 
 import pytest
 
-from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
-from lightning_app.storage.payload import Payload
-from lightning_app.structures import Dict, List
-from lightning_app.testing.helpers import EmptyFlow
-from lightning_app.utilities.enum import CacheCallsKeys, WorkStageStatus
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage.payload import Payload
+from lightning.app.structures import Dict, List
+from lightning.app.testing.helpers import EmptyFlow
+from lightning.app.utilities.enum import CacheCallsKeys, WorkStageStatus
 
 
 def test_dict():
@@ -44,15 +44,17 @@ def test_dict():
             "_host": "127.0.0.1",
             "_paths": {},
             "_restarting": False,
+            "_display_name": "",
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -76,15 +78,17 @@ def test_dict():
             "_host": "127.0.0.1",
             "_paths": {},
             "_restarting": False,
+            "_display_name": "",
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -108,15 +112,17 @@ def test_dict():
             "_host": "127.0.0.1",
             "_paths": {},
             "_restarting": False,
+            "_display_name": "",
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -193,14 +199,16 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for i in range(4)
@@ -225,14 +233,16 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for i in range(4)
@@ -252,14 +262,16 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for i in range(4)
@@ -309,11 +321,10 @@ class CounterWork(LightningWork):
 
 
 @pytest.mark.skip(reason="tchaton: Resolve this test.")
-@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime, SingleProcessRuntime])
 @pytest.mark.parametrize("run_once_iterable", [False, True])
 @pytest.mark.parametrize("cache_calls", [False, True])
 @pytest.mark.parametrize("use_list", [False, True])
-def test_structure_with_iterate_and_fault_tolerance(runtime_cls, run_once_iterable, cache_calls, use_list):
+def test_structure_with_iterate_and_fault_tolerance(run_once_iterable, cache_calls, use_list):
     class DummyFlow(LightningFlow):
         def __init__(self):
             super().__init__()
@@ -351,16 +362,16 @@ def test_structure_with_iterate_and_fault_tolerance(runtime_cls, run_once_iterab
             for work_idx, work in self.experimental_iterate(enumerate(self.iter), run_once=self.run_once_iterable):
                 if not self.restarting and work_idx == 1:
                     # gives time to the delta to be sent.
-                    self._exit()
+                    self.stop()
                 if isinstance(work, str) and isinstance(self.iter, Dict):
                     work = self.iter[work]
                 work.run()
             if self.looping > 0:
-                self._exit()
+                self.stop()
             self.looping += 1
 
     app = LightningApp(RootFlow(use_list, run_once_iterable, cache_calls))
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.iter[0 if use_list else "0"].counter == 1
     assert app.root.iter[1 if use_list else "1"].counter == 0
     assert app.root.iter[2 if use_list else "2"].counter == 0
@@ -368,12 +379,9 @@ def test_structure_with_iterate_and_fault_tolerance(runtime_cls, run_once_iterab
 
     app = LightningApp(RootFlow(use_list, run_once_iterable, cache_calls))
     app.root.restarting = True
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
-    if run_once_iterable:
-        expected_value = 1
-    else:
-        expected_value = 1 if cache_calls else 2
+    expected_value = 1 if run_once_iterable else 1 if cache_calls else 2
     assert app.root.iter[0 if use_list else "0"].counter == expected_value
     assert app.root.iter[1 if use_list else "1"].counter == expected_value
     assert app.root.iter[2 if use_list else "2"].counter == expected_value
@@ -406,7 +414,7 @@ class CheckpointFlow(LightningFlow):
         if hasattr(self, "counter"):
             self.counter += 1
             if self.counter >= self.exit:
-                self._exit()
+                self.stop()
         if self.depth >= 4:
             self.collection.run()
         else:
@@ -432,13 +440,12 @@ class FlowDict(LightningFlow):
             self.dict["w"] = SimpleCounterWork()
 
         if self.dict["w"].status.stage == WorkStageStatus.SUCCEEDED:
-            self._exit()
+            self.stop()
 
         self.dict["w"].run()
 
 
 def test_dict_with_queues():
-
     app = LightningApp(FlowDict())
     MultiProcessRuntime(app, start_server=False).dispatch()
 
@@ -453,13 +460,12 @@ class FlowList(LightningFlow):
             self.list.append(SimpleCounterWork())
 
         if self.list[-1].status.stage == WorkStageStatus.SUCCEEDED:
-            self._exit()
+            self.stop()
 
         self.list[-1].run()
 
 
 def test_list_with_queues():
-
     app = LightningApp(FlowList())
     MultiProcessRuntime(app, start_server=False).dispatch()
 
@@ -490,10 +496,57 @@ class FlowPayload(LightningFlow):
             for work in self.dst.values():
                 work.run(self.src.payload)
         if all(w.has_succeeded for w in self.dst.values()):
-            self._exit()
+            self.stop()
 
 
 def test_structures_with_payload():
     app = LightningApp(FlowPayload(), log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
     os.remove("payload")
+
+
+def test_structures_have_name_on_init():
+    """Test that the children in structures have the correct name assigned upon initialization."""
+
+    class ChildWork(LightningWork):
+        def run(self):
+            pass
+
+    class Collection(EmptyFlow):
+        def __init__(self):
+            super().__init__()
+            self.list_structure = List()
+            self.list_structure.append(ChildWork())
+
+            self.dict_structure = Dict()
+            self.dict_structure["dict_child"] = ChildWork()
+
+    flow = Collection()
+    LightningApp(flow)  # wrap in app to init all component names
+    assert flow.list_structure[0].name == "root.list_structure.0"
+    assert flow.dict_structure["dict_child"].name == "root.dict_structure.dict_child"
+
+
+class FlowWiStructures(LightningFlow):
+    def __init__(self):
+        super().__init__()
+
+        self.ws = [EmptyFlow(), EmptyFlow()]
+
+        self.ws1 = {"a": EmptyFlow(), "b": EmptyFlow()}
+
+        self.ws2 = {
+            "a": EmptyFlow(),
+            "b": EmptyFlow(),
+            "c": List(EmptyFlow(), EmptyFlow()),
+            "d": Dict(**{"a": EmptyFlow()}),
+        }
+
+    def run(self):
+        pass
+
+
+def test_flow_without_structures():
+    flow = FlowWiStructures()
+    assert isinstance(flow.ws, List)
+    assert isinstance(flow.ws1, Dict)

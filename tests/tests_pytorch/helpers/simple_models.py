@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,12 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import operator
+
 import torch
 import torch.nn.functional as F
+from lightning_utilities.core.imports import compare_version
 from torch import nn
 from torchmetrics import Accuracy, MeanSquaredError
 
-from pytorch_lightning import LightningModule
+from lightning.pytorch import LightningModule
+
+# using new API with task
+_TM_GE_0_11 = compare_version("torchmetrics", operator.ge, "0.11.0")
 
 
 class ClassificationModel(LightningModule):
@@ -29,9 +35,10 @@ class ClassificationModel(LightningModule):
             setattr(self, f"layer_{i}a", torch.nn.ReLU())
         setattr(self, "layer_end", nn.Linear(num_features, 3))
 
-        self.train_acc = Accuracy()
-        self.valid_acc = Accuracy()
-        self.test_acc = Accuracy()
+        acc = Accuracy(task="multiclass", num_classes=num_classes) if _TM_GE_0_11 else Accuracy()
+        self.train_acc = acc.clone()
+        self.valid_acc = acc.clone()
+        self.test_acc = acc.clone()
 
     def forward(self, x):
         x = self.layer_0(x)
@@ -41,8 +48,7 @@ class ClassificationModel(LightningModule):
         x = self.layer_2(x)
         x = self.layer_2a(x)
         x = self.layer_end(x)
-        logits = F.softmax(x, dim=1)
-        return logits
+        return F.softmax(x, dim=1)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)

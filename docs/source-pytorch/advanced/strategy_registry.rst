@@ -1,8 +1,6 @@
 Strategy Registry
 =================
 
-.. warning:: The Strategy Registry is experimental and subject to change.
-
 Lightning includes a registry that holds information about Training strategies and allows for the registration of new custom strategies.
 
 The Strategies are assigned strings that identify them, such as "ddp", "deepspeed_stage_2_offload", and so on.
@@ -11,21 +9,21 @@ It also returns the optional description and parameters for initialising the Str
 
 .. code-block:: python
 
-    # Training with the DDP Strategy with `find_unused_parameters` as False
-    trainer = Trainer(strategy="ddp_find_unused_parameters_false", accelerator="gpu", devices=4)
+    # Training with the DDP Strategy
+    trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
 
     # Training with DeepSpeed ZeRO Stage 3 and CPU Offload
     trainer = Trainer(strategy="deepspeed_stage_3_offload", accelerator="gpu", devices=3)
 
     # Training with the TPU Spawn Strategy with `debug` as True
-    trainer = Trainer(strategy="tpu_spawn_debug", accelerator="tpu", devices=8)
+    trainer = Trainer(strategy="xla_debug", accelerator="tpu", devices=8)
 
 
 Additionally, you can pass your custom registered training strategies to the ``strategy`` argument.
 
 .. code-block:: python
 
-    from pytorch_lightning.strategies import DDPStrategy, StrategyRegistry, CheckpointIO
+    from lightning.pytorch.strategies import DDPStrategy, StrategyRegistry, CheckpointIO
 
 
     class CustomCheckpointIO(CheckpointIO):

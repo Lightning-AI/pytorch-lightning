@@ -71,12 +71,12 @@ When you need to add complicated pre-processing or post-processing logic to your
 ****************************
 Enable distributed inference
 ****************************
-By using the predict step in Lightning you get free distributed inference using :class:`~pytorch_lightning.callbacks.prediction_writer.BasePredictionWriter`.
+By using the predict step in Lightning you get free distributed inference using :class:`~lightning.pytorch.callbacks.prediction_writer.BasePredictionWriter`.
 
 .. code-block:: python
 
     import torch
-    from pytorch_lightning.callbacks import BasePredictionWriter
+    from lightning.pytorch.callbacks import BasePredictionWriter
 
 
     class CustomWriter(BasePredictionWriter):

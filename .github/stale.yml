@@ -29,8 +29,8 @@ pulls:
     markComment: >
       This pull request has been automatically marked as stale because it has not had recent activity.
       It will be closed in 7 days if no further activity occurs. If you need further help see our docs:
-      https://pytorch-lightning.readthedocs.io/en/latest/generated/CONTRIBUTING.html#pull-request
-      or ask the assistance of a core contributor here or on Slack.
+      https://lightning.ai/docs/pytorch/latest/generated/CONTRIBUTING.html#pull-request
+      or ask the assistance of a core contributor here or on Discord.
       Thank you for your contributions.
     # Comment to post when closing a stale issue. Set to `false` to disable
     closeComment: >

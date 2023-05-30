@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,24 +14,20 @@
 import os
 from datetime import timedelta
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
+from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.nn.parallel import DistributedDataParallel
 
-from lightning_lite.plugins.environments import ClusterEnvironment, LightningEnvironment
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies import DDPStrategy
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
+from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
+from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.strategies import DDPStrategy
+from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
+from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
-
-if _FAIRSCALE_AVAILABLE:
-    from fairscale.optim import OSS
-if _TORCH_GREATER_EQUAL_1_10:
-    from torch.distributed.optim import ZeroRedundancyOptimizer
 
 
 class BoringModelGPU(BoringModel):
@@ -121,7 +117,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_ddp_configure_ddp():
+def test_ddp_configure_ddp(mps_count_0):
     """Tests with ddp strategy."""
     model = BoringModel()
     ddp_strategy = DDPStrategy()
@@ -155,7 +151,7 @@ def test_ddp_configure_ddp():
 
 
 @RunIf(min_cuda_gpus=1)
-@pytest.mark.parametrize("trainer_fn", (TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING))
+@pytest.mark.parametrize("trainer_fn", [TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING])
 def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
     model = BoringModelGPU()
     model.layer = torch.nn.BatchNorm1d(10)
@@ -178,7 +174,7 @@ class CheckOptimizerDeviceModel(BoringModel):
 
 
 @RunIf(min_cuda_gpus=1)
-@pytest.mark.parametrize("strategy", ("ddp", "ddp_spawn"))
+@pytest.mark.parametrize("strategy", ["ddp", "ddp_spawn"])
 def test_model_parameters_on_device_for_optimizer(strategy):
     """Test that the strategy has moved the parameters to the device by the time the optimizer gets created."""
     model = CheckOptimizerDeviceModel()
@@ -231,7 +227,13 @@ def test_configure_launcher_create_processes_externally():
     ddp_strategy = DDPStrategy(cluster_environment=MyClusterEnvironment())
     assert ddp_strategy.launcher is None
     ddp_strategy._configure_launcher()
-    assert ddp_strategy.launcher is None
+    assert isinstance(ddp_strategy.launcher, _SubprocessScriptLauncher)
+
+    ddp_strategy.launcher._call_children_scripts = Mock()
+    launch_fn = Mock()
+    ddp_strategy.launcher.launch(launch_fn)
+    ddp_strategy.launcher._call_children_scripts.assert_not_called()
+    launch_fn.assert_called_once()
 
 
 @mock.patch("torch.distributed.init_process_group")
@@ -242,10 +244,10 @@ def test_ddp_strategy_set_timeout(mock_init_process_group):
     ddp_strategy = DDPStrategy(timeout=test_timedelta)
     trainer = Trainer(
         max_epochs=1,
+        accelerator="cpu",
         strategy=ddp_strategy,
     )
     # test wrap the model if fitting
-    trainer.state.fn = TrainerFn.FITTING
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
     trainer.strategy.setup_environment()
@@ -258,40 +260,13 @@ def test_ddp_strategy_set_timeout(mock_init_process_group):
     )
 
 
-class BoringFairScaleOptimizerModel(BoringModel):
-    def configure_optimizers(self):
-        base_optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-        return OSS(params=base_optimizer.param_groups, optim=type(base_optimizer), **base_optimizer.defaults)
-
-
-@RunIf(min_cuda_gpus=2, fairscale=True)
-@pytest.mark.parametrize("strategy", (pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"))
-def test_ddp_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
-    """Test to ensure that checkpoint is saved correctly when using fairscale optimizer."""
-    model = BoringFairScaleOptimizerModel()
-    trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
-
-    trainer.fit(model)
-
-    checkpoint_path = os.path.join(tmpdir, "model.pt")
-    # need to broadcast because tmpdir is different on each process
-    checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
-    trainer.save_checkpoint(checkpoint_path)
-    trainer.strategy.barrier()  # ensure the checkpoint is saved before load
-    saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
-
-    # Assert model parameters are identical after loading
-    for trained_param, loaded_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(trained_param.to("cpu"), loaded_param)
-
-
 class BoringZeroRedundancyOptimizerModel(BoringModel):
     def configure_optimizers(self):
         return ZeroRedundancyOptimizer(self.layer.parameters(), optimizer_class=torch.optim.Adam, lr=0.1)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True)
-@pytest.mark.parametrize("strategy", (pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"))
+@pytest.mark.parametrize("strategy", [pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"])
 def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using zero redundancy optimizer."""
     model = BoringZeroRedundancyOptimizerModel()
@@ -303,9 +278,27 @@ def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     # need to broadcast because tmpdir is different on each process
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.strategy.barrier()  # ensure the checkpoint is saved before load
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     # Assert model parameters are identical after loading
     for trained_param, loaded_param in zip(model.parameters(), saved_model.parameters()):
         assert torch.equal(trained_param.to("cpu"), loaded_param)
+
+
+class UnusedParametersModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.intermediate_layer = torch.nn.Linear(32, 32)
+
+    def training_step(self, batch, batch_idx):
+        with torch.no_grad():
+            batch = self.intermediate_layer(batch)
+        return super().training_step(batch, batch_idx)
+
+
+def test_ddp_strategy_find_unused_parameters_exception():
+    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning
+    users."""
+    trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp", max_steps=2)
+    with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):
+        trainer.fit(UnusedParametersModel())

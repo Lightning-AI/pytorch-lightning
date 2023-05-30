@@ -8,7 +8,6 @@ from lightning.app.storage import Path
 
 
 class MLServer(LightningWork):
-
     """This components uses SeldonIO MLServer library.
 
     The model endpoint: /v2/models/{MODEL_NAME}/versions/{VERSION}/infer.

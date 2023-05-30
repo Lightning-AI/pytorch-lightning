@@ -67,7 +67,7 @@ A delta sent from the Work to the Flow looks like this:
 
 Here is the associated illustration:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/deltas.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/deltas.gif
     :alt: Mechanism showing how delta are sent.
     :width: 100 %
 
@@ -81,7 +81,7 @@ Run the app with:
 
 .. code-block:: bash
 
-    lightning run app docs/source-app/core_api/lightning_app/app.py
+    lightning run app docs/source/core_api/lightning_app/app.py
 
 And here's the output you get when running the App using the **Lightning CLI**:
 

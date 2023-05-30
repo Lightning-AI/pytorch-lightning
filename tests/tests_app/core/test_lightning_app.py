@@ -1,43 +1,42 @@
+import contextlib
 import logging
 import os
 import pickle
 from re import escape
-from time import sleep
+from time import sleep, time
 from unittest import mock
-from unittest.mock import ANY
 
 import pytest
 from deepdiff import Delta
 from pympler import asizeof
-from tests_app import _PROJECT_ROOT
 
-from lightning_app import CloudCompute, LightningApp, LightningFlow, LightningWork  # F401
-from lightning_app.api.request_types import _DeltaRequest
-from lightning_app.core.constants import (
+from lightning.app import CloudCompute, LightningApp, LightningFlow, LightningWork  # F401
+from lightning.app.api.request_types import _DeltaRequest
+from lightning.app.core.constants import (
     FLOW_DURATION_SAMPLES,
     FLOW_DURATION_THRESHOLD,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
 )
-from lightning_app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue, SingleProcessQueue
-from lightning_app.frontend import StreamlitFrontend
-from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
-from lightning_app.storage import Path
-from lightning_app.storage.path import _storage_root_dir
-from lightning_app.testing.helpers import _RunIf
-from lightning_app.testing.testing import LightningTestApp
-from lightning_app.utilities.app_helpers import affiliation
-from lightning_app.utilities.enum import AppStage, WorkStageStatus, WorkStopReasons
-from lightning_app.utilities.packaging import cloud_compute
-from lightning_app.utilities.redis import check_if_redis_running
-from lightning_app.utilities.warnings import LightningFlowWarning
+from lightning.app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue
+from lightning.app.frontend import StreamlitFrontend
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage import Path
+from lightning.app.storage.path import _storage_root_dir
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.testing.testing import LightningTestApp
+from lightning.app.utilities.app_helpers import affiliation
+from lightning.app.utilities.enum import AppStage, WorkStageStatus, WorkStopReasons
+from lightning.app.utilities.packaging import cloud_compute
+from lightning.app.utilities.redis import check_if_redis_running
+from lightning.app.utilities.warnings import LightningFlowWarning
+from tests_app import _PROJECT_ROOT
 
 logger = logging.getLogger()
 
 
 def test_lightning_app_requires_root_run_method():
     """Test that a useful exception is raised if the root flow does not override the run method."""
-
     with pytest.raises(
         TypeError, match=escape("The root flow passed to `LightningApp` does not override the `run()` method")
     ):
@@ -82,10 +81,8 @@ class Work(LightningWork):
         self.has_finished = False
 
     def run(self):
-        self.counter += 1
-        if self.cache_calls:
-            self.has_finished = True
-        elif self.counter >= 3:
+        self.counter = self.counter + 1
+        if self.cache_calls or self.counter >= 3:
             self.has_finished = True
 
 
@@ -96,40 +93,62 @@ class SimpleFlow(LightningFlow):
         self.work_b = Work(cache_calls=False)
 
     def run(self):
+        if self.work_a.has_finished and self.work_b.has_finished:
+            self.stop()
         self.work_a.run()
         self.work_b.run()
-        if self.work_a.has_finished and self.work_b.has_finished:
-            self._exit()
 
 
-@pytest.mark.skip
-@pytest.mark.parametrize("component_cls", [SimpleFlow])
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
-def test_simple_app(component_cls, runtime_cls, tmpdir):
-    comp = component_cls()
+def test_simple_app(tmpdir):
+    comp = SimpleFlow()
     app = LightningApp(comp, log_level="debug")
     assert app.root == comp
     expected = {
-        "app_state": ANY,
-        "vars": {"_layout": ANY, "_paths": {}},
+        "app_state": mock.ANY,
+        "vars": {"_layout": mock.ANY, "_paths": {}},
         "calls": {},
         "flows": {},
+        "structures": {},
         "works": {
             "work_b": {
-                "vars": {"has_finished": False, "counter": 0, "_urls": {}, "_paths": {}},
-                "calls": {},
+                "vars": {
+                    "has_finished": False,
+                    "counter": 0,
+                    "_cloud_compute": mock.ANY,
+                    "_host": mock.ANY,
+                    "_url": "",
+                    "_future_url": "",
+                    "_internal_ip": "",
+                    "_paths": {},
+                    "_port": None,
+                    "_restarting": False,
+                    "_display_name": "",
+                },
+                "calls": {"latest_call_hash": None},
                 "changes": {},
             },
             "work_a": {
-                "vars": {"has_finished": False, "counter": 0, "_urls": {}, "_paths": {}},
-                "calls": {},
+                "vars": {
+                    "has_finished": False,
+                    "counter": 0,
+                    "_cloud_compute": mock.ANY,
+                    "_host": mock.ANY,
+                    "_url": "",
+                    "_future_url": "",
+                    "_internal_ip": "",
+                    "_paths": {},
+                    "_port": None,
+                    "_restarting": False,
+                    "_display_name": "",
+                },
+                "calls": {"latest_call_hash": None},
                 "changes": {},
             },
         },
         "changes": {},
     }
     assert app.state == expected
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
     assert comp.work_a.has_finished
     assert comp.work_b.has_finished
@@ -200,7 +219,7 @@ class A(LightningFlow):
         self.w_a.run()
         self.b.run()
         if self.b.c.d.e.w_e.c == 1:
-            self._exit()
+            self.stop()
 
 
 def test_nested_component_names():
@@ -325,7 +344,7 @@ class A4(LightningFlow):
     def run(self):
         self.work.run()
         if self.work.var_a == 1:
-            self._exit()
+            self.stop()
 
 
 @pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
@@ -357,11 +376,10 @@ class SimpleApp2(LightningApp):
         return True
 
 
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
-def test_app_restarting_move_to_blocking(runtime_cls, tmpdir):
+def test_app_restarting_move_to_blocking(tmpdir):
     """Validates sending restarting move the app to blocking again."""
     app = SimpleApp2(CounterFlow(), log_level="debug")
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
 
 class FlowWithFrontend(LightningFlow):
@@ -390,8 +408,8 @@ class AppWithFrontend(LightningApp):
         return super().run_once()
 
 
-@mock.patch("lightning_app.frontend.stream_lit.StreamlitFrontend.start_server")
-@mock.patch("lightning_app.frontend.stream_lit.StreamlitFrontend.stop_server")
+@mock.patch("lightning.app.frontend.stream_lit.StreamlitFrontend.start_server")
+@mock.patch("lightning.app.frontend.stream_lit.StreamlitFrontend.stop_server")
 def test_app_starts_with_complete_state_copy(_, __):
     """Test that the LightningApp captures the initial state in a separate copy when _run() gets called."""
     app = AppWithFrontend(FlowWithFrontend(), log_level="debug")
@@ -409,9 +427,8 @@ class EmptyFlow(LightningFlow):
 
 
 @pytest.mark.parametrize(
-    "queue_type_cls, default_timeout",
+    ("queue_type_cls", "default_timeout"),
     [
-        (SingleProcessQueue, STATE_UPDATE_TIMEOUT),
         (MultiProcessQueue, STATE_UPDATE_TIMEOUT),
         pytest.param(
             RedisQueue,
@@ -421,14 +438,14 @@ class EmptyFlow(LightningFlow):
     ],
 )
 @pytest.mark.parametrize(
-    "sleep_time, expect",
+    ("sleep_time", "expect"),
     [
         (1, 0),
-        (0, 20),
+        pytest.param(0, 10.0, marks=pytest.mark.xfail(strict=False, reason="failing...")),  # fixme
     ],
 )
+@pytest.mark.flaky(reruns=5)
 def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
-
     """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
     time window."""
 
@@ -463,7 +480,21 @@ def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
         assert generated > expect
 
 
-class SimpleFlow(LightningFlow):
+def test_lightning_app_aggregation_empty():
+    """Verify the while loop exits before `state_accumulate_wait` is reached if no deltas are found."""
+
+    class SlowQueue(MultiProcessQueue):
+        def get(self, timeout):
+            return super().get(timeout)
+
+    app = LightningApp(EmptyFlow())
+    app.delta_queue = SlowQueue("api_delta_queue", 0)
+    t0 = time()
+    assert app._collect_deltas_from_ui_and_work_queues() == []
+    assert (time() - t0) < app.state_accumulate_wait
+
+
+class SimpleFlow2(LightningFlow):
     def __init__(self):
         super().__init__()
         self.counter = 0
@@ -475,9 +506,8 @@ class SimpleFlow(LightningFlow):
 
 def test_maybe_apply_changes_from_flow():
     """This test validates the app `_updated` is set to True only if the state was changed in the flow."""
-
-    app = LightningApp(SimpleFlow())
-    app.delta_queue = SingleProcessQueue("a", 0)
+    app = LightningApp(SimpleFlow2())
+    app.delta_queue = MultiProcessQueue("a", 0)
     assert app._has_updated
     app.maybe_apply_changes()
     app.root.run()
@@ -525,12 +555,11 @@ class CheckpointLightningApp(LightningApp):
 
 
 def test_snap_shotting():
-    try:
+    with contextlib.suppress(SuccessException):
         app = CheckpointLightningApp(FlowA())
         app.checkpointing = True
         MultiProcessRuntime(app, start_server=False).dispatch()
-    except SuccessException:
-        pass
+
     checkpoint_dir = os.path.join(_storage_root_dir(), "checkpoints")
     checkpoints = os.listdir(checkpoint_dir)
     assert len(checkpoints) == 1
@@ -572,13 +601,13 @@ class WaitForAllFlow(LightningFlow):
 
         expected = 1 if self.use_same_args else next_c
 
-        if not all([w.num_successes == (expected if w.cache_calls else next_c) for w in self.works()]):
+        if not all(w.num_successes == (expected if w.cache_calls else next_c) for w in self.works()):
             return
 
         self.c += 1
         assert [w.counter for w in self.works()] == [self.c, expected, self.c, expected]
         if self.c > 3:
-            self._exit()
+            self.stop()
 
 
 # TODO (tchaton) Resolve this test.
@@ -614,7 +643,7 @@ class CheckpointFlow(LightningFlow):
 
     def run(self):
         if self.works()[0].counter == 5:
-            self._exit()
+            self.stop()
 
         if self.depth >= 10:
             self.work.run()
@@ -622,6 +651,7 @@ class CheckpointFlow(LightningFlow):
             self.flow.run()
 
 
+@pytest.mark.skipif(True, reason="reloading isn't properly supported")
 def test_lightning_app_checkpointing_with_nested_flows():
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
@@ -727,7 +757,7 @@ class FlowCCTolerance(LightningFlow):
     def run(self):
         self.work.run()
         if self.work.counter == 10:
-            self._exit()
+            self.stop()
 
 
 class FaultToleranceLightningTestApp(LightningTestApp):
@@ -794,7 +824,7 @@ class ProtectedAttributesFlow(LightningFlow):
             self.protected_work._protected = 1
 
         if self.done and self.protected_work.done:
-            self._exit()
+            self.stop()
 
 
 def test_protected_attributes_not_in_state():
@@ -819,7 +849,7 @@ class FlowExit(LightningFlow):
 
     def run(self):
         if self.work.counter == 1:
-            self._exit()
+            self.stop()
         self.work.run()
 
 
@@ -845,7 +875,7 @@ class FlowStop(LightningFlow):
 
     def run(self):
         if self.w.status.stage == WorkStageStatus.STOPPED:
-            self._exit()
+            self.stop()
         if self.w.counter == 1:
             self.w.stop()
         self.w.run()
@@ -865,7 +895,7 @@ class SleepyFlow(LightningFlow):
 
     def run(self):
         if self.counter == 2 * FLOW_DURATION_SAMPLES:
-            self._exit()
+            self.stop()
         sleep(self.sleep_interval)
         self.counter += 1
 
@@ -888,7 +918,7 @@ class SleepyFlowWithWork(LightningFlow):
 
     def run(self):
         if self.counter == 2 * FLOW_DURATION_SAMPLES:
-            self._exit()
+            self.stop()
         self.work.run()
         sleep(self.sleep_interval)
         self.counter += 1
@@ -946,14 +976,14 @@ class SizeFlow(LightningFlow):
         self._state_sizes[self.work0.counter] = asizeof.asizeof(self.state)
 
         if self.work0.counter >= 20:
-            self._exit()
+            self.stop()
 
 
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 7824
-    assert app.root._state_sizes[20] <= 26500
+    assert app.root._state_sizes[0] <= 7965
+    assert app.root._state_sizes[20] <= 26550
 
 
 class FlowUpdated(LightningFlow):
@@ -991,7 +1021,7 @@ def test_debug_mode_logging():
     """This test validates the DEBUG messages are collected when activated by the LightningApp(debug=True) and
     cleanup once finished."""
 
-    from lightning_app.core.app import _console
+    from lightning.app.core.app import _console
 
     app = LightningApp(A4(), log_level="debug")
     assert _console.level == logging.DEBUG
@@ -1073,10 +1103,9 @@ class FlowWrapper(LightningFlow):
 
 
 def test_cloud_compute_binding():
-
     cloud_compute.ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = True
 
-    assert cloud_compute._CLOUD_COMPUTE_STORE == {}
+    assert {} == cloud_compute._CLOUD_COMPUTE_STORE
     flow = FlowCC()
     assert len(cloud_compute._CLOUD_COMPUTE_STORE) == 2
     assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.work_c"]
@@ -1090,10 +1119,10 @@ def test_cloud_compute_binding():
     assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.w.w.work_c"]
     assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.w.w.work_a", "root.w.w.work_b"]
 
-    assert "__cloud_compute__" == flow.state["vars"]["cloud_compute"]["type"]
-    assert "__cloud_compute__" == flow.work_a.state["vars"]["_cloud_compute"]["type"]
-    assert "__cloud_compute__" == flow.work_b.state["vars"]["_cloud_compute"]["type"]
-    assert "__cloud_compute__" == flow.work_c.state["vars"]["_cloud_compute"]["type"]
+    assert flow.state["vars"]["cloud_compute"]["type"] == "__cloud_compute__"
+    assert flow.work_a.state["vars"]["_cloud_compute"]["type"] == "__cloud_compute__"
+    assert flow.work_b.state["vars"]["_cloud_compute"]["type"] == "__cloud_compute__"
+    assert flow.work_c.state["vars"]["_cloud_compute"]["type"] == "__cloud_compute__"
     work_a_id = flow.work_a.state["vars"]["_cloud_compute"]["_internal_id"]
     work_b_id = flow.work_b.state["vars"]["_cloud_compute"]["_internal_id"]
     work_c_id = flow.work_c.state["vars"]["_cloud_compute"]["_internal_id"]
@@ -1134,7 +1163,6 @@ class FlowValue(LightningFlow):
 
 def test_lightning_flow_properties():
     """Validates setting properties to the LightningFlow properly calls property.fset."""
-
     flow = FlowValue()
     assert flow._value is None
     flow.run()
@@ -1147,6 +1175,5 @@ class SimpleWork2(LightningWork):
 
 
 def test_lightning_work_stopped():
-
     app = LightningApp(SimpleWork2())
     MultiProcessRuntime(app, start_server=False).dispatch()

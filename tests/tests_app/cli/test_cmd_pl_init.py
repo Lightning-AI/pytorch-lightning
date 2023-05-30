@@ -6,8 +6,8 @@ from unittest.mock import Mock
 import pytest
 from click.testing import CliRunner
 
-from lightning_app.cli import lightning_cli
-from lightning_app.cli.cmd_pl_init import _can_encode_icon, download_frontend, pl_app
+from lightning.app.cli import lightning_cli
+from lightning.app.cli.cmd_pl_init import _can_encode_icon, download_frontend, pl_app
 
 
 def test_pl_app_input_paths_do_not_exist(tmp_path):
@@ -100,14 +100,14 @@ def test_pl_app_encode_icon(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "cwd, source_dir, script_path",
+    ("cwd", "source_dir", "script_path"),
     [
         ("./", "./", "train.py"),
         ("./", "./code", "./code/train.py"),
     ],
 )
-@mock.patch("lightning_app.cli.cmd_pl_init.project_file_from_template")
-@mock.patch("lightning_app.cli.cmd_pl_init.download_frontend")
+@mock.patch("lightning.app.cli.cmd_pl_init.project_file_from_template")
+@mock.patch("lightning.app.cli.cmd_pl_init.download_frontend")
 def test_pl_app_relative_paths(_, __, cwd, source_dir, script_path, tmp_path, monkeypatch):
     source_dir = tmp_path / source_dir
     source_dir.mkdir(parents=True, exist_ok=True)

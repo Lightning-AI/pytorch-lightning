@@ -6,57 +6,36 @@ on:
     branches: [master, "release/*"]
   release:
     types: [published]
+  pull_request:  # this shall test only the part of workflow before publishing
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]
+    paths:
+      - '.github/actions/pkg-publish/*'
+      - ".github/workflows/_legacy-checkpoints.yml.yml"
+      - ".github/workflows/_build-packages.yml"
+      - ".github/workflows/release-pypi.yml"
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  FREEZE_REQUIREMENTS: 1
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  PYTHON_VER: "3.8"
 
 jobs:
-  init:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v3
-    - run: |
-        mkdir dist && touch dist/.placeholder
-    - uses: actions/upload-artifact@v3
-      with:
-        name: dist-packages-${{ github.sha }}
-        path: dist
 
   build-packages:
-    needs: init
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: true
-      # run sequential
-      max-parallel: 1
-      matrix:
-        pkg-name: ["lightning", "app", "lite", "pytorch"]
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions/download-artifact@v3
-      with:
-        name: dist-packages-${{ github.sha }}
-        path: dist
-    - uses: actions/setup-python@v4
-      with:
-        python-version: 3.9
+    uses: ./.github/workflows/_build-packages.yml
+    with:
+      artifact-name: dist-packages-${{ github.sha }}
 
-    - name: Install dependencies
-      run: pip install -U setuptools wheel
-
-    - name: Build packages
-      env:
-        PACKAGE_NAME: ${{ matrix.pkg-name }}
-      run: |
-        python setup.py sdist bdist_wheel
-        ls -lh dist/
-
-    - uses: actions/upload-artifact@v3
-      with:
-        name: dist-packages-${{ github.sha }}
-        path: dist
 
   upload-packages:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: build-packages
-    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    if: github.event_name == 'release'
     steps:
     - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
@@ -67,53 +46,147 @@ jobs:
     - name: Upload to release
       uses: AButler/upload-release-assets@v2.0
       with:
-        files: 'dist/*'
+        files: 'dist/*/*'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-packages:
-    runs-on: ubuntu-20.04
-    needs: build-packages
-    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+
+  release-version:
+    runs-on: ubuntu-22.04
+    outputs:
+      tag: ${{ steps.lai-package.outputs.version }}
     steps:
     - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VER }}
+    - name: install Package
+      run: |
+        pip install . -f ${TORCH_URL}
+        pip list
+    - name: package Version
+      id: lai-package
+      run: python -c "import lightning ; print(f'version={lightning.__version__}')" >> $GITHUB_OUTPUT
+
+
+  signaling:
+    runs-on: ubuntu-22.04
+    needs: [release-version]
+    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    env:
+      TAG: ${{ needs.release-version.outputs.tag }}
+    steps:
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VER }}
+    - uses: actions/checkout@v3
+      with:
+        repository: gridai/base-images
+        token: ${{ secrets.PAT_GHOST }}
+    - name: Update lightning version
+      run: |
+        import json, os
+        with open("versions.json") as fo:
+            vers = json.load(fo)
+        vers["lightning_version"] = os.getenv('TAG')
+        with open("versions.json", "w") as fw:
+            json.dump(vers, fw)
+      shell: python
+    - run: cat versions.json
+    - name: GIT commit & push
+      env:
+        BRANCH_NAME: "trigger/lightning-${{ env.TAG }}"
+      run: |
+        git config --global user.name "PL Ghost"
+        git config --global user.email pl-github@grid.ai
+        git checkout -b ${BRANCH_NAME}
+        git add versions.json
+        git status
+        git commit -m "bumping lightning version -> ${TAG}"
+        git push -u origin ${BRANCH_NAME} -f
+
+
+  waiting:
+    runs-on: ubuntu-22.04
+    needs: [release-version, signaling]
+    env:
+      TAG: ${{ needs.release-version.outputs.tag }}
+    timeout-minutes: 90
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VER }}
+    - run: pip install gitpython
+    - name: Delay releasing
+      run: |
+        import git, os, time
+        repo = git.Repo('.')
+        branch = f"origin/builds/{os.getenv('TAG')}"
+        while True:
+          remote_refs = [b.name for b in repo.remote().refs]
+          print([n for n in remote_refs if "builds" in n])
+          if branch in remote_refs:
+            break
+          time.sleep(60)
+          for remote in repo.remotes:
+            remote.fetch()
+      shell: python
+
+
+  pre-publish-packages:
+    runs-on: ubuntu-22.04
+    needs: build-packages
+    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    strategy:
+      matrix:
+        name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
+    steps:
+    - uses: actions/checkout@v3  # needed for local action bellow
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - run: ls -lh dist/
-    - run: mkdir pypi/
-
-    - name: Delay releasing
-      uses: juliangruber/sleep-action@v1
-      with:
-        time: 10m
-
+    - name: Browse folder
+      id: folder
+      run: |
+        sudo apt install -q -y tree
+        tree -L 2 -h dist/
+        python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*app*"
-        pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
+        pkg-folder: dist/${{ steps.folder.outputs.pkg }}
+        pypi-test-token: ${{ secrets[format('PYPI_TEST_TOKEN_{0}', matrix.name)] }}
 
+
+  publish-packages:
+    runs-on: ubuntu-22.04
+    needs: [build-packages, waiting]
+    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    strategy:
+      matrix:
+        name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
+    steps:
+    - uses: actions/checkout@v3  # needed for local action bellow
+    - uses: actions/download-artifact@v3
+      with:
+        name: dist-packages-${{ github.sha }}
+        path: dist
+    - name: Browse folder
+      id: folder
+      run: |
+        sudo apt install -q -y tree
+        tree -L 2 -h dist/
+        python -c "print('pkg=' + '${{ matrix.name }}'.lower())" >> $GITHUB_OUTPUT
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*lite*"
-        pypi-token: ${{ secrets.PYPI_TOKEN_LITE }}
+        pkg-folder: dist/${{ steps.folder.outputs.pkg }}
+        pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', matrix.name)] }}
 
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-pattern: "*pytorch*"
-        pypi-token: ${{ secrets.PYPI_TOKEN_PYTORCH }}
-
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-pattern: "*"
-        pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
   legacy-checkpoints:
-    needs: publish-packages
-    uses: ./.github/workflows/legacy-checkpoints.yml
+    needs: [build-packages]
+    uses: ./.github/workflows/_legacy-checkpoints.yml
     with:
-      push_to_s3: true
-      create_pr: true
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}
+      push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
+      create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
+    secrets: inherit

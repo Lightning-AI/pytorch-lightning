@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,36 +13,39 @@
 # limitations under the License.
 import os
 import pickle
-from contextlib import suppress
-from copy import deepcopy
+from contextlib import nullcontext, suppress
 from unittest import mock
 
 import pytest
 import torch
-import torchmetrics
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor, tensor
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
+from torchmetrics.classification import Accuracy
 
-import pytorch_lightning as pl
-from lightning_lite.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.trainer.connectors.logger_connector.result import (
+import lightning.pytorch as pl
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import OnExceptionCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.connectors.logger_connector.result import (
     _Metadata,
     _ResultCollection,
     _ResultMetric,
     _Sync,
 )
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 class DummyMetric(Metric):
+    x: Tensor
+
     def __init__(self):
         super().__init__()
-        self.add_state("x", torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("x", tensor(0), dist_reduce_fx="sum")
 
     def update(self, x):
         self.x += x
@@ -54,7 +57,7 @@ class DummyMetric(Metric):
 def result_reduce_ddp_fn(strategy):
     rank = strategy.local_rank
     worldsize = strategy.num_processes
-    torch.tensor([1.0])
+    tensor([1.0])
 
     metric_a = DummyMetric()
     metric_b = DummyMetric()
@@ -64,7 +67,7 @@ def result_reduce_ddp_fn(strategy):
     metric_b = metric_b.to(f"cuda:{rank}")
     metric_c = metric_c.to(f"cuda:{rank}")
 
-    result = _ResultCollection(True, torch.device(f"cuda:{rank}"))
+    result = _ResultCollection(True)
 
     for _ in range(3):
         cumulative_sum = 0
@@ -104,7 +107,7 @@ def test_result_metric_integration():
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
 
     for _ in range(3):
         cumulative_sum = 0
@@ -132,7 +135,7 @@ def test_result_metric_integration():
 
         assert epoch_log == {"b": cumulative_sum, "a_epoch": cumulative_sum}
 
-    result.minimize = torch.tensor(1.0)
+    result.minimize = tensor(1.0)
     result.extra = {}
     assert str(result) == (
         "_ResultCollection("
@@ -145,7 +148,6 @@ def test_result_metric_integration():
     assert repr(result) == (
         "{"
         "True, "
-        "device(type='cpu'), "
         "{'h.a': _ResultMetric('a', value=DummyMetric()), "
         "'h.b': _ResultMetric('b', value=DummyMetric()), "
         "'h.c': _ResultMetric('c', value=DummyMetric())"
@@ -154,7 +156,7 @@ def test_result_metric_integration():
 
 
 def test_result_collection_simple_loop():
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
     current_fx_name = None
     batch_idx = None
 
@@ -165,34 +167,34 @@ def test_result_collection_simple_loop():
         result.log(fx, *args, **kwargs)
         current_fx_name = fx
 
-    lightning_log("a0", "a", torch.tensor(0.0), on_step=True, on_epoch=True)
-    lightning_log("a1", "a", torch.tensor(0.0), on_step=True, on_epoch=True)
+    lightning_log("a0", "a", tensor(0.0), on_step=True, on_epoch=True)
+    lightning_log("a1", "a", tensor(0.0), on_step=True, on_epoch=True)
     for epoch in range(2):
-        lightning_log("b0", "a", torch.tensor(1.0) + epoch, on_step=True, on_epoch=True)
-        lightning_log("b1", "a", torch.tensor(1.0) + epoch, on_step=True, on_epoch=True)
+        lightning_log("b0", "a", tensor(1.0) + epoch, on_step=True, on_epoch=True)
+        lightning_log("b1", "a", tensor(1.0) + epoch, on_step=True, on_epoch=True)
         for batch_idx in range(2):
-            lightning_log("c0", "a", torch.tensor(2.0) + epoch, on_step=True, on_epoch=True)
-            lightning_log("c1", "a", torch.tensor(2.0) + epoch, on_step=True, on_epoch=True)
-            lightning_log("c2", "a", torch.tensor(2.0) + epoch, on_step=True, on_epoch=True)
+            lightning_log("c0", "a", tensor(2.0) + epoch, on_step=True, on_epoch=True)
+            lightning_log("c1", "a", tensor(2.0) + epoch, on_step=True, on_epoch=True)
+            lightning_log("c2", "a", tensor(2.0) + epoch, on_step=True, on_epoch=True)
         batch_idx = None
-        lightning_log("d0", "a", torch.tensor(3.0) + epoch, on_step=False, on_epoch=True)
-        lightning_log("d1", "a", torch.tensor(3.0) + epoch, on_step=False, on_epoch=True)
+        lightning_log("d0", "a", tensor(3.0) + epoch, on_step=False, on_epoch=True)
+        lightning_log("d1", "a", tensor(3.0) + epoch, on_step=False, on_epoch=True)
 
         for k in ("a0.a", "a1.a"):
-            assert result[k].value == torch.tensor(0.0), k
-            assert result[k].cumulated_batch_size == torch.tensor(1.0), k
+            assert result[k].value == tensor(0.0), k
+            assert result[k].cumulated_batch_size == tensor(1.0), k
 
         for k in ("b0.a", "b1.a"):
-            assert result[k].value == torch.tensor(1.0) + epoch, k
-            assert result[k].cumulated_batch_size == torch.tensor(1.0), k
+            assert result[k].value == tensor(1.0) + epoch, k
+            assert result[k].cumulated_batch_size == tensor(1.0), k
 
         for k in ("c0.a", "c1.a", "c2.a"):
-            assert result[k].value == torch.tensor(4.0) + epoch * 2, k
-            assert result[k].cumulated_batch_size == torch.tensor(2.0), k
+            assert result[k].value == tensor(4.0) + epoch * 2, k
+            assert result[k].cumulated_batch_size == tensor(2.0), k
 
         for k in ("d0.a", "d1.a"):
-            assert result[k].value == torch.tensor(3.0) + epoch, k
-            assert result[k].cumulated_batch_size == torch.tensor(1.0), k
+            assert result[k].value == tensor(3.0) + epoch, k
+            assert result[k].cumulated_batch_size == tensor(1.0), k
 
 
 def my_sync_dist(x, *_, **__):
@@ -202,7 +204,7 @@ def my_sync_dist(x, *_, **__):
 def test_result_collection_restoration(tmpdir):
     """This test make sure metrics are properly reloaded on failure."""
 
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
     metric_a = DummyMetric()
     metric_b = DummyMetric()
     metric_c = DummyMetric()
@@ -218,11 +220,9 @@ def test_result_collection_restoration(tmpdir):
         current_fx_name = fx
 
     for epoch in range(2):
-
         cumulative_sum = 0
 
         for i in range(3):
-
             a = metric_a(i)
             b = metric_b(i)
             c = metric_c(i)
@@ -236,32 +236,11 @@ def test_result_collection_restoration(tmpdir):
             lightning_log("training_step", "c", metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
             lightning_log("training_step", "a_1", a, on_step=True, on_epoch=True)
             lightning_log("training_step", "b_1", b, on_step=False, on_epoch=True)
-            lightning_log("training_step", "c_1", {"1": c, "2": c}, on_step=True, on_epoch=False)
+            lightning_log("training_step", "c_1", c, on_step=True, on_epoch=False)
 
             batch_log = result.metrics(on_step=True)["log"]
             assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
-            assert set(batch_log["c_1"]) == {"1", "2"}
-
-            result_copy = deepcopy(result)
-            new_result = _ResultCollection(True, torch.device("cpu"))
-            state_dict = result.state_dict()
-            # check the sync fn was dropped
-            assert "fn" not in state_dict["items"]["training_step.a"]["meta"]["_sync"]
-
-            assert not new_result.result_metrics
-            assert len(result.result_metrics) == 7 + epoch > 0
-
-            new_result.load_state_dict(
-                state_dict, metrics={"metric": metric, "metric_b": metric_b, "metric_c": metric_c}
-            )
-            # should match
-            assert result_copy == new_result
-            # the sync fn has been kept
-            assert result_copy["training_step.a"].meta.sync.fn == new_result["training_step.a"].meta.sync.fn
-
-        epoch_log = result.metrics(on_step=False)["log"]
-        epoch_log_copy = result_copy.metrics(on_step=False)["log"]
-        assert epoch_log == epoch_log_copy
+            assert len(result.result_metrics) == 6 + epoch > 0
 
         lightning_log("train_epoch_end", "a", metric_a, on_step=False, on_epoch=True)
         epoch_log = result.metrics(on_step=False)["log"]
@@ -289,74 +268,11 @@ def test_result_collection_restoration(tmpdir):
         batch_idx = None
 
 
-@pytest.mark.parametrize(
-    "accelerator,device",
-    (
-        ("cpu", "cpu"),
-        pytest.param("gpu", "cuda", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", "mps", marks=RunIf(mps=True)),
-    ),
-)
-def test_lightning_module_logging_result_collection(tmpdir, accelerator, device):
-    class LoggingModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.metric = DummyMetric()
-
-        def validation_step(self, batch, batch_idx):
-            v = self.metric(batch_idx)
-            self.log_dict({"v": v, "m": self.metric})
-            return super().validation_step(batch, batch_idx)
-
-        def on_save_checkpoint(self, checkpoint) -> None:
-            results = self.trainer._results
-            # simplify logic
-            state_dict = results.state_dict(drop_value=False)
-
-            # check device
-            assert results["validation_step.v"].value.device.type == device
-            assert state_dict["items"]["validation_step.v"]["value"].device.type == device
-
-            # sync fn should be kept
-            assert results["validation_step.v"].meta.sync.fn == self.trainer.strategy.reduce
-
-            # sync fn dropped from the state dict
-            assert "fn" not in state_dict["items"]["validation_step.v"]["meta"]["_sync"]
-            results.load_state_dict(state_dict)
-
-            # check device after loading
-            assert results["validation_step.v"].value.device.type == device
-
-            # sync fn was preserved in the original result
-            assert results["validation_step.v"].meta.sync.fn == self.trainer.strategy.reduce
-
-            # default sync fn
-            new_results = _ResultCollection(False, device)
-            new_results.load_state_dict(state_dict, map_location="cpu")
-            assert new_results["validation_step.v"].meta.sync.fn is None
-
-            # check map location
-            assert new_results["validation_step.v"].value.device.type == "cpu"
-
-    model = LoggingModel()
-    ckpt = ModelCheckpoint(dirpath=tmpdir, save_on_train_epoch_end=False)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        callbacks=[ckpt],
-        accelerator=accelerator,
-        devices=1,
-    )
-    trainer.fit(model)
-
-
 class DummyMeanMetric(Metric):
     def __init__(self):
         super().__init__()
-        self.add_state("sum", torch.tensor(0), dist_reduce_fx=torch.sum)
-        self.add_state("count", torch.tensor(0), dist_reduce_fx=torch.sum)
+        self.add_state("sum", tensor(0), dist_reduce_fx=torch.sum)
+        self.add_state("count", tensor(0), dist_reduce_fx=torch.sum)
 
     def update(self, increment):
         self.sum += increment
@@ -369,12 +285,11 @@ class DummyMeanMetric(Metric):
         return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
 
 
-def result_collection_reload(accelerator="auto", devices=1, **kwargs):
-    """This test is going to validate _ResultCollection is properly being reload and final accumulation with Fault
-    Tolerant Training is correct."""
-
+def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **kwargs):
     class CustomException(Exception):
         pass
+
+    batches = 5
 
     class ExtendedBoringModel(BoringModel):
         def __init__(self):
@@ -388,12 +303,10 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
             return self.trainer.fit_loop._results
 
         def training_step(self, batch, batch_idx):
-
-            # In the training step, we will accumulate metrics using batch_idx from 0 to 4
-            # Without failure, we would expect to get `total=10 * world_size` and `num_batches=5 * world_size`
-            # Therefore, compute on `epoch_end` should provide 2 as `10 / 5`.
-            # However, below we will simulate a failure on `batch_idx=3`.
-
+            # We run 5 batches, meaning batch_idx from [0..4]
+            # Without failure, we expect to get `total=sum(range(5))` and `num_batches=5`
+            # When not restarting, it simulates a failure on `batch_idx=3` and test the state after reload
+            # Compute `on_epoch_end` would be `10/5=2` if the metric state had been serialized and reloaded
             if self.trainer.fit_loop.restarting:
                 self.log("tracking", batch_idx, on_step=True, on_epoch=True)
                 self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
@@ -401,8 +314,8 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
                 self.dummy_metric(batch_idx)
                 self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                value = self.results["training_step.tracking_metric"].value
-                value_2 = self.results["training_step.tracking"].value
+                value = self.results["training_step.tracking_metric"]
+                value_2 = self.results["training_step.tracking"]
 
                 # On failure, the Metric states are being accumulated on rank 0 and zeroed-out on other ranks.
                 # The shift indicates we failed while the state was `shift=sign(is_global_zero > 0) * [0..3]`
@@ -422,7 +335,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
                 self.dummy_metric(batch_idx)
                 self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                value = self.results["training_step.tracking"].value
+                value = self.results["training_step.tracking"]
                 assert value == sum(range(batch_idx + 1))
 
                 value = self.results["training_step.tracking_2"]
@@ -432,23 +345,33 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
 
         def on_train_epoch_end(self) -> None:
             if self.trainer.fit_loop.restarting:
-                total = sum(range(5)) * devices
+                # the state of the results before the exception is not saved and restored, so the total starts after
+                # the breaking_batch_idx
+                total = sum(range(self.breaking_batch_idx, batches))
                 metrics = self.results.metrics(on_step=False)
+                computed_value = self.dummy_metric.compute()
+
                 assert self.results["training_step.tracking"].value == total
-                assert metrics["callback"]["tracking"] == self.dummy_metric.compute() == 2
-                assert self.results["training_step.tracking_2"].value == total
-                assert metrics["callback"]["tracking_2"] == self.dummy_metric.compute() == 2
+                expected = total / (batches - self.breaking_batch_idx)
+                assert metrics["callback"]["tracking"] == expected
+                assert computed_value == 2
+
+                assert self.results["training_step.tracking_2"].value == total * devices
+                assert metrics["callback"]["tracking_2"] == expected
+                assert computed_value == 2
                 self.has_validated_sum = True
 
     model = ExtendedBoringModel()
     trainer_kwargs = {
         "max_epochs": 1,
-        "limit_train_batches": 5,
+        "limit_train_batches": batches,
         "limit_val_batches": 0,
         "accelerator": accelerator,
         "devices": devices,
         "enable_progress_bar": False,
         "enable_model_summary": False,
+        "default_root_dir": default_root_dir,
+        "callbacks": OnExceptionCheckpoint(default_root_dir),
     }
     trainer_kwargs.update(kwargs)
     trainer = Trainer(**trainer_kwargs)
@@ -462,33 +385,25 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
         if devices >= 2
         else trainer_kwargs["default_root_dir"]
     )
-    ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    ckpt_path = os.path.join(tmpdir, "on_exception.ckpt")
 
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, ckpt_path=ckpt_path)
     assert model.has_validated_sum
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_result_collection_reload(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir)
-
-
 @pytest.mark.parametrize(
-    "accelerator",
+    "kwargs",
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        {},
+        pytest.param({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(
+            {"strategy": "ddp", "accelerator": "gpu", "devices": 2}, marks=RunIf(min_cuda_gpus=2, standalone=True)
+        ),
     ],
 )
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_result_collection_reload_1_gpu_ddp(tmpdir, accelerator):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator=accelerator)
-
-
-@RunIf(min_cuda_gpus=2, standalone=True)
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_result_collection_reload_2_gpus(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu", devices=2)
+def test_result_collection_reload(tmpdir, kwargs):
+    result_collection_reload(default_root_dir=tmpdir, **kwargs)
 
 
 def test_metric_collections(tmpdir):
@@ -557,15 +472,19 @@ def test_metric_result_computed_check():
     metadata = _Metadata("foo", "bar", on_epoch=True, enable_graph=True)
     metadata.sync = _Sync()
     rm = _ResultMetric(metadata, is_tensor=True)
-    computed_value = torch.tensor([1, 2, 3])
+    computed_value = tensor([1, 2, 3])
     rm._computed = computed_value
     cache = _ResultCollection._get_cache(rm, on_step=False)
     # `enable_graph=True` so no detach, identity works
     assert cache is computed_value
 
 
-@pytest.mark.parametrize("floating_dtype", (torch.float, torch.double))
+@pytest.mark.parametrize("floating_dtype", [torch.float, torch.double])
 def test_metric_result_respects_dtype(floating_dtype):
+    from lightning.pytorch.trainer.connectors.logger_connector.result import warning_cache
+
+    warning_cache.clear()
+
     torch.set_default_dtype(floating_dtype)
     fixed_dtype = torch.long  # default by PyTorch
 
@@ -577,14 +496,14 @@ def test_metric_result_respects_dtype(floating_dtype):
     assert rm.cumulated_batch_size.dtype == fixed_dtype
 
     # two fixed point numbers - should be converted
-    value, batch_size = torch.tensor(2), 3
+    value, batch_size = tensor(2), 3
     assert value.dtype == fixed_dtype
     with pytest.warns(
         UserWarning, match=rf"`self.log\('bar', ...\)` in your `foo` .* Converting it to {floating_dtype}"
     ):
         rm.update(value, batch_size)
     # floating and fixed
-    rm.update(torch.tensor(4.0), 5)
+    rm.update(tensor(4.0), 5)
 
     total = rm.compute()
 
@@ -595,7 +514,7 @@ def test_metric_result_respects_dtype(floating_dtype):
     torch.set_default_dtype(torch.float)
 
 
-@pytest.mark.parametrize("reduce_fx", ("mean", sum))
+@pytest.mark.parametrize("reduce_fx", ["mean", sum])
 def test_metric_result_dtype_promotion(reduce_fx):
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
     metadata.sync = _Sync()
@@ -603,11 +522,11 @@ def test_metric_result_dtype_promotion(reduce_fx):
     assert rm.value.dtype == torch.float
 
     # log a double
-    rm.update(torch.tensor(0, dtype=torch.double), 1)
+    rm.update(tensor(0, dtype=torch.double), 1)
     # `rm.value.dtype` is promoted
     assert rm.value.dtype == torch.double
     # log a float
-    rm.update(torch.tensor(0, dtype=torch.float), 1)
+    rm.update(tensor(0, dtype=torch.float), 1)
     # the previous dtype stays
     assert rm.value.dtype == torch.double
 
@@ -615,12 +534,12 @@ def test_metric_result_dtype_promotion(reduce_fx):
     assert total.dtype == torch.double
 
 
-@pytest.mark.parametrize(["reduce_fx", "expected"], [(max, -2), (min, 2)])
+@pytest.mark.parametrize(("reduce_fx", "expected"), [(max, -2), (min, 2)])
 def test_result_metric_max_min(reduce_fx, expected):
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
     metadata.sync = _Sync()
     rm = _ResultMetric(metadata, is_tensor=True)
-    rm.update(torch.tensor(expected), 1)
+    rm.update(tensor(expected), 1)
     assert rm.compute() == expected
 
 
@@ -630,7 +549,7 @@ def test_compute_not_a_tensor_raises():
             pass
 
         def compute(self):
-            return torch.tensor(1.0), torch.tensor(2.0)
+            return tensor(1.0), tensor(2.0)
 
     class MyModel(BoringModel):
         def __init__(self):
@@ -655,27 +574,33 @@ def test_compute_not_a_tensor_raises():
 
 
 @pytest.mark.parametrize("distributed_env", [True, False])
-@pytest.mark.parametrize("log_val", [torch.tensor(0.5), torchmetrics.Accuracy()])
+@pytest.mark.parametrize("log_val", [tensor(0.5), "Accuracy"])
 def test_logger_sync_dist(distributed_env, log_val):
+    if log_val == "Accuracy":
+        log_val = Accuracy(task="binary") if _TM_GE_0_11 else Accuracy()
+
     pl.trainer.connectors.logger_connector.result.warning_cache.clear()
 
     # self.log('bar', 0.5, ..., sync_dist=False)
     meta = _Metadata("foo", "bar")
     meta.sync = _Sync(_should=False)
-    is_tensor = isinstance(log_val, torch.Tensor)
+    is_tensor = isinstance(log_val, Tensor)
 
     if not is_tensor:
-        log_val.update(torch.tensor([0, 1]), torch.tensor([0, 0], dtype=torch.long))
+        log_val.update(tensor([0, 1]), tensor([0, 0], dtype=torch.long))
 
     result_metric = _ResultMetric(metadata=meta, is_tensor=is_tensor)
     result_metric.update(log_val, 10)
 
     warning_ctx = pytest.warns if distributed_env and is_tensor else no_warning_call
+    patch_ctx = (
+        mock.patch("torch.distributed.is_initialized", return_value=distributed_env)
+        if isinstance(log_val, Tensor)
+        else nullcontext()
+    )
 
-    with mock.patch(
-        "pytorch_lightning.trainer.connectors.logger_connector.result._distributed_available",
-        return_value=distributed_env,
-    ):
-        with warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"):
-            value = _ResultCollection._get_cache(result_metric, on_step=False)
-        assert value == 0.5
+    with warning_ctx(
+        PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"
+    ), patch_ctx:
+        value = _ResultCollection._get_cache(result_metric, on_step=False)
+    assert value == 0.5

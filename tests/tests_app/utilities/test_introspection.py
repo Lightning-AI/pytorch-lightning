@@ -1,10 +1,10 @@
 import os
 from numbers import Rational
 
-from lightning_app import LightningApp, LightningFlow
-from lightning_app.testing.helpers import _RunIf
-from lightning_app.utilities.imports import _is_pytorch_lightning_available
-from lightning_app.utilities.introspection import Scanner
+from lightning.app import LightningApp, LightningFlow
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.utilities.imports import _is_pytorch_lightning_available
+from lightning.app.utilities.introspection import Scanner
 
 if _is_pytorch_lightning_available():
     from pytorch_lightning import Trainer
@@ -15,7 +15,6 @@ from tests_app import _PROJECT_ROOT
 
 def test_introspection():
     """This test validates the scanner can find some class within the provided files."""
-
     scanner = Scanner(str(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/example_1.py")))
     assert scanner.has_class(Rational)
     assert not scanner.has_class(LightningApp)
@@ -42,18 +41,20 @@ def test_introspection_lightning_overrides():
     """This test validates the scanner can find all the subclasses from primitives classes from PyTorch Lightning
     in the provided files."""
     scanner = Scanner(str(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/lightning_cli.py")))
+    scan = scanner.scan()
+    assert set(scan) == {"LightningDataModule", "LightningModule"}
+
     scanner = Scanner(str(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/lightning_overrides.py")))
     scan = scanner.scan()
-    assert sorted(scan.keys()) == [
+    assert set(scan) == {
         "Accelerator",
-        "BaseProfiler",
+        "Profiler",
         "Callback",
         "LightningDataModule",
-        "LightningLite",
-        "LightningLoggerBase",
+        "Fabric",
+        "Logger",
         "LightningModule",
-        "Loop",
         "Metric",
         "PrecisionPlugin",
         "Trainer",
-    ]
+    }

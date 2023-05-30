@@ -7,7 +7,7 @@ lightning.app.frontend
     :local:
     :backlinks: top
 
-.. currentmodule:: lightning_app.frontend
+.. currentmodule:: lightning.app.frontend
 
 Lightning FrontEnds
 ___________________
@@ -21,3 +21,5 @@ ___________________
     ~web.StaticWebFrontend
     ~stream_lit.StreamlitFrontend
     ~panel.PanelFrontend
+
+Learn more about :ref:`Frontend's <ui_and_frontends>`.
