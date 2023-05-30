@@ -327,9 +327,8 @@ def test_combined_loader_simultaneous_workers(mode):
         TestDataLoader(range(20), batch_size=2, num_workers=0),
     ]
     combined_loader = CombinedLoader(loaders, mode)
-
-    for idx, item in enumerate(combined_loader):
-        break
+    # Start the dataloader
+    _ = iter(combined_loader)
 
     workers_active = []
     for loader in loaders:
