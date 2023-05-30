@@ -276,7 +276,7 @@ def test_fsdp_load_unkown_checkpoint_type(tmp_path):
     """Test that the strategy validates the contents at the checkpoint path."""
     strategy = FSDPStrategy()
     model = Mock(spec=FullyShardedDataParallel)
-    path = tmp_path / "empty_dir"  # neither a single file nor a directory with meta file.
+    path = tmp_path / "empty_dir"  # neither a single file nor a directory with meta file
     path.mkdir()
     with pytest.raises(ValueError, match="does not point to a valid checkpoint"):
         strategy.load_checkpoint(path=path, state={"model": model})
