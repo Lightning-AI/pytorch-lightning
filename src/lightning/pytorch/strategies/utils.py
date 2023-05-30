@@ -39,9 +39,10 @@ def _fp_to_half(
         "32-true",
         "16-mixed",
         "bf16-mixed",
+        "16-true",
     ],
 ) -> Tensor:
-    if str(precision) == "16-mixed":
+    if str(precision) in ("16-mixed", "16-true"):
         return _convert_fp_tensor(tensor, torch.half)
     if precision == "bf16-mixed":
         return _convert_fp_tensor(tensor, torch.bfloat16)
