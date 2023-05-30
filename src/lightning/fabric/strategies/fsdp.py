@@ -507,7 +507,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return checkpoint
 
         raise ValueError(
-            f"The path {path} does not point to a valid checkpoint. Make sure the path points to either a"
+            f"The path {str(path)!r} does not point to a valid checkpoint. Make sure the path points to either a"
             " directory with FSDP checkpoint shards, or a single file with a full checkpoint."
         )
 
