@@ -92,9 +92,9 @@ class _FabricModule(_DeviceDtypeModuleMixin):
                 on this wrapper should pass through to the original module.
         """
         super().__init__()
-        super().__setattr__("_forward_module", forward_module)
-        super().__setattr__("_original_module", original_module or forward_module)
-        super().__setattr__("_precision", precision)
+        object.__setattr__(self, "_forward_module", forward_module)
+        object.__setattr__(self, "_original_module", original_module or forward_module)
+        object.__setattr__(self, "_precision", precision)
 
     @property
     def module(self) -> nn.Module:
@@ -197,7 +197,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
                 setattr(original_module, name, value)
 
             if fabric_has_attr:
-                super().__setattr__(name, value)
+                object.__setattr__(self, name, value)
 
 
 class _FabricDataLoader:
