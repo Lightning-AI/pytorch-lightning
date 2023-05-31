@@ -92,9 +92,9 @@ class _FabricModule(_DeviceDtypeModuleMixin):
                 on this wrapper should pass through to the original module.
         """
         super().__init__()
-        self._forward_module = forward_module
-        self._original_module = original_module or forward_module
-        self._precision = precision
+        super().__setattr__("_forward_module", forward_module)
+        super().__setattr__("_original_module", original_module or forward_module)
+        super().__setattr__("_precision", precision)
 
     @property
     def module(self) -> nn.Module:
@@ -178,6 +178,26 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             attr = getattr(original_module, item)
             self._validate_method_access(item, attr)
             return attr
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        # Get the _original_module attribute
+        original_module = self._original_module
+        original_has_attr = hasattr(original_module, name)
+        # can't use super().__getattrr__ because nn.Module only check _parameters, _buffers, and _modules
+        fabric_has_attr = name in self.__dict__
+
+        if not (original_has_attr or fabric_has_attr):
+            setattr(original_module, name, value)
+
+        # Original module can also inherit from _DeviceDtypeModuleMixin,
+        # in this case, both the Fabric module and original module have attribute like _dtype
+        # set attribute on both
+        else:
+            if original_has_attr:
+                setattr(original_module, name, value)
+
+            if fabric_has_attr:
+                super().__setattr__(name, value)
 
 
 class _FabricDataLoader:
