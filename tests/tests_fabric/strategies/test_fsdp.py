@@ -272,6 +272,17 @@ def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
         strategy.save_checkpoint(path=tmp_path, state={"model": model})
 
 
+@RunIf(min_torch="2.0.0")
+def test_fsdp_load_unkown_checkpoint_type(tmp_path):
+    """Test that the strategy validates the contents at the checkpoint path."""
+    strategy = FSDPStrategy()
+    model = Mock(spec=FullyShardedDataParallel)
+    path = tmp_path / "empty_dir"  # neither a single file nor a directory with meta file
+    path.mkdir()
+    with pytest.raises(ValueError, match="does not point to a valid checkpoint"):
+        strategy.load_checkpoint(path=path, state={"model": model})
+
+
 @RunIf(min_torch="1.12")
 @mock.patch("torch.distributed.init_process_group")
 def test_set_timeout(init_process_group_mock):
