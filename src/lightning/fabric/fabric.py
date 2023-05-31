@@ -625,7 +625,7 @@ class Fabric:
                 " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
                 category=PossibleUserWarning,
             )
-        with self._strategy.init_context(), _old_sharded_model_context(self.strategy):
+        with self._strategy.module_init_context(), _old_sharded_model_context(self.strategy):
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
