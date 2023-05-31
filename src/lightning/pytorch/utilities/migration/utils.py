@@ -14,9 +14,9 @@
 import logging
 import os
 import sys
+import threading
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
-import threading
 
 from packaging.version import Version
 
