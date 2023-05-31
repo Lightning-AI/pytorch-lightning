@@ -594,8 +594,8 @@ class Fabric:
 
     @contextmanager
     def init_tensor(self) -> Generator:
-        """Tensors that you instantiate under this context manager will be created on the device right away and have
-        the right data type depending on the precision setting in Fabric.
+        """Tensors that you instantiate under this context manager will be created on the device right away and
+        have the right data type depending on the precision setting in Fabric.
 
         The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
         """
