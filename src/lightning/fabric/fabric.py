@@ -593,15 +593,15 @@ class Fabric:
             yield
 
     @contextmanager
-    def init(self) -> Generator:
-        """Instantiate under this context manager to apply improvements based on your configuration.
+    def init_tensor(self) -> Generator:
+        """Tensors that you instantiate under this context manager will be created on the device right away and have
+        the right data type depending on the precision setting in Fabric.
 
-        The parameters get created on the device (if using PyTorch 2.0 or newer) and with the right data type right away
-        without wasting memory being allocated unnecessarily.
+        The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
         """
         if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
             rank_zero_warn(
-                "`Fabric.init()` can't place the model parameters on the device directly"
+                "`Fabric.init_tensor()` can't place tensors on the device directly"
                 " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
                 " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
                 category=PossibleUserWarning,

@@ -750,19 +750,26 @@ def test_init_module_context(monkeypatch):
     strategy.module_init_context.assert_called_once()
 
 
-def test_init_context(monkeypatch):
-    """Test that `.init()` warns if using PyTorch < 2.0."""
-    # TODO(awaelchli): Extend the test once `Fabric.init()` finalized
+def test_init_tensor_context(monkeypatch):
+    """Test that `.init_tensor()` warns if using PyTorch < 2.0."""
     import lightning.fabric
 
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
+    precision = MagicMock()
     fabric._strategy = strategy
+    fabric._precision = precision
+
+    # Pretend we are using PyTorch >= 2.0
+    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", True)
+    with fabric.init_tensor():
+        pass
+    precision.init_context.assert_called_once()
 
     # Pretend we are using PyTorch < 2.0
     monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
-    with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
-        with fabric.init():
+    with pytest.warns(PossibleUserWarning, match="can't place tensors on the device directly"):  # noqa: SIM117
+        with fabric.init_tensor():
             pass
 
 
