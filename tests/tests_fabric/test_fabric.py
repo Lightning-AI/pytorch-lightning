@@ -718,15 +718,15 @@ def test_module_sharding_context():
     """Test that the sharding context manager gets applied when the strategy supports it and is a no-op
     otherwise."""
     fabric = Fabric()
-    fabric._strategy = MagicMock(spec=DDPStrategy, init_sharded_context=Mock())
-    with fabric.sharded_model():
+    fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
+    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
-    fabric._strategy.init_sharded_context.assert_not_called()
+    fabric._strategy.module_sharded_context.assert_not_called()
 
     fabric._strategy = MagicMock(spec=_Sharded)
-    with fabric.sharded_model():
+    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
-    fabric._strategy.init_sharded_context.assert_called_once()
+    fabric._strategy.module_sharded_context.assert_called_once()
 
 
 def test_init_module_context(monkeypatch):
