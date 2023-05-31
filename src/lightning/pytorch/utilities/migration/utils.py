@@ -14,6 +14,7 @@
 import logging
 import os
 import sys
+import threading
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
 
@@ -28,6 +29,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 _log = logging.getLogger(__name__)
 _CHECKPOINT = Dict[str, Any]
+_lock = threading.Lock()
 
 
 def migrate_checkpoint(
@@ -85,6 +87,7 @@ class pl_legacy_patch:
     """
 
     def __enter__(self) -> "pl_legacy_patch":
+        _lock.acquire()
         # `pl.utilities.argparse_utils` was renamed to `pl.utilities.argparse`
         legacy_argparse_module = ModuleType("lightning.pytorch.utilities.argparse_utils")
         sys.modules["lightning.pytorch.utilities.argparse_utils"] = legacy_argparse_module
@@ -103,6 +106,7 @@ class pl_legacy_patch:
         if hasattr(pl.utilities.argparse, "_gpus_arg_default"):
             delattr(pl.utilities.argparse, "_gpus_arg_default")
         del sys.modules["lightning.pytorch.utilities.argparse_utils"]
+        _lock.release()
 
 
 def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_PATH] = None) -> _CHECKPOINT:
