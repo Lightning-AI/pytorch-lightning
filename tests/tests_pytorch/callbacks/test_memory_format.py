@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import warnings
+from unittest.mock import MagicMock
+
 import torch
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import MemoryFormat
-from unittest.mock import MagicMock
-
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from unittest.mock import MagicMock
+
 
 def test_memory_format_callback_setup():
     class DummyModule(LightningModule):

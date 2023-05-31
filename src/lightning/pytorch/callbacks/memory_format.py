@@ -18,18 +18,18 @@ MemoryFormat
 changes the model memory format
 """
 
+from typing import Any, MutableSequence, Optional
+
 import torch
-from typing import Any, MutableSequence, Optional, Sequence
 
 import pytorch_lightning as pl
-
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class MemoryFormat(Callback):
-    """The `MemoryFormat` callback changes the model memory format to `torch.channels_last` 
-    before training starts and returns the original when it ends.
+    """The `MemoryFormat` callback changes the model memory format to `torch.channels_last` before training starts
+    and returns the original when it ends.
 
     <https://\\pytorch.org/tutorials/intermediate/memory_format_tutorial.html>`_.
 
@@ -43,26 +43,35 @@ class MemoryFormat(Callback):
         self.convert_input = convert_input
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        if self.memory_format in (torch.channels_last, torch.channels_last_3d) and not self.has_layer_benefiting_from_channels_last(pl_module):
-            rank_zero_warn(f"model does not have any layers benefiting from {self.memory_format} format", category=RuntimeWarning)
+        if self.memory_format in (
+            torch.channels_last,
+            torch.channels_last_3d,
+        ) and not self.has_layer_benefiting_from_channels_last(pl_module):
+            rank_zero_warn(
+                f"model does not have any layers benefiting from {self.memory_format} format", category=RuntimeWarning
+            )
 
         pl_module.to(memory_format=self.memory_format)
 
     def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         pl_module.to(memory_format=torch.contiguous_format)
 
-    def on_train_batch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int) -> None:
+    def on_train_batch_start(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
+    ) -> None:
         if not self.convert_input:
             return
-        
+
         if not isinstance(batch, MutableSequence):
-            rank_zero_warn(f"batch is not a MutableSequence, cannot convert input to {self.memory_format}", category=RuntimeWarning)
+            rank_zero_warn(
+                f"batch is not a MutableSequence, cannot convert input to {self.memory_format}", category=RuntimeWarning
+            )
             return
 
         for i, item in enumerate(batch):
             if isinstance(item, torch.Tensor):
                 batch[i] = item.to(memory_format=self.memory_format)
-    
+
     benefitial_layers = (torch.nn.BatchNorm2d, torch.nn.BatchNorm3d, torch.nn.Conv2d, torch.nn.Conv3d)
 
     def has_layer_benefiting_from_channels_last(self, model: torch.nn.Module) -> bool:
