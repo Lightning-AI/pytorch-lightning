@@ -916,12 +916,3 @@ def _old_sharded_model_context(strategy: Strategy) -> Generator:
             yield
     else:
         yield
-
-
-@contextmanager
-def _old_sharded_model_context(strategy: Strategy) -> Generator:
-    if isinstance(strategy, _Sharded):
-        with strategy.module_sharded_context():
-            yield
-    else:
-        yield
