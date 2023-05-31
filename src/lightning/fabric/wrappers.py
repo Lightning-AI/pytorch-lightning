@@ -174,7 +174,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             return super().__getattr__(item)
         except AttributeError:
             # If the attribute is not available on the _FabricModule wrapper, redirect to the wrapped nn.Module
-            original_module = super().__getattr__("_original_module")
+            original_module = self._original_module
             attr = getattr(original_module, item)
             self._validate_method_access(item, attr)
             return attr
