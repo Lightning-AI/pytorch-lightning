@@ -898,7 +898,7 @@ class Fabric:
 @contextmanager
 def _old_sharded_model_context(strategy: Strategy) -> Generator:
     if isinstance(strategy, _Sharded):
-        with strategy.init_sharded_context():
+        with strategy.module_sharded_context():
             yield
     else:
         yield

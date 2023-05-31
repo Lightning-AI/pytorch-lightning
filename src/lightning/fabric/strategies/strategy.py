@@ -396,7 +396,7 @@ class _Sharded(ABC):
 
     @abstractmethod
     @contextmanager
-    def init_sharded_context(self) -> Generator:
+    def module_sharded_context(self) -> Generator:
         """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding
         of parameters on creation.
 
