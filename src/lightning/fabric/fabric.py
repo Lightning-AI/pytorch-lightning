@@ -606,7 +606,8 @@ class Fabric:
                 " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
                 category=PossibleUserWarning,
             )
-        with self.device, self._precision.init_context():
+        device_context = self.device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
+        with device_context, self._precision.init_context():
             yield
 
     @contextmanager
