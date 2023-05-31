@@ -31,6 +31,8 @@ known_first_party = [
     "lightning_app",
     "lightning_fabric",
     "pytorch_lightning",
+    "parity_fabric",
+    "parity_pytorch",
     "integrations_app",
     "tests_app",
     "tests_cloud",

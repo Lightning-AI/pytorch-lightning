@@ -32,7 +32,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
 from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
-from lightning.fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
+from lightning.fabric.connector import _Connector, _is_using_cli, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
@@ -599,6 +599,13 @@ class Fabric:
         The parameters get created on the device (if using PyTorch 2.0 or newer) and with the right data type right away
         without wasting memory being allocated unnecessarily.
         """
+        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
+            rank_zero_warn(
+                "`Fabric.init()` can't place the model parameters on the device directly"
+                " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
+                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
+                category=PossibleUserWarning,
+            )
         with self.device, self._precision.init_context():
             yield
 
@@ -607,19 +614,17 @@ class Fabric:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
-        allocated unnecessarily.
-
-        Note:
-            The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
+        allocated unnecessarily. The automatic device placement under this context manager is only supported with
+        PyTorch 2.0 and newer.
         """
         if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
             rank_zero_warn(
-                "`Fabric.init_module()` can't place the model parameters on the device directly with PyTorch < 2.0."
-                " Parameters will remain on CPU until `Fabric.setup()` is called. Upgrade to PyTorch >= 2.0 to fully"
-                " utilize the features in `init_module()`.",
+                "`Fabric.init_module()` can't place the model parameters on the device directly"
+                " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
+                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
                 category=PossibleUserWarning,
             )
-        with self._strategy.module_init_context():
+        with self._strategy.init_context(), _old_sharded_model_context(self.strategy):
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
@@ -904,8 +909,13 @@ class Fabric:
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
 
 
-def _is_using_cli() -> bool:
-    return bool(int(os.environ.get("LT_CLI_USED", "0")))
+@contextmanager
+def _old_sharded_model_context(strategy: Strategy) -> Generator:
+    if isinstance(strategy, _Sharded):
+        with strategy.module_sharded_context():
+            yield
+    else:
+        yield
 
 
 @contextmanager
