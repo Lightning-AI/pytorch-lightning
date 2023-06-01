@@ -189,6 +189,7 @@ our_model.tar
 test.png
 saved_models
 data/
+!src/lightning/pytorch/utilities/data/
 .shared
 .lightning
 node_modules/
