@@ -1,5 +1,6 @@
-# This is done for backwards compatibility
 from lightning.pytorch.utilities.data.dataset import S3LightningDataset
+
+# This is done for backwards compatibility
 from lightning.pytorch.utilities.data.extract_batch_size import (
     _dataloader_init_kwargs_resolve_sampler,
     _extract_batch_size,
