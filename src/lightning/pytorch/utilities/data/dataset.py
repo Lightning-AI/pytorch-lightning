@@ -1,7 +1,7 @@
 import os
 import tempfile
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Tuple, Dict
+from typing import Any, Dict, Optional, Tuple
 
 from torch.utils.data import Dataset as TorchDataset
 
