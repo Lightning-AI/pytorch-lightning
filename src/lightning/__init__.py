@@ -27,6 +27,8 @@ from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402
+from lightning.pytorch.utilities.data import S3LightningDataset
+
 
 import lightning.app  # isort: skip # noqa: E402
 
@@ -42,6 +44,7 @@ __all__ = [
     "BuildConfig",
     "CloudCompute",
     "Trainer",
+    "S3LightningDataset",
     "LightningDataModule",
     "LightningModule",
     "Callback",
