@@ -27,6 +27,7 @@ from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402
 from lightning.pytorch.utilities.data import S3LightningDataset
+
 # this import needs to go last as it will patch other modules
 import lightning.pytorch._graveyard  # noqa: E402, F401  # isort: skip
 
