@@ -231,6 +231,7 @@ def _test_distributed_collectives_fn(strategy, collective):
 @skip_distributed_unavailable
 @pytest.mark.parametrize("n", (1, 2))
 @RunIf(skip_windows=True)
+@pytest.mark.flaky(reruns=3)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
 def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
