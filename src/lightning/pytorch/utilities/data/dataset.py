@@ -1,4 +1,3 @@
-import lightning as L
 import os
 import tempfile
 from abc import ABC, abstractmethod
