@@ -41,11 +41,12 @@ def open_single_file_with_retry(path_or_url, mode: str = "r", kwargs_for_open: O
 
 # Necessary to support both a context manager and a call
 class OpenCloudFileObj:
-    from torchdata.datapipes.utils import StreamWrapper
 
     def __init__(self, path: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs):
+        from torchdata.datapipes.utils import StreamWrapper
+        
         self._path = path
-        self._stream: Optional[StreamWrapper] = None
+        self._stream: Optional["StreamWrapper"] = None
         self._mode = mode
         self._kwargs_for_open = kwargs_for_open
         self._kwargs = kwargs
