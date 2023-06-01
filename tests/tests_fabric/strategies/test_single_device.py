@@ -202,9 +202,9 @@ def test_tensor_init_context(device, precision, dtype):
     device = torch.device(device)
     strategy = SingleDeviceStrategy(device=device, precision=precision)
     with strategy.tensor_init_context():
-        tensor0 = torch.tensor(42.)
+        tensor0 = torch.tensor(42.0)
         tensor1 = torch.tensor(42)
-        tensor2 = torch.tensor(42., dtype=torch.half)
+        tensor2 = torch.tensor(42.0, dtype=torch.half)
 
     expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
     assert tensor0.device == tensor1.device == tensor2.device == expected_device
