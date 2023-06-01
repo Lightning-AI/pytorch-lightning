@@ -1,33 +1,31 @@
-import lightning as L
+import os
+import traceback
+from argparse import ArgumentParser
+from typing import Callable, Literal, Optional
 
-import os, traceback
-import torchvision as tv
-import torch, torch.nn.functional as F
+import torch
+import torch.nn.functional as F
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-
-from typing import Optional, Literal, Callable
-from argparse import ArgumentParser
+import torchvision as tv
 from PIL import Image
-
 from torchmetrics import Accuracy
-from torchvision.models.resnet import ResNet18_Weights
 from torchvision.models._meta import _IMAGENET_CATEGORIES
+from torchvision.models.resnet import ResNet18_Weights
+
+import lightning as L
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
-
 parser = ArgumentParser()
-parser.add_argument('--workers', default=4, type=int)
-parser.add_argument('--batchsize', default=56, type=int)
-parser.add_argument(
-        "-e", "--evaluate", dest="evaluate", action="store_true",
-        help="evaluate model on validation set"
-    )
+parser.add_argument("--workers", default=4, type=int)
+parser.add_argument("--batchsize", default=56, type=int)
+parser.add_argument("-e", "--evaluate", dest="evaluate", action="store_true", help="evaluate model on validation set")
 args = parser.parse_args()
 
 # --------------------------------
 # Step 1: Define a LightningModule
 # --------------------------------
+
 
 class ImageNetLightningModel(L.LightningModule):
     """
@@ -42,7 +40,7 @@ class ImageNetLightningModel(L.LightningModule):
         data_path: str,
         index_file_path: str = None,
         arch: str = "resnet18",
-        weights = ResNet18_Weights.IMAGENET1K_V1,
+        weights=ResNet18_Weights.IMAGENET1K_V1,
         lr: float = 1e-4,
         momentum: float = 0.9,
         weight_decay: float = 1e-4,
@@ -107,17 +105,11 @@ class ImageNetLightningModel(L.LightningModule):
         return [optimizer], [scheduler]
 
     def train_dataloader(self):
-        transforms = tv.transforms.Compose([
-            tv.transforms.RandomResizedCrop(224), 
-            tv.transforms.ToTensor()
-        ])
+        transforms = tv.transforms.Compose([tv.transforms.RandomResizedCrop(224), tv.transforms.ToTensor()])
 
         train_dataset = S3LightningImagenetDataset(
-            data_source=self.data_path, 
-            split="train", 
-            transforms=transforms, 
-            path_to_index_file=self.index_file_path
-        ) 
+            data_source=self.data_path, split="train", transforms=transforms, path_to_index_file=self.index_file_path
+        )
 
         train_loader = torch.utils.data.DataLoader(
             dataset=train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers
@@ -125,17 +117,11 @@ class ImageNetLightningModel(L.LightningModule):
         return train_loader
 
     def val_dataloader(self):
-        transforms = tv.transforms.Compose([
-            tv.transforms.RandomResizedCrop(224), 
-            tv.transforms.ToTensor()
-        ])
+        transforms = tv.transforms.Compose([tv.transforms.RandomResizedCrop(224), tv.transforms.ToTensor()])
 
         val_dataset = S3LightningImagenetDataset(
-            data_source=self.data_path, 
-            split="val", 
-            transforms=transforms, 
-            path_to_index_file=self.index_file_path
-        ) 
+            data_source=self.data_path, split="val", transforms=transforms, path_to_index_file=self.index_file_path
+        )
 
         val_loader = torch.utils.data.DataLoader(
             dataset=val_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers
@@ -145,56 +131,63 @@ class ImageNetLightningModel(L.LightningModule):
     def test_dataloader(self):
         return self.val_dataloader()
 
+
 # -------------------
 # Step 2: Define data
 # -------------------
 
+
 class S3LightningImagenetDataset(L.S3LightningDataset):
-    def __init__(self, data_source: str, split: Literal["train", "val"], transforms: Optional[Callable] = None, path_to_index_file: Optional[str] = None):
+    def __init__(
+        self,
+        data_source: str,
+        split: Literal["train", "val"],
+        transforms: Optional[Callable] = None,
+        path_to_index_file: Optional[str] = None,
+    ):
         super().__init__(data_source=data_source, path_to_index_file=path_to_index_file)
         # only get files for the split
         self.files = tuple([x for x in self.files if split in x])
-        
+
         # get unique classes
         self.classes = _IMAGENET_CATEGORIES
 
         self.transforms = transforms
 
     def load_sample(self, file_path, stream):
-        try: 
+        try:
             img = Image.open(stream)
 
             if self.transforms is not None:
                 img = self.transforms(img)
-            
+
             # Converting grey scale images to RGB
             if img.shape[0] == 1:
-                img = img.repeat((3,1,1))
-               
-            curr_cls = os.path.basename(os.path.dirname(file_path)).replace('_', ' ')
+                img = img.repeat((3, 1, 1))
+
+            curr_cls = os.path.basename(os.path.dirname(file_path)).replace("_", " ")
             cls_idx = self.classes.index(curr_cls)
             return img, cls_idx
-        except Exception as e:
+        except Exception:
             print(file_path, traceback.print_exc())
             pass
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     data_path = "/data/imagenet-resized"
     index_file_path = "~/content/imagenet/image-net-index.txt"
 
     # -------------------
     # Step 3: Train
     # -------------------
-    
+
     print("Instantiate Model")
     model = ImageNetLightningModel(
-        weights=None, 
-        data_path=data_path, 
+        weights=None,
+        data_path=data_path,
         index_file_path=index_file_path,
-        batch_size=args.batchsize, 
-        workers=args.workers
+        batch_size=args.batchsize,
+        workers=args.workers,
     )
     trainer = L.Trainer()
 
