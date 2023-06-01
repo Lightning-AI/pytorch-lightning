@@ -645,7 +645,12 @@ def test_state_observer():
     [
         ({}, {}, "", "127.0.0.1"),
         ({"LIGHTNING_CLOUDSPACE_HOST": "any"}, {}, "", "0.0.0.0"),  # noqa: S104
-        ({}, {"LIGHTNING_NODE_IP": "10.10.10.5", "LIGHTNING_NODE_PRIVATE_IP": "85.44.2.25"}, "85.44.2.25", "10.10.10.5"),
+        (
+            {},
+            {"LIGHTNING_NODE_IP": "10.10.10.5", "LIGHTNING_NODE_PRIVATE_IP": "85.44.2.25"},
+            "85.44.2.25",
+            "10.10.10.5",
+        ),
     ],
     indirect=["patch_constants"],
 )
