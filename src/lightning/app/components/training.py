@@ -184,8 +184,8 @@ class LightningTrainerScript(LightningFlow):
 
     def run(self, **run_kwargs):
         for work in self.ws:
-            if all(w.internal_ip for w in self.ws):
-                internal_urls = [(w.internal_ip, w.port) for w in self.ws]
+            if all(w.public_ip for w in self.ws):
+                internal_urls = [(w.public_ip, w.port) for w in self.ws]
                 work.run(internal_urls=internal_urls, **run_kwargs)
                 if all(w.has_finished for w in self.ws):
                     for w in self.ws:
