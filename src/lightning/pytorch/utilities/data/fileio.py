@@ -4,14 +4,6 @@ import time
 from typing import Dict, Optional
 
 
-def is_url(path: str) -> bool:
-    return path.startswith("s3://")
-
-
-def is_path(path: str) -> bool:
-    return not is_url(path) and path.startswith("/")
-
-
 def path_to_url(path: str, bucket_name: str, bucket_root_path: str = "/") -> str:
     if not path.startswith(bucket_root_path):
         raise ValueError(f"Cannot create a path from {path} relative to {bucket_root_path}")
