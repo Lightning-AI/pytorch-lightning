@@ -190,6 +190,8 @@ test.png
 saved_models
 data/
 !src/lightning/pytorch/utilities/data/
+!examples/pytorch/data/
+!tests/tests_pytorch/utilities/data/
 .shared
 .lightning
 node_modules/
