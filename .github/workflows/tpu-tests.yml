@@ -3,25 +3,25 @@ name: Test PyTorch - TPU
 on:
   push:
     branches: [master, "release/*"]
-  pull_request_target:
-    branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
-    paths:
-      - ".actions/**"
-      - ".github/workflows/tpu-tests.yml"
-      - "dockers/base-xla/*"
-      - "requirements/fabric/**"
-      - "src/lightning/fabric/**"
-      - "src/lightning_fabric/*"
-      - "tests/tests_fabric/**"
-      - "requirements/pytorch/**"
-      - "src/lightning/pytorch/**"
-      - "src/pytorch_lightning/*"
-      - "tests/tests_pytorch/**"
-      - "pyproject.toml"  # includes pytest config
-      - "!requirements/*/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
+  #pull_request_target:
+  #  branches: [master, "release/*"]
+  #  types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
+  #  paths:
+  #    - ".actions/**"
+  #    - ".github/workflows/tpu-tests.yml"
+  #    - "dockers/base-xla/*"
+  #    - "requirements/fabric/**"
+  #    - "src/lightning/fabric/**"
+  #    - "src/lightning_fabric/*"
+  #    - "tests/tests_fabric/**"
+  #    - "requirements/pytorch/**"
+  #    - "src/lightning/pytorch/**"
+  #    - "src/pytorch_lightning/*"
+  #    - "tests/tests_pytorch/**"
+  #    - "pyproject.toml"  # includes pytest config
+  #    - "!requirements/*/docs.txt"
+  #    - "!*.md"
+  #    - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
