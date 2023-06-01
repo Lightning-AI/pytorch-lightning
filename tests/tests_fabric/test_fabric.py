@@ -756,21 +756,19 @@ def test_init_tensor_context(monkeypatch):
 
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
-    precision = MagicMock()
+    strategy.tensor_init_context = Mock(wraps=strategy.tensor_init_context)
     fabric._strategy = strategy
-    fabric._precision = precision
-
-    # Pretend we are using PyTorch >= 2.0
-    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", True)
     with fabric.init_tensor():
         pass
-    precision.init_context.assert_called_once()
+    strategy.tensor_init_context.assert_called_once()
+    strategy.tensor_init_context.reset_mock()
 
     # Pretend we are using PyTorch < 2.0
     monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
     with pytest.warns(PossibleUserWarning, match="can't place tensors on the device directly"):  # noqa: SIM117
         with fabric.init_tensor():
             pass
+    strategy.tensor_init_context.assert_called_once()
 
 
 def test_callbacks_input():
