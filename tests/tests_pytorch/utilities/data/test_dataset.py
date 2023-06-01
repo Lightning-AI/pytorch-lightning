@@ -1,10 +1,10 @@
+import os
+
 from lightning.pytorch.utilities.data.dataset import LightningDataset
 from lightning.pytorch.utilities.data.fileio import OpenCloudFileObj
 
-import os
 
 def test_lightning_dataset(tmpdir):
-
     index_path = os.path.join(tmpdir, "index.txt")
     # TODO: adapt this once the fallback and tests for get_index are ready!
     dset = LightningDataset("s3://imagenet-resized", path_to_index_file=index_path)
@@ -24,16 +24,16 @@ def test_lightning_dataset(tmpdir):
     assert isinstance(dset.open(index_path), OpenCloudFileObj)
 
     foo_path = os.path.join(tmpdir, "foo.txt")
-    with open(foo_path, 'w') as f:
-        f.write('bar!')
+    with open(foo_path, "w") as f:
+        f.write("bar!")
 
-    with dset.open(foo_path, 'r') as f:
+    with dset.open(foo_path, "r") as f:
         assert f.read() == "bar!"
 
     with dset.open(foo_path, "w") as f:
         f.write("not bar anymore!")
 
-    with open(foo_path, 'r') as f:
+    with open(foo_path) as f:
         assert f.read() == "not bar anymore!"
 
     with open(foo_path, "w") as f:
