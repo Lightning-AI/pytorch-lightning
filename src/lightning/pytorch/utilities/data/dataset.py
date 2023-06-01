@@ -5,7 +5,7 @@ from typing import Any, Optional, Tuple
 
 from torch.utils.data import Dataset as TorchDataset
 
-from lightning.pytorch.utilities.data.fileio import *
+from lightning.pytorch.utilities.data.fileio import OpenCloudFileObj
 from lightning.pytorch.utilities.data.get_index import get_index
 
 
