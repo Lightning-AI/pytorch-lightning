@@ -7,9 +7,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-
 from torchmetrics import Accuracy
-
 
 import lightning as L
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
@@ -32,6 +30,7 @@ class ImageNetLightningModel(L.LightningModule):
       (model): ResNet(...)
     )
     """
+
     from torchvision.models.resnet import ResNet18_Weights
 
     def __init__(
