@@ -181,7 +181,8 @@ class S3LightningImagenetDataset(L.S3LightningDataset):
 
 
 if __name__ == "__main__":
-    data_path = "/data/imagenet-resized"
+    data_path = "s3://tiny-imagenet"
+    # data_path = "/data/imagenet-resized"
     index_file_path = "~/content/imagenet/image-net-index.txt"
 
     # -------------------
