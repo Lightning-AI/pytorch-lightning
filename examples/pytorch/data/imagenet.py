@@ -7,11 +7,9 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-import torchvision as tv
-from PIL import Image
+
 from torchmetrics import Accuracy
-from torchvision.models._meta import _IMAGENET_CATEGORIES
-from torchvision.models.resnet import ResNet18_Weights
+
 
 import lightning as L
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
@@ -34,6 +32,7 @@ class ImageNetLightningModel(L.LightningModule):
       (model): ResNet(...)
     )
     """
+    from torchvision.models.resnet import ResNet18_Weights
 
     def __init__(
         self,
@@ -105,6 +104,8 @@ class ImageNetLightningModel(L.LightningModule):
         return [optimizer], [scheduler]
 
     def train_dataloader(self):
+        import torchvision as tv
+
         transforms = tv.transforms.Compose([tv.transforms.RandomResizedCrop(224), tv.transforms.ToTensor()])
 
         train_dataset = S3LightningImagenetDataset(
@@ -117,6 +118,8 @@ class ImageNetLightningModel(L.LightningModule):
         return train_loader
 
     def val_dataloader(self):
+        import torchvision as tv
+
         transforms = tv.transforms.Compose([tv.transforms.RandomResizedCrop(224), tv.transforms.ToTensor()])
 
         val_dataset = S3LightningImagenetDataset(
@@ -145,6 +148,8 @@ class S3LightningImagenetDataset(L.S3LightningDataset):
         transforms: Optional[Callable] = None,
         path_to_index_file: Optional[str] = None,
     ):
+        from torchvision.models._meta import _IMAGENET_CATEGORIES
+
         super().__init__(data_source=data_source, path_to_index_file=path_to_index_file)
         # only get files for the split
         self.files = tuple([x for x in self.files if split in x])
@@ -155,6 +160,8 @@ class S3LightningImagenetDataset(L.S3LightningDataset):
         self.transforms = transforms
 
     def load_sample(self, file_path, stream):
+        from PIL import Image
+
         try:
             img = Image.open(stream)
 
