@@ -92,9 +92,9 @@ class _FabricModule(_DeviceDtypeModuleMixin):
                 on this wrapper should pass through to the original module.
         """
         super().__init__()
-        object.__setattr__(self, "_forward_module", forward_module)
-        object.__setattr__(self, "_original_module", original_module or forward_module)
-        object.__setattr__(self, "_precision", precision)
+        self._forward_module = forward_module
+        self._original_module = original_module or forward_module
+        self._precision = precision
 
     @property
     def module(self) -> nn.Module:
@@ -174,30 +174,35 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             return super().__getattr__(item)
         except AttributeError:
             # If the attribute is not available on the _FabricModule wrapper, redirect to the wrapped nn.Module
-            original_module = self._original_module
+            original_module = super().__getattr__("_original_module")
             attr = getattr(original_module, item)
             self._validate_method_access(item, attr)
             return attr
 
     def __setattr__(self, name: str, value: Any) -> None:
-        # Get the _original_module attribute
-        original_module = self._original_module
-        original_has_attr = hasattr(original_module, name)
-        # can't use super().__getattrr__ because nn.Module only check _parameters, _buffers, and _modules
-        fabric_has_attr = name in self.__dict__
+        caller_func = inspect.stack()[1].function
+        if caller_func == "__init__":
+            super().__setattr__(name, value)
 
-        if not (original_has_attr or fabric_has_attr):
-            setattr(original_module, name, value)
-
-        # Original module can also inherit from _DeviceDtypeModuleMixin,
-        # in this case, both the Fabric module and original module have attribute like _dtype
-        # set attribute on both
         else:
-            if original_has_attr:
+            # Get the _original_module attribute
+            original_module = self._original_module
+            original_has_attr = hasattr(original_module, name)
+            # can't use super().__getattrr__ because nn.Module only check _parameters, _buffers, and _modules
+            fabric_has_attr = name in self.__dict__
+
+            if not (original_has_attr or fabric_has_attr):
                 setattr(original_module, name, value)
 
-            if fabric_has_attr:
-                object.__setattr__(self, name, value)
+            # Original module can also inherit from _DeviceDtypeModuleMixin,
+            # in this case, both the Fabric module and original module have attribute like _dtype
+            # set attribute on both
+            else:
+                if original_has_attr:
+                    setattr(original_module, name, value)
+
+                if fabric_has_attr:
+                    super().__setattr__(name, value)
 
 
 class _FabricDataLoader:
