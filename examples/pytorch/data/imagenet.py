@@ -1,3 +1,5 @@
+import lightning as L
+
 import os
 import traceback
 from argparse import ArgumentParser
@@ -13,7 +15,6 @@ from torchmetrics import Accuracy
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models.resnet import ResNet18_Weights
 
-import lightning as L
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
 parser = ArgumentParser()

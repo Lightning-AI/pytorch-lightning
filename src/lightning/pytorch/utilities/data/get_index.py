@@ -68,7 +68,7 @@ def _get_index(data_connection_path: str, index_file_path: str) -> bool:
     """
     from lightning.app.utilities.network import LightningClient
 
-    PROJECT_ID_ENV = "LIGHTNING_CLOUD_PROJECT_ID"
+    PROJECT_ID_ENV = "LCP_ID"
 
     client = LightningClient(retry=False)
 
