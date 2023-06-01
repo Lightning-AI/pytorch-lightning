@@ -29,7 +29,6 @@ from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa:
 from lightning.pytorch.trainer import Trainer  # noqa: E402
 from lightning.pytorch.utilities.data import S3LightningDataset
 
-
 import lightning.app  # isort: skip # noqa: E402
 
 lightning.app._PROJECT_ROOT = os.path.dirname(lightning.app._PROJECT_ROOT)
