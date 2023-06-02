@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added `LightningDataset` abstraction for fast dataloading of local and S3 directories ([#17743]https://github.com/Lightning-AI/lightning/pull/17743)
+
 - Added `**summarize_kwargs` to `ModelSummary` and `RichModelSummary` callbacks ([#16788](https://github.com/Lightning-AI/lightning/pull/16788))
 
 
