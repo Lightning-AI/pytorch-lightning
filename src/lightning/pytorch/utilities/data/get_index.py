@@ -1,6 +1,8 @@
 import math
 import os
 
+from fsspec.core import url_to_fs
+from torchdata.datapipes.iter import FSSpecFileLister
 
 def get_index(s3_connection_path: str, index_file_path: str) -> bool:
     """Creates an index of file paths that are in the provided s3 path.
@@ -36,23 +38,34 @@ def get_index(s3_connection_path: str, index_file_path: str) -> bool:
 
     return index_exists
 
+def _create_index_recursive(root, write_to):
+    files = FSSpecFileLister(root).list_files_by_fsspec()
+    
+    for file in files:
+        fs, path = url_to_fs(file)
+
+        if not fs.isfile(file):
+            _create_index_recursive(root=file, write_to=write_to)
+        else: 
+            break
+        
+    print(f"writing {len(files)} files")
+    write_to.writelines([item + "\n" for item in files])
+
 
 def _create_index(data_connection_path: str, index_file_path: str) -> bool:
     """Fallback mechanism for index creation."""
     from botocore.exceptions import NoCredentialsError
-    from torchdata.datapipes.iter import FSSpecFileLister
 
     print(f"Creating Index for {data_connection_path} in {index_file_path}")
     try:
         list_from = f"s3://{data_connection_path}" if not os.path.isdir(data_connection_path) else data_connection_path
 
-        files = list(FSSpecFileLister(list_from).list_files_by_fsspec())
-
         if not os.path.exists(os.path.dirname(index_file_path)):
             os.makedirs(os.path.dirname(index_file_path))
 
         with open(index_file_path, "w") as f:
-            f.writelines([item + "\n" for item in files])
+            _create_index_recursive(root=[list_from], write_to=f)
 
         return True
     except NoCredentialsError as exc:
