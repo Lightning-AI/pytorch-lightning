@@ -10,8 +10,8 @@ from lightning.pytorch.utilities.data.get_index import get_index
 
 
 def get_aws_credentials():
-    """Gets AWS credentials from the current IAM role
-    
+    """Gets AWS credentials from the current IAM role.
+
     Returns:
         credentials object to be used for file reading
     """
@@ -44,8 +44,8 @@ class LightningDataset(TorchDataset):
         self.index_file = path_to_index_file
 
     def get_index(self) -> Tuple[str, ...]:
-        """Gets existing index or triggers an index generation if it doesn't exist for the provided data_source
-        
+        """Gets existing index or triggers an index generation if it doesn't exist for the provided data_source.
+
         Returns:
             The contents of the index file (all the file paths in the data_source)
         """
