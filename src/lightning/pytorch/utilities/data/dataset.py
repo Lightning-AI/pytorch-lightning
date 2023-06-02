@@ -57,11 +57,8 @@ class S3LightningDataset(LightningDataset, ABC):
 
         self.files = self.get_index()
 
-        if os.getenv('AWS_ACCESS_KEY') and os.getenv('AWS_SECRET_KEY'):
-            self.credentials = { 
-                'access_key': os.getenv('AWS_ACCESS_KEY'), 
-                'secret_key': os.getenv('AWS_SECRET_KEY')
-            }
+        if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_KEY"):
+            self.credentials = {"access_key": os.getenv("AWS_ACCESS_KEY"), "secret_key": os.getenv("AWS_SECRET_KEY")}
         else:
             self.credentials = get_aws_credentials()
 
@@ -69,7 +66,7 @@ class S3LightningDataset(LightningDataset, ABC):
         from botocore.exceptions import NoCredentialsError
 
         file_path = self.files[idx]
-        
+
         try:
             with self.open(
                 file_path,
@@ -80,7 +77,9 @@ class S3LightningDataset(LightningDataset, ABC):
             ) as stream:
                 return self.load_sample(file_path, stream)
         except NoCredentialsError as exc:
-            print(f"Unable to locate credentials. Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\nAWS_SECRET_KEY")
+            print(
+                "Unable to locate credentials. Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\nAWS_SECRET_KEY"
+            )
             raise ValueError(exc)
         except Exception as exc:
             raise ValueError(exc)

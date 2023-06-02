@@ -39,8 +39,8 @@ def get_index(s3_connection_path: str, index_file_path: str) -> bool:
 
 def _create_index(data_connection_path: str, index_file_path: str) -> bool:
     """Fallback mechanism for index creation."""
-    from torchdata.datapipes.iter import FSSpecFileLister
     from botocore.exceptions import NoCredentialsError
+    from torchdata.datapipes.iter import FSSpecFileLister
 
     print(f"Creating Index for {data_connection_path} in {index_file_path}")
     try:
@@ -56,7 +56,9 @@ def _create_index(data_connection_path: str, index_file_path: str) -> bool:
 
         return True
     except NoCredentialsError as exc:
-        print(f"Unable to locate credentials. Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\nAWS_SECRET_KEY")
+        print(
+            "Unable to locate credentials. Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\nAWS_SECRET_KEY"
+        )
         raise ValueError(exc)
     except Exception as exc:
         raise ValueError(exc)
