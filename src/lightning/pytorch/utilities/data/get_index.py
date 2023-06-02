@@ -1,10 +1,6 @@
 import math
 import os
 
-from fsspec.core import url_to_fs
-from torchdata.datapipes.iter import FSSpecFileLister
-
-
 def get_index(s3_connection_path: str, index_file_path: str) -> bool:
     """Creates an index of file paths that are in the provided s3 path.
 
@@ -41,6 +37,9 @@ def get_index(s3_connection_path: str, index_file_path: str) -> bool:
 
 
 def _create_index_recursive(root, write_to):
+    from fsspec.core import url_to_fs
+    from torchdata.datapipes.iter import FSSpecFileLister
+
     files = FSSpecFileLister(root).list_files_by_fsspec()
 
     for file in files:
@@ -94,38 +93,42 @@ def _get_index(data_connection_path: str, index_file_path: str) -> bool:
     else:
         return False
 
-    cluster_bindings = client.projects_service_list_project_cluster_bindings(project_id).clusters
+    try:
+        cluster_bindings = client.projects_service_list_project_cluster_bindings(project_id).clusters
 
-    # For now just use the first one
-    # For BYOC we will have to update this
-    cluster = cluster_bindings[0]
+        # For now just use the first one
+        # For BYOC we will have to update this
+        cluster = cluster_bindings[0]
 
-    # Find the data connection object first
-    data_connections = client.data_connection_service_list_data_connections(project_id).data_connections
-    data_connection = [con for con in data_connections if con.name == data_connection_path]
+        # Find the data connection object first
+        data_connections = client.data_connection_service_list_data_connections(project_id).data_connections
+        data_connection = [con for con in data_connections if con.name == data_connection_path]
 
-    if len(data_connection) == 1:
-        print(f"Placing existing index for {data_connection_path} in {index_file_path}")
+        if len(data_connection) == 1:
+            print(f"Placing existing index for {data_connection_path} in {index_file_path}")
 
-        data_connection = data_connection[0]
-        # Then use the ID of the data connection for retrieving the index
-        folder_index = client.data_connection_service_get_data_connection_folder_index(
-            project_id=project_id, id=data_connection.id, cluster_id=cluster.cluster_id
-        )
+            data_connection = data_connection[0]
+            # Then use the ID of the data connection for retrieving the index
+            folder_index = client.data_connection_service_get_data_connection_folder_index(
+                project_id=project_id, id=data_connection.id, cluster_id=cluster.cluster_id
+            )
 
-        # Compute number of pages we need to retrieve
-        num_pages = math.ceil(int(folder_index.nested_file_count) / folder_index.page_size)
+            # Compute number of pages we need to retrieve
+            num_pages = math.ceil(int(folder_index.nested_file_count) / folder_index.page_size)
 
-        # Get all the pages and append to the index
-        with open(index_file_path, "a") as f:
-            f.truncate(0)
+            # Get all the pages and append to the index
+            with open(index_file_path, "a") as f:
+                f.truncate(0)
 
-            for page_num in range(num_pages):
-                page = client.data_connection_service_get_data_connection_artifacts_page(
-                    project_id=project_id, id=data_connection.id, cluster_id="litng-ai-03", page_number=str(page_num)
-                ).artifacts
+                for page_num in range(num_pages):
+                    page = client.data_connection_service_get_data_connection_artifacts_page(
+                        project_id=project_id, id=data_connection.id, cluster_id="litng-ai-03", page_number=str(page_num)
+                    ).artifacts
 
-                f.writelines([f"s3://{data_connection_path}/{item.filename}" + "\n" for item in page])
-        return True
-    else:
+                    f.writelines([f"s3://{data_connection_path}/{item.filename}" + "\n" for item in page])
+            return True
+        else:
+            return False
+        
+    except Exception as exc:
         return False
