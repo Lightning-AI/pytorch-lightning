@@ -1,4 +1,4 @@
-from lightning.pytorch.utilities.data.dataset import S3LightningDataset, LightningDataset
+from lightning.pytorch.utilities.data.dataset import LightningDataset, S3LightningDataset
 
 # This is done for backwards compatibility
 from lightning.pytorch.utilities.data.extract_batch_size import (
@@ -22,5 +22,5 @@ __all__ = [
     "_dataloader_init_kwargs_resolve_sampler",
     "_get_dataloader_init_args_and_kwargs",
     "S3LightningDataset",
-    "LightningDataset"
+    "LightningDataset",
 ]
