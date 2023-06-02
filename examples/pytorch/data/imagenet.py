@@ -58,7 +58,6 @@ class ImageNetLightningModel(L.LightningModule):
         self.train_dataset: Optional[Dataset] = None
         self.eval_dataset: Optional[Dataset] = None
 
-
     def forward(self, x):
         return self.model(x)
 
