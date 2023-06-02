@@ -47,7 +47,7 @@ def _create_index_recursive(root, write_to):
 
         if not fs.isfile(file):
             _create_index_recursive(root=file, write_to=write_to)
-        else: 
+        else:
             write_to.write(file + "\n")
 
 
