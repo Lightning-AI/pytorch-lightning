@@ -47,10 +47,7 @@ def _create_index_recursive(root, write_to):
         if not fs.isfile(file):
             _create_index_recursive(root=file, write_to=write_to)
         else: 
-            break
-        
-    print(f"writing {len(files)} files")
-    write_to.writelines([item + "\n" for item in files])
+            write_to.write(file + "\n")
 
 
 def _create_index(data_connection_path: str, index_file_path: str) -> bool:
