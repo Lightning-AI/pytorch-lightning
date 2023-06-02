@@ -134,6 +134,7 @@ class S3LightningImagenetDataset(L.S3LightningDataset):
         from torchvision.models._meta import _IMAGENET_CATEGORIES
 
         super().__init__(data_source=data_source, path_to_index_file=path_to_index_file)
+        
         # only get files for the split
         self.files = tuple([x for x in self.files if split in x])
 
@@ -184,6 +185,7 @@ if __name__ == "__main__":
     )
     trainer = L.Trainer()
 
+    print("Train Model")
     if args.evaluate:
         trainer.test(model)
     else:
