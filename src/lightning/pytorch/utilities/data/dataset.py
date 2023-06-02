@@ -30,7 +30,7 @@ def get_aws_credentials():
 
 
 class LightningDataset(TorchDataset):
-    """Dataset wrapper for optimized dataloading
+    """Dataset wrapper for optimized dataloading.
 
     Arguments:
 
@@ -38,6 +38,7 @@ class LightningDataset(TorchDataset):
 
         path_to_index_file: path to index file that lists all file contents of the data_source.
     """
+
     def __init__(self, data_source: str, path_to_index_file: Optional[str] = None):
         super().__init__()
         self.data_source = data_source
@@ -76,7 +77,7 @@ class TempCreds:
 
 
 class S3LightningDataset(LightningDataset, ABC):
-    """LightningDataset for S3 buckets
+    """LightningDataset for S3 buckets.
 
     Arguments:
 
@@ -84,6 +85,7 @@ class S3LightningDataset(LightningDataset, ABC):
 
         path_to_index_file: path to index file that lists all file contents of the data_source.
     """
+
     def __init__(self, data_source: str, path_to_index_file: Optional[str] = None):
         super().__init__(data_source=data_source, path_to_index_file=path_to_index_file)
 
