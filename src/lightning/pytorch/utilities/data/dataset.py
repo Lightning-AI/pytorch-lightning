@@ -51,6 +51,11 @@ class LightningDataset(TorchDataset):
         return OpenCloudFileObj(file, mode=mode, kwargs_for_open=kwargs_for_open, **kwargs)
 
 
+class TempCreds:
+    def __init__(self, access_key, secret_key):
+        self.access_key = access_key
+        self.secret_key = secret_key
+
 class S3LightningDataset(LightningDataset, ABC):
     def __init__(self, data_source: str, path_to_index_file: Optional[str] = None):
         super().__init__(data_source=data_source, path_to_index_file=path_to_index_file)
@@ -58,10 +63,10 @@ class S3LightningDataset(LightningDataset, ABC):
         self.files = self.get_index()
 
         if os.getenv('AWS_ACCESS_KEY') and os.getenv('AWS_SECRET_KEY'):
-            self.credentials = { 
-                'access_key': os.getenv('AWS_ACCESS_KEY'), 
-                'secret_key': os.getenv('AWS_SECRET_KEY')
-            }
+            self.credentials = TempCreds(
+                access_key=os.getenv('AWS_ACCESS_KEY'),
+                secret_key=os.getenv('AWS_SECRET_KEY')
+            )
         else:
             self.credentials = get_aws_credentials()
 
@@ -76,7 +81,6 @@ class S3LightningDataset(LightningDataset, ABC):
                 "rb",
                 key=self.credentials.access_key,
                 secret=self.credentials.secret_key,
-                token=self.credentials.token,
             ) as stream:
                 return self.load_sample(file_path, stream)
         except NoCredentialsError as exc:

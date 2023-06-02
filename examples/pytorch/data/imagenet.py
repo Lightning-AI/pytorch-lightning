@@ -180,9 +180,11 @@ class S3LightningImagenetDataset(L.S3LightningDataset):
 
 
 if __name__ == "__main__":
-    data_path = "s3://tiny-imagenet"
-    # data_path = "/data/imagenet-resized"
-    index_file_path = "~/content/imagenet/image-net-index.txt"
+    # os.environ["AWS_ACCESS_KEY"] = <your aws access key>
+    # os.environ["AWS_SECRET_KEY"] = <your aws secret key>
+
+    data_path = "s3://imagenet-townhall-demo"
+    index_file_path = "~/content/imagenet/imagenet-index.txt"
 
     # -------------------
     # Step 3: Train
