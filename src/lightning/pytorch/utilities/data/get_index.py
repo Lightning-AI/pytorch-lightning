@@ -4,6 +4,7 @@ import os
 from fsspec.core import url_to_fs
 from torchdata.datapipes.iter import FSSpecFileLister
 
+
 def get_index(s3_connection_path: str, index_file_path: str) -> bool:
     """Creates an index of file paths that are in the provided s3 path.
 
@@ -38,9 +39,10 @@ def get_index(s3_connection_path: str, index_file_path: str) -> bool:
 
     return index_exists
 
+
 def _create_index_recursive(root, write_to):
     files = FSSpecFileLister(root).list_files_by_fsspec()
-    
+
     for file in files:
         fs, path = url_to_fs(file)
 
