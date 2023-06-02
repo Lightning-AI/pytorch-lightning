@@ -56,17 +56,15 @@ class TempCreds:
         self.access_key = access_key
         self.secret_key = secret_key
 
+
 class S3LightningDataset(LightningDataset, ABC):
     def __init__(self, data_source: str, path_to_index_file: Optional[str] = None):
         super().__init__(data_source=data_source, path_to_index_file=path_to_index_file)
 
         self.files = self.get_index()
 
-        if os.getenv('AWS_ACCESS_KEY') and os.getenv('AWS_SECRET_KEY'):
-            self.credentials = TempCreds(
-                access_key=os.getenv('AWS_ACCESS_KEY'),
-                secret_key=os.getenv('AWS_SECRET_KEY')
-            )
+        if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_KEY"):
+            self.credentials = TempCreds(access_key=os.getenv("AWS_ACCESS_KEY"), secret_key=os.getenv("AWS_SECRET_KEY"))
         else:
             self.credentials = get_aws_credentials()
 
