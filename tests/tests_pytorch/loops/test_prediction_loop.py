@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
+from lightning.pytorch.utilities import CombinedLoader
 
 
 def test_prediction_loop_stores_predictions(tmp_path):
@@ -286,3 +287,30 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
     model = IgnoringModel2()
     with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.on_predict_batch_end"):
         trainer.predict(model)
+
+
+@pytest.mark.parametrize(
+    ("mode", "expected"),
+    [
+        ("max_size_cycle", [{"a": 0, "b": 3}, {"a": 1, "b": 4}, {"a": 2, "b": 3}]),
+        ("min_size", [{"a": 0, "b": 3}, {"a": 1, "b": 4}]),
+        ("max_size", [{"a": 0, "b": 3}, {"a": 1, "b": 4}, {"a": 2, "b": None}]),
+    ],
+)
+def test_prediction_loop_non_sequential_mode_supprt(tmp_path, mode, expected):
+    iterables = {"a": [0, 1, 2], "b": {3, 4}}
+    cl = CombinedLoader(iterables, mode)
+    seen = []
+
+    class MyModel(BoringModel):
+        def predict_step(self, batch, batch_idx):
+            seen.append(batch)
+
+    model = MyModel()
+    trainer = Trainer(default_root_dir=tmp_path, barebones=True)
+
+    trainer.predict(model, cl)
+
+    actual = trainer.num_predict_batches
+    assert actual == (2 if mode == "min_size" else 3)
+    assert seen == expected
