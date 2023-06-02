@@ -7,7 +7,6 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-from torchmetrics import Accuracy
 
 import lightning as L
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
@@ -58,11 +57,7 @@ class ImageNetLightningModel(L.LightningModule):
         self.model = get_torchvision_model(self.arch, weights=self.weights)
         self.train_dataset: Optional[Dataset] = None
         self.eval_dataset: Optional[Dataset] = None
-        # ToDo: this number of classes hall be parsed when the dataset is loaded from folder
-        self.train_acc1 = Accuracy(task="multiclass", num_classes=1000, top_k=1)
-        self.train_acc5 = Accuracy(task="multiclass", num_classes=1000, top_k=5)
-        self.eval_acc1 = Accuracy(task="multiclass", num_classes=1000, top_k=1)
-        self.eval_acc5 = Accuracy(task="multiclass", num_classes=1000, top_k=5)
+
 
     def forward(self, x):
         return self.model(x)
@@ -72,11 +67,6 @@ class ImageNetLightningModel(L.LightningModule):
         output = self.model(images)
         loss_train = F.cross_entropy(output, target)
         self.log("train_loss", loss_train)
-        # update metrics
-        self.train_acc1(output, target)
-        self.train_acc5(output, target)
-        self.log("train_acc1", self.train_acc1, prog_bar=True)
-        self.log("train_acc5", self.train_acc5, prog_bar=True)
         return loss_train
 
     def eval_step(self, batch, batch_idx, prefix: str):
@@ -84,11 +74,6 @@ class ImageNetLightningModel(L.LightningModule):
         output = self.model(images)
         loss_val = F.cross_entropy(output, target)
         self.log(f"{prefix}_loss", loss_val)
-        # update metrics
-        self.eval_acc1(output, target)
-        self.eval_acc5(output, target)
-        self.log(f"{prefix}_acc1", self.eval_acc1, prog_bar=True)
-        self.log(f"{prefix}_acc5", self.eval_acc5, prog_bar=True)
         return loss_val
 
     def validation_step(self, batch, batch_idx):
@@ -183,8 +168,8 @@ if __name__ == "__main__":
     # os.environ["AWS_ACCESS_KEY"] = <your aws access key>
     # os.environ["AWS_SECRET_KEY"] = <your aws secret key>
 
-    data_path = "s3://imagenet-townhall-demo"
-    index_file_path = "~/content/imagenet/imagenet-index.txt"
+    data_path = "s3://imagenet-resized"
+    index_file_path = "imagenet/imagenet-index.txt"
 
     # -------------------
     # Step 3: Train
