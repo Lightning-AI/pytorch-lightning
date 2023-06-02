@@ -5,17 +5,8 @@ import os
 def get_index(s3_connection_path: str, index_file_path: str) -> bool:
     """Creates an index of file paths that are in the provided s3 path.
 
-    Parameters
-    ----------
-    s3_connection_path : str
-        The path to the data to index in the form "s3://" or "/data/"
-    index_file_path: str
-        The path to where to write the index to.
-        If this function is called with a path that is populated the provided path will be overwritten,
-
-    Returns
-    -------
-    Returns True is the index got created and False if it wasn't
+    Returns:
+        Returns True is the index got created and False if it wasn't
     """
 
     if s3_connection_path.startswith("/data/"):
@@ -38,6 +29,7 @@ def get_index(s3_connection_path: str, index_file_path: str) -> bool:
 
 
 def _create_index_recursive(root, write_to):
+    """Recursively pull files from s3 prefixes until full path is available"""
     from fsspec.core import url_to_fs
     from torchdata.datapipes.iter import FSSpecFileLister
 
@@ -79,9 +71,8 @@ def _create_index(data_connection_path: str, index_file_path: str) -> bool:
 def _get_index(data_connection_path: str, index_file_path: str) -> bool:
     """Expecting a string in the format s3:// or /data/...
 
-    Returns
-    -------
-    True if the index retrieved
+    Returns:
+        True if the index retrieved
     """
     from lightning.app.utilities.network import LightningClient
 
