@@ -1,6 +1,7 @@
 import math
 import os
 
+
 def get_index(s3_connection_path: str, index_file_path: str) -> bool:
     """Creates an index of file paths that are in the provided s3 path.
 
@@ -122,13 +123,16 @@ def _get_index(data_connection_path: str, index_file_path: str) -> bool:
 
                 for page_num in range(num_pages):
                     page = client.data_connection_service_get_data_connection_artifacts_page(
-                        project_id=project_id, id=data_connection.id, cluster_id="litng-ai-03", page_number=str(page_num)
+                        project_id=project_id,
+                        id=data_connection.id,
+                        cluster_id="litng-ai-03",
+                        page_number=str(page_num),
                     ).artifacts
 
                     f.writelines([f"s3://{data_connection_path}/{item.filename}" + "\n" for item in page])
             return True
         else:
             return False
-        
-    except Exception as exc:
+
+    except Exception:
         return False
