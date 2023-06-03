@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Callable, Dict, Optional, Sequence
+
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 
 if _TORCH_GREATER_EQUAL_1_13:
