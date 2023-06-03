@@ -132,9 +132,8 @@ class Strategy(ABC):
             empty_weights: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
         """
-        device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
         empty_init_context = _EmptyInit(enabled=(empty_weights is not False))
-        with device_context, empty_init_context, self.precision.init_context():
+        with empty_init_context, self.tensor_init_context():
             yield
 
     def setup_module_and_optimizers(
