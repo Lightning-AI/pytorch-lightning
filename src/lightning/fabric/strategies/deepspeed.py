@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import platform
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
@@ -341,7 +341,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @contextmanager
     def module_init_context(self) -> Generator[None, None, None]:
-        with self.module_sharded_context():
+        precision_context = self.precision.init_context() if not self.zero_stage_3 else nullcontext()
+        with precision_context, self.module_sharded_context():
             yield
 
     @contextmanager
