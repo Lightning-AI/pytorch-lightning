@@ -152,7 +152,7 @@ def test_module_init_context(precision, expected_dtype, empty_weights, monkeypat
         parallel_devices=parallel_devices, precision=precision, cluster_environment=LightningEnvironment()
     )
     assert strategy.local_rank == 1
-    with strategy.module_init_context():
+    with strategy.module_init_context(empty_weights=empty_weights):
         module = torch.nn.Linear(2, 2)
     assert module.weight.device == module.bias.device == expected_device
     assert module.weight.dtype == module.bias.dtype == expected_dtype

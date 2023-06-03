@@ -11,26 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
 import torch.nn
 
 from lightning.fabric.utilities import _EmptyInit
 from tests_fabric.helpers.runif import RunIf
 
 
-@RunIf(min_cuda_gpus=1)
+# standalone because we need memory metrics isolated from other processes
+@RunIf(min_cuda_gpus=1, standalone=True)
 def test_empty_init_memory_allocation():
     """Test that no memory gets allocated when using the `_EmptyInit()` context manager."""
-    with pytest.warns(FutureWarning):
-        torch.cuda.reset_max_memory_allocated()
+    with _EmptyInit(enabled=True):
+        torch.nn.Linear(100, 100, device="cuda")
+    assert torch.cuda.memory_allocated() == 0
+    torch.cuda.synchronize()
 
     with _EmptyInit(enabled=False):
         torch.nn.Linear(100, 100, device="cuda")
     assert torch.cuda.max_memory_allocated() > 0
-
-    with pytest.warns(FutureWarning):
-        torch.cuda.reset_max_memory_allocated()
-
-    with _EmptyInit(enabled=True):
-        torch.nn.Linear(100, 100, device="cuda")
-    assert torch.cuda.max_memory_allocated() == 0
