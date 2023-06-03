@@ -114,14 +114,20 @@ class Strategy(ABC):
         return dataloader
 
     @contextmanager
-    def init_context(self) -> Generator:
-        """A context manager for improved tensor and module instantiation.
+    def tensor_init_context(self) -> Generator:
+        """Controls how tensors get created (device, dtype)."""
+        device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
+        with device_context, self.precision.init_context():
+            yield
+
+    @contextmanager
+    def module_init_context(self) -> Generator:
+        """A context manager wrapping the model instantiation.
 
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
         patches to the model.
         """
-        device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
-        with device_context, self.precision.init_context():
+        with self.tensor_init_context():
             yield
 
     def setup_module_and_optimizers(
