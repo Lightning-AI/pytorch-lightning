@@ -157,6 +157,18 @@ This eliminates the waiting time to transfer the model parameters from the CPU t
 For strategies that handle large sharded models (FSDP, DeepSpeed), the :meth:`~lightning.fabric.fabric.Fabric.init_module` method will allocate the model parameters on the meta device first before sharding.
 This makes it possible to work with models that are larger than the memory of a single device.
 
+When loading a model from a checkpoint, for example when fine-tuning, set `empty_weights=True` to avoid expensive
+and redundant memory allocation:
+
+.. code-block:: python
+
+    with fabric.init_module(empty_weights=True):
+        # the model allocates no memory, all weights are uninitialized
+        model = MyModel()
+
+    # weights get loaded into the model
+    model.load_state_dict(checkpoint["state_dict"])
+
 
 autocast
 ========
