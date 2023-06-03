@@ -38,6 +38,8 @@ RUN \
     fi && \
 # save the examples \
     ls -lh lightning/ && \
+    rm -rf lightning/.git && \
+    rm -rf lightning/_notebooks/.git && \
     mv lightning/_notebooks/.notebooks/ notebooks && \
     cp -r lightning/*examples . && \
 
