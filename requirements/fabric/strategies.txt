@@ -1,3 +1,3 @@
 # NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
-deepspeed @ git+https://github.com/microsoft/DeepSpeed.git ; platform_system != "Windows"  # TODO: replace with 0.9.3 once released
+deepspeed >=0.8.2, <=0.9.3; platform_system != "Windows"
