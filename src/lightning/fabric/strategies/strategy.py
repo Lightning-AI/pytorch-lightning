@@ -29,8 +29,7 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.utilities.apply_func import move_data_to_device
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.init import _EmptyInit
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_1_13
 from lightning.fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
@@ -132,9 +131,16 @@ class Strategy(ABC):
             empty_weights: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
         """
-        empty_init_context = _EmptyInit(enabled=(empty_weights is not False))
-        with empty_init_context, self.tensor_init_context():
-            yield
+        if _TORCH_GREATER_EQUAL_1_13 and empty_weights:
+            from lightning.fabric.utilities.init import _EmptyInit
+
+            with _EmptyInit(), self.tensor_init_context():
+                yield
+        elif empty_weights:
+            raise NotImplementedError("`empty_weights=True` requires PyTorch >= 1.13.")
+        else:
+            with self.tensor_init_context():
+                yield
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]

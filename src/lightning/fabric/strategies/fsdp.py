@@ -258,9 +258,17 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def module_init_context(self, empty_weights: Optional[bool] = None) -> Generator[None, None, None]:
         # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
         # is resolved. For now, the module will get moved to the device in `setup_module`.
-        empty_init_context = _EmptyInit(enabled=(empty_weights is not False))
-        with empty_init_context, self.precision.init_context(), self.module_sharded_context():
-            yield
+        if _TORCH_GREATER_EQUAL_1_13 and empty_weights:
+            from lightning.fabric.utilities.init import _EmptyInit
+
+            empty_init_context = _EmptyInit(enabled=(empty_weights is not False))
+            with empty_init_context, self.precision.init_context(), self.module_sharded_context():
+                yield
+        elif empty_weights:
+            raise NotImplementedError("`empty_weights=True` requires PyTorch >= 1.13.")
+        else:
+            with self.precision.init_context(), self.module_sharded_context():
+                yield
 
     @contextmanager
     def module_sharded_context(self) -> Generator:
