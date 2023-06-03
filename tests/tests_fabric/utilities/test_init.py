@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch.nn
 
 from lightning.fabric.utilities import _EmptyInit
@@ -20,12 +21,16 @@ from tests_fabric.helpers.runif import RunIf
 @RunIf(min_cuda_gpus=1)
 def test_empty_init_memory_allocation():
     """Test that no memory gets allocated when using the `_EmptyInit()` context manager."""
-    torch.cuda.reset_peak_memory_stats()
+    with pytest.warns(FutureWarning):
+        torch.cuda.reset_max_memory_allocated()
+
     with _EmptyInit(enabled=False):
         torch.nn.Linear(100, 100, device="cuda")
     assert torch.cuda.max_memory_allocated() > 0
 
-    torch.cuda.reset_peak_memory_stats()
+    with pytest.warns(FutureWarning):
+        torch.cuda.reset_max_memory_allocated()
+
     with _EmptyInit(enabled=True):
         torch.nn.Linear(100, 100, device="cuda")
     assert torch.cuda.max_memory_allocated() == 0
