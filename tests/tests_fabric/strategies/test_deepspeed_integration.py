@@ -31,78 +31,79 @@ from tests_fabric.test_fabric import BoringModel
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multiple_models():
-    class RunFabric(Fabric):
-        def run(self):
-            model = BoringModel()
-            optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
-            model, optimizer = self.setup(model, optimizer)
+    fabric = Fabric(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu")
+    fabric.launch()
 
-            for i in range(2):
-                optimizer.zero_grad()
-                x = model(torch.randn(1, 32).to(self.device))
-                loss = x.sum()
-                if i == 0:
-                    # the weights are not initialized with stage 3 until backward is run once
-                    assert all(w.nelement() == 0 for w in model.state_dict().values())
-                self.backward(loss, model=model)
-                if i == 0:
-                    # save for later to check that the weights were updated
-                    state_dict = deepcopy(model.state_dict())
-                optimizer.step()
+    with fabric.init_module():
+        model = BoringModel()
 
-            # check that the model trained, the weights from step 1 do not match the weights from step 2
-            for mw_b, mw_a in zip(state_dict.values(), model.state_dict().values()):
-                assert not torch.allclose(mw_b, mw_a)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
+    model, optimizer = fabric.setup(model, optimizer)
 
-            self.seed_everything(42)
-            model_1 = BoringModel()
-            optimizer_1 = torch.optim.SGD(model_1.parameters(), lr=0.0001)
+    for i in range(2):
+        optimizer.zero_grad()
+        x = model(torch.randn(1, 32).to(fabric.device))
+        loss = x.sum()
+        if i == 0:
+            # the weights are not initialized with stage 3 until backward is run once
+            assert all(w.nelement() == 0 for w in model.state_dict().values())
+        fabric.backward(loss, model=model)
+        if i == 0:
+            # save for later to check that the weights were updated
+            state_dict = deepcopy(model.state_dict())
+        optimizer.step()
 
-            self.seed_everything(42)
-            model_2 = BoringModel()
-            optimizer_2 = torch.optim.SGD(model_2.parameters(), lr=0.0001)
+    # check that the model trained, the weights from step 1 do not match the weights from step 2
+    for mw_b, mw_a in zip(state_dict.values(), model.state_dict().values()):
+        assert not torch.allclose(mw_b, mw_a)
 
-            for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
-                assert torch.allclose(mw_1, mw_2)
+    fabric.seed_everything(42)
+    model_1 = BoringModel()
+    optimizer_1 = torch.optim.SGD(model_1.parameters(), lr=0.0001)
 
-            model_1, optimizer_1 = self.setup(model_1, optimizer_1)
-            model_2, optimizer_2 = self.setup(model_2, optimizer_2)
+    fabric.seed_everything(42)
+    model_2 = BoringModel()
+    optimizer_2 = torch.optim.SGD(model_2.parameters(), lr=0.0001)
 
-            # train model_1 first
-            self.seed_everything(42)
-            data_list = []
-            for _ in range(2):
-                optimizer_1.zero_grad()
-                data = torch.randn(1, 32).to(self.device)
-                data_list.append(data)
-                x = model_1(data)
-                loss = x.sum()
-                self.backward(loss, model=model_1)
-                optimizer_1.step()
+    for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
+        assert torch.allclose(mw_1, mw_2)
 
-            # the weights do not match
-            assert all(w.nelement() > 1 for w in model_1.state_dict().values())
-            assert all(w.nelement() == 0 for w in model_2.state_dict().values())
+    model_1, optimizer_1 = fabric.setup(model_1, optimizer_1)
+    model_2, optimizer_2 = fabric.setup(model_2, optimizer_2)
 
-            # now train model_2 with the same data
-            for data in data_list:
-                optimizer_2.zero_grad()
-                x = model_2(data)
-                loss = x.sum()
-                self.backward(loss, model=model_2)
-                optimizer_2.step()
+    # train model_1 first
+    fabric.seed_everything(42)
+    data_list = []
+    for _ in range(2):
+        optimizer_1.zero_grad()
+        data = torch.randn(1, 32).to(fabric.device)
+        data_list.append(data)
+        x = model_1(data)
+        loss = x.sum()
+        fabric.backward(loss, model=model_1)
+        optimizer_1.step()
 
-            # the weights should match
-            for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
-                assert torch.allclose(mw_1, mw_2)
+    # the weights do not match
+    assert all(w.nelement() > 1 for w in model_1.state_dict().values())
+    assert all(w.nelement() == 0 for w in model_2.state_dict().values())
 
-            # Verify collectives works as expected
-            ranks = self.all_gather(torch.tensor([self.local_rank]).to(self.device))
-            assert torch.allclose(ranks.cpu(), torch.tensor([[0], [1]]))
-            assert self.broadcast(True)
-            assert self.is_global_zero == (self.local_rank == 0)
+    # now train model_2 with the same data
+    for data in data_list:
+        optimizer_2.zero_grad()
+        x = model_2(data)
+        loss = x.sum()
+        fabric.backward(loss, model=model_2)
+        optimizer_2.step()
 
-    RunFabric(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
+    # the weights should match
+    for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
+        assert torch.allclose(mw_1, mw_2)
+
+    # Verify collectives works as expected
+    ranks = fabric.all_gather(torch.tensor([fabric.local_rank]).to(fabric.device))
+    assert torch.allclose(ranks.cpu(), torch.tensor([[0], [1]]))
+    assert fabric.broadcast(True)
+    assert fabric.is_global_zero == (fabric.local_rank == 0)
 
 
 @RunIf(min_cuda_gpus=1, deepspeed=True)
@@ -117,20 +118,16 @@ def test_deepspeed_multiple_models():
 )
 def test_deepspeed_auto_batch_size_config_select(dataset_cls, logging_batch_size_per_gpu, expected_batch_size):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
-
-    class RunFabric(Fabric):
-        def run(self):
-            assert isinstance(self._strategy, DeepSpeedStrategy)
-            _ = self.setup_dataloaders(DataLoader(dataset_cls(32, 64)))
-            config = self._strategy.config
-            assert config["train_micro_batch_size_per_gpu"] == expected_batch_size
-
-    fabric = RunFabric(
+    fabric = Fabric(
         accelerator="cuda",
         devices=1,
         strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=logging_batch_size_per_gpu, zero_optimization=False),
     )
-    fabric.run()
+    fabric.launch()
+    assert isinstance(fabric._strategy, DeepSpeedStrategy)
+    _ = fabric.setup_dataloaders(DataLoader(dataset_cls(32, 64)))
+    config = fabric._strategy.config
+    assert config["train_micro_batch_size_per_gpu"] == expected_batch_size
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
@@ -138,47 +135,40 @@ def test_deepspeed_configure_optimizers():
     """Test that the deepspeed strategy with default initialization wraps the optimizer correctly."""
     from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
 
-    class RunFabric(Fabric):
-        def run(self):
-            model = nn.Linear(3, 3)
-            optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-            model, optimizer = self.setup(model, optimizer)
-            assert isinstance(optimizer.optimizer, DeepSpeedZeroOptimizer)
-            assert isinstance(optimizer.optimizer.optimizer, torch.optim.SGD)
-
-    fabric = RunFabric(
+    fabric = Fabric(
         strategy=DeepSpeedStrategy(),
         accelerator="cuda",
         devices=1,
         precision="16-mixed",
     )
-    fabric.run()
+    fabric.launch()
+    model = nn.Linear(3, 3)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    model, optimizer = fabric.setup(model, optimizer)
+    assert isinstance(optimizer.optimizer, DeepSpeedZeroOptimizer)
+    assert isinstance(optimizer.optimizer.optimizer, torch.optim.SGD)
 
 
 @RunIf(min_cuda_gpus=1, deepspeed=True)
 def test_deepspeed_custom_precision_params():
     """Test that if the FP16 parameters are set via the DeepSpeedStrategy, the deepspeed config contains these
     changes."""
-
-    class RunFabric(Fabric):
-        def run(self):
-            assert self._strategy._config_initialized
-            assert self._strategy.config["fp16"]["loss_scale"] == 10
-            assert self._strategy.config["fp16"]["initial_scale_power"] == 11
-            assert self._strategy.config["fp16"]["loss_scale_window"] == 12
-            assert self._strategy.config["fp16"]["hysteresis"] == 13
-            assert self._strategy.config["fp16"]["min_loss_scale"] == 14
-
     strategy = DeepSpeedStrategy(
         loss_scale=10, initial_scale_power=11, loss_scale_window=12, hysteresis=13, min_loss_scale=14
     )
-    fabric = RunFabric(
+    fabric = Fabric(
         strategy=strategy,
         precision="16-mixed",
         accelerator="cuda",
         devices=1,
     )
-    fabric.run()
+    fabric.launch()
+    assert fabric._strategy._config_initialized
+    assert fabric._strategy.config["fp16"]["loss_scale"] == 10
+    assert fabric._strategy.config["fp16"]["initial_scale_power"] == 11
+    assert fabric._strategy.config["fp16"]["loss_scale_window"] == 12
+    assert fabric._strategy.config["fp16"]["hysteresis"] == 13
+    assert fabric._strategy.config["fp16"]["min_loss_scale"] == 14
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
@@ -187,35 +177,32 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded():
     correctly."""
     import deepspeed
 
-    class RunFabric(Fabric):
-        def run(self):
-            model = nn.Linear(3, 3)
-            optimizer = torch.optim.Adam(model.parameters())
-
-            with mock.patch("deepspeed.checkpointing.configure", wraps=deepspeed.checkpointing.configure) as configure:
-                self.setup(model, optimizer)
-
-            configure.assert_called_with(
-                mpu_=None,
-                partition_activations=True,
-                contiguous_checkpointing=True,
-                checkpoint_in_cpu=True,
-                profile=None,
-            )
-
     strategy = DeepSpeedStrategy(
         partition_activations=True,
         cpu_checkpointing=True,
         contiguous_memory_optimization=True,
         synchronize_checkpoint_boundary=True,
     )
-    fabric = RunFabric(
+    fabric = Fabric(
         strategy=strategy,
         precision="16-mixed",
         accelerator="cuda",
         devices=1,
     )
-    fabric.run()
+    fabric.launch()
+    model = nn.Linear(3, 3)
+    optimizer = torch.optim.Adam(model.parameters())
+
+    with mock.patch("deepspeed.checkpointing.configure", wraps=deepspeed.checkpointing.configure) as configure:
+        fabric.setup(model, optimizer)
+
+    configure.assert_called_with(
+        mpu_=None,
+        partition_activations=True,
+        contiguous_checkpointing=True,
+        checkpoint_in_cpu=True,
+        profile=None,
+    )
 
 
 class ModelParallelClassification(BoringFabric):

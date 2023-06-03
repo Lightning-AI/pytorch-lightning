@@ -170,7 +170,7 @@ def test_single_device_grad_clipping(clip_type, precision):
 )
 @pytest.mark.parametrize("empty_weights", [None, True, False])
 def test_module_init_context(device, precision, dtype, empty_weights, monkeypatch):
-    """Test that the module under the init-context gets moved to the right device and dtype."""
+    """Test that the module under the init-module-context gets moved to the right device and dtype."""
     init_mock = Mock()
     monkeypatch.setattr(torch.Tensor, "uniform_", init_mock)
 
@@ -186,3 +186,36 @@ def test_module_init_context(device, precision, dtype, empty_weights, monkeypatc
         init_mock.assert_called()
     else:
         init_mock.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "device",
+    [
+        "cpu",
+        pytest.param("cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps:0", marks=RunIf(mps=True)),
+    ],
+)
+@pytest.mark.parametrize(
+    ("precision", "dtype"),
+    [
+        (Precision(), torch.float32),
+        (HalfPrecision("16-true"), torch.float16),
+        pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(mps=False)),
+        pytest.param(DoublePrecision(), torch.float64, marks=RunIf(mps=False)),
+    ],
+)
+def test_tensor_init_context(device, precision, dtype):
+    """Test that tensors under the init-tensor-context get moved to the right device and dtype."""
+    device = torch.device(device)
+    strategy = SingleDeviceStrategy(device=device, precision=precision)
+    with strategy.tensor_init_context():
+        tensor0 = torch.tensor(42.0)
+        tensor1 = torch.tensor(42)
+        tensor2 = torch.tensor(42.0, dtype=torch.half)
+
+    expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
+    assert tensor0.device == tensor1.device == tensor2.device == expected_device
+    assert tensor0.dtype == dtype
+    assert tensor1.dtype == torch.long  # `.init_tensor()` only affects floating point dtypes
+    assert tensor2.dtype == torch.half  # this tensor was created with an explicit dtype assignment

@@ -11,11 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+
 import pytest
+import torch.distributed
 
-from lightning.fabric.utilities.testing import _runif_reasons
+
+@pytest.fixture()
+def reset_deterministic_algorithm():
+    """Ensures that torch determinism settings are reset before the next test runs."""
+    yield
+    os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)
+    torch.use_deterministic_algorithms(False)
 
 
-def RunIf(**kwargs):
-    reasons, marker_kwargs = _runif_reasons(**kwargs)
-    return pytest.mark.skipif(condition=len(reasons) > 0, reason=f"Requires: [{' + '.join(reasons)}]", **marker_kwargs)
+@pytest.fixture()
+def reset_cudnn_benchmark():
+    """Ensures that the `torch.backends.cudnn.benchmark` setting gets reset before the next test runs."""
+    yield
+    torch.backends.cudnn.benchmark = False

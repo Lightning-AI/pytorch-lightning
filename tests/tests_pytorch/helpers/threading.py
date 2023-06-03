@@ -11,11 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
-
-from lightning.fabric.utilities.testing import _runif_reasons
+from threading import Thread
 
 
-def RunIf(**kwargs):
-    reasons, marker_kwargs = _runif_reasons(**kwargs)
-    return pytest.mark.skipif(condition=len(reasons) > 0, reason=f"Requires: [{' + '.join(reasons)}]", **marker_kwargs)
+class ThreadExceptionHandler(Thread):
+    """Adopted from https://stackoverflow.com/a/67022927."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.exception = None
+
+    def run(self):
+        try:
+            super().run()
+        except Exception as e:
+            self.exception = e
+
+    def join(self):
+        super().join()
+        if self.exception:
+            raise self.exception
