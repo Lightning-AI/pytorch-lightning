@@ -136,6 +136,7 @@ class _MyFabricGradVal(BoringFabric):
                 i += 1
 
 
+@RunIf(min_torch="1.13")
 @pytest.mark.parametrize(
     "precision",
     [
@@ -182,7 +183,7 @@ def test_module_init_context(device, precision, dtype, empty_weights, monkeypatc
     expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
     assert module.weight.device == module.bias.device == expected_device
     assert module.weight.dtype == module.bias.dtype == dtype
-    if empty_weights is False:
+    if not empty_weights:
         init_mock.assert_called()
     else:
         init_mock.assert_not_called()

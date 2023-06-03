@@ -156,7 +156,7 @@ def test_module_init_context(precision, expected_dtype, empty_weights, monkeypat
         module = torch.nn.Linear(2, 2)
     assert module.weight.device == module.bias.device == expected_device
     assert module.weight.dtype == module.bias.dtype == expected_dtype
-    if empty_weights is False:
+    if not empty_weights:
         init_mock.assert_called()
     else:
         init_mock.assert_not_called()
