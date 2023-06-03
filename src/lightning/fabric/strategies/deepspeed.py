@@ -346,7 +346,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 f"`{empty_weights=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
             )
         empty_weights = empty_weights is not False and not self.zero_stage_3
-        base_context = super().module_init_context(empty_weights=empty_weights) if not self.zero_stage_3 else nullcontext()
+        base_context = (
+            super().module_init_context(empty_weights=empty_weights) if not self.zero_stage_3 else nullcontext()
+        )
         with base_context, self.module_sharded_context():
             yield
 
