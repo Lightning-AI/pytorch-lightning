@@ -129,7 +129,7 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
     fabric.run()
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, min_torch="1.13")
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
     [
