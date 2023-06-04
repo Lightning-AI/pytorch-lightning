@@ -1491,7 +1491,7 @@ class Trainer:
         return self.test_loop.max_batches
 
     @property
-    def num_predict_batches(self) -> List[Union[int, float]]:
+    def num_predict_batches(self) -> Union[int, float, List[Union[int, float]]]:
         """The number of prediction batches that will be used during ``trainer.predict()``."""
         return self.predict_loop.max_batches
 

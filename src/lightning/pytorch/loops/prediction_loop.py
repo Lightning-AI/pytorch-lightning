@@ -51,7 +51,8 @@ class _PredictionLoop(_Loop):
         self.epoch_batch_indices: List[List[List[int]]] = []
         self.current_batch_indices: List[int] = []  # used by PredictionWriter
         self.batch_progress = _Progress()  # across dataloaders
-        self.max_batches: List[Union[int, float]] = []
+        #  list in "sequential" mode, number otherwise
+        self.max_batches: Union[int, float, List[Union[int, float]]] = []
 
         self._warning_cache = WarningCache()
         self._data_source = _DataLoaderSource(None, "predict_dataloader")
@@ -94,7 +95,12 @@ class _PredictionLoop(_Loop):
 
     @property
     def skip(self) -> bool:
-        return sum(self.max_batches) == 0
+        return sum(self.max_batches) == 0 if isinstance(self.max_batches, list) else self.max_batches == 0
+
+    @property
+    def _is_sequential(self) -> bool:
+        assert self._combined_loader is not None
+        return self._combined_loader._mode == "sequential"
 
     @_no_grad_context
     def run(self) -> Optional[_PREDICT_OUTPUT]:
@@ -107,7 +113,17 @@ class _PredictionLoop(_Loop):
         assert data_fetcher is not None
         while True:
             try:
-                batch, batch_idx, dataloader_idx = next(data_fetcher)
+                if self._is_sequential:
+                    batch, batch_idx, dataloader_idx = next(data_fetcher)
+                else:
+                    batch_idx = (
+                        data_fetcher.fetched
+                        if isinstance(data_fetcher, _DataLoaderIterDataFetcher)
+                        else self.batch_progress.current.ready
+                    )
+                    batch = next(data_fetcher)
+                    dataloader_idx = 0
+
                 self.batch_progress.is_last_batch = data_fetcher.done
                 self._predict_step(batch, batch_idx, dataloader_idx)
             except StopIteration:
@@ -139,18 +155,23 @@ class _PredictionLoop(_Loop):
         trainer_fn = TrainerFn.PREDICTING
         stage = RunningStage.PREDICTING
         dataloaders = []
-        self.max_batches = []
         for dl in combined_loader.flattened:
             _check_dataloader_iterable(dl, source, trainer_fn)
             dl = _process_dataloader(trainer, trainer_fn, stage, dl)
             dataloaders.append(dl)
-
-            # determine number of batches
-            length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
-            num_batches = _parse_num_batches(stage, length, trainer.limit_predict_batches)
-            self.max_batches.append(num_batches)
         combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader
+
+        if self._is_sequential:
+            self.max_batches = []
+            for dl in combined_loader.flattened:
+                # determine number of batches
+                length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
+                num_batches = _parse_num_batches(stage, length, trainer.limit_predict_batches)
+                self.max_batches.append(num_batches)
+        else:
+            has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
+            self.max_batches = len(combined_loader) if has_len_all_ranks_ else float("inf")
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
@@ -163,13 +184,13 @@ class _PredictionLoop(_Loop):
             )
         combined_loader = self._combined_loader
         assert combined_loader is not None
-        if combined_loader._mode != "sequential":
-            raise ValueError('`trainer.predict()` only supports the `CombinedLoader(mode="sequential")` mode.')
+
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
-        assert isinstance(combined_loader._iterator, _Sequential)
-        # set the per-dataloader limits
-        combined_loader._iterator.limits = self.max_batches
+        if isinstance(combined_loader._iterator, _Sequential):
+            # set the per-dataloader limits
+            combined_loader._iterator.limits = self.max_batches
+
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
         data_fetcher._start_profiler = self._on_before_fetch
@@ -217,7 +238,9 @@ class _PredictionLoop(_Loop):
 
         any_on_epoch = self._store_data_for_prediction_writer(batch_idx, dataloader_idx)
 
-        step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
+        step_kwargs = self._build_kwargs(
+            batch, batch_idx, dataloader_idx if self._is_sequential and self.num_dataloaders > 1 else None
+        )
 
         call._call_callback_hooks(trainer, "on_predict_batch_start", *step_kwargs.values())
         call._call_lightning_module_hook(trainer, "on_predict_batch_start", *step_kwargs.values())
@@ -339,7 +362,7 @@ class _PredictionLoop(_Loop):
         assert self._combined_loader is not None
         _verify_dataloader_idx_requirement(
             ("predict_step", "on_predict_batch_start", "on_predict_batch_end"),
-            self._combined_loader._mode == "sequential" and self.num_dataloaders > 1,
+            self._is_sequential and self.num_dataloaders > 1,
             RunningStage.PREDICTING,
             trainer.lightning_module,
         )
