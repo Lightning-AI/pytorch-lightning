@@ -402,7 +402,9 @@ def test_deepspeed_init_module_with_stage_3(empty_weights):
 
     with mock.patch("deepspeed.zero.Init") as zero_init_mock, fabric.init_module(empty_weights=empty_weights):
         BoringModel()
-    zero_init_mock.assert_called_once_with(remote_device="cpu", pin_memory=True, config_dict_or_path=ANY, dtype=torch.bfloat16)
+    zero_init_mock.assert_called_once_with(
+        remote_device="cpu", pin_memory=True, config_dict_or_path=ANY, dtype=torch.bfloat16
+    )
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
@@ -414,9 +416,11 @@ def test_deepspeed_init_module_with_stages_1_2(stage, empty_weights):
     fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy, precision="bf16-true")
     fabric.launch()
 
-    with mock.patch("deepspeed.zero.Init") as zero_init_mock, mock.patch("torch.Tensor.uniform_") as init_mock, fabric.init_module(empty_weights=empty_weights):
+    with mock.patch("deepspeed.zero.Init") as zero_init_mock, mock.patch(
+        "torch.Tensor.uniform_"
+    ) as init_mock, fabric.init_module(empty_weights=empty_weights):
         model = BoringModel()
-    
+
     zero_init_mock.assert_not_called()
     assert init_mock.call_count == int(not empty_weights)
     assert model.layer.weight.dtype == torch.bfloat16
