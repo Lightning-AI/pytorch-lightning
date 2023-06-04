@@ -6,6 +6,8 @@ from torch.utils.data import DataLoader, Dataset
 from lightning.pytorch import LightningModule, Trainer
 from torchmetrics.classification import Accuracy
 from lightning.pytorch.strategies import DeepSpeedStrategy
+from torchmetrics.classification import Accuracy
+from lightning.pytorch.strategies import DeepSpeedStrategy
 
 
 class RandomDataset(Dataset):
@@ -62,12 +64,13 @@ def run():
         strategy=DeepSpeedStrategy(stage=3),
         accelerator="gpu",
         devices=1,
-        # precision="16-mixed",
+        precision="16-mixed",
         enable_progress_bar=False,
         enable_model_summary=False,
         num_sanity_val_steps=0,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+    print(trainer.strategy.model)
     trainer.test(model, dataloaders=test_data)
 
 

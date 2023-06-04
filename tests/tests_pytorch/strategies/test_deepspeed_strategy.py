@@ -567,12 +567,7 @@ class ModelParallelClassificationModel(LightningModule):
         self.lr = lr
         self.num_blocks = num_blocks
         self.prepare_data_per_node = True
-
-        metric = Accuracy(task="multiclass", num_classes=3) if _TM_GE_0_11 else Accuracy()
-        self.train_acc = metric.clone()
-        self.valid_acc = metric.clone()
-        self.test_acc = metric.clone()
-
+        self.train_acc = self.valid_acc = self.test_acc = None
         self.model = None
 
     def make_block(self):
@@ -580,6 +575,10 @@ class ModelParallelClassificationModel(LightningModule):
 
     def configure_sharded_model(self) -> None:
         if self.model is None:
+            metric = Accuracy(task="multiclass", num_classes=3) if _TM_GE_0_11 else Accuracy()
+            self.train_acc = metric.clone()
+            self.valid_acc = metric.clone()
+            self.test_acc = metric.clone()
             self.model = nn.Sequential(*(self.make_block() for x in range(self.num_blocks)), nn.Linear(32, 3))
 
     def forward(self, x):
