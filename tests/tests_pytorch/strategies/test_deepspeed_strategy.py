@@ -594,7 +594,6 @@ class ModelParallelClassificationModel(LightningModule):
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
-        print(self.train_acc.device)
         self.log("train_loss", loss, prog_bar=True)
         self.log("train_acc", self.train_acc(logits, y), prog_bar=True, sync_dist=True)
         return {"loss": loss}
@@ -602,7 +601,6 @@ class ModelParallelClassificationModel(LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
-        print(self.valid_acc.device)
         self.log("val_loss", F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
         self.log("val_acc", self.valid_acc(logits, y), prog_bar=True, sync_dist=True)
 
@@ -765,7 +763,7 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
         trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_path)
 
 
-@RunIf(min_cuda_gpus=1, deepspeed=True, sklearn=True)
+@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
     """Test to ensure with Stage 3 and single GPU that we can resume training."""
     initial_model = ModelParallelClassificationModel()
