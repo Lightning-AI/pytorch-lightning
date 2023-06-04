@@ -31,7 +31,7 @@ from lightning.fabric.plugins.environments.cluster_environment import ClusterEnv
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
-from lightning.fabric.strategies.strategy import _Sharded
+from lightning.fabric.strategies.strategy import _Sharded, _validate_keys_for_strict_loading
 from lightning.fabric.utilities.distributed import log
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
@@ -439,7 +439,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 This should contain exactly one model, and the model must already be set up by DeepSpeed.
-            strict: Whether to strictly enforce that the keys in `state` match the keys in the checkpoint.
+            strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
             Dictionary with the state inside DeepSpeed's engine
@@ -494,8 +494,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
+
+        _validate_keys_for_strict_loading(state.keys(), client_state.keys(), strict=strict)
         for k in client_state.copy():
-            if strict and k not in state:
+            if k not in state:
                 continue
             state[k] = client_state.pop(k)
         return client_state

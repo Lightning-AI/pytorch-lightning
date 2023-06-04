@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Dict, Generator, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -278,8 +278,7 @@ class Strategy(ABC):
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 If no state is given, then the checkpoint will be returned in full.
-            strict: whether to strictly enforce that the keys
-                in `state` match the keys in the checkpoint. Default: ``True``
+            strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
@@ -290,13 +289,7 @@ class Strategy(ABC):
         if not state:
             return checkpoint
 
-        invalid_keys = [k for k in state if k not in checkpoint]
-        if strict and invalid_keys:
-            raise KeyError(
-                f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint. "
-                f"To disable strict loading, set `strict=False`."
-            )
-
+        _validate_keys_for_strict_loading(state.keys(), checkpoint.keys(), strict=strict)
         for name, obj in state.copy().items():
             if name not in checkpoint:
                 continue
@@ -401,3 +394,14 @@ class _Sharded(ABC):
         By sharding layers directly on instantiation, one can reduce peak memory usage and initialization time.
         """
         yield
+
+
+def _validate_keys_for_strict_loading(
+    requested_keys: Iterable[str], checkpoint_keys: Iterable[str], strict: bool
+) -> None:
+    invalid_keys = [k for k in requested_keys if k not in checkpoint_keys]
+    if strict and invalid_keys:
+        raise KeyError(
+            f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint."
+            f" To disable strict loading, set `strict=False`."
+        )

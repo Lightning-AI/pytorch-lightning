@@ -30,7 +30,12 @@ from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
-from lightning.fabric.strategies.strategy import _BackwardSyncControl, _Sharded, TBroadcast
+from lightning.fabric.strategies.strategy import (
+    _BackwardSyncControl,
+    _Sharded,
+    _validate_keys_for_strict_loading,
+    TBroadcast,
+)
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
@@ -475,11 +480,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             # Load metadata (anything not a module or optimizer)
             metadata = torch.load(path / _METADATA_FILENAME)
+            _validate_keys_for_strict_loading(state.keys(), metadata.keys(), strict=strict)
             for key, obj in state.items():
-                if isinstance(obj, (FSDP, Optimizer)):
+                if key not in metadata or isinstance(obj, (FSDP, Optimizer)):
                     continue
-                if key not in metadata:
-                    raise KeyError(f"'{key}' not found in the checkpoint.")
                 state[key] = metadata.pop(key)
 
             # return the remaining metadata that wasn't requested as part of `state`
@@ -498,12 +502,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
                 module.load_state_dict(checkpoint.pop(module_key), strict=strict)
 
+            _validate_keys_for_strict_loading(state.keys(), checkpoint.keys(), strict=strict)
             # Load metadata (anything not a module or optimizer)
             for key, obj in state.items():
-                if isinstance(obj, (FSDP, Optimizer)):
+                if key not in checkpoint or isinstance(obj, (FSDP, Optimizer)):
                     continue
-                if strict and key not in checkpoint:
-                    raise KeyError(f"'{key}' not found in the checkpoint.")
                 state[key] = checkpoint.pop(key)
 
             # return the remaining metadata that wasn't requested as part of `state`
