@@ -1,7 +1,7 @@
+import os
 
 import torch
 from torch.utils.data import DataLoader, Dataset
-from torchmetrics.classification import Accuracy
 
 from lightning.pytorch import LightningModule, Trainer
 
