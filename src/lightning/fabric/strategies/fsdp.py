@@ -480,9 +480,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             # Load metadata (anything not a module or optimizer)
             metadata = torch.load(path / _METADATA_FILENAME)
-            _validate_keys_for_strict_loading(state.keys(), metadata.keys(), strict=strict)
-            for key, obj in state.items():
-                if key not in metadata or isinstance(obj, (FSDP, Optimizer)):
+            requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
+            _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
+            for key in requested_metadata_keys:
+                if key not in metadata:
                     continue
                 state[key] = metadata.pop(key)
 
@@ -502,10 +503,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
                 module.load_state_dict(checkpoint.pop(module_key), strict=strict)
 
-            _validate_keys_for_strict_loading(state.keys(), checkpoint.keys(), strict=strict)
+            requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
+            _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
             # Load metadata (anything not a module or optimizer)
-            for key, obj in state.items():
-                if key not in checkpoint or isinstance(obj, (FSDP, Optimizer)):
+            for key in requested_metadata_keys:
+                if key not in checkpoint:
                     continue
                 state[key] = checkpoint.pop(key)
 

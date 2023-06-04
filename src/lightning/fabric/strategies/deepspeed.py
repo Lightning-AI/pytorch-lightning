@@ -31,7 +31,7 @@ from lightning.fabric.plugins.environments.cluster_environment import ClusterEnv
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
-from lightning.fabric.strategies.strategy import _Sharded, _validate_keys_for_strict_loading
+from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
@@ -495,7 +495,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
 
-        _validate_keys_for_strict_loading(state.keys(), client_state.keys(), strict=strict)
         for k in client_state.copy():
             if k not in state:
                 continue
