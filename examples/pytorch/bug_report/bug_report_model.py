@@ -1,12 +1,9 @@
-import os
 
 import torch
 from torch.utils.data import DataLoader, Dataset
+from torchmetrics.classification import Accuracy
 
 from lightning.pytorch import LightningModule, Trainer
-from torchmetrics.classification import Accuracy
-from lightning.pytorch.strategies import DeepSpeedStrategy
-from torchmetrics.classification import Accuracy
 from lightning.pytorch.strategies import DeepSpeedStrategy
 
 
