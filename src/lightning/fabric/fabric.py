@@ -643,7 +643,10 @@ class Fabric:
         self.barrier()
 
     def load(
-        self, path: Union[str, Path], state: Optional[Dict[str, Union[nn.Module, Optimizer, Any]]] = None
+        self,
+        path: Union[str, Path],
+        state: Optional[Dict[str, Union[nn.Module, Optimizer, Any]]] = None,
+        strict: bool = True,
     ) -> Dict[str, Any]:
         """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
 
@@ -654,13 +657,14 @@ class Fabric:
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 If no state is given, then the checkpoint will be returned in full.
+            strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
             given, the full checkpoint will be returned.
         """
         unwrapped_state = _unwrap_objects(state)
-        remainder = self._strategy.load_checkpoint(path=path, state=unwrapped_state)
+        remainder = self._strategy.load_checkpoint(path=path, state=unwrapped_state, strict=strict)
         self.barrier()
         if state is not None:
             # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
