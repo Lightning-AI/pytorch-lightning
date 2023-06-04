@@ -19,9 +19,9 @@ from tests_fabric.helpers.runif import RunIf
 # standalone because we need memory metrics isolated from other processes
 @RunIf(min_cuda_gpus=1, standalone=True, min_torch="1.13")
 def test_empty_init_memory_allocation():
+    """Test that no memory gets allocated when using the `_EmptyInit()` context manager."""
     from lightning.fabric.utilities.init import _EmptyInit
 
-    """Test that no memory gets allocated when using the `_EmptyInit()` context manager."""
     with _EmptyInit(enabled=True):
         torch.nn.Linear(100, 100, device="cuda")
     assert torch.cuda.memory_allocated() == 0
