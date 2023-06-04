@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import platform
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
@@ -338,6 +338,12 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer together.
         """
         raise NotImplementedError(self._err_msg_joint_setup_required())
+
+    @contextmanager
+    def module_init_context(self) -> Generator[None, None, None]:
+        precision_context = self.precision.init_context() if not self.zero_stage_3 else nullcontext()
+        with precision_context, self.module_sharded_context():
+            yield
 
     @contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:
