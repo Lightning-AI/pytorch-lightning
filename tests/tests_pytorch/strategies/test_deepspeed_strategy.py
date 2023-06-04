@@ -574,6 +574,9 @@ class ModelParallelClassificationModel(LightningModule):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
 
     def configure_sharded_model(self) -> None:
+        # As of deepspeed v0.9.3, in ZeRO stage 3 all submodules need to be created within this hook,
+        # including the metrics. Otherwise, modules that aren't affected by `deepspeed.zero.Init()`
+        # won't be moved to the GPU. See https://github.com/microsoft/DeepSpeed/pull/3611
         if self.model is None:
             metric = Accuracy(task="multiclass", num_classes=3) if _TM_GE_0_11 else Accuracy()
             self.train_acc = metric.clone()
