@@ -90,14 +90,14 @@ class MultiNode(LightningFlow):
 
     def run(self) -> None:
         # 1. Wait for all works to be started !
-        if not all(w.public_ip for w in self.ws):
+        if not all(w.internal_ip for w in self.ws):
             return
 
         # 2. Loop over all node machines
         for node_rank in range(len(self.ws)):
             # 3. Run the user code in a distributed way !
             self.ws[node_rank].run(
-                main_address=self.ws[0].public_ip,
+                main_address=self.ws[0].internal_ip,
                 main_port=self.ws[0].port,
                 num_nodes=len(self.ws),
                 node_rank=node_rank,
