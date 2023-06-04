@@ -923,7 +923,7 @@ def test_load_wrapped_objects(setup, tmp_path):
 
     expected_remainder = {"extra": "data"}
 
-    def mocked_load_checkpoint(path, state):
+    def mocked_load_checkpoint(path, state, strict):
         assert not isinstance(state["model"], _FabricModule)
         assert not isinstance(state["optimizer"], _FabricOptimizer)
         state.update({"int": 5, "dict": {"x": 1}})
