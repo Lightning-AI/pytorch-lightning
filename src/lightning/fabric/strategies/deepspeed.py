@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import platform
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
@@ -340,7 +340,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextmanager
-    def init_sharded_context(self) -> Generator[None, None, None]:
+    def module_init_context(self) -> Generator[None, None, None]:
+        precision_context = self.precision.init_context() if not self.zero_stage_3 else nullcontext()
+        with precision_context, self.module_sharded_context():
+            yield
+
+    @contextmanager
+    def module_sharded_context(self) -> Generator[None, None, None]:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
         # manager, which happens at the start of `Fabric.run()`. Later modifications through e.g. `Fabric.setup()`
         # won't have an effect here.
