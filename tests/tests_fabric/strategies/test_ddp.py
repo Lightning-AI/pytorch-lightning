@@ -129,7 +129,7 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
     fabric.run()
 
 
-@RunIf(min_cuda_gpus=2, min_torch="1.13")
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
     [
@@ -139,12 +139,9 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
         (DoublePrecision(), torch.float64),
     ],
 )
-@pytest.mark.parametrize("empty_weights", [None, True, False])
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
-def test_module_init_context(precision, expected_dtype, empty_weights, monkeypatch):
+def test_module_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
-    init_mock = Mock()
-    monkeypatch.setattr(torch.Tensor, "uniform_", init_mock)
     parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
     expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
 
@@ -152,14 +149,10 @@ def test_module_init_context(precision, expected_dtype, empty_weights, monkeypat
         parallel_devices=parallel_devices, precision=precision, cluster_environment=LightningEnvironment()
     )
     assert strategy.local_rank == 1
-    with strategy.module_init_context(empty_weights=empty_weights):
+    with strategy.module_init_context():
         module = torch.nn.Linear(2, 2)
     assert module.weight.device == module.bias.device == expected_device
     assert module.weight.dtype == module.bias.dtype == expected_dtype
-    if not empty_weights:
-        init_mock.assert_called()
-    else:
-        init_mock.assert_not_called()
 
 
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "0"})
