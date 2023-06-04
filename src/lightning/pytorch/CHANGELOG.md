@@ -56,6 +56,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Updated `LearningRateMonitor` to log monitored values to `trainer.callback_metrics` ([#17626](https://github.com/Lightning-AI/lightning/pull/17626))
 
+- Added support for the `max_size_cycle|max_size|min_size` iteration modes during prediction ([#17749](https://github.com/Lightning-AI/lightning/pull/17749))
 
 ### Changed
 
