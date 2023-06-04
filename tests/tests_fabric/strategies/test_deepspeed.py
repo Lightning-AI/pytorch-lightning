@@ -348,5 +348,7 @@ def test_module_init_context_empty_weights_support():
     # in stage 3, `empty_weights` can't be set to False
     strategy = DeepSpeedStrategy(parallel_devices=[torch.device("cuda", 0)], stage=3)
     assert strategy.zero_stage_3
-    with pytest.raises(NotImplementedError, match="`empty_weights=False` is not a valid choice"), strategy.module_init_context(empty_weights=False):
+    with pytest.raises(
+        NotImplementedError, match="`empty_weights=False` is not a valid choice"
+    ), strategy.module_init_context(empty_weights=False):
         pass
