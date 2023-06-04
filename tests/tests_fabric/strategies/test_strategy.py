@@ -123,15 +123,14 @@ def test_load_checkpoint_strict_loading(tmp_path):
 
 
 def test_load_checkpoint_non_strict_loading(tmp_path):
-    """Test that no error is raised when requested to load a key that does not exist in the checkpoint if strict is
-    set to False, and test that this key is not loaded into the object."""
+    """Test that no error is raised if `strict=False` and state is requested that does not exist in the checkpoint."""
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
 
     # objects with initial state
     saved_model = nn.Linear(2, 2)
     saved_optimizer = torch.optim.Adam(saved_model.parameters(), lr=0.1)
     saved_state = {"model": saved_model, "optimizer": saved_optimizer, "int": 1, "str": "test"}
-    strategy.save_checkpoint(tmp_path / "checkpoint", state=saved_state)
+    strategy.save_checkpoint(tmp_path / "checkpoint.ckpt", state=saved_state)
 
     # same objects with different state
     model = nn.Linear(2, 2)
@@ -140,11 +139,11 @@ def test_load_checkpoint_non_strict_loading(tmp_path):
     assert not torch.equal(model.weight, saved_model.weight)
     assert optimizer.state_dict() != saved_optimizer.state_dict()
 
-    remainder = strategy.load_checkpoint(tmp_path / "checkpoint", state, strict=False)
+    remainder = strategy.load_checkpoint(tmp_path / "checkpoint.ckpt", state, strict=False)
     assert torch.equal(model.weight, saved_model.weight)
     assert optimizer.state_dict() == saved_optimizer.state_dict()
     assert state["int"] == saved_state["int"]
     assert "str" not in state
     assert "str" in remainder
-    assert "new" in state
+    assert state["new"] == "not_present_in_saved_state"
     assert "new" not in remainder
