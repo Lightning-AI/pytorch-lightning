@@ -345,7 +345,7 @@ def test_errors_grad_clipping():
 
 @RunIf(deepspeed=True, min_torch="1.13")
 def test_module_init_context_empty_weights_support():
-    # in stage 3, `empty_weights` can't be set to False
+    """Test that with ZeRO stage 3, `empty_weights` can't be set to False."""
     strategy = DeepSpeedStrategy(parallel_devices=[torch.device("cuda", 0)], stage=3)
     assert strategy.zero_stage_3
     with pytest.raises(
