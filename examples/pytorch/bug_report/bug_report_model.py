@@ -4,6 +4,8 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from lightning.pytorch import LightningModule, Trainer
+from torchmetrics.classification import Accuracy
+from lightning.pytorch.strategies import DeepSpeedStrategy
 
 
 class RandomDataset(Dataset):
@@ -22,13 +24,16 @@ class BoringModel(LightningModule):
     def __init__(self):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
+        self.metric = Accuracy(task="multiclass", num_classes=2)
 
     def forward(self, x):
         return self.layer(x)
 
     def training_step(self, batch, batch_idx):
+        print(self.layer.weight.device)
         loss = self(batch).sum()
         self.log("train_loss", loss)
+        print(self.metric.device)
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
@@ -50,13 +55,17 @@ def run():
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
-        limit_train_batches=1,
-        limit_val_batches=1,
-        limit_test_batches=1,
-        num_sanity_val_steps=0,
         max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        strategy=DeepSpeedStrategy(stage=3),
+        accelerator="gpu",
+        devices=1,
+        # precision="16-mixed",
+        enable_progress_bar=False,
         enable_model_summary=False,
+        num_sanity_val_steps=0,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
     trainer.test(model, dataloaders=test_data)
