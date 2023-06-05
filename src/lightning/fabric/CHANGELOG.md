@@ -33,16 +33,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a warning when calling methods on `_FabricModule` that bypass the strategy-specific wrappers ([#17424](https://github.com/Lightning-AI/lightning/pull/17424))
 
 
-- Added `Fabric.init()` context manager to instantiate tensors or models efficiently directly on device and dtype ([#17488](https://github.com/Lightning-AI/lightning/pull/17488))
+- Added `Fabric.init_tensor()` context manager to instantiate tensors efficiently directly on device and dtype ([#17488](https://github.com/Lightning-AI/lightning/pull/17488))
 
-- Added `Fabric.init_module()` context manager to instantiate large models efficiently directly on device, dtype, and sharding them ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
 
-- Added `lightning.fabric.plugins.Precision.init_context()` context manager to control model and tensor instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
+- Added `Fabric.init_module()` context manager to instantiate large models efficiently directly on device, dtype, and with sharding support ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
   * Creates the model parameters in the desired dtype (`torch.float32`, `torch.float64`, `torch.float16`, or `torch.bfloat16`) depending on the 'true' precision choice in `Fabric(precision='32-true'|'64-true'|'16-true'|'bf16-true')`
+  * Handles initialization for FSDP models before wrapping and the Zero stage 3 initialization for DeepSpeed before sharding
 
-- Added `lightning.fabric.strategies.Strategy.init_context()` context manager to control the model and tensor instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
-  * Calls `lightning.fabric.plugins.Precision.init_context()`
-  * Initializes empty weights on the root device.
+- Added `lightning.fabric.plugins.Precision.init_context()` and `lightning.fabric.strategies.Strategy.module_init_context()` context managers to control model and tensor instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
+
 
 - Run the DDP wrapper in a CUDA stream ([#17334](https://github.com/Lightning-AI/lightning/pull/17334))
 
@@ -54,6 +53,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Added support for saving checkpoints with either full state-dict or sharded state dict via `FSDPStrategy(state_dict_type="full"|"sharded")` ([#17526](https://github.com/Lightning-AI/lightning/pull/17526))
+
+
+- Added support for loading a full-state checkpoint file into a sharded model ([#17623](https://github.com/Lightning-AI/lightning/pull/17623))
 
 
 ### Changed
