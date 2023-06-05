@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import datetime
 import functools
 import os
 from datetime import timedelta
@@ -19,6 +20,7 @@ from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
+import psutil
 import pytest
 import torch
 import torch.nn as nn
@@ -27,12 +29,12 @@ from torch.optim import Adam
 from lightning.fabric import Fabric
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.strategies.fsdp import _FSDPBackwardSyncControl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from lightning.fabric.utilities.optimizer import (
-    _apply_optimizers_during_fsdp_backward,
-    SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD,
+from lightning.fabric.strategies.fsdp import (
+    fsdp_overlap_step_with_backward,
+    _FSDPBackwardSyncControl,
+    _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD,
 )
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
 
@@ -327,8 +329,59 @@ class Block(nn.Module):
         return self.left(x) + self.right(x)
 
 
+class StatusChecker:
+
+    def __init__(self, fabric: Fabric) -> None:
+        self._fabric = fabric
+        self.is_rank_zero = fabric.is_global_zero
+        self.pids = tuple(int(pid) for pid in fabric.all_gather(os.getpid()).cpu().numpy())
+
+    @contextlib.contextmanager
+    def guard_region(self, name: str):
+        """Handle errors and graceful shutdown.
+
+        `pytest` interprets SystemExit as a faiure, so it will interpret
+        shutdown of non-zero ranks as a test failure. This is confusing
+        (since it logs "FAILED"), but more importantly the orphan rank will
+        continue trying to execute the rest of the test suite. So instead we
+        add calls to `os._exit` which actually forces the process to shut down.
+        """
+        success = False
+        try:
+            yield
+            success = True
+
+        except BaseException:
+            if self.is_rank_zero:
+                raise
+
+        finally:
+            # All reduce will wait for all workers to enter. This means that if a
+            # worker dies the status check will deadlock.
+            worker_status = tuple(psutil.Process(pid).status() for pid in self.pids)
+            if any(status in (psutil.STATUS_DEAD, psutil.STATUS_STOPPED, psutil.STATUS_ZOMBIE) for status in worker_status):
+                if self.is_rank_zero:
+                    raise RuntimeError(f"({name}) Dead workers: [{', '.join(worker_status)}]")
+                else:
+                    os._exit(1)
+
+            rank_success = self._fabric.all_gather(success).cpu()
+            if not rank_success.all():
+                if self.is_rank_zero > 0:
+                    os._exit(1)
+                elif success:
+                    raise RuntimeError(f"({name}) Failure on different rank: {rank_success}")
+            
+    def finalize(self) -> None:
+        if not self.is_rank_zero:
+            os._exit(0)
+
+    def __del__(self) -> None:
+        self.finalize()
+
+
 @RunIf(min_torch="2.0.0", min_cuda_gpus=2)
-@pytest.mark.skipif(not SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD, reason="Not supported in this version of PyTorch")
+@pytest.mark.skipif(not _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD, reason="Not supported in this version of PyTorch")
 @pytest.mark.parametrize(
     "checkpoint",
     ((Block,), (SubBlock,), (Block, SubBlock, nn.Linear), None),
@@ -343,7 +396,7 @@ def test_apply_optimizer_in_backward(checkpoint):
 
     num_gpus = 2
     num_blocks = 8
-    feature_dim = 1024  # 256
+    feature_dim = 256
 
     # This bound is dependent on the topology of the model. The grads for each
     # Block are two `feature_dim ** 2` Tensors (`left` and `right` Linear layers)
@@ -367,43 +420,23 @@ def test_apply_optimizer_in_backward(checkpoint):
     strategy = FSDPStrategy(
         auto_wrap_policy=auto_wrap_policy,
         activation_checkpointing=checkpoint,
+        timeout=datetime.timedelta(seconds=10),
     )
     fabric = Fabric(accelerator="cuda", devices=num_gpus, strategy=strategy)
     fabric.launch()
+    status_checker = StatusChecker(fabric)
 
     def make_model_and_optimizers():
         torch.manual_seed(0)
 
-        with fabric.device:
+        with fabric.init_module():
             backbone = [Block(feature_dim) for _ in range(num_blocks)]
             model = nn.Sequential(*backbone, nn.Linear(feature_dim, 1, bias=False))
             optimizers = [torch.optim.SGD(layer.parameters(), lr=0.1, momentum=0.9) for layer in model]
 
-        model = fabric.setup_module(model)
-        optimizers = [fabric.setup_optimizers(optimizer) for optimizer in optimizers]
-        return model, optimizers
+        return fabric.setup_module(model), fabric.setup_optimizers(*optimizers)
     
-    @contextlib.contextmanager
-    def fail_if_any_rank_fails():
-        success = False
-        try:
-            yield
-            success = True
-
-        finally:
-            rank_success = fabric.all_gather(success)
-            if not rank_success.all():
-                # `pytest` interprets SystemExit as a faiure, so it will interpret
-                # shutdown of non-zero ranks as a test failure. It doesn't affect the
-                # suite result (due to the rank zero effect mentioned above), but it is
-                # confusing to see "FAILED" when all tests pass.
-                if fabric.global_rank > 0:
-                    os._exit(0)
-
-                elif success:
-                    raise RuntimeError(f"Failure on different rank: {rank_success}")
-
-    with fail_if_any_rank_fails():
+    with status_checker.guard_region("Instantiate model."):
         baseline_model, baseline_optimizers = make_model_and_optimizers()
         test_model, test_optimizers = make_model_and_optimizers()
         fabric.seed_everything(1337 + fabric.global_rank)
@@ -412,9 +445,10 @@ def test_apply_optimizer_in_backward(checkpoint):
         for p0, p1 in zip(baseline_model.parameters(), test_model.parameters()):
             assert (p0 == p1).all()
 
-    for step in range(50):
+    num_steps = 50
+    for step in range(num_steps):
         # Normal pattern: `.backward()` followed by `.step()`
-        with fail_if_any_rank_fails():
+        with status_checker.guard_region(f"({step + 1} / {num_steps}) Baseline"):
             x = torch.randn((4, feature_dim), device=fabric.device)
             y_baseline = baseline_model(x)
 
@@ -439,19 +473,19 @@ def test_apply_optimizer_in_backward(checkpoint):
             baseline_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
 
         # `.step()` interleaved with `.backward()`
-        with fail_if_any_rank_fails():
+        with status_checker.guard_region(f"({step + 1} / {num_steps}) Optimizer in backward"):
             y_test = test_model(x)
             torch.cuda.empty_cache()
             torch.cuda.reset_peak_memory_stats(fabric.device)
             test_start_memory = torch.cuda.memory_allocated(fabric.device)
-            with _apply_optimizers_during_fsdp_backward(test_optimizers, test_model):
+            with fsdp_overlap_step_with_backward(test_optimizers, test_model):
                 fabric.backward(y_test.mean().abs())
                 del y_test
 
             test_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
 
         # Make sure the parameter updates match.
-        with fail_if_any_rank_fails():
+        with status_checker.guard_region(f"({step + 1} / {num_steps}) Check equality"):
             for idx, (p0, p1) in enumerate(zip(baseline_model.parameters(), test_model.parameters())):
                 assert (p0 == p1).all(), (step, idx, p0, p1)
 
@@ -459,8 +493,11 @@ def test_apply_optimizer_in_backward(checkpoint):
         if not step:
             continue
 
-        with fail_if_any_rank_fails():
+        with status_checker.guard_region(f"({step + 1} / {num_steps}) Confirm memory reduction"):
             baseline_delta = baseline_peak_memory - baseline_start_memory
             test_delta = test_peak_memory - test_start_memory
             assert (baseline_delta - test_delta) >= lower_savings_bound, (baseline_delta, test_delta)
             assert (baseline_delta - test_delta) <= upper_savings_bound, (baseline_delta, test_delta)
+
+    status_checker.finalize()
+    assert (pid := os.getpid()) == status_checker.pids[0], f"Orphan worker: {pid}"

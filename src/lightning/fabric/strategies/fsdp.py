@@ -16,7 +16,8 @@ import os
 from contextlib import _GeneratorContextManager, contextmanager
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Literal, Optional, Tuple, Type, TYPE_CHECKING, Union
+import threading
+from typing import Any, Callable, Dict, Generator, Iterable, List, Literal, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -47,8 +48,16 @@ from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
+_SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD = False
+if _TORCH_GREATER_EQUAL_2_0 and torch.distributed.is_available():
+    from torch.distributed.fsdp._common_utils import _get_module_fsdp_state
+    from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
+    from torch.distributed.fsdp.flat_param import FlatParameter, FlatParamHandle
+    _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD = True
+
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+    from lightning.fabric.wrappers import _FabricModule
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 _METADATA_FILENAME = "meta.pt"
@@ -632,3 +641,106 @@ def _is_sharded_checkpoint(path: Path) -> bool:
 
 def _is_full_checkpoint(path: Path) -> bool:
     return path.is_file()
+
+
+def _no_op() -> None:
+    pass
+
+
+@contextmanager
+def _apply_optimizers_during_fsdp_backward(
+    optimizers: Optimizer | Iterable[Optimizer],
+    module: torch.nn.Module,
+) -> Generator[None, None, None]:
+    """Call `Optimizer.step` as gradients become available.
+
+    NOTE: This is an EXPERIMENTAL utility and exploits behavior which is not
+          part of the FSDP public API. Use at your own risk.
+
+    By moving optimizer step invocation into the backward call we can free
+    gradients earlier and reduce peak memory.
+    """
+    assert _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD
+    apply_lock = threading.Lock()
+
+    param_handles = _get_fsdp_handles(module)
+    assert param_handles, f"Module {module} does not appear to contain any FSDP modules."
+    fsdp_state = _get_module_fsdp_state(module)
+    assert fsdp_state is not None
+    fsdp_stream = fsdp_state._streams["post_backward"]
+
+    if isinstance(optimizers, Optimizer):
+        optimizers = [optimizers]
+
+    # We cannot trigger the optimizer step until all parameters are ready.
+    remaining = {}
+    for optimizer in optimizers:
+        unfinished: Dict[torch.nn.Parameter, None] = {}  # Use Dict as an ordered set.
+        for group in optimizer.param_groups:
+            for p in group["params"]:
+                if p not in unfinished:
+                    assert p not in remaining, f"{p=} is shared between two optimizers."
+                    unfinished[p] = None
+                    remaining[p] = (optimizer, unfinished)
+
+    def maybe_step(parameters: Iterable[torch.nn.Parameter], post_step: Callable[[], None] = _no_op) -> None:
+        for p in tuple(parameters):
+            optimizer, unfinished = remaining.pop(p)
+            unfinished.pop(p)
+            if not unfinished:
+                optimizer.step()
+                optimizer.zero_grad()
+
+                # Used to call `_clear_grads_if_needed`. Otherwise FSDP might hold on to the memory.
+                post_step()
+
+    try:
+        hook_handles = []
+        for h in param_handles:
+            assert isinstance(h, FlatParamHandle)
+            flat_param = h.flat_param
+            fsdp_acc_grad, _ = flat_param._post_backward_hook_state  # type: ignore
+
+            # We must take `h` and `flat_param` as arguments because Python
+            # late binds closures.
+            def _opt_hook(h: FlatParamHandle, flat_param: FlatParameter, *_unused) -> None:
+                assert flat_param._post_backward_called
+                assert h.flat_param is flat_param
+                with apply_lock, torch.cuda.stream(fsdp_stream):
+                    # We invoke `prepare_gradient_for_optim` earlier than usual.
+                    # We also need to prevent the later "normal" invocation,
+                    # otherwise the double call will trigger FSDP asserts.
+                    prepare_gradient = h.prepare_gradient_for_optim
+                    assert hasattr(prepare_gradient, "__func__"), prepare_gradient
+                    assert prepare_gradient.__func__ is FlatParamHandle.prepare_gradient_for_optim
+                    prepare_gradient()
+                    h.prepare_gradient_for_optim = _no_op  # type: ignore[assignment]
+                    maybe_step(flat_param._params or (), h._clear_grads_if_needed)
+
+            hook = functools.partial(_opt_hook, h, flat_param)
+            hook_handles.append(fsdp_acc_grad.register_hook(hook))
+
+        yield
+
+    finally:
+        # Non-FSDP parameters won't have a grad hook, so handle them here.
+        with apply_lock:
+            maybe_step(remaining)
+
+        # Unregister the grad hooks.
+        for hook_handle in hook_handles:
+            hook_handle.remove()
+
+        # And lastly back out the handle monkey patches.
+        for h in param_handles:
+            if h.prepare_gradient_for_optim is _no_op:
+                del h.prepare_gradient_for_optim  # type: ignore[assignment]
+
+
+def fsdp_overlap_step_with_backward(
+    optimizers: Optimizer | Iterable[Optimizer],
+    fabric_module: "_FabricModule",
+)  -> Generator[None, None, None]:
+    from lightning.fabric.wrappers import _FabricModule
+    assert isinstance(fabric_module, _FabricModule)
+    return _apply_optimizers_during_fsdp_backward(optimizers, fabric_module._forward_module)
