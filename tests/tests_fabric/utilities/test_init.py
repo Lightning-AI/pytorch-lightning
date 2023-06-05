@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import time
 from unittest import mock
 from unittest.mock import Mock
-import time
 
 import pytest
 import torch.nn
@@ -33,7 +33,7 @@ def test_empty_init(monkeypatch):
     """Test that `_EmptyInit()` skips initialization and allocates uninitialized memory."""
     init_mock = Mock()
     monkeypatch.setattr(torch.Tensor, "uniform_", init_mock)
-    
+
     with _EmptyInit(enabled=True):
         torch.nn.Linear(2, 2, device="cuda")
     init_mock.assert_not_called()
