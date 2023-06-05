@@ -15,16 +15,14 @@ from unittest import mock
 
 import pytest
 import torch.nn
-from lightning.fabric.utilities.init import _EmptyInit
 
+from lightning.fabric.utilities.init import _EmptyInit
 from tests_fabric.helpers.runif import RunIf
 
 
 @mock.patch("lightning.fabric.utilities.init._TORCH_GREATER_EQUAL_1_13", False)
 def test_module_init_context_empty_weights_support():
-    with pytest.raises(
-        NotImplementedError, match="Emtpy weight initialization requires PyTorch >= 1.13"
-    ), _EmptyInit():
+    with pytest.raises(NotImplementedError, match="Emtpy weight initialization requires PyTorch >= 1.13"), _EmptyInit():
         pass
 
 
