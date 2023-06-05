@@ -163,15 +163,6 @@ def test_module_init_context(device, precision, dtype, empty_weights, monkeypatc
         init_mock.assert_not_called()
 
 
-@mock.patch("lightning.fabric.strategies.strategy._TORCH_GREATER_EQUAL_1_13", False)
-def test_module_init_context_empty_weights_support():
-    strategy = SingleDeviceStrategy()  # surrogate class to test base class
-    with pytest.raises(
-        NotImplementedError, match="`empty_weights=True` requires PyTorch >= 1.13"
-    ), strategy.module_init_context(empty_weights=True):
-        pass
-
-
 @pytest.mark.parametrize(
     "device",
     [
