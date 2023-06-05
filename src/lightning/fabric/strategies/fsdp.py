@@ -649,7 +649,7 @@ def _no_op() -> None:
 
 @contextmanager
 def _apply_optimizers_during_fsdp_backward(
-    optimizers: Optimizer | Iterable[Optimizer],
+    optimizers: Union[Optimizer, Iterable[Optimizer]],
     module: torch.nn.Module,
 ) -> Generator[None, None, None]:
     """Call `Optimizer.step` as gradients become available.
@@ -738,7 +738,7 @@ def _apply_optimizers_during_fsdp_backward(
 
 
 def fsdp_overlap_step_with_backward(
-    optimizers: Optimizer | Iterable[Optimizer],
+    optimizers: Union[Optimizer, Iterable[Optimizer]],
     fabric_module: "_FabricModule",
 )  -> Generator[None, None, None]:
     from lightning.fabric.wrappers import _FabricModule
