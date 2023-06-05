@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from typing import Any, Callable, Dict, Generator, Iterator, Mapping, Optional, overload, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Iterator, Mapping, Optional, overload, TypeVar, Union, List
 
 import torch
 from lightning_utilities import WarningCache
@@ -38,7 +38,7 @@ _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step
 
 
 class _FabricOptimizer:
-    def __init__(self, optimizer: Optimizer, strategy: Strategy) -> None:
+    def __init__(self, optimizer: Optimizer, strategy: Strategy, callbacks: Optional[List[Callable]] = None) -> None:
         """FabricOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the
         optimizer step calls to the strategy plugin.
 
@@ -54,6 +54,7 @@ class _FabricOptimizer:
         self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._strategy = strategy
+        self._callbacks = callbacks or []
 
     @property
     def optimizer(self) -> Optimizer:
@@ -69,10 +70,15 @@ class _FabricOptimizer:
             optimizer = self._strategy.model
         else:
             optimizer = self.optimizer
-        return self._strategy.optimizer_step(
+        output = self._strategy.optimizer_step(
             optimizer,
             **kwargs,
         )
+        for callback in self._callbacks:
+            hook = getattr(callback, "on_after_optimizer_step", None)
+            if callable(hook):
+                hook(strategy=self._strategy, optimizer=optimizer)
+        return output
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
