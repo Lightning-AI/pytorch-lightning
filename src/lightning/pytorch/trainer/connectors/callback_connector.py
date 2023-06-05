@@ -34,7 +34,6 @@ from lightning.pytorch.callbacks.rich_model_summary import RichModelSummary
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info
 
