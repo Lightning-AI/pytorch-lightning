@@ -30,9 +30,9 @@ from lightning.fabric import Fabric
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import (
-    fsdp_overlap_step_with_backward,
     _FSDPBackwardSyncControl,
     _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD,
+    fsdp_overlap_step_with_backward,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_fabric.helpers.runif import RunIf
@@ -330,7 +330,6 @@ class Block(nn.Module):
 
 
 class StatusChecker:
-
     def __init__(self, fabric: Fabric) -> None:
         self._fabric = fabric
         self.is_rank_zero = fabric.is_global_zero
@@ -340,11 +339,10 @@ class StatusChecker:
     def guard_region(self, name: str):
         """Handle errors and graceful shutdown.
 
-        `pytest` interprets SystemExit as a faiure, so it will interpret
-        shutdown of non-zero ranks as a test failure. This is confusing
-        (since it logs "FAILED"), but more importantly the orphan rank will
-        continue trying to execute the rest of the test suite. So instead we
-        add calls to `os._exit` which actually forces the process to shut down.
+        `pytest` interprets SystemExit as a faiure, so it will interpret shutdown of non-zero ranks as a test failure.
+        This is confusing (since it logs "FAILED"), but more importantly the orphan rank will continue trying to execute
+        the rest of the test suite. So instead we add calls to `os._exit` which actually forces the process to shut
+        down.
         """
         success = False
         try:
@@ -359,7 +357,9 @@ class StatusChecker:
             # All reduce will wait for all workers to enter. This means that if a
             # worker dies the status check will deadlock.
             worker_status = tuple(psutil.Process(pid).status() for pid in self.pids)
-            if any(status in (psutil.STATUS_DEAD, psutil.STATUS_STOPPED, psutil.STATUS_ZOMBIE) for status in worker_status):
+            if any(
+                status in (psutil.STATUS_DEAD, psutil.STATUS_STOPPED, psutil.STATUS_ZOMBIE) for status in worker_status
+            ):
                 if self.is_rank_zero:
                     raise RuntimeError(f"({name}) Dead workers: [{', '.join(worker_status)}]")
                 else:
@@ -371,7 +371,7 @@ class StatusChecker:
                     os._exit(1)
                 elif success:
                     raise RuntimeError(f"({name}) Failure on different rank: {rank_success}")
-            
+
     def finalize(self) -> None:
         if not self.is_rank_zero:
             os._exit(0)
@@ -435,7 +435,7 @@ def test_apply_optimizer_in_backward(checkpoint):
             optimizers = [torch.optim.SGD(layer.parameters(), lr=0.1, momentum=0.9) for layer in model]
 
         return fabric.setup_module(model), fabric.setup_optimizers(*optimizers)
-    
+
     with status_checker.guard_region("Instantiate model."):
         baseline_model, baseline_optimizers = make_model_and_optimizers()
         test_model, test_optimizers = make_model_and_optimizers()

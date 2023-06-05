@@ -13,10 +13,10 @@
 # limitations under the License.
 import functools
 import os
+import threading
 from contextlib import _GeneratorContextManager, contextmanager
 from datetime import timedelta
 from pathlib import Path
-import threading
 from typing import Any, Callable, Dict, Generator, Iterable, List, Literal, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
@@ -53,10 +53,12 @@ if _TORCH_GREATER_EQUAL_2_0 and torch.distributed.is_available():
     from torch.distributed.fsdp._common_utils import _get_module_fsdp_state
     from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
     from torch.distributed.fsdp.flat_param import FlatParameter, FlatParamHandle
+
     _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD = True
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+
     from lightning.fabric.wrappers import _FabricModule
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
@@ -740,7 +742,8 @@ def _apply_optimizers_during_fsdp_backward(
 def fsdp_overlap_step_with_backward(
     optimizers: Union[Optimizer, Iterable[Optimizer]],
     fabric_module: "_FabricModule",
-)  -> Generator[None, None, None]:
+) -> Generator[None, None, None]:
     from lightning.fabric.wrappers import _FabricModule
+
     assert isinstance(fabric_module, _FabricModule)
     return _apply_optimizers_during_fsdp_backward(optimizers, fabric_module._forward_module)
