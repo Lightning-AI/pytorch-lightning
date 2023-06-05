@@ -32,7 +32,7 @@ runs:
     working-directory: pypi/
     run: |
       # TODO: reset env / conside add as conda
-      pip install *.whl ${{ inputs.install-flags }}
+      pip install *.whl ${{ inputs.pip-flags }}
       python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
       pip list
     shell: bash
@@ -47,7 +47,7 @@ runs:
     working-directory: pypi/
     run: |
       # TODO: reset env / conside add as conda
-      pip install *.tar.gz ${{ inputs.install-flags }}
+      pip install *.tar.gz ${{ inputs.pip-flags }}
       python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
       pip list
     shell: bash

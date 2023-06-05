@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added workflow for checking markdown links ([#81](https://github.com/Lightning-AI/utilities/pull/81))
 
 
+### Fixed
+
+- CI: fix passing install flags in package check ([#137](https://github.com/Lightning-AI/utilities/pull/137))
+
+
 ## [0.7.1] - 2023-02-23
 
 ### Added
