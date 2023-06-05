@@ -27,7 +27,7 @@ jobs:
   test-on-tpus:
     runs-on: ubuntu-22.04
     # run only when the PR title contains 'TPU' or is a merge to master
-    if: |
+    if: >
       (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
       (startsWith(github.event_name, 'pull_request') && contains(github.event.pull_request.title, 'TPU'))
 
