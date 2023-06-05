@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
+from unittest.mock import Mock
+import time
 
 import pytest
 import torch.nn
@@ -26,15 +28,34 @@ def test_module_init_context_empty_weights_support():
         pass
 
 
-# standalone because we need memory metrics isolated from other processes
-@RunIf(min_cuda_gpus=1, standalone=True, min_torch="1.13")
-def test_empty_init_memory_allocation():
-    """Test that no memory gets allocated when using the `_EmptyInit()` context manager."""
+@RunIf(min_cuda_gpus=1, min_torch="1.13")
+def test_empty_init(monkeypatch):
+    """Test that `_EmptyInit()` skips initialization and allocates uninitialized memory."""
+    init_mock = Mock()
+    monkeypatch.setattr(torch.Tensor, "uniform_", init_mock)
+    
     with _EmptyInit(enabled=True):
-        torch.nn.Linear(100, 100, device="cuda")
-    assert torch.cuda.memory_allocated() == 0
-    torch.cuda.synchronize()
+        torch.nn.Linear(2, 2, device="cuda")
+    init_mock.assert_not_called()
 
     with _EmptyInit(enabled=False):
-        torch.nn.Linear(100, 100, device="cuda")
-    assert torch.cuda.max_memory_allocated() > 0
+        torch.nn.Linear(2, 2, device="cuda")
+    init_mock.assert_called()
+
+
+@RunIf(min_cuda_gpus=1, min_torch="1.13")
+def test_empty_init_speed():
+    """Test that `_EmptyInit()` is faster than regular initialization."""
+    t0 = time.perf_counter()
+    with _EmptyInit(enabled=False):
+        torch.nn.Linear(10000, 10000, device="cuda")
+    torch.cuda.synchronize()
+    normal_init_time = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
+    with _EmptyInit(enabled=True):
+        torch.nn.Linear(10000, 10000, device="cuda")
+    torch.cuda.synchronize()
+    empty_init_time = time.perf_counter() - t0
+
+    assert normal_init_time > 10 * empty_init_time
