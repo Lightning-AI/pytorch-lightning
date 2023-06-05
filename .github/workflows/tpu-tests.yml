@@ -3,7 +3,7 @@ name: Test PyTorch - TPU
 on:
   push:
     branches: [master, "release/*"]
-  pull_request_target:
+  pull_request:  # fixme: pull_request_target
     branches: [master, "release/*"]
     types: [ opened, reopened, edited, ready_for_review, synchronize ]
 
@@ -28,10 +28,8 @@ jobs:
     runs-on: ubuntu-22.04
     # run only when the PR title contains 'TPU' or is a merge to master
     if: |
-      ${{
-        (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
-        (startsWith(github.event_name, 'pull_request') && contains(github.event.pull_request.title, 'TPU'))
-      }}
+      (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
+      (startsWith(github.event_name, 'pull_request') && contains(github.event.pull_request.title, 'TPU'))
 
     strategy:
       fail-fast: false
