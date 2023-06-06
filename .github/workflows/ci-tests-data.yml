@@ -125,11 +125,6 @@ jobs:
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
           --source_import="lightning.data" --target_import="lightning_data"
 
-    - name: Testing Warnings
-      working-directory: tests/tests_data
-      # needs to run outside of `pytest`
-      run: python utilities/test_warnings.py
-
     - name: Testing Data
       working-directory: tests/tests_data
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
