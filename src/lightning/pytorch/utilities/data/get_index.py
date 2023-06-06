@@ -36,8 +36,11 @@ def _create_index_recursive(root, write_to):
     files = FSSpecFileLister(root).list_files_by_fsspec()
 
     for file in files:
+        if file == root:
+            continue
+
         fs, path = url_to_fs(file)
-        breakpoint()
+
         if not fs.isfile(file):
             _create_index_recursive(root=file, write_to=write_to)
         else:
