@@ -718,15 +718,15 @@ def test_module_sharding_context():
     """Test that the sharding context manager gets applied when the strategy supports it and is a no-op
     otherwise."""
     fabric = Fabric()
-    fabric._strategy = MagicMock(spec=DDPStrategy, init_sharded_context=Mock())
-    with fabric.sharded_model():
+    fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
+    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
-    fabric._strategy.init_sharded_context.assert_not_called()
+    fabric._strategy.module_sharded_context.assert_not_called()
 
     fabric._strategy = MagicMock(spec=_Sharded)
-    with fabric.sharded_model():
+    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
-    fabric._strategy.init_sharded_context.assert_called_once()
+    fabric._strategy.module_sharded_context.assert_called_once()
 
 
 def test_init_module_context(monkeypatch):
@@ -734,20 +734,41 @@ def test_init_module_context(monkeypatch):
     import lightning.fabric
 
     fabric = Fabric(accelerator="cpu")
-    strategy = lightning.fabric.strategies.SingleDeviceStrategy(device=torch.device("cuda"))
-    strategy.init_context = Mock(wraps=strategy.init_context)
+    strategy = SingleDeviceStrategy(device=torch.device("cuda"))
+    strategy.module_init_context = Mock(wraps=strategy.module_init_context)
     fabric._strategy = strategy
     with fabric.init_module():
         pass
-    strategy.init_context.assert_called_once()
-    strategy.init_context.reset_mock()
+    strategy.module_init_context.assert_called_once()
+    strategy.module_init_context.reset_mock()
 
     # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.fabric.strategies.strategy, "_TORCH_GREATER_EQUAL_2_0", False)
+    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
     with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
         with fabric.init_module():
             pass
-    strategy.init_context.assert_called_once()
+    strategy.module_init_context.assert_called_once()
+
+
+def test_init_tensor_context(monkeypatch):
+    """Test that `.init_tensor()` warns if using PyTorch < 2.0."""
+    import lightning.fabric
+
+    fabric = Fabric(accelerator="cpu")
+    strategy = SingleDeviceStrategy(device=torch.device("cuda"))
+    strategy.tensor_init_context = Mock(wraps=strategy.tensor_init_context)
+    fabric._strategy = strategy
+    with fabric.init_tensor():
+        pass
+    strategy.tensor_init_context.assert_called_once()
+    strategy.tensor_init_context.reset_mock()
+
+    # Pretend we are using PyTorch < 2.0
+    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
+    with pytest.warns(PossibleUserWarning, match="can't place tensors on the device directly"):  # noqa: SIM117
+        with fabric.init_tensor():
+            pass
+    strategy.tensor_init_context.assert_called_once()
 
 
 def test_callbacks_input():
@@ -794,6 +815,29 @@ def test_call():
     with pytest.warns(UserWarning, match="Skipping the callback `Mock.not_a_method`"):
         fabric.call("not_a_method")
     assert not callback1.mock_calls
+
+
+def test_special_callbacks():
+    """Tests special callbacks that have hooks for internal Fabric events."""
+
+    class SpecialCallback:
+        def on_after_optimizer_step(self, strategy, optimizer):
+            pass
+
+        def on_after_setup(self, fabric, module):
+            pass
+
+    callback = Mock(wraps=SpecialCallback())
+    fabric = Fabric(accelerator="cpu", callbacks=[callback])
+
+    model = torch.nn.Linear(2, 2)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    fabric_model, fabric_optimizer = fabric.setup(model, optimizer)
+    callback.on_after_setup.assert_called_once_with(fabric=fabric, module=fabric_model)
+
+    model(torch.randn(2, 2)).sum().backward()
+    fabric_optimizer.step()
+    callback.on_after_optimizer_step.assert_called_once_with(strategy=fabric._strategy, optimizer=optimizer)
 
 
 def test_loggers_input():
@@ -902,7 +946,7 @@ def test_load_wrapped_objects(setup, tmp_path):
 
     expected_remainder = {"extra": "data"}
 
-    def mocked_load_checkpoint(path, state):
+    def mocked_load_checkpoint(path, state, strict):
         assert not isinstance(state["model"], _FabricModule)
         assert not isinstance(state["optimizer"], _FabricOptimizer)
         state.update({"int": 5, "dict": {"x": 1}})

@@ -13,10 +13,11 @@
 # limitations under the License.
 import functools
 import os
+import threading
 from contextlib import _GeneratorContextManager, contextmanager
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Literal, Optional, Tuple, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Literal, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -30,7 +31,12 @@ from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
-from lightning.fabric.strategies.strategy import _BackwardSyncControl, _Sharded, TBroadcast
+from lightning.fabric.strategies.strategy import (
+    _BackwardSyncControl,
+    _Sharded,
+    _validate_keys_for_strict_loading,
+    TBroadcast,
+)
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
@@ -47,10 +53,21 @@ from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
+_SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD = False
+if _TORCH_GREATER_EQUAL_2_0 and torch.distributed.is_available():
+    from torch.distributed.fsdp._common_utils import _get_module_fsdp_state
+    from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
+    from torch.distributed.fsdp.flat_param import FlatParameter, FlatParamHandle
+
+    _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD = True
+
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 
+    from lightning.fabric.wrappers import _FabricModule
+
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
+_METADATA_FILENAME = "meta.pt"
 
 
 class FSDPStrategy(ParallelStrategy, _Sharded):
@@ -253,14 +270,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
+    def module_init_context(self) -> Generator[None, None, None]:
         # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
         # is resolved. For now, the module will get moved to the device in `setup_module`.
-        with self.precision.init_context():
+        with self.precision.init_context(), self.module_sharded_context():
             yield
 
     @contextmanager
-    def init_sharded_context(self) -> Generator:
+    def module_sharded_context(self) -> Generator:
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
 
@@ -385,7 +402,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             save_state_dict(converted_state, writer)
 
             if self.global_rank == 0:
-                torch.save(metadata, path / "meta.pt")
+                torch.save(metadata, path / _METADATA_FILENAME)
 
         elif self._state_dict_type == "full":
             state_dict_ctx = _get_full_state_dict_context(module)
@@ -405,7 +422,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     def load_checkpoint(
-        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+        self,
+        path: _PATH,
+        state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
+        strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -425,11 +445,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(path))
-        if path.is_file():
-            raise NotImplementedError(
-                f"The path `{path}` is a file, but the `FSDPStrategy` currently only supports loading from a checkpoint"
-                f" with sharded states in a directory."
-            )
 
         from torch.distributed.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
@@ -451,39 +466,69 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         module_key, module = list(modules.items())[0]
 
-        state_dict_ctx = _get_sharded_state_dict_context(module)
-        reader = FileSystemReader(path=path)
+        if _is_sharded_checkpoint(path):
+            state_dict_ctx = _get_sharded_state_dict_context(module)
+            reader = FileSystemReader(path=path)
 
-        with state_dict_ctx:
-            module_state = {module_key: module.state_dict()}
-            load_state_dict(module_state, reader)
-            module.load_state_dict(module_state[module_key])
+            with state_dict_ctx:
+                module_state = {module_key: module.state_dict()}
+                load_state_dict(module_state, reader)
+                module.load_state_dict(module_state[module_key], strict=strict)
 
-            # the optimizer states must be loaded separately
-            for optim_key, optim in optimizers.items():
-                optim_state = load_sharded_optimizer_state_dict(
-                    model_state_dict=module_state[module_key],
-                    optimizer_key=optim_key,
-                    storage_reader=reader,
+                # the optimizer states must be loaded separately
+                for optim_key, optim in optimizers.items():
+                    optim_state = load_sharded_optimizer_state_dict(
+                        model_state_dict=module_state[module_key],
+                        optimizer_key=optim_key,
+                        storage_reader=reader,
+                    )
+                    flattened_osd = FSDP.optim_state_dict_to_load(
+                        optim_state_dict=optim_state[optim_key],
+                        model=module,
+                        optim=optim,
+                    )
+                    optim.load_state_dict(flattened_osd)
+
+            # Load metadata (anything not a module or optimizer)
+            metadata = torch.load(path / _METADATA_FILENAME)
+            requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
+            _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
+            for key in requested_metadata_keys:
+                if key not in metadata:
+                    continue
+                state[key] = metadata.pop(key)
+
+            # return the remaining metadata that wasn't requested as part of `state`
+            return metadata
+
+        if _is_full_checkpoint(path):
+            if optimizers:
+                rank_zero_warn(
+                    "Loading a full-state checkpoint into FSDP currently only supports loading the model weights."
+                    " The optimizer state won't be reloaded."
                 )
-                flattened_osd = FSDP.optim_state_dict_to_load(
-                    optim_state_dict=optim_state[optim_key],
-                    model=module,
-                    optim=optim,
-                )
-                optim.load_state_dict(flattened_osd)
 
-        # Load metadata (anything not a module or optimizer)
-        metadata = torch.load(path / "meta.pt")
-        for key, obj in state.items():
-            if isinstance(obj, (FSDP, Optimizer)):
-                continue
-            if key not in metadata:
-                raise KeyError(f"'{key}' not found in the checkpoint.")
-            state[key] = metadata.pop(key)
+            # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
+            # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
+            checkpoint = torch.load(path, map_location="cpu")
+            with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
+                module.load_state_dict(checkpoint.pop(module_key), strict=strict)
 
-        # return the remaining metadata that wasn't requested as part of `state`
-        return metadata
+            requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
+            _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
+            # Load metadata (anything not a module or optimizer)
+            for key in requested_metadata_keys:
+                if key not in checkpoint:
+                    continue
+                state[key] = checkpoint.pop(key)
+
+            # return the remaining metadata that wasn't requested as part of `state`
+            return checkpoint
+
+        raise ValueError(
+            f"The path {str(path)!r} does not point to a valid checkpoint. Make sure the path points to either a"
+            " directory with FSDP checkpoint shards, or a single file with a full checkpoint."
+        )
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
@@ -597,3 +642,116 @@ def _get_full_state_dict_context(module: "FullyShardedDataParallel") -> _Generat
         optim_state_dict_config=optim_state_dict_config,
     )
     return state_dict_type_context
+
+
+def _is_sharded_checkpoint(path: Path) -> bool:
+    """A heuristic check to determine whether the path points to a directory with checkpoint shards."""
+    return path.is_dir() and (path / _METADATA_FILENAME).is_file()
+
+
+def _is_full_checkpoint(path: Path) -> bool:
+    return path.is_file()
+
+
+def _no_op() -> None:
+    pass
+
+
+@contextmanager
+def _apply_optimizers_during_fsdp_backward(
+    optimizers: Union[Optimizer, Iterable[Optimizer]],
+    module: torch.nn.Module,
+) -> Generator[None, None, None]:
+    """Call `Optimizer.step` as gradients become available.
+
+    NOTE: This is an EXPERIMENTAL utility and exploits behavior which is not
+          part of the FSDP public API. Use at your own risk.
+
+    By moving optimizer step invocation into the backward call we can free
+    gradients earlier and reduce peak memory.
+    """
+    assert _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD
+    apply_lock = threading.Lock()
+
+    param_handles = _get_fsdp_handles(module)
+    assert param_handles, f"Module {module} does not appear to contain any FSDP modules."
+    fsdp_state = _get_module_fsdp_state(module)
+    assert fsdp_state is not None
+    fsdp_stream = fsdp_state._streams["post_backward"]
+
+    if isinstance(optimizers, Optimizer):
+        optimizers = [optimizers]
+
+    # We cannot trigger the optimizer step until all parameters are ready.
+    remaining = {}
+    for optimizer in optimizers:
+        unfinished: Dict[torch.nn.Parameter, None] = {}  # Use Dict as an ordered set.
+        for group in optimizer.param_groups:
+            for p in group["params"]:
+                if p not in unfinished:
+                    assert p not in remaining, f"{p=} is shared between two optimizers."
+                    unfinished[p] = None
+                    remaining[p] = (optimizer, unfinished)
+
+    def maybe_step(parameters: Iterable[torch.nn.Parameter], post_step: Callable[[], None] = _no_op) -> None:
+        for p in tuple(parameters):
+            optimizer, unfinished = remaining.pop(p)
+            unfinished.pop(p)
+            if not unfinished:
+                optimizer.step()
+                optimizer.zero_grad()
+
+                # Used to call `_clear_grads_if_needed`. Otherwise FSDP might hold on to the memory.
+                post_step()
+
+    try:
+        hook_handles = []
+        for h in param_handles:
+            assert isinstance(h, FlatParamHandle)
+            flat_param = h.flat_param
+            fsdp_acc_grad, _ = flat_param._post_backward_hook_state  # type: ignore
+
+            # We must take `h` and `flat_param` as arguments because Python
+            # late binds closures.
+            def _opt_hook(h: FlatParamHandle, flat_param: FlatParameter, *_unused: Any) -> None:
+                assert flat_param._post_backward_called
+                assert h.flat_param is flat_param
+                with apply_lock, torch.cuda.stream(fsdp_stream):
+                    # We invoke `prepare_gradient_for_optim` earlier than usual.
+                    # We also need to prevent the later "normal" invocation,
+                    # otherwise the double call will trigger FSDP asserts.
+                    prepare_gradient = h.prepare_gradient_for_optim
+                    assert hasattr(prepare_gradient, "__func__"), prepare_gradient
+                    assert prepare_gradient.__func__ is FlatParamHandle.prepare_gradient_for_optim
+                    prepare_gradient()
+                    h.prepare_gradient_for_optim = _no_op  # type: ignore[method-assign]
+                    maybe_step(flat_param._params or (), h._clear_grads_if_needed)
+
+            hook = functools.partial(_opt_hook, h, flat_param)
+            hook_handles.append(fsdp_acc_grad.register_hook(hook))
+
+        yield
+
+    finally:
+        # Non-FSDP parameters won't have a grad hook, so handle them here.
+        with apply_lock:
+            maybe_step(remaining)
+
+        # Unregister the grad hooks.
+        for hook_handle in hook_handles:
+            hook_handle.remove()
+
+        # And lastly back out the handle monkey patches.
+        for h in param_handles:
+            if h.prepare_gradient_for_optim is _no_op:
+                del h.prepare_gradient_for_optim
+
+
+def fsdp_overlap_step_with_backward(
+    optimizers: Union[Optimizer, Iterable[Optimizer]],
+    fabric_module: "_FabricModule",
+) -> _GeneratorContextManager:
+    from lightning.fabric.wrappers import _FabricModule
+
+    assert isinstance(fabric_module, _FabricModule)
+    return _apply_optimizers_during_fsdp_backward(optimizers, fabric_module._forward_module)
