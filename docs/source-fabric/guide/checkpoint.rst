@@ -120,7 +120,7 @@ Here is a trivial example to illustrate how it works:
     fabric.load("state.ckpt", state, strict=False)
 
 
-See also: `Saving and Loading models in PyTorch <https://pytorch.org/tutorials/beginner/saving_loading_models.html>`_.
+See also: `Saving and loading models in PyTorch <https://pytorch.org/tutorials/beginner/saving_loading_models.html>`_.
 
 
 ----
