@@ -57,9 +57,6 @@ def image_set(tmp_path_factory):
 def test_get_index_generate_for_s3_bucket(monkeypatch):
     """Can generate an index as s3 bucket mounted localled on the Lightning AI platform."""
 
-    error_and_exit = MagicMock()
-    monkeypatch.setattr(get_index, "_error_and_exit", error_and_exit)
-
     client = MagicMock()
     client.projects_service_list_project_cluster_bindings.return_value = None
     client.data_connection_service_list_data_connections.return_value = None
@@ -87,8 +84,6 @@ def test_get_index_generate_for_s3_bucket(monkeypatch):
 @mock.patch("lightning.data.get_index.LightningClient", MagicMock())
 def test_get_index_generate_for_local_folder(image_set, monkeypatch):
     """Can generate an index for an s3 bucket."""
-    error_and_exit = MagicMock()
-    monkeypatch.setattr(get_index, "_error_and_exit", error_and_exit)
 
     client = MagicMock()
     client.projects_service_list_project_cluster_bindings.return_value = None
