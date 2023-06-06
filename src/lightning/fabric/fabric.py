@@ -565,7 +565,7 @@ class Fabric:
                 "You need to set up the model first before you can call `self.no_backward_sync()`:"
                 " `model = self.setup(model, ...)`"
             )
-        if not enabled or isinstance(self._strategy, SingleDeviceStrategy):
+        if not enabled or isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
             context = nullcontext()
         elif self._strategy._backward_sync_control is None:
             rank_zero_warn(
