@@ -20,7 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.distributed
-from lightning_utilities.core.imports import package_available
+from lightning_utilities.core.imports import package_available, module_available
 
 import lightning.pytorch
 from lightning.fabric.plugins.environments import (
@@ -576,6 +576,10 @@ def mock_hpu_available(monkeypatch, value=True):
     monkeypatch.setattr(lightning_habana.plugins.precision, "_HPU_AVAILABLE", value)
 
 
+@pytest.mark.skipif(
+    not package_available('lightning'),
+    reason="Supported only with mono-package"
+)
 def test_devices_auto_choice_cpu(monkeypatch, cuda_count_0):
     mock_hpu_available(monkeypatch, False)
     mock_ipu_available(monkeypatch, False)

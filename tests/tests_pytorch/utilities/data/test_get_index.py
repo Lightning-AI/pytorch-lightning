@@ -5,6 +5,7 @@ import pytest
 from PIL import Image
 
 from lightning.pytorch.utilities.data.get_index import get_index
+from lightning_utilities.core.imports import package_available
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -47,7 +48,10 @@ def image_set(tmp_path_factory):
 
     return tmp_path_factory.getbasetemp()._str
 
-
+@pytest.mark.skipif(
+    not package_available('lightning'),
+    reason="Supported only with mono-package"
+)
 def test_get_index_generate_for_s3_bucket():
     """Can generate an index as s3 bucket mounted localled on the Lightning AI platform."""
     test_index_path = f"{THIS_DIR}/test_data/test_index_s3.txt"
@@ -64,7 +68,10 @@ def test_get_index_generate_for_s3_bucket():
     assert len(test_index_data) == len(generated_index)
     assert test_index_data == generated_index
 
-
+@pytest.mark.skipif(
+    not package_available('lightning'),
+    reason="Supported only with mono-package"
+)
 def test_get_index_generate_for_local_folder(image_set):
     """Can generate an index for an s3 bucket."""
     test_index_path = f"{THIS_DIR}/test_data/test_index.txt"

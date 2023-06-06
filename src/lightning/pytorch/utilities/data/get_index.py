@@ -75,7 +75,10 @@ def _get_index(data_connection_path: str, index_file_path: str) -> bool:
     Returns:
         True if the index retrieved
     """
-    from lightning.app.utilities.network import LightningClient
+    try:
+        from lightning.app.utilities.network import LightningClient
+    except (ModuleNotFoundError, ImportError) as err:
+        raise ModuleNotFoundError('To enable this functionality you need to use `lightning` package.') from err
 
     PROJECT_ID_ENV = "LCP_ID"
 
