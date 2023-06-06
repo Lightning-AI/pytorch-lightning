@@ -3,6 +3,6 @@ pytest ==7.3.1
 pytest-cov ==4.0.0
 pytest-rerunfailures ==10.3
 pytest-random-order ==1.1.0
-torchdata >=0.5.1, <=0.6.0
+torchdata >=0.3.0, <=0.6.0
 s3fs ==2022.11.0
 Pillow ==9.5.0
