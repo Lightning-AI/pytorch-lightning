@@ -61,7 +61,8 @@ def _create_index(data_connection_path: str, index_file_path: str) -> bool:
         return True
     except NoCredentialsError as exc:
         print(
-            "Unable to locate credentials. Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\nAWS_SECRET_KEY"
+            "Unable to locate credentials. \
+            Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\nAWS_SECRET_KEY"
         )
         raise ValueError(exc)
     except Exception as exc:
@@ -122,8 +123,7 @@ def _get_index(data_connection_path: str, index_file_path: str) -> bool:
 
                     f.writelines([f"s3://{data_connection_path}/{item.filename}" + "\n" for item in page])
             return True
-        else:
-            return False
+        return False
 
     except Exception:
         return False

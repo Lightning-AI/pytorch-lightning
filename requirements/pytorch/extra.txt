@@ -9,4 +9,4 @@ jsonargparse[signatures] >=4.18.0, <4.22.0
 rich >=12.3.0, <=13.0.1
 tensorboardX >=2.2, <=2.6  # min version is set by torch.onnx missing attribute
 torchdata # >= 0.6.0
-s3fs # >= 2023.5.0
+s3fs >= 2023.5.0

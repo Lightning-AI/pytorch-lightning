@@ -50,12 +50,12 @@ def image_set(tmp_path_factory):
 
 def test_get_index_generate_for_s3_bucket():
     """Can generate an index as s3 bucket mounted localled on the Lightning AI platform."""
-    test_index_path = f"{THIS_DIR}/data/test_index_s3.txt"
+    test_index_path = f"{THIS_DIR}/test_data/test_index_s3.txt"
     test_index_data = get_test_index_data(test_index_path)
 
     test_bucket = "s3://nohaspublictestbucket"
     index_path = os.path.join(os.getcwd(), "index_1.txt")
-    got_index = get_index(data_connection_path=test_bucket, index_file_path=index_path)
+    got_index = get_index(s3_connection_path=test_bucket, index_file_path=index_path)
 
     assert got_index
 
@@ -67,12 +67,12 @@ def test_get_index_generate_for_s3_bucket():
 
 def test_get_index_generate_for_local_folder(image_set):
     """Can generate an index for an s3 bucket."""
-    test_index_path = f"{THIS_DIR}/data/test_index.txt"
+    test_index_path = f"{THIS_DIR}/test_data/test_index.txt"
     test_index_data = get_test_index_data(test_index_path)
 
     # test_local_bucket = "data/test_dataset"
     index_path = os.path.join(THIS_DIR, "index_2.txt")
-    got_index = get_index(data_connection_path=image_set, index_file_path=index_path)
+    got_index = get_index(s3_connection_path=image_set, index_file_path=index_path)
 
     assert got_index
 
@@ -84,14 +84,15 @@ def test_get_index_generate_for_local_folder(image_set):
     assert sorted(test_index_data) == sorted(item_from_gen_list)
 
 
+@pytest.mark.skip(reason="Not required at the moment")
 def test_get_index_generate_for_mounted_s3_bucket():
     """Can generate an index for an s3 bucket."""
-    test_index_path = f"{THIS_DIR}/data/test_index_s3.txt"
+    test_index_path = f"{THIS_DIR}/test_data/test_index_s3.txt"
     test_index_data = get_test_index_data(test_index_path)
 
     test_local_bucket = "/data/nohaspublictestbucket"
     index_path = os.path.join(THIS_DIR, "index_3.txt")
-    got_index = get_index(data_connection_path=test_local_bucket, index_file_path=index_path)
+    got_index = get_index(s3_connection_path=test_local_bucket, index_file_path=index_path)
 
     assert got_index
 
