@@ -165,13 +165,13 @@ class LitAutoEncoder(L.LightningModule):
 
     def setup(self, stage: str) -> None:
         dataset = tv.datasets.MNIST(".", transform=tv.transforms.ToTensor())
-        self.train, self.val = data.random_split(dataset, [55000, 5000])
+        self.train_dataset, self.val_dataset = data.random_split(dataset, [55000, 5000])
 
     def train_dataloader(self):
-        return data.DataLoader(self.train)
+        return data.DataLoader(self.train_dataset)
 
     def val_dataloader(self):
-        return data.DataLoader(self.val)
+        return data.DataLoader(self.val_dataset)
 
 
 # -------------------
