@@ -1,6 +1,8 @@
 import math
 import os
 
+from lightning.app.utilities.network import LightningClient
+
 
 def get_index(s3_connection_path: str, index_file_path: str) -> bool:
     """Creates an index of file paths that are in the provided s3 path.
@@ -78,7 +80,6 @@ def _get_index(data_connection_path: str, index_file_path: str) -> bool:
     Returns:
         True if the index retrieved
     """
-    from lightning.app.utilities.network import LightningClient
 
     PROJECT_ID_ENV = "LCP_ID"
 
