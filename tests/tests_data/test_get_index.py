@@ -3,9 +3,8 @@ import os
 import numpy as np
 import pytest
 from lightning_utilities.core.imports import package_available
-from PIL import Image
 
-from lightning.pytorch.utilities.data.get_index import get_index
+from lightning.data.get_index import get_index
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -18,6 +17,8 @@ def get_test_index_data(index_path):
 
 @pytest.fixture(scope="session")
 def image_set(tmp_path_factory):
+    from PIL import Image
+
     file_nums = [
         0,
         1,

@@ -5,3 +5,4 @@ pytest-rerunfailures ==10.3
 pytest-random-order ==1.1.0
 torchdata >=0.3.0, <=0.5.1
 s3fs >= 2022.5.0, <2022.11.1
+Pillow >= 9.5.0
