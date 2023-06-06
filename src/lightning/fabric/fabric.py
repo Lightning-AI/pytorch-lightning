@@ -228,11 +228,11 @@ class Fabric:
             original_module._fabric = self  # type: ignore[assignment]
             original_module._fabric_optimizers = optimizers  # type: ignore[assignment]
 
+        self.call("on_after_setup", fabric=self, module=module)
+
         if optimizers:
             # join both types in a tuple for API convenience
             return (module, *optimizers)
-
-        self.call("on_after_setup", fabric=self, module=module)
         return module
 
     def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _FabricModule:
