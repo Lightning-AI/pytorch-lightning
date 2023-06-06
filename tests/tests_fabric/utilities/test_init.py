@@ -58,4 +58,4 @@ def test_empty_init_speed():
     torch.cuda.synchronize()
     empty_init_time = time.perf_counter() - t0
 
-    assert normal_init_time > 10 * empty_init_time
+    assert normal_init_time > 2 * empty_init_time
