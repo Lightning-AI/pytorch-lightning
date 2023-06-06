@@ -212,13 +212,18 @@ class Fabric:
         # Update the _DeviceDtypeModuleMixin's device parameter
         module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
 
-        optimizers = [_FabricOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+        optimizers = [
+            _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
+            for optimizer in optimizers
+        ]
 
         self._models_setup += 1
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self  # type: ignore[assignment]
             original_module._fabric_optimizers = optimizers  # type: ignore[assignment]
+
+        self.call("on_after_setup", fabric=self, module=module)
 
         if optimizers:
             # join both types in a tuple for API convenience
@@ -276,7 +281,10 @@ class Fabric:
         """
         self._validate_setup_optimizers(optimizers)
         optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]
-        optimizers = [_FabricOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+        optimizers = [
+            _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
+            for optimizer in optimizers
+        ]
         return optimizers[0] if len(optimizers) == 1 else tuple(optimizers)
 
     def setup_dataloaders(
