@@ -4,7 +4,7 @@ import time
 from typing import Dict, Optional
 
 
-def is_url(path: str)-> bool:
+def is_url(path: str) -> bool:
     return path.startswith("s3://")
 
 
