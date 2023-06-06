@@ -31,7 +31,12 @@ from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
-from lightning.fabric.strategies.strategy import _BackwardSyncControl, _Sharded, TBroadcast
+from lightning.fabric.strategies.strategy import (
+    _BackwardSyncControl,
+    _Sharded,
+    _validate_keys_for_strict_loading,
+    TBroadcast,
+)
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
@@ -417,7 +422,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     def load_checkpoint(
-        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+        self,
+        path: _PATH,
+        state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
+        strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -465,7 +473,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             with state_dict_ctx:
                 module_state = {module_key: module.state_dict()}
                 load_state_dict(module_state, reader)
-                module.load_state_dict(module_state[module_key])
+                module.load_state_dict(module_state[module_key], strict=strict)
 
                 # the optimizer states must be loaded separately
                 for optim_key, optim in optimizers.items():
@@ -483,11 +491,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             # Load metadata (anything not a module or optimizer)
             metadata = torch.load(path / _METADATA_FILENAME)
-            for key, obj in state.items():
-                if isinstance(obj, (FSDP, Optimizer)):
-                    continue
+            requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
+            _validate_keys_for_strict_loading(requested_metadata_keys, metadata.keys(), strict=strict)
+            for key in requested_metadata_keys:
                 if key not in metadata:
-                    raise KeyError(f"'{key}' not found in the checkpoint.")
+                    continue
                 state[key] = metadata.pop(key)
 
             # return the remaining metadata that wasn't requested as part of `state`
@@ -504,14 +512,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
             checkpoint = torch.load(path, map_location="cpu")
             with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
-                module.load_state_dict(checkpoint.pop(module_key))
+                module.load_state_dict(checkpoint.pop(module_key), strict=strict)
 
+            requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
+            _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
             # Load metadata (anything not a module or optimizer)
-            for key, obj in state.items():
-                if isinstance(obj, (FSDP, Optimizer)):
-                    continue
+            for key in requested_metadata_keys:
                 if key not in checkpoint:
-                    raise KeyError(f"'{key}' not found in the checkpoint.")
+                    continue
                 state[key] = checkpoint.pop(key)
 
             # return the remaining metadata that wasn't requested as part of `state`
