@@ -158,7 +158,7 @@ For strategies that handle large sharded models (FSDP, DeepSpeed), the :meth:`~l
 This makes it possible to work with models that are larger than the memory of a single device.
 
 When loading a model from a checkpoint, for example when fine-tuning, set `empty_weights=True` to avoid expensive
-and redundant memory allocation:
+and redundant memory initialization:
 
 .. code-block:: python
 
