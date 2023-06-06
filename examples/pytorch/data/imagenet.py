@@ -95,10 +95,9 @@ class ImageNetLightningModel(L.LightningModule):
             data_source=self.data_path, split="train", transforms=transforms, path_to_index_file=self.index_file_path
         )
 
-        train_loader = torch.utils.data.DataLoader(
+        return torch.utils.data.DataLoader(
             dataset=train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers
         )
-        return train_loader
 
     def val_dataloader(self):
         import torchvision as tv
@@ -109,10 +108,9 @@ class ImageNetLightningModel(L.LightningModule):
             data_source=self.data_path, split="val", transforms=transforms, path_to_index_file=self.index_file_path
         )
 
-        val_loader = torch.utils.data.DataLoader(
+        return torch.utils.data.DataLoader(
             dataset=val_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers
         )
-        return val_loader
 
     def test_dataloader(self):
         return self.val_dataloader()
@@ -168,7 +166,7 @@ if __name__ == "__main__":
     # os.environ["AWS_ACCESS_KEY"] = <your aws access key>
     # os.environ["AWS_SECRET_KEY"] = <your aws secret key>
 
-    data_path = "s3://imagenet-resized"
+    data_path = "s3://imagenet-tiny"
     index_file_path = "imagenet/imagenet-index.txt"
 
     # -------------------

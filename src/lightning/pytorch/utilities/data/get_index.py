@@ -37,7 +37,7 @@ def _create_index_recursive(root, write_to):
 
     for file in files:
         fs, path = url_to_fs(file)
-
+        breakpoint()
         if not fs.isfile(file):
             _create_index_recursive(root=file, write_to=write_to)
         else:

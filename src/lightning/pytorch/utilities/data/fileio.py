@@ -13,6 +13,11 @@ def is_path(path: str) -> bool:
 
 
 def path_to_url(path: str, bucket_name: str, bucket_root_path: str = "/") -> str:
+    """Gets full S3 path given bucket info.
+
+    Returns:
+        Full S3 url path
+    """
     if not path.startswith(bucket_root_path):
         raise ValueError(f"Cannot create a path from {path} relative to {bucket_root_path}")
     return f"s3://{bucket_name}/{os.path.relpath(path, bucket_root_path)}"
@@ -53,7 +58,7 @@ def open_single_file_with_retry(path_or_url: str, mode: str = "r", kwargs_for_op
         except NoCredentialsError:
             print(f"Could not locate credentials, retrying: attempt {attempt}/{num_attempts}")
 
-        time.sleep(15 * (random.random() + 0.5))
+        time.sleep(15 * (random.random(0, 1) + 0.5))
     raise RuntimeError()
 
 
