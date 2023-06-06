@@ -45,6 +45,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
+from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -111,8 +112,7 @@ class Fabric:
         self._strategy: Strategy = self._connector.strategy
         self._accelerator: Accelerator = self._connector.accelerator
         self._precision: Precision = self._strategy.precision
-        callbacks = callbacks if callbacks is not None else []
-        self._callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
+        self._callbacks = self._configure_callbacks(callbacks)
         loggers = loggers if loggers is not None else []
         self._loggers = loggers if isinstance(loggers, list) else [loggers]
         self._models_setup: int = 0
@@ -907,6 +907,13 @@ class Fabric:
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
+
+    @staticmethod
+    def _configure_callbacks(callbacks: Optional[Union[List[Any], Any]]) -> List[Any]:
+        callbacks = callbacks if callbacks is not None else []
+        callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
+        callbacks.extend(_load_external_callbacks("lightning.fabric.callbacks_factory"))
+        return callbacks
 
 
 @contextmanager
