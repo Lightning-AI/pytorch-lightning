@@ -912,7 +912,7 @@ class Fabric:
     def _configure_callbacks(callbacks: Optional[Union[List[Any], Any]]) -> List[Any]:
         callbacks = callbacks if callbacks is not None else []
         callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
-        callbacks.extend(_load_external_callbacks("lightning.pytorch.callbacks_factory"))
+        callbacks.extend(_load_external_callbacks("lightning.fabric.callbacks_factory"))
         return callbacks
 
 
