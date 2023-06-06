@@ -1,3 +1,3 @@
-from lightning.data.dataset import LightningDataset, S3LightningDataset
+from lightning.data.dataset import LightningDataset, LightningS3Dataset
 
-__all__ = ["LightningDataset", "S3LightningDataset"]
+__all__ = ["LightningDataset", "LightningS3Dataset"]

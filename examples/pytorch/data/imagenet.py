@@ -121,7 +121,7 @@ class ImageNetLightningModel(L.LightningModule):
 # -------------------
 
 
-class S3LightningImagenetDataset(L.S3LightningDataset):
+class S3LightningImagenetDataset(L.LightningS3Dataset):
     def __init__(
         self,
         data_source: str,

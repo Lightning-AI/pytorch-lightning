@@ -75,7 +75,7 @@ class TempCreds:
         self.secret_key = secret_key
 
 
-class S3LightningDataset(LightningDataset, ABC):
+class LightningS3Dataset(LightningDataset, ABC):
     """LightningDataset for S3 buckets.
 
     Arguments:
