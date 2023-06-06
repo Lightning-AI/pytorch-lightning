@@ -58,7 +58,7 @@ def open_single_file_with_retry(path_or_url: str, mode: str = "r", kwargs_for_op
         except NoCredentialsError:
             print(f"Could not locate credentials, retrying: attempt {attempt}/{num_attempts}")
 
-        time.sleep(15 * (random.random(0, 1) + 0.5))
+        time.sleep(15 * (random.random() + 0.5))
     raise RuntimeError()
 
 
