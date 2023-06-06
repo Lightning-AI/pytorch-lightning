@@ -1,4 +1,6 @@
 import os
+from unittest import mock
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -51,8 +53,21 @@ def image_set(tmp_path_factory):
 
 
 @pytest.mark.skipif(not package_available("lightning"), reason="Supported only with mono-package")
-def test_get_index_generate_for_s3_bucket():
+@mock.patch("lightning.data.get_index.LightningClient", MagicMock())
+def test_get_index_generate_for_s3_bucket(monkeypatch):
     """Can generate an index as s3 bucket mounted localled on the Lightning AI platform."""
+
+    error_and_exit = MagicMock()
+    monkeypatch.setattr(get_index, "_error_and_exit", error_and_exit)
+
+    client = MagicMock()
+    client.projects_service_list_project_cluster_bindings.return_value = None
+    client.data_connection_service_list_data_connections.return_value = None
+    client.data_connection_service_get_data_connection_folder_index.return_value = None
+    client.data_connection_service_get_data_connection_artifacts_page.return_value = None
+
+    monkeypatch.setattr(get_index, "LightningClient", MagicMock(return_value=client))
+
     test_index_path = f"{THIS_DIR}/test_data/test_index_s3.txt"
     test_index_data = get_test_index_data(test_index_path)
 
@@ -69,8 +84,20 @@ def test_get_index_generate_for_s3_bucket():
 
 
 @pytest.mark.skipif(not package_available("lightning"), reason="Supported only with mono-package")
-def test_get_index_generate_for_local_folder(image_set):
+@mock.patch("lightning.data.get_index.LightningClient", MagicMock())
+def test_get_index_generate_for_local_folder(image_set, monkeypatch):
     """Can generate an index for an s3 bucket."""
+    error_and_exit = MagicMock()
+    monkeypatch.setattr(get_index, "_error_and_exit", error_and_exit)
+
+    client = MagicMock()
+    client.projects_service_list_project_cluster_bindings.return_value = None
+    client.data_connection_service_list_data_connections.return_value = None
+    client.data_connection_service_get_data_connection_folder_index.return_value = None
+    client.data_connection_service_get_data_connection_artifacts_page.return_value = None
+
+    monkeypatch.setattr(get_index, "LightningClient", MagicMock(return_value=client))
+
     test_index_path = f"{THIS_DIR}/test_data/test_index.txt"
     test_index_data = get_test_index_data(test_index_path)
 
@@ -89,7 +116,7 @@ def test_get_index_generate_for_local_folder(image_set):
 
 
 @pytest.mark.skip(reason="Not required at the moment")
-def test_get_index_generate_for_mounted_s3_bucket():
+def test_get_index_generate_for_mounted_s3_bucket(monkeypatch):
     """Can generate an index for an s3 bucket."""
     test_index_path = f"{THIS_DIR}/test_data/test_index_s3.txt"
     test_index_data = get_test_index_data(test_index_path)
