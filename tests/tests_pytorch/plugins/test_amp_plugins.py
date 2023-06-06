@@ -185,7 +185,7 @@ def test_amp_skip_optimizer(tmpdir):
     trainer.fit(model)
 
 
-def test_cpu_amp_precision_context_manager(tmpdir):
+def test_cpu_amp_precision_context_manager():
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
     plugin = MixedPrecisionPlugin("bf16-mixed", "cpu")
     assert plugin.device == "cpu"
