@@ -157,19 +157,29 @@ class LitAutoEncoder(L.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
 
+    # -------------------
+    # Step 2: Define data
+    # -------------------
+    def prepare_data(self):
+        tv.datasets.MNIST(".", download=True)
 
-# -------------------
-# Step 2: Define data
-# -------------------
-dataset = tv.datasets.MNIST(".", download=True, transform=tv.transforms.ToTensor())
-train, val = data.random_split(dataset, [55000, 5000])
+    def setup(self, stage: str) -> None:
+        dataset = tv.datasets.MNIST(".", transform=tv.transforms.ToTensor())
+        self.train, self.val = data.random_split(dataset, [55000, 5000])
+
+    def train_dataloader(self):
+        return data.DataLoader(self.train)
+
+    def val_dataloader(self):
+        return data.DataLoader(self.val)
+
 
 # -------------------
 # Step 3: Train
 # -------------------
 autoencoder = LitAutoEncoder()
 trainer = L.Trainer()
-trainer.fit(autoencoder, data.DataLoader(train), data.DataLoader(val))
+trainer.fit(autoencoder)
 ```
 
 Run the model on your terminal
@@ -287,12 +297,10 @@ torch.jit.save(autoencoder.to_torchscript(), "model.pt")
   <summary>Export to ONNX (production use)</summary>
 
 ```python
-# onnx
+autoencoder = LitAutoEncoder()
+input_sample = torch.randn((1, 64))
 with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
-    autoencoder = LitAutoEncoder()
-    input_sample = torch.randn((1, 64))
     autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
-    os.path.isfile(tmpfile.name)
 ```
 
 </details>
