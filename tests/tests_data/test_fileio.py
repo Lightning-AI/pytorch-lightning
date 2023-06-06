@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from lightning.pytorch.utilities.data.fileio import is_path, is_url, open_single_file, OpenCloudFileObj, path_to_url
+from lightning.data.fileio import is_path, is_url, open_single_file, OpenCloudFileObj, path_to_url
 
 
 @pytest.mark.parametrize(

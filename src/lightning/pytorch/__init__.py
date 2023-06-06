@@ -6,7 +6,7 @@ import os
 from lightning_utilities import module_available
 
 if os.path.isfile(os.path.join(os.path.dirname(__file__), "__about__.py")):
-    from lightning.pytorch.__about__ import *  # noqa: F401, F403
+    from lightning.pytorch.__about__ import *  # noqa: F403
 if "__version__" not in locals():
     if os.path.isfile(os.path.join(os.path.dirname(__file__), "__version__.py")):
         from lightning.pytorch.__version__ import version as __version__
@@ -26,7 +26,6 @@ from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402
-from lightning.pytorch.utilities.data import LightningDataset, S3LightningDataset  # noqa: E402
 
 # this import needs to go last as it will patch other modules
 import lightning.pytorch._graveyard  # noqa: E402, F401  # isort: skip
@@ -35,8 +34,6 @@ __all__ = [
     "Trainer",
     "LightningDataModule",
     "LightningModule",
-    "S3LightningDataset",
-    "LightningDataset",
     "Callback",
     "seed_everything",
 ]

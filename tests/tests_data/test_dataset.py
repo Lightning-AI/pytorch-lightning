@@ -4,8 +4,8 @@ import socket
 import pytest
 from lightning_utilities.core.imports import package_available
 
-from lightning.pytorch.utilities.data.dataset import LightningDataset
-from lightning.pytorch.utilities.data.fileio import OpenCloudFileObj
+from lightning.data.dataset import LightningDataset
+from lightning.data.fileio import OpenCloudFileObj
 
 
 def isConnectedWithInternet():
