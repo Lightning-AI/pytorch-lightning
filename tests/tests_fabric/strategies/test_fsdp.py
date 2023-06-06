@@ -382,7 +382,7 @@ class StatusChecker:
         self.finalize()
 
 
-@RunIf(min_torch="2.0.0", min_cuda_gpus=2)
+@RunIf(min_torch="2.0.0", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD, reason="Not supported in this version of PyTorch")
 @pytest.mark.skipif(not RequirementCache("psutil"), reason="psutil is needed to help prevent deadlocks.")
 @pytest.mark.parametrize(
@@ -447,10 +447,6 @@ def test_apply_optimizer_in_backward(checkpoint):
         # Check that initialization is identical.
         for p0, p1 in zip(baseline_model.parameters(), test_model.parameters()):
             assert (p0 == p1).all()
-
-    # The test is timing out, and there are no logs in CI. So I'm forced to
-    status_checker.finalize()
-    return
 
     num_steps = 50
     for step in range(num_steps):
