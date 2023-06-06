@@ -87,7 +87,7 @@ For this case, you can disable strict loading to avoid errors:
 
 .. code-block:: python
 
-    state = {"model1": model1}
+    state = {"model": model}
 
     # strict loading is the default
     fabric.load("path/to/checkpoint.ckpt", state, strict=True)
