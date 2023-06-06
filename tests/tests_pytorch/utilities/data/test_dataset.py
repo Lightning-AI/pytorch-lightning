@@ -2,11 +2,10 @@ import os
 import socket
 
 import pytest
+from lightning_utilities.core.imports import package_available
 
 from lightning.pytorch.utilities.data.dataset import LightningDataset
 from lightning.pytorch.utilities.data.fileio import OpenCloudFileObj
-from lightning_utilities import module_available
-from lightning_utilities.core.imports import package_available
 
 
 def isConnectedWithInternet():
@@ -18,14 +17,8 @@ def isConnectedWithInternet():
     return False
 
 
-@pytest.mark.skipif(
-    not isConnectedWithInternet(),
-    reason="Not connected to internet"
-)
-@pytest.mark.skipif(
-    not package_available('lightning'),
-    reason="Supported only with mono-package"
-)
+@pytest.mark.skipif(not isConnectedWithInternet(), reason="Not connected to internet")
+@pytest.mark.skipif(not package_available("lightning"), reason="Supported only with mono-package")
 def test_lightning_dataset(tmpdir):
     index_path = os.path.join(tmpdir, "index.txt")
     # TODO: adapt this once the fallback and tests for get_index are ready!
