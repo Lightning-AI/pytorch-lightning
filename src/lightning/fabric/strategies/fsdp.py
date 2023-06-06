@@ -705,7 +705,7 @@ def _apply_optimizers_during_fsdp_backward(
 
             # We must take `h` and `flat_param` as arguments because Python
             # late binds closures.
-            def _opt_hook(h: FlatParamHandle, flat_param: FlatParameter, *_unused) -> None:
+            def _opt_hook(h: FlatParamHandle, flat_param: FlatParameter, *_unused: Any) -> None:
                 assert flat_param._post_backward_called
                 assert h.flat_param is flat_param
                 with apply_lock, torch.cuda.stream(fsdp_stream):
@@ -716,7 +716,7 @@ def _apply_optimizers_during_fsdp_backward(
                     assert hasattr(prepare_gradient, "__func__"), prepare_gradient
                     assert prepare_gradient.__func__ is FlatParamHandle.prepare_gradient_for_optim
                     prepare_gradient()
-                    h.prepare_gradient_for_optim = _no_op  # type: ignore[assignment]
+                    h.prepare_gradient_for_optim = _no_op  # type: ignore[method-assign]
                     maybe_step(flat_param._params or (), h._clear_grads_if_needed)
 
             hook = functools.partial(_opt_hook, h, flat_param)
@@ -736,13 +736,13 @@ def _apply_optimizers_during_fsdp_backward(
         # And lastly back out the handle monkey patches.
         for h in param_handles:
             if h.prepare_gradient_for_optim is _no_op:
-                del h.prepare_gradient_for_optim  # type: ignore[assignment]
+                del h.prepare_gradient_for_optim
 
 
 def fsdp_overlap_step_with_backward(
     optimizers: Union[Optimizer, Iterable[Optimizer]],
     fabric_module: "_FabricModule",
-) -> Generator[None, None, None]:
+) -> _GeneratorContextManager:
     from lightning.fabric.wrappers import _FabricModule
 
     assert isinstance(fabric_module, _FabricModule)
