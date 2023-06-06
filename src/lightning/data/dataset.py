@@ -5,8 +5,8 @@ from typing import Any, Dict, Optional, Tuple
 
 from torch.utils.data import Dataset as TorchDataset
 
-from lightning.pytorch.utilities.data.fileio import OpenCloudFileObj
-from lightning.pytorch.utilities.data.get_index import get_index
+from lightning.data.fileio import OpenCloudFileObj
+from lightning.data.get_index import get_index
 
 
 def get_aws_credentials():
@@ -110,7 +110,8 @@ class S3LightningDataset(LightningDataset, ABC):
                 return self.load_sample(file_path, stream)
         except NoCredentialsError as exc:
             print(
-                "Unable to locate credentials. Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\nAWS_SECRET_KEY"
+                "Unable to locate credentials. \
+                Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\nAWS_SECRET_KEY"
             )
             raise ValueError(exc)
         except Exception as exc:

@@ -22,8 +22,6 @@ from lightning.app.core.work import LightningWork  # noqa: E402
 from lightning.app.perf import pdb  # noqa: E402
 from lightning.app.utilities.packaging.build_config import BuildConfig  # noqa: E402
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute  # noqa: E402
-
-# from lightning.pytorch.utilities.data import LightningDataset, S3LightningDataset
 from lightning.data import LightningDataset, S3LightningDataset  # noqa: E402
 from lightning.fabric.fabric import Fabric  # noqa: E402
 from lightning.fabric.utilities.seed import seed_everything  # noqa: E402

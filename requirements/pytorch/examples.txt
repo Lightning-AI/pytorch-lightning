@@ -6,4 +6,3 @@ ipython[all] <8.7.1
 torchmetrics >=0.10.0, <0.12.0
 lightning-utilities >=0.7.0, <0.9.0
 Pillow >= 9.5.0
-torchvision >= 0.15.1
