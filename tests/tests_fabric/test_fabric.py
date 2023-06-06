@@ -817,6 +817,29 @@ def test_call():
     assert not callback1.mock_calls
 
 
+def test_special_callbacks():
+    """Tests special callbacks that have hooks for internal Fabric events."""
+
+    class SpecialCallback:
+        def on_after_optimizer_step(self, strategy, optimizer):
+            pass
+
+        def on_after_setup(self, fabric, module):
+            pass
+
+    callback = Mock(wraps=SpecialCallback())
+    fabric = Fabric(accelerator="cpu", callbacks=[callback])
+
+    model = torch.nn.Linear(2, 2)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    fabric_model, fabric_optimizer = fabric.setup(model, optimizer)
+    callback.on_after_setup.assert_called_once_with(fabric=fabric, module=fabric_model)
+
+    model(torch.randn(2, 2)).sum().backward()
+    fabric_optimizer.step()
+    callback.on_after_optimizer_step.assert_called_once_with(strategy=fabric._strategy, optimizer=optimizer)
+
+
 def test_loggers_input():
     """Test the various ways in which loggers can be registered with Fabric."""
     logger0 = Mock()
