@@ -43,7 +43,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         if precision not in ("16-mixed", "bf16-mixed"):
             raise ValueError(
                 f"`Passed `{type(self).__name__}(precision={precision!r})`."
-                f" Precision must be '16-mixed' or 'bf16-mixed.'"
+                f" Precision must be '16-mixed' or 'bf16-mixed'."
             )
 
         self.precision = cast(Literal["16-mixed", "bf16-mixed"], str(precision))
