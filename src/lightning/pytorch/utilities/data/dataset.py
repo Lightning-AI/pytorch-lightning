@@ -43,14 +43,13 @@ class LightningDataset(TorchDataset):
         super().__init__()
         self.data_source = data_source
 
-        if path_to_index_file is None:
+        if not path_to_index_file:
             tmpdir = tempfile.mkdtemp()
             path_to_index_file = os.path.join(tmpdir, "index.txt")
 
-        path_to_index_file = os.path.abspath(os.path.expandvars(os.path.expanduser(path_to_index_file)))
+        self.index_file = os.path.abspath(os.path.expandvars(os.path.expanduser(path_to_index_file)))
 
-        os.makedirs(os.path.dirname(path_to_index_file), exist_ok=True)
-        self.index_file = path_to_index_file
+        os.makedirs(os.path.dirname(self.index_file), exist_ok=True)
 
     def get_index(self) -> Tuple[str, ...]:
         """Gets existing index or triggers an index generation if it doesn't exist for the provided data_source.

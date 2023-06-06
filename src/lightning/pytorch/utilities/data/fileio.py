@@ -10,7 +10,7 @@ def path_to_url(path: str, bucket_name: str, bucket_root_path: str = "/") -> str
     return f"s3://{bucket_name}/{os.path.relpath(path, bucket_root_path)}"
 
 
-def open_single_file(path_or_url, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs):
+def open_single_file(path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs):
     """Streams the given file.
 
     Returns:
@@ -26,7 +26,7 @@ def open_single_file(path_or_url, mode: str = "r", kwargs_for_open: Optional[Dic
     return None
 
 
-def open_single_file_with_retry(path_or_url, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs):
+def open_single_file_with_retry(path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs):
     """Streams the given file with a retry mechanism in case of high batch_size (>128) parallel opens.
 
     Returns:
