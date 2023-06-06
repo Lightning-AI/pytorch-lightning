@@ -1,9 +1,22 @@
-import os
+import os, socket
+
+import pytest
 
 from lightning.pytorch.utilities.data.dataset import LightningDataset
 from lightning.pytorch.utilities.data.fileio import OpenCloudFileObj
 
+def isConnectedWithInternet():
+    try:
+        socket.create_connection(("1.1.1.1", 53))
+        return True
+    except OSError:
+        pass
+    return False
 
+@pytest.mark.skipif(
+    not isConnectedWithInternet(),
+    reason="Not connected to internet",
+)
 def test_lightning_dataset(tmpdir):
     index_path = os.path.join(tmpdir, "index.txt")
     # TODO: adapt this once the fallback and tests for get_index are ready!
