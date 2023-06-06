@@ -23,7 +23,7 @@ def isConnectedWithInternet():
 def test_lightning_dataset(tmpdir):
     index_path = os.path.join(tmpdir, "index.txt")
     # TODO: adapt this once the fallback and tests for get_index are ready!
-    dset = LightningDataset("s3://imagenet-resized", path_to_index_file=index_path)
+    dset = LightningDataset("s3://imagenet-tiny", path_to_index_file=index_path)
     tuple_of_files = dset.get_index()
     assert isinstance(tuple_of_files, tuple)
     assert all(map(lambda x: isinstance(x, str)))
