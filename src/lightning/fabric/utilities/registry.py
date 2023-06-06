@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from typing import Any
+import logging
+from typing import Any, List, Union
+
+from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
+
+_log = logging.getLogger(__name__)
 
 
 def _is_register_method_overridden(mod: type, base_cls: Any, method: str) -> bool:
@@ -25,3 +30,40 @@ def _is_register_method_overridden(mod: type, base_cls: Any, method: str) -> boo
         return False
 
     return mod_attr.__code__ is not super_attr.__code__
+
+
+def _load_external_callbacks(group: str) -> List[Any]:
+    """Collect external callbacks registered through entry points.
+
+    The entry points are expected to be functions returning a list of callbacks.
+
+    Args:
+        group: The entry point group name to load callbacks from.
+
+    Return:
+        A list of all callbacks collected from external factories.
+    """
+    if _PYTHON_GREATER_EQUAL_3_8_0:
+        from importlib.metadata import entry_points
+
+        factories = (
+            entry_points(group=group)
+            if _PYTHON_GREATER_EQUAL_3_10_0
+            else entry_points().get(group, {})  # type: ignore[arg-type]
+        )
+    else:
+        from pkg_resources import iter_entry_points
+
+        factories = iter_entry_points(group)  # type: ignore[assignment]
+
+    external_callbacks: List[Any] = []
+    for factory in factories:
+        callback_factory = factory.load()
+        callbacks_list: Union[List[Any], Any] = callback_factory()
+        callbacks_list = [callbacks_list] if not isinstance(callbacks_list, list) else callbacks_list
+        _log.info(
+            f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"
+            f" {', '.join(type(cb).__name__ for cb in callbacks_list)}"
+        )
+        external_callbacks.extend(callbacks_list)
+    return external_callbacks
