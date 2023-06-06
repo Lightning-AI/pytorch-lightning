@@ -23,6 +23,7 @@ from unittest.mock import ANY, MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
+from lightning_utilities.core.imports import RequirementCache
 from torch.optim import Adam
 
 from lightning.fabric import Fabric
@@ -34,7 +35,6 @@ from lightning.fabric.strategies.fsdp import (
     fsdp_overlap_step_with_backward,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from lightning_utilities.core.imports import RequirementCache
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
 
@@ -357,6 +357,7 @@ class StatusChecker:
             # All reduce will wait for all workers to enter. This means that if a
             # worker dies the status check will deadlock.
             import psutil
+
             worker_status = tuple(psutil.Process(pid).status() for pid in self.pids)
             if any(
                 status in (psutil.STATUS_DEAD, psutil.STATUS_STOPPED, psutil.STATUS_ZOMBIE) for status in worker_status
