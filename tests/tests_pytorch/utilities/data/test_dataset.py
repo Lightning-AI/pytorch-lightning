@@ -1,9 +1,11 @@
-import os, socket
+import os
+import socket
 
 import pytest
 
 from lightning.pytorch.utilities.data.dataset import LightningDataset
 from lightning.pytorch.utilities.data.fileio import OpenCloudFileObj
+
 
 def isConnectedWithInternet():
     try:
@@ -12,6 +14,7 @@ def isConnectedWithInternet():
     except OSError:
         pass
     return False
+
 
 @pytest.mark.skipif(
     not isConnectedWithInternet(),
