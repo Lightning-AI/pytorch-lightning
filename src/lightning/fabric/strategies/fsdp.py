@@ -254,10 +254,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
+    def module_init_context(self) -> Generator[None, None, None]:
         # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
         # is resolved. For now, the module will get moved to the device in `setup_module`.
-        with self.precision.init_context():
+        with self.precision.init_context(), self.module_sharded_context():
             yield
 
     @contextmanager
