@@ -163,7 +163,7 @@ class LitAutoEncoder(L.LightningModule):
     def prepare_data(self):
         tv.datasets.MNIST(".", download=True)
 
-    def setup(self, stage: str) -> None:
+    def setup(self, stage):
         dataset = tv.datasets.MNIST(".", transform=tv.transforms.ToTensor())
         self.train_dataset, self.val_dataset = data.random_split(dataset, [55000, 5000])
 
