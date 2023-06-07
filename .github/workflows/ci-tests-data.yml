@@ -51,6 +51,7 @@ jobs:
           # - {os: "windows-2022", python-version: "3.8", requires: "oldest"}
     timeout-minutes: 25  # because of building grpcio on Mac
     env:
+      PACKAGE_NAME: ${{ matrix.pkg-name }}
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       # PYPI_CACHE_DIR: "_pip-wheels"
       TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/torch_stable.html"
@@ -88,6 +89,11 @@ jobs:
     # - run: |
     #     mkdir -p $PYPI_CACHE_DIR
     #     ls -lh $PYPI_CACHE_DIR
+
+    - name: Env. variables
+      run: |
+        # Switch coverage scope
+        python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_data'))" >> $GITHUB_ENV
 
     # removing torch stable line:
     # pip install -e ".[${extra}test]" "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
