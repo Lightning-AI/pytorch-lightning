@@ -5,51 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2023-04-DD
+## [2.0.3] - 2023-06-07
 
 ### Changed
 
 - Made type hints public ([#17100](https://github.com/Lightning-AI/lightning/pull/17100))
 
 
--
-
-
 ### Fixed
 
 - `CombinedLoader` only starts DataLoader workers when necessary when operating in sequential mode ([#17639](https://github.com/Lightning-AI/lightning/pull/17639))
-
-
 - Fixed a potential bug with uploading model checkpoints to Neptune.ai by uploading files from stream ([#17430](https://github.com/Lightning-AI/lightning/pull/17430))
-
-
 - Fixed signature inspection of decorated hooks ([#17507](https://github.com/Lightning-AI/lightning/pull/17507))
-
-
 - The `WandbLogger` no longer flattens dictionaries in the hyperparameters logged to the dashboard ([#17574](https://github.com/Lightning-AI/lightning/pull/17574))
-
-
 - Fixed computing the next version folder in `CSVLogger` ([#17139](https://github.com/Lightning-AI/lightning/pull/17139))
-
-
 - Fixed a formatting issue when the filename in `ModelCheckpoint` contained metrics that were substrings of each other ([#17610](https://github.com/Lightning-AI/lightning/pull/17610))
-
-
 - Fixed `WandbLogger` ignoring the `WANDB_PROJECT` environment variable ([#16222](https://github.com/Lightning-AI/lightning/pull/16222))
-
-
 - Fixed inconsistent settings for FSDP Precision ([#17670](https://github.com/Lightning-AI/lightning/issues/17670))
-
-
 - Fixed an edge case causing overlapping samples in DDP when no global seed is set ([#17713](https://github.com/Lightning-AI/lightning/pull/17713))
-
-
 - Fallback to module available check for mlflow ([#17467](https://github.com/Lightning-AI/lightning/pull/17467))
-
-
 - Fixed LR finder max val batches ([#17636](https://github.com/Lightning-AI/lightning/pull/17636))
-
-
 - Fixed multithreading checkpoint loading ([#17678](https://github.com/Lightning-AI/lightning/pull/17678))
 
 

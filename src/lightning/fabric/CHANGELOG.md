@@ -5,30 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2023-04-DD
+## [2.0.3] - 2023-06-07
 
 - Added support for `Callback` registration through entry points ([#17756](https://github.com/Lightning-AI/lightning/pull/17756))
-
-
 - Add Fabric internal hooks ([#17759](https://github.com/Lightning-AI/lightning/pull/17759))
-
 
 ### Changed
 
 - Made type hints public ([#17100](https://github.com/Lightning-AI/lightning/pull/17100))
-
-
 - Support compiling a module after it was set up by Fabric ([#17529](https://github.com/Lightning-AI/lightning/pull/17529))
-
 
 ### Fixed
 
 - Fixed computing the next version folder in `CSVLogger` ([#17139](https://github.com/Lightning-AI/lightning/pull/17139))
-
-
 - Fixed inconsistent settings for FSDP Precision ([#17670](https://github.com/Lightning-AI/lightning/issues/17670))
-
-
 
 
 ## [2.0.2] - 2023-04-24
