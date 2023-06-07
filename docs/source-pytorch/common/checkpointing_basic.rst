@@ -108,7 +108,7 @@ The LightningModule also has access to the Hyperparameters
 
 Initialize with other parameters
 ================================
-If you used the *self.save_hyperparameters()* method in the init of the LightningModule, you can initialize the model with different hyperparameters.
+If you used the *self.save_hyperparameters()* method in the init of the LightningModule, you can initialize the model with different hyperparameters. Named arguments passed to ``load_from_checkpoint`` will be forwarded to the model's ``__init__`` function, with the exception of arguments named ``strict``, ``map_location``, and ``hparams_file``, which are consumed by ``load_from_checkpoint``. Positional arguments will **not** be forwarded to the model.
 
 .. code-block:: python
 
@@ -123,6 +123,8 @@ If you used the *self.save_hyperparameters()* method in the init of the Lightnin
     model = LitModel.load_from_checkpoint(PATH, in_dim=128, out_dim=10)
 
 ----
+
+
 
 *************************
 nn.Module from checkpoint
