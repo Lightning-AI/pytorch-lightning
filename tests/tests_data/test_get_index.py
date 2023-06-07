@@ -54,6 +54,7 @@ def image_set(tmp_path_factory):
 
 
 @pytest.mark.skipif(not package_available("lightning"), reason="Supported only with mono-package")
+@pytest.mark.skip(reason="Need a valid AWS key and AWS secret key in CI for this to work")
 @mock.patch("lightning.data.dataset_index.LightningClient", MagicMock())
 def test_get_index_generate_for_s3_bucket(monkeypatch):
     """Can generate an index as s3 bucket mounted localled on the Lightning AI platform."""
@@ -77,6 +78,7 @@ def test_get_index_generate_for_s3_bucket(monkeypatch):
     assert got_index
 
     generated_index = get_test_index_data(index_path)
+    print("generted index", generated_index)
 
     assert len(test_index_data) == len(generated_index)
     assert test_index_data == generated_index
