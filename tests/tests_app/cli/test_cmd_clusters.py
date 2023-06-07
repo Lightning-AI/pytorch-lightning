@@ -221,7 +221,7 @@ class Test_wait_for_cluster_state:
                 V1GetClusterResponse(
                     id="test-cluster",
                     status=V1ClusterStatus(phase=state),
-                    spec=spec,
+                    spec=spec
                 )
                 for state in [previous_state, target_state]
             ]
@@ -236,7 +236,7 @@ class Test_wait_for_cluster_state:
                 V1GetClusterResponse(
                     id="test-cluster",
                     status=V1ClusterStatus(phase=V1ClusterState.UNSPECIFIED),
-                    spec=spec,
+                    spec=spec
                 )
             ],
             consume=False,

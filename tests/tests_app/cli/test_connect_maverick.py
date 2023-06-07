@@ -31,7 +31,7 @@ def test_register_to_cloud(monkeypatch):
 
     mocked_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
         memberships=[
-            V1Membership(name="project-0", project_id="project-id-0"),
+            V1Membership(name="project-0", project_id="project-id-0")
         ]
     )
 
@@ -46,7 +46,7 @@ def test_register_to_cloud(monkeypatch):
 
     mocked_client.projects_service_create_project_cluster_binding.assert_called_with(
         project_id="project-id-0",
-        body=ProjectIdProjectclustersbindingsBody(cluster_id=mock.ANY),
+        body=ProjectIdProjectclustersbindingsBody(cluster_id=mock.ANY)
     )
 
 
@@ -58,7 +58,7 @@ def test_register_to_cloud_without_project(monkeypatch):
     )
     mocked_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
         memberships=[
-            V1Membership(name="project-0", project_id="project-id-0"),
+            V1Membership(name="project-0", project_id="project-id-0")
         ]
     )
 
@@ -76,7 +76,7 @@ def test_register_to_cloud_without_project(monkeypatch):
 
     mocked_client.projects_service_create_project_cluster_binding.assert_called_with(
         project_id="project-id-0",
-        body=ProjectIdProjectclustersbindingsBody(cluster_id=mock.ANY),
+        body=ProjectIdProjectclustersbindingsBody(cluster_id=mock.ANY)
     )
 
 

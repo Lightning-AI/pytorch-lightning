@@ -43,7 +43,7 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
         lightningapps=[
             Externalv1LightningappInstance(
                 name="app-name-0",
-                id="app-id-0",
+                id="app-id-0"
             )
         ]
     )
@@ -54,7 +54,7 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
 
     result = MagicMock()
     result.get.return_value = V1UploadProjectArtifactResponse(
-        upload_url="http://foo.bar",
+        upload_url="http://foo.bar"
     )
     client.lightningapp_instance_service_upload_project_artifact.return_value = result
 
@@ -95,7 +95,7 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
         lightningapps=[
             Externalv1LightningappInstance(
                 name="app-name-0",
-                id="app-id-0",
+                id="app-id-0"
             )
         ]
     )
@@ -104,22 +104,22 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
         V1LightningappInstanceArtifact(
             filename=".file_1.txt",
             url="http://foo.bar/file_1.txt",
-            size_bytes=123,
+            size_bytes=123
         ),
         V1LightningappInstanceArtifact(
             filename=".folder_1/file_2.txt",
             url="http://foo.bar/folder_1/file_2.txt",
-            size_bytes=123,
+            size_bytes=123
         ),
         V1LightningappInstanceArtifact(
             filename=".folder_2/folder_3/file_3.txt",
             url="http://foo.bar/folder_2/folder_3/file_3.txt",
-            size_bytes=123,
+            size_bytes=123
         ),
         V1LightningappInstanceArtifact(
             filename=".folder_4/file_4.txt",
             url="http://foo.bar/folder_4/file_4.txt",
-            size_bytes=123,
+            size_bytes=123
         ),
     ]
 
@@ -201,12 +201,12 @@ def test_cp_zip_remote_to_local_cloudspace_artifact(monkeypatch):
                 spec=V1ClusterSpec(
                     driver=V1ClusterDriver(
                         kubernetes=V1KubernetesClusterDriver(
-                            root_domain_name="my-domain",
-                        ),
-                    ),
-                ),
+                            root_domain_name="my-domain"
+                        )
+                    )
+                )
             )
-        ],
+        ]
     )
     client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
         memberships=[V1Membership(name="my-project", project_id="my-project-id")]
@@ -244,10 +244,10 @@ def test_cp_zip_remote_to_local_app_artifact(monkeypatch):
         spec=V1ClusterSpec(
             driver=V1ClusterDriver(
                 kubernetes=V1KubernetesClusterDriver(
-                    root_domain_name="my-domain",
-                ),
-            ),
-        ),
+                    root_domain_name="my-domain"
+                )
+            )
+        )
     )
     client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
         memberships=[V1Membership(name="my-project", project_id="my-project-id")]
@@ -258,10 +258,10 @@ def test_cp_zip_remote_to_local_app_artifact(monkeypatch):
                 name="my-app",
                 id="my-app-id",
                 spec=V1LightningappInstanceSpec(
-                    cluster_id="my-cluster",
-                ),
+                    cluster_id="my-cluster"
+                )
             )
-        ],
+        ]
     )
     monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
 
