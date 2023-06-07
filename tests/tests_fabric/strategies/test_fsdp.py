@@ -335,8 +335,8 @@ class Block(nn.Module):
     [(Block,), (SubBlock,), (Block, SubBlock, nn.Linear), None],
 )
 def test_apply_optimizer_in_backward(checkpoint):
-    from torch.distributed.fsdp.wrap import lambda_auto_wrap_policy
     from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
+    from torch.distributed.fsdp.wrap import lambda_auto_wrap_policy
 
     num_gpus = 2
     num_blocks = 8
