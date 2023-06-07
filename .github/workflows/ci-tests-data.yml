@@ -92,12 +92,6 @@ jobs:
         pip install -e ".[data-dev]" "pytest-timeout" -U -f ${TORCH_URL} --prefer-binary
         pip list
 
-    - name: Adjust tests
-      if: ${{ matrix.pkg-name != 'lightning' }}
-      run: |
-        python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-          --source_import="lightning.data" --target_import="lightning_data"
-
     - name: Testing Data
       working-directory: tests/tests_data
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
