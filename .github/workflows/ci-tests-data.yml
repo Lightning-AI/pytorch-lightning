@@ -96,6 +96,7 @@ jobs:
     #     mkdir -p $PYPI_CACHE_DIR
     #     ls -lh $PYPI_CACHE_DIR
 
+
     - name: Env. variables
       run: |
         # Switch PyTorch URL
@@ -104,11 +105,12 @@ jobs:
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_data'))" >> $GITHUB_ENV
 
+    # removing torch stable line:
+    # pip install -e ".[${extra}test]" "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
     - name: Install package & dependencies
       run: |
         python -m pip install -q pip -U
         extra=$(python -c "print({'lightning': 'data-'}.get('${{ matrix.pkg-name }}', ''))")
-        pip install -e ".[${extra}test]" "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
