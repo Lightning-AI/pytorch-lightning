@@ -145,9 +145,7 @@ class TestAppCreationClient:
         )
 
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
-            [
-                Externalv1Cluster(id=DEFAULT_CLUSTER),
-            ]
+            [Externalv1Cluster(id=DEFAULT_CLUSTER)]
         )
         cloud_backend.client = mock_client
 
@@ -289,15 +287,11 @@ class TestAppCreationClient:
         )
 
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
-            [
-                Externalv1Cluster(id=DEFAULT_CLUSTER),
-            ]
+            [Externalv1Cluster(id=DEFAULT_CLUSTER)]
         )
 
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
-            clusters=[
-                V1ProjectClusterBinding(cluster_id=DEFAULT_CLUSTER),
-            ]
+            clusters=[V1ProjectClusterBinding(cluster_id=DEFAULT_CLUSTER)]
         )
 
         # Mock all clusters as global clusters
@@ -392,9 +386,7 @@ class TestAppCreationClient:
         user_requested_flow_compute_config = None
         if flow_cloud_compute is not None:
             user_requested_flow_compute_config = V1UserRequestedFlowComputeConfig(
-                name=flow_cloud_compute.name,
-                preemptible=False,
-                shm_size=0,
+                name=flow_cloud_compute.name, preemptible=False, shm_size=0
             )
 
         body = get_cloud_runtime_request_body(user_requested_flow_compute_config=user_requested_flow_compute_config)
@@ -519,10 +511,7 @@ class TestAppCreationClient:
 
         cloud_runtime.dispatch(no_cache=True)
         body.image_spec = Gridv1ImageSpec(
-            dependency_file_info=V1DependencyFileInfo(
-                package_manager=V1PackageManager.PIP,
-                path="requirements.txt",
-            ),
+            dependency_file_info=V1DependencyFileInfo(package_manager=V1PackageManager.PIP, path="requirements.txt")
         )
         cloud_runtime.backend.client.cloud_space_service_create_lightning_run.assert_called_with(
             project_id="test-project-id", cloudspace_id=mock.ANY, body=body
@@ -636,22 +625,14 @@ class TestAppCreationClient:
 
         # testing with no-cache False
         cloud_runtime.dispatch(no_cache=False)
-        (
-            func_name,
-            args,
-            kwargs,
-        ) = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
+        (func_name, args, kwargs) = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
         body = kwargs["body"]
         assert body.dependency_cache_key == "dummy-hash"
 
         # testing with no-cache True
         mock_client.reset_mock()
         cloud_runtime.dispatch(no_cache=True)
-        (
-            func_name,
-            args,
-            kwargs,
-        ) = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
+        (func_name, args, kwargs) = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
         body = kwargs["body"]
         assert body.dependency_cache_key is None
 
@@ -680,9 +661,7 @@ class TestAppCreationClient:
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
-            clusters=[
-                V1ProjectClusterBinding(cluster_id="test"),
-            ]
+            clusters=[V1ProjectClusterBinding(cluster_id="test")]
         )
         mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
@@ -882,9 +861,7 @@ class TestAppCreationClient:
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
-            clusters=[
-                V1ProjectClusterBinding(cluster_id="test"),
-            ]
+            clusters=[V1ProjectClusterBinding(cluster_id="test")]
         )
         mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
@@ -990,11 +967,7 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="custom",
-                                count=1,
-                                disk_size=0,
-                                shm_size=0,
-                                preemptible=False,
+                                name="custom", count=1, disk_size=0, shm_size=0, preemptible=False
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -1036,11 +1009,7 @@ class TestAppCreationClient:
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
             mock_client.projects_service_list_project_cluster_bindings.return_value = (
-                V1ListProjectClusterBindingsResponse(
-                    clusters=[
-                        V1ProjectClusterBinding(cluster_id="test"),
-                    ]
-                )
+                V1ListProjectClusterBindingsResponse(clusters=[V1ProjectClusterBinding(cluster_id="test")])
             )
             mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
@@ -1412,11 +1381,7 @@ class TestAppCreationClient:
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
             mock_client.projects_service_list_project_cluster_bindings.return_value = (
-                V1ListProjectClusterBindingsResponse(
-                    clusters=[
-                        V1ProjectClusterBinding(cluster_id="test"),
-                    ]
-                )
+                V1ListProjectClusterBindingsResponse(clusters=[V1ProjectClusterBinding(cluster_id="test")])
             )
             mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
@@ -1586,8 +1551,7 @@ class TestOpen:
         """Tests that the open method calls the expected API endpoints."""
         mock_client = mock.MagicMock()
         mock_client.auth_service_get_user.return_value = V1GetUserResponse(
-            username="tester",
-            features=V1UserFeatures(code_tab=True),
+            username="tester", features=V1UserFeatures(code_tab=True)
         )
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -1614,9 +1578,7 @@ class TestOpen:
             project_id="test-project-id", body=mock.ANY
         )
         mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
-            project_id="test-project-id",
-            cloudspace_id="cloudspace_id",
-            body=mock.ANY,
+            project_id="test-project-id", cloudspace_id="cloudspace_id", body=mock.ANY
         )
 
         assert mock_client.cloud_space_service_create_cloud_space.call_args.kwargs["body"].name == "test_space"
@@ -1633,8 +1595,7 @@ class TestOpen:
 
         mock_client = mock.MagicMock()
         mock_client.auth_service_get_user.return_value = V1GetUserResponse(
-            username="tester",
-            features=V1UserFeatures(code_tab=True),
+            username="tester", features=V1UserFeatures(code_tab=True)
         )
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -1672,8 +1633,7 @@ class TestOpen:
         """Tests that the open method calls the expected API endpoints when the CloudSpace already exists."""
         mock_client = mock.MagicMock()
         mock_client.auth_service_get_user.return_value = V1GetUserResponse(
-            username="tester",
-            features=V1UserFeatures(code_tab=True),
+            username="tester", features=V1UserFeatures(code_tab=True)
         )
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -1727,9 +1687,7 @@ class TestOpen:
         mock_client.cloud_space_service_create_cloud_space.assert_not_called()
 
         mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
-            project_id="test-project-id",
-            cloudspace_id="cloudspace_id",
-            body=mock.ANY,
+            project_id="test-project-id", cloudspace_id="cloudspace_id", body=mock.ANY
         )
 
         out, _ = capsys.readouterr()
@@ -1821,17 +1779,14 @@ class TestCloudspaceDispatch:
         cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name", "cluster_id")
 
         mock_client.cloud_space_service_get_cloud_space.assert_called_once_with(
-            project_id="project_id",
-            id="cloudspace_id",
+            project_id="project_id", id="cloudspace_id"
         )
 
         if custom_env_sync_path_value is not None:
             mock_repo.prepare_sys_customizations_sync.assert_called_once_with(custom_env_sync_path_value)
 
         mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
-            project_id="project_id",
-            cloudspace_id="cloudspace_id",
-            body=mock.ANY,
+            project_id="project_id", cloudspace_id="cloudspace_id", body=mock.ANY
         )
 
         assert (
