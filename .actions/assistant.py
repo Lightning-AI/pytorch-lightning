@@ -45,7 +45,6 @@ REQUIREMENT_FILES = {
     ),
     "data": (
         "requirements/data/base.txt",
-        "requirements/data/extra.txt",
         "requirements/data/examples.txt",
     ),
 }

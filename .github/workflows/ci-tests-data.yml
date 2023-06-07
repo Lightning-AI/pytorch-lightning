@@ -34,7 +34,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # only run PyTorch latest with Python latest
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
