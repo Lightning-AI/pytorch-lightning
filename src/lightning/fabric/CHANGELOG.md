@@ -10,9 +10,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for `Callback` registration through entry points ([#17756](https://github.com/Lightning-AI/lightning/pull/17756))
 
 
+- Add Fabric internal hooks ([#17759](https://github.com/Lightning-AI/lightning/pull/17759))
+
+
 ### Changed
 
--
+- Made type hints public ([#17100](https://github.com/Lightning-AI/lightning/pull/17100))
+
+
+- Support compiling a module after it was set up by Fabric ([#17529](https://github.com/Lightning-AI/lightning/pull/17529))
 
 
 ### Fixed

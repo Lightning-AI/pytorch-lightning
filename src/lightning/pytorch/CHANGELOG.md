@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Made type hints public ([#17100](https://github.com/Lightning-AI/lightning/pull/17100))
+
+
 -
 
 
@@ -39,6 +42,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed an edge case causing overlapping samples in DDP when no global seed is set ([#17713](https://github.com/Lightning-AI/lightning/pull/17713))
+
+
+- Fallback to module available check for mlflow ([#17467](https://github.com/Lightning-AI/lightning/pull/17467))
+
+
+- Fixed LR finder max val batches ([#17636](https://github.com/Lightning-AI/lightning/pull/17636))
+
+
+- Fixed multithreading checkpoint loading ([#17678](https://github.com/Lightning-AI/lightning/pull/17678))
 
 
 ## [2.0.2] - 2023-04-24
