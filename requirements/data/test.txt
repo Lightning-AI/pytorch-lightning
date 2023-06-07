@@ -79,8 +79,8 @@ starsessions==1.3.0
 tensorboard==2.13.0
 tensorboard-data-server==0.7.0
 tomli==2.0.1
-torch==2.0.0
-torchdata==0.6.0 ## this one needs torch 2.0.0
+torch==2.0.1
+torchdata==0.6.1 ## this one needs torch 2.0.1
 torchmetrics==0.11.4
 torchvision==0.12.0
 tqdm==4.65.0
