@@ -340,9 +340,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextmanager
-    def module_init_context(self) -> Generator[None, None, None]:
-        precision_context = self.precision.init_context() if not self.zero_stage_3 else nullcontext()
-        with precision_context, self.module_sharded_context():
+    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+        if self.zero_stage_3 and empty_init is False:
+            raise NotImplementedError(
+                f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
+            )
+        empty_init = empty_init and not self.zero_stage_3
+        base_context = super().module_init_context(empty_init=empty_init) if not self.zero_stage_3 else nullcontext()
+        with base_context, self.module_sharded_context():
             yield
 
     @contextmanager
