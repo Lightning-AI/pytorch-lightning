@@ -243,7 +243,8 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     """
     requires = [
         load_requirements(d, unfreeze="none" if freeze_requirements else "major")
-        for d in glob.glob(os.path.join(req_dir, "*")) if os.path.exists(os.path.join(d, "base.txt"))
+        for d in glob.glob(os.path.join(req_dir, "*"))
+        if os.path.exists(os.path.join(d, "base.txt"))
         # skip empty folder as git artefacts, and resolving Will's special issue
         if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and not os.path.basename(d).startswith("_")
     ]
