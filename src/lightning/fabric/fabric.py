@@ -545,6 +545,23 @@ class Fabric:
         return apply_to_collection(data, Tensor, self._strategy.all_reduce, group=group, reduce_op=reduce_op)
 
     @contextmanager
+    def rank_zero_first(self) -> Generator:
+        """Code under this context manager gets executed first on the main process (rank 0) and once completed, the
+        other processes get to run the code in parallel.
+
+        Example::
+
+            with fabric.rank_zero_first():
+                dataset = MNIST("path/to/data")
+        """
+        if self.global_rank > 0:
+            self.barrier()
+        yield
+        if self.global_rank == 0:
+            self.barrier()
+        self.barrier()
+
+    @contextmanager
     def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> Generator:
         """Skip gradient synchronization during backward to avoid redundant communication overhead.
 
