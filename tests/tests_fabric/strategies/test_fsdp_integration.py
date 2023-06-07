@@ -116,8 +116,13 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
 
     # attempt to load a key not in the metadata checkpoint
     state = {"model": fabric.model, "coconut": 11}
-    with pytest.raises(KeyError, match="'coconut' not found in the checkpoint."):
+    with pytest.raises(KeyError, match="The requested state contains a key 'coconut' that does not exist"):
         fabric.load(checkpoint_path, state)
+
+    # `strict=False` ignores the missing key
+    state = {"model": fabric.model, "coconut": 11}
+    fabric.load(checkpoint_path, state, strict=False)
+    assert state["coconut"] == 11
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
