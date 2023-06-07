@@ -545,19 +545,24 @@ class Fabric:
         return apply_to_collection(data, Tensor, self._strategy.all_reduce, group=group, reduce_op=reduce_op)
 
     @contextmanager
-    def rank_zero_first(self) -> Generator:
-        """Code under this context manager gets executed first on the main process (rank 0) and once completed, the
-        other processes get to run the code in parallel.
+    def rank_zero_first(self, local: bool = False) -> Generator:
+        """The code block under this context manager gets executed first on the main process (rank 0) and only
+        when completed, the other processes get to run the code in parallel.
+
+        Args:
+            local: Set this to ``True`` if the **local** rank should be the one going first. Useful if you are
+                downloading data and the filesystem isn't shared between the nodes.
 
         Example::
 
             with fabric.rank_zero_first():
                 dataset = MNIST("path/to/data")
         """
-        if self.global_rank > 0:
+        rank = self.local_rank if local else self.global_rank
+        if rank > 0:
             self.barrier()
         yield
-        if self.global_rank == 0:
+        if rank == 0:
             self.barrier()
         self.barrier()
 
