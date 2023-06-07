@@ -11,7 +11,6 @@ on:
       - ".actions/**"
       - "requirements/data/**"
       - "src/lightning/data/**"
-      - "src/lightning_data/*"
       - "tests/tests_data/**"
       - "pyproject.toml"  # includes pytest config
       - ".github/workflows/ci-tests-data.yml"
