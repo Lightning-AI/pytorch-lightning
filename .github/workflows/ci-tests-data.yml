@@ -87,8 +87,7 @@ jobs:
     - name: Install package & dependencies
       run: |
         python -m pip install -q pip -U
-        extra=$(python -c "print({'lightning': 'data-'}.get('${{ matrix.pkg-name }}', ''))")
-        pip install -e ".[${extra}test]" "pytest-timeout" -U -f ${TORCH_URL} --prefer-binary
+        pip install -e ".[data-dev]" "pytest-timeout" -U -f ${TORCH_URL} --prefer-binary
         pip list
 
     - name: Adjust tests
