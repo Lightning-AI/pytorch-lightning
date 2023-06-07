@@ -252,7 +252,7 @@ class TestAppCreationClient:
             assert args[1]["body"].name.startswith(app_name)
             assert args[1]["body"].cluster_id == new_cluster
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     def test_running_deleted_app(self, tmpdir, cloud_backend, project_id):
         """Deleted apps show up in list apps but not in list instances.
 
