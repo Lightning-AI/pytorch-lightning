@@ -42,13 +42,6 @@ jobs:
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
-          # os: ["macOS-11", "ubuntu-20.04", "windows-2022"]
-          # python-version: ["3.8", "3.10"]
-          # pytorch-version: ["2.0"]
-          # # "oldest" versions tests, only on minimum Python
-          # - {os: "macOS-11", python-version: "3.8", requires: "oldest"}
-          # - {os: "ubuntu-20.04", python-version: "3.8", requires: "oldest"}
-          # - {os: "windows-2022", python-version: "3.8", requires: "oldest"}
     timeout-minutes: 25  # because of building grpcio on Mac
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
@@ -90,11 +83,6 @@ jobs:
     #     mkdir -p $PYPI_CACHE_DIR
     #     ls -lh $PYPI_CACHE_DIR
 
-    - name: Env. variables
-      run: |
-        # Switch coverage scope
-        python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_data'))" >> $GITHUB_ENV
-
     # removing torch stable line:
     # pip install -e ".[${extra}test]" "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
     - name: Install package & dependencies
@@ -122,7 +110,7 @@ jobs:
       working-directory: tests/tests_data
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: |
-        python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
+        python -m coverage run --source lightning \
           -m pytest -v --timeout=30 --durations=50
 
     - name: Statistics
@@ -139,6 +127,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: tests/tests_data/coverage.xml
-        flags: ${{ env.COVERAGE_SCOPE }},cpu,pytest,python${{ matrix.python-version }}
+        flags: lightning,cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false
