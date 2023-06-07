@@ -61,17 +61,19 @@ jobs:
 
     - name: Set min. dependencies
       if: ${{ matrix.requires == 'oldest' }}
-      run: python .actions/assistant.py replace_oldest_ver
+      run: |
+        python .actions/assistant.py replace_oldest_ver \
+        --requirement_fnames="[requirements/data/extra.txt, requirements/data/examples.txt, requirements/data/test.txt]""
 
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' && matrix.release != 'pre' }}
       run: |
         pip install -q wget packaging
         python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
-        for fpath in `ls requirements/**/*.txt`; do \
+        for fpath in `ls requirements/data/*.txt`; do \
           python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
         done
-        cat requirements/data/base.txt
+        cat requirements/data/extra.txt
 
     # - name: pip wheels cache
     #   uses: actions/cache/restore@v3

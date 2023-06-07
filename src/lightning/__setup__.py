@@ -58,6 +58,7 @@ def _prepare_extras() -> Dict[str, Any]:
     print("The extras are: ", extras)
     return extras
 
+
 def _setup_args() -> Dict[str, Any]:
     about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
@@ -69,7 +70,6 @@ def _setup_args() -> Dict[str, Any]:
     # TODO: remove this once lightning-ui package is ready as a dependency
     _ASSISTANT._download_frontend(os.path.join(_SOURCE_ROOT, "lightning", "app"))
 
-    
     install_requires = _ASSISTANT.load_requirements(
         _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
     ) + ["pytorch-lightning"]
