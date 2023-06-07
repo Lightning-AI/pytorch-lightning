@@ -194,8 +194,7 @@ def test_invalid_on_cpu(tmpdir):
     [
         ("16-mixed", (torch.float32, torch.float16, torch.float16)),
         ("bf16-mixed", (torch.float32, torch.bfloat16, torch.bfloat16)),
-        ("16-true", (torch.float16, torch.float16, torch.float16)),
-        ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
+        # TODO: add 16-true and bf16-true once supported
     ],
 )
 def test_precision_plugin_config(precision, expected):
