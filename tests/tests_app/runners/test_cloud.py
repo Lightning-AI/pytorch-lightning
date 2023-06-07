@@ -178,7 +178,7 @@ class TestAppCreationClient:
             ("litng-ai-03", None),
         ],
     )
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     def test_new_instance_on_different_cluster(self, tmpdir, cloud_backend, project_id, old_cluster, new_cluster):
         entrypoint = Path(tmpdir) / "entrypoint.py"
         entrypoint.touch()
@@ -213,6 +213,25 @@ class TestAppCreationClient:
         # Mock all clusters as global clusters
         mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
+        )
+
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
+
+        mock_client.lightningapp_instance_service_update_lightningapp_instance_release.return_value = (
+            Externalv1LightningappInstance(
+                id="test1234",
+                name="test1234",
+                status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+            )
         )
 
         cloud_backend.client = mock_client
@@ -288,6 +307,17 @@ class TestAppCreationClient:
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
         )
 
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
+
         cloud_backend.client = mock_client
 
         app = mock.MagicMock()
@@ -317,7 +347,7 @@ class TestAppCreationClient:
         assert args[1]["body"].name != app_name
         assert args[1]["body"].name.startswith(app_name)
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @pytest.mark.parametrize("flow_cloud_compute", [None, CloudCompute(name="t2.medium")])
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_run_with_default_flow_compute_config(self, tmpdir, monkeypatch, flow_cloud_compute):
@@ -333,6 +363,18 @@ class TestAppCreationClient:
         )
         mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningRun(cluster_id="test")
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
+
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
+
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -363,7 +405,7 @@ class TestAppCreationClient:
             project_id="test-project-id", cloudspace_id=mock.ANY, body=body
         )
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_run_on_byoc_cluster(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
@@ -380,6 +422,16 @@ class TestAppCreationClient:
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
             [Externalv1Cluster(id="test1234")]
         )
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
+
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -413,7 +465,7 @@ class TestAppCreationClient:
             body=ProjectIdProjectclustersbindingsBody(cluster_id="test1234"),
         )
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_requirements_file(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
@@ -428,6 +480,15 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -472,7 +533,7 @@ class TestAppCreationClient:
             project_id="test-project-id", cloudspace_id=mock.ANY, body=body
         )
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_basic_auth_enabled(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
@@ -487,6 +548,15 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -533,7 +603,7 @@ class TestAppCreationClient:
             ),
         )
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_no_cache(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
@@ -550,6 +620,15 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun(cluster_id="test")
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -583,7 +662,7 @@ class TestAppCreationClient:
         body = kwargs["body"]
         assert body.dependency_cache_key is None
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize(
         ("lightningapps", "start_with_flow"),
@@ -622,6 +701,22 @@ class TestAppCreationClient:
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
+        mock_client.lightningapp_instance_service_update_lightningapp_instance_release.return_value = (
+            Externalv1LightningappInstance(
+                id="test1234",
+                name="test1234",
+                status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+            )
+        )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -709,7 +804,7 @@ class TestAppCreationClient:
                 project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_queue_server_type_specified(self, tmpdir, lightningapps, monkeypatch):
@@ -725,6 +820,15 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -765,7 +869,7 @@ class TestAppCreationClient:
             project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=body
         )
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_work_app_and_attached_drives(self, lightningapps, monkeypatch, tmpdir):
@@ -797,8 +901,22 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        lit_app_instance = MagicMock()
-        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lit_app_instance)
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
+        mock_client.lightningapp_instance_service_update_lightningapp_instance_release.return_value = (
+            Externalv1LightningappInstance(
+                id="test1234",
+                name="test1234",
+                status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+            )
+        )
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
@@ -911,7 +1029,7 @@ class TestAppCreationClient:
                 project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @mock.patch("lightning.app.core.constants.ENABLE_APP_COMMENT_COMMAND_EXECUTION", True)
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
@@ -951,6 +1069,22 @@ class TestAppCreationClient:
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
+        mock_client.lightningapp_instance_service_update_lightningapp_instance_release.return_value = (
+            Externalv1LightningappInstance(
+                id="test1234",
+                name="test1234",
+                status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+            )
+        )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -1041,7 +1175,7 @@ class TestAppCreationClient:
                 ),
             )
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_work_app_and_multiple_attached_drives(self, lightningapps, monkeypatch, tmpdir):
@@ -1080,6 +1214,22 @@ class TestAppCreationClient:
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
+        mock_client.lightningapp_instance_service_update_lightningapp_instance_release.return_value = (
+            Externalv1LightningappInstance(
+                id="test1234",
+                name="test1234",
+                status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+            )
+        )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -1258,7 +1408,7 @@ class TestAppCreationClient:
                 project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_work_app_and_attached_mount_and_drive(self, lightningapps, monkeypatch, tmpdir):
@@ -1298,6 +1448,22 @@ class TestAppCreationClient:
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         existing_instance.spec.cluster_id = None
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(),
+        )
+        mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+            id="test1234",
+            name="test1234",
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
+        mock_client.lightningapp_instance_service_update_lightningapp_instance_release.return_value = (
+            Externalv1LightningappInstance(
+                id="test1234",
+                name="test1234",
+                status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+            )
+        )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -1954,7 +2120,7 @@ def test_incompatible_cloud_compute_and_build_config(monkeypatch):
         CloudRuntime(app=app)._validate_work_build_specs_and_compute()
 
 
-@pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+# @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
 def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     path = Path(tmpdir)
     entrypoint = path / "entrypoint.py"
@@ -1968,6 +2134,14 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
         V1ListLightningappInstancesResponse(lightningapps=[])
     )
     mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun(cluster_id="test")
+    mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+        username="tester",
+        features=V1UserFeatures(),
+    )
+    mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+        id="test1234", name="test1234", status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING)
+    )
+
     cloud_backend = mock.MagicMock(client=mock_client)
     monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
 
@@ -2026,7 +2200,7 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     flow.run()
 
 
-@pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
+# @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
 def test_default_lightningignore(monkeypatch, caplog, tmpdir):
     path = Path(tmpdir)
     entrypoint = path / "entrypoint.py"
@@ -2040,6 +2214,13 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
         V1ListLightningappInstancesResponse(lightningapps=[])
     )
     mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun(cluster_id="test")
+    mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+        username="tester",
+        features=V1UserFeatures(),
+    )
+    mock_client.cloud_space_service_create_lightning_run_instance.return_value = Externalv1LightningappInstance(
+        id="test1234", name="test1234", status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING)
+    )
     cloud_backend = mock.MagicMock(client=mock_client)
     monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
 
