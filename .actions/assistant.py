@@ -43,6 +43,11 @@ REQUIREMENT_FILES = {
         "requirements/fabric/base.txt",
         "requirements/fabric/strategies.txt",
     ),
+    "data": (
+        "requirements/data/base.txt",
+        "requirements/data/extra.txt",
+        "requirements/data/examples.txt",
+    ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 
