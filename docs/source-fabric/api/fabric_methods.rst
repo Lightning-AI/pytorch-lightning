@@ -163,7 +163,8 @@ and redundant memory initialization:
 .. code-block:: python
 
     with fabric.init_module(empty_weights=True):
-        # the model allocates no memory, all weights are uninitialized
+        # creation of the model is very fast
+        # and depending on the strategy allocates no memory, or uninitialized memory
         model = MyModel()
 
     # weights get loaded into the model
