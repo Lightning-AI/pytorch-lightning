@@ -42,9 +42,9 @@
 /src/lightning/pytorch/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
 
 # Data Utilities
-/examples/pytorch/data/                     @nohalon @justusschock
-/src/lightning/pytorch/utilities/data/      @nohalon @justusschock
-/tests/tests_pytorch/utilities/data         @nohalon @justusschock
+/examples/data/                     @nohalon @justusschock
+/src/lightning/data/      @nohalon @justusschock
+/tests/tests_data         @nohalon @justusschock
 
 # Lightning Fabric
 /src/lightning/fabric                       @awaelchli @carmocca @justusschock
