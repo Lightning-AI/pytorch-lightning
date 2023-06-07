@@ -47,8 +47,9 @@ def _prepare_extras() -> Dict[str, Any]:
     extras["app-extra"] = extras["app-cloud"] + extras["app-ui"] + extras["app-components"]
     extras["app-all"] = extras["app-extra"]
     extras["app-dev"] = extras["app-all"] + extras["app-test"]
-    extras["data-all"] = extras["data-examples"]
-    extras["data-dev"] = extras["data-examples"] + extras["data-test"]
+    extras["data"] = extras.pop("data-extra")
+    extras["data-all"] = extras["data-examples"] + extras["data"]
+    extras["data-dev"] = extras["data-examples"] + extras["data-test"] + extras["data"]
     # merge per-project extras of the same category, e.g. `app-test` + `fabric-test`
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
@@ -56,7 +57,6 @@ def _prepare_extras() -> Dict[str, Any]:
     extras = {name: sorted(set(reqs)) for name, reqs in extras.items()}
     print("The extras are: ", extras)
     return extras
-
 
 def _setup_args() -> Dict[str, Any]:
     about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
@@ -69,6 +69,7 @@ def _setup_args() -> Dict[str, Any]:
     # TODO: remove this once lightning-ui package is ready as a dependency
     _ASSISTANT._download_frontend(os.path.join(_SOURCE_ROOT, "lightning", "app"))
 
+    
     install_requires = _ASSISTANT.load_requirements(
         _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
     ) + ["pytorch-lightning"]
