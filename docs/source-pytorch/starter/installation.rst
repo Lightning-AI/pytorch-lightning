@@ -18,7 +18,6 @@ Install lightning inside a virtual env or conda environment with pip
 
 --------------
 
-
 ******************
 Install with Conda
 ******************
