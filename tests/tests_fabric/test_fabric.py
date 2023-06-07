@@ -739,7 +739,7 @@ def test_init_module_context(monkeypatch):
     fabric._strategy = strategy
     with fabric.init_module():
         pass
-    strategy.module_init_context.assert_called_once_with(empty_weights=None)
+    strategy.module_init_context.assert_called_once_with(empty_init=None)
     strategy.module_init_context.reset_mock()
 
     # Pretend we are using PyTorch < 2.0

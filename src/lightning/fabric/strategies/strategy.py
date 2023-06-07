@@ -122,17 +122,17 @@ class Strategy(ABC):
             yield
 
     @contextmanager
-    def module_init_context(self, empty_weights: Optional[bool] = None) -> Generator:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator:
         """A context manager wrapping the model instantiation.
 
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
         patches to the model.
 
         Args:
-            empty_weights: Whether to initialize the model with empty weights (uninitialized memory).
+            empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
         """
-        empty_init_context = _EmptyInit(enabled=bool(empty_weights)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
         with empty_init_context, self.tensor_init_context():
             yield
 

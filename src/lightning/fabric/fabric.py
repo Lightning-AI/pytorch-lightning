@@ -618,7 +618,7 @@ class Fabric:
             yield
 
     @contextmanager
-    def init_module(self, empty_weights: Optional[bool] = None) -> Generator:
+    def init_module(self, empty_init: Optional[bool] = None) -> Generator:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
@@ -626,7 +626,7 @@ class Fabric:
         PyTorch 2.0 and newer.
 
         Args:
-            empty_weights: Whether to initialize the model with empty weights (uninitialized memory).
+            empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
                 Set this to ``True`` if you are loading a checkpoint into a large model. Requires `torch >= 1.13`.
         """
@@ -637,7 +637,7 @@ class Fabric:
                 " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
                 category=PossibleUserWarning,
             )
-        with self._strategy.module_init_context(empty_weights=empty_weights):
+        with self._strategy.module_init_context(empty_init=empty_init):
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:

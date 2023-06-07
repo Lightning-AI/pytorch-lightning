@@ -393,14 +393,14 @@ def test_deepspeed_save_load_checkpoint_zero_3(stage, tmp_path):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
-@pytest.mark.parametrize("empty_weights", [None, True])
-def test_deepspeed_init_module_with_stage_3(empty_weights):
+@pytest.mark.parametrize("empty_init", [None, True])
+def test_deepspeed_init_module_with_stage_3(empty_init):
     """Tests how `.init_module()` behaves with ZeRO stage 3."""
     strategy = DeepSpeedStrategy(stage=3)
     fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy, precision="bf16-true")
     fabric.launch()
 
-    with mock.patch("deepspeed.zero.Init") as zero_init_mock, fabric.init_module(empty_weights=empty_weights):
+    with mock.patch("deepspeed.zero.Init") as zero_init_mock, fabric.init_module(empty_init=empty_init):
         BoringModel()
     zero_init_mock.assert_called_once_with(
         remote_device="cpu", pin_memory=True, config_dict_or_path=ANY, dtype=torch.bfloat16
@@ -409,8 +409,8 @@ def test_deepspeed_init_module_with_stage_3(empty_weights):
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
 @pytest.mark.parametrize("stage", [1, 2])
-@pytest.mark.parametrize("empty_weights", [None, False, True])
-def test_deepspeed_init_module_with_stages_1_2(stage, empty_weights):
+@pytest.mark.parametrize("empty_init", [None, False, True])
+def test_deepspeed_init_module_with_stages_1_2(stage, empty_init):
     """Tests how `.init_module()` behaves with ZeRO stages 1 and 2."""
     strategy = DeepSpeedStrategy(stage=stage)
     fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy, precision="bf16-true")
@@ -418,9 +418,9 @@ def test_deepspeed_init_module_with_stages_1_2(stage, empty_weights):
 
     with mock.patch("deepspeed.zero.Init") as zero_init_mock, mock.patch(
         "torch.Tensor.uniform_"
-    ) as init_mock, fabric.init_module(empty_weights=empty_weights):
+    ) as init_mock, fabric.init_module(empty_init=empty_init):
         model = BoringModel()
 
     zero_init_mock.assert_not_called()
-    assert init_mock.call_count == int(not empty_weights)
+    assert init_mock.call_count == int(not empty_init)
     assert model.layer.weight.dtype == torch.bfloat16

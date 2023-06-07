@@ -171,21 +171,21 @@ def test_load_checkpoint_non_strict_loading(tmp_path):
         pytest.param(DoublePrecision(), torch.float64, marks=RunIf(mps=False)),
     ],
 )
-@pytest.mark.parametrize("empty_weights", [None, True, False])
-def test_module_init_context(device, precision, dtype, empty_weights, monkeypatch):
+@pytest.mark.parametrize("empty_init", [None, True, False])
+def test_module_init_context(device, precision, dtype, empty_init, monkeypatch):
     """Test that the module under the init-module-context gets moved to the right device and dtype."""
     init_mock = Mock()
     monkeypatch.setattr(torch.Tensor, "uniform_", init_mock)
 
     device = torch.device(device)
     strategy = SingleDeviceStrategy(device=device, precision=precision)  # surrogate class to test base class
-    with strategy.module_init_context(empty_weights=empty_weights):
+    with strategy.module_init_context(empty_init=empty_init):
         module = torch.nn.Linear(2, 2)
 
     expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
     assert module.weight.device == module.bias.device == expected_device
     assert module.weight.dtype == module.bias.dtype == dtype
-    if not empty_weights:
+    if not empty_init:
         init_mock.assert_called()
     else:
         init_mock.assert_not_called()
