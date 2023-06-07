@@ -62,7 +62,6 @@ pytest-timeout==2.1.0
 python-dateutil==2.8.2
 python-editor==1.0.4
 python-multipart==0.0.6
-pytorch-lightning== 2.0.2
 pytz==2023.3
 PyYAML==6.0
 readchar==4.0.5
