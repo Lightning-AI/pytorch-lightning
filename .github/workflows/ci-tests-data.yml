@@ -111,6 +111,7 @@ jobs:
       run: |
         python -m pip install -q pip -U
         extra=$(python -c "print({'lightning': 'data-'}.get('${{ matrix.pkg-name }}', ''))")
+        pip install -e ".[${extra}test]" "pytest-timeout"
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
