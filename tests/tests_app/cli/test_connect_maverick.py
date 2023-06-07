@@ -30,9 +30,7 @@ def test_register_to_cloud(monkeypatch):
         register_to_cloud("maverick-001", "project-0")
 
     mocked_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
-        memberships=[
-            V1Membership(name="project-0", project_id="project-id-0")
-        ]
+        memberships=[V1Membership(name="project-0", project_id="project-id-0")]
     )
 
     mocked_client.projects_service_list_project_cluster_bindings.return_value = MagicMock(clusters=[])
@@ -45,8 +43,7 @@ def test_register_to_cloud(monkeypatch):
     )
 
     mocked_client.projects_service_create_project_cluster_binding.assert_called_with(
-        project_id="project-id-0",
-        body=ProjectIdProjectclustersbindingsBody(cluster_id=mock.ANY)
+        project_id="project-id-0", body=ProjectIdProjectclustersbindingsBody(cluster_id=mock.ANY)
     )
 
 
@@ -57,9 +54,7 @@ def test_register_to_cloud_without_project(monkeypatch):
         memberships=[V1Membership(project_id="project-id-0")]
     )
     mocked_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
-        memberships=[
-            V1Membership(name="project-0", project_id="project-id-0")
-        ]
+        memberships=[V1Membership(name="project-0", project_id="project-id-0")]
     )
 
     mocked_client.projects_service_list_project_cluster_bindings.return_value = MagicMock(clusters=[])
@@ -75,8 +70,7 @@ def test_register_to_cloud_without_project(monkeypatch):
     )
 
     mocked_client.projects_service_create_project_cluster_binding.assert_called_with(
-        project_id="project-id-0",
-        body=ProjectIdProjectclustersbindingsBody(cluster_id=mock.ANY)
+        project_id="project-id-0", body=ProjectIdProjectclustersbindingsBody(cluster_id=mock.ANY)
     )
 
 
