@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Iterator, List, Optional, Tuple, Union
+from __future__ import annotations
+
+from typing import Any, Iterator
 
 from lightning.fabric.utilities.data import sized_len
 from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
@@ -25,8 +27,8 @@ def _profile_nothing() -> None:
 
 class _DataFetcher(Iterator):
     def __init__(self) -> None:
-        self._combined_loader: Optional[CombinedLoader] = None
-        self.iterator: Optional[Iterator] = None
+        self._combined_loader: CombinedLoader | None = None
+        self.iterator: Iterator | None = None
         self.fetched: int = 0
         self.done: bool = False
         self._start_profiler = _profile_nothing
@@ -43,7 +45,7 @@ class _DataFetcher(Iterator):
     def setup(self, combined_loader: CombinedLoader) -> None:
         self._combined_loader = combined_loader
 
-    def __iter__(self) -> "_DataFetcher":
+    def __iter__(self) -> _DataFetcher:
         self.reset()
         self.iterator = iter(self.combined_loader)
         return self
@@ -85,14 +87,14 @@ class _PrefetchDataFetcher(_DataFetcher):
         if prefetch_batches < 0:
             raise ValueError("`prefetch_batches` should at least be 0.")
         self.prefetch_batches = prefetch_batches
-        self.batches: List[Any] = []
-        self._len: Optional[int] = None
+        self.batches: list[Any] = []
+        self._len: int | None = None
 
     def setup(self, combined_loader: CombinedLoader) -> None:
         super().setup(combined_loader)
         self._len = sized_len(combined_loader)
 
-    def __iter__(self) -> "_PrefetchDataFetcher":
+    def __iter__(self) -> _PrefetchDataFetcher:
         super().__iter__()
         if self._len is not None:
             # ignore pre-fetching, it's not necessary
@@ -166,12 +168,12 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
                 ...
     """
 
-    def __iter__(self) -> "_DataLoaderIterDataFetcher":
+    def __iter__(self) -> _DataLoaderIterDataFetcher:
         super().__iter__()
         self.iterator_wrapper = iter(_DataFetcherWrapper(self))
         return self
 
-    def __next__(self) -> Union["_DataFetcherWrapper", Tuple["_DataFetcherWrapper", int, int]]:
+    def __next__(self) -> _DataFetcherWrapper | tuple[_DataFetcherWrapper, int, int]:
         if self.done:
             raise StopIteration
         assert isinstance(self.iterator_wrapper, _DataFetcherWrapper)

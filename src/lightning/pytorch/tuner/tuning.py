@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Literal, Optional, Union
+from __future__ import annotations
+
+from typing import Literal
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
@@ -22,23 +24,23 @@ from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADER
 class Tuner:
     """Tuner class to tune your model."""
 
-    def __init__(self, trainer: "pl.Trainer") -> None:
+    def __init__(self, trainer: pl.Trainer) -> None:
         self._trainer = trainer
 
     def scale_batch_size(
         self,
-        model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional["pl.LightningDataModule"] = None,
+        model: pl.LightningModule,
+        train_dataloaders: TRAIN_DATALOADERS | pl.LightningDataModule | None = None,
+        val_dataloaders: EVAL_DATALOADERS | None = None,
+        dataloaders: EVAL_DATALOADERS | None = None,
+        datamodule: pl.LightningDataModule | None = None,
         method: Literal["fit", "validate", "test", "predict"] = "fit",
         mode: str = "power",
         steps_per_trial: int = 3,
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
-    ) -> Optional[int]:
+    ) -> int | None:
         """Iteratively try to find the largest batch size for a given model that does not give an out of memory
         (OOM) error.
 
@@ -103,11 +105,11 @@ class Tuner:
 
     def lr_find(
         self,
-        model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional["pl.LightningDataModule"] = None,
+        model: pl.LightningModule,
+        train_dataloaders: TRAIN_DATALOADERS | pl.LightningDataModule | None = None,
+        val_dataloaders: EVAL_DATALOADERS | None = None,
+        dataloaders: EVAL_DATALOADERS | None = None,
+        datamodule: pl.LightningDataModule | None = None,
         method: Literal["fit", "validate", "test", "predict"] = "fit",
         min_lr: float = 1e-8,
         max_lr: float = 1,
@@ -116,7 +118,7 @@ class Tuner:
         early_stop_threshold: float = 4.0,
         update_attr: bool = True,
         attr_name: str = "",
-    ) -> Optional["pl.tuner.lr_finder._LRFinder"]:
+    ) -> pl.tuner.lr_finder._LRFinder | None:
         """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
         picking a good starting learning rate.
 
@@ -180,9 +182,9 @@ class Tuner:
 
 
 def _check_tuner_configuration(
-    train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
-    val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-    dataloaders: Optional[EVAL_DATALOADERS] = None,
+    train_dataloaders: TRAIN_DATALOADERS | pl.LightningDataModule | None = None,
+    val_dataloaders: EVAL_DATALOADERS | None = None,
+    dataloaders: EVAL_DATALOADERS | None = None,
     method: Literal["fit", "validate", "test", "predict"] = "fit",
 ) -> None:
     supported_methods = ("fit", "validate", "test", "predict")
@@ -203,7 +205,7 @@ def _check_tuner_configuration(
             )
 
 
-def _check_lr_find_configuration(trainer: "pl.Trainer") -> None:
+def _check_lr_find_configuration(trainer: pl.Trainer) -> None:
     # local import to avoid circular import
     from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
 
@@ -215,7 +217,7 @@ def _check_lr_find_configuration(trainer: "pl.Trainer") -> None:
         )
 
 
-def _check_scale_batch_size_configuration(trainer: "pl.Trainer") -> None:
+def _check_scale_batch_size_configuration(trainer: pl.Trainer) -> None:
     if trainer._accelerator_connector.is_distributed:
         raise ValueError("Tuning the batch size is currently not supported with distributed strategies.")
 

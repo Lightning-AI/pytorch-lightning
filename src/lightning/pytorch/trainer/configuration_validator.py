@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.trainer.states import TrainerFn
@@ -22,7 +24,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
-def _verify_loop_configurations(trainer: "pl.Trainer") -> None:
+def _verify_loop_configurations(trainer: pl.Trainer) -> None:
     r"""Checks that the model is configured correctly before the run is started.
 
     Args:
@@ -46,7 +48,7 @@ def _verify_loop_configurations(trainer: "pl.Trainer") -> None:
     __verify_batch_transfer_support(trainer)
 
 
-def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+def __verify_train_val_loop_configuration(trainer: pl.Trainer, model: pl.LightningModule) -> None:
     # verify minimum training requirements
     has_training_step = is_overridden("training_step", model)
     if not has_training_step:
@@ -89,7 +91,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
         )
 
 
-def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) -> None:
+def __verify_eval_loop_configuration(model: pl.LightningModule, stage: str) -> None:
     step_name = "validation_step" if stage == "val" else f"{stage}_step"
     has_step = is_overridden(step_name, model)
 
@@ -116,7 +118,7 @@ def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) ->
             )
 
 
-def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
+def __verify_batch_transfer_support(trainer: pl.Trainer) -> None:
     batch_transfer_hooks = ("transfer_batch_to_device", "on_after_batch_transfer")
     datahook_selector = trainer._data_connector._datahook_selector
     assert datahook_selector is not None
@@ -132,7 +134,7 @@ def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
                 raise MisconfigurationException(f"Overriding `{hook}` is not supported with IPUs.")
 
 
-def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+def __verify_manual_optimization_support(trainer: pl.Trainer, model: pl.LightningModule) -> None:
     if model.automatic_optimization:
         return
     if trainer.gradient_clip_val is not None and trainer.gradient_clip_val > 0:
@@ -149,7 +151,7 @@ def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.Light
         )
 
 
-def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") -> None:
+def __check_training_step_requires_dataloader_iter(model: pl.LightningModule) -> None:
     """Check if the current `training_step` is requesting `dataloader_iter`."""
     if is_param_in_hook_signature(model.training_step, "dataloader_iter", explicit=True):
         for hook in ("on_train_batch_start", "on_train_batch_end"):

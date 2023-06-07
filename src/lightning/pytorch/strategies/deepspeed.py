@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import argparse
 import contextlib
 import json
@@ -19,7 +21,7 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Generator, Mapping, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -71,7 +73,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.Accelerator"] = None,
+        accelerator: pl.accelerators.Accelerator | None = None,
         zero_optimization: bool = True,
         stage: int = 2,
         remote_device: str = "cpu",
@@ -98,11 +100,11 @@ class DeepSpeedStrategy(DDPStrategy):
         allgather_bucket_size: int = 200_000_000,
         reduce_bucket_size: int = 200_000_000,
         zero_allow_untested_optimizer: bool = True,
-        logging_batch_size_per_gpu: Union[str, int] = "auto",
-        config: Optional[Union[_PATH, Dict[str, Any]]] = None,
+        logging_batch_size_per_gpu: str | int = "auto",
+        config: _PATH | dict[str, Any] | None = None,
         logging_level: int = logging.WARN,
-        parallel_devices: Optional[List[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
+        parallel_devices: list[torch.device] | None = None,
+        cluster_environment: ClusterEnvironment | None = None,
         loss_scale: float = 0,
         initial_scale_power: int = 16,
         loss_scale_window: int = 1000,
@@ -113,8 +115,8 @@ class DeepSpeedStrategy(DDPStrategy):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
-        precision_plugin: Optional[PrecisionPlugin] = None,
-        process_group_backend: Optional[str] = None,
+        precision_plugin: PrecisionPlugin | None = None,
+        process_group_backend: str | None = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -310,7 +312,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-    def _load_config(self, config: Optional[Union[_PATH, Dict[str, Any]]]) -> Optional[Dict[str, Any]]:
+    def _load_config(self, config: _PATH | dict[str, Any] | None) -> dict[str, Any] | None:
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
             rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
             config = os.environ[self.DEEPSPEED_ENV_VAR]
@@ -332,7 +334,7 @@ class DeepSpeedStrategy(DDPStrategy):
             self._format_config()
             self._config_initialized = True
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: pl.Trainer) -> None:
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
         # we set the device so that optimizers can be created with distributed comms.
@@ -372,8 +374,8 @@ class DeepSpeedStrategy(DDPStrategy):
         return True
 
     def _setup_model_and_optimizers(
-        self, model: Module, optimizers: List[Optimizer]
-    ) -> Tuple["deepspeed.DeepSpeedEngine", List[Optimizer]]:
+        self, model: Module, optimizers: list[Optimizer]
+    ) -> tuple[deepspeed.DeepSpeedEngine, list[Optimizer]]:
         """Setup a model and multiple optimizers together.
 
         Currently only a single optimizer is supported.
@@ -400,9 +402,9 @@ class DeepSpeedStrategy(DDPStrategy):
     def _setup_model_and_optimizer(
         self,
         model: Module,
-        optimizer: Optional[Optimizer],
-        lr_scheduler: Optional[Union[LRScheduler, ReduceLROnPlateau]] = None,
-    ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
+        optimizer: Optimizer | None,
+        lr_scheduler: LRScheduler | ReduceLROnPlateau | None = None,
+    ) -> tuple[deepspeed.DeepSpeedEngine, Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
         This calls :func:`deepspeed.initialize` internally.
@@ -447,7 +449,7 @@ class DeepSpeedStrategy(DDPStrategy):
         else:
             self._initialize_deepspeed_inference(self.model)
 
-    def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig]]:
+    def _init_optimizers(self) -> tuple[Optimizer, LRSchedulerConfig | None]:
         assert self.lightning_module is not None
         optimizers, lr_schedulers = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
@@ -565,10 +567,10 @@ class DeepSpeedStrategy(DDPStrategy):
         self.model = model
 
     @property
-    def distributed_sampler_kwargs(self) -> Dict[str, int]:
+    def distributed_sampler_kwargs(self) -> dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+    def setup_optimizers(self, trainer: pl.Trainer) -> None:
         """Creates optimizers and schedulers.
 
         Args:
@@ -661,7 +663,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self,
         zero_optimization: bool,
         zero_allow_untested_optimizer: bool,
-        logging_batch_size_per_gpu: Union[str, int],
+        logging_batch_size_per_gpu: str | int,
         partition_activations: bool,
         cpu_checkpointing: bool,
         contiguous_memory_optimization: bool,
@@ -682,7 +684,7 @@ class DeepSpeedStrategy(DDPStrategy):
         overlap_events: bool,
         thread_count: int,
         **zero_kwargs: Any,
-    ) -> Dict:
+    ) -> dict:
         cfg = {
             "activation_checkpointing": {
                 "partition_activations": partition_activations,
@@ -727,14 +729,14 @@ class DeepSpeedStrategy(DDPStrategy):
         return cfg
 
     @property
-    def deepspeed_engine(self) -> "deepspeed.DeepSpeedEngine":
+    def deepspeed_engine(self) -> deepspeed.DeepSpeedEngine:
         return self.model
 
     @property
     def _multi_device(self) -> bool:
         return self.num_processes > 1 or self.num_nodes > 1
 
-    def save_checkpoint(self, checkpoint: Dict, filepath: _PATH, storage_options: Optional[Any] = None) -> None:
+    def save_checkpoint(self, checkpoint: dict, filepath: _PATH, storage_options: Any | None = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -769,7 +771,7 @@ class DeepSpeedStrategy(DDPStrategy):
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint, tag="checkpoint")
 
-    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
@@ -823,9 +825,9 @@ class DeepSpeedStrategy(DDPStrategy):
         assert self.lightning_module is not None
 
         def load(module: torch.nn.Module, prefix: str = "") -> None:
-            missing_keys: List[str] = []
-            unexpected_keys: List[str] = []
-            error_msgs: List[str] = []
+            missing_keys: list[str] = []
+            unexpected_keys: list[str] = []
+            error_msgs: list[str] = []
             state_dict = ckpt["state_dict"]
 
             # copy state_dict so _load_from_state_dict can modify it
@@ -893,6 +895,6 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_optimizer_device="nvme",
         )
 
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+    def batch_to_device(self, batch: Any, device: torch.device | None = None, dataloader_idx: int = 0) -> Any:
         batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
         return super().batch_to_device(batch, device, dataloader_idx)

@@ -16,9 +16,11 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
+from __future__ import annotations
+
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Generator, List, Mapping, Optional, Protocol, runtime_checkable, Type, Union
+from typing import Any, Generator, List, Mapping, Protocol, runtime_checkable, Type, Union
 
 import torch
 from torch import Tensor
@@ -42,11 +44,11 @@ class DistributedDataParallel(Protocol):
     def __init__(
         self,
         module: torch.nn.Module,
-        device_ids: Optional[List[Union[int, torch.device]]] = None,
-        output_device: Optional[Union[int, torch.device]] = None,
+        device_ids: list[int | torch.device] | None = None,
+        output_device: int | torch.device | None = None,
         dim: int = 0,
         broadcast_buffers: bool = True,
-        process_group: Optional[ProcessGroup] = None,
+        process_group: ProcessGroup | None = None,
         bucket_cap_mb: int = 25,
         find_unused_parameters: bool = False,
         check_reduction: bool = False,
@@ -69,9 +71,9 @@ LRSchedulerPLType = Union[LRScheduler, ReduceLROnPlateau]
 
 @dataclass
 class LRSchedulerConfig:
-    scheduler: Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]
+    scheduler: _TORCH_LRSCHEDULER | ReduceLROnPlateau
     # no custom name
-    name: Optional[str] = None
+    name: str | None = None
     # after epoch is over
     interval: str = "epoch"
     # every epoch/batch
@@ -79,6 +81,6 @@ class LRSchedulerConfig:
     # most often not ReduceLROnPlateau scheduler
     reduce_on_plateau: bool = False
     # value to monitor for ReduceLROnPlateau
-    monitor: Optional[str] = None
+    monitor: str | None = None
     # enforce that the monitor exists for ReduceLROnPlateau
     strict: bool = True

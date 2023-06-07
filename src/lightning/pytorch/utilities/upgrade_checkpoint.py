@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import glob
 import logging
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from shutil import copyfile
-from typing import List
 
 import torch
 from tqdm import tqdm
@@ -29,7 +30,7 @@ _log = logging.getLogger(__name__)
 def _upgrade(args: Namespace) -> None:
     path = Path(args.path).absolute()
     extension: str = args.extension if args.extension.startswith(".") else f".{args.extension}"
-    files: List[Path] = []
+    files: list[Path] = []
 
     if not path.exists():
         _log.error(

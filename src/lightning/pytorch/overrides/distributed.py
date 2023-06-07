@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import itertools
-from typing import Any, Callable, cast, Dict, Iterable, Iterator, List, Optional, Sized, Union
+from typing import Any, Callable, cast, Iterable, Iterator, Sized
 
 import torch
 from torch import Tensor
@@ -24,9 +26,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 
-def _find_tensors(
-    obj: Union[Tensor, list, tuple, dict, Any]
-) -> Union[List[Tensor], itertools.chain]:  # pragma: no-cover
+def _find_tensors(obj: Tensor | list | tuple | dict | Any) -> list[Tensor] | itertools.chain:  # pragma: no-cover
     """Recursively find all tensors contained in the specified object."""
     if isinstance(obj, Tensor):
         return [obj]
@@ -59,9 +59,9 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
 
 def _register_ddp_comm_hook(
     model: DistributedDataParallel,
-    ddp_comm_state: Optional[object] = None,
-    ddp_comm_hook: Optional[Callable] = None,
-    ddp_comm_wrapper: Optional[Callable] = None,
+    ddp_comm_state: object | None = None,
+    ddp_comm_hook: Callable | None = None,
+    ddp_comm_wrapper: Callable | None = None,
 ) -> None:
     """Function to register communication hook for DDP model https://pytorch.org/docs/master/ddp_comm_hooks.html.
 
@@ -212,7 +212,7 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         # have at least one batch, or the DistributedDataParallel could lock up.
         assert self.num_samples >= 1 or self.total_size == 0
 
-    def __iter__(self) -> Iterator[List[int]]:
+    def __iter__(self) -> Iterator[list[int]]:
         if not isinstance(self.dataset, Sized):
             raise TypeError("The given dataset must implement the `__len__` method.")
         if self.shuffle:
@@ -235,7 +235,7 @@ class UnrepeatedDistributedSampler(DistributedSampler):
 class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
     """Equivalent class to ``DistributedSamplerWrapper`` but for the ``UnrepeatedDistributedSampler``."""
 
-    def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
+    def __init__(self, sampler: Sampler | Iterable, *args: Any, **kwargs: Any) -> None:
         super().__init__(_DatasetSamplerWrapper(sampler), *args, **kwargs)
 
     def __iter__(self) -> Iterator:
@@ -248,7 +248,7 @@ class _IndexBatchSamplerWrapper(BatchSampler):
 
     def __init__(self, batch_sampler: BatchSampler) -> None:
         # do not call super().__init__() on purpose
-        self.seen_batch_indices: List[List[int]] = []
+        self.seen_batch_indices: list[list[int]] = []
 
         self.__dict__ = {
             k: v
@@ -256,15 +256,15 @@ class _IndexBatchSamplerWrapper(BatchSampler):
             if k not in ("__next__", "__iter__", "__len__", "__getstate__")
         }
         self._batch_sampler = batch_sampler
-        self._iterator: Optional[Iterator[List[int]]] = None
+        self._iterator: Iterator[list[int]] | None = None
 
-    def __next__(self) -> List[int]:
+    def __next__(self) -> list[int]:
         assert self._iterator is not None
         batch = next(self._iterator)
         self.seen_batch_indices.append(batch)
         return batch
 
-    def __iter__(self) -> Iterator[List[int]]:
+    def __iter__(self) -> Iterator[list[int]]:
         self.seen_batch_indices = []
         self._iterator = iter(self._batch_sampler)
         return self
@@ -272,7 +272,7 @@ class _IndexBatchSamplerWrapper(BatchSampler):
     def __len__(self) -> int:
         return len(self._batch_sampler)
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
         state["_iterator"] = None  # cannot pickle 'generator' object
         return state

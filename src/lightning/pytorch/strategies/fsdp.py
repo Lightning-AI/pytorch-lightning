@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import contextlib
 import logging
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Type, Union
+from typing import Any, Generator
 
 import torch
 from torch import Tensor
@@ -103,20 +105,20 @@ class FSDPStrategy(ParallelStrategy):
     """
 
     strategy_name = "fsdp"
-    _registered_strategies: List[str] = []
+    _registered_strategies: list[str] = []
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
-        cpu_offload: Union[bool, "CPUOffload", None] = None,
-        mixed_precision: Optional[MixedPrecision] = None,
-        activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
+        accelerator: pl.accelerators.Accelerator | None = None,
+        parallel_devices: list[torch.device] | None = None,
+        cluster_environment: ClusterEnvironment | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision_plugin: PrecisionPlugin | None = None,
+        process_group_backend: str | None = None,
+        timeout: timedelta | None = default_pg_timeout,
+        cpu_offload: bool | CPUOffload | None = None,
+        mixed_precision: MixedPrecision | None = None,
+        activation_checkpointing: type[Module] | list[type[Module]] | None = None,
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -132,7 +134,7 @@ class FSDPStrategy(ParallelStrategy):
         self._process_group = None
         self.num_nodes = 1
         self._process_group_backend = process_group_backend
-        self._timeout: Optional[timedelta] = timeout
+        self._timeout: timedelta | None = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
         if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
@@ -147,7 +149,7 @@ class FSDPStrategy(ParallelStrategy):
             # `self.trainer.model.parameters()` and enables support for multiple parameter groups.
             self.kwargs.setdefault("use_orig_params", True)
 
-    def lightning_module_state_dict(self) -> Dict[str, Any]:
+    def lightning_module_state_dict(self) -> dict[str, Any]:
         """Gathers the full state dict by unsharding all the parameters.
 
         To avoid OOM, the returned parameters will only be returned on rank 0 and on CPU. All other ranks get an empty
@@ -172,18 +174,18 @@ class FSDPStrategy(ParallelStrategy):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def process_group(self) -> Optional[ProcessGroup]:
+    def process_group(self) -> ProcessGroup | None:
         if self._process_group is None:
             # The strategy should have already initilized process group in setup_environment()
             self._process_group = _get_default_group()
         return self._process_group
 
     @property
-    def process_group_backend(self) -> Optional[str]:
+    def process_group_backend(self) -> str | None:
         return self._process_group_backend
 
     @property
-    def mixed_precision_config(self) -> Optional[MixedPrecision]:
+    def mixed_precision_config(self) -> MixedPrecision | None:
         if self.mixed_precision:
             return self.mixed_precision
         plugin = self.precision_plugin
@@ -192,7 +194,7 @@ class FSDPStrategy(ParallelStrategy):
         return None
 
     @property
-    def distributed_sampler_kwargs(self) -> Dict:
+    def distributed_sampler_kwargs(self) -> dict:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     def setup_environment(self) -> None:
@@ -250,7 +252,7 @@ class FSDPStrategy(ParallelStrategy):
 
         return wrapped_module
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: pl.Trainer) -> None:
         assert self.accelerator is not None
         assert self.model is not None
         self.accelerator.setup(trainer)
@@ -276,7 +278,7 @@ class FSDPStrategy(ParallelStrategy):
 
         self.setup_precision_plugin()
 
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+    def setup_optimizers(self, trainer: pl.Trainer) -> None:
         if self.kwargs.get("use_orig_params"):
             return super().setup_optimizers(trainer)
 
@@ -313,7 +315,7 @@ class FSDPStrategy(ParallelStrategy):
         ):
             yield
 
-    def barrier(self, name: Optional[str] = None) -> None:
+    def barrier(self, name: str | None = None) -> None:
         if not torch.distributed.is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
@@ -331,9 +333,9 @@ class FSDPStrategy(ParallelStrategy):
 
     def reduce(
         self,
-        tensor: Union[Tensor, Any],
-        group: Optional[Any] = None,
-        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+        tensor: Tensor | Any,
+        group: Any | None = None,
+        reduce_op: ReduceOp | str | None = "mean",
     ) -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
@@ -350,7 +352,7 @@ class FSDPStrategy(ParallelStrategy):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def _determine_device_ids(self) -> List[int]:
+    def _determine_device_ids(self) -> list[int]:
         return [self.root_device.index]
 
     def teardown(self) -> None:
@@ -375,7 +377,7 @@ class FSDPStrategy(ParallelStrategy):
         self.accelerator.teardown()
 
     @classmethod
-    def get_registered_strategies(cls) -> List[str]:
+    def get_registered_strategies(cls) -> list[str]:
         return cls._registered_strategies
 
     @classmethod

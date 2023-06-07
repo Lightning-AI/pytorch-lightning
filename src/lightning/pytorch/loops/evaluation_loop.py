@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import os
 import shutil
 import sys
 from collections import ChainMap, defaultdict, OrderedDict
-from typing import Any, DefaultDict, Iterable, List, Optional, Tuple, Union
+from typing import Any, DefaultDict, Iterable
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -53,7 +55,7 @@ class _EvaluationLoop(_Loop):
 
     def __init__(
         self,
-        trainer: "pl.Trainer",
+        trainer: pl.Trainer,
         trainer_fn: TrainerFn,
         stage: RunningStage,
         verbose: bool = True,
@@ -64,16 +66,16 @@ class _EvaluationLoop(_Loop):
         self.inference_mode = inference_mode
         self.batch_progress = _BatchProgress()  # across dataloaders
         #  list in "sequential" mode, number otherwise
-        self._max_batches: Union[int, float, List[Union[int, float]]] = []
+        self._max_batches: int | float | list[int | float] = []
 
         self._results = _ResultCollection(training=False)
-        self._logged_outputs: List[_OUT_DICT] = []
+        self._logged_outputs: list[_OUT_DICT] = []
         self._has_run: bool = False
         self._trainer_fn = trainer_fn
         self._stage = stage
         self._data_source = _DataLoaderSource(None, f"{stage.dataloader_prefix}_dataloader")
-        self._combined_loader: Optional[CombinedLoader] = None
-        self._data_fetcher: Optional[_DataFetcher] = None
+        self._combined_loader: CombinedLoader | None = None
+        self._data_fetcher: _DataFetcher | None = None
         self._seen_batches_per_dataloader: DefaultDict[int, int] = defaultdict(int)
         self._last_val_dl_reload_epoch = float("-inf")
 
@@ -85,7 +87,7 @@ class _EvaluationLoop(_Loop):
         return len(combined_loader.flattened)
 
     @property
-    def max_batches(self) -> Union[int, float, List[Union[int, float]]]:
+    def max_batches(self) -> int | float | list[int | float]:
         """In "sequential" mode, the max number of batches to run per dataloader.
 
         Otherwise, the max batches to run.
@@ -115,7 +117,7 @@ class _EvaluationLoop(_Loop):
         return self._combined_loader._mode == "sequential"
 
     @_no_grad_context
-    def run(self) -> List[_OUT_DICT]:
+    def run(self) -> list[_OUT_DICT]:
         self.setup_data()
         if self.skip:
             return []
@@ -268,7 +270,7 @@ class _EvaluationLoop(_Loop):
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 
-    def on_run_end(self) -> List[_OUT_DICT]:
+    def on_run_end(self) -> list[_OUT_DICT]:
         """Runs the ``_on_evaluation_epoch_end`` hook."""
         # if `done` returned True before any iterations were done, this won't have been called in `on_advance_end`
         self.trainer._logger_connector.epoch_end_reached()
@@ -421,7 +423,7 @@ class _EvaluationLoop(_Loop):
         if not self.batch_progress.is_last_batch and trainer.received_sigterm:
             raise SIGTERMException
 
-    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> OrderedDict:
+    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int | None) -> OrderedDict:
         """Helper method to build the arguments for the current step.
 
         Args:
@@ -451,7 +453,7 @@ class _EvaluationLoop(_Loop):
         )
 
     @staticmethod
-    def _get_keys(data: dict) -> Iterable[Tuple[str, ...]]:
+    def _get_keys(data: dict) -> Iterable[tuple[str, ...]]:
         for k, v in data.items():
             if isinstance(v, dict):
                 for new_key in apply_to_collection(v, dict, _EvaluationLoop._get_keys):
@@ -460,7 +462,7 @@ class _EvaluationLoop(_Loop):
                 yield k,
 
     @staticmethod
-    def _find_value(data: dict, target: Iterable[str]) -> Optional[Any]:
+    def _find_value(data: dict, target: Iterable[str]) -> Any | None:
         target_start, *rest = target
         if target_start not in data:
             return None
@@ -470,7 +472,7 @@ class _EvaluationLoop(_Loop):
         return _EvaluationLoop._find_value(result, rest)
 
     @staticmethod
-    def _print_results(results: List[_OUT_DICT], stage: str) -> None:
+    def _print_results(results: list[_OUT_DICT], stage: str) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         metrics_paths = {k for keys in apply_to_collection(results, dict, _EvaluationLoop._get_keys) for k in keys}
@@ -487,7 +489,7 @@ class _EvaluationLoop(_Loop):
         term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
         max_length = int(min(max(len(max(metrics_strs, key=len)), len(max(headers, key=len)), 25), term_size / 2))
 
-        rows: List[List[Any]] = [[] for _ in metrics_paths]
+        rows: list[list[Any]] = [[] for _ in metrics_paths]
 
         for result in results:
             for metric, row in zip(metrics_paths, rows):

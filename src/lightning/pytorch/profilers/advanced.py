@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
+from __future__ import annotations
+
 import cProfile
 import io
 import logging
 import pstats
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
 
 from lightning.pytorch.profilers.profiler import Profiler
 
@@ -33,8 +34,8 @@ class AdvancedProfiler(Profiler):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
-        filename: Optional[str] = None,
+        dirpath: str | Path | None = None,
+        filename: str | None = None,
         line_count_restriction: float = 1.0,
     ) -> None:
         """
@@ -55,7 +56,7 @@ class AdvancedProfiler(Profiler):
                 If you attempt to stop recording an action which was never started.
         """
         super().__init__(dirpath=dirpath, filename=filename)
-        self.profiled_actions: Dict[str, cProfile.Profile] = {}
+        self.profiled_actions: dict[str, cProfile.Profile] = {}
         self.line_count_restriction = line_count_restriction
 
     def start(self, action_name: str) -> None:
@@ -78,11 +79,11 @@ class AdvancedProfiler(Profiler):
             recorded_stats[action_name] = s.getvalue()
         return self._stats_to_str(recorded_stats)
 
-    def teardown(self, stage: Optional[str]) -> None:
+    def teardown(self, stage: str | None) -> None:
         super().teardown(stage=stage)
         self.profiled_actions = {}
 
-    def __reduce__(self) -> Tuple:
+    def __reduce__(self) -> tuple:
         # avoids `TypeError: cannot pickle 'cProfile.Profile' object`
         return (
             self.__class__,

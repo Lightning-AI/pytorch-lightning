@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import inspect
 from dataclasses import fields
-from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Sized, Tuple, Union
+from typing import Any, Generator, Iterable, Mapping, Sized, Union
 
 import torch
 from lightning_utilities.core.apply_func import is_dataclass_instance
@@ -38,7 +40,7 @@ BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 warning_cache = WarningCache()
 
 
-def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
+def _extract_batch_size(batch: BType) -> Generator[int | None, None, None]:
     if isinstance(batch, Tensor):
         if batch.ndim == 0:
             yield 1
@@ -89,7 +91,7 @@ def extract_batch_size(batch: BType) -> int:
 
 def has_len_all_ranks(
     dataloader: object,
-    strategy: "pl.strategies.Strategy",
+    strategy: pl.strategies.Strategy,
     allow_zero_length_dataloader_with_multiple_devices: bool = False,
 ) -> TypeGuard[Sized]:
     """Checks if a given object has ``__len__`` method implemented on all ranks."""
@@ -127,7 +129,7 @@ def has_len_all_ranks(
 
 
 def _update_dataloader(
-    dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
+    dataloader: DataLoader, sampler: Sampler | Iterable, mode: RunningStage | None = None
 ) -> DataLoader:
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode)
     return _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
@@ -135,10 +137,10 @@ def _update_dataloader(
 
 def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
-    sampler: Union[Sampler, Iterable],
-    mode: Optional[RunningStage] = None,
+    sampler: Sampler | Iterable,
+    mode: RunningStage | None = None,
     disallow_batch_sampler: bool = False,
-) -> Tuple[Tuple[Any], Dict[str, Any]]:
+) -> tuple[tuple[Any], dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
@@ -230,10 +232,10 @@ def _get_dataloader_init_args_and_kwargs(
 
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
-    sampler: Union[Sampler, Iterable],
-    mode: Optional[RunningStage] = None,
+    sampler: Sampler | Iterable,
+    mode: RunningStage | None = None,
     disallow_batch_sampler: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
     re-instantiation.
 

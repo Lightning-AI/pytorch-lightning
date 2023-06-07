@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import Any
 
 from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.xla import XLAAccelerator as FabricXLAAccelerator
@@ -25,7 +27,7 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
     """
 
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
         """Gets stats for the given XLA device.
 
         Args:

@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
 from copy import deepcopy
-from typing import Any, Callable, Dict, Optional, Type, Union
+from typing import Any, Callable
 
 from lightning_utilities.core.imports import module_available
 from packaging.version import Version
@@ -27,7 +29,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 log = logging.getLogger(__name__)
 
 
-def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
+def _call_and_handle_interrupt(trainer: pl.Trainer, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
     r"""Error handling, intended to be used only for main trainer function entry points (fit, validate, test,
     predict) as all errors should funnel through them.
 
@@ -69,7 +71,7 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
         raise
 
 
-def _call_setup_hook(trainer: "pl.Trainer") -> None:
+def _call_setup_hook(trainer: pl.Trainer) -> None:
     assert trainer.state.fn is not None
     fn = trainer.state.fn
 
@@ -83,7 +85,7 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
     trainer.strategy.barrier("post_setup")
 
 
-def _call_configure_sharded_model(trainer: "pl.Trainer") -> None:
+def _call_configure_sharded_model(trainer: pl.Trainer) -> None:
     with trainer.strategy.model_sharded_context():
         # experimental support for torchdistx
         if module_available("torchdistx.deferred_init"):
@@ -94,7 +96,7 @@ def _call_configure_sharded_model(trainer: "pl.Trainer") -> None:
         _call_lightning_module_hook(trainer, "configure_sharded_model")
 
 
-def _call_teardown_hook(trainer: "pl.Trainer") -> None:
+def _call_teardown_hook(trainer: pl.Trainer) -> None:
     assert trainer.state.fn is not None
     fn = trainer.state.fn
 
@@ -118,10 +120,10 @@ def _call_teardown_hook(trainer: "pl.Trainer") -> None:
 
 
 def _call_lightning_module_hook(
-    trainer: "pl.Trainer",
+    trainer: pl.Trainer,
     hook_name: str,
     *args: Any,
-    pl_module: Optional["pl.LightningModule"] = None,
+    pl_module: pl.LightningModule | None = None,
     **kwargs: Any,
 ) -> Any:
     pl_module = pl_module or trainer.lightning_module
@@ -146,7 +148,7 @@ def _call_lightning_module_hook(
 
 
 def _call_lightning_datamodule_hook(
-    trainer: "pl.Trainer",
+    trainer: pl.Trainer,
     hook_name: str,
     *args: Any,
     **kwargs: Any,
@@ -162,10 +164,10 @@ def _call_lightning_datamodule_hook(
 
 
 def _call_callback_hooks(
-    trainer: "pl.Trainer",
+    trainer: pl.Trainer,
     hook_name: str,
     *args: Any,
-    monitoring_callbacks: Optional[bool] = None,
+    monitoring_callbacks: bool | None = None,
     **kwargs: Any,
 ) -> None:
     log.debug(f"{trainer.__class__.__name__}: calling callback hook: {hook_name}")
@@ -193,7 +195,7 @@ def _call_callback_hooks(
         pl_module._current_fx_name = prev_fx_name
 
 
-def _call_callbacks_state_dict(trainer: "pl.Trainer") -> Dict[str, dict]:
+def _call_callbacks_state_dict(trainer: pl.Trainer) -> dict[str, dict]:
     """Called when saving a model checkpoint, calls and returns every callback's `state_dict`, keyed by
     `Callback.state_key`."""
     callback_state_dicts = {}
@@ -204,7 +206,7 @@ def _call_callbacks_state_dict(trainer: "pl.Trainer") -> Dict[str, dict]:
     return callback_state_dicts
 
 
-def _call_callbacks_on_save_checkpoint(trainer: "pl.Trainer", checkpoint: Dict[str, Any]) -> None:
+def _call_callbacks_on_save_checkpoint(trainer: pl.Trainer, checkpoint: dict[str, Any]) -> None:
     """Called when saving a model checkpoint, calls every callback's `on_save_checkpoint` hook."""
     pl_module = trainer.lightning_module
     if pl_module:
@@ -220,7 +222,7 @@ def _call_callbacks_on_save_checkpoint(trainer: "pl.Trainer", checkpoint: Dict[s
         pl_module._current_fx_name = prev_fx_name
 
 
-def _call_callbacks_on_load_checkpoint(trainer: "pl.Trainer", checkpoint: Dict[str, Any]) -> None:
+def _call_callbacks_on_load_checkpoint(trainer: pl.Trainer, checkpoint: dict[str, Any]) -> None:
     """Called when loading a model checkpoint.
 
     Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
@@ -231,7 +233,7 @@ def _call_callbacks_on_load_checkpoint(trainer: "pl.Trainer", checkpoint: Dict[s
         prev_fx_name = pl_module._current_fx_name
         pl_module._current_fx_name = "on_load_checkpoint"
 
-    callback_states: Optional[Dict[Union[Type, str], Dict]] = checkpoint.get("callbacks")
+    callback_states: dict[type | str, dict] | None = checkpoint.get("callbacks")
 
     if callback_states is None:
         return
@@ -255,9 +257,9 @@ def _call_callbacks_on_load_checkpoint(trainer: "pl.Trainer", checkpoint: Dict[s
         pl_module._current_fx_name = prev_fx_name
 
 
-def _call_callbacks_load_state_dict(trainer: "pl.Trainer", checkpoint: Dict[str, Any]) -> None:
+def _call_callbacks_load_state_dict(trainer: pl.Trainer, checkpoint: dict[str, Any]) -> None:
     """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
-    callback_states: Optional[Dict[Union[Type, str], Dict]] = checkpoint.get("callbacks")
+    callback_states: dict[type | str, dict] | None = checkpoint.get("callbacks")
 
     if callback_states is None:
         return
@@ -270,7 +272,7 @@ def _call_callbacks_load_state_dict(trainer: "pl.Trainer", checkpoint: Dict[str,
 
 
 def _call_strategy_hook(
-    trainer: "pl.Trainer",
+    trainer: pl.Trainer,
     hook_name: str,
     *args: Any,
     **kwargs: Any,

@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, cast, Literal, Optional, TYPE_CHECKING, Union
+from __future__ import annotations
+
+from typing import Any, Callable, cast, Literal, TYPE_CHECKING
 
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
@@ -58,8 +60,8 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     def backward(  # type: ignore[override]
         self,
         tensor: Tensor,
-        model: "pl.LightningModule",
-        optimizer: Optional[Steppable],
+        model: pl.LightningModule,
+        optimizer: Steppable | None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -77,13 +79,13 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
                 " the backward logic internally."
             )
-        deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
+        deepspeed_engine: deepspeed.DeepSpeedEngine = model.trainer.model
         deepspeed_engine.backward(tensor, *args, **kwargs)
 
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Steppable,
-        model: "pl.LightningModule",
+        model: pl.LightningModule,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
@@ -98,13 +100,13 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
             )
         # DeepSpeed handles the optimizer step internally
-        deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
+        deepspeed_engine: deepspeed.DeepSpeedEngine = model.trainer.model
         return deepspeed_engine.step(**kwargs)
 
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        clip_val: Union[int, float] = 0.0,
+        clip_val: int | float = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """DeepSpeed handles gradient clipping internally."""

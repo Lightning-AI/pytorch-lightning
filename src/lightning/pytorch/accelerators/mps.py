@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional, Union
+from __future__ import annotations
+
+from typing import Any
 
 import torch
 
@@ -39,7 +41,7 @@ class MPSAccelerator(Accelerator):
         if device.type != "mps":
             raise MisconfigurationException(f"Device should be MPS, got {device} instead.")
 
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
         """Get M1 (cpu + gpu) stats from ``psutil`` package."""
         return get_device_stats()
 
@@ -47,12 +49,12 @@ class MPSAccelerator(Accelerator):
         pass
 
     @staticmethod
-    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
+    def parse_devices(devices: int | str | list[int]) -> list[int] | None:
         """Accelerator device parsing logic."""
         return _parse_gpu_ids(devices, include_mps=True)
 
     @staticmethod
-    def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
+    def get_parallel_devices(devices: int | str | list[int]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         parsed_devices = MPSAccelerator.parse_devices(devices)
         assert parsed_devices is not None
@@ -84,7 +86,7 @@ _PERCENT = "M1_percent"
 _SWAP_PERCENT = "M1_swap_percent"
 
 
-def get_device_stats() -> Dict[str, float]:
+def get_device_stats() -> dict[str, float]:
     if not _PSUTIL_AVAILABLE:
         raise ModuleNotFoundError(
             f"Fetching MPS device stats requires `psutil` to be installed. {str(_PSUTIL_AVAILABLE)}"

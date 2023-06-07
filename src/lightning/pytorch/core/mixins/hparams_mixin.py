@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import copy
 import inspect
 import types
 from argparse import Namespace
-from typing import Any, List, MutableMapping, Optional, Sequence, Union
+from typing import Any, MutableMapping, Sequence
 
 from lightning.pytorch.utilities.parsing import AttributeDict, save_hyperparameters
 
@@ -24,7 +26,7 @@ _ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
 
 class HyperparametersMixin:
-    __jit_unused_properties__: List[str] = ["hparams", "hparams_initial"]
+    __jit_unused_properties__: list[str] = ["hparams", "hparams_initial"]
 
     def __init__(self) -> None:
         super().__init__()
@@ -33,8 +35,8 @@ class HyperparametersMixin:
     def save_hyperparameters(
         self,
         *args: Any,
-        ignore: Optional[Union[Sequence[str], str]] = None,
-        frame: Optional[types.FrameType] = None,
+        ignore: Sequence[str] | str | None = None,
+        frame: types.FrameType | None = None,
         logger: bool = True,
     ) -> None:
         """Save arguments to ``hparams`` attribute.
@@ -110,7 +112,7 @@ class HyperparametersMixin:
                 frame = current_frame.f_back
         save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
-    def _set_hparams(self, hp: Union[MutableMapping, Namespace, str]) -> None:
+    def _set_hparams(self, hp: MutableMapping | Namespace | str) -> None:
         hp = self._to_hparams_dict(hp)
 
         if isinstance(hp, dict) and isinstance(self.hparams, dict):
@@ -119,7 +121,7 @@ class HyperparametersMixin:
             self._hparams = hp
 
     @staticmethod
-    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> Union[MutableMapping, AttributeDict]:
+    def _to_hparams_dict(hp: MutableMapping | Namespace | str) -> MutableMapping | AttributeDict:
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):
@@ -131,7 +133,7 @@ class HyperparametersMixin:
         return hp
 
     @property
-    def hparams(self) -> Union[AttributeDict, MutableMapping]:
+    def hparams(self) -> AttributeDict | MutableMapping:
         """The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user.
         For the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
 

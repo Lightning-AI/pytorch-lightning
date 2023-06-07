@@ -14,11 +14,13 @@
 """Abstract base class used to build new loggers."""
 
 
+from __future__ import annotations
+
 import functools
 import operator
 from abc import ABC
 from collections import defaultdict
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
 
@@ -40,7 +42,7 @@ class Logger(FabricLogger, ABC):
         pass
 
     @property
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
         locally."""
         return None
@@ -77,7 +79,7 @@ class DummyLogger(Logger):
         """Return the experiment version."""
         return ""
 
-    def __getitem__(self, idx: int) -> "DummyLogger":
+    def __getitem__(self, idx: int) -> DummyLogger:
         # enables self.logger[0].experiment.add_image(...)
         return self
 
@@ -93,9 +95,9 @@ class DummyLogger(Logger):
 # TODO: this should have been deprecated
 def merge_dicts(  # pragma: no cover
     dicts: Sequence[Mapping],
-    agg_key_funcs: Optional[Mapping] = None,
+    agg_key_funcs: Mapping | None = None,
     default_func: Callable[[Sequence[float]], float] = np.mean,
-) -> Dict:
+) -> dict:
     """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given
     function.
 
@@ -131,7 +133,7 @@ def merge_dicts(  # pragma: no cover
     """
     agg_key_funcs = agg_key_funcs or {}
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
-    d_out: Dict = defaultdict(dict)
+    d_out: dict = defaultdict(dict)
     for k in keys:
         fn = agg_key_funcs.get(k)
         values_to_agg = [v for v in [d_in.get(k) for d_in in dicts] if v is not None]

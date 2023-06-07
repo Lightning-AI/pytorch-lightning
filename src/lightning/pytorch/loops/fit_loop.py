@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
-from typing import Optional, Union
 
 import torch
 
@@ -73,9 +74,9 @@ class _FitLoop(_Loop):
 
     def __init__(
         self,
-        trainer: "pl.Trainer",
-        min_epochs: Optional[int] = 0,
-        max_epochs: Optional[int] = None,
+        trainer: pl.Trainer,
+        min_epochs: int | None = 0,
+        max_epochs: int | None = None,
     ) -> None:
         super().__init__(trainer)
         if isinstance(max_epochs, int) and max_epochs < -1:
@@ -88,11 +89,11 @@ class _FitLoop(_Loop):
         self.min_epochs = min_epochs
         self.epoch_loop = _TrainingEpochLoop(trainer)
         self.epoch_progress = _Progress()
-        self.max_batches: Union[int, float] = float("inf")
+        self.max_batches: int | float = float("inf")
 
         self._data_source = _DataLoaderSource(None, "train_dataloader")
-        self._combined_loader: Optional[CombinedLoader] = None
-        self._data_fetcher: Optional[_DataFetcher] = None
+        self._combined_loader: CombinedLoader | None = None
+        self._data_fetcher: _DataFetcher | None = None
         self._last_train_dl_reload_epoch = float("-inf")
 
     @property
@@ -106,7 +107,7 @@ class _FitLoop(_Loop):
         return self.epoch_loop.batch_idx
 
     @property
-    def min_steps(self) -> Optional[int]:
+    def min_steps(self) -> int | None:
         """Returns the minimum number of steps to run."""
         return self.epoch_loop.min_steps
 

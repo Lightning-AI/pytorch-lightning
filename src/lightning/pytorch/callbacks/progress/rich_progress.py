@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import math
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, cast, Dict, Optional, Union
+from typing import Any, cast
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -36,7 +38,7 @@ if _RICH_AVAILABLE:
         """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size)
         such as ``IterableDataset``."""
 
-        def render(self, task: "Task") -> _RichProgressBar:
+        def render(self, task: Task) -> _RichProgressBar:
             """Gets a progress bar widget for a task."""
             assert task.total is not None
             assert task.remaining is not None
@@ -60,7 +62,7 @@ if _RICH_AVAILABLE:
         """
 
         @property
-        def time_remaining(self) -> Optional[float]:
+        def time_remaining(self) -> float | None:
             return None
 
     class CustomProgress(Progress):
@@ -70,7 +72,7 @@ if _RICH_AVAILABLE:
             self,
             description: str,
             start: bool = True,
-            total: Optional[float] = 100.0,
+            total: float | None = 100.0,
             completed: int = 0,
             visible: bool = True,
             **fields: Any,
@@ -104,11 +106,11 @@ if _RICH_AVAILABLE:
         # Only refresh twice a second to prevent jitter
         max_refresh = 0.5
 
-        def __init__(self, style: Union[str, Style]) -> None:
+        def __init__(self, style: str | Style) -> None:
             self.style = style
             super().__init__()
 
-        def render(self, task: "Task") -> Text:
+        def render(self, task: Task) -> Text:
             elapsed = task.finished_time if task.finished else task.elapsed
             remaining = task.time_remaining
             elapsed_delta = "-:--:--" if elapsed is None else str(timedelta(seconds=int(elapsed)))
@@ -116,41 +118,41 @@ if _RICH_AVAILABLE:
             return Text(f"{elapsed_delta} • {remaining_delta}", style=self.style)
 
     class BatchesProcessedColumn(ProgressColumn):
-        def __init__(self, style: Union[str, Style]):
+        def __init__(self, style: str | Style):
             self.style = style
             super().__init__()
 
-        def render(self, task: "Task") -> RenderableType:
+        def render(self, task: Task) -> RenderableType:
             total = task.total if task.total != float("inf") else "--"
             return Text(f"{int(task.completed)}/{total}", style=self.style)
 
     class ProcessingSpeedColumn(ProgressColumn):
-        def __init__(self, style: Union[str, Style]):
+        def __init__(self, style: str | Style):
             self.style = style
             super().__init__()
 
-        def render(self, task: "Task") -> RenderableType:
+        def render(self, task: Task) -> RenderableType:
             task_speed = f"{task.speed:>.2f}" if task.speed is not None else "0.00"
             return Text(f"{task_speed}it/s", style=self.style)
 
     class MetricsTextColumn(ProgressColumn):
         """A column containing text."""
 
-        def __init__(self, trainer: "pl.Trainer", style: Union[str, "Style"]):
+        def __init__(self, trainer: pl.Trainer, style: str | Style):
             self._trainer = trainer
-            self._tasks: Dict[Union[int, TaskID], Any] = {}
+            self._tasks: dict[int | TaskID, Any] = {}
             self._current_task_id = 0
-            self._metrics: Dict[Union[str, "Style"], Any] = {}
+            self._metrics: dict[str | Style, Any] = {}
             self._style = style
             super().__init__()
 
-        def update(self, metrics: Dict[Any, Any]) -> None:
+        def update(self, metrics: dict[Any, Any]) -> None:
             # Called when metrics are ready to be rendered.
             # This is to prevent render from causing deadlock issues by requesting metrics
             # in separate threads.
             self._metrics = metrics
 
-        def render(self, task: "Task") -> Text:
+        def render(self, task: Task) -> Text:
             assert isinstance(self._trainer.progress_bar_callback, RichProgressBar)
             if (
                 self._trainer.state.fn != "fit"
@@ -193,14 +195,14 @@ class RichProgressBarTheme:
     https://rich.readthedocs.io/en/stable/style.html
     """
 
-    description: Union[str, Style] = "white"
-    progress_bar: Union[str, Style] = "#6206E0"
-    progress_bar_finished: Union[str, Style] = "#6206E0"
-    progress_bar_pulse: Union[str, Style] = "#6206E0"
-    batch_progress: Union[str, Style] = "white"
-    time: Union[str, Style] = "grey54"
-    processing_speed: Union[str, Style] = "grey70"
-    metrics: Union[str, Style] = "white"
+    description: str | Style = "white"
+    progress_bar: str | Style = "#6206E0"
+    progress_bar_finished: str | Style = "#6206E0"
+    progress_bar_pulse: str | Style = "#6206E0"
+    batch_progress: str | Style = "white"
+    time: str | Style = "grey54"
+    processing_speed: str | Style = "grey70"
+    metrics: str | Style = "white"
 
 
 class RichProgressBar(ProgressBar):
@@ -241,7 +243,7 @@ class RichProgressBar(ProgressBar):
         refresh_rate: int = 1,
         leave: bool = False,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
-        console_kwargs: Optional[Dict[str, Any]] = None,
+        console_kwargs: dict[str, Any] | None = None,
     ) -> None:
         if not _RICH_AVAILABLE:
             raise ModuleNotFoundError(
@@ -251,17 +253,17 @@ class RichProgressBar(ProgressBar):
         super().__init__()
         self._refresh_rate: int = refresh_rate
         self._leave: bool = leave
-        self._console: Optional[Console] = None
+        self._console: Console | None = None
         self._console_kwargs = console_kwargs or {}
         self._enabled: bool = True
-        self.progress: Optional[CustomProgress] = None
-        self.train_progress_bar_id: Optional["TaskID"]
-        self.val_sanity_progress_bar_id: Optional["TaskID"] = None
-        self.val_progress_bar_id: Optional["TaskID"]
-        self.test_progress_bar_id: Optional["TaskID"]
-        self.predict_progress_bar_id: Optional["TaskID"]
+        self.progress: CustomProgress | None = None
+        self.train_progress_bar_id: TaskID | None
+        self.val_sanity_progress_bar_id: TaskID | None = None
+        self.val_progress_bar_id: TaskID | None
+        self.test_progress_bar_id: TaskID | None
+        self.predict_progress_bar_id: TaskID | None
         self._reset_progress_bar_ids()
-        self._metric_component: Optional["MetricsTextColumn"] = None
+        self._metric_component: MetricsTextColumn | None = None
         self._progress_stopped: bool = False
         self.theme = theme
         self._update_for_light_colab_theme()
@@ -315,7 +317,7 @@ class RichProgressBar(ProgressBar):
     def enable(self) -> None:
         self._enabled = True
 
-    def _init_progress(self, trainer: "pl.Trainer") -> None:
+    def _init_progress(self, trainer: pl.Trainer) -> None:
         if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
             reconfigure(**self._console_kwargs)
@@ -337,28 +339,28 @@ class RichProgressBar(ProgressBar):
         if self.progress:
             self.progress.refresh()
 
-    def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._init_progress(trainer)
 
-    def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_predict_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._init_progress(trainer)
 
-    def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_test_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._init_progress(trainer)
 
-    def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_validation_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._init_progress(trainer)
 
-    def on_sanity_check_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_sanity_check_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._init_progress(trainer)
 
-    def on_sanity_check_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_sanity_check_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if self.progress is not None:
             assert self.val_sanity_progress_bar_id is not None
             self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
         self.refresh()
 
-    def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if self.is_disabled:
             return
         total_batches = self.total_train_batches
@@ -379,8 +381,8 @@ class RichProgressBar(ProgressBar):
 
     def on_validation_batch_start(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -408,11 +410,11 @@ class RichProgressBar(ProgressBar):
 
         self.refresh()
 
-    def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> "TaskID":
+    def _add_task(self, total_batches: int | float, description: str, visible: bool = True) -> TaskID:
         assert self.progress is not None
         return self.progress.add_task(f"[{self.theme.description}]{description}", total=total_batches, visible=visible)
 
-    def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
+    def _update(self, progress_bar_id: TaskID | None, current: int, visible: bool = True) -> None:
         if self.progress is not None and self.is_enabled:
             assert progress_bar_id is not None
             total = self.progress.tasks[progress_bar_id].total
@@ -425,30 +427,30 @@ class RichProgressBar(ProgressBar):
             self.progress.update(progress_bar_id, advance=advance, visible=visible)
             self.refresh()
 
-    def _should_update(self, current: int, total: Union[int, float]) -> bool:
+    def _should_update(self, current: int, total: int | float) -> bool:
         return current % self.refresh_rate == 0 or current == total
 
-    def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if self.is_enabled and self.val_progress_bar_id is not None and trainer.state.fn == "fit":
             assert self.progress is not None
             self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
             self.refresh()
 
-    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_validation_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if trainer.state.fn == "fit":
             self._update_metrics(trainer, pl_module)
         self.reset_dataloader_idx_tracker()
 
-    def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_test_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self.reset_dataloader_idx_tracker()
 
-    def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_predict_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self.reset_dataloader_idx_tracker()
 
     def on_test_batch_start(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -464,8 +466,8 @@ class RichProgressBar(ProgressBar):
 
     def on_predict_batch_start(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -482,20 +484,20 @@ class RichProgressBar(ProgressBar):
         self.refresh()
 
     def on_train_batch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
+        self, trainer: pl.Trainer, pl_module: pl.LightningModule, outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
         self._update(self.train_progress_bar_id, batch_idx + 1)
         self._update_metrics(trainer, pl_module)
         self.refresh()
 
-    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._update_metrics(trainer, pl_module)
 
     def on_validation_batch_end(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
+        outputs: STEP_OUTPUT | None,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -510,9 +512,9 @@ class RichProgressBar(ProgressBar):
 
     def on_test_batch_end(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
+        outputs: STEP_OUTPUT | None,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -525,8 +527,8 @@ class RichProgressBar(ProgressBar):
 
     def on_predict_batch_end(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         outputs: Any,
         batch: Any,
         batch_idx: int,
@@ -561,18 +563,18 @@ class RichProgressBar(ProgressBar):
         self.test_progress_bar_id = None
         self.predict_progress_bar_id = None
 
-    def _update_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def _update_metrics(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         metrics = self.get_metrics(trainer, pl_module)
         if self._metric_component:
             self._metric_component.update(metrics)
 
-    def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
+    def teardown(self, trainer: pl.Trainer, pl_module: pl.LightningModule, stage: str) -> None:
         self._stop_progress()
 
-    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
+    def on_exception(self, trainer: pl.Trainer, pl_module: pl.LightningModule, exception: BaseException) -> None:
         self._stop_progress()
 
-    def configure_columns(self, trainer: "pl.Trainer") -> list:
+    def configure_columns(self, trainer: pl.Trainer) -> list:
         return [
             TextColumn("[progress.description]{task.description}"),
             CustomBarColumn(
@@ -585,7 +587,7 @@ class RichProgressBar(ProgressBar):
             ProcessingSpeedColumn(style=self.theme.processing_speed),
         ]
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         # both the console and progress object can hold thread lock objects that are not pickleable
         state["progress"] = None

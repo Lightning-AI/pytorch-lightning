@@ -13,8 +13,10 @@
 # limitations under the License.
 """Utilities for loggers."""
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Any, List, Tuple, Union
+from typing import Any
 
 from torch import Tensor
 
@@ -22,14 +24,14 @@ import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Checkpoint
 
 
-def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
+def _version(loggers: list[Any], separator: str = "_") -> int | str:
     if len(loggers) == 1:
         return loggers[0].version
     # Concatenate versions together, removing duplicates and preserving order
     return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
 
 
-def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> List[Tuple[float, str, float, str]]:
+def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> list[tuple[float, str, float, str]]:
     """Return the checkpoints to be logged.
 
     Args:
@@ -55,7 +57,7 @@ def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) 
     return checkpoints
 
 
-def _log_hyperparams(trainer: "pl.Trainer") -> None:
+def _log_hyperparams(trainer: pl.Trainer) -> None:
     if not trainer.loggers:
         return
 

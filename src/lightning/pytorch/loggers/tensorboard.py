@@ -16,10 +16,12 @@ TensorBoard Logger
 ------------------
 """
 
+from __future__ import annotations
+
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from torch import Tensor
 
@@ -101,12 +103,12 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     def __init__(
         self,
         save_dir: _PATH,
-        name: Optional[str] = "lightning_logs",
-        version: Optional[Union[int, str]] = None,
+        name: str | None = "lightning_logs",
+        version: int | str | None = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
         prefix: str = "",
-        sub_dir: Optional[_PATH] = None,
+        sub_dir: _PATH | None = None,
         **kwargs: Any,
     ):
         super().__init__(
@@ -124,7 +126,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
                 f"{str(_TENSORBOARD_AVAILABLE)}"
             )
         self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
-        self.hparams: Union[Dict[str, Any], Namespace] = {}
+        self.hparams: dict[str, Any] | Namespace = {}
 
     @property
     def root_dir(self) -> str:
@@ -161,9 +163,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         return self._root_dir
 
     @rank_zero_only
-    def log_hyperparams(
-        self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace, metrics: dict[str, Any] | None = None) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
         hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs
         to display the new ones with hyperparameters.
@@ -183,7 +183,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         return super().log_hyperparams(params=params, metrics=metrics)
 
     @rank_zero_only
-    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
+    def log_graph(self, model: pl.LightningModule, input_array: Tensor | None = None) -> None:
         if not self._log_graph:
             return
 

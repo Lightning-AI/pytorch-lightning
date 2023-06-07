@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import math
 from collections import OrderedDict
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
@@ -55,7 +57,7 @@ class _TrainingEpochLoop(loops._Loop):
         max_steps: The maximum number of steps (batches) to process
     """
 
-    def __init__(self, trainer: "pl.Trainer", min_steps: Optional[int] = None, max_steps: int = -1) -> None:
+    def __init__(self, trainer: pl.Trainer, min_steps: int | None = None, max_steps: int = -1) -> None:
         super().__init__(trainer)
         if max_steps < -1:
             raise MisconfigurationException(
@@ -270,12 +272,12 @@ class _TrainingEpochLoop(loops._Loop):
         self._results.cpu()
         self.val_loop.teardown()
 
-    def on_save_checkpoint(self) -> Dict:
+    def on_save_checkpoint(self) -> dict:
         state_dict = super().on_save_checkpoint()
         state_dict["_batches_that_stepped"] = self._batches_that_stepped
         return state_dict
 
-    def on_load_checkpoint(self, state_dict: Dict) -> None:
+    def on_load_checkpoint(self, state_dict: dict) -> None:
         self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 
     def _accumulated_batches_reached(self) -> bool:
@@ -359,7 +361,7 @@ class _TrainingEpochLoop(loops._Loop):
                 )
                 self.scheduler_progress.increment_completed()
 
-    def _get_monitor_value(self, key: str) -> Optional[Any]:
+    def _get_monitor_value(self, key: str) -> Any | None:
         # this is a separate method to aid in testing
         return self.trainer.callback_metrics.get(key)
 

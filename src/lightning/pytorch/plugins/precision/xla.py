@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from functools import partial
 from typing import Any, Callable
 
@@ -39,7 +41,7 @@ class XLAPrecisionPlugin(PrecisionPlugin):
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
-        model: "pl.LightningModule",
+        model: pl.LightningModule,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:

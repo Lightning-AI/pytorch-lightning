@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
-from typing import Dict
 
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.pytorch.profilers.profiler import Profiler
@@ -42,8 +43,8 @@ class XLAProfiler(Profiler):
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(dirpath=None, filename=None)
         self.port = port
-        self._recording_map: Dict = {}
-        self._step_recoding_map: Dict = {}
+        self._recording_map: dict = {}
+        self._step_recoding_map: dict = {}
         self._start_trace: bool = False
 
     def start(self, action_name: str) -> None:

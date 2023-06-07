@@ -16,10 +16,12 @@ Comet Logger
 ------------
 """
 
+from __future__ import annotations
+
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Mapping
 
 from lightning_utilities.core.imports import module_available
 from torch import Tensor
@@ -210,12 +212,12 @@ class CometLogger(Logger):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        save_dir: Optional[str] = None,
-        project_name: Optional[str] = None,
-        rest_api_key: Optional[str] = None,
-        experiment_name: Optional[str] = None,
-        experiment_key: Optional[str] = None,
+        api_key: str | None = None,
+        save_dir: str | None = None,
+        project_name: str | None = None,
+        rest_api_key: str | None = None,
+        experiment_name: str | None = None,
+        experiment_key: str | None = None,
         offline: bool = False,
         prefix: str = "",
         **kwargs: Any,
@@ -226,8 +228,8 @@ class CometLogger(Logger):
             )
         super().__init__()
         self._experiment = None
-        self._save_dir: Optional[str]
-        self.rest_api_key: Optional[str]
+        self._save_dir: str | None
+        self.rest_api_key: str | None
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
         api_key = api_key or comet_ml.config.get_api_key(None, comet_ml.config.get_config())
@@ -249,12 +251,12 @@ class CometLogger(Logger):
 
         log.info(f"CometLogger will be initialized in {self.mode} mode")
 
-        self._project_name: Optional[str] = project_name
-        self._experiment_key: Optional[str] = experiment_key
-        self._experiment_name: Optional[str] = experiment_name
+        self._project_name: str | None = project_name
+        self._experiment_key: str | None = experiment_key
+        self._experiment_name: str | None = experiment_name
         self._prefix: str = prefix
         self._kwargs: Any = kwargs
-        self._future_experiment_key: Optional[str] = None
+        self._future_experiment_key: str | None = None
 
         if rest_api_key is not None:
             # Comet.ml rest API, used to determine version number
@@ -266,7 +268,7 @@ class CometLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]:
+    def experiment(self) -> CometExperiment | CometExistingExperiment | CometOfflineExperiment:
         r"""
         Actual Comet object. To use Comet features in your
         :class:`~lightning.pytorch.core.module.LightningModule` do the following.
@@ -312,13 +314,13 @@ class CometLogger(Logger):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
         self.experiment.log_parameters(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, Tensor | float], step: int | None = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         metrics_without_epoch = metrics.copy()
@@ -352,7 +354,7 @@ class CometLogger(Logger):
         self.reset_experiment()
 
     @property
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """Gets the save directory.
 
         Returns:
@@ -408,7 +410,7 @@ class CometLogger(Logger):
 
         return self._future_experiment_key
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
 
         # Save the experiment id in case an experiment object already exists,
@@ -422,6 +424,6 @@ class CometLogger(Logger):
         state["_experiment"] = None
         return state
 
-    def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
+    def log_graph(self, model: Module, input_array: Tensor | None = None) -> None:
         if self._experiment is not None:
             self._experiment.set_model_graph(model)

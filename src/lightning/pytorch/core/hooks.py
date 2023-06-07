@@ -13,7 +13,9 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -63,7 +65,7 @@ class ModelHooks:
     def on_predict_end(self) -> None:
         """Called at the end of predicting."""
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int) -> Optional[int]:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> int | None:
         """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
@@ -92,7 +94,7 @@ class ModelHooks:
         """
 
     def on_validation_batch_end(
-        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int = 0
+        self, outputs: STEP_OUTPUT | None, batch: Any, batch_idx: int, dataloader_idx: int = 0
     ) -> None:
         """Called in the validation loop after the batch.
 
@@ -113,7 +115,7 @@ class ModelHooks:
         """
 
     def on_test_batch_end(
-        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int = 0
+        self, outputs: STEP_OUTPUT | None, batch: Any, batch_idx: int, dataloader_idx: int = 0
     ) -> None:
         """Called in the test loop after the batch.
 
@@ -133,7 +135,7 @@ class ModelHooks:
             dataloader_idx: the index of the dataloader
         """
 
-    def on_predict_batch_end(self, outputs: Optional[Any], batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+    def on_predict_batch_end(self, outputs: Any | None, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the predict loop after the batch.
 
         Args:
@@ -624,7 +626,7 @@ class DataHooks:
 class CheckpointHooks:
     """Hooks to be used with Checkpointing."""
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         r"""Called by Lightning to restore your model. If you saved something with :meth:`on_save_checkpoint` this
         is your chance to restore this.
 
@@ -642,7 +644,7 @@ class CheckpointHooks:
             There is no need for you to restore anything regarding training.
         """
 
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_save_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         r"""Called by Lightning when saving a checkpoint to give you a chance to store anything else you might want
         to save.
 

@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
+from __future__ import annotations
+
 import inspect
-from typing import Any, cast, Dict, IO, Iterable, Optional, Union
+from typing import Any, cast, IO, Iterable
 
 from lightning_utilities import apply_to_collection
 from torch.utils.data import DataLoader, Dataset, IterableDataset
@@ -64,7 +66,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
                 ...
     """
 
-    name: Optional[str] = None
+    name: str | None = None
     CHECKPOINT_HYPER_PARAMS_KEY = "datamodule_hyper_parameters"
     CHECKPOINT_HYPER_PARAMS_NAME = "datamodule_hparams_name"
     CHECKPOINT_HYPER_PARAMS_TYPE = "datamodule_hparams_type"
@@ -72,19 +74,19 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     def __init__(self) -> None:
         super().__init__()
         # Pointer to the trainer object
-        self.trainer: Optional["pl.Trainer"] = None
+        self.trainer: pl.Trainer | None = None
 
     @classmethod
     def from_datasets(
         cls,
-        train_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
-        val_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
-        test_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
-        predict_dataset: Optional[Union[Dataset, Iterable[Dataset]]] = None,
+        train_dataset: Dataset | Iterable[Dataset] | None = None,
+        val_dataset: Dataset | Iterable[Dataset] | None = None,
+        test_dataset: Dataset | Iterable[Dataset] | None = None,
+        predict_dataset: Dataset | Iterable[Dataset] | None = None,
         batch_size: int = 1,
         num_workers: int = 0,
         **datamodule_kwargs: Any,
-    ) -> "LightningDataModule":
+    ) -> LightningDataModule:
         r"""Create an instance from torch.utils.data.Dataset.
 
         Args:
@@ -137,7 +139,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             datamodule.predict_dataloader = predict_dataloader  # type: ignore[method-assign]
         return datamodule
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """Called when saving a checkpoint, implement to generate and save datamodule state.
 
         Returns:
@@ -145,7 +147,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         """
         return {}
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Called when loading a checkpoint, implement to reload datamodule state given datamodule state_dict.
 
         Args:
@@ -156,8 +158,8 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     @classmethod
     def load_from_checkpoint(
         cls,
-        checkpoint_path: Union[_PATH, IO],
-        hparams_file: Optional[_PATH] = None,
+        checkpoint_path: _PATH | IO,
+        hparams_file: _PATH | None = None,
         **kwargs: Any,
     ) -> Self:
         r"""

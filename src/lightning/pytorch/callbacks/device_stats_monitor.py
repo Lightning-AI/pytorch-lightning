@@ -18,7 +18,9 @@ Device Stats Monitor
 Monitors and logs device stats during training.
 
 """
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from typing import Any
 
 import lightning.pytorch as pl
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
@@ -52,13 +54,13 @@ class DeviceStatsMonitor(Callback):
         trainer = Trainer(callbacks=[device_stats])
     """
 
-    def __init__(self, cpu_stats: Optional[bool] = None) -> None:
+    def __init__(self, cpu_stats: bool | None = None) -> None:
         self._cpu_stats = cpu_stats
 
     def setup(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         stage: str,
     ) -> None:
         if stage != "fit":
@@ -74,7 +76,7 @@ class DeviceStatsMonitor(Callback):
                 f"`DeviceStatsMonitor` cannot log CPU stats as `psutil` is not installed. {str(_PSUTIL_AVAILABLE)} "
             )
 
-    def _get_and_log_device_stats(self, trainer: "pl.Trainer", key: str) -> None:
+    def _get_and_log_device_stats(self, trainer: pl.Trainer, key: str) -> None:
         if not trainer._logger_connector.should_update_logs:
             return
 
@@ -97,19 +99,19 @@ class DeviceStatsMonitor(Callback):
             logger.log_metrics(prefixed_device_stats, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     def on_train_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
+        self, trainer: pl.Trainer, pl_module: pl.LightningModule, batch: Any, batch_idx: int
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_train_batch_start")
 
     def on_train_batch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
+        self, trainer: pl.Trainer, pl_module: pl.LightningModule, outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_train_batch_end")
 
     def on_validation_batch_start(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -118,9 +120,9 @@ class DeviceStatsMonitor(Callback):
 
     def on_validation_batch_end(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
+        outputs: STEP_OUTPUT | None,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -129,8 +131,8 @@ class DeviceStatsMonitor(Callback):
 
     def on_test_batch_start(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -139,9 +141,9 @@ class DeviceStatsMonitor(Callback):
 
     def on_test_batch_end(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
+        outputs: STEP_OUTPUT | None,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -149,5 +151,5 @@ class DeviceStatsMonitor(Callback):
         self._get_and_log_device_stats(trainer, "on_test_batch_end")
 
 
-def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
+def _prefix_metric_keys(metrics_dict: dict[str, float], prefix: str, separator: str) -> dict[str, float]:
     return {prefix + separator + k: v for k, v in metrics_dict.items()}

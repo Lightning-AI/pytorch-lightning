@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
 import os
 import random
 import time
 import urllib
-from typing import Any, Callable, Optional, Sized, Tuple, Union
+from typing import Any, Callable, Sized
 from urllib.error import HTTPError
 from warnings import warn
 
@@ -65,7 +67,7 @@ class _MNIST(Dataset):
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
         self.data, self.targets = self._try_load(os.path.join(self.cached_folder_path, data_file))
 
-    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
+    def __getitem__(self, idx: int) -> tuple[Tensor, int]:
         img = self.data[idx].float().unsqueeze(0)
         target = int(self.targets[idx])
 
@@ -101,7 +103,7 @@ class _MNIST(Dataset):
             urllib.request.urlretrieve(url, fpath)  # noqa: S310
 
     @staticmethod
-    def _try_load(path_data: str, trials: int = 30, delta: float = 1.0) -> Tuple[Tensor, Tensor]:
+    def _try_load(path_data: str, trials: int = 30, delta: float = 1.0) -> tuple[Tensor, Tensor]:
         """Resolving loading from the same time from multiple concurrent processes."""
         res, exception = None, None
         assert trials, "at least some trial has to be set"
@@ -122,7 +124,7 @@ class _MNIST(Dataset):
         return res
 
     @staticmethod
-    def normalize_tensor(tensor: Tensor, mean: Union[int, float] = 0.0, std: Union[int, float] = 1.0) -> Tensor:
+    def normalize_tensor(tensor: Tensor, mean: int | float = 0.0, std: int | float = 1.0) -> Tensor:
         mean = torch.as_tensor(mean, dtype=tensor.dtype, device=tensor.device)
         std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
         return tensor.sub(mean).div(std)
@@ -240,7 +242,7 @@ class MNISTDataModule(LightningDataModule):
         )
 
     @property
-    def default_transforms(self) -> Optional[Callable]:
+    def default_transforms(self) -> Callable | None:
         if not _TORCHVISION_AVAILABLE:
             return None
         if self.normalize:

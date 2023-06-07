@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import inspect
 from contextlib import contextmanager
-from typing import Any, Callable, ContextManager, Generator, Optional, Tuple, Type
+from typing import Any, Callable, ContextManager, Generator
 
 import torch
 import torch.distributed as dist
@@ -35,7 +37,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
-def check_finite_loss(loss: Optional[Tensor]) -> None:
+def check_finite_loss(loss: Tensor | None) -> None:
     """Checks for finite loss value.
 
     Args:
@@ -46,12 +48,12 @@ def check_finite_loss(loss: Optional[Tensor]) -> None:
 
 
 def _parse_loop_limits(
-    min_steps: Optional[int],
+    min_steps: int | None,
     max_steps: int,
-    min_epochs: Optional[int],
-    max_epochs: Optional[int],
-    trainer: "pl.Trainer",
-) -> Tuple[int, int]:
+    min_epochs: int | None,
+    max_epochs: int | None,
+    trainer: pl.Trainer,
+) -> tuple[int, int]:
     """This utility computes the default values for the minimum and maximum number of steps and epochs given the
     values the user has selected.
 
@@ -127,7 +129,7 @@ def _reset_progress(loop: _Loop) -> None:
             _reset_progress(v)
 
 
-def _select_data_fetcher(trainer: "pl.Trainer") -> _DataFetcher:
+def _select_data_fetcher(trainer: pl.Trainer) -> _DataFetcher:
     lightning_module = trainer.lightning_module
     if trainer.testing:
         step_fx_name = "test_step"
@@ -155,7 +157,7 @@ def _no_grad_context(loop_run: Callable) -> Callable:
             raise TypeError(f"`{type(self).__name__}` needs to be a Loop.")
         if not hasattr(self, "inference_mode"):
             raise TypeError(f"`{type(self).__name__}.inference_mode` needs to be defined")
-        context_manager: Type[ContextManager]
+        context_manager: type[ContextManager]
         if dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo":  # noqa: SIM114
             # gloo backend does not work properly.
             # https://github.com/Lightning-AI/lightning/pull/12715/files#r854569110
@@ -180,7 +182,7 @@ def _no_grad_context(loop_run: Callable) -> Callable:
 
 
 def _verify_dataloader_idx_requirement(
-    hooks: Tuple[str, ...], is_expected: bool, stage: RunningStage, pl_module: "pl.LightningModule"
+    hooks: tuple[str, ...], is_expected: bool, stage: RunningStage, pl_module: pl.LightningModule
 ) -> None:
     for hook in hooks:
         fx = getattr(pl_module, hook)

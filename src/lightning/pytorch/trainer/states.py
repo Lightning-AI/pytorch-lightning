@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Optional
 
 from lightning.pytorch.utilities import LightningEnum
 
@@ -66,7 +67,7 @@ class RunningStage(LightningEnum):
         return self in (self.VALIDATING, self.TESTING, self.SANITY_CHECKING)
 
     @property
-    def dataloader_prefix(self) -> Optional[str]:
+    def dataloader_prefix(self) -> str | None:
         if self in (self.VALIDATING, self.SANITY_CHECKING):
             return "val"
         return self.value
@@ -77,8 +78,8 @@ class TrainerState:
     """Dataclass to encapsulate the current :class:`~lightning.pytorch.trainer.trainer.Trainer` state."""
 
     status: TrainerStatus = TrainerStatus.INITIALIZING
-    fn: Optional[TrainerFn] = None
-    stage: Optional[RunningStage] = None
+    fn: TrainerFn | None = None
+    stage: RunningStage | None = None
 
     @property
     def finished(self) -> bool:

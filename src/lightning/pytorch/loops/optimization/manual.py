@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from collections import OrderedDict
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from torch import Tensor
 
@@ -38,10 +40,10 @@ class ManualResult(OutputResult):
         extra: Anything returned by the ``training_step``.
     """
 
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ManualResult":
+    def from_training_step_output(cls, training_step_output: STEP_OUTPUT | None) -> ManualResult:
         extra = {}
         if isinstance(training_step_output, dict):
             extra = training_step_output.copy()
@@ -58,7 +60,7 @@ class ManualResult(OutputResult):
 
         return cls(extra=extra)
 
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> dict[str, Any]:
         return self.extra
 
 
@@ -76,7 +78,7 @@ class _ManualOptimization(_Loop):
 
     output_result_cls = ManualResult
 
-    def __init__(self, trainer: "pl.Trainer") -> None:
+    def __init__(self, trainer: pl.Trainer) -> None:
         super().__init__(trainer)
         # since manual optimization does not track lr scheduler or optimizer frequencies, we use a simpler progress than
         # `_OptimizationProgress`

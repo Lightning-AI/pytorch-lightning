@@ -11,19 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Mapping, Optional, Union
+from __future__ import annotations
+
+from typing import Mapping
 
 from lightning_utilities.core.imports import module_available
 from torch import Tensor
 from torch.nn import Module, Parameter
 
 
-def _is_deferred(module: Optional[Module]) -> bool:
+def _is_deferred(module: Module | None) -> bool:
     if module is None or not module_available("torchdistx.fake"):
         return False
     from torchdistx.fake import is_fake
 
-    def any_fake(tensors: Mapping[str, Optional[Union[Tensor, Parameter]]]) -> bool:
+    def any_fake(tensors: Mapping[str, Tensor | Parameter | None]) -> bool:
         return any(is_fake(t) for t in tensors.values() if t is not None)
 
     is_deferred = any(_is_deferred(m) for m in module.children())

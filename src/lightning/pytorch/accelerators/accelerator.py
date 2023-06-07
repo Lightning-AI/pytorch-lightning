@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from abc import ABC
-from typing import Any, Dict
+from typing import Any
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.accelerator import Accelerator as _Accelerator
@@ -25,14 +27,14 @@ class Accelerator(_Accelerator, ABC):
     .. warning::  Writing your own accelerator is an :ref:`experimental <versioning:Experimental API>` feature.
     """
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: pl.Trainer) -> None:
         """Setup plugins for the trainer fit and creates optimizers.
 
         Args:
             trainer: the trainer instance
         """
 
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
         """Get stats for a given device.
 
         Args:

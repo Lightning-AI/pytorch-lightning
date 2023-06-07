@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -46,11 +48,11 @@ warning_cache = WarningCache()
 
 @dataclass
 class _Sync:
-    fn: Optional[Callable] = None
+    fn: Callable | None = None
     _should: bool = False
     rank_zero_only: bool = False
-    _op: Optional[str] = None
-    _group: Optional[Any] = None
+    _op: str | None = None
+    _group: Any | None = None
 
     def __post_init__(self) -> None:
         self._generate_sync_fn()
@@ -66,21 +68,21 @@ class _Sync:
         self._generate_sync_fn()
 
     @property
-    def op(self) -> Optional[str]:
+    def op(self) -> str | None:
         return self._op
 
     @op.setter
-    def op(self, op: Optional[str]) -> None:
+    def op(self, op: str | None) -> None:
         self._op = op
         # `self._fn` needs to be re-generated.
         self._generate_sync_fn()
 
     @property
-    def group(self) -> Optional[Any]:
+    def group(self) -> Any | None:
         return self._group
 
     @group.setter
-    def group(self, group: Optional[Any]) -> None:
+    def group(self, group: Any | None) -> None:
         self._group = group
         # `self._fn` needs to be re-generated.
         self._generate_sync_fn()
@@ -113,9 +115,9 @@ class _Metadata:
     reduce_fx: Callable = "mean" if _TORCH_EQUAL_2_0 else torch.mean  # type: ignore[assignment]
     enable_graph: bool = False
     add_dataloader_idx: bool = True
-    dataloader_idx: Optional[int] = None
-    metric_attribute: Optional[str] = None
-    _sync: Optional[_Sync] = None
+    dataloader_idx: int | None = None
+    metric_attribute: str | None = None
+    _sync: _Sync | None = None
 
     def __post_init__(self) -> None:
         if not self.on_step and not self.on_epoch:
@@ -200,7 +202,7 @@ class _ResultMetric(Metric):
                 self.cumulated_batch_size: Tensor
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
         # this is defined here only because upstream is missing the type annotation
-        self._forward_cache: Optional[Any] = None
+        self._forward_cache: Any | None = None
 
     def update(self, value: _VALUE, batch_size: int) -> None:
         if self.is_tensor:
@@ -262,7 +264,7 @@ class _ResultMetric(Metric):
     def _wrap_compute(self, compute: Any) -> Any:
         # Override to avoid syncing - we handle it ourselves.
         @wraps(compute)
-        def wrapped_func(*args: Any, **kwargs: Any) -> Optional[Any]:
+        def wrapped_func(*args: Any, **kwargs: Any) -> Any | None:
             if not self._update_called:
                 rank_zero_warn(
                     f"The ``compute`` method of metric {self.__class__.__name__}"
@@ -288,7 +290,7 @@ class _ResultMetric(Metric):
             state += f", cumulated_batch_size={self.cumulated_batch_size}"
         return f"{self.__class__.__name__}({state})"
 
-    def to(self, *args: Any, **kwargs: Any) -> "_ResultMetric":
+    def to(self, *args: Any, **kwargs: Any) -> _ResultMetric:
         d = self.__dict__
         if _TORCH_GREATER_EQUAL_2_0:  # https://github.com/pytorch/pytorch/issues/96198
             d = dict(d)
@@ -316,15 +318,15 @@ class _ResultCollection(dict):
     def __init__(self, training: bool) -> None:
         super().__init__()
         self.training = training
-        self.batch: Optional[Any] = None
-        self.batch_size: Optional[int] = None
-        self.dataloader_idx: Optional[int] = None
+        self.batch: Any | None = None
+        self.batch_size: int | None = None
+        self.dataloader_idx: int | None = None
 
     @property
-    def result_metrics(self) -> List[_ResultMetric]:
+    def result_metrics(self) -> list[_ResultMetric]:
         return list(self.values())
 
-    def _extract_batch_size(self, value: _ResultMetric, batch_size: Optional[int], meta: _Metadata) -> int:
+    def _extract_batch_size(self, value: _ResultMetric, batch_size: int | None, meta: _Metadata) -> int:
         # check if we have extracted the batch size already
         if batch_size is None:
             batch_size = self.batch_size
@@ -353,10 +355,10 @@ class _ResultCollection(dict):
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
-        sync_dist_group: Optional[Any] = None,
+        sync_dist_group: Any | None = None,
         add_dataloader_idx: bool = True,
-        batch_size: Optional[int] = None,
-        metric_attribute: Optional[str] = None,
+        batch_size: int | None = None,
+        metric_attribute: str | None = None,
         rank_zero_only: bool = False,
     ) -> None:
         """See :meth:`~lightning.pytorch.core.module.LightningModule.log`"""
@@ -414,7 +416,7 @@ class _ResultCollection(dict):
         result_metric.has_reset = False
 
     @staticmethod
-    def _get_cache(result_metric: _ResultMetric, on_step: bool) -> Optional[Tensor]:
+    def _get_cache(result_metric: _ResultMetric, on_step: bool) -> Tensor | None:
         cache = None
         if on_step and result_metric.meta.on_step:
             cache = result_metric._forward_cache
@@ -448,7 +450,7 @@ class _ResultCollection(dict):
         """This function is used to iterate over current valid metrics."""
         return ((k, v) for k, v in self.items() if not v.has_reset and self.dataloader_idx == v.meta.dataloader_idx)
 
-    def _forked_name(self, result_metric: _ResultMetric, on_step: bool) -> Tuple[str, str]:
+    def _forked_name(self, result_metric: _ResultMetric, on_step: bool) -> tuple[str, str]:
         name = result_metric.meta.name
         forked_name = result_metric.meta.forked_name(on_step)
         add_dataloader_idx = result_metric.meta.add_dataloader_idx
@@ -485,7 +487,7 @@ class _ResultCollection(dict):
 
         return metrics
 
-    def reset(self, metrics: Optional[bool] = None, fx: Optional[str] = None) -> None:
+    def reset(self, metrics: bool | None = None, fx: str | None = None) -> None:
         """Reset the result collection.
 
         Args:
@@ -500,12 +502,12 @@ class _ResultCollection(dict):
             if requested_type and same_fx:
                 item.reset()
 
-    def to(self, *args: Any, **kwargs: Any) -> "_ResultCollection":
+    def to(self, *args: Any, **kwargs: Any) -> _ResultCollection:
         """Move all data to the given device."""
         self.update(apply_to_collection(dict(self), (Tensor, Metric), move_data_to_device, *args, **kwargs))
         return self
 
-    def cpu(self) -> "_ResultCollection":
+    def cpu(self) -> _ResultCollection:
         """Move all data to CPU."""
         return self.to(device="cpu")
 

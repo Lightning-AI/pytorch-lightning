@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
 import os
 import shutil
 import subprocess
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import torch
 
@@ -44,7 +46,7 @@ class CUDAAccelerator(Accelerator):
         _check_cuda_matmul_precision(device)
         torch.cuda.set_device(device)
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: pl.Trainer) -> None:
         # TODO refactor input from trainer to local_rank @four4fish
         self.set_nvidia_flags(trainer.local_rank)
         _clear_cuda_memory()
@@ -57,7 +59,7 @@ class CUDAAccelerator(Accelerator):
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
         """Gets stats for the given GPU device.
 
         Args:
@@ -76,12 +78,12 @@ class CUDAAccelerator(Accelerator):
         _clear_cuda_memory()
 
     @staticmethod
-    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
+    def parse_devices(devices: int | str | list[int]) -> list[int] | None:
         """Accelerator device parsing logic."""
         return _parse_gpu_ids(devices, include_cuda=True)
 
     @staticmethod
-    def get_parallel_devices(devices: List[int]) -> List[torch.device]:
+    def get_parallel_devices(devices: list[int]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         return [torch.device("cuda", i) for i in devices]
 
@@ -103,7 +105,7 @@ class CUDAAccelerator(Accelerator):
         )
 
 
-def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cover
+def get_nvidia_gpu_stats(device: _DEVICE) -> dict[str, float]:  # pragma: no-cover
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
 
     Args:

@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import os
-from typing import Optional
 
 import torch
 
@@ -33,9 +34,9 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
     def __init__(
         self,
         device: _DEVICE,
-        accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        accelerator: pl.accelerators.Accelerator | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision_plugin: PrecisionPlugin | None = None,
         debug: bool = False,
     ):
         if not _XLA_AVAILABLE:
@@ -63,10 +64,10 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO | None) -> None:
         self._checkpoint_io = io
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: pl.Trainer) -> None:
         assert self.model, "self.model must be set before find_shared_parameters(self.model)"
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()

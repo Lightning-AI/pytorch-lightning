@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import logging
 import os
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Sequence
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.registry import _load_external_callbacks
@@ -41,17 +43,17 @@ _log = logging.getLogger(__name__)
 
 
 class _CallbackConnector:
-    def __init__(self, trainer: "pl.Trainer"):
+    def __init__(self, trainer: pl.Trainer):
         self.trainer = trainer
 
     def on_trainer_init(
         self,
-        callbacks: Optional[Union[List[Callback], Callback]],
+        callbacks: list[Callback] | Callback | None,
         enable_checkpointing: bool,
         enable_progress_bar: bool,
-        default_root_dir: Optional[str],
+        default_root_dir: str | None,
         enable_model_summary: bool,
-        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
+        max_time: str | timedelta | dict[str, int] | None = None,
     ) -> None:
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
@@ -139,7 +141,7 @@ class _CallbackConnector:
             progress_bar_callback = TQDMProgressBar()
             self.trainer.callbacks.append(progress_bar_callback)
 
-    def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
+    def _configure_timer_callback(self, max_time: str | timedelta | dict[str, int] | None = None) -> None:
         if max_time is None:
             return
         if any(isinstance(cb, Timer) for cb in self.trainer.callbacks):
@@ -186,7 +188,7 @@ class _CallbackConnector:
         trainer.callbacks = all_callbacks
 
     @staticmethod
-    def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
+    def _reorder_callbacks(callbacks: list[Callback]) -> list[Callback]:
         """Moves all the tuner specific callbacks at the beginning of the list and all the `ModelCheckpoint`
         callbacks to the end of the list. The sequential order within the group of checkpoint callbacks is
         preserved, as well as the order of all other callbacks.
@@ -198,9 +200,9 @@ class _CallbackConnector:
             A new list in which the first elements are tuner specific callbacks and last elements are ModelCheckpoints
             if there were any present in the input.
         """
-        tuner_callbacks: List[Callback] = []
-        other_callbacks: List[Callback] = []
-        checkpoint_callbacks: List[Callback] = []
+        tuner_callbacks: list[Callback] = []
+        other_callbacks: list[Callback] = []
+        checkpoint_callbacks: list[Callback] = []
 
         for cb in callbacks:
             if isinstance(cb, (BatchSizeFinder, LearningRateFinder)):
@@ -213,7 +215,7 @@ class _CallbackConnector:
         return tuner_callbacks + other_callbacks + checkpoint_callbacks
 
 
-def _validate_callbacks_list(callbacks: List[Callback]) -> None:
+def _validate_callbacks_list(callbacks: list[Callback]) -> None:
     stateful_callbacks = [cb for cb in callbacks if is_overridden("state_dict", instance=cb)]
     seen_callbacks = set()
     for callback in stateful_callbacks:

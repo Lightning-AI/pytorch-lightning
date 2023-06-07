@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Union
+from __future__ import annotations
+
+from typing import Any
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -35,7 +37,7 @@ class CPUAccelerator(Accelerator):
         if device.type != "cpu":
             raise MisconfigurationException(f"Device should be CPU, got {device} instead.")
 
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
         """Get CPU stats from ``psutil`` package."""
         return get_cpu_stats()
 
@@ -43,12 +45,12 @@ class CPUAccelerator(Accelerator):
         pass
 
     @staticmethod
-    def parse_devices(devices: Union[int, str, List[int]]) -> int:
+    def parse_devices(devices: int | str | list[int]) -> int:
         """Accelerator device parsing logic."""
         return _parse_cpu_cores(devices)
 
     @staticmethod
-    def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
+    def get_parallel_devices(devices: int | str | list[int]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
@@ -80,7 +82,7 @@ _CPU_SWAP_PERCENT = "cpu_swap_percent"
 _PSUTIL_AVAILABLE = RequirementCache("psutil")
 
 
-def get_cpu_stats() -> Dict[str, float]:
+def get_cpu_stats() -> dict[str, float]:
     if not _PSUTIL_AVAILABLE:
         raise ModuleNotFoundError(
             f"Fetching CPU device stats requires `psutil` to be installed. {str(_PSUTIL_AVAILABLE)}"

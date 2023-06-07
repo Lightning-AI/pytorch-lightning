@@ -3,10 +3,11 @@
 Code is adapted from the PyTorch examples at
 https://github.com/pytorch/examples/blob/main/word_language_model
 """
+from __future__ import annotations
+
 import math
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import requests
 import torch
@@ -38,7 +39,7 @@ class Transformer(nn.Module):
         self.vocab_size = vocab_size
         self.src_mask = None
 
-    def forward(self, input: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
+    def forward(self, input: Tensor, target: Tensor, mask: Tensor | None = None) -> Tensor:
         b, t = input.shape
 
         # we assume target is already shifted w.r.t. input
@@ -91,7 +92,7 @@ class WikiText2(Dataset):
     def __len__(self) -> int:
         return len(self.data) // self.block_size - 1
 
-    def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
+    def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
         start = index * self.block_size
         end = start + self.block_size
         input = self.data[start:end]
@@ -110,8 +111,8 @@ class WikiText2(Dataset):
 
 class Dictionary:
     def __init__(self) -> None:
-        self.word2idx: Dict[str, int] = {}
-        self.idx2word: List[str] = []
+        self.word2idx: dict[str, int] = {}
+        self.idx2word: list[str] = []
 
     def add_word(self, word: str) -> int:
         if word not in self.word2idx:
@@ -123,7 +124,7 @@ class Dictionary:
         return len(self.idx2word)
 
 
-def tokenize(path: Path) -> Tuple[Tensor, Dictionary]:
+def tokenize(path: Path) -> tuple[Tensor, Dictionary]:
     dictionary = Dictionary()
 
     assert os.path.exists(path)
@@ -136,10 +137,10 @@ def tokenize(path: Path) -> Tuple[Tensor, Dictionary]:
 
     # Tokenize file content
     with open(path, encoding="utf8") as f:
-        idss: List[Tensor] = []
+        idss: list[Tensor] = []
         for line in f:
             words = line.split() + ["<eos>"]
-            ids: List[int] = []
+            ids: list[int] = []
             for word in words:
                 ids.append(dictionary.word2idx[word])
             idss.append(torch.tensor(ids).type(torch.int64))

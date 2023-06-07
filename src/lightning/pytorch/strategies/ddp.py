@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
 from contextlib import nullcontext
 from datetime import timedelta
-from typing import Any, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Callable, Literal
 
 import torch
 import torch.distributed
@@ -68,17 +70,17 @@ class DDPStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
-        ddp_comm_state: Optional[object] = None,
-        ddp_comm_hook: Optional[Callable] = None,
-        ddp_comm_wrapper: Optional[Callable] = None,
-        model_averaging_period: Optional[int] = None,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
+        accelerator: pl.accelerators.Accelerator | None = None,
+        parallel_devices: list[torch.device] | None = None,
+        cluster_environment: ClusterEnvironment | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision_plugin: PrecisionPlugin | None = None,
+        ddp_comm_state: object | None = None,
+        ddp_comm_hook: Callable | None = None,
+        ddp_comm_wrapper: Callable | None = None,
+        model_averaging_period: int | None = None,
+        process_group_backend: str | None = None,
+        timeout: timedelta | None = default_pg_timeout,
         start_method: Literal["popen", "spawn", "fork", "forkserver"] = "popen",
         **kwargs: Any,
     ) -> None:
@@ -97,9 +99,9 @@ class DDPStrategy(ParallelStrategy):
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._model_averaging_period = model_averaging_period
-        self._model_averager: Optional[ModelAverager] = None
-        self._process_group_backend: Optional[str] = process_group_backend
-        self._timeout: Optional[timedelta] = timeout
+        self._model_averager: ModelAverager | None = None
+        self._process_group_backend: str | None = process_group_backend
+        self._timeout: timedelta | None = timeout
         self._start_method = start_method
 
     @property
@@ -129,11 +131,11 @@ class DDPStrategy(ParallelStrategy):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
+    def distributed_sampler_kwargs(self) -> dict[str, Any]:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
-    def process_group_backend(self) -> Optional[str]:
+    def process_group_backend(self) -> str | None:
         return self._process_group_backend
 
     def _configure_launcher(self) -> None:
@@ -147,7 +149,7 @@ class DDPStrategy(ParallelStrategy):
         self.setup_distributed()
         super().setup_environment()
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: pl.Trainer) -> None:
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
@@ -249,7 +251,7 @@ class DDPStrategy(ParallelStrategy):
         self,
         optimizer: Optimizer,
         closure: Callable[[], Any],
-        model: Optional[Union["pl.LightningModule", Module]] = None,
+        model: pl.LightningModule | Module | None = None,
         **kwargs: Any,
     ) -> Any:
         """Performs the actual optimizer step.
@@ -276,7 +278,7 @@ class DDPStrategy(ParallelStrategy):
         self.model = self._setup_model(self.model)
         self._register_ddp_hooks()
 
-    def determine_ddp_device_ids(self) -> Optional[List[int]]:
+    def determine_ddp_device_ids(self) -> list[int] | None:
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
@@ -311,9 +313,7 @@ class DDPStrategy(ParallelStrategy):
         assert self.model is not None
         self.model.to(self.root_device)
 
-    def reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> Tensor:
+    def reduce(self, tensor: Tensor, group: Any | None = None, reduce_op: ReduceOp | str | None = "mean") -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
@@ -404,12 +404,12 @@ class DDPStrategy(ParallelStrategy):
 
 
 class _DDPForwardRedirection(_ForwardRedirection):
-    def on_after_inner_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
+    def on_after_inner_forward(self, wrapper_module: Module, original_module: pl.LightningModule) -> None:
         # In manual_optimization, we need to prevent DDP reducer as
         # it is done manually in `LightningModule.manual_backward`
         if isinstance(wrapper_module, DistributedDataParallel) and not original_module.automatic_optimization:
             wrapper_module.require_backward_grad_sync = False
 
-    def on_after_outer_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
+    def on_after_outer_forward(self, wrapper_module: Module, original_module: pl.LightningModule) -> None:
         if isinstance(wrapper_module, DistributedDataParallel) and not original_module.automatic_optimization:
             wrapper_module.require_backward_grad_sync = True

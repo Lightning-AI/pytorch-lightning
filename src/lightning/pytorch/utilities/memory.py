@@ -13,6 +13,8 @@
 # limitations under the License.
 """Utilities related to memory."""
 
+from __future__ import annotations
+
 import gc
 from typing import Any
 

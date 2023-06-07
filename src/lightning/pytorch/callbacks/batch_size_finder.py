@@ -18,7 +18,7 @@ BatchSizeFinder
 Finds optimal batch size
 """
 
-from typing import Optional
+from __future__ import annotations
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
@@ -119,7 +119,7 @@ class BatchSizeFinder(Callback):
         if mode not in self.SUPPORTED_MODES:
             raise ValueError(f"`mode` should be either of {self.SUPPORTED_MODES}")
 
-        self.optimal_batch_size: Optional[int] = init_val
+        self.optimal_batch_size: int | None = init_val
         self._mode = mode
         self._steps_per_trial = steps_per_trial
         self._init_val = init_val
@@ -127,7 +127,7 @@ class BatchSizeFinder(Callback):
         self._batch_arg_name = batch_arg_name
         self._early_exit = False
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: pl.Trainer, pl_module: pl.LightningModule, stage: str | None = None) -> None:
         if trainer._accelerator_connector.is_distributed:
             raise MisconfigurationException("The Batch size finder is not supported with distributed strategies.")
         # TODO: check if this can be enabled (#4040)
@@ -167,7 +167,7 @@ class BatchSizeFinder(Callback):
                 " If this is not the intended behavior, please remove either one."
             )
 
-    def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def scale_batch_size(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         new_size = _scale_batch_size(
             trainer,
             self._mode,
@@ -181,17 +181,17 @@ class BatchSizeFinder(Callback):
         if self._early_exit:
             raise _TunerExitException()
 
-    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_fit_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self.scale_batch_size(trainer, pl_module)
 
-    def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_validation_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if trainer.sanity_checking or trainer.state.fn != "validate":
             return
 
         self.scale_batch_size(trainer, pl_module)
 
-    def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_test_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self.scale_batch_size(trainer, pl_module)
 
-    def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_predict_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self.scale_batch_size(trainer, pl_module)

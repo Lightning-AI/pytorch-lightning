@@ -15,8 +15,10 @@ r"""Early Stopping ^^^^^^^^^^^^^^
 
 Monitor a metric and stop training when it stops improving.
 """
+from __future__ import annotations
+
 import logging
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable
 
 import torch
 from torch import Tensor
@@ -94,9 +96,9 @@ class EarlyStopping(Callback):
         mode: str = "min",
         strict: bool = True,
         check_finite: bool = True,
-        stopping_threshold: Optional[float] = None,
-        divergence_threshold: Optional[float] = None,
-        check_on_train_epoch_end: Optional[bool] = None,
+        stopping_threshold: float | None = None,
+        divergence_threshold: float | None = None,
+        check_on_train_epoch_end: bool | None = None,
         log_rank_zero_only: bool = False,
     ):
         super().__init__()
@@ -125,13 +127,13 @@ class EarlyStopping(Callback):
     def state_key(self) -> str:
         return self._generate_state_key(monitor=self.monitor, mode=self.mode)
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
+    def setup(self, trainer: pl.Trainer, pl_module: pl.LightningModule, stage: str) -> None:
         if self._check_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
             # validation, then we run after validation instead of on train epoch end
             self._check_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
-    def _validate_condition_metric(self, logs: Dict[str, Tensor]) -> bool:
+    def _validate_condition_metric(self, logs: dict[str, Tensor]) -> bool:
         monitor_val = logs.get(self.monitor)
 
         error_msg = (
@@ -154,7 +156,7 @@ class EarlyStopping(Callback):
     def monitor_op(self) -> Callable:
         return self.mode_dict[self.mode]
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "wait_count": self.wait_count,
             "stopped_epoch": self.stopped_epoch,
@@ -162,28 +164,28 @@ class EarlyStopping(Callback):
             "patience": self.patience,
         }
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         self.wait_count = state_dict["wait_count"]
         self.stopped_epoch = state_dict["stopped_epoch"]
         self.best_score = state_dict["best_score"]
         self.patience = state_dict["patience"]
 
-    def _should_skip_check(self, trainer: "pl.Trainer") -> bool:
+    def _should_skip_check(self, trainer: pl.Trainer) -> bool:
         from lightning.pytorch.trainer.states import TrainerFn
 
         return trainer.state.fn != TrainerFn.FITTING or trainer.sanity_checking
 
-    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if not self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
         self._run_early_stopping_check(trainer)
 
-    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_validation_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
         self._run_early_stopping_check(trainer)
 
-    def _run_early_stopping_check(self, trainer: "pl.Trainer") -> None:
+    def _run_early_stopping_check(self, trainer: pl.Trainer) -> None:
         """Checks whether the early stopping condition is met and if so tells the trainer to stop the training."""
         logs = trainer.callback_metrics
 
@@ -203,7 +205,7 @@ class EarlyStopping(Callback):
         if reason and self.verbose:
             self._log_info(trainer, reason, self.log_rank_zero_only)
 
-    def _evaluate_stopping_criteria(self, current: Tensor) -> Tuple[bool, Optional[str]]:
+    def _evaluate_stopping_criteria(self, current: Tensor) -> tuple[bool, str | None]:
         should_stop = False
         reason = None
         if self.check_finite and not torch.isfinite(current):
@@ -254,7 +256,7 @@ class EarlyStopping(Callback):
         return msg
 
     @staticmethod
-    def _log_info(trainer: Optional["pl.Trainer"], message: str, log_rank_zero_only: bool) -> None:
+    def _log_info(trainer: pl.Trainer | None, message: str, log_rank_zero_only: bool) -> None:
         rank = _get_rank(
             strategy=(trainer.strategy if trainer is not None else None),  # type: ignore[arg-type]
         )

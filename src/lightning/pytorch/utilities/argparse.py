@@ -13,18 +13,20 @@
 # limitations under the License.
 """Utilities for Argument Parsing within Lightning Components."""
 
+from __future__ import annotations
+
 import inspect
 import os
 from argparse import Namespace
 from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
-from typing import Any, Callable, cast, Type, TypeVar
+from typing import Any, Callable, cast, TypeVar
 
 _T = TypeVar("_T", bound=Callable[..., Any])
 
 
-def _parse_env_variables(cls: Type, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+def _parse_env_variables(cls: type, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
     """Parse environment arguments if they are defined.
 
     Examples:

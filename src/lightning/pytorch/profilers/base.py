@@ -13,6 +13,8 @@
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
 
+from __future__ import annotations
+
 from lightning.pytorch.profilers.profiler import Profiler
 
 

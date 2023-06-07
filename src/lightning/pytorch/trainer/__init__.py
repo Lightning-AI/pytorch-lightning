@@ -13,6 +13,8 @@
 # limitations under the License.
 """"""
 
+from __future__ import annotations
+
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.pytorch.trainer.trainer import Trainer
 

@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import importlib
 import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, cast, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -43,7 +45,7 @@ if TYPE_CHECKING and _MATPLOTLIB_AVAILABLE:
 log = logging.getLogger(__name__)
 
 
-def _determine_lr_attr_name(model: "pl.LightningModule", attr_name: str = "") -> str:
+def _determine_lr_attr_name(model: pl.LightningModule, attr_name: str = "") -> str:
     if attr_name:
         if not lightning_hasattr(model, attr_name):
             raise AttributeError(
@@ -98,10 +100,10 @@ class _LRFinder:
         self.lr_max = lr_max
         self.num_training = num_training
 
-        self.results: Dict[str, Any] = {}
+        self.results: dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _exchange_scheduler(self, trainer: "pl.Trainer") -> None:
+    def _exchange_scheduler(self, trainer: pl.Trainer) -> None:
         # TODO: update docs here
         """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally specified
         optimizer together with a new scheduler that takes care of the learning rate search."""
@@ -130,7 +132,7 @@ class _LRFinder:
         trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step")]
         _validate_optimizers_attached(trainer.optimizers, trainer.lr_scheduler_configs)
 
-    def plot(self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None) -> Optional["plt.Figure"]:
+    def plot(self, suggest: bool = False, show: bool = False, ax: Axes | None = None) -> plt.Figure | None:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
@@ -171,7 +173,7 @@ class _LRFinder:
 
         return fig
 
-    def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> Optional[float]:
+    def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> float | None:
         """This will propose a suggestion for an initial learning rate based on the point with the steepest
         negative gradient.
 
@@ -205,16 +207,16 @@ class _LRFinder:
 
 
 def _lr_find(
-    trainer: "pl.Trainer",
-    model: "pl.LightningModule",
+    trainer: pl.Trainer,
+    model: pl.LightningModule,
     min_lr: float = 1e-8,
     max_lr: float = 1,
     num_training: int = 100,
     mode: str = "exponential",
-    early_stop_threshold: Optional[float] = 4.0,
+    early_stop_threshold: float | None = 4.0,
     update_attr: bool = False,
     attr_name: str = "",
-) -> Optional[_LRFinder]:
+) -> _LRFinder | None:
     """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
     picking a good starting learning rate.
 
@@ -302,7 +304,7 @@ def _lr_find(
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
+def __lr_finder_dump_params(trainer: pl.Trainer) -> dict[str, Any]:
     return {
         "optimizers": trainer.strategy.optimizers,
         "lr_scheduler_configs": trainer.strategy.lr_scheduler_configs,
@@ -314,7 +316,7 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     }
 
 
-def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: Optional[float]) -> None:
+def __lr_finder_reset_params(trainer: pl.Trainer, num_training: int, early_stop_threshold: float | None) -> None:
     from lightning.pytorch.loggers.logger import DummyLogger
 
     trainer.strategy.lr_scheduler_configs = []
@@ -327,7 +329,7 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     trainer.limit_val_batches = num_training
 
 
-def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def __lr_finder_restore_params(trainer: pl.Trainer, params: dict[str, Any]) -> None:
     trainer.strategy.optimizers = params["optimizers"]
     trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
     trainer.callbacks = params["callbacks"]
@@ -360,22 +362,22 @@ class _LRCallback(Callback):
     def __init__(
         self,
         num_training: int,
-        early_stop_threshold: Optional[float] = 4.0,
+        early_stop_threshold: float | None = 4.0,
         progress_bar_refresh_rate: int = 0,
         beta: float = 0.98,
     ):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
-        self.losses: List[float] = []
-        self.lrs: List[float] = []
+        self.losses: list[float] = []
+        self.lrs: list[float] = []
         self.avg_loss = 0.0
         self.best_loss = 0.0
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
     def on_train_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
+        self, trainer: pl.Trainer, pl_module: pl.LightningModule, batch: Any, batch_idx: int
     ) -> None:
         """Called before each training batch, logs the lr that will be used."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
@@ -387,7 +389,7 @@ class _LRCallback(Callback):
         self.lrs.append(trainer.lr_scheduler_configs[0].scheduler.lr[0])  # type: ignore[union-attr]
 
     def on_train_batch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
+        self, trainer: pl.Trainer, pl_module: pl.LightningModule, outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
         """Called when the training batch ends, logs the calculated loss."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
@@ -443,7 +445,7 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:
+    def get_lr(self) -> list[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -455,7 +457,7 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         return val
 
     @property
-    def lr(self) -> Union[float, List[float]]:
+    def lr(self) -> float | list[float]:
         return self._lr
 
 
@@ -478,7 +480,7 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:
+    def get_lr(self) -> list[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -490,11 +492,11 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         return val
 
     @property
-    def lr(self) -> Union[float, List[float]]:
+    def lr(self) -> float | list[float]:
         return self._lr
 
 
-def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def _try_loop_run(trainer: pl.Trainer, params: dict[str, Any]) -> None:
     loop = trainer.fit_loop
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False

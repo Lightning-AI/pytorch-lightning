@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import torch
 from lightning_utilities import WarningCache
@@ -44,21 +46,21 @@ from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
 class _PredictionLoop(_Loop):
     """Top-level loop where prediction starts."""
 
-    def __init__(self, trainer: "pl.Trainer", inference_mode: bool = True) -> None:
+    def __init__(self, trainer: pl.Trainer, inference_mode: bool = True) -> None:
         super().__init__(trainer)
         self.inference_mode = inference_mode
         # dataloaders x batches x samples. used by PredictionWriter
-        self.epoch_batch_indices: List[List[List[int]]] = []
-        self.current_batch_indices: List[int] = []  # used by PredictionWriter
+        self.epoch_batch_indices: list[list[list[int]]] = []
+        self.current_batch_indices: list[int] = []  # used by PredictionWriter
         self.batch_progress = _Progress()  # across dataloaders
-        self.max_batches: List[Union[int, float]] = []
+        self.max_batches: list[int | float] = []
 
         self._warning_cache = WarningCache()
         self._data_source = _DataLoaderSource(None, "predict_dataloader")
-        self._combined_loader: Optional[CombinedLoader] = None
-        self._data_fetcher: Optional[_DataFetcher] = None
+        self._combined_loader: CombinedLoader | None = None
+        self._data_fetcher: _DataFetcher | None = None
         self._results = None  # for `trainer._results` access
-        self._predictions: List[List[Any]] = []  # dataloaders x batches
+        self._predictions: list[list[Any]] = []  # dataloaders x batches
         self._return_predictions = False
 
     @property
@@ -67,7 +69,7 @@ class _PredictionLoop(_Loop):
         return self._return_predictions
 
     @return_predictions.setter
-    def return_predictions(self, return_predictions: Optional[bool] = None) -> None:
+    def return_predictions(self, return_predictions: bool | None = None) -> None:
         # Strategies that spawn or fork don't support returning predictions
         return_supported = not isinstance(self.trainer.strategy.launcher, _MultiProcessingLauncher)
         if return_predictions and not return_supported:
@@ -79,7 +81,7 @@ class _PredictionLoop(_Loop):
         self._return_predictions = return_supported if return_predictions is None else return_predictions
 
     @property
-    def predictions(self) -> List[Any]:
+    def predictions(self) -> list[Any]:
         """The cached predictions."""
         if self._predictions == []:
             return self._predictions
@@ -97,7 +99,7 @@ class _PredictionLoop(_Loop):
         return sum(self.max_batches) == 0
 
     @_no_grad_context
-    def run(self) -> Optional[_PREDICT_OUTPUT]:
+    def run(self) -> _PREDICT_OUTPUT | None:
         self.setup_data()
         if self.skip:
             return None
@@ -190,7 +192,7 @@ class _PredictionLoop(_Loop):
         self._on_predict_start()
         self._on_predict_epoch_start()
 
-    def on_run_end(self) -> Optional[_PREDICT_OUTPUT]:
+    def on_run_end(self) -> _PREDICT_OUTPUT | None:
         """Calls ``on_predict_epoch_end`` and ``on_predict_end`` hooks and returns results from all dataloaders."""
         results = self._on_predict_epoch_end()
         self._on_predict_end()
@@ -240,7 +242,7 @@ class _PredictionLoop(_Loop):
         if self._return_predictions or any_on_epoch:
             self._predictions[dataloader_idx].append(move_data_to_device(predictions, torch.device("cpu")))
 
-    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> Dict[str, Any]:
+    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int | None) -> dict[str, Any]:
         """Assembles the keyword arguments for the ``predict_step``
 
         Args:
@@ -256,7 +258,7 @@ class _PredictionLoop(_Loop):
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
 
-    def _get_batch_indices(self, dataloader: object) -> List[List[int]]:  # batches x samples
+    def _get_batch_indices(self, dataloader: object) -> list[list[int]]:  # batches x samples
         """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
         :class:`~lightning.pytorch.overrides.distributed._IndexBatchSamplerWrapper`."""
         batch_sampler = getattr(dataloader, "batch_sampler", None)
@@ -308,7 +310,7 @@ class _PredictionLoop(_Loop):
         call._call_callback_hooks(trainer, "on_predict_epoch_start")
         call._call_lightning_module_hook(trainer, "on_predict_epoch_start")
 
-    def _on_predict_epoch_end(self) -> Optional[_PREDICT_OUTPUT]:
+    def _on_predict_epoch_end(self) -> _PREDICT_OUTPUT | None:
         """Calls ``on_predict_epoch_end`` hook.
 
         Returns:

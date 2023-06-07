@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
+from __future__ import annotations
+
 import logging
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Optional, TextIO, Union
+from typing import Any, Callable, Generator, TextIO
 
 from lightning.fabric.utilities.cloud_io import get_filesystem
 
@@ -29,16 +31,16 @@ class Profiler(ABC):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
-        filename: Optional[str] = None,
+        dirpath: str | Path | None = None,
+        filename: str | None = None,
     ) -> None:
         self.dirpath = dirpath
         self.filename = filename
 
-        self._output_file: Optional[TextIO] = None
-        self._write_stream: Optional[Callable] = None
-        self._local_rank: Optional[int] = None
-        self._stage: Optional[str] = None
+        self._output_file: TextIO | None = None
+        self._write_stream: Callable | None = None
+        self._local_rank: int | None = None
+        self._stage: str | None = None
 
     @abstractmethod
     def start(self, action_name: str) -> None:
@@ -73,9 +75,7 @@ class Profiler(ABC):
         if self._local_rank in (None, 0):
             log.info(*args, **kwargs)
 
-    def _prepare_filename(
-        self, action_name: Optional[str] = None, extension: str = ".txt", split_token: str = "-"
-    ) -> str:
+    def _prepare_filename(self, action_name: str | None = None, extension: str = ".txt", split_token: str = "-") -> str:
         args = []
         if self._stage is not None:
             args.append(self._stage)
@@ -113,7 +113,7 @@ class Profiler(ABC):
             self._output_file.flush()
         self.teardown(stage=self._stage)
 
-    def _stats_to_str(self, stats: Dict[str, str]) -> str:
+    def _stats_to_str(self, stats: dict[str, str]) -> str:
         stage = f"{self._stage.upper()} " if self._stage is not None else ""
         output = [stage + "Profiler Report"]
         for action, value in stats.items():
@@ -124,13 +124,13 @@ class Profiler(ABC):
             output.append(value)
         return os.linesep.join(output)
 
-    def setup(self, stage: str, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
+    def setup(self, stage: str, local_rank: int | None = None, log_dir: str | None = None) -> None:
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
         self._local_rank = local_rank
         self.dirpath = self.dirpath or log_dir
 
-    def teardown(self, stage: Optional[str]) -> None:
+    def teardown(self, stage: str | None) -> None:
         """Execute arbitrary post-profiling tear-down steps.
 
         Closes the currently open file and stream.

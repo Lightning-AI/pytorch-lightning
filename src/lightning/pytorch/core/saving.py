@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import ast
 import contextlib
 import csv
@@ -22,7 +24,7 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, IO, Optional, Type, Union
+from typing import Any, Callable, IO
 from warnings import warn
 
 import yaml
@@ -50,13 +52,13 @@ CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
 
 def _load_from_checkpoint(
-    cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
-    checkpoint_path: Union[_PATH, IO],
+    cls: type[pl.LightningModule] | type[pl.LightningDataModule],
+    checkpoint_path: _PATH | IO,
     map_location: _MAP_LOCATION_TYPE = None,
-    hparams_file: Optional[_PATH] = None,
-    strict: Optional[bool] = None,
+    hparams_file: _PATH | None = None,
+    strict: bool | None = None,
     **kwargs: Any,
-) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
+) -> pl.LightningModule | pl.LightningDataModule:
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
@@ -98,11 +100,11 @@ def _load_from_checkpoint(
 
 
 def _load_state(
-    cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
-    checkpoint: Dict[str, Any],
-    strict: Optional[bool] = None,
+    cls: type[pl.LightningModule] | type[pl.LightningDataModule],
+    checkpoint: dict[str, Any],
+    strict: bool | None = None,
     **cls_kwargs_new: Any,
-) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
+) -> pl.LightningModule | pl.LightningDataModule:
     cls_spec = inspect.getfullargspec(cls.__init__)
     cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
 
@@ -166,9 +168,7 @@ def _load_state(
     return obj
 
 
-def _convert_loaded_hparams(
-    model_args: Dict[str, Any], hparams_type: Optional[Union[Callable, str]] = None
-) -> Dict[str, Any]:
+def _convert_loaded_hparams(model_args: dict[str, Any], hparams_type: Callable | str | None = None) -> dict[str, Any]:
     """Convert hparams according given type in callable or string (past) format."""
     # if not hparams type define
     if not hparams_type:
@@ -209,7 +209,7 @@ def update_hparams(hparams: dict, updates: dict) -> None:
             hparams.update({k: v})
 
 
-def load_hparams_from_tags_csv(tags_csv: _PATH) -> Dict[str, Any]:
+def load_hparams_from_tags_csv(tags_csv: _PATH) -> dict[str, Any]:
     """Load hparams from a file.
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
@@ -230,7 +230,7 @@ def load_hparams_from_tags_csv(tags_csv: _PATH) -> Dict[str, Any]:
         return {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
 
 
-def save_hparams_to_tags_csv(tags_csv: _PATH, hparams: Union[dict, Namespace]) -> None:
+def save_hparams_to_tags_csv(tags_csv: _PATH, hparams: dict | Namespace) -> None:
     fs = get_filesystem(tags_csv)
     if not fs.isdir(os.path.dirname(tags_csv)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(tags_csv)}.")
@@ -246,7 +246,7 @@ def save_hparams_to_tags_csv(tags_csv: _PATH, hparams: Union[dict, Namespace]) -
             writer.writerow({"key": k, "value": v})
 
 
-def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Dict[str, Any]:
+def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> dict[str, Any]:
     """Load hparams from a file.
 
         Args:
@@ -276,7 +276,7 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Di
     return hparams
 
 
-def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], use_omegaconf: bool = True) -> None:
+def save_hparams_to_yaml(config_yaml: _PATH, hparams: dict | Namespace, use_omegaconf: bool = True) -> None:
     """
     Args:
         config_yaml: path to new YAML file
@@ -327,7 +327,7 @@ def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], us
         yaml.dump(hparams_allowed, fp)
 
 
-def convert(val: str) -> Union[int, float, bool, str]:
+def convert(val: str) -> int | float | bool | str:
     try:
         return ast.literal_eval(val)
     except (ValueError, SyntaxError) as err:

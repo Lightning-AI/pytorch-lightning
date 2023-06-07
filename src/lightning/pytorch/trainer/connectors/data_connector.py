@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import multiprocessing
 import os
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Optional, Tuple, Union
+from typing import Any, Iterable
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -44,15 +46,15 @@ warning_cache = WarningCache()
 
 
 class _DataConnector:
-    def __init__(self, trainer: "pl.Trainer"):
+    def __init__(self, trainer: pl.Trainer):
         self.trainer = trainer
-        self._datahook_selector: Optional[_DataHookSelector] = None
+        self._datahook_selector: _DataHookSelector | None = None
 
     def on_trainer_init(
         self,
-        val_check_interval: Optional[Union[int, float]],
+        val_check_interval: int | float | None,
         reload_dataloaders_every_n_epochs: int,
-        check_val_every_n_epoch: Optional[int],
+        check_val_every_n_epoch: int | None,
     ) -> None:
         self.trainer.datamodule = None
 
@@ -101,12 +103,12 @@ class _DataConnector:
 
     def attach_data(
         self,
-        model: "pl.LightningModule",
-        train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        test_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional["pl.LightningDataModule"] = None,
+        model: pl.LightningModule,
+        train_dataloaders: TRAIN_DATALOADERS | None = None,
+        val_dataloaders: EVAL_DATALOADERS | None = None,
+        test_dataloaders: EVAL_DATALOADERS | None = None,
+        predict_dataloaders: EVAL_DATALOADERS | None = None,
+        datamodule: pl.LightningDataModule | None = None,
     ) -> None:
         # set up the passed in dataloaders (if needed)
         self.attach_dataloaders(
@@ -123,11 +125,11 @@ class _DataConnector:
 
     def attach_dataloaders(
         self,
-        model: "pl.LightningModule",
-        train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        test_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        model: pl.LightningModule,
+        train_dataloaders: TRAIN_DATALOADERS | None = None,
+        val_dataloaders: EVAL_DATALOADERS | None = None,
+        test_dataloaders: EVAL_DATALOADERS | None = None,
+        predict_dataloaders: EVAL_DATALOADERS | None = None,
     ) -> None:
         trainer = self.trainer
 
@@ -145,9 +147,7 @@ class _DataConnector:
         trainer.test_loop._data_source.instance = test_dataloaders if test_dataloaders is not None else model
         trainer.predict_loop._data_source.instance = predict_dataloaders if predict_dataloaders is not None else model
 
-    def attach_datamodule(
-        self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
-    ) -> None:
+    def attach_datamodule(self, model: pl.LightningModule, datamodule: pl.LightningDataModule | None = None) -> None:
         # If we have a datamodule, attach necessary hooks + dataloaders
         self._datahook_selector = _DataHookSelector(model, datamodule)
 
@@ -208,8 +208,8 @@ class _DataConnector:
         return dataloader
 
     def _resolve_sampler(
-        self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
-    ) -> Union[Sampler, Iterable]:
+        self, dataloader: DataLoader, shuffle: bool, mode: RunningStage | None = None
+    ) -> Sampler | Iterable:
         if self._requires_distributed_sampler(dataloader):
             distributed_sampler_kwargs = self.trainer.distributed_sampler_kwargs
             assert distributed_sampler_kwargs is not None
@@ -244,8 +244,8 @@ class _DataConnector:
 def _get_distributed_sampler(
     dataloader: DataLoader,
     shuffle: bool,
-    overfit_batches: Union[int, float],
-    mode: Optional[RunningStage] = None,
+    overfit_batches: int | float,
+    mode: RunningStage | None = None,
     **kwargs: Any,
 ) -> DistributedSampler:
     """This function is used to created the distributed sampler injected within the user DataLoader."""
@@ -291,10 +291,10 @@ class _DataLoaderSource:
             that returns the desired dataloader(s).
     """
 
-    instance: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
+    instance: TRAIN_DATALOADERS | EVAL_DATALOADERS | pl.LightningModule | pl.LightningDataModule | None
     name: str
 
-    def dataloader(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
+    def dataloader(self) -> TRAIN_DATALOADERS | EVAL_DATALOADERS:
         """Returns the dataloader from the source.
 
         If the source is a module, the method with the corresponding :attr:`name` gets called.
@@ -322,7 +322,7 @@ class _DataLoaderSource:
         return isinstance(self.instance, (pl.LightningModule, pl.LightningDataModule))
 
 
-def _request_dataloader(data_source: _DataLoaderSource) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
+def _request_dataloader(data_source: _DataLoaderSource) -> TRAIN_DATALOADERS | EVAL_DATALOADERS:
     """Requests a dataloader by calling dataloader hooks corresponding to the given stage.
 
     Returns:
@@ -350,13 +350,13 @@ class _DataHookSelector:
         datamodule: A ``LightningDataModule``
     """
 
-    model: "pl.LightningModule"
-    datamodule: Optional["pl.LightningDataModule"]
-    _valid_hooks: Tuple[str, ...] = field(
+    model: pl.LightningModule
+    datamodule: pl.LightningDataModule | None
+    _valid_hooks: tuple[str, ...] = field(
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     )
 
-    def get_instance(self, hook_name: str) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
+    def get_instance(self, hook_name: str) -> pl.LightningModule | pl.LightningDataModule:
         if hook_name not in self._valid_hooks:
             raise ValueError(
                 f"`{hook_name}` is not a shared hook within `LightningModule` and `LightningDataModule`."
@@ -444,9 +444,7 @@ def _worker_check(dataloader: object, using_spawn: bool, name: str) -> None:
         )
 
 
-def _parse_num_batches(
-    stage: RunningStage, length: Union[int, float], limit_batches: Union[int, float]
-) -> Union[int, float]:
+def _parse_num_batches(stage: RunningStage, length: int | float, limit_batches: int | float) -> int | float:
     if length == 0:
         return int(length)
 
@@ -473,9 +471,7 @@ def _parse_num_batches(
     return num_batches
 
 
-def _process_dataloader(
-    trainer: "pl.Trainer", trainer_fn: TrainerFn, stage: RunningStage, dataloader: object
-) -> object:
+def _process_dataloader(trainer: pl.Trainer, trainer_fn: TrainerFn, stage: RunningStage, dataloader: object) -> object:
     if stage != RunningStage.TRAINING:
         is_shuffled = _is_dataloader_shuffled(dataloader)
         # limit this warning only for samplers assigned automatically when shuffle is set

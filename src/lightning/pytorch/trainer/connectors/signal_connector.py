@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 import signal
@@ -5,7 +7,7 @@ import sys
 import threading
 from subprocess import call
 from types import FrameType
-from typing import Any, Callable, Dict, List, Set, Union
+from typing import Any, Callable, Union
 
 from lightning_utilities.core.rank_zero import rank_prefixed_message
 
@@ -22,7 +24,7 @@ log = logging.getLogger(__name__)
 
 
 class _HandlersCompose:
-    def __init__(self, signal_handlers: Union[List[_HANDLER], _HANDLER]) -> None:
+    def __init__(self, signal_handlers: list[_HANDLER] | _HANDLER) -> None:
         if not isinstance(signal_handlers, list):
             signal_handlers = [signal_handlers]
         self.signal_handlers = signal_handlers
@@ -36,17 +38,17 @@ class _HandlersCompose:
 
 
 class _SignalConnector:
-    def __init__(self, trainer: "pl.Trainer") -> None:
+    def __init__(self, trainer: pl.Trainer) -> None:
         self.received_sigterm = False
         self.trainer = trainer
-        self._original_handlers: Dict[_SIGNUM, _HANDLER] = {}
+        self._original_handlers: dict[_SIGNUM, _HANDLER] = {}
 
     def register_signal_handlers(self) -> None:
         self.received_sigterm = False
         self._original_handlers = self._get_current_signal_handlers()
 
-        sigusr_handlers: List[_HANDLER] = []
-        sigterm_handlers: List[_HANDLER] = [self._sigterm_notifier_fn]
+        sigusr_handlers: list[_HANDLER] = []
+        sigterm_handlers: list[_HANDLER] = [self._sigterm_notifier_fn]
 
         environment = self.trainer._accelerator_connector.cluster_environment
         if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
@@ -125,7 +127,7 @@ class _SignalConnector:
         self._original_handlers = {}
 
     @staticmethod
-    def _get_current_signal_handlers() -> Dict[_SIGNUM, _HANDLER]:
+    def _get_current_signal_handlers() -> dict[_SIGNUM, _HANDLER]:
         """Collects the currently assigned signal handlers."""
         valid_signals = _SignalConnector._valid_signals()
         if not _IS_WINDOWS:
@@ -134,7 +136,7 @@ class _SignalConnector:
         return {signum: signal.getsignal(signum) for signum in valid_signals}
 
     @staticmethod
-    def _valid_signals() -> Set[signal.Signals]:
+    def _valid_signals() -> set[signal.Signals]:
         """Returns all valid signals supported on the current platform.
 
         Behaves identically to :func:`signals.valid_signals` in Python 3.8+ and implements the equivalent behavior for
@@ -168,7 +170,7 @@ class _SignalConnector:
         if threading.current_thread() is threading.main_thread():
             signal.signal(signum, handlers)  # type: ignore[arg-type]
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         state["_original_handlers"] = {}
         return state

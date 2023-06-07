@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+from __future__ import annotations
+
 import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import lightning.pytorch as pl
 from lightning.pytorch.utilities.memory import garbage_collection_cuda, is_oom_error
@@ -26,13 +28,13 @@ log = logging.getLogger(__name__)
 
 
 def _scale_batch_size(
-    trainer: "pl.Trainer",
+    trainer: pl.Trainer,
     mode: str = "power",
     steps_per_trial: int = 3,
     init_val: int = 2,
     max_trials: int = 25,
     batch_arg_name: str = "batch_size",
-) -> Optional[int]:
+) -> int | None:
     """Iteratively try to find the largest batch size for a given model that does not give an out of memory (OOM)
     error.
 
@@ -97,7 +99,7 @@ def _scale_batch_size(
     return new_size
 
 
-def __scale_batch_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
+def __scale_batch_dump_params(trainer: pl.Trainer) -> dict[str, Any]:
     dumped_params = {
         "loggers": trainer.loggers,
         "callbacks": trainer.callbacks,
@@ -118,7 +120,7 @@ def __scale_batch_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     return dumped_params
 
 
-def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> None:
+def __scale_batch_reset_params(trainer: pl.Trainer, steps_per_trial: int) -> None:
     from lightning.pytorch.loggers.logger import DummyLogger
 
     trainer.logger = DummyLogger() if trainer.logger is not None else None
@@ -137,7 +139,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> N
         loop.verbose = False
 
 
-def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def __scale_batch_restore_params(trainer: pl.Trainer, params: dict[str, Any]) -> None:
     # TODO: There are more states that needs to be reset (#4512 and #4870)
     trainer.loggers = params["loggers"]
     trainer.callbacks = params["callbacks"]
@@ -164,11 +166,11 @@ def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) 
 
 
 def _run_power_scaling(
-    trainer: "pl.Trainer",
+    trainer: pl.Trainer,
     new_size: int,
     batch_arg_name: str,
     max_trials: int,
-    params: Dict[str, Any],
+    params: dict[str, Any],
 ) -> int:
     """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
     # this flag is used to determine whether the previously scaled batch size, right before OOM, was a success or not
@@ -206,11 +208,11 @@ def _run_power_scaling(
 
 
 def _run_binary_scaling(
-    trainer: "pl.Trainer",
+    trainer: pl.Trainer,
     new_size: int,
     batch_arg_name: str,
     max_trials: int,
-    params: Dict[str, Any],
+    params: dict[str, Any],
 ) -> int:
     """Batch scaling mode where the size is initially is doubled at each iteration until an OOM error is
     encountered.
@@ -270,12 +272,12 @@ def _run_binary_scaling(
 
 
 def _adjust_batch_size(
-    trainer: "pl.Trainer",
+    trainer: pl.Trainer,
     batch_arg_name: str = "batch_size",
     factor: float = 1.0,
-    value: Optional[int] = None,
-    desc: Optional[str] = None,
-) -> Tuple[int, bool]:
+    value: int | None = None,
+    desc: str | None = None,
+) -> tuple[int, bool]:
     """Helper function for adjusting the batch size.
 
     Args:
@@ -316,14 +318,14 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _reset_dataloaders(trainer: "pl.Trainer") -> None:
+def _reset_dataloaders(trainer: pl.Trainer) -> None:
     loop = trainer._active_loop
     assert loop is not None
     loop._combined_loader = None  # force a reload
     loop.setup_data()
 
 
-def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def _try_loop_run(trainer: pl.Trainer, params: dict[str, Any]) -> None:
     loop = trainer._active_loop
     assert loop is not None
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
@@ -331,7 +333,7 @@ def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
     loop.run()
 
 
-def _reset_progress(trainer: "pl.Trainer") -> None:
+def _reset_progress(trainer: pl.Trainer) -> None:
     if trainer.lightning_module.automatic_optimization:
         trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress.reset()
     else:

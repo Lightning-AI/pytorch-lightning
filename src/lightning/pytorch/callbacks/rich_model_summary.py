@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Tuple
+from __future__ import annotations
+
+from typing import Any
 
 from lightning.pytorch.callbacks import ModelSummary
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
@@ -67,7 +69,7 @@ class RichModelSummary(ModelSummary):
 
     @staticmethod
     def summarize(
-        summary_data: List[Tuple[str, List[str]]],
+        summary_data: list[tuple[str, list[str]]],
         total_parameters: int,
         trainable_parameters: int,
         model_size: float,

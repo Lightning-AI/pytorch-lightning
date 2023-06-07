@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
 import os
 import subprocess
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -70,13 +72,13 @@ class _SubprocessScriptLauncher(_Launcher):
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
-        self.procs: List[subprocess.Popen] = []  # launched subprocesses. does not include the launcher
+        self.procs: list[subprocess.Popen] = []  # launched subprocesses. does not include the launcher
 
     @property
     def is_interactive_compatible(self) -> bool:
         return False
 
-    def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
+    def launch(self, function: Callable, *args: Any, trainer: pl.Trainer | None = None, **kwargs: Any) -> Any:
         """Creates new processes, then calls the given function.
 
         Arguments:
@@ -119,7 +121,7 @@ class _SubprocessScriptLauncher(_Launcher):
                 del env_copy["PL_GLOBAL_SEED"]
 
             hydra_in_use = False
-            cwd: Optional[str] = None
+            cwd: str | None = None
             if _HYDRA_AVAILABLE:
                 from hydra.core.hydra_config import HydraConfig
 

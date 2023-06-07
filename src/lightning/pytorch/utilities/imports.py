@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities."""
+from __future__ import annotations
+
 import sys
 
 import torch

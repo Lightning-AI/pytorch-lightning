@@ -12,5 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 from lightning.pytorch.utilities.migration.utils import migrate_checkpoint  # noqa: F401
 from lightning.pytorch.utilities.migration.utils import pl_legacy_patch  # noqa: F401

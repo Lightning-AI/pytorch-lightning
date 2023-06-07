@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import contextlib
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Generator, Mapping, TypeVar
 
 import torch
 from torch import Tensor
@@ -47,31 +49,31 @@ class Strategy(ABC):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        accelerator: pl.accelerators.Accelerator | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision_plugin: PrecisionPlugin | None = None,
     ) -> None:
-        self._accelerator: Optional["pl.accelerators.Accelerator"] = accelerator
-        self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision_plugin: Optional[PrecisionPlugin] = precision_plugin
-        self._lightning_module: Optional[pl.LightningModule] = None
-        self._model: Optional[Module] = None
-        self._launcher: Optional[_Launcher] = None
+        self._accelerator: pl.accelerators.Accelerator | None = accelerator
+        self._checkpoint_io: CheckpointIO | None = checkpoint_io
+        self._precision_plugin: PrecisionPlugin | None = precision_plugin
+        self._lightning_module: pl.LightningModule | None = None
+        self._model: Module | None = None
+        self._launcher: _Launcher | None = None
         self._forward_redirection: _ForwardRedirection = _ForwardRedirection()
-        self._optimizers: List[Optimizer] = []
-        self._lightning_optimizers: List[LightningOptimizer] = []
-        self.lr_scheduler_configs: List[LRSchedulerConfig] = []
+        self._optimizers: list[Optimizer] = []
+        self._lightning_optimizers: list[LightningOptimizer] = []
+        self.lr_scheduler_configs: list[LRSchedulerConfig] = []
 
     @property
-    def launcher(self) -> Optional[_Launcher]:
+    def launcher(self) -> _Launcher | None:
         return self._launcher
 
     @property
-    def accelerator(self) -> Optional["pl.accelerators.Accelerator"]:
+    def accelerator(self) -> pl.accelerators.Accelerator | None:
         return self._accelerator
 
     @accelerator.setter
-    def accelerator(self, accelerator: "pl.accelerators.Accelerator") -> None:
+    def accelerator(self, accelerator: pl.accelerators.Accelerator) -> None:
         self._accelerator = accelerator
 
     @property
@@ -84,7 +86,7 @@ class Strategy(ABC):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO | None) -> None:
         self._checkpoint_io = io
 
     @property
@@ -92,19 +94,19 @@ class Strategy(ABC):
         return self._precision_plugin if self._precision_plugin is not None else PrecisionPlugin()
 
     @precision_plugin.setter
-    def precision_plugin(self, precision_plugin: Optional[PrecisionPlugin]) -> None:
+    def precision_plugin(self, precision_plugin: PrecisionPlugin | None) -> None:
         self._precision_plugin = precision_plugin
 
     @property
-    def optimizers(self) -> List[Optimizer]:
+    def optimizers(self) -> list[Optimizer]:
         return self._optimizers
 
     @optimizers.setter
-    def optimizers(self, optimizers: List[Optimizer]) -> None:
+    def optimizers(self, optimizers: list[Optimizer]) -> None:
         self._optimizers = optimizers
         self._lightning_optimizers = [LightningOptimizer._to_lightning_optimizer(opt, self) for opt in optimizers]
 
-    def connect(self, model: "pl.LightningModule") -> None:
+    def connect(self, model: pl.LightningModule) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
         self._lightning_module = model
         self.model = model
@@ -121,7 +123,7 @@ class Strategy(ABC):
         assert self.accelerator is not None
         self.accelerator.setup_device(self.root_device)
 
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+    def setup_optimizers(self, trainer: pl.Trainer) -> None:
         """Creates optimizers and schedulers.
 
         Args:
@@ -132,7 +134,7 @@ class Strategy(ABC):
         assert self.lightning_module is not None
         self.optimizers, self.lr_scheduler_configs = _init_optimizers_and_lr_schedulers(self.lightning_module)
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: pl.Trainer) -> None:
         """Setup plugins for the trainer fit and creates optimizers.
 
         Args:
@@ -154,7 +156,7 @@ class Strategy(ABC):
         self.optimizers = optimizers
         self.lr_scheduler_configs = lr_scheduler_configs
 
-    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+    def optimizer_state(self, optimizer: Optimizer) -> dict[str, Tensor]:
         """Returns state of an optimizer.
 
         Allows for syncing/collating optimizer state from processes in custom plugins.
@@ -174,7 +176,7 @@ class Strategy(ABC):
     def backward(
         self,
         closure_loss: Tensor,
-        optimizer: Optional[Optimizer],
+        optimizer: Optimizer | None,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
@@ -202,7 +204,7 @@ class Strategy(ABC):
         self,
         optimizer: Optimizer,
         closure: Callable[[], Any],
-        model: Optional[Union["pl.LightningModule", Module]] = None,
+        model: pl.LightningModule | Module | None = None,
         **kwargs: Any,
     ) -> Any:
         r"""Performs the actual optimizer step.
@@ -218,7 +220,7 @@ class Strategy(ABC):
         assert isinstance(model, pl.LightningModule)
         return self.precision_plugin.optimizer_step(optimizer, model=model, closure=closure, **kwargs)
 
-    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+    def _setup_model_and_optimizers(self, model: Module, optimizers: list[Optimizer]) -> tuple[Module, list[Optimizer]]:
         """Setup a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
@@ -239,7 +241,7 @@ class Strategy(ABC):
         # TODO: standardize this across all plugins in Lightning and Fabric. Related refactor: #7324
         return optimizer
 
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+    def batch_to_device(self, batch: Any, device: torch.device | None = None, dataloader_idx: int = 0) -> Any:
         """Moves the batch to the correct device.
 
         The returned batch is of the same type as the input batch, just
@@ -273,10 +275,10 @@ class Strategy(ABC):
     @abstractmethod
     def reduce(
         self,
-        tensor: Union[Tensor, Any],
-        group: Optional[Any] = None,
-        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
-    ) -> Union[Tensor, Any]:
+        tensor: Tensor | Any,
+        group: Any | None = None,
+        reduce_op: ReduceOp | str | None = "mean",
+    ) -> Tensor | Any:
         """Reduces the given tensor (e.g. across GPUs/processes).
 
         Args:
@@ -287,7 +289,7 @@ class Strategy(ABC):
         """
 
     @abstractmethod
-    def barrier(self, name: Optional[str] = None) -> None:
+    def barrier(self, name: str | None = None) -> None:
         """Synchronizes all processes which blocks processes until the whole group enters this function.
 
         Args:
@@ -304,7 +306,7 @@ class Strategy(ABC):
         """
 
     @abstractmethod
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+    def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Perform an all_gather on all processes.
 
         Args:
@@ -324,20 +326,20 @@ class Strategy(ABC):
         """Run after precision plugin executes backward."""
 
     @property
-    def model(self) -> Optional[Module]:
+    def model(self) -> Module | None:
         """Returns the potentially wrapped LightningModule."""
         return self._model if self._model is not None else self._lightning_module
 
     @model.setter
-    def model(self, new_model: Optional[Module]) -> None:
+    def model(self, new_model: Module | None) -> None:
         self._model = new_model
 
     @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
+    def lightning_module(self) -> pl.LightningModule | None:
         """Returns the pure LightningModule without potential wrappers."""
         return self._lightning_module
 
-    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
@@ -370,7 +372,7 @@ class Strategy(ABC):
         """
         pass
 
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT | None:
         """The actual validation step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
@@ -382,7 +384,7 @@ class Strategy(ABC):
                 return self._forward_redirection(self.model, self.lightning_module, "validation_step", *args, **kwargs)
             return self.lightning_module.validation_step(*args, **kwargs)
 
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT | None:
         """The actual test step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
@@ -437,14 +439,12 @@ class Strategy(ABC):
         """Whether the plugin handles gradient accumulation internally."""
         return False
 
-    def lightning_module_state_dict(self) -> Dict[str, Any]:
+    def lightning_module_state_dict(self) -> dict[str, Any]:
         """Returns model state."""
         assert self.lightning_module is not None
         return self.lightning_module.state_dict()
 
-    def save_checkpoint(
-        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
-    ) -> None:
+    def save_checkpoint(self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Any | None = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -533,13 +533,13 @@ class Strategy(ABC):
         """Called when the trainer execution is interrupted by an exception."""
         pass
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
         state = dict(vars(self))  # copy
         state["_lightning_optimizers"] = []
         return state
 
-    def __setstate__(self, state: Dict) -> None:
+    def __setstate__(self, state: dict) -> None:
         self.__dict__ = state
         self.optimizers = self.optimizers  # re-create the `_lightning_optimizers`
 
@@ -551,7 +551,7 @@ class _ForwardRedirection:
     """
 
     def __call__(
-        self, wrapper_module: Module, original_module: "pl.LightningModule", method_name: str, *args: Any, **kwargs: Any
+        self, wrapper_module: Module, original_module: pl.LightningModule, method_name: str, *args: Any, **kwargs: Any
     ) -> STEP_OUTPUT:
         """Reroutes a method call through the `wrapper_module`'s `forward` method.
 
@@ -585,8 +585,8 @@ class _ForwardRedirection:
         self.on_after_outer_forward(wrapper_module, original_module)
         return wrapper_output
 
-    def on_after_inner_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
+    def on_after_inner_forward(self, wrapper_module: Module, original_module: pl.LightningModule) -> None:
         pass
 
-    def on_after_outer_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
+    def on_after_outer_forward(self, wrapper_module: Module, original_module: pl.LightningModule) -> None:
         pass

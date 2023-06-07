@@ -17,7 +17,9 @@ BasePredictionWriter
 
 Aids in saving predictions
 """
-from typing import Any, Literal, Optional, Sequence
+from __future__ import annotations
+
+from typing import Any, Literal, Sequence
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
@@ -108,10 +110,10 @@ class BasePredictionWriter(Callback):
 
     def write_on_batch_end(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         prediction: Any,
-        batch_indices: Optional[Sequence[int]],
+        batch_indices: Sequence[int] | None,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int,
@@ -121,18 +123,18 @@ class BasePredictionWriter(Callback):
 
     def write_on_epoch_end(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         predictions: Sequence[Any],
-        batch_indices: Optional[Sequence[Any]],
+        batch_indices: Sequence[Any] | None,
     ) -> None:
         """Override with the logic to write all batches."""
         raise NotImplementedError()
 
     def on_predict_batch_end(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         outputs: Any,
         batch: Any,
         batch_idx: int,
@@ -143,7 +145,7 @@ class BasePredictionWriter(Callback):
         batch_indices = trainer.predict_loop.current_batch_indices
         self.write_on_batch_end(trainer, pl_module, outputs, batch_indices, batch, batch_idx, dataloader_idx)
 
-    def on_predict_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_predict_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if not self.interval.on_epoch:
             return
         epoch_batch_indices = trainer.predict_loop.epoch_batch_indices

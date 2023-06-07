@@ -13,12 +13,14 @@
 # limitations under the License.
 """Utilities used for parameter parsing."""
 
+from __future__ import annotations
+
 import copy
 import inspect
 import pickle
 import types
 from dataclasses import fields, is_dataclass
-from typing import Any, Dict, List, Literal, MutableMapping, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, Literal, MutableMapping, Sequence
 
 from torch import nn
 
@@ -44,7 +46,7 @@ def clean_namespace(hparams: MutableMapping) -> None:
         del hparams[k]
 
 
-def parse_class_init_keys(cls: Type) -> Tuple[str, Optional[str], Optional[str]]:
+def parse_class_init_keys(cls: type) -> tuple[str, str | None, str | None]:
     """Parse key words for standard ``self``, ``*args`` and ``**kwargs``.
 
     Examples:
@@ -63,9 +65,9 @@ def parse_class_init_keys(cls: Type) -> Tuple[str, Optional[str], Optional[str]]
     n_self = init_params[0].name
 
     def _get_first_if_any(
-        params: List[inspect.Parameter],
+        params: list[inspect.Parameter],
         param_type: Literal[inspect._ParameterKind.VAR_POSITIONAL, inspect._ParameterKind.VAR_KEYWORD],
-    ) -> Optional[str]:
+    ) -> str | None:
         for p in params:
             if p.kind == param_type:
                 return p.name
@@ -77,13 +79,13 @@ def parse_class_init_keys(cls: Type) -> Tuple[str, Optional[str], Optional[str]]
     return n_self, n_args, n_kwargs
 
 
-def get_init_args(frame: types.FrameType) -> Dict[str, Any]:  # pragma: no-cover
+def get_init_args(frame: types.FrameType) -> dict[str, Any]:  # pragma: no-cover
     """For backwards compatibility: #16369."""
     _, local_args = _get_init_args(frame)
     return local_args
 
 
-def _get_init_args(frame: types.FrameType) -> Tuple[Optional[Any], Dict[str, Any]]:
+def _get_init_args(frame: types.FrameType) -> tuple[Any | None, dict[str, Any]]:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if "__class__" not in local_vars:
         return None, {}
@@ -104,10 +106,10 @@ def _get_init_args(frame: types.FrameType) -> Tuple[Optional[Any], Dict[str, Any
 
 def collect_init_args(
     frame: types.FrameType,
-    path_args: List[Dict[str, Any]],
+    path_args: list[dict[str, Any]],
     inside: bool = False,
-    classes: Tuple[Type, ...] = (),
-) -> List[Dict[str, Any]]:
+    classes: tuple[type, ...] = (),
+) -> list[dict[str, Any]]:
     """Recursively collects the arguments passed to the child constructors in the inheritance tree.
 
     Args:
@@ -137,7 +139,7 @@ def collect_init_args(
 
 
 def save_hyperparameters(
-    obj: Any, *args: Any, ignore: Optional[Union[Sequence[str], str]] = None, frame: Optional[types.FrameType] = None
+    obj: Any, *args: Any, ignore: Sequence[str] | str | None = None, frame: types.FrameType | None = None
 ) -> None:
     """See :meth:`~lightning.pytorch.LightningModule.save_hyperparameters`"""
 
@@ -218,7 +220,7 @@ class AttributeDict(Dict):
     "new_key": 42
     """
 
-    def __getattr__(self, key: str) -> Optional[Any]:
+    def __getattr__(self, key: str) -> Any | None:
         try:
             return self[key]
         except KeyError as exp:
@@ -236,13 +238,13 @@ class AttributeDict(Dict):
         return "\n".join(rows)
 
 
-def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str) -> List[Any]:
+def _lightning_get_all_attr_holders(model: pl.LightningModule, attribute: str) -> list[Any]:
     """Special attribute finding for Lightning.
 
     Gets all of the objects or dicts that holds attribute. Checks for attribute in model namespace, the old hparams
     namespace/dict, and the datamodule.
     """
-    holders: List[Any] = []
+    holders: list[Any] = []
 
     # Check if attribute in model
     if hasattr(model, attribute):
@@ -264,7 +266,7 @@ def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str)
     return holders
 
 
-def _lightning_get_first_attr_holder(model: "pl.LightningModule", attribute: str) -> Optional[Any]:
+def _lightning_get_first_attr_holder(model: pl.LightningModule, attribute: str) -> Any | None:
     """Special attribute finding for Lightning.
 
     Gets the object or dict that holds attribute, or None. Checks for attribute in model namespace, the old hparams
@@ -277,7 +279,7 @@ def _lightning_get_first_attr_holder(model: "pl.LightningModule", attribute: str
     return holders[-1]
 
 
-def lightning_hasattr(model: "pl.LightningModule", attribute: str) -> bool:
+def lightning_hasattr(model: pl.LightningModule, attribute: str) -> bool:
     """Special hasattr for Lightning.
 
     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule.
@@ -285,7 +287,7 @@ def lightning_hasattr(model: "pl.LightningModule", attribute: str) -> bool:
     return _lightning_get_first_attr_holder(model, attribute) is not None
 
 
-def lightning_getattr(model: "pl.LightningModule", attribute: str) -> Optional[Any]:
+def lightning_getattr(model: pl.LightningModule, attribute: str) -> Any | None:
     """Special getattr for Lightning. Checks for attribute in model namespace, the old hparams namespace/dict, and
     the datamodule.
 
@@ -306,7 +308,7 @@ def lightning_getattr(model: "pl.LightningModule", attribute: str) -> Optional[A
     return getattr(holder, attribute)
 
 
-def lightning_setattr(model: "pl.LightningModule", attribute: str, value: Any) -> None:
+def lightning_setattr(model: pl.LightningModule, attribute: str, value: Any) -> None:
     """Special setattr for Lightning. Checks for attribute in model namespace and the old hparams namespace/dict.
     Will also set the attribute on datamodule, if it exists.
 

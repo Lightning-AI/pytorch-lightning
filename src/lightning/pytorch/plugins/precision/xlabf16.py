@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import os
-from typing import Any, List, Literal, Tuple
+from typing import Any, Literal
 
 import torch.nn as nn
 from torch.optim import Optimizer
@@ -26,8 +28,8 @@ class XLABf16PrecisionPlugin(XLAPrecisionPlugin):
     precision: Literal["bf16-mixed"] = "bf16-mixed"
 
     def connect(
-        self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
-    ) -> Tuple[nn.Module, List[Optimizer], List[Any]]:
+        self, model: nn.Module, optimizers: list[Optimizer], lr_schedulers: list[Any]
+    ) -> tuple[nn.Module, list[Optimizer], list[Any]]:
         os.environ["XLA_USE_BF16"] = "1"
         return super().connect(model=model, optimizers=optimizers, lr_schedulers=lr_schedulers)
 

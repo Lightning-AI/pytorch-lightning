@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union
+from __future__ import annotations
 
 import torch
 
@@ -21,7 +21,7 @@ from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy, SingleDevice
 from lightning.pytorch.utilities.model_helpers import _check_mixed_imports
 
 
-def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
+def from_compiled(model: torch._dynamo.OptimizedModule) -> pl.LightningModule:
     """Returns an instance LightningModule from the output of ``torch.compile``.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -70,7 +70,7 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
     return orig_module
 
 
-def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedModule"]) -> "pl.LightningModule":
+def to_uncompiled(model: pl.LightningModule | torch._dynamo.OptimizedModule) -> pl.LightningModule:
     """Returns an instance of LightningModule without any compilation optimizations from a compiled model.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -113,7 +113,7 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
     return model
 
 
-def _maybe_unwrap_optimized(model: object) -> "pl.LightningModule":
+def _maybe_unwrap_optimized(model: object) -> pl.LightningModule:
     if not _TORCH_GREATER_EQUAL_2_0:
         if not isinstance(model, pl.LightningModule):
             _check_mixed_imports(model)
@@ -131,7 +131,7 @@ def _maybe_unwrap_optimized(model: object) -> "pl.LightningModule":
     )
 
 
-def _verify_strategy_supports_compile(model: "pl.LightningModule", strategy: Strategy) -> None:
+def _verify_strategy_supports_compile(model: pl.LightningModule, strategy: Strategy) -> None:
     if model._compiler_ctx is not None:
         supported_strategies = (SingleDeviceStrategy, DDPStrategy, FSDPStrategy)
         if not isinstance(strategy, supported_strategies):

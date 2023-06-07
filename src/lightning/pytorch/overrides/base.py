@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from typing import Any
 
 import torch
@@ -20,7 +22,7 @@ from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixi
 
 
 class _LightningPrecisionModuleWrapperBase(_DeviceDtypeModuleMixin, torch.nn.Module):
-    def __init__(self, pl_module: "pl.LightningModule") -> None:
+    def __init__(self, pl_module: pl.LightningModule) -> None:
         """Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it
         can safely be wrapped by ``*DataParallel``.
 

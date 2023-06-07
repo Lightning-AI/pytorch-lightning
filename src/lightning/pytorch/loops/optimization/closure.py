@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
@@ -22,7 +24,7 @@ T = TypeVar("T")
 
 @dataclass
 class OutputResult:
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> dict[str, Any]:
         raise NotImplementedError
 
 
@@ -39,7 +41,7 @@ class AbstractClosure(ABC, Generic[T]):
 
     def __init__(self) -> None:
         super().__init__()
-        self._result: Optional[T] = None
+        self._result: T | None = None
 
     def consume_result(self) -> T:
         """The cached result from the last time the closure was called.

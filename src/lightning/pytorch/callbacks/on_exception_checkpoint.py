@@ -17,6 +17,8 @@ On exception checkpointing
 
 Automatically save a checkpoints on exception.
 """
+from __future__ import annotations
+
 import os
 from typing import Any
 
@@ -57,9 +59,9 @@ class OnExceptionCheckpoint(Checkpoint):
     def ckpt_path(self) -> str:
         return os.path.join(self.dirpath, self.filename + self.FILE_EXTENSION)
 
-    def on_exception(self, trainer: "pl.Trainer", *_: Any, **__: Any) -> None:
+    def on_exception(self, trainer: pl.Trainer, *_: Any, **__: Any) -> None:
         # overwrite if necessary
         trainer.save_checkpoint(self.ckpt_path)
 
-    def teardown(self, trainer: "pl.Trainer", *_: Any, **__: Any) -> None:
+    def teardown(self, trainer: pl.Trainer, *_: Any, **__: Any) -> None:
         trainer.strategy.remove_checkpoint(self.ckpt_path)

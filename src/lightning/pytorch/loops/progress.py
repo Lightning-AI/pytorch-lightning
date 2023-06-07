@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from dataclasses import asdict, dataclass, field
-from typing import Type
 
 
 @dataclass
@@ -26,7 +27,7 @@ class _BaseProgress:
         self.__dict__.update(state_dict)
 
     @classmethod
-    def from_state_dict(cls, state_dict: dict) -> "_BaseProgress":
+    def from_state_dict(cls, state_dict: dict) -> _BaseProgress:
         obj = cls()
         obj.load_state_dict(state_dict)
         return obj
@@ -148,7 +149,7 @@ class _Progress(_BaseProgress):
         self.current.completed += 1
 
     @classmethod
-    def from_defaults(cls, tracker_cls: Type[_ReadyCompletedTracker], **kwargs: int) -> "_Progress":
+    def from_defaults(cls, tracker_cls: type[_ReadyCompletedTracker], **kwargs: int) -> _Progress:
         """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
         return cls(total=tracker_cls(**kwargs), current=tracker_cls(**kwargs))
 

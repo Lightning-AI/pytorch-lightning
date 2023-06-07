@@ -9,8 +9,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from contextlib import contextmanager
-from typing import Any, Callable, cast, Dict, Generator, Literal, Optional, Union
+from typing import Any, Callable, cast, Generator, Literal
 
 import torch
 from torch import Tensor
@@ -38,7 +40,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         self,
         precision: Literal["16-mixed", "bf16-mixed"],
         device: str,
-        scaler: Optional[torch.cuda.amp.GradScaler] = None,
+        scaler: torch.cuda.amp.GradScaler | None = None,
     ) -> None:
         if precision not in ("16-mixed", "bf16-mixed"):
             raise ValueError(
@@ -56,7 +58,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         self.device = device
         self.scaler = scaler
 
-    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
+    def pre_backward(self, tensor: Tensor, module: pl.LightningModule) -> Tensor:  # type: ignore[override]
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         return super().pre_backward(tensor, module)
@@ -64,7 +66,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
-        model: "pl.LightningModule",
+        model: pl.LightningModule,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
@@ -94,7 +96,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        clip_val: Union[int, float] = 0.0,
+        clip_val: int | float = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         if clip_val > 0 and _optimizer_handles_unscaling(optimizer):
@@ -115,11 +117,11 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         with self.autocast_context_manager():
             yield
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
         return {}
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)

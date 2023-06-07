@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from lightning.fabric.plugins import CheckpointIO
 
@@ -23,7 +25,7 @@ class _WrappingCheckpointIO(CheckpointIO):
         checkpoint_io: A checkpoint IO plugin that is used as the basis.
     """
 
-    def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:
+    def __init__(self, checkpoint_io: CheckpointIO | None = None) -> None:
         super().__init__()
 
         self._checkpoint_io = checkpoint_io
@@ -36,11 +38,11 @@ class _WrappingCheckpointIO(CheckpointIO):
                 self._base_checkpoint_io_configured = True
 
     @property
-    def checkpoint_io(self) -> Optional["CheckpointIO"]:
+    def checkpoint_io(self) -> CheckpointIO | None:
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, checkpoint_io: "CheckpointIO") -> None:
+    def checkpoint_io(self, checkpoint_io: CheckpointIO) -> None:
         assert not isinstance(checkpoint_io, _WrappingCheckpointIO)
 
         if self._checkpoint_io is None:
@@ -60,7 +62,7 @@ class _WrappingCheckpointIO(CheckpointIO):
         assert self.checkpoint_io is not None
         self.checkpoint_io.remove_checkpoint(*args, **kwargs)
 
-    def load_checkpoint(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def load_checkpoint(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         """Uses the base ``checkpoint_io`` to load the checkpoint."""
         assert self.checkpoint_io is not None
         return self.checkpoint_io.load_checkpoint(*args, **kwargs)

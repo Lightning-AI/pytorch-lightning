@@ -18,10 +18,12 @@ CSV logger
 CSV logger for basic experiment logging that does not require opening ports
 
 """
+from __future__ import annotations
+
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from lightning.fabric.loggers.csv_logs import _ExperimentWriter as _FabricExperimentWriter
 from lightning.fabric.loggers.csv_logs import CSVLogger as FabricCSVLogger
@@ -51,9 +53,9 @@ class ExperimentWriter(_FabricExperimentWriter):
 
     def __init__(self, log_dir: str) -> None:
         super().__init__(log_dir=log_dir)
-        self.hparams: Dict[str, Any] = {}
+        self.hparams: dict[str, Any] = {}
 
-    def log_hparams(self, params: Dict[str, Any]) -> None:
+    def log_hparams(self, params: dict[str, Any]) -> None:
         """Record hparams."""
         self.hparams.update(params)
 
@@ -90,7 +92,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         self,
         save_dir: _PATH,
         name: str = "lightning_logs",
-        version: Optional[Union[int, str]] = None,
+        version: int | str | None = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
     ):
@@ -133,7 +135,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         return self._save_dir
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         params = _convert_params(params)
         self.experiment.log_hparams(params)
 

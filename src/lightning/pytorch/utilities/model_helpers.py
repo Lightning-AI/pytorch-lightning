@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Type
+from __future__ import annotations
+
+from typing import Any
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import nn
@@ -19,7 +21,7 @@ from torch import nn
 import lightning.pytorch as pl
 
 
-def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
+def is_overridden(method_name: str, instance: object | None = None, parent: type[object] | None = None) -> bool:
     if instance is None:
         # if `self.lightning_module` was passed as instance, it can be `None`
         return False

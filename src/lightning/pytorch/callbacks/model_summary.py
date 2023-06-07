@@ -21,8 +21,10 @@ The string representation of this summary prints a table with columns containing
 the name, type and number of parameters for each layer.
 
 """
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
@@ -51,9 +53,9 @@ class ModelSummary(Callback):
 
     def __init__(self, max_depth: int = 1, **summarize_kwargs: Any) -> None:
         self._max_depth: int = max_depth
-        self._summarize_kwargs: Dict[str, Any] = summarize_kwargs
+        self._summarize_kwargs: dict[str, Any] = summarize_kwargs
 
-    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_fit_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if not self._max_depth:
             return
 
@@ -66,7 +68,7 @@ class ModelSummary(Callback):
         if trainer.is_global_zero:
             self.summarize(summary_data, total_parameters, trainable_parameters, model_size, **self._summarize_kwargs)
 
-    def _summary(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Union[DeepSpeedSummary, Summary]:
+    def _summary(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> DeepSpeedSummary | Summary:
         from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
 
         if isinstance(trainer.strategy, DeepSpeedStrategy) and trainer.strategy.zero_stage_3:
@@ -75,7 +77,7 @@ class ModelSummary(Callback):
 
     @staticmethod
     def summarize(
-        summary_data: List[Tuple[str, List[str]]],
+        summary_data: list[tuple[str, list[str]]],
         total_parameters: int,
         trainable_parameters: int,
         model_size: float,

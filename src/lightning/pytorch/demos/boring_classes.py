@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Iterator, List, Optional, Tuple
+from __future__ import annotations
+
+from typing import Iterator
 
 import torch
 import torch.nn as nn
@@ -35,7 +37,7 @@ class RandomDictDataset(Dataset):
         self.len = length
         self.data = torch.randn(length, size)
 
-    def __getitem__(self, index: int) -> Dict[str, Tensor]:
+    def __getitem__(self, index: int) -> dict[str, Tensor]:
         a = self.data[index]
         b = a + 2
         return {"a": a, "b": b}
@@ -114,7 +116,7 @@ class BoringModel(LightningModule):
     def forward(self, x: Tensor) -> Tensor:
         return self.layer(x)
 
-    def loss(self, preds: Tensor, labels: Optional[Tensor] = None) -> Tensor:
+    def loss(self, preds: Tensor, labels: Tensor | None = None) -> Tensor:
         if labels is None:
             labels = torch.ones_like(preds)
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
@@ -127,13 +129,13 @@ class BoringModel(LightningModule):
     def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
         return {"loss": self.step(batch)}
 
-    def validation_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT | None:
         return {"x": self.step(batch)}
 
-    def test_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
+    def test_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT | None:
         return {"y": self.step(batch)}
 
-    def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_TORCH_LRSCHEDULER]]:
+    def configure_optimizers(self) -> tuple[list[torch.optim.Optimizer], list[_TORCH_LRSCHEDULER]]:
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]

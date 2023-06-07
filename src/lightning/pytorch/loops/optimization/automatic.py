@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, Optional, OrderedDict
+from typing import Any, Callable, Dict, OrderedDict
 
 import torch
 from torch import Tensor
@@ -42,9 +44,9 @@ class ClosureResult(OutputResult):
         extra: Any keys other than the loss returned.
     """
 
-    closure_loss: Optional[Tensor]
-    loss: Optional[Tensor] = field(init=False, default=None)
-    extra: Dict[str, Any] = field(default_factory=dict)
+    closure_loss: Tensor | None
+    loss: Tensor | None = field(init=False, default=None)
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self._clone_loss()
@@ -55,9 +57,7 @@ class ClosureResult(OutputResult):
             self.loss = self.closure_loss.detach().clone()
 
     @classmethod
-    def from_training_step_output(
-        cls, training_step_output: Optional[STEP_OUTPUT], normalize: int = 1
-    ) -> "ClosureResult":
+    def from_training_step_output(cls, training_step_output: STEP_OUTPUT | None, normalize: int = 1) -> ClosureResult:
         closure_loss, extra = None, {}
 
         if isinstance(training_step_output, dict):
@@ -82,7 +82,7 @@ class ClosureResult(OutputResult):
 
         return cls(closure_loss, extra=extra)
 
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> dict[str, Any]:
         return {"loss": self.loss, **self.extra}
 
 
@@ -114,8 +114,8 @@ class Closure(AbstractClosure[ClosureResult]):
     def __init__(
         self,
         step_fn: Callable[[], ClosureResult],
-        backward_fn: Optional[Callable[[Tensor], None]] = None,
-        zero_grad_fn: Optional[Callable[[], None]] = None,
+        backward_fn: Callable[[Tensor], None] | None = None,
+        zero_grad_fn: Callable[[], None] | None = None,
     ):
         super().__init__()
         self._step_fn = step_fn
@@ -136,7 +136,7 @@ class Closure(AbstractClosure[ClosureResult]):
 
         return step_output
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Optional[Tensor]:
+    def __call__(self, *args: Any, **kwargs: Any) -> Tensor | None:
         self._result = self.closure(*args, **kwargs)
         return self._result.loss
 
@@ -149,7 +149,7 @@ class _AutomaticOptimization(_Loop):
 
     output_result_cls = ClosureResult
 
-    def __init__(self, trainer: "pl.Trainer") -> None:
+    def __init__(self, trainer: pl.Trainer) -> None:
         super().__init__(trainer)
         self.optim_progress: _OptimizationProgress = _OptimizationProgress()
         self._skip_backward: bool = False
@@ -201,7 +201,7 @@ class _AutomaticOptimization(_Loop):
         """Build the step function that runs the `training_step` and processes its output."""
         return partial(self._training_step, kwargs)
 
-    def _make_zero_grad_fn(self, batch_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
+    def _make_zero_grad_fn(self, batch_idx: int, optimizer: Optimizer) -> Callable[[], None] | None:
         """Build a `zero_grad` function that zeroes the gradients before back-propagation.
 
         Returns ``None`` in the case backward needs to be skipped.
@@ -219,7 +219,7 @@ class _AutomaticOptimization(_Loop):
 
         return zero_grad_fn
 
-    def _make_backward_fn(self, optimizer: Optimizer) -> Optional[Callable[[Tensor], None]]:
+    def _make_backward_fn(self, optimizer: Optimizer) -> Callable[[Tensor], None] | None:
         """Build a `backward` function that handles back-propagation through the output produced by the
         `training_step` function.
 
@@ -236,7 +236,7 @@ class _AutomaticOptimization(_Loop):
     def _optimizer_step(
         self,
         batch_idx: int,
-        train_step_and_backward_closure: Callable[[], Optional[Tensor]],
+        train_step_and_backward_closure: Callable[[], Tensor | None],
     ) -> None:
         """Performs the optimizer step and some sanity checking.
 

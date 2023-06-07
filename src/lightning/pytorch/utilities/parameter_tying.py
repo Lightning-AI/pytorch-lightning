@@ -16,17 +16,17 @@
 Reference:
     https://github.com/pytorch/fairseq/blob/1f7ef9ed1e1061f8c7f88f8b94c7186834398690/fairseq/trainer.py#L110-L118
 """
-from typing import Dict, List, Optional
+from __future__ import annotations
 
 from torch import nn
 
 
-def find_shared_parameters(module: nn.Module) -> List[str]:
+def find_shared_parameters(module: nn.Module) -> list[str]:
     """Returns a list of names of shared parameters set in the module."""
     return _find_shared_parameters(module)
 
 
-def _find_shared_parameters(module: nn.Module, tied_parameters: Optional[Dict] = None, prefix: str = "") -> List[str]:
+def _find_shared_parameters(module: nn.Module, tied_parameters: dict | None = None, prefix: str = "") -> list[str]:
     if tied_parameters is None:
         tied_parameters = {}
     for name, param in module._parameters.items():

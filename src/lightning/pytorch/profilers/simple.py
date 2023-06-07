@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
+from __future__ import annotations
+
 import logging
 import os
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Tuple
 
 import torch
 
@@ -37,8 +39,8 @@ class SimpleProfiler(Profiler):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
-        filename: Optional[str] = None,
+        dirpath: str | Path | None = None,
+        filename: str | None = None,
         extended: bool = True,
     ) -> None:
         """
@@ -59,8 +61,8 @@ class SimpleProfiler(Profiler):
                 if you attempt to stop recording an action which was never started.
         """
         super().__init__(dirpath=dirpath, filename=filename)
-        self.current_actions: Dict[str, float] = {}
-        self.recorded_durations: Dict = defaultdict(list)
+        self.current_actions: dict[str, float] = {}
+        self.recorded_durations: dict = defaultdict(list)
         self.extended = extended
         self.start_time = time.monotonic()
 
@@ -77,7 +79,7 @@ class SimpleProfiler(Profiler):
         duration = end_time - start_time
         self.recorded_durations[action_name].append(duration)
 
-    def _make_report_extended(self) -> Tuple[_TABLE_DATA_EXTENDED, float, float]:
+    def _make_report_extended(self) -> tuple[_TABLE_DATA_EXTENDED, float, float]:
         total_duration = time.monotonic() - self.start_time
         report = []
 

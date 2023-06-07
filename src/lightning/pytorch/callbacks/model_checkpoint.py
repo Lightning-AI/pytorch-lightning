@@ -17,6 +17,8 @@ Model Checkpointing
 
 Automatically save model checkpoints during training.
 """
+from __future__ import annotations
+
 import logging
 import os
 import re
@@ -24,7 +26,7 @@ import time
 import warnings
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Dict, Optional, Set
+from typing import Any
 from weakref import proxy
 
 import torch
@@ -207,19 +209,19 @@ class ModelCheckpoint(Checkpoint):
 
     def __init__(
         self,
-        dirpath: Optional[_PATH] = None,
-        filename: Optional[str] = None,
-        monitor: Optional[str] = None,
+        dirpath: _PATH | None = None,
+        filename: str | None = None,
+        monitor: str | None = None,
         verbose: bool = False,
-        save_last: Optional[bool] = None,
+        save_last: bool | None = None,
         save_top_k: int = 1,
         save_weights_only: bool = False,
         mode: str = "min",
         auto_insert_metric_name: bool = True,
-        every_n_train_steps: Optional[int] = None,
-        train_time_interval: Optional[timedelta] = None,
-        every_n_epochs: Optional[int] = None,
-        save_on_train_epoch_end: Optional[bool] = None,
+        every_n_train_steps: int | None = None,
+        train_time_interval: timedelta | None = None,
+        every_n_epochs: int | None = None,
+        save_on_train_epoch_end: bool | None = None,
         enable_version_counter: bool = True,
     ):
         super().__init__()
@@ -232,16 +234,16 @@ class ModelCheckpoint(Checkpoint):
         self._save_on_train_epoch_end = save_on_train_epoch_end
         self._enable_version_counter = enable_version_counter
         self._last_global_step_saved = 0  # no need to save when no steps were taken
-        self._last_time_checked: Optional[float] = None
-        self.current_score: Optional[Tensor] = None
-        self.best_k_models: Dict[str, Tensor] = {}
+        self._last_time_checked: float | None = None
+        self.current_score: Tensor | None = None
+        self.best_k_models: dict[str, Tensor] = {}
         self.kth_best_model_path = ""
-        self.best_model_score: Optional[Tensor] = None
+        self.best_model_score: Tensor | None = None
         self.best_model_path = ""
         self.last_model_path = ""
 
         self.kth_value: Tensor
-        self.dirpath: Optional[_PATH]
+        self.dirpath: _PATH | None
         self.__init_monitor_mode(mode)
         self.__init_ckpt_dir(dirpath, filename)
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval)
@@ -257,20 +259,20 @@ class ModelCheckpoint(Checkpoint):
             train_time_interval=self._train_time_interval,
         )
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
+    def setup(self, trainer: pl.Trainer, pl_module: pl.LightningModule, stage: str) -> None:
         dirpath = self.__resolve_ckpt_dir(trainer)
         dirpath = trainer.strategy.broadcast(dirpath)
         self.dirpath = dirpath
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
 
-    def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._last_time_checked = time.monotonic()
 
     def on_train_batch_end(
         self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
@@ -299,7 +301,7 @@ class ModelCheckpoint(Checkpoint):
         self._save_topk_checkpoint(trainer, monitor_candidates)
         self._save_last_checkpoint(trainer, monitor_candidates)
 
-    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         """Save a checkpoint at the end of the training epoch."""
         if not self._should_skip_saving_checkpoint(trainer) and self._should_save_on_train_epoch_end(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
@@ -307,7 +309,7 @@ class ModelCheckpoint(Checkpoint):
                 self._save_topk_checkpoint(trainer, monitor_candidates)
             self._save_last_checkpoint(trainer, monitor_candidates)
 
-    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_validation_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         """Save a checkpoint at the end of the validation stage."""
         if not self._should_skip_saving_checkpoint(trainer) and not self._should_save_on_train_epoch_end(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
@@ -315,7 +317,7 @@ class ModelCheckpoint(Checkpoint):
                 self._save_topk_checkpoint(trainer, monitor_candidates)
             self._save_last_checkpoint(trainer, monitor_candidates)
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "monitor": self.monitor,
             "best_model_score": self.best_model_score,
@@ -328,7 +330,7 @@ class ModelCheckpoint(Checkpoint):
             "last_model_path": self.last_model_path,
         }
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         dirpath_from_ckpt = state_dict.get("dirpath", self.dirpath)
 
         if self.dirpath == dirpath_from_ckpt:
@@ -346,7 +348,7 @@ class ModelCheckpoint(Checkpoint):
 
         self.best_model_path = state_dict["best_model_path"]
 
-    def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
+    def _save_topk_checkpoint(self, trainer: pl.Trainer, monitor_candidates: dict[str, Tensor]) -> None:
         if self.save_top_k == 0:
             return
 
@@ -365,7 +367,7 @@ class ModelCheckpoint(Checkpoint):
         else:
             self._save_none_monitor_checkpoint(trainer, monitor_candidates)
 
-    def _save_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
+    def _save_checkpoint(self, trainer: pl.Trainer, filepath: str) -> None:
         trainer.save_checkpoint(filepath, self.save_weights_only)
 
         self._last_global_step_saved = trainer.global_step
@@ -375,7 +377,7 @@ class ModelCheckpoint(Checkpoint):
             for logger in trainer.loggers:
                 logger.after_save_checkpoint(proxy(self))
 
-    def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:
+    def _should_skip_saving_checkpoint(self, trainer: pl.Trainer) -> bool:
         from lightning.pytorch.trainer.states import TrainerFn
 
         return (
@@ -385,7 +387,7 @@ class ModelCheckpoint(Checkpoint):
             or self._last_global_step_saved == trainer.global_step  # already saved at the last step
         )
 
-    def _should_save_on_train_epoch_end(self, trainer: "pl.Trainer") -> bool:
+    def _should_save_on_train_epoch_end(self, trainer: pl.Trainer) -> bool:
         if self._save_on_train_epoch_end is not None:
             return self._save_on_train_epoch_end
 
@@ -439,7 +441,7 @@ class ModelCheckpoint(Checkpoint):
                     " will duplicate the last checkpoint saved."
                 )
 
-    def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
+    def __init_ckpt_dir(self, dirpath: _PATH | None, filename: str | None) -> None:
         self._fs = get_filesystem(dirpath if dirpath else "")
 
         if dirpath and self._fs.protocol == "file":
@@ -459,9 +461,9 @@ class ModelCheckpoint(Checkpoint):
 
     def __init_triggers(
         self,
-        every_n_train_steps: Optional[int],
-        every_n_epochs: Optional[int],
-        train_time_interval: Optional[timedelta],
+        every_n_train_steps: int | None,
+        every_n_epochs: int | None,
+        train_time_interval: timedelta | None,
     ) -> None:
         # Default to running once after each validation epoch if neither
         # every_n_train_steps nor every_n_epochs is set
@@ -473,15 +475,15 @@ class ModelCheckpoint(Checkpoint):
             every_n_epochs = every_n_epochs or 0
             every_n_train_steps = every_n_train_steps or 0
 
-        self._train_time_interval: Optional[timedelta] = train_time_interval
+        self._train_time_interval: timedelta | None = train_time_interval
         self._every_n_epochs: int = every_n_epochs
         self._every_n_train_steps: int = every_n_train_steps
 
     @property
-    def every_n_epochs(self) -> Optional[int]:
+    def every_n_epochs(self) -> int | None:
         return self._every_n_epochs
 
-    def check_monitor_top_k(self, trainer: "pl.Trainer", current: Optional[Tensor] = None) -> bool:
+    def check_monitor_top_k(self, trainer: pl.Trainer, current: Tensor | None = None) -> bool:
         if current is None:
             return False
 
@@ -503,8 +505,8 @@ class ModelCheckpoint(Checkpoint):
     @classmethod
     def _format_checkpoint_name(
         cls,
-        filename: Optional[str],
-        metrics: Dict[str, Tensor],
+        filename: str | None,
+        metrics: dict[str, Tensor],
         prefix: str = "",
         auto_insert_metric_name: bool = True,
     ) -> str:
@@ -538,7 +540,7 @@ class ModelCheckpoint(Checkpoint):
         return filename
 
     def format_checkpoint_name(
-        self, metrics: Dict[str, Tensor], filename: Optional[str] = None, ver: Optional[int] = None
+        self, metrics: dict[str, Tensor], filename: str | None = None, ver: int | None = None
     ) -> str:
         """Generate a filename according to the defined template.
 
@@ -577,7 +579,7 @@ class ModelCheckpoint(Checkpoint):
         ckpt_name = f"{filename}{self.FILE_EXTENSION}"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
-    def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> _PATH:
+    def __resolve_ckpt_dir(self, trainer: pl.Trainer) -> _PATH:
         """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger to
         determine where to save checkpoints. The path for saving weights is set in this priority:
 
@@ -606,7 +608,7 @@ class ModelCheckpoint(Checkpoint):
 
         return ckpt_path
 
-    def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
+    def _find_last_checkpoints(self, trainer: pl.Trainer) -> set[str]:
         # find all checkpoints in the folder
         ckpt_path = self.__resolve_ckpt_dir(trainer)
         if self._fs.exists(ckpt_path):
@@ -622,7 +624,7 @@ class ModelCheckpoint(Checkpoint):
             rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
 
     def _get_metric_interpolated_filepath_name(
-        self, monitor_candidates: Dict[str, Tensor], trainer: "pl.Trainer", del_filepath: Optional[str] = None
+        self, monitor_candidates: dict[str, Tensor], trainer: pl.Trainer, del_filepath: str | None = None
     ) -> str:
         filepath = self.format_checkpoint_name(monitor_candidates)
 
@@ -634,7 +636,7 @@ class ModelCheckpoint(Checkpoint):
 
         return filepath
 
-    def _monitor_candidates(self, trainer: "pl.Trainer") -> Dict[str, Tensor]:
+    def _monitor_candidates(self, trainer: pl.Trainer) -> dict[str, Tensor]:
         monitor_candidates = deepcopy(trainer.callback_metrics)
         # cast to int if necessary because `self.log("epoch", 123)` will convert it to float. if it's not a tensor
         # or does not exist we overwrite it as it's likely an error
@@ -644,7 +646,7 @@ class ModelCheckpoint(Checkpoint):
         monitor_candidates["step"] = step.int() if isinstance(step, Tensor) else torch.tensor(trainer.global_step)
         return monitor_candidates
 
-    def _save_last_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
+    def _save_last_checkpoint(self, trainer: pl.Trainer, monitor_candidates: dict[str, Tensor]) -> None:
         if not self.save_last:
             return
 
@@ -662,7 +664,7 @@ class ModelCheckpoint(Checkpoint):
         if previous and previous != filepath:
             self._remove_checkpoint(trainer, previous)
 
-    def _save_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
+    def _save_monitor_checkpoint(self, trainer: pl.Trainer, monitor_candidates: dict[str, Tensor]) -> None:
         assert self.monitor
         current = monitor_candidates.get(self.monitor)
         if self.check_monitor_top_k(trainer, current):
@@ -673,7 +675,7 @@ class ModelCheckpoint(Checkpoint):
             step = monitor_candidates["step"]
             rank_zero_info(f"Epoch {epoch:d}, global step {step:d}: {self.monitor!r} was not in top {self.save_top_k}")
 
-    def _save_none_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
+    def _save_none_monitor_checkpoint(self, trainer: pl.Trainer, monitor_candidates: dict[str, Tensor]) -> None:
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer)
         # set the best model path before saving because it will be part of the state.
         previous, self.best_model_path = self.best_model_path, filepath
@@ -682,7 +684,7 @@ class ModelCheckpoint(Checkpoint):
             self._remove_checkpoint(trainer, previous)
 
     def _update_best_and_save(
-        self, current: Tensor, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]
+        self, current: Tensor, trainer: pl.Trainer, monitor_candidates: dict[str, Tensor]
     ) -> None:
         k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
 
@@ -723,7 +725,7 @@ class ModelCheckpoint(Checkpoint):
         if del_filepath is not None and filepath != del_filepath:
             self._remove_checkpoint(trainer, del_filepath)
 
-    def to_yaml(self, filepath: Optional[_PATH] = None) -> None:
+    def to_yaml(self, filepath: _PATH | None = None) -> None:
         """Saves the `best_k_models` dict containing the checkpoint paths with the corresponding scores to a YAML
         file."""
         best_k = {k: v.item() for k, v in self.best_k_models.items()}
@@ -733,12 +735,12 @@ class ModelCheckpoint(Checkpoint):
         with self._fs.open(filepath, "w") as fp:
             yaml.dump(best_k, fp)
 
-    def file_exists(self, filepath: _PATH, trainer: "pl.Trainer") -> bool:
+    def file_exists(self, filepath: _PATH, trainer: pl.Trainer) -> bool:
         """Checks if a file exists on rank 0 and broadcasts the result to all other ranks, preventing the internal
         state to diverge between ranks."""
         exists = self._fs.exists(filepath)
         return trainer.strategy.broadcast(exists)
 
-    def _remove_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
+    def _remove_checkpoint(self, trainer: pl.Trainer, filepath: str) -> None:
         """Calls the strategy to remove the checkpoint file."""
         trainer.strategy.remove_checkpoint(filepath)

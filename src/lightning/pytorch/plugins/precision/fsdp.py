@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from contextlib import contextmanager
-from typing import Any, Generator, Literal, Optional
+from typing import Any, Generator, Literal
 
 import torch
 
@@ -35,7 +37,7 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
     """
 
     def __init__(
-        self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional[ShardedGradScaler] = None
+        self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: ShardedGradScaler | None = None
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
             raise MisconfigurationException("`FSDPMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
@@ -54,7 +56,7 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
         )
 
     @property
-    def mixed_precision_config(self) -> Optional[MixedPrecision]:
+    def mixed_precision_config(self) -> MixedPrecision | None:
         assert MixedPrecision is not None
 
         if self.precision == "16-mixed":

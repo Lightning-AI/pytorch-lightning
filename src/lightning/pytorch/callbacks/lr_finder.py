@@ -17,7 +17,7 @@ LearningRateFinder
 
 Finds optimal learning rate
 """
-from typing import Optional
+from __future__ import annotations
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
@@ -85,7 +85,7 @@ class LearningRateFinder(Callback):
         max_lr: float = 1,
         num_training_steps: int = 100,
         mode: str = "exponential",
-        early_stop_threshold: Optional[float] = 4.0,
+        early_stop_threshold: float | None = 4.0,
         update_attr: bool = True,
         attr_name: str = "",
     ) -> None:
@@ -102,9 +102,9 @@ class LearningRateFinder(Callback):
         self._attr_name = attr_name
 
         self._early_exit = False
-        self.lr_finder: Optional[_LRFinder] = None
+        self.lr_finder: _LRFinder | None = None
 
-    def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def lr_find(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         with isolate_rng():
             self.optimal_lr = _lr_find(
                 trainer,
@@ -121,5 +121,5 @@ class LearningRateFinder(Callback):
         if self._early_exit:
             raise _TunerExitException()
 
-    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_fit_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self.lr_find(trainer, pl_module)

@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
 import os
 import queue
 import tempfile
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Literal, NamedTuple, Optional, Union
+from typing import Any, Callable, Literal, NamedTuple
 
 import numpy as np
 import torch
@@ -63,7 +65,7 @@ class _MultiProcessingLauncher(_Launcher):
     """
 
     def __init__(
-        self, strategy: "pl.strategies.ParallelStrategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
+        self, strategy: pl.strategies.ParallelStrategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
     ) -> None:
         self._strategy = strategy
         self._start_method = start_method
@@ -72,7 +74,7 @@ class _MultiProcessingLauncher(_Launcher):
                 f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
                 f" {', '.join(mp.get_all_start_methods())}"
             )
-        self.procs: List[mp.Process] = []
+        self.procs: list[mp.Process] = []
 
     @property
     def is_interactive_compatible(self) -> bool:
@@ -81,7 +83,7 @@ class _MultiProcessingLauncher(_Launcher):
         # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
         return self._start_method == "fork"
 
-    def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
+    def launch(self, function: Callable, *args: Any, trainer: pl.Trainer | None = None, **kwargs: Any) -> Any:
         """Launches processes that run the given function in parallel.
 
         The function is allowed to have a return value. However, when all processes join, only the return value
@@ -134,12 +136,12 @@ class _MultiProcessingLauncher(_Launcher):
     def _wrapping_function(
         self,
         process_idx: int,
-        trainer: Optional["pl.Trainer"],
+        trainer: pl.Trainer | None,
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: Union[mp.SimpleQueue, queue.Queue],
-        global_states: Optional["_GlobalStateSnapshot"] = None,
+        return_queue: mp.SimpleQueue | queue.Queue,
+        global_states: _GlobalStateSnapshot | None = None,
     ) -> None:
         if global_states:
             global_states.restore()
@@ -152,7 +154,7 @@ class _MultiProcessingLauncher(_Launcher):
         if process_idx == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
-    def _recover_results_in_main_process(self, worker_output: "_WorkerOutput", trainer: "pl.Trainer") -> None:
+    def _recover_results_in_main_process(self, worker_output: _WorkerOutput, trainer: pl.Trainer) -> None:
         # transfer back the best path to the trainer
         if trainer.checkpoint_callback and hasattr(trainer.checkpoint_callback, "best_model_path"):
             trainer.checkpoint_callback.best_model_path = str(worker_output.best_model_path)
@@ -171,7 +173,7 @@ class _MultiProcessingLauncher(_Launcher):
         # get the `callback_metrics` and set it to the trainer
         self.update_main_process_results(trainer, worker_output.extra)
 
-    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
+    def _collect_rank_zero_results(self, trainer: pl.Trainer, results: Any) -> _WorkerOutput | None:
         rank_zero_debug("Collecting results from rank 0 process.")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = (
@@ -208,7 +210,7 @@ class _MultiProcessingLauncher(_Launcher):
                     f" initialization when `start_method='spawn'`."
                 )
 
-    def get_extra_results(self, trainer: "pl.Trainer") -> Dict[str, Any]:
+    def get_extra_results(self, trainer: pl.Trainer) -> dict[str, Any]:
         """Gather extra state from the Trainer and return it as a dictionary for sending back to the main process.
         To avoid issues with memory sharing, we cast the data to numpy.
 
@@ -224,7 +226,7 @@ class _MultiProcessingLauncher(_Launcher):
         )  # send as numpy to avoid issues with memory sharing
         return {"callback_metrics": callback_metrics}
 
-    def update_main_process_results(self, trainer: "pl.Trainer", extra: Dict[str, Any]) -> None:
+    def update_main_process_results(self, trainer: pl.Trainer, extra: dict[str, Any]) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 
@@ -244,18 +246,18 @@ class _MultiProcessingLauncher(_Launcher):
                 with suppress(ProcessLookupError):
                     os.kill(proc.pid, signum)
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         state["procs"] = []  # SpawnProcess can't be pickled
         return state
 
 
 class _WorkerOutput(NamedTuple):
-    best_model_path: Optional[_PATH]
-    weights_path: Optional[_PATH]
+    best_model_path: _PATH | None
+    weights_path: _PATH | None
     trainer_state: TrainerState
     trainer_results: Any
-    extra: Dict[str, Any]
+    extra: dict[str, Any]
 
 
 @dataclass
@@ -279,10 +281,10 @@ class _GlobalStateSnapshot:
     use_deterministic_algorithms: bool
     use_deterministic_algorithms_warn_only: bool
     cudnn_benchmark: bool
-    rng_states: Dict[str, Any]
+    rng_states: dict[str, Any]
 
     @classmethod
-    def capture(cls) -> "_GlobalStateSnapshot":
+    def capture(cls) -> _GlobalStateSnapshot:
         """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker
         process."""
         return cls(

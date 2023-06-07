@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import os
 import queue
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable
 
 import torch.multiprocessing as mp
 
@@ -46,7 +48,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         strategy: A reference to the strategy that is used together with this launcher
     """
 
-    def __init__(self, strategy: "pl.strategies.XLAStrategy") -> None:
+    def __init__(self, strategy: pl.strategies.XLAStrategy) -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(strategy=strategy, start_method="fork")
@@ -55,7 +57,7 @@ class _XLALauncher(_MultiProcessingLauncher):
     def is_interactive_compatible(self) -> bool:
         return True
 
-    def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
+    def launch(self, function: Callable, *args: Any, trainer: pl.Trainer | None = None, **kwargs: Any) -> Any:
         """Launches processes that run the given function in parallel.
 
         The function is allowed to have a return value. However, when all processes join, only the return value
@@ -72,7 +74,7 @@ class _XLALauncher(_MultiProcessingLauncher):
 
         using_pjrt = pjrt.using_pjrt()
         # pjrt requires that the queue is serializable
-        return_queue: Union[queue.Queue, mp.SimpleQueue] = (
+        return_queue: queue.Queue | mp.SimpleQueue = (
             mp.Manager().Queue() if using_pjrt else mp.get_context(self._start_method).SimpleQueue()
         )
 
@@ -110,12 +112,12 @@ class _XLALauncher(_MultiProcessingLauncher):
         # XLA's multiprocessing returns the global index, not the local index as torch's multiprocessing
         # https://github.com/pytorch/xla/blob/v1.13.0/torch_xla/distributed/xla_multiprocessing.py#L321
         process_idx: int,
-        trainer: Optional["pl.Trainer"],
+        trainer: pl.Trainer | None,
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: Union[mp.SimpleQueue, queue.Queue],
-        global_states: Optional[_GlobalStateSnapshot] = None,
+        return_queue: mp.SimpleQueue | queue.Queue,
+        global_states: _GlobalStateSnapshot | None = None,
     ) -> None:
         import torch_xla.core.xla_model as xm
         from torch_xla.experimental import pjrt
@@ -137,7 +139,7 @@ class _XLALauncher(_MultiProcessingLauncher):
 
         _rank_teardown(self._strategy.local_rank)
 
-    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
+    def _collect_rank_zero_results(self, trainer: pl.Trainer, results: Any) -> _WorkerOutput | None:
         rank_zero_debug("Collecting results from rank 0 process.")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = (

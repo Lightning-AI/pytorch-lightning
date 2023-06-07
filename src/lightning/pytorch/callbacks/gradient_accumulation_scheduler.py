@@ -20,7 +20,9 @@ Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 """
 
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import Any
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
@@ -62,7 +64,7 @@ class GradientAccumulationScheduler(Callback):
         >>> trainer = Trainer(callbacks=[accumulator])
     """
 
-    def __init__(self, scheduling: Dict[int, int]):
+    def __init__(self, scheduling: dict[int, int]):
         super().__init__()
 
         if not scheduling:  # empty dict error
@@ -98,7 +100,7 @@ class GradientAccumulationScheduler(Callback):
                 break
         return accumulate_grad_batches
 
-    def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         """Performns a configuration validation before training starts and raises errors for incompatible
         settings."""
 
@@ -139,5 +141,5 @@ class GradientAccumulationScheduler(Callback):
                 " callback. Either remove `accumulate_grad_batches` from the Trainer or remove the callback."
             )
 
-    def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
+    def on_train_epoch_start(self, trainer: pl.Trainer, *_: Any) -> None:
         trainer.accumulate_grad_batches = self.get_accumulate_grad_batches(trainer.current_epoch)

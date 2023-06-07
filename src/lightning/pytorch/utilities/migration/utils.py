@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
 import os
 import sys
 import threading
 from types import ModuleType, TracebackType
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict
 
 from packaging.version import Version
 
@@ -33,8 +35,8 @@ _lock = threading.Lock()
 
 
 def migrate_checkpoint(
-    checkpoint: _CHECKPOINT, target_version: Optional[str] = None
-) -> Tuple[_CHECKPOINT, Dict[str, List[str]]]:
+    checkpoint: _CHECKPOINT, target_version: str | None = None
+) -> tuple[_CHECKPOINT, dict[str, list[str]]]:
     """Applies Lightning version migrations to a checkpoint dictionary.
 
     Args:
@@ -86,7 +88,7 @@ class pl_legacy_patch:
             torch.load("path/to/legacy/checkpoint.ckpt")
     """
 
-    def __enter__(self) -> "pl_legacy_patch":
+    def __enter__(self) -> pl_legacy_patch:
         _lock.acquire()
         # `pl.utilities.argparse_utils` was renamed to `pl.utilities.argparse`
         legacy_argparse_module = ModuleType("lightning.pytorch.utilities.argparse_utils")
@@ -99,9 +101,9 @@ class pl_legacy_patch:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        exc_traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
     ) -> None:
         if hasattr(pl.utilities.argparse, "_gpus_arg_default"):
             delattr(pl.utilities.argparse, "_gpus_arg_default")
@@ -109,7 +111,7 @@ class pl_legacy_patch:
         _lock.release()
 
 
-def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_PATH] = None) -> _CHECKPOINT:
+def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: _PATH | None = None) -> _CHECKPOINT:
     """Applies Lightning version migrations to a checkpoint dictionary and prints infos for the user.
 
     This function is used by the Lightning Trainer when resuming from a checkpoint.
@@ -148,7 +150,7 @@ def _set_legacy_version(checkpoint: _CHECKPOINT, version: str) -> None:
     checkpoint.setdefault("legacy_pytorch-lightning_version", version)
 
 
-def _should_upgrade(checkpoint: _CHECKPOINT, target: str, max_version: Optional[str] = None) -> bool:
+def _should_upgrade(checkpoint: _CHECKPOINT, target: str, max_version: str | None = None) -> bool:
     """Returns whether a checkpoint qualifies for an upgrade when the version is lower than the given target."""
     target_version = Version(target)
     is_lte_max_version = max_version is None or target_version <= Version(max_version)

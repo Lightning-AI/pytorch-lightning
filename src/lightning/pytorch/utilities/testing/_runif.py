@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, List, Optional, Tuple
+from __future__ import annotations
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -28,12 +28,12 @@ _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 def _runif_reasons(
     *,
     min_cuda_gpus: int = 0,
-    min_torch: Optional[str] = None,
-    max_torch: Optional[str] = None,
-    min_python: Optional[str] = None,
+    min_torch: str | None = None,
+    max_torch: str | None = None,
+    min_python: str | None = None,
     bf16_cuda: bool = False,
     tpu: bool = False,
-    mps: Optional[bool] = None,
+    mps: bool | None = None,
     skip_windows: bool = False,
     standalone: bool = False,
     deepspeed: bool = False,
@@ -43,7 +43,7 @@ def _runif_reasons(
     psutil: bool = False,
     sklearn: bool = False,
     onnx: bool = False,
-) -> Tuple[List[str], Dict[str, bool]]:
+) -> tuple[list[str], dict[str, bool]]:
     """Construct reasons for pytest skipif.
 
     Args:

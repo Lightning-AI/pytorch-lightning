@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import contextlib
 from collections.abc import Iterable
-from typing import Any, Callable, Dict, Iterator, List, Literal, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Iterator, List, Literal, Tuple, TypeVar
 
 from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter
 from typing_extensions import Self, TypedDict
@@ -25,9 +27,9 @@ _T = TypeVar("_T")
 
 
 class _ModeIterator(Iterator[_T]):
-    def __init__(self, iterables: List[Iterable]) -> None:
+    def __init__(self, iterables: list[Iterable]) -> None:
         self.iterables = iterables
-        self.iterators: List[Iterator] = []
+        self.iterators: list[Iterator] = []
 
     def __next__(self) -> _T:
         raise NotImplementedError
@@ -39,7 +41,7 @@ class _ModeIterator(Iterator[_T]):
     def reset(self) -> None:
         self.iterators = []
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
 
         # workaround an inconvenient `NotImplementedError`:
@@ -53,11 +55,11 @@ class _ModeIterator(Iterator[_T]):
 
 
 class _MaxSizeCycle(_ModeIterator[List]):
-    def __init__(self, iterables: List[Iterable]) -> None:
+    def __init__(self, iterables: list[Iterable]) -> None:
         super().__init__(iterables)
-        self._consumed: List[bool] = []
+        self._consumed: list[bool] = []
 
-    def __next__(self) -> List:
+    def __next__(self) -> list:
         n = len(self.iterators)
         out = [None] * n  # values per iterator
         for i in range(n):
@@ -83,31 +85,31 @@ class _MaxSizeCycle(_ModeIterator[List]):
 
 
 class _MinSize(_ModeIterator[List]):
-    def __next__(self) -> List:
+    def __next__(self) -> list:
         return [next(it) for it in self.iterators]
 
 
 class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
-    def __init__(self, iterables: List[Iterable], limits: Optional[List[Union[int, float]]] = None) -> None:
+    def __init__(self, iterables: list[Iterable], limits: list[int | float] | None = None) -> None:
         super().__init__(iterables)
         self._iterator_idx = 0  # what would be dataloader_idx
         self._idx = 0  # what would be batch_idx
         self.limits = limits
 
     @property
-    def limits(self) -> Optional[List[Union[int, float]]]:
+    def limits(self) -> list[int | float] | None:
         """Optional limits per iterator."""
         return self._limits
 
     @limits.setter
-    def limits(self, limits: Optional[List[Union[int, float]]]) -> None:
+    def limits(self, limits: list[int | float] | None) -> None:
         if limits is not None and len(limits) != len(self.iterables):
             raise ValueError(
                 f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(self.iterables)})"
             )
         self._limits = limits
 
-    def __next__(self) -> Tuple[Any, int, int]:
+    def __next__(self) -> tuple[Any, int, int]:
         n = len(self.iterables)
         if n == 0 or self._iterator_idx >= n:
             raise StopIteration
@@ -156,7 +158,7 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
 
 
 class _MaxSize(_ModeIterator[List]):
-    def __next__(self) -> List:
+    def __next__(self) -> list:
         n = len(self.iterators)
         out = [None] * n
         all_exhausted = True
@@ -170,8 +172,8 @@ class _MaxSize(_ModeIterator[List]):
 
 
 class _CombinationMode(TypedDict):
-    fn: Callable[[List[int]], int]
-    iterator: Type[_ModeIterator]
+    fn: Callable[[list[int]], int]
+    iterator: type[_ModeIterator]
 
 
 _SUPPORTED_MODES = {
@@ -246,7 +248,7 @@ class CombinedLoader(Iterable):
         self._iterables = iterables
         self._flattened, self._spec = _tree_flatten(iterables)
         self._mode = mode
-        self._iterator: Optional[_ModeIterator] = None
+        self._iterator: _ModeIterator | None = None
 
     @property
     def iterables(self) -> Any:
@@ -264,12 +266,12 @@ class CombinedLoader(Iterable):
         return _map_and_unflatten(lambda x: getattr(x, "batch_sampler", None), self.flattened, self._spec)
 
     @property
-    def flattened(self) -> List[Any]:
+    def flattened(self) -> list[Any]:
         """Return the flat list of iterables."""
         return self._flattened
 
     @flattened.setter
-    def flattened(self, flattened: List[Any]) -> None:
+    def flattened(self, flattened: list[Any]) -> None:
         """Setter to conveniently update the list of iterables."""
         if len(flattened) != len(self._flattened):
             raise ValueError(

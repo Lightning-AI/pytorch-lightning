@@ -15,6 +15,8 @@
 MLflow Logger
 -------------
 """
+from __future__ import annotations
+
 import logging
 import os
 import re
@@ -22,7 +24,7 @@ import tempfile
 from argparse import Namespace
 from pathlib import Path
 from time import time
-from typing import Any, Dict, List, Literal, Mapping, Optional, Union
+from typing import Any, Literal, Mapping
 
 import yaml
 from lightning_utilities.core.imports import RequirementCache
@@ -56,7 +58,7 @@ elif hasattr(context, "registry"):
     from mlflow.tracking.context.registry import resolve_tags
 else:
 
-    def resolve_tags(tags: Optional[Dict] = None) -> Optional[Dict]:
+    def resolve_tags(tags: dict | None = None) -> dict | None:
         """
         Args:
             tags: A dictionary of tags to override. If specified, tags passed in this argument will
@@ -137,14 +139,14 @@ class MLFlowLogger(Logger):
     def __init__(
         self,
         experiment_name: str = "lightning_logs",
-        run_name: Optional[str] = None,
-        tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
-        tags: Optional[Dict[str, Any]] = None,
-        save_dir: Optional[str] = "./mlruns",
+        run_name: str | None = None,
+        tracking_uri: str | None = os.getenv("MLFLOW_TRACKING_URI"),
+        tags: dict[str, Any] | None = None,
+        save_dir: str | None = "./mlruns",
         log_model: Literal[True, False, "all"] = False,
         prefix: str = "",
-        artifact_location: Optional[str] = None,
-        run_id: Optional[str] = None,
+        artifact_location: str | None = None,
+        run_id: str | None = None,
     ):
         if not _MLFLOW_AVAILABLE:
             raise ModuleNotFoundError(str(_MLFLOW_AVAILABLE))
@@ -153,14 +155,14 @@ class MLFlowLogger(Logger):
             tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
 
         self._experiment_name = experiment_name
-        self._experiment_id: Optional[str] = None
+        self._experiment_id: str | None = None
         self._tracking_uri = tracking_uri
         self._run_name = run_name
         self._run_id = run_id
         self.tags = tags
         self._log_model = log_model
-        self._logged_model_time: Dict[str, float] = {}
-        self._checkpoint_callback: Optional[ModelCheckpoint] = None
+        self._logged_model_time: dict[str, float] = {}
+        self._checkpoint_callback: ModelCheckpoint | None = None
         self._prefix = prefix
         self._artifact_location = artifact_location
 
@@ -213,7 +215,7 @@ class MLFlowLogger(Logger):
         return self._mlflow_client
 
     @property
-    def run_id(self) -> Optional[str]:
+    def run_id(self) -> str | None:
         """Create the experiment if it does not exist to get the run id.
 
         Returns:
@@ -223,7 +225,7 @@ class MLFlowLogger(Logger):
         return self._run_id
 
     @property
-    def experiment_id(self) -> Optional[str]:
+    def experiment_id(self) -> str | None:
         """Create the experiment if it does not exist to get the experiment id.
 
         Returns:
@@ -233,7 +235,7 @@ class MLFlowLogger(Logger):
         return self._experiment_id
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: dict[str, Any] | Namespace) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
 
@@ -246,11 +248,11 @@ class MLFlowLogger(Logger):
             self.experiment.log_batch(run_id=self.run_id, params=params_list[idx : idx + 100])
 
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: int | None = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
-        metrics_list: List[Metric] = []
+        metrics_list: list[Metric] = []
 
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
@@ -289,7 +291,7 @@ class MLFlowLogger(Logger):
             self.experiment.set_terminated(self.run_id, status)
 
     @property
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str | None:
         """The root file directory in which MLflow experiments are saved.
 
         Return:
@@ -301,7 +303,7 @@ class MLFlowLogger(Logger):
         return None
 
     @property
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """Get the experiment id.
 
         Returns:
@@ -310,7 +312,7 @@ class MLFlowLogger(Logger):
         return self.experiment_id
 
     @property
-    def version(self) -> Optional[str]:
+    def version(self) -> str | None:
         """Get the run id.
 
         Returns:

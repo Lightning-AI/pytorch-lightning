@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
 import os
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 
 import torch
 from fsspec.core import url_to_fs
@@ -43,15 +45,15 @@ log: logging.Logger = logging.getLogger(__name__)
 
 
 class _CheckpointConnector:
-    def __init__(self, trainer: "pl.Trainer") -> None:
+    def __init__(self, trainer: pl.Trainer) -> None:
         self.trainer = trainer
-        self._ckpt_path: Optional[_PATH] = None
+        self._ckpt_path: _PATH | None = None
         # flag to know if the user is changing the checkpoint path statefully. See `trainer.ckpt_path.setter`
         self._user_managed: bool = False
-        self._loaded_checkpoint: Dict[str, Any] = {}
+        self._loaded_checkpoint: dict[str, Any] = {}
 
     @property
-    def _hpc_resume_path(self) -> Optional[str]:
+    def _hpc_resume_path(self) -> str | None:
         dir_path_hpc = self.trainer.default_root_dir
         dir_path_hpc = str(dir_path_hpc)
         fs, path = url_to_fs(dir_path_hpc)
@@ -64,7 +66,7 @@ class _CheckpointConnector:
             return dir_path_hpc + fs.sep + f"hpc_ckpt_{max_version}.ckpt"
         return None
 
-    def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def resume_start(self, checkpoint_path: _PATH | None = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
         1. from HPC weights if `checkpoint_path` is ``None`` and on SLURM or passed keyword `"hpc"`.
@@ -83,8 +85,8 @@ class _CheckpointConnector:
         self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
     def _select_ckpt_path(
-        self, state_fn: TrainerFn, ckpt_path: Optional[_PATH], model_provided: bool, model_connected: bool
-    ) -> Optional[_PATH]:
+        self, state_fn: TrainerFn, ckpt_path: _PATH | None, model_provided: bool, model_connected: bool
+    ) -> _PATH | None:
         """Called by the ``Trainer`` to select the checkpoint path source."""
         if self._user_managed:
             if ckpt_path:
@@ -113,8 +115,8 @@ class _CheckpointConnector:
         return ckpt_path
 
     def _parse_ckpt_path(
-        self, state_fn: TrainerFn, ckpt_path: Optional[_PATH], model_provided: bool, model_connected: bool
-    ) -> Optional[_PATH]:
+        self, state_fn: TrainerFn, ckpt_path: _PATH | None, model_provided: bool, model_connected: bool
+    ) -> _PATH | None:
         """Converts the ``ckpt_path`` special values into an actual filepath, depending on the trainer
         configuration."""
         if ckpt_path is None and SLURMEnvironment.detect() and self._hpc_resume_path is not None:
@@ -223,7 +225,7 @@ class _CheckpointConnector:
         # wait for all to catch up
         self.trainer.strategy.barrier("_CheckpointConnector.resume_end")
 
-    def restore(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def restore(self, checkpoint_path: _PATH | None = None) -> None:
         """Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file through file-read and
         state-restore, in this priority:
 
@@ -390,7 +392,7 @@ class _CheckpointConnector:
         for config, lrs_state in zip(self.trainer.lr_scheduler_configs, lr_schedulers):
             config.scheduler.load_state_dict(lrs_state)
 
-    def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def _restore_modules_and_callbacks(self, checkpoint_path: _PATH | None = None) -> None:
         # restore modules after setup
         self.resume_start(checkpoint_path)
         self.restore_model()
@@ -487,10 +489,10 @@ class _CheckpointConnector:
         call._call_lightning_module_hook(trainer, "on_save_checkpoint", checkpoint)
         return checkpoint
 
-    def _get_lightning_module_state_dict(self) -> Dict[str, Tensor]:
+    def _get_lightning_module_state_dict(self) -> dict[str, Tensor]:
         return self.trainer.strategy.lightning_module_state_dict()
 
-    def _get_loops_state_dict(self) -> Dict[str, Any]:
+    def _get_loops_state_dict(self) -> dict[str, Any]:
         return {
             "fit_loop": self.trainer.fit_loop.state_dict(),
             "validate_loop": self.trainer.validate_loop.state_dict(),
@@ -499,7 +501,7 @@ class _CheckpointConnector:
         }
 
     @staticmethod
-    def __max_ckpt_version_in_folder(dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
+    def __max_ckpt_version_in_folder(dir_path: _PATH, name_key: str = "ckpt_") -> int | None:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
 
         Args:

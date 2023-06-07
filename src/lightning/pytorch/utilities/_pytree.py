@@ -1,4 +1,6 @@
-from typing import Any, List, Tuple
+from __future__ import annotations
+
+from typing import Any
 
 from torch.utils._pytree import _get_node_type, LeafSpec, PyTree, SUPPORTED_NODES, tree_unflatten, TreeSpec
 
@@ -15,7 +17,7 @@ def _is_leaf_or_primitive_container(pytree: PyTree) -> bool:
     return all(isinstance(child, (int, float, str)) for child in child_pytrees)
 
 
-def _tree_flatten(pytree: PyTree) -> Tuple[List[Any], TreeSpec]:
+def _tree_flatten(pytree: PyTree) -> tuple[list[Any], TreeSpec]:
     """Copy of :func:`torch.utils._pytree.tree_flatten` using our custom leaf function."""
     if _is_leaf_or_primitive_container(pytree):
         return [pytree], LeafSpec()
@@ -24,8 +26,8 @@ def _tree_flatten(pytree: PyTree) -> Tuple[List[Any], TreeSpec]:
     flatten_fn = SUPPORTED_NODES[node_type].flatten_fn
     child_pytrees, context = flatten_fn(pytree)
 
-    result: List[Any] = []
-    children_specs: List["TreeSpec"] = []
+    result: list[Any] = []
+    children_specs: list[TreeSpec] = []
     for child in child_pytrees:
         flat, child_spec = _tree_flatten(child)
         result += flat
@@ -34,6 +36,6 @@ def _tree_flatten(pytree: PyTree) -> Tuple[List[Any], TreeSpec]:
     return result, TreeSpec(node_type, context, children_specs)
 
 
-def _map_and_unflatten(fn: Any, values: List[Any], spec: TreeSpec) -> PyTree:
+def _map_and_unflatten(fn: Any, values: list[Any], spec: TreeSpec) -> PyTree:
     """Utility function to apply a function and unflatten it."""
     return tree_unflatten([fn(i) for i in values], spec)

@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""ModelPruning ^^^^^^^^^^^^"""
+from __future__ import annotations
+
 import inspect
 import logging
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Sequence, Tuple
 
 import torch.nn.utils.prune as pytorch_prune
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -52,7 +54,7 @@ _MODULE_CONTAINERS = (LightningModule, nn.Sequential, nn.ModuleList, nn.ModuleDi
 
 class _LayerRef(TypedDict):
     data: nn.Module
-    names: List[Tuple[int, str]]
+    names: list[tuple[int, str]]
 
 
 class ModelPruning(Callback):
@@ -60,17 +62,17 @@ class ModelPruning(Callback):
 
     def __init__(
         self,
-        pruning_fn: Union[Callable, str],
+        pruning_fn: Callable | str,
         parameters_to_prune: _PARAM_LIST = (),
-        parameter_names: Optional[List[str]] = None,
+        parameter_names: list[str] | None = None,
         use_global_unstructured: bool = True,
-        amount: Union[int, float, Callable[[int], Union[int, float]]] = 0.5,
-        apply_pruning: Union[bool, Callable[[int], bool]] = True,
+        amount: int | float | Callable[[int], int | float] = 0.5,
+        apply_pruning: bool | Callable[[int], bool] = True,
         make_pruning_permanent: bool = True,
-        use_lottery_ticket_hypothesis: Union[bool, Callable[[int], bool]] = True,
+        use_lottery_ticket_hypothesis: bool | Callable[[int], bool] = True,
         resample_parameters: bool = False,
-        pruning_dim: Optional[int] = None,
-        pruning_norm: Optional[int] = None,
+        pruning_dim: int | None = None,
+        pruning_norm: int | None = None,
         verbose: int = 0,
         prune_on_train_epoch_end: bool = True,
     ) -> None:
@@ -160,9 +162,9 @@ class ModelPruning(Callback):
         self._resample_parameters = resample_parameters
         self._prune_on_train_epoch_end = prune_on_train_epoch_end
         self._parameter_names = parameter_names or self.PARAMETER_NAMES
-        self._global_kwargs: Dict[str, Any] = {}
-        self._original_layers: Optional[Dict[int, _LayerRef]] = None
-        self._pruning_method_name: Optional[str] = None
+        self._global_kwargs: dict[str, Any] = {}
+        self._original_layers: dict[int, _LayerRef] | None = None
+        self._pruning_method_name: str | None = None
 
         for name in self._parameter_names:
             if name not in self.PARAMETER_NAMES:
@@ -230,7 +232,7 @@ class ModelPruning(Callback):
         """This function can be overridden to control which module to prune."""
         return parameters_to_prune
 
-    def _create_pruning_fn(self, pruning_fn: str, **kwargs: Any) -> Union[Callable, pytorch_prune.BasePruningMethod]:
+    def _create_pruning_fn(self, pruning_fn: str, **kwargs: Any) -> Callable | pytorch_prune.BasePruningMethod:
         """This function takes `pruning_fn`, a function name.
 
         IF use_global_unstructured, pruning_fn will be resolved into its associated ``PyTorch BasePruningMethod`` ELSE,
@@ -302,7 +304,7 @@ class ModelPruning(Callback):
         for module, name in self._parameters_to_prune:
             self.pruning_fn(module, name=name, amount=amount)
 
-    def _resolve_global_kwargs(self, amount: float) -> Dict[str, Any]:
+    def _resolve_global_kwargs(self, amount: float) -> dict[str, Any]:
         self._global_kwargs["amount"] = amount
         params = set(inspect.signature(self.pruning_fn).parameters)
         params.discard("self")
@@ -314,14 +316,14 @@ class ModelPruning(Callback):
         )
 
     @staticmethod
-    def _get_pruned_stats(module: nn.Module, name: str) -> Tuple[int, int]:
+    def _get_pruned_stats(module: nn.Module, name: str) -> tuple[int, int]:
         attr = f"{name}_mask"
         if not hasattr(module, attr):
             return 0, 1
         mask = getattr(module, attr)
         return (mask == 0).sum().item(), mask.numel()
 
-    def apply_pruning(self, amount: Union[int, float]) -> None:
+    def apply_pruning(self, amount: int | float) -> None:
         """Applies pruning to ``parameters_to_prune``."""
         if self._verbose:
             prev_stats = [self._get_pruned_stats(m, n) for m, n in self._parameters_to_prune]
@@ -337,7 +339,7 @@ class ModelPruning(Callback):
 
     @rank_zero_only
     def _log_sparsity_stats(
-        self, prev: List[Tuple[int, int]], curr: List[Tuple[int, int]], amount: Union[int, float] = 0
+        self, prev: list[tuple[int, int]], curr: list[tuple[int, int]], amount: int | float = 0
     ) -> None:
         total_params = sum(p.numel() for layer, _ in self._parameters_to_prune for p in layer.parameters())
         prev_total_zeros = sum(zeros for zeros, _ in prev)
@@ -357,7 +359,7 @@ class ModelPruning(Callback):
                     f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )
 
-    def setup(self, trainer: "pl.Trainer", pl_module: LightningModule, stage: str) -> None:
+    def setup(self, trainer: pl.Trainer, pl_module: LightningModule, stage: str) -> None:
         parameters_to_prune = self.sanitize_parameters_to_prune(
             pl_module, self._parameters_to_prune, parameter_names=self._parameter_names
         )
@@ -387,22 +389,22 @@ class ModelPruning(Callback):
         ):
             self.apply_lottery_ticket_hypothesis()
 
-    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
+    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: LightningModule) -> None:
         if self._prune_on_train_epoch_end:
             rank_zero_debug("`ModelPruning.on_train_epoch_end`. Applying pruning")
             self._run_pruning(pl_module.current_epoch)
 
-    def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
+    def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: LightningModule) -> None:
         if not trainer.sanity_checking and not self._prune_on_train_epoch_end:
             rank_zero_debug("`ModelPruning.on_validation_epoch_end`. Applying pruning")
             self._run_pruning(pl_module.current_epoch)
 
-    def on_train_end(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
+    def on_train_end(self, trainer: pl.Trainer, pl_module: LightningModule) -> None:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint")
             self.make_pruning_permanent(pl_module)
 
-    def _make_pruning_permanent_on_state_dict(self, pl_module: LightningModule) -> Dict[str, Any]:
+    def _make_pruning_permanent_on_state_dict(self, pl_module: LightningModule) -> dict[str, Any]:
         state_dict = pl_module.state_dict()
 
         # find the mask and the original weights.
@@ -419,7 +421,7 @@ class ModelPruning(Callback):
 
         return apply_to_collection(state_dict, Tensor, move_to_cpu)
 
-    def on_save_checkpoint(self, trainer: "pl.Trainer", pl_module: LightningModule, checkpoint: Dict[str, Any]) -> None:
+    def on_save_checkpoint(self, trainer: pl.Trainer, pl_module: LightningModule, checkpoint: dict[str, Any]) -> None:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
             # manually prune the weights so training can keep going with the same buffers

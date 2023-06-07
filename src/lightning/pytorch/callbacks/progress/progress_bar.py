@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional, Union
+from __future__ import annotations
+
+from typing import Any
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Callback
@@ -45,11 +47,11 @@ class ProgressBar(Callback):
     """
 
     def __init__(self) -> None:
-        self._trainer: Optional["pl.Trainer"] = None
-        self._current_eval_dataloader_idx: Optional[int] = None
+        self._trainer: pl.Trainer | None = None
+        self._current_eval_dataloader_idx: int | None = None
 
     @property
-    def trainer(self) -> "pl.Trainer":
+    def trainer(self) -> pl.Trainer:
         if self._trainer is None:
             raise TypeError(f"The `{self.__class__.__name__}._trainer` reference has not been set yet.")
         return self._trainer
@@ -75,7 +77,7 @@ class ProgressBar(Callback):
         return "Predicting"
 
     @property
-    def total_train_batches(self) -> Union[int, float]:
+    def total_train_batches(self) -> int | float:
         """The total number of training batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the training
@@ -84,7 +86,7 @@ class ProgressBar(Callback):
         return self.trainer.num_training_batches
 
     @property
-    def total_val_batches_current_dataloader(self) -> Union[int, float]:
+    def total_val_batches_current_dataloader(self) -> int | float:
         """The total number of validation batches, which may change from epoch to epoch for current dataloader.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
@@ -97,7 +99,7 @@ class ProgressBar(Callback):
         return batches
 
     @property
-    def total_test_batches_current_dataloader(self) -> Union[int, float]:
+    def total_test_batches_current_dataloader(self) -> int | float:
         """The total number of testing batches, which may change from epoch to epoch for current dataloader.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the test dataloader is
@@ -110,7 +112,7 @@ class ProgressBar(Callback):
         return batches
 
     @property
-    def total_predict_batches_current_dataloader(self) -> Union[int, float]:
+    def total_predict_batches_current_dataloader(self) -> int | float:
         """The total number of prediction batches, which may change from epoch to epoch for current dataloader.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
@@ -120,7 +122,7 @@ class ProgressBar(Callback):
         return self.trainer.num_predict_batches[self._current_eval_dataloader_idx]
 
     @property
-    def total_val_batches(self) -> Union[int, float]:
+    def total_val_batches(self) -> int | float:
         """The total number of validation batches, which may change from epoch to epoch for all val dataloaders.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
@@ -159,14 +161,14 @@ class ProgressBar(Callback):
         """You should provide a way to print without breaking the progress bar."""
         print(*args, **kwargs)
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
+    def setup(self, trainer: pl.Trainer, pl_module: pl.LightningModule, stage: str) -> None:
         self._trainer = trainer
         if not trainer.is_global_zero:
             self.disable()
 
     def get_metrics(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
-    ) -> Dict[str, Union[int, str, float, Dict[str, float]]]:
+        self, trainer: pl.Trainer, pl_module: pl.LightningModule
+    ) -> dict[str, int | str | float | dict[str, float]]:
         r"""Combines progress bar metrics collected from the trainer with standard metrics from
         get_standard_metrics. Implement this to override the items displayed in the progress bar.
 
@@ -196,7 +198,7 @@ class ProgressBar(Callback):
         return {**standard_metrics, **pbar_metrics}
 
 
-def get_standard_metrics(trainer: "pl.Trainer") -> Dict[str, Union[int, str]]:
+def get_standard_metrics(trainer: pl.Trainer) -> dict[str, int | str]:
     r"""Returns the standard metrics displayed in the progress bar. Currently, it only includes the version of the
     experiment when using a logger.
 
@@ -207,7 +209,7 @@ def get_standard_metrics(trainer: "pl.Trainer") -> Dict[str, Union[int, str]]:
     Return:
         Dictionary with the standard metrics to be displayed in the progress bar.
     """
-    items_dict: Dict[str, Union[int, str]] = {}
+    items_dict: dict[str, int | str] = {}
     if trainer.loggers:
         from lightning.pytorch.loggers.utilities import _version
 

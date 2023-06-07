@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from contextlib import contextmanager
-from typing import Any, cast, Generator, List, Literal, Tuple
+from typing import Any, cast, Generator, Literal
 
 import torch
 import torch.nn as nn
@@ -75,8 +77,8 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     precision: Literal["64-true"] = "64-true"
 
     def connect(
-        self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
-    ) -> Tuple[nn.Module, List["Optimizer"], List[Any]]:
+        self, model: nn.Module, optimizers: list[Optimizer], lr_schedulers: list[Any]
+    ) -> tuple[nn.Module, list[Optimizer], list[Any]]:
         """Converts the model to double precision and wraps it in a ``LightningDoublePrecisionModule`` to convert
         incoming floating point data to double (``torch.float64``) precision.
 

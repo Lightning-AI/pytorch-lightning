@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import io
 import os
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, TYPE_CHECKING
 
 import torch
 from torch import Tensor
@@ -49,10 +51,10 @@ class XLAStrategy(DDPStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        accelerator: pl.accelerators.Accelerator | None = None,
+        parallel_devices: list[torch.device] | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision_plugin: PrecisionPlugin | None = None,
         debug: bool = False,
         sync_module_states: bool = True,
         **_: Any,
@@ -67,7 +69,7 @@ class XLAStrategy(DDPStrategy):
             precision_plugin=precision_plugin,
             start_method="fork",
         )
-        self._checkpoint_io: Optional[CheckpointIO]
+        self._checkpoint_io: CheckpointIO | None
         self.debug = debug
         self._launched = False
         self._sync_module_states = sync_module_states
@@ -82,7 +84,7 @@ class XLAStrategy(DDPStrategy):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO | None) -> None:
         self._checkpoint_io = io
 
     @property
@@ -96,7 +98,7 @@ class XLAStrategy(DDPStrategy):
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: pl.Trainer) -> None:
         assert self.accelerator
         self.accelerator.setup(trainer)
 
@@ -123,10 +125,10 @@ class XLAStrategy(DDPStrategy):
         return model
 
     @property
-    def distributed_sampler_kwargs(self) -> Dict[str, int]:
+    def distributed_sampler_kwargs(self) -> dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
-    def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
+    def process_dataloader(self, dataloader: object) -> MpDeviceLoader:
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
         if isinstance(dataloader, MpDeviceLoader):
@@ -146,7 +148,7 @@ class XLAStrategy(DDPStrategy):
         assert self.model is not None
         self.model = self.model.to(self.root_device)
 
-    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
+    def barrier(self, name: str | None = None, *args: Any, **kwargs: Any) -> None:
         if not self._launched:
             return
 
@@ -187,9 +189,7 @@ class XLAStrategy(DDPStrategy):
 
         return obj
 
-    def reduce(
-        self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
-    ) -> Tensor:
+    def reduce(self, output: Tensor | Any, group: Any | None = None, reduce_op: ReduceOp | str | None = None) -> Tensor:
         if not isinstance(output, Tensor):
             output = torch.tensor(output, device=self.root_device)
 
@@ -243,7 +243,7 @@ class XLAStrategy(DDPStrategy):
         if self.local_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)
 
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+    def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
 
         Args:

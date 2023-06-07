@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable
 
 import torch
 from torch import Tensor
@@ -55,11 +57,11 @@ class ServableModule(ABC, torch.nn.Module):
     """
 
     @abstractmethod
-    def configure_payload(self) -> Dict[str, Any]:
+    def configure_payload(self) -> dict[str, Any]:
         """Returns a request payload as a dictionary."""
 
     @abstractmethod
-    def configure_serialization(self) -> Tuple[Dict[str, Callable], Dict[str, Callable]]:
+    def configure_serialization(self) -> tuple[dict[str, Callable], dict[str, Callable]]:
         """Returns a tuple of dictionaries.
 
         The first dictionary contains the name of the ``serve_step`` input variables name as its keys
@@ -70,7 +72,7 @@ class ServableModule(ABC, torch.nn.Module):
         """
 
     @abstractmethod
-    def serve_step(self, *args: Tensor, **kwargs: Tensor) -> Dict[str, Tensor]:
+    def serve_step(self, *args: Tensor, **kwargs: Tensor) -> dict[str, Tensor]:
         r"""Returns the predictions of your model as a dictionary.
 
         .. code-block:: python
@@ -87,5 +89,5 @@ class ServableModule(ABC, torch.nn.Module):
         """
 
     @abstractmethod
-    def configure_response(self) -> Dict[str, Any]:
+    def configure_response(self) -> dict[str, Any]:
         """Returns a response to validate the server response."""

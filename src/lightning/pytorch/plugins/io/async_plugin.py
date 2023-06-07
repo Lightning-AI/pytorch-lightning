@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Optional
+from typing import Any
 
 from lightning.fabric.plugins import CheckpointIO
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
@@ -28,11 +30,11 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
         checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
     """
 
-    def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:
+    def __init__(self, checkpoint_io: CheckpointIO | None = None) -> None:
         super().__init__(checkpoint_io)
 
         self._executor = ThreadPoolExecutor(max_workers=1)
-        self._error: Optional[BaseException] = None
+        self._error: BaseException | None = None
 
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the ``ThreadPoolExecutor`` to save the checkpoints using the base ``checkpoint_io``."""

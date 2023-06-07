@@ -12,28 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
+from __future__ import annotations
+
 import logging
 import numbers
 import operator
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    cast,
-    Dict,
-    Generator,
-    IO,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    overload,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, cast, Generator, IO, List, Literal, Mapping, overload, Sequence, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -88,7 +75,7 @@ class LightningModule(
 ):
     # Below is for property support of JIT
     # since none of these are important when using JIT, we are going to ignore them.
-    __jit_unused_properties__: List[str] = (
+    __jit_unused_properties__: list[str] = (
         [
             "example_input_array",
             "on_gpu",
@@ -115,27 +102,27 @@ class LightningModule(
         super().__init__(*args, **kwargs)
 
         # pointer to the trainer object
-        self._trainer: Optional["pl.Trainer"] = None
+        self._trainer: pl.Trainer | None = None
 
         # optionally can be set by user
-        self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
-        self._current_fx_name: Optional[str] = None
+        self._example_input_array: Tensor | tuple | dict | None = None
+        self._current_fx_name: str | None = None
         self._automatic_optimization: bool = True
-        self._param_requires_grad_state: Dict[str, bool] = {}
-        self._metric_attributes: Optional[Dict[int, str]] = None
+        self._param_requires_grad_state: dict[str, bool] = {}
+        self._metric_attributes: dict[int, str] | None = None
         self._register_sharded_tensor_state_dict_hooks_if_available()
-        self._compiler_ctx: Optional[Dict[str, Any]] = None
+        self._compiler_ctx: dict[str, Any] | None = None
 
         # attributes only used when using fabric
-        self._fabric: Optional["lf.Fabric"] = None
-        self._fabric_optimizers: List[_FabricOptimizer] = []
+        self._fabric: lf.Fabric | None = None
+        self._fabric_optimizers: list[_FabricOptimizer] = []
 
     @overload
-    def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
+    def optimizers(self, use_pl_optimizer: Literal[True] = True) -> LightningOptimizer | list[LightningOptimizer]:
         ...
 
     @overload
-    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]:
+    def optimizers(self, use_pl_optimizer: Literal[False]) -> Optimizer | list[Optimizer]:
         ...
 
     @overload
@@ -170,7 +157,7 @@ class LightningModule(
         # multiple opts
         return opts
 
-    def lr_schedulers(self) -> Union[None, List[LRSchedulerPLType], LRSchedulerPLType]:
+    def lr_schedulers(self) -> None | list[LRSchedulerPLType] | LRSchedulerPLType:
         """Returns the learning rate scheduler(s) that are being used during training. Useful for manual
         optimization.
 
@@ -182,7 +169,7 @@ class LightningModule(
             return None
 
         # ignore other keys "interval", "frequency", etc.
-        lr_schedulers: List[LRSchedulerPLType] = [config.scheduler for config in self.trainer.lr_scheduler_configs]
+        lr_schedulers: list[LRSchedulerPLType] = [config.scheduler for config in self.trainer.lr_scheduler_configs]
 
         # single scheduler
         if len(lr_schedulers) == 1:
@@ -192,7 +179,7 @@ class LightningModule(
         return lr_schedulers
 
     @property
-    def trainer(self) -> "pl.Trainer":
+    def trainer(self) -> pl.Trainer:
         if self._fabric is not None:
             return _TrainerFabricShim(fabric=self._fabric)  # type: ignore[return-value]
         if not self._jit_is_scripting and self._trainer is None:
@@ -200,7 +187,7 @@ class LightningModule(
         return self._trainer  # type: ignore[return-value]
 
     @trainer.setter
-    def trainer(self, trainer: Optional["pl.Trainer"]) -> None:
+    def trainer(self, trainer: pl.Trainer | None) -> None:
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.trainer = trainer  # type: ignore[assignment]
@@ -210,11 +197,11 @@ class LightningModule(
         self._trainer = trainer
 
     @property
-    def fabric(self) -> Optional["lf.Fabric"]:
+    def fabric(self) -> lf.Fabric | None:
         return self._fabric
 
     @fabric.setter
-    def fabric(self, fabric: Optional["lf.Fabric"]) -> None:
+    def fabric(self, fabric: lf.Fabric | None) -> None:
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.fabric = fabric
@@ -223,7 +210,7 @@ class LightningModule(
         self._fabric = fabric
 
     @property
-    def example_input_array(self) -> Optional[Union[Tensor, Tuple, Dict]]:
+    def example_input_array(self) -> Tensor | tuple | dict | None:
         """The example input array is a specification of what the module can consume in the :meth:`forward` method.
         The return type is interpreted as follows:
 
@@ -237,7 +224,7 @@ class LightningModule(
         return self._example_input_array
 
     @example_input_array.setter
-    def example_input_array(self, example: Optional[Union[Tensor, Tuple, Dict]]) -> None:
+    def example_input_array(self, example: Tensor | tuple | dict | None) -> None:
         self._example_input_array = example
 
     @property
@@ -281,14 +268,14 @@ class LightningModule(
         self._automatic_optimization = automatic_optimization
 
     @property
-    def logger(self) -> Optional[Union[Logger, FabricLogger]]:
+    def logger(self) -> Logger | FabricLogger | None:
         """Reference to the logger object in the Trainer."""
         if self._fabric is not None:
             return self._fabric.logger
         return self._trainer.logger if self._trainer is not None else None
 
     @property
-    def loggers(self) -> Union[List[Logger], List[FabricLogger]]:
+    def loggers(self) -> list[Logger] | list[FabricLogger]:
         """Reference to the list of loggers in the Trainer."""
         if self._fabric is not None:
             return self._fabric.loggers
@@ -315,7 +302,7 @@ class LightningModule(
         return self._call_batch_hook("on_before_batch_transfer", batch, dataloader_idx)
 
     def _apply_batch_transfer_handler(
-        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
+        self, batch: Any, device: torch.device | None = None, dataloader_idx: int = 0
     ) -> Any:
         device = device or self.device
         batch = self._call_batch_hook("transfer_batch_to_device", batch, device, dataloader_idx)
@@ -346,16 +333,16 @@ class LightningModule(
         name: str,
         value: _METRIC,
         prog_bar: bool = False,
-        logger: Optional[bool] = None,
-        on_step: Optional[bool] = None,
-        on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "mean",
+        logger: bool | None = None,
+        on_step: bool | None = None,
+        on_epoch: bool | None = None,
+        reduce_fx: str | Callable = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_group: Optional[Any] = None,
+        sync_dist_group: Any | None = None,
         add_dataloader_idx: bool = True,
-        batch_size: Optional[int] = None,
-        metric_attribute: Optional[str] = None,
+        batch_size: int | None = None,
+        metric_attribute: str | None = None,
         rank_zero_only: bool = False,
     ) -> None:
         """Log a key, value pair.
@@ -508,15 +495,15 @@ class LightningModule(
         self,
         dictionary: Mapping[str, _METRIC],
         prog_bar: bool = False,
-        logger: Optional[bool] = None,
-        on_step: Optional[bool] = None,
-        on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = "mean",
+        logger: bool | None = None,
+        on_step: bool | None = None,
+        on_epoch: bool | None = None,
+        reduce_fx: str | Callable = "mean",
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_group: Optional[Any] = None,
+        sync_dist_group: Any | None = None,
         add_dataloader_idx: bool = True,
-        batch_size: Optional[int] = None,
+        batch_size: int | None = None,
         rank_zero_only: bool = False,
     ) -> None:
         """Log a dictionary of values at once.
@@ -555,7 +542,7 @@ class LightningModule(
         if self._fabric is not None:
             return self._log_dict_through_fabric(dictionary=dictionary, logger=logger)
 
-        kwargs: Dict[str, bool] = {}
+        kwargs: dict[str, bool] = {}
 
         if isinstance(dictionary, MetricCollection):
             kwargs["keep_base"] = False
@@ -580,7 +567,7 @@ class LightningModule(
             )
         return None
 
-    def _log_dict_through_fabric(self, dictionary: Mapping[str, Any], logger: Optional[bool] = None) -> None:
+    def _log_dict_through_fabric(self, dictionary: Mapping[str, Any], logger: bool | None = None) -> None:
         if logger is False:
             # Passing `logger=False` with Fabric does not make much sense because there is no other destination to
             # log to, but we support it in case the original code was written for Trainer use
@@ -604,7 +591,7 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
-    def __to_tensor(self, value: Union[Tensor, numbers.Number], name: str) -> Tensor:
+    def __to_tensor(self, value: Tensor | numbers.Number, name: str) -> Tensor:
         value = value.clone().detach() if isinstance(value, Tensor) else torch.tensor(value, device=self.device)
         if not torch.numel(value) == 1:
             raise ValueError(
@@ -615,8 +602,8 @@ class LightningModule(
         return value
 
     def all_gather(
-        self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
-    ) -> Union[Tensor, Dict, List, Tuple]:
+        self, data: Tensor | dict | list | tuple, group: Any | None = None, sync_grads: bool = False
+    ) -> Tensor | dict | list | tuple:
         r"""Gather tensors or collections of tensors from multiple processes.
 
         This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
@@ -701,7 +688,7 @@ class LightningModule(
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT | None:
         r"""Operates on a single batch of data from the validation set. In this step you'd might generate examples
         or calculate anything of interest like accuracy.
 
@@ -768,7 +755,7 @@ class LightningModule(
             the model goes back to training mode and gradients are enabled.
         """
 
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT | None:
         r"""Operates on a single batch of data from the test set. In this step you'd normally generate examples or
         calculate anything of interest such as accuracy.
 
@@ -874,7 +861,7 @@ class LightningModule(
         """
         return self(batch)
 
-    def configure_callbacks(self) -> Union[Sequence[Callback], Callback]:
+    def configure_callbacks(self) -> Sequence[Callback] | Callback:
         """Configure model-specific callbacks. When the model gets attached, e.g., when ``.fit()`` or ``.test()``
         gets called, the list or a callback returned here will be merged with the list of callbacks passed to the
         Trainer's ``callbacks`` argument. If a callback returned here has the same type as one or several callbacks
@@ -1040,7 +1027,7 @@ class LightningModule(
         else:
             loss.backward(*args, **kwargs)
 
-    def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
+    def toggle_optimizer(self, optimizer: Optimizer | LightningOptimizer) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step
         to prevent dangling gradients in multiple-optimizer setup.
 
@@ -1068,7 +1055,7 @@ class LightningModule(
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
 
-    def untoggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
+    def untoggle_optimizer(self, optimizer: Optimizer | LightningOptimizer) -> None:
         """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
 
         Args:
@@ -1086,8 +1073,8 @@ class LightningModule(
     def clip_gradients(
         self,
         optimizer: Optimizer,
-        gradient_clip_val: Optional[Union[int, float]] = None,
-        gradient_clip_algorithm: Optional[str] = None,
+        gradient_clip_val: int | float | None = None,
+        gradient_clip_algorithm: str | None = None,
     ) -> None:
         """Handles gradient clipping internally.
 
@@ -1153,8 +1140,8 @@ class LightningModule(
     def configure_gradient_clipping(
         self,
         optimizer: Optimizer,
-        gradient_clip_val: Optional[Union[int, float]] = None,
-        gradient_clip_algorithm: Optional[str] = None,
+        gradient_clip_val: int | float | None = None,
+        gradient_clip_algorithm: str | None = None,
     ) -> None:
         """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
 
@@ -1180,7 +1167,7 @@ class LightningModule(
             optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
         )
 
-    def lr_scheduler_step(self, scheduler: LRSchedulerTypeUnion, metric: Optional[Any]) -> None:
+    def lr_scheduler_step(self, scheduler: LRSchedulerTypeUnion, metric: Any | None) -> None:
         r"""
         Override this method to adjust the default way the
         :class:`~lightning.pytorch.trainer.trainer.Trainer` calls each scheduler.
@@ -1214,8 +1201,8 @@ class LightningModule(
         self,
         epoch: int,
         batch_idx: int,
-        optimizer: Union[Optimizer, LightningOptimizer],
-        optimizer_closure: Optional[Callable[[], Any]] = None,
+        optimizer: Optimizer | LightningOptimizer,
+        optimizer_closure: Callable[[], Any] | None = None,
     ) -> None:
         r"""Override this method to adjust the default way the :class:`~lightning.pytorch.trainer.trainer.Trainer`
         calls the optimizer.
@@ -1306,7 +1293,7 @@ class LightningModule(
             )
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
+    def to_onnx(self, file_path: str | Path, input_sample: Any | None = None, **kwargs: Any) -> None:
         """Saves the model in ONNX format.
 
         Args:
@@ -1352,11 +1339,11 @@ class LightningModule(
     @torch.no_grad()
     def to_torchscript(
         self,
-        file_path: Optional[Union[str, Path]] = None,
-        method: Optional[str] = "script",
-        example_inputs: Optional[Any] = None,
+        file_path: str | Path | None = None,
+        method: str | None = "script",
+        example_inputs: Any | None = None,
         **kwargs: Any,
-    ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
+    ) -> ScriptModule | dict[str, ScriptModule]:
         """By default compiles the whole model to a :class:`~torch.jit.ScriptModule`. If you want to use tracing,
         please provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is
         provided, or the model has :attr:`example_input_array` set. If you would like to customize the modules that
@@ -1435,9 +1422,9 @@ class LightningModule(
     @classmethod
     def load_from_checkpoint(
         cls,
-        checkpoint_path: Union[_PATH, IO],
+        checkpoint_path: _PATH | IO,
         map_location: _MAP_LOCATION_TYPE = None,
-        hparams_file: Optional[_PATH] = None,
+        hparams_file: _PATH | None = None,
         strict: bool = True,
         **kwargs: Any,
     ) -> Self:
@@ -1522,7 +1509,7 @@ class LightningModule(
         )
         return cast(Self, loaded)
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = dict(self.__dict__)
         state["_trainer"] = None
         return state

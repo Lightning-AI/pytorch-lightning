@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Union
 
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, TorchCheckpointIO, XLACheckpointIO

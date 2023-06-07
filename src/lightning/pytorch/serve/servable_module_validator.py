@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import contextlib
 import logging
 import time
 from multiprocessing import Process
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 import requests
 import torch
@@ -40,7 +42,7 @@ class ServableModuleValidator(Callback):
 
     def __init__(
         self,
-        optimization: Optional[Literal["trace", "script", "onnx", "tensorrt"]] = None,
+        optimization: Literal["trace", "script", "onnx", "tensorrt"] | None = None,
         server: Literal["fastapi", "ml_server", "torchserve", "sagemaker"] = "fastapi",
         host: str = "127.0.0.1",
         port: int = 8080,
@@ -68,10 +70,10 @@ class ServableModuleValidator(Callback):
         self.server = server
         self.timeout = timeout
         self.exit_on_failure = exit_on_failure
-        self.resp: Optional[requests.Response] = None
+        self.resp: requests.Response | None = None
 
     @rank_zero_only
-    def on_train_start(self, trainer: "pl.Trainer", servable_module: "pl.LightningModule") -> None:
+    def on_train_start(self, trainer: pl.Trainer, servable_module: pl.LightningModule) -> None:
         if isinstance(trainer.strategy, _NOT_SUPPORTED_STRATEGIES):
             raise Exception(
                 f"The current strategy {trainer.strategy.__class__.__qualname__} used "
@@ -128,11 +130,11 @@ class ServableModuleValidator(Callback):
             _logger.info(f"Your model is servable and the received payload was {self.resp.json()}.")
 
     @property
-    def successful(self) -> Optional[bool]:
+    def successful(self) -> bool | None:
         """Returns whether the model was successfully served."""
         return self.resp.status_code == 200 if self.resp else None
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {"successful": self.successful, "optimization": self.optimization, "server": self.server}
 
     @staticmethod
@@ -153,7 +155,7 @@ class ServableModuleValidator(Callback):
             return True
 
         @app.post("/serve")
-        async def serve(payload: dict = Body(...)) -> Dict[str, Any]:
+        async def serve(payload: dict = Body(...)) -> dict[str, Any]:
             body = payload["body"]
 
             for key, deserializer in deserializers.items():

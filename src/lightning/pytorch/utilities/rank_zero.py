@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities that can be used for calling functions on a particular rank."""
+from __future__ import annotations
+
 import logging
 
 # note: we want to keep these indirections so the `rank_zero_module.log` is set (on import) for PL users
