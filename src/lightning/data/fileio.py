@@ -21,7 +21,8 @@ def path_to_url(path: str, bucket_name: str, bucket_root_path: str = "/") -> str
     if not path.startswith(bucket_root_path):
         raise ValueError(f"Cannot create a path from {path} relative to {bucket_root_path}")
 
-    return os.path.join("s3://", bucket_name, os.path.relpath(path, bucket_root_path))
+    rel_path = os.path.relpath(path, bucket_root_path).replace("\\", "/")
+    return f"s3://{bucket_name}/{rel_path}"
 
 
 def open_single_file(path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs):
