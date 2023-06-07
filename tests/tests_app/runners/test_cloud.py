@@ -178,7 +178,6 @@ class TestAppCreationClient:
             ("litng-ai-03", None),
         ],
     )
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     def test_new_instance_on_different_cluster(self, tmpdir, cloud_backend, project_id, old_cluster, new_cluster):
         entrypoint = Path(tmpdir) / "entrypoint.py"
         entrypoint.touch()
@@ -271,7 +270,6 @@ class TestAppCreationClient:
             assert args[1]["body"].name.startswith(app_name)
             assert args[1]["body"].cluster_id == new_cluster
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     def test_running_deleted_app(self, tmpdir, cloud_backend, project_id):
         """Deleted apps show up in list apps but not in list instances.
 
@@ -347,7 +345,6 @@ class TestAppCreationClient:
         assert args[1]["body"].name != app_name
         assert args[1]["body"].name.startswith(app_name)
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @pytest.mark.parametrize("flow_cloud_compute", [None, CloudCompute(name="t2.medium")])
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_run_with_default_flow_compute_config(self, tmpdir, monkeypatch, flow_cloud_compute):
@@ -405,7 +402,6 @@ class TestAppCreationClient:
             project_id="test-project-id", cloudspace_id=mock.ANY, body=body
         )
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_run_on_byoc_cluster(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
@@ -465,7 +461,6 @@ class TestAppCreationClient:
             body=ProjectIdProjectclustersbindingsBody(cluster_id="test1234"),
         )
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_requirements_file(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
@@ -533,7 +528,6 @@ class TestAppCreationClient:
             project_id="test-project-id", cloudspace_id=mock.ANY, body=body
         )
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_basic_auth_enabled(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
@@ -603,7 +597,6 @@ class TestAppCreationClient:
             ),
         )
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_no_cache(self, tmpdir, monkeypatch):
         entrypoint = Path(tmpdir) / "entrypoint.py"
@@ -662,7 +655,6 @@ class TestAppCreationClient:
         body = kwargs["body"]
         assert body.dependency_cache_key is None
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize(
         ("lightningapps", "start_with_flow"),
@@ -804,7 +796,6 @@ class TestAppCreationClient:
                 project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_queue_server_type_specified(self, tmpdir, lightningapps, monkeypatch):
@@ -869,7 +860,6 @@ class TestAppCreationClient:
             project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=body
         )
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_work_app_and_attached_drives(self, lightningapps, monkeypatch, tmpdir):
@@ -1029,7 +1019,6 @@ class TestAppCreationClient:
                 project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @mock.patch("lightning.app.core.constants.ENABLE_APP_COMMENT_COMMAND_EXECUTION", True)
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
@@ -1175,7 +1164,6 @@ class TestAppCreationClient:
                 ),
             )
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_work_app_and_multiple_attached_drives(self, lightningapps, monkeypatch, tmpdir):
@@ -1408,7 +1396,6 @@ class TestAppCreationClient:
                 project_id="test-project-id", cloudspace_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    # @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_work_app_and_attached_mount_and_drive(self, lightningapps, monkeypatch, tmpdir):
@@ -2120,7 +2107,6 @@ def test_incompatible_cloud_compute_and_build_config(monkeypatch):
         CloudRuntime(app=app)._validate_work_build_specs_and_compute()
 
 
-# @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
 def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     path = Path(tmpdir)
     entrypoint = path / "entrypoint.py"
@@ -2200,7 +2186,6 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     flow.run()
 
 
-# @pytest.mark.xfail(TypeError, reason="quote_from_bytes() expected bytes", strict=True)  # FixMe
 def test_default_lightningignore(monkeypatch, caplog, tmpdir):
     path = Path(tmpdir)
     entrypoint = path / "entrypoint.py"
