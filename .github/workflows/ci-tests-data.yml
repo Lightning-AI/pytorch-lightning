@@ -68,7 +68,7 @@ jobs:
       run: |
         pip install -q wget packaging
         python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
-        for fpath in `ls requirements/**/*.txt`; do \
+        for fpath in `ls requirements/data/*.txt`; do \
           python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
         done
         cat requirements/data/extra.txt
