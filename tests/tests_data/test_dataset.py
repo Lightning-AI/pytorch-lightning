@@ -8,9 +8,9 @@ import numpy as np
 import pytest
 from lightning_utilities.core.imports import package_available
 
+from lightning.data import dataset_index
 from lightning.data.dataset import LightningDataset
 from lightning.data.fileio import OpenCloudFileObj
-from lightning.data.get_index import get_index
 
 
 def isConnectedWithInternet():
@@ -59,7 +59,7 @@ def image_set(tmp_path_factory):
 
 @pytest.mark.skipif(not isConnectedWithInternet(), reason="Not connected to internet")
 @pytest.mark.skipif(not package_available("lightning"), reason="Supported only with mono-package")
-@mock.patch("lightning.data.get_index.LightningClient", MagicMock())
+@mock.patch("lightning.data.dataset_index.LightningClient", MagicMock())
 def test_lightning_dataset(tmpdir, image_set, monkeypatch):
     client = MagicMock()
     client.projects_service_list_project_cluster_bindings.return_value = None
@@ -67,7 +67,7 @@ def test_lightning_dataset(tmpdir, image_set, monkeypatch):
     client.data_connection_service_get_data_connection_folder_index.return_value = None
     client.data_connection_service_get_data_connection_artifacts_page.return_value = None
 
-    monkeypatch.setattr(get_index, "LightningClient", MagicMock(return_value=client))
+    monkeypatch.setattr(dataset_index, "LightningClient", MagicMock(return_value=client))
 
     index_path = os.path.join(tmpdir, "index.txt")
     # TODO: adapt this once the fallback and tests for get_index are ready!

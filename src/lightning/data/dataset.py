@@ -5,8 +5,8 @@ from typing import Any, Dict, Optional, Tuple
 
 from torch.utils.data import Dataset as TorchDataset
 
+from lightning.data.dataset_index import get_index
 from lightning.data.fileio import OpenCloudFileObj
-from lightning.data.get_index import get_index
 
 
 def get_aws_credentials():
