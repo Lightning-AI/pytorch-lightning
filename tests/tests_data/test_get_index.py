@@ -71,6 +71,7 @@ def test_get_index_generate_for_s3_bucket(monkeypatch):
 
     test_bucket = "s3://nohaspublictestbucket"
     index_path = os.path.join(os.getcwd(), "index_1.txt")
+    print(index_path)
     got_index = get_index(s3_connection_path=test_bucket, index_file_path=index_path)
 
     assert got_index
