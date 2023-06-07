@@ -61,9 +61,6 @@ def image_set(tmp_path_factory):
 @pytest.mark.skipif(not package_available("lightning"), reason="Supported only with mono-package")
 @mock.patch("lightning.data.get_index.LightningClient", MagicMock())
 def test_lightning_dataset(tmpdir, image_set, monkeypatch):
-    error_and_exit = MagicMock()
-    monkeypatch.setattr(get_index, "_error_and_exit", error_and_exit)
-
     client = MagicMock()
     client.projects_service_list_project_cluster_bindings.return_value = None
     client.data_connection_service_list_data_connections.return_value = None
