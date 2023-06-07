@@ -546,8 +546,8 @@ class Fabric:
 
     @contextmanager
     def rank_zero_first(self, local: bool = False) -> Generator:
-        """The code block under this context manager gets executed first on the main process (rank 0) and only
-        when completed, the other processes get to run the code in parallel.
+        """The code block under this context manager gets executed first on the main process (rank 0) and only when
+        completed, the other processes get to run the code in parallel.
 
         Args:
             local: Set this to ``True`` if the **local** rank should be the one going first. Useful if you are
