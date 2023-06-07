@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Handles initialization for FSDP models before wrapping and the Zero stage 3 initialization for DeepSpeed before sharding
 
 
-- Added supports for empty weight initialization with `Fabric.init_module(init_weights=True)` for efficient sharding and checkpoint loading ([#17627](https://github.com/Lightning-AI/lightning/pull/17627))
+- Added supports for empty weight initialization with `Fabric.init_module(empty_init=True)` for efficient sharding and checkpoint loading ([#17627](https://github.com/Lightning-AI/lightning/pull/17627))
 
 
 - Added `lightning.fabric.plugins.Precision.init_context()` and `lightning.fabric.strategies.Strategy.module_init_context()` context managers to control model and tensor instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
