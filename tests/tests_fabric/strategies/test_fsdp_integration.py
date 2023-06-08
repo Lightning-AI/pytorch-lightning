@@ -30,7 +30,7 @@ from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
 if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel
+    from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
     from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 
 
@@ -158,7 +158,32 @@ def test_fsdp_save_full_state_dict(tmp_path):
     )
     assert set(checkpoint["optimizer"].keys()) == set(optimizer_state_before.keys()) == {"state", "param_groups"}
 
-    # verify the full state can be loaded back into a single-device model/strategy
+    # 1. verify the FSDP state can be loaded back into a FSDP model/strategy directly
+    fabric = BoringFabric(
+        accelerator="cuda",
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
+        devices=2,
+    )
+    fabric.run()
+    metadata = fabric.load(checkpoint_path, {"model": fabric.model, "optimizer": fabric.optimizer})
+    assert metadata == {"steps": 1}
+
+    with FullyShardedDataParallel.summon_full_params(fabric.model):
+        params_after = list(fabric.model.parameters())
+        assert all(torch.equal(p0.cpu(), p1.cpu()) for p0, p1 in zip(params_before, params_after))
+
+    # assert the correct optimizer state was loaded
+    optimizer_state_after = FullyShardedDataParallel.full_optim_state_dict(
+        fabric.model, fabric.optimizer, rank0_only=False
+    )
+    assert set(optimizer_state_after.keys()) == set(optimizer_state_before.keys()) == {"state", "param_groups"}
+    torch.testing.assert_close(optimizer_state_after["state"], optimizer_state_before["state"], atol=0, rtol=0)
+    assert optimizer_state_after["param_groups"] == optimizer_state_before["param_groups"]
+
+    # run a step to verify the optimizer state is correct
+    fabric.run()
+
+    # 2. verify the FSDP state can be loaded back into a single-device model/strategy
     fabric = BoringFabric(accelerator="cpu", devices=1)
     fabric.run()
     metadata = fabric.load(checkpoint_path, {"model": fabric.model, "optimizer": fabric.optimizer})
@@ -166,18 +191,30 @@ def test_fsdp_save_full_state_dict(tmp_path):
     params_after = list(fabric.model.parameters())
     assert all(torch.equal(p0, p1) for p0, p1 in zip(params_before, params_after))
 
+    # get optimizer state after loading
+    normal_checkpoint_path = Path(fabric.broadcast(str(tmp_path / "normal-checkpoint.pt")))
+    fabric.save(normal_checkpoint_path, {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 2})
+    optimizer_state_after = torch.load(normal_checkpoint_path)["optimizer"]
+    optimizer_state_after = FullyShardedDataParallel.rekey_optim_state_dict(
+        optimizer_state_after, optim_state_key_type=OptimStateKeyType.PARAM_NAME, model=fabric.model
+    )
+
+    # assert the correct optimizer state was loaded
+    assert set(optimizer_state_after.keys()) == set(optimizer_state_before.keys()) == {"state", "param_groups"}
+    torch.testing.assert_close(optimizer_state_after["state"], optimizer_state_before["state"], atol=0, rtol=0)
+
     # run a step to verify the optimizer state is correct
     fabric.run()
 
-    # verify the full state can be loaded back into a FSDP model/strategy
+    # 3. verify that a single-device model/strategy states can be loaded into a FSDP model/strategy
     fabric = BoringFabric(
         accelerator="cuda",
-        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type="full"),
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         devices=2,
     )
     fabric.run()
-    metadata = fabric.load(checkpoint_path, {"model": fabric.model, "optimizer": fabric.optimizer})
-    assert metadata == {"steps": 1}
+    metadata = fabric.load(normal_checkpoint_path, {"model": fabric.model, "optimizer": fabric.optimizer})
+    assert metadata == {"steps": 2}
 
     with FullyShardedDataParallel.summon_full_params(fabric.model):
         params_after = list(fabric.model.parameters())
