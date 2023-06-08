@@ -83,6 +83,11 @@ Avoid this from happening by guarding your logic with a rank check:
     if fabric.local_rank == 0:
         download_dataset()
 
+Another type of race condition is when one or multiple processes try to access a resource before it is available.
+For example, when rank 0 downloads a dataset, all other processes should *wait* for the download to complete before they start reading the contents.
+This can be achieved with a **barrier**.
+
+
 ----
 
 
@@ -127,7 +132,19 @@ Since downloading should be done on rank 0 only to :ref:`avoid race conditions <
     fabric.barrier()
 
     # After everyone reached the barrier, they can access the downloaded files:
-    load_dataset()
+    dataset = load_dataset()
+
+
+Specifically for the use case of downloading and reading data, there is a convenience context manager that combines both the rank-check and the barrier:
+
+.. code-block:: python
+
+    with fabric.rank_zero_first():
+        if not dataset_exists()
+            download_dataset("http://...")
+        dataset = load_dataset()
+
+With :meth:`~lightning.fabric.fabric.Fabric.rank_zero_first`, it is guaranteed that process 0 executes the code block first before all others can enter it.
 
 
 ----

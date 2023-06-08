@@ -556,7 +556,7 @@ class Fabric:
         Example::
 
             with fabric.rank_zero_first():
-                dataset = MNIST("path/to/data")
+                dataset = MNIST("datasets/", download=True)
         """
         rank = self.local_rank if local else self.global_rank
         if rank > 0:
