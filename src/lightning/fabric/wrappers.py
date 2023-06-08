@@ -191,27 +191,26 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
     def __setattr__(self, name: str, value: Any) -> None:
         if not self._fabric_module_initialized:
-            super().__setattr__(name, value)
+            return super().__setattr__(name, value)
 
+        # Get the _original_module attribute
+        original_module = self._original_module
+        original_has_attr = hasattr(original_module, name)
+        # Can't use super().__getattrr__ because nn.Module only checks _parameters, _buffers, and _modules
+        fabric_has_attr = name in self.__dict__
+
+        if not (original_has_attr or fabric_has_attr):
+            setattr(original_module, name, value)
+
+        # The original module can also inherit from _DeviceDtypeModuleMixin,
+        # in this case, both the Fabric module and original module have attributes like _dtype
+        # set attribute on both
         else:
-            # Get the _original_module attribute
-            original_module = self._original_module
-            original_has_attr = hasattr(original_module, name)
-            # can't use super().__getattrr__ because nn.Module only check _parameters, _buffers, and _modules
-            fabric_has_attr = name in self.__dict__
-
-            if not (original_has_attr or fabric_has_attr):
+            if original_has_attr:
                 setattr(original_module, name, value)
 
-            # Original module can also inherit from _DeviceDtypeModuleMixin,
-            # in this case, both the Fabric module and original module have attribute like _dtype
-            # set attribute on both
-            else:
-                if original_has_attr:
-                    setattr(original_module, name, value)
-
-                if fabric_has_attr:
-                    super().__setattr__(name, value)
+            if fabric_has_attr:
+                super().__setattr__(name, value)
 
 
 class _FabricDataLoader:
