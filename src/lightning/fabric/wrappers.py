@@ -210,6 +210,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
         if fabric_has_attr:
             super().__setattr__(name, value)
+            return None
+        return None
 
 
 class _FabricDataLoader:
