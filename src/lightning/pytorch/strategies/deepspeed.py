@@ -782,6 +782,19 @@ class DeepSpeedStrategy(DDPStrategy):
         from lightning.pytorch.trainer.states import TrainerFn
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+
+        # Determine the parent folder of the checkpoint_path
+        parent_folder = os.path.dirname(checkpoint_path)
+
+        # Check if the parent folder is a valid deepspeed checkpoint directory
+        is_deepspeed_checkpoint_dir = os.path.isdir(parent_folder) and "checkpoint" in os.listdir(parent_folder)
+
+        if not is_deepspeed_checkpoint_dir:
+            raise MisconfigurationException(
+                "The provided checkpoint path does not seem to be a valid DeepSpeed checkpoint directory. "
+                "Please ensure you pass the correct path to the parent folder of the checkpoint."
+            )
+
         _, client_state = self.deepspeed_engine.load_checkpoint(
             checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=False
         )
