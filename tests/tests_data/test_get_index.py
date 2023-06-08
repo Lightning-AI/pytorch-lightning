@@ -53,7 +53,6 @@ def image_set(tmp_path_factory):
     return tmp_path_factory.getbasetemp()._str
 
 
-@pytest.mark.skipif(not package_available("lightning"), reason="Supported only with mono-package")
 @pytest.mark.skip(reason="Need a valid AWS key and AWS secret key in CI for this to work")
 @mock.patch("lightning.data.dataset_index.LightningClient", MagicMock())
 def test_get_index_generate_for_s3_bucket(monkeypatch):

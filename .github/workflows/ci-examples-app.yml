@@ -64,7 +64,7 @@ jobs:
 
     - name: Set min. dependencies
       if: ${{ matrix.requires == 'oldest' }}
-      run: python .actions/assistant.py replace_oldest_ver
+      run: python .actions/assistant.py replace_oldest_ver --requirement_fnames="[requirements/app/base.txt, requirements/app/ui.txt, requirements/app/cloud.txt, requirements/app/test.txt]"
 
     - name: pip wheels cache
       uses: actions/cache/restore@v3
