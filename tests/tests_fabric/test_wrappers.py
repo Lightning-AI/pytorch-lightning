@@ -112,6 +112,16 @@ def test_fabric_module_setattr():
             super().__init__()
             self.layer = torch.nn.Linear(2, 3)
             self.attribute = 1
+            self._x = None
+
+        @property
+        def x(self):
+            return self._x
+
+        @x.setter
+        def x(self, value):
+            self._x = value
+            return self._x
 
     original_module = OriginalModule()
 
@@ -131,6 +141,15 @@ def test_fabric_module_setattr():
     # Modify existing attribute on original_module
     fabric_module.attribute = 100
     assert original_module.attribute == 100
+
+    # Check setattr of original_module
+    fabric_module.x = 100
+    assert original_module.x == 100
+
+    # Check set submodule
+    fabric_module.linear = torch.nn.Linear(2, 2)
+    assert hasattr(original_module, "linear")
+    assert isinstance(original_module.linear, torch.nn.Module)
 
 
 def test_fabric_module_state_dict_access():
