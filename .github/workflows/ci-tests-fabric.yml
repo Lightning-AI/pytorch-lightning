@@ -79,7 +79,7 @@ jobs:
 
     - name: Set min. dependencies
       if: ${{ matrix.requires == 'oldest' }}
-      run: python .actions/assistant.py replace_oldest_ver
+      run: python .actions/assistant.py replace_oldest_ver --requirement_fnames="[requirements/fabric/base.txt, requirements/fabric/strategies.txt, requirements/fabric/test.txt]"
 
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' && matrix.release != 'pre' }}
