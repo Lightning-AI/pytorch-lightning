@@ -200,20 +200,16 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         fabric_has_attr = name in self.__dict__
 
         if not (original_has_attr or fabric_has_attr):
-            setattr(original_module, name, value)
-            return None
+            return setattr(original_module, name, value)
 
         # The original module can also inherit from _DeviceDtypeModuleMixin,
         # in this case, both the Fabric module and original module have attributes like _dtype
         # set attribute on both
-        else:
-            if original_has_attr:
-                setattr(original_module, name, value)
+        if original_has_attr:
+            setattr(original_module, name, value)
 
-            if fabric_has_attr:
-                super().__setattr__(name, value)
-                return None
-            return None
+        if fabric_has_attr:
+            super().__setattr__(name, value)
 
 
 class _FabricDataLoader:
