@@ -10,8 +10,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
-
 from lightning.fabric.accelerators import find_usable_cuda_devices  # noqa: F401
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry, call_register_accelerators
 from lightning.pytorch.accelerators.accelerator import Accelerator  # noqa: F401
