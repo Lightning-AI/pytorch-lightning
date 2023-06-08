@@ -133,9 +133,9 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
 
     # WA for HPU. HPU doesn't support Long types, forcefully set it to float
     if package_available("habana_frameworks"):
-        if (
-            os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
-            and result.type() in ("torch.LongTensor", "torch.hpu.LongTensor")
+        if os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1" and result.type() in (
+            "torch.LongTensor",
+            "torch.hpu.LongTensor",
         ):
             rank_zero_info("Long tensor unsupported on HPU, casting to float")
             result = result.float()
