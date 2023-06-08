@@ -140,7 +140,7 @@ Specifically for the use case of downloading and reading data, there is a conven
 .. code-block:: python
 
     with fabric.rank_zero_first():
-        if not dataset_exists()
+        if not dataset_exists():
             download_dataset("http://...")
         dataset = load_dataset()
 
