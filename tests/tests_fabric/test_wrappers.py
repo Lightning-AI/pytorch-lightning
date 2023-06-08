@@ -130,7 +130,6 @@ def test_fabric_module_setattr():
             self.wrapped = original_module
 
     wrapped_module = ModuleWrapper()
-
     fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
 
     # Check new attribute is set on original_module
@@ -146,9 +145,13 @@ def test_fabric_module_setattr():
     assert original_module.x == 100
 
     # Check set submodule
-    fabric_module.linear = torch.nn.Linear(2, 2)
+    assert not hasattr(original_module, "linear")
+    linear = torch.nn.Linear(2, 2)
+    fabric_module.linear = linear
     assert hasattr(original_module, "linear")
     assert isinstance(original_module.linear, torch.nn.Module)
+    assert linear in fabric_module.modules()
+    assert linear in original_module.modules()
 
 
 def test_fabric_module_state_dict_access():
