@@ -658,7 +658,7 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
         },
         "zero_optimization": {
             "stage": 2,  # Enable Stage 2 ZeRO (Optimizer/Gradient state partitioning)
-            "offload_optimizer": True,  # Enable Offloading optimizer state/calculation to the host CPU
+            "offload_optimizer": {"device": "cpu"},  # Enable Offloading optimizer state/calculation to the host CPU
             "contiguous_gradients": True,  # Reduce gradient fragmentation.
             "overlap_comm": True,  # Overlap reduce/backward operation of gradients for speed.
             "allgather_bucket_size": 2e8,  # Number of elements to all gather at once.
