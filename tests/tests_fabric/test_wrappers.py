@@ -121,7 +121,6 @@ def test_fabric_module_setattr():
         @x.setter
         def x(self, value):
             self._x = value
-            return self._x
 
     original_module = OriginalModule()
 
