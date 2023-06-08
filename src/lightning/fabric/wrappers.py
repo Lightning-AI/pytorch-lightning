@@ -76,6 +76,9 @@ class _FabricOptimizer:
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
+    # define at class level so __setattr__ method can check this attribute
+    _fabric_module_initialized = False
+
     def __init__(
         self, forward_module: nn.Module, precision: Precision, original_module: Optional[nn.Module] = None
     ) -> None:
@@ -95,6 +98,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         self._forward_module = forward_module
         self._original_module = original_module or forward_module
         self._precision = precision
+        self._fabric_module_initialized = True
 
     @property
     def module(self) -> nn.Module:
@@ -180,8 +184,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             return attr
 
     def __setattr__(self, name: str, value: Any) -> None:
-        caller_func = inspect.stack()[1].function
-        if caller_func == "__init__":
+        if not self._fabric_module_initialized:
             super().__setattr__(name, value)
 
         else:
