@@ -11,15 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
-
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.overrides.base import _LightningPrecisionModuleWrapperBase
+from threading import Thread
 
 
-def test_wrapper_device_dtype():
-    model = BoringModel()
-    wrapped_model = _LightningPrecisionModuleWrapperBase(model)
+class ThreadExceptionHandler(Thread):
+    """Adopted from https://stackoverflow.com/a/67022927."""
 
-    wrapped_model.to(dtype=torch.float16)
-    assert model.dtype == torch.float16
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.exception = None
+
+    def run(self):
+        try:
+            super().run()
+        except Exception as e:
+            self.exception = e
+
+    def join(self):
+        super().join()
+        if self.exception:
+            raise self.exception

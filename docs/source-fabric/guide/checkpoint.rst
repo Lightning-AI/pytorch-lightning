@@ -77,6 +77,55 @@ If you want to be in complete control of how states get restored, you can omit p
 ----
 
 
+*************************
+Load a partial checkpoint
+*************************
+
+Loading a checkpoint is normally "strict", meaning parameter names in the checkpoint must match the parameter names in the model.
+However, when loading checkpoints for fine-tuning or transfer learning, it can happen that only a portion of the parameters match the model.
+For this case, you can disable strict loading to avoid errors:
+
+.. code-block:: python
+
+    state = {"model": model}
+
+    # strict loading is the default
+    fabric.load("path/to/checkpoint.ckpt", state, strict=True)
+
+    # disable strict loading
+    fabric.load("path/to/checkpoint.ckpt", state, strict=False)
+
+
+Here is a trivial example to illustrate how it works:
+
+.. code-block:: python
+
+    import torch
+    import lightning as L
+
+    fabric = L.Fabric()
+
+    # Save a checkpoint of a trained model
+    model1 = torch.nn.Linear(2, 2, bias=True)
+    state = {"model": model1}
+    fabric.save("state.ckpt", state)
+
+    # Later on, make a new model that misses a parameter
+    model2 = torch.nn.Linear(2, 2, bias=False)
+    state = {"model": model2}
+
+    # `strict=True` would lead to an error, because the bias
+    # parameter is missing, but we can load the rest of the
+    # parameters successfully
+    fabric.load("state.ckpt", state, strict=False)
+
+
+See also: `Saving and loading models in PyTorch <https://pytorch.org/tutorials/beginner/saving_loading_models.html>`_.
+
+
+----
+
+
 **********
 Next steps
 **********

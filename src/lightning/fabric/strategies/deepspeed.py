@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import platform
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
@@ -340,7 +340,18 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextmanager
-    def init_sharded_context(self) -> Generator[None, None, None]:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+        if self.zero_stage_3 and empty_init is False:
+            raise NotImplementedError(
+                f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
+            )
+        empty_init = empty_init and not self.zero_stage_3
+        base_context = super().module_init_context(empty_init=empty_init) if not self.zero_stage_3 else nullcontext()
+        with base_context, self.module_sharded_context():
+            yield
+
+    @contextmanager
+    def module_sharded_context(self) -> Generator[None, None, None]:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
         # manager, which happens at the start of `Fabric.run()`. Later modifications through e.g. `Fabric.setup()`
         # won't have an effect here.
@@ -422,7 +433,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 
     def load_checkpoint(
-        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+        self,
+        path: _PATH,
+        state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
+        strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -430,6 +444,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 This should contain exactly one model, and the model must already be set up by DeepSpeed.
+            strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
             Dictionary with the state inside DeepSpeed's engine
@@ -446,7 +461,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
             # a consolidated checkpoint
             path = self.broadcast(path)
-            return super().load_checkpoint(path=path, state=state)
+            return super().load_checkpoint(path=path, state=state, strict=strict)
 
         if not state:
             raise ValueError(
@@ -477,13 +492,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             tag="checkpoint",
             load_optimizer_states=optimzer_state_requested,
             load_lr_scheduler_states=False,
-            load_module_strict=True,  # TODO(fabric): make strict loading configurable
+            load_module_strict=strict,
         )
         if client_state is None:
             raise RuntimeError(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
+
         for k in client_state.copy():
             if k not in state:
                 continue

@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.nn import Parameter
 
 from lightning.fabric import Fabric
@@ -116,12 +119,17 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
 
     # attempt to load a key not in the metadata checkpoint
     state = {"model": fabric.model, "coconut": 11}
-    with pytest.raises(KeyError, match="'coconut' not found in the checkpoint."):
+    with pytest.raises(KeyError, match="The requested state contains a key 'coconut' that does not exist"):
         fabric.load(checkpoint_path, state)
+
+    # `strict=False` ignores the missing key
+    state = {"model": fabric.model, "coconut": 11}
+    fabric.load(checkpoint_path, state, strict=False)
+    assert state["coconut"] == 11
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
-def test_fsdp_save_load_full_state_dict(tmp_path):
+def test_fsdp_save_full_state_dict(tmp_path):
     """Test that FSDP saves the full state into a single file with `state_dict_type="full"`."""
     fabric = BoringFabric(
         accelerator="cuda",
@@ -152,6 +160,38 @@ def test_fsdp_save_load_full_state_dict(tmp_path):
     assert metadata == {"steps": 1}
     params_after = list(fabric.model.parameters())
     assert all(torch.equal(p0, p1) for p0, p1 in zip(params_before, params_after))
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
+    """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
+    fabric = BoringFabric(accelerator="cuda", devices=1)
+    fabric.run()
+
+    # Save a full-state-dict checkpoint
+    checkpoint_path = Path(fabric.broadcast(str(tmp_path / "full-checkpoint.pt")))
+    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
+    fabric.save(checkpoint_path, state)
+
+    # Create a FSDP sharded model
+    fabric = BoringFabric(
+        accelerator="cuda",
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
+        devices=2,
+    )
+    fabric.run()
+
+    warning_msg = "currently only supports loading the model weights"
+    warns = pytest.warns(UserWarning, match=warning_msg) if fabric.global_rank == 0 else nullcontext()
+    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 44}
+    with warns:
+        fabric.load(checkpoint_path, state)
+    assert state["steps"] == 1
+
+    state = {"model": fabric.model}
+    with no_warning_call(UserWarning, match=warning_msg):
+        remainder = fabric.load(checkpoint_path, state)
+    assert remainder == {"steps": 1, "optimizer": ANY}
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
@@ -249,7 +289,7 @@ def test_compile(compile_after_setup):
         ("64-true", torch.float64),
     ],
 )
-def test_init_context(precision, expected_dtype):
+def test_module_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     fabric = Fabric(
         accelerator="cuda",
