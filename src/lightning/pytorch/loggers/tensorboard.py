@@ -107,6 +107,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[_PATH] = None,
+        save_hp_params=True,
         **kwargs: Any,
     ):
         super().__init__(
@@ -125,6 +126,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             )
         self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
         self.hparams: Union[Dict[str, Any], Namespace] = {}
+        self.save_hp_params = save_hp_params
 
     @property
     def root_dir(self) -> str:
@@ -215,7 +217,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file if it doesn't exist and the log directory exists
-        if self._fs.isdir(dir_path) and not self._fs.isfile(hparams_file):
+        if self._fs.isdir(dir_path) and not self._fs.isfile(hparams_file) and self.save_hp_params:
             save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only
