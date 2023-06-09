@@ -67,10 +67,12 @@ def _create_index(data_connection_path: str, index_file_path: str) -> bool:
     except NoCredentialsError as exc:
         print(
             "Unable to locate credentials. \
-            Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\nAWS_SECRET_KEY"
+            Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\\AWS_SECRET_ACCESS_KEY"
         )
+        os.remove(index_file_path)
         raise ValueError(exc)
     except Exception as exc:
+        os.remove(index_file_path)
         raise ValueError(exc)
 
 

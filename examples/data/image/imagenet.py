@@ -121,7 +121,7 @@ class ImageNetLightningModel(L.LightningModule):
 # -------------------
 
 
-class S3LightningImagenetDataset(L.LightningS3Dataset):
+class S3LightningImagenetDataset(L.LightningDataset):
     def __init__(
         self,
         data_source: str,
@@ -131,7 +131,7 @@ class S3LightningImagenetDataset(L.LightningS3Dataset):
     ):
         from torchvision.models._meta import _IMAGENET_CATEGORIES
 
-        super().__init__(data_source=data_source, path_to_index_file=path_to_index_file)
+        super().__init__(data_source=data_source, backend="s3", path_to_index_file=path_to_index_file)
 
         # only get files for the split
         self.files = tuple([x for x in self.files if split in x])
@@ -164,7 +164,7 @@ class S3LightningImagenetDataset(L.LightningS3Dataset):
 
 if __name__ == "__main__":
     # os.environ["AWS_ACCESS_KEY"] = <your aws access key>
-    # os.environ["AWS_SECRET_KEY"] = <your aws secret key>
+    # os.environ["AWS_SECRET_ACCESS_KEY"] = <your aws secret key>
 
     data_path = "s3://imagenet-tiny"
     index_file_path = "imagenet/imagenet-index.txt"

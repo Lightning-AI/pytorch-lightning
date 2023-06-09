@@ -23,25 +23,34 @@ def get_aws_credentials():
     credentials = provider.load()
 
     os.environ["AWS_ACCESS_KEY"] = credentials.access_key
-    os.environ["AWS_SECRET_KEY"] = credentials.secret_key
+    os.environ["AWS_SECRET_ACCESS_KEY"] = credentials.secret_key
     os.environ["AWS_SESSION_TOKEN"] = credentials.token
 
     return credentials
 
 
-class LightningDataset(TorchDataset):
+class CredsObj:
+    def __init__(self, access_key, secret_key):
+        self.access_key = access_key
+        self.secret_key = secret_key
+
+
+class LightningDataset(TorchDataset, ABC):
     """Dataset wrapper for optimized dataloading.
 
     Arguments:
 
         data_source: path of data directory.
 
+        backend: current options are "s3" or "local"
+
         path_to_index_file: path to index file that lists all file contents of the data_source.
     """
 
-    def __init__(self, data_source: str, path_to_index_file: Optional[str] = None):
+    def __init__(self, data_source: str, backend: str = "s3", path_to_index_file: Optional[str] = None):
         super().__init__()
         self.data_source = data_source
+        self.backend = backend
 
         if not path_to_index_file:
             tmpdir = tempfile.mkdtemp()
@@ -49,7 +58,14 @@ class LightningDataset(TorchDataset):
 
         self.index_file = os.path.abspath(os.path.expandvars(os.path.expanduser(path_to_index_file)))
 
-        os.makedirs(os.path.dirname(self.index_file), exist_ok=True)
+        self.files = self.get_index()
+
+        if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
+            self.credentials = CredsObj(
+                access_key=os.getenv("AWS_ACCESS_KEY"), secret_key=os.getenv("AWS_SECRET_ACCESS_KEY")
+            )
+        else:
+            self.credentials = get_aws_credentials()
 
     def get_index(self) -> Tuple[str, ...]:
         """Gets existing index or triggers an index generation if it doesn't exist for the provided data_source.
@@ -68,33 +84,6 @@ class LightningDataset(TorchDataset):
     def open(file: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs):
         return OpenCloudFileObj(file, mode=mode, kwargs_for_open=kwargs_for_open, **kwargs)
 
-
-class TempCreds:
-    def __init__(self, access_key, secret_key):
-        self.access_key = access_key
-        self.secret_key = secret_key
-
-
-class LightningS3Dataset(LightningDataset, ABC):
-    """LightningDataset for S3 buckets.
-
-    Arguments:
-
-        data_source: path of data directory.
-
-        path_to_index_file: path to index file that lists all file contents of the data_source.
-    """
-
-    def __init__(self, data_source: str, path_to_index_file: Optional[str] = None):
-        super().__init__(data_source=data_source, path_to_index_file=path_to_index_file)
-
-        self.files = self.get_index()
-
-        if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_KEY"):
-            self.credentials = TempCreds(access_key=os.getenv("AWS_ACCESS_KEY"), secret_key=os.getenv("AWS_SECRET_KEY"))
-        else:
-            self.credentials = get_aws_credentials()
-
     def __getitem__(self, idx: int) -> Any:
         from botocore.exceptions import NoCredentialsError
 
@@ -111,7 +100,7 @@ class LightningS3Dataset(LightningDataset, ABC):
         except NoCredentialsError as exc:
             print(
                 "Unable to locate credentials. \
-                Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\nAWS_SECRET_KEY"
+                Make sure you have set the following environment variables: \nAWS_ACCESS_KEY\\AWS_SECRET_ACCESS_KEY"
             )
             raise ValueError(exc)
         except Exception as exc:
