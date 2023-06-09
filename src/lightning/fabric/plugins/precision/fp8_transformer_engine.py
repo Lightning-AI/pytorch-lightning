@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 from contextlib import contextmanager
+from functools import partial
 from typing import Any, Generator, Literal, Mapping, Optional, TYPE_CHECKING, Union
 
 import torch
@@ -92,8 +93,9 @@ class Fp8TransformerEnginePrecision(Precision):
 
         original_linear = torch.nn.Linear
         original_layer_norm = torch.nn.LayerNorm
-        torch.nn.Linear = te.Linear  # type: ignore[misc]
-        torch.nn.LayerNorm = te.LayerNorm  # type: ignore[misc]
+        # https://github.com/NVIDIA/TransformerEngine/issues/270
+        torch.nn.Linear = partial(te.Linear, params_dtype=torch.get_default_dtype())  # type: ignore[misc]
+        torch.nn.LayerNorm = partial(te.LayerNorm, params_dtype=torch.get_default_dtype())  # type: ignore[misc]
 
         yield
 
@@ -115,14 +117,16 @@ def _convert_layers(module: torch.nn.Module) -> None:
                 )
                 continue
             has_bias = child.bias is not None
-            replacement = te.Linear(child.in_features, child.out_features, bias=has_bias)
+            replacement = te.Linear(
+                child.in_features, child.out_features, bias=has_bias, params_dtype=torch.get_default_dtype()
+            )
             replacement.weight.data = child.weight.data.clone()
             if has_bias:
                 replacement.bias.data = child.bias.data.clone()
             log.debug(f"Replacing layer {name!r} with Transformer Engine equivalent")
             module.__setattr__(name, replacement)
         elif isinstance(child, torch.nn.LayerNorm):
-            replacement = te.LayerNorm(child.normalized_shape[0], eps=child.eps)
+            replacement = te.LayerNorm(child.normalized_shape[0], eps=child.eps, params_dtype=torch.get_default_dtype())
             replacement.weight.data = child.weight.data.clone()
             replacement.bias.data = child.bias.data.clone()
             log.debug(f"Replacing layer {name!r} with Transformer Engine equivalent")
