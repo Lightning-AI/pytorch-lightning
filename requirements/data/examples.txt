@@ -1,4 +1,3 @@
 Pillow >= 9.5.0
 # min version to match torch >= 2.0.1
 torchvision >=0.15.2, <=0.16
-lightning-utilities >=0.8.0, <0.9.0

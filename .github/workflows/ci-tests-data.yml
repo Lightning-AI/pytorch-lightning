@@ -62,7 +62,7 @@ jobs:
     - name: Set min. dependencies
       if: ${{ matrix.requires == 'oldest' }}
       run: |
-        python .actions/assistant.py replace_oldest_ver --requirement_fnames="[requirements/data/extra.txt, requirements/data/examples.txt, requirements/data/test.txt]"
+        python .actions/assistant.py replace_oldest_ver
 
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' && matrix.release != 'pre' }}
