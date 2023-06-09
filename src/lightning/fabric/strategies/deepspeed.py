@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import platform
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
@@ -340,7 +340,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextmanager
-    def init_sharded_context(self) -> Generator[None, None, None]:
+    def module_init_context(self) -> Generator[None, None, None]:
+        precision_context = self.precision.init_context() if not self.zero_stage_3 else nullcontext()
+        with precision_context, self.module_sharded_context():
+            yield
+
+    @contextmanager
+    def module_sharded_context(self) -> Generator[None, None, None]:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
         # manager, which happens at the start of `Fabric.run()`. Later modifications through e.g. `Fabric.setup()`
         # won't have an effect here.
@@ -350,9 +356,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision.precision == "16-mixed":
+            # Note: For the mixed settings '16-mixed' and 'bf16-mixed', we shouldn't convert the weights to half
+            # precision, but we are keeping the 'bug' for backward compatibility.
+            # TODO: This can be properly implemented once https://github.com/Lightning-AI/lightning/issues/17581
+            #   gets resolved
+            if self.precision.precision in ("16-mixed", "16-true"):
                 dtype = torch.float16
-            elif self.precision.precision == "bf16-mixed":
+            elif self.precision.precision in ("bf16-mixed", "bf16-true"):
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float32
@@ -418,7 +428,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 
     def load_checkpoint(
-        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+        self,
+        path: _PATH,
+        state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
+        strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -426,6 +439,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 This should contain exactly one model, and the model must already be set up by DeepSpeed.
+            strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
             Dictionary with the state inside DeepSpeed's engine
@@ -442,7 +456,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
             # a consolidated checkpoint
             path = self.broadcast(path)
-            return super().load_checkpoint(path=path, state=state)
+            return super().load_checkpoint(path=path, state=state, strict=strict)
 
         if not state:
             raise ValueError(
@@ -473,13 +487,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             tag="checkpoint",
             load_optimizer_states=optimzer_state_requested,
             load_lr_scheduler_states=False,
-            load_module_strict=True,  # TODO(fabric): make strict loading configurable
+            load_module_strict=strict,
         )
         if client_state is None:
             raise RuntimeError(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
+
         for k in client_state.copy():
             if k not in state:
                 continue
@@ -624,7 +639,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision.precision == "16-mixed":
+        if self.precision.precision in ("16-mixed", "16-true"):
             if "fp16" not in self.config:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -636,7 +651,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-        elif "bf16" not in self.config and self.precision.precision == "bf16-mixed":
+        elif "bf16" not in self.config and self.precision.precision in ("bf16-mixed", "bf16-true"):
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 

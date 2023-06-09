@@ -54,6 +54,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added non-layer param count to the model summary ([#17005](https://github.com/Lightning-AI/lightning/pull/17005))
 
 
+- Updated `LearningRateMonitor` to log monitored values to `trainer.callback_metrics` ([#17626](https://github.com/Lightning-AI/lightning/pull/17626))
+
+
 ### Changed
 
 - Removed the limitation to call `self.trainer.model.parameters()` in `LightningModule.configure_optimizers()` ([#17309](https://github.com/Lightning-AI/lightning/pull/17309))
@@ -82,6 +85,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Made the run initialization in `WandbLogger` lazy to avoid creating artifacts when the CLI is used ([#17573](https://github.com/Lightning-AI/lightning/pull/17573))
 
 
+- Fixed inconsistent settings for FSDP Precision ([#17670](https://github.com/Lightning-AI/lightning/issues/17670))
+
+
+- Simplified redirection of `*_step` methods in strategies by removing the `_LightningModuleWrapperBase` wrapper module ([#17531](https://github.com/Lightning-AI/lightning/pull/17531))
+
+
+- Support kwargs input for LayerSummary ([#17709](https://github.com/Lightning-AI/lightning/pull/17709))
+
+
 ### Deprecated
 
 - Deprecated the `SingleTPUStrategy` (`strategy="single_tpu"`) in favor of `SingleDeviceXLAStrategy` (`strategy="single_xla"`) ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
@@ -95,12 +107,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated the `TPUBf16PrecisionPlugin` in favor of `XLABf16PrecisionPlugin` ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
 
+
+- Deprecated the `Strategy.post_training_step` method ([#17531](https://github.com/Lightning-AI/lightning/pull/17531))
+
+
 ### Removed
 
 - Removed the `XLAStrategy.is_distributed` property. It is always True ([#17381](https://github.com/Lightning-AI/lightning/pull/17381))
 - Removed the `SingleTPUStrategy.is_distributed` property. It is always False ([#17381](https://github.com/Lightning-AI/lightning/pull/17381))
 
 ### Fixed
+
+- `CombinedLoader` only starts DataLoader workers when necessary when operating in sequential mode ([#17639](https://github.com/Lightning-AI/lightning/pull/17639))
+
 
 - Fixed issue where `Model.load_from_checkpoint("checkpoint.ckpt", map_location=map_location)` would always return model on CPU ([#17308](https://github.com/Lightning-AI/lightning/pull/17308))
 
@@ -118,6 +137,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed computing the next version folder in `CSVLogger` ([#17139](https://github.com/Lightning-AI/lightning/pull/17139))
+
+
+- Fixed a formatting issue when the filename in `ModelCheckpoint` contained metrics that were substrings of each other ([#17610](https://github.com/Lightning-AI/lightning/pull/17610))
+
+
+- Fixed `WandbLogger` ignoring the `WANDB_PROJECT` environment variable ([#16222](https://github.com/Lightning-AI/lightning/pull/16222))
+
+
+- Fixed an edge case causing overlapping samples in DDP when no global seed is set ([#17713](https://github.com/Lightning-AI/lightning/pull/17713))
+
+
+- Fixed an issue with reusing the same model across multiple trainer stages when using the `DeepSpeedStrategy` ([#17531](https://github.com/Lightning-AI/lightning/pull/17531))
 
 
 ## [2.0.1.post0] - 2023-04-11

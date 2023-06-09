@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_fabric DIRECTORY
+# THIS FILE ASSUMES IT IS RUN INSIDE THE tests/parity_fabric DIRECTORY
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/.."
 
@@ -39,5 +39,5 @@ retry_command() {
   return $exit_code
 }
 
-retry_command "python -m parity.test_parity_ddp --accelerator="cpu" --devices=2 --tolerance=0.02"
-retry_command "python -m parity.test_parity_ddp --accelerator="cuda" --devices=2 --tolerance=0.01"
+retry_command "python -m test_parity_ddp --accelerator="cpu" --devices=2 --tolerance=0.02"
+retry_command "python -m test_parity_ddp --accelerator="cuda" --devices=2 --tolerance=0.01"

@@ -18,6 +18,7 @@ import pytest
 import torch
 import torch.nn as nn
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.model_summary.model_summary import (
@@ -270,7 +271,8 @@ def test_summary_with_scripted_modules(max_depth):
         ([], UNKNOWN_SIZE),
         ((1, 2, 3), [UNKNOWN_SIZE] * 3),
         (torch.tensor(0), UNKNOWN_SIZE),
-        ({"tensor": torch.zeros(1, 2, 3)}, UNKNOWN_SIZE),
+        ({"tensor": torch.zeros(1, 2, 3)}, [1, 2, 3]),
+        ({"tensor0": torch.zeros(1, 2, 3), "tensor1": torch.zeros(4, 5, 6)}, [[1, 2, 3], [4, 5, 6]]),
         (torch.zeros(2, 3, 4), [2, 3, 4]),
         ([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
         ((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
@@ -291,6 +293,10 @@ def test_example_input_array_types(example_input, expected_size, max_depth):
         # this LightningModule and submodule accept any type of input
         def forward(self, *args, **kwargs):
             return self.layer(*args, **kwargs)
+
+    if isinstance(example_input, dict) and not _TORCH_GREATER_EQUAL_2_0:
+        # kwargs are not supported when torch < 2.0
+        expected_size = UNKNOWN_SIZE
 
     model = DummyLightningModule()
     model.example_input_array = example_input

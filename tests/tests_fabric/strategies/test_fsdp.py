@@ -11,6 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
+import datetime
+import functools
+import os
 from datetime import timedelta
 from re import escape
 from unittest import mock
@@ -19,11 +23,17 @@ from unittest.mock import ANY, MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
+from lightning_utilities.core.imports import RequirementCache
 from torch.optim import Adam
 
+from lightning.fabric import Fabric
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.strategies.fsdp import _FSDPBackwardSyncControl
+from lightning.fabric.strategies.fsdp import (
+    _FSDPBackwardSyncControl,
+    _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD,
+    fsdp_overlap_step_with_backward,
+)
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
@@ -263,6 +273,26 @@ def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
         strategy.load_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
 
 
+@RunIf(min_torch="2.0.0")
+@mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
+    strategy = FSDPStrategy(state_dict_type="invalid")
+    model = Mock(spec=FullyShardedDataParallel)
+    with pytest.raises(ValueError, match="Unknown state_dict_type"):
+        strategy.save_checkpoint(path=tmp_path, state={"model": model})
+
+
+@RunIf(min_torch="2.0.0")
+def test_fsdp_load_unkown_checkpoint_type(tmp_path):
+    """Test that the strategy validates the contents at the checkpoint path."""
+    strategy = FSDPStrategy()
+    model = Mock(spec=FullyShardedDataParallel)
+    path = tmp_path / "empty_dir"  # neither a single file nor a directory with meta file
+    path.mkdir()
+    with pytest.raises(ValueError, match="does not point to a valid checkpoint"):
+        strategy.load_checkpoint(path=path, state={"model": model})
+
+
 @RunIf(min_torch="1.12")
 @mock.patch("torch.distributed.init_process_group")
 def test_set_timeout(init_process_group_mock):
@@ -278,3 +308,199 @@ def test_set_timeout(init_process_group_mock):
     init_process_group_mock.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
+
+
+class SubBlock(nn.Sequential):
+    def __init__(self, feature_dim: int) -> None:
+        super().__init__(
+            nn.Linear(feature_dim, feature_dim, bias=False),
+            torch.nn.LayerNorm([feature_dim]),
+            nn.ReLU(),
+        )
+
+
+class Block(nn.Module):
+    def __init__(self, feature_dim: int) -> None:
+        super().__init__()
+        self.left = SubBlock(feature_dim)
+        self.right = SubBlock(feature_dim)
+
+    def forward(self, x):
+        return self.left(x) + self.right(x)
+
+
+class StatusChecker:
+    def __init__(self, fabric: Fabric) -> None:
+        self._fabric = fabric
+        self.is_rank_zero = fabric.is_global_zero
+        self.pids = tuple(int(pid) for pid in fabric.all_gather(os.getpid()).cpu().numpy())
+
+    @contextlib.contextmanager
+    def guard_region(self, name: str):
+        """Handle errors and graceful shutdown.
+
+        `pytest` interprets SystemExit as a faiure, so it will interpret shutdown of non-zero ranks as a test failure.
+        This is confusing (since it logs "FAILED"), but more importantly the orphan rank will continue trying to execute
+        the rest of the test suite. So instead we add calls to `os._exit` which actually forces the process to shut
+        down.
+        """
+        success = False
+        try:
+            yield
+            success = True
+
+        except BaseException:
+            if self.is_rank_zero:
+                raise
+
+        finally:
+            # All reduce will wait for all workers to enter. This means that if a
+            # worker dies the status check will deadlock.
+            import psutil
+
+            worker_status = tuple(psutil.Process(pid).status() for pid in self.pids)
+            if any(
+                status in (psutil.STATUS_DEAD, psutil.STATUS_STOPPED, psutil.STATUS_ZOMBIE) for status in worker_status
+            ):
+                if self.is_rank_zero:
+                    raise RuntimeError(f"({name}) Dead workers: [{', '.join(worker_status)}]")
+                else:
+                    os._exit(1)
+
+            rank_success = self._fabric.all_gather(success).cpu()
+            if not rank_success.all():
+                if self.is_rank_zero > 0:
+                    os._exit(1)
+                elif success:
+                    raise RuntimeError(f"({name}) Failure on different rank: {rank_success}")
+
+    def finalize(self) -> None:
+        if not self.is_rank_zero:
+            os._exit(0)
+
+    def __del__(self) -> None:
+        self.finalize()
+
+
+@RunIf(min_torch="2.0.0", min_cuda_gpus=2, skip_windows=True, standalone=True)
+@pytest.mark.skipif(not _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD, reason="Not supported in this version of PyTorch")
+@pytest.mark.skipif(not RequirementCache("psutil"), reason="psutil is needed to help prevent deadlocks.")
+@pytest.mark.parametrize(
+    "checkpoint",
+    [(Block,), (SubBlock,), (Block, SubBlock, nn.Linear), None],
+)
+def test_apply_optimizer_in_backward(checkpoint):
+    try:
+        from torch.distributed.fsdp.wrap import lambda_auto_wrap_policy
+    except ImportError:
+        pytest.skip("Failed to import `lambda_auto_wrap_policy`")
+
+    from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
+
+    num_gpus = 2
+    num_blocks = 8
+    feature_dim = 256
+
+    # This bound is dependent on the topology of the model. The grads for each
+    # Block are two `feature_dim ** 2` Tensors (`left` and `right` Linear layers)
+    # times four. (FP32 = 4 bytes / element)
+    #
+    # In the baseline case grads for all Blocks are materialized at once, whereas
+    # in the test case only one Block should have grads in memory which adds a
+    # `(num_blocks - 1)` factor.
+    #
+    # However, there is one final correction to be made. In the baseline case peak
+    # memory occurs at the end of the backward pass; at that time activations will
+    # have been freed and will offset the memory relative to the base case. (Which
+    # reaches peak memory after the first block when most activations are still
+    # in memory.) It's difficult to estimate the exact correction factor
+    # (particularly since it varies with activation checkpointing strategy), but
+    # three is close enough for our purposes.
+    upper_savings_bound = 4 * feature_dim**2 * 2 * (num_blocks - 1)
+    lower_savings_bound = upper_savings_bound / 3
+
+    auto_wrap_policy = functools.partial(lambda_auto_wrap_policy, lambda_fn=lambda module: isinstance(module, Block))
+    strategy = FSDPStrategy(
+        auto_wrap_policy=auto_wrap_policy,
+        activation_checkpointing=checkpoint,
+        timeout=datetime.timedelta(seconds=10),
+    )
+    fabric = Fabric(accelerator="cuda", devices=num_gpus, strategy=strategy)
+    fabric.launch()
+    status_checker = StatusChecker(fabric)
+
+    def make_model_and_optimizers():
+        torch.manual_seed(0)
+
+        with fabric.init_module():
+            backbone = [Block(feature_dim) for _ in range(num_blocks)]
+            model = nn.Sequential(*backbone, nn.Linear(feature_dim, 1, bias=False))
+            optimizers = [torch.optim.SGD(layer.parameters(), lr=0.1, momentum=0.9) for layer in model]
+
+        return fabric.setup_module(model), fabric.setup_optimizers(*optimizers)
+
+    with status_checker.guard_region("Instantiate model."):
+        baseline_model, baseline_optimizers = make_model_and_optimizers()
+        test_model, test_optimizers = make_model_and_optimizers()
+        fabric.seed_everything(1337 + fabric.global_rank)
+
+        # Check that initialization is identical.
+        for p0, p1 in zip(baseline_model.parameters(), test_model.parameters()):
+            assert (p0 == p1).all()
+
+    num_steps = 50
+    for step in range(num_steps):
+        # Normal pattern: `.backward()` followed by `.step()`
+        with status_checker.guard_region(f"({step + 1} / {num_steps}) Baseline"):
+            x = torch.randn((4, feature_dim), device=fabric.device)
+            y_baseline = baseline_model(x)
+
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats(fabric.device)
+            baseline_start_memory = torch.cuda.max_memory_allocated(fabric.device)
+            fabric.backward(y_baseline.mean().abs())
+            del y_baseline
+            for optimizer in baseline_optimizers:
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
+
+                # FSDP sometimes holds onto grad memory until the next forward
+                # pass. In order to provide a fair comparison (and thus an
+                # accurate check that moving the step call into backward actually
+                # delivers the expected memory savings) we need to "help" the
+                # baseline case a bit.
+                param_handles = _get_fsdp_handles(baseline_model._forward_module)
+                for h in param_handles:
+                    h._clear_grads_if_needed()
+
+            baseline_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
+
+        # `.step()` interleaved with `.backward()`
+        with status_checker.guard_region(f"({step + 1} / {num_steps}) Optimizer in backward"):
+            y_test = test_model(x)
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats(fabric.device)
+            test_start_memory = torch.cuda.memory_allocated(fabric.device)
+            with fsdp_overlap_step_with_backward(test_optimizers, test_model):
+                fabric.backward(y_test.mean().abs())
+                del y_test
+
+            test_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
+
+        # Make sure the parameter updates match.
+        with status_checker.guard_region(f"({step + 1} / {num_steps}) Check equality"):
+            for idx, (p0, p1) in enumerate(zip(baseline_model.parameters(), test_model.parameters())):
+                assert (p0 == p1).all(), (step, idx, p0, p1)
+
+        # The first step is going to be odd due to lazy initialization of optimizer state.
+        if not step:
+            continue
+
+        with status_checker.guard_region(f"({step + 1} / {num_steps}) Confirm memory reduction"):
+            baseline_delta = baseline_peak_memory - baseline_start_memory
+            test_delta = test_peak_memory - test_start_memory
+            assert (baseline_delta - test_delta) >= lower_savings_bound, (baseline_delta, test_delta)
+            assert (baseline_delta - test_delta) <= upper_savings_bound, (baseline_delta, test_delta)
+
+    status_checker.finalize()
+    assert (pid := os.getpid()) == status_checker.pids[0], f"Orphan worker: {pid}"

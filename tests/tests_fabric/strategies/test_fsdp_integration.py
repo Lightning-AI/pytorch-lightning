@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from contextlib import nullcontext
 from copy import deepcopy
+from pathlib import Path
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.nn import Parameter
 
 from lightning.fabric import Fabric
@@ -43,16 +47,28 @@ class _MyFabric(BoringFabric):
         assert isinstance(forward_module, FullyShardedDataParallel)
         assert isinstance(self._precision, FSDPPrecision)
 
-        precision = torch.float16 if self._precision.precision == "16-mixed" else torch.bfloat16
-        assert forward_module.mixed_precision.param_dtype == precision
-        assert forward_module.mixed_precision.reduce_dtype == precision
-        assert forward_module.mixed_precision.buffer_dtype == precision
+        if self._precision.precision == "16-mixed":
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.float16
+        elif self._precision.precision == "bf16-mixed":
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self._precision.precision == "16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.float16
+        elif self._precision.precision == "bf16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
+        else:
+            raise ValueError(f"Unknown precision {self._precision.precision}")
+
+        assert forward_module.mixed_precision.param_dtype == param_dtype
+        assert forward_module.mixed_precision.reduce_dtype == reduce_dtype
+        assert forward_module.mixed_precision.buffer_dtype == buffer_dtype
 
         for layer_num in [0, 2]:
             assert isinstance(original_module[layer_num], FullyShardedDataParallel)
-            assert original_module[layer_num].mixed_precision.param_dtype == precision
-            assert original_module[layer_num].mixed_precision.reduce_dtype == precision
-            assert original_module[layer_num].mixed_precision.buffer_dtype == precision
+            assert original_module[layer_num].mixed_precision.param_dtype == param_dtype
+            assert original_module[layer_num].mixed_precision.reduce_dtype == reduce_dtype
+            assert original_module[layer_num].mixed_precision.buffer_dtype == buffer_dtype
 
         output = model(batch)
         return torch.nn.functional.mse_loss(output, torch.ones_like(output))
@@ -103,8 +119,79 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
 
     # attempt to load a key not in the metadata checkpoint
     state = {"model": fabric.model, "coconut": 11}
-    with pytest.raises(KeyError, match="'coconut' not found in the checkpoint."):
+    with pytest.raises(KeyError, match="The requested state contains a key 'coconut' that does not exist"):
         fabric.load(checkpoint_path, state)
+
+    # `strict=False` ignores the missing key
+    state = {"model": fabric.model, "coconut": 11}
+    fabric.load(checkpoint_path, state, strict=False)
+    assert state["coconut"] == 11
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+def test_fsdp_save_full_state_dict(tmp_path):
+    """Test that FSDP saves the full state into a single file with `state_dict_type="full"`."""
+    fabric = BoringFabric(
+        accelerator="cuda",
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type="full"),
+        devices=2,
+    )
+    fabric.run()
+
+    checkpoint_path = Path(fabric.broadcast(str(tmp_path / "fsdp-checkpoint.pt")))
+
+    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
+    fabric.save(checkpoint_path, state)
+
+    checkpoint = torch.load(checkpoint_path)
+    assert checkpoint["steps"] == 1
+    loaded_state_dict = checkpoint["model"]
+    with FullyShardedDataParallel.summon_full_params(fabric.model):
+        state_dict = fabric.model.state_dict()
+        assert set(loaded_state_dict.keys()) == set(state_dict.keys())
+        for param_name in state_dict:
+            assert torch.equal(loaded_state_dict[param_name], state_dict[param_name].cpu())
+        params_before = [p.cpu() for p in fabric.model.parameters()]
+
+    # verify the full state can be loaded back into a single-device model/strategy
+    fabric = BoringFabric(accelerator="cpu", devices=1)
+    fabric.run()
+    metadata = fabric.load(checkpoint_path, {"model": fabric.model, "optimizer": fabric.optimizer})
+    assert metadata == {"steps": 1}
+    params_after = list(fabric.model.parameters())
+    assert all(torch.equal(p0, p1) for p0, p1 in zip(params_before, params_after))
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
+    """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
+    fabric = BoringFabric(accelerator="cuda", devices=1)
+    fabric.run()
+
+    # Save a full-state-dict checkpoint
+    checkpoint_path = Path(fabric.broadcast(str(tmp_path / "full-checkpoint.pt")))
+    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
+    fabric.save(checkpoint_path, state)
+
+    # Create a FSDP sharded model
+    fabric = BoringFabric(
+        accelerator="cuda",
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
+        devices=2,
+    )
+    fabric.run()
+
+    warning_msg = "currently only supports loading the model weights"
+    warns = pytest.warns(UserWarning, match=warning_msg) if fabric.global_rank == 0 else nullcontext()
+    state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 44}
+    with warns:
+        fabric.load(checkpoint_path, state)
+    assert state["steps"] == 1
+
+    state = {"model": fabric.model}
+    with no_warning_call(UserWarning, match=warning_msg):
+        remainder = fabric.load(checkpoint_path, state)
+    assert remainder == {"steps": 1, "optimizer": ANY}
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
@@ -202,7 +289,7 @@ def test_compile(compile_after_setup):
         ("64-true", torch.float64),
     ],
 )
-def test_init_context(precision, expected_dtype):
+def test_module_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     fabric = Fabric(
         accelerator="cuda",
