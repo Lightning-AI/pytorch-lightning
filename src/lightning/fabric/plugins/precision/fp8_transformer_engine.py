@@ -43,7 +43,8 @@ class Fp8TransformerEnginePrecision(Precision):
             `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/common.html#transform
             er_engine.common.recipe.DelayedScaling`__. In dict format or the dataclass format.
         replace_layers: Whether to replace ``Linear`` and ``LayerNorm`` layers automatically with their Transformer
-            Engine alternatives.
+            Engine alternatives. Note that they don't subclass the torch equivalents so checks like
+            ``isinstance(l, torch.nn.Linear)`` will not pass.
     """
 
     precision: Literal["8-mixed-transformer-engine"] = "8-mixed-transformer-engine"
@@ -81,6 +82,24 @@ class Fp8TransformerEnginePrecision(Precision):
             _convert_layers(module)
         return module
 
+    @contextmanager
+    def init_context(self) -> Generator[None, None, None]:
+        if not self.replace_layers:
+            yield
+            return
+
+        import transformer_engine.pytorch as te
+
+        original_linear = torch.nn.Linear
+        original_layer_norm = torch.nn.LayerNorm
+        torch.nn.Linear = te.Linear
+        torch.nn.LayerNorm = te.LayerNorm
+
+        yield
+
+        torch.nn.Linear = original_linear
+        torch.nn.LayerNorm = original_layer_norm
+
 
 def _convert_layers(module: torch.nn.Module) -> None:
     import transformer_engine.pytorch as te
@@ -109,6 +128,6 @@ def _convert_layers(module: torch.nn.Module) -> None:
             log.debug(f"Replacing layer {name!r} with Transformer Engine equivalent")
             module.__setattr__(name, replacement)
         else:
-            # there are other transformer engine layers that we could convert but are more niche. full list at:
+            # there are other transformer engine layers that we could convert but require fusion. full list at:
             # https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html
             _convert_layers(child)
