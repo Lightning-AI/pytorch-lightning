@@ -517,10 +517,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             for optim_key, optim in optimizers.items():
                 # rank0_only should be false because we need to load the optimizer state on all ranks
                 with _get_full_state_dict_context(module, rank0_only=False):
-                    temp_state_dict = checkpoint[optim_key]
+                    temp_state_dict = checkpoint.pop(optim_key)
 
                     # Handling the case where the optimizer state is saved from a normal optimizer
-                    if isinstance(list(checkpoint[optim_key]["state"].keys())[0], int):
+                    if isinstance(list(temp_state_dict["state"].keys())[0], int):
                         temp_state_dict = FSDP.rekey_optim_state_dict(
                             temp_state_dict, OptimStateKeyType.PARAM_NAME, module
                         )
@@ -531,8 +531,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                         optim=optim,
                     )
                     optim.load_state_dict(optim_state_dict)
-
-                checkpoint.pop(optim_key)
 
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
