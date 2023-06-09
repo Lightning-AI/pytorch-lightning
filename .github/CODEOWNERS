@@ -42,7 +42,7 @@
 /src/lightning/pytorch/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
 
 # Data Utilities
-/examples/data/                     @nohalon @justusschock
+/examples/data/           @nohalon @justusschock
 /src/lightning/data/      @nohalon @justusschock
 /tests/tests_data         @nohalon @justusschock
 

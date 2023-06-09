@@ -29,7 +29,8 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.utilities.apply_func import move_data_to_device
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
@@ -121,13 +122,18 @@ class Strategy(ABC):
             yield
 
     @contextmanager
-    def module_init_context(self) -> Generator:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator:
         """A context manager wrapping the model instantiation.
 
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
         patches to the model.
+
+        Args:
+            empty_init: Whether to initialize the model with empty weights (uninitialized memory).
+                If ``None``, the strategy will decide. Some strategies may not support all options.
         """
-        with self.tensor_init_context():
+        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        with empty_init_context, self.tensor_init_context():
             yield
 
     def setup_module_and_optimizers(
