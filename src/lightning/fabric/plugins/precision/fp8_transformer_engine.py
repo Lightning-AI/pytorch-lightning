@@ -51,8 +51,6 @@ class Fp8TransformerEnginePrecision(Precision):
     def __init__(
         self, recipe: Optional[Union[Dict[str, Any], "DelayedScaling"]] = None, replace_layers: bool = True
     ) -> None:
-        if not torch.cuda.get_device_capability() >= (8, 1):
-            raise NotImplementedError("Your CUDA device does not support fp8 mixed precision.")
         if not _TRANSFORMER_ENGINE_AVAILABLE:
             raise ModuleNotFoundError(str(_TRANSFORMER_ENGINE_AVAILABLE))
         from transformer_engine.common.recipe import DelayedScaling
