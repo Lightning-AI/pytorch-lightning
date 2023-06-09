@@ -101,7 +101,7 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: Mapp
                 continue  # avoid `lightning` -> `lightning/lightning`
             lines = [ln.replace(old, f"lightning/{new}") for ln in lines]
         lines = sorted(set(filter(lambda ln: not ln.strip().startswith("#"), lines)))
-        logging.debug(f'aggregated manifest consists of: {lines}')
+        logging.debug(f"aggregated manifest consists of: {lines}")
         with open(manifest_path, mode="w") as fp:
             fp.writelines(lines)
     else:
