@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Literal, Optional, TYPE_CHECKING, Union
+from typing import Any, Generator, Literal, Mapping, Optional, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -49,7 +49,7 @@ class Fp8TransformerEnginePrecision(Precision):
     precision: Literal["8-mixed-transformer-engine"] = "8-mixed-transformer-engine"
 
     def __init__(
-        self, recipe: Optional[Union[Dict[str, Any], "DelayedScaling"]] = None, replace_layers: bool = True
+        self, recipe: Optional[Union[Mapping[str, Any], "DelayedScaling"]] = None, replace_layers: bool = True
     ) -> None:
         if not _TRANSFORMER_ENGINE_AVAILABLE:
             raise ModuleNotFoundError(str(_TRANSFORMER_ENGINE_AVAILABLE))
@@ -57,7 +57,8 @@ class Fp8TransformerEnginePrecision(Precision):
 
         if recipe is None:
             recipe = DelayedScaling()
-        elif isinstance(recipe, dict):
+        elif isinstance(recipe, Mapping):
+            recipe = dict(recipe)  # copy
             if "fp8_format" in recipe:
                 from transformer_engine.common.recipe import Format
 
