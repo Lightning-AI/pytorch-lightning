@@ -153,7 +153,7 @@ def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str 
     assert unfreeze in {"none", "major", "all"}
     path = Path(path_dir) / file_name
     if not path.exists():
-        logging.warning(f'Folder {path_dir} does not have any base requirements.')
+        logging.warning(f"Folder {path_dir} does not have any base requirements.")
         return []
     assert path.exists(), (path_dir, file_name, path)
     text = path.read_text()
