@@ -47,7 +47,7 @@ def _prepare_extras() -> Dict[str, Any]:
     extras["app-extra"] = extras["app-cloud"] + extras["app-ui"] + extras["app-components"]
     extras["app-all"] = extras["app-extra"]
     extras["app-dev"] = extras["app-all"] + extras["app-test"]
-    extras["data-all"] = extras["data-data"] + extras["data-examples"]
+    extras["data-all"] = extras["data-data"] + extras["data-cloud"] + extras["data-examples"]
     extras["data-dev"] = extras["data-all"] + extras["data-test"]
     # merge per-project extras of the same category, e.g. `app-test` + `fabric-test`
     for extra in list(extras):
