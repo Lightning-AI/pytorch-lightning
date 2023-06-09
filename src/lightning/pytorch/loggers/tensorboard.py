@@ -81,7 +81,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
             then logs are saved in ``/save_dir/name/version/sub_dir/``. Defaults to ``None`` in which
             logs are saved in ``/save_dir/name/version/``.
-        save_hp_params： enable to save the hyperparams to tensorboard. if your saving hyperparams 
+        save_hp_params： enable to save the hyperparams to tensorboard. if your saving hyperparams
             to tensorboard is failed, please turn it off.
         \**kwargs: Additional arguments used by :class:`tensorboardX.SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
