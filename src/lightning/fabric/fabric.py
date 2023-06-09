@@ -352,9 +352,9 @@ class Fabric:
 
         dataloader = self._strategy.process_dataloader(dataloader)
         device = self.device if move_to_device and not isinstance(self._strategy, XLAStrategy) else None
-        lite_dataloader = _FabricDataLoader(dataloader=dataloader, device=device)
-        lite_dataloader = cast(DataLoader, lite_dataloader)
-        return lite_dataloader
+        fabric_dataloader = _FabricDataLoader(dataloader=dataloader, device=device)
+        fabric_dataloader = cast(DataLoader, fabric_dataloader)
+        return fabric_dataloader
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_FabricModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
