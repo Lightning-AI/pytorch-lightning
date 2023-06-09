@@ -41,6 +41,7 @@ There are considered three main scenarios for installing this project:
 """
 import contextlib
 import glob
+import logging
 import os
 import tempfile
 from importlib.util import module_from_spec, spec_from_file_location
@@ -87,11 +88,7 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: Mapp
     if aggregate:
         # aggregate all MANIFEST.in contents into a single temporary file
         manifest_path = _named_temporary_file(manifest_dir)
-        lines = [
-            "include src/lightning/version.info\n",
-            "include src/lightning/py.typed\n",
-            "include requirements/base.txt\n",
-        ]
+        lines = []
         # load manifest and aggregated all manifests
         for pkg in mapping.values():
             pkg_manifest = os.path.join(_PATH_SRC, pkg, "MANIFEST.in")
@@ -104,6 +101,7 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: Mapp
                 continue  # avoid `lightning` -> `lightning/lightning`
             lines = [ln.replace(old, f"lightning/{new}") for ln in lines]
         lines = sorted(set(filter(lambda ln: not ln.strip().startswith("#"), lines)))
+        logging.debug(f'aggregated manifest consists of: {lines}')
         with open(manifest_path, mode="w") as fp:
             fp.writelines(lines)
     else:
@@ -111,7 +109,7 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: Mapp
         assert os.path.exists(manifest_path)
     # avoid error: setup script specifies an absolute path
     manifest_path = os.path.relpath(manifest_path, _PATH_ROOT)
-    print("Set manifest path to", manifest_path)
+    logging.info("Set manifest path to", manifest_path)
     setuptools.command.egg_info.manifest_maker.template = manifest_path
     yield
     # cleanup
