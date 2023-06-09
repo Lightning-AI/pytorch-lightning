@@ -83,7 +83,7 @@ class _FabricOptimizer:
 
 class _FabricModule(_DeviceDtypeModuleMixin):
     # define at class level so __setattr__ method can check this attribute
-    _fabric_module_initialized = False
+    _fabric_module_initialized: bool = False
 
     def __init__(
         self, forward_module: nn.Module, precision: Precision, original_module: Optional[nn.Module] = None
