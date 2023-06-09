@@ -44,8 +44,8 @@ REQUIREMENT_FILES = {
         "requirements/fabric/strategies.txt",
     ),
     "data": (
-        "requirements/data/base.txt",
-        "requirements/data/extra.txt",
+        "requirements/data/data.txt",
+        "requirements/data/cloud.txt",
         "requirements/data/examples.txt",
     ),
 }
