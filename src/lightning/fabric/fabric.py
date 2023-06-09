@@ -352,9 +352,9 @@ class Fabric:
 
         dataloader = self._strategy.process_dataloader(dataloader)
         device = self.device if move_to_device and not isinstance(self._strategy, XLAStrategy) else None
-        lite_dataloader = _FabricDataLoader(dataloader=dataloader, device=device)
-        lite_dataloader = cast(DataLoader, lite_dataloader)
-        return lite_dataloader
+        fabric_dataloader = _FabricDataLoader(dataloader=dataloader, device=device)
+        fabric_dataloader = cast(DataLoader, fabric_dataloader)
+        return fabric_dataloader
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_FabricModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
@@ -573,7 +573,7 @@ class Fabric:
                 "You need to set up the model first before you can call `self.no_backward_sync()`:"
                 " `model = self.setup(model, ...)`"
             )
-        if not enabled or isinstance(self._strategy, SingleDeviceStrategy):
+        if not enabled or isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
             context = nullcontext()
         elif self._strategy._backward_sync_control is None:
             rank_zero_warn(
@@ -618,12 +618,17 @@ class Fabric:
             yield
 
     @contextmanager
-    def init_module(self) -> Generator:
+    def init_module(self, empty_init: Optional[bool] = None) -> Generator:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
         allocated unnecessarily. The automatic device placement under this context manager is only supported with
         PyTorch 2.0 and newer.
+
+        Args:
+            empty_init: Whether to initialize the model with empty weights (uninitialized memory).
+                If ``None``, the strategy will decide. Some strategies may not support all options.
+                Set this to ``True`` if you are loading a checkpoint into a large model. Requires `torch >= 1.13`.
         """
         if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
             rank_zero_warn(
@@ -632,7 +637,7 @@ class Fabric:
                 " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
                 category=PossibleUserWarning,
             )
-        with self._strategy.module_init_context():
+        with self._strategy.module_init_context(empty_init=empty_init):
             yield
 
     def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:

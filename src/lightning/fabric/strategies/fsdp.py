@@ -14,7 +14,7 @@
 import functools
 import os
 import threading
-from contextlib import _GeneratorContextManager, contextmanager
+from contextlib import _GeneratorContextManager, contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, List, Literal, Optional, Tuple, Type, TYPE_CHECKING, Union
@@ -49,6 +49,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
 )
+from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
@@ -270,10 +271,13 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     @contextmanager
-    def module_init_context(self) -> Generator[None, None, None]:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
         # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
         # is resolved. For now, the module will get moved to the device in `setup_module`.
-        with self.precision.init_context(), self.module_sharded_context():
+        empty_init_context = (
+            _EmptyInit(enabled=(empty_init is not False)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        )
+        with empty_init_context, self.precision.init_context(), self.module_sharded_context():
             yield
 
     @contextmanager
