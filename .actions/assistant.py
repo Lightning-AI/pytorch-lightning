@@ -409,6 +409,7 @@ class AssistantCLI:
     def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
         """Replace the min package version by fixed one."""
         for fname in requirement_fnames:
+            print(fname)
             AssistantCLI._replace_min(fname)
 
     @staticmethod
