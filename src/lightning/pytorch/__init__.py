@@ -30,7 +30,7 @@ from lightning.pytorch.trainer import Trainer  # noqa: E402
 # this import needs to go last as it will patch other modules
 import lightning.pytorch._graveyard  # noqa: E402, F401  # isort: skip
 
-__all__ = ["Trainer", "LightningDataModule", "LightningModule", "Callback", "seed_everything"]
+__all__ = ["Trainer", "LightningDataModule", "LightningModule", "Callback", "seed_everything", "loggers"]
 
 # for compatibility with namespace packages
 __import__("pkg_resources").declare_namespace(__name__)
