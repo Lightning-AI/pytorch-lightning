@@ -80,7 +80,6 @@ class Fp8TransformerEnginePrecision(Precision):
         if self.replace_layers and not any("transformer_engine" in m.__module__ for m in module.modules()):
             _convert_layers(module)
         return module
-        # TODO: should we un-convert on teardown?
 
 
 def _convert_layers(module: torch.nn.Module) -> None:
@@ -88,12 +87,12 @@ def _convert_layers(module: torch.nn.Module) -> None:
 
     for name, child in module.named_children():
         if isinstance(child, torch.nn.Linear):
-            if child.in_features % 16 != 0 or child.out_features % 16 != 0:
+            if child.in_features % 8 != 0 or child.out_features % 16 != 0:
                 # https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/examples/fp8_primer.html#FP8-autocasting
                 rank_zero_warn(
                     "Support for FP8 in the linear layers with `precision='8-mixed'` is currently limited to tensors"
-                    f" with shapes where both dimensions are divisible by 16. The layer {name!r} does not fit this"
-                    " criteria. You might want to add padding to your inputs."
+                    " with shapes where the dimensions are divisible by 8 and 16 respectively."
+                    f"The layer {name!r} does not fit this criteria. You might want to add padding to your inputs."
                 )
                 continue
             has_bias = child.bias is not None
