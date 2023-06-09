@@ -1051,12 +1051,17 @@ def test_connector_fp8_transformer_engine(monkeypatch):
     recipe_mock.DelayedScaling.assert_called_once_with(foo=0, fp8_format=recipe_mock.Format.HYBRID)
     assert isinstance(recipe["fp8_format"], str)  # not modified
 
+    class SubModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l = torch.nn.Linear(1, 3)
+
     class MyModule(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.l1 = torch.nn.Linear(16, 48)
-            self.l2 = torch.nn.Linear(1, 3)
-            self.l3 = torch.nn.LayerNorm(1)
+            self.l2 = torch.nn.LayerNorm(1)
+            self.l3 = SubModule()
 
     monkeypatch.setitem(sys.modules, "transformer_engine.pytorch", Mock())
     model = MyModule()
@@ -1064,7 +1069,8 @@ def test_connector_fp8_transformer_engine(monkeypatch):
     precision.replace_layers = False
     precision.convert_module(model)
     assert isinstance(model.l1, torch.nn.Linear)
-    assert isinstance(model.l3, torch.nn.LayerNorm)
+    assert isinstance(model.l3.l, torch.nn.Linear)
+    assert isinstance(model.l2, torch.nn.LayerNorm)
 
     precision.replace_layers = True
     setattr_mock = Mock()
@@ -1074,7 +1080,7 @@ def test_connector_fp8_transformer_engine(monkeypatch):
     mock_calls = setattr_mock.mock_calls
     assert len(mock_calls) == 2
     assert mock_calls[0][1][0] == "l1"
-    assert mock_calls[1][1][0] == "l3"
+    assert mock_calls[1][1][0] == "l2"
     assert mock_calls[0][1][1]._extract_mock_name() == "mock.pytorch.Linear()"
     assert mock_calls[1][1][1]._extract_mock_name() == "mock.pytorch.LayerNorm()"
 
@@ -1082,10 +1088,12 @@ def test_connector_fp8_transformer_engine(monkeypatch):
     with precision.init_context():
         model = MyModule()
     assert isinstance(model.l1, torch.nn.Linear)
-    assert isinstance(model.l3, torch.nn.LayerNorm)
+    assert isinstance(model.l2, torch.nn.LayerNorm)
+    assert isinstance(model.l3.l, torch.nn.Linear)
 
     precision.replace_layers = True
     with precision.init_context():
         model = MyModule()
     assert model.l1._extract_mock_name() == "mock.pytorch.Linear()"
-    assert model.l3._extract_mock_name() == "mock.pytorch.LayerNorm()"
+    assert model.l2._extract_mock_name() == "mock.pytorch.LayerNorm()"
+    assert model.l3.l._extract_mock_name() == "mock.pytorch.Linear()"
