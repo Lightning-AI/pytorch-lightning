@@ -532,7 +532,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                     )
                     optim.load_state_dict(optim_state_dict)
 
-                # optim.load_state_dict(optim_state_dict, strict=True)
                 checkpoint.pop(optim_key)
 
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
