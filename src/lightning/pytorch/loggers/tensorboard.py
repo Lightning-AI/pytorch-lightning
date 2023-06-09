@@ -109,7 +109,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[_PATH] = None,
-        save_hp_params: bool =True,
+        save_hp_params: bool = True,
         **kwargs: Any,
     ):
         super().__init__(
