@@ -92,13 +92,13 @@ class Fp8TransformerEnginePrecision(Precision):
 
         original_linear = torch.nn.Linear
         original_layer_norm = torch.nn.LayerNorm
-        torch.nn.Linear = te.Linear
-        torch.nn.LayerNorm = te.LayerNorm
+        torch.nn.Linear = te.Linear  # type: ignore[misc]
+        torch.nn.LayerNorm = te.LayerNorm  # type: ignore[misc]
 
         yield
 
-        torch.nn.Linear = original_linear
-        torch.nn.LayerNorm = original_layer_norm
+        torch.nn.Linear = original_linear  # type: ignore[misc]
+        torch.nn.LayerNorm = original_layer_norm  # type: ignore[misc]
 
 
 def _convert_layers(module: torch.nn.Module) -> None:
