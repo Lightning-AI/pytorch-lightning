@@ -542,7 +542,7 @@ def test_deepspeed_multigpu_single_file(tmpdir):
     strategy = trainer.strategy
     assert isinstance(strategy, DeepSpeedStrategy)
     assert not strategy.load_full_weights
-    with pytest.raises(MisconfigurationException, match="DeepSpeed was unable to load the checkpoint."):
+    with pytest.raises(MisconfigurationException, match="The provided checkpoint path does not seem to be a valid DeepSpeed checkpoint directory."):
         trainer.test(model, ckpt_path=checkpoint_path)
 
     trainer = Trainer(
