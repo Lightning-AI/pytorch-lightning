@@ -453,6 +453,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from torch.distributed.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp import OptimStateKeyType
 
         modules = {key: module for key, module in state.items() if isinstance(module, FSDP)}
         optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
@@ -506,20 +507,34 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return metadata
 
         if _is_full_checkpoint(path):
-            if optimizers:
-                rank_zero_warn(
-                    "Loading a full-state checkpoint into FSDP currently only supports loading the model weights."
-                    " The optimizer state won't be reloaded."
-                )
-
             # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
             # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
             checkpoint = torch.load(path, map_location="cpu")
             with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
                 module.load_state_dict(checkpoint.pop(module_key), strict=strict)
 
+            # Load optimizer states
+            for optim_key, optim in optimizers.items():
+                # rank0_only should be false because we need to load the optimizer state on all ranks
+                with _get_full_state_dict_context(module, rank0_only=False):
+                    temp_state_dict = checkpoint.pop(optim_key)
+
+                    # Handling the case where the optimizer state is saved from a normal optimizer
+                    if isinstance(list(temp_state_dict["state"].keys())[0], int):
+                        temp_state_dict = FSDP.rekey_optim_state_dict(
+                            temp_state_dict, OptimStateKeyType.PARAM_NAME, module
+                        )
+
+                    optim_state_dict = FSDP.optim_state_dict_to_load(
+                        optim_state_dict=temp_state_dict,
+                        model=module,
+                        optim=optim,
+                    )
+                    optim.load_state_dict(optim_state_dict)
+
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
+
             # Load metadata (anything not a module or optimizer)
             for key in requested_metadata_keys:
                 if key not in checkpoint:
@@ -633,12 +648,14 @@ def _get_sharded_state_dict_context(module: "FullyShardedDataParallel") -> _Gene
     return state_dict_type_context
 
 
-def _get_full_state_dict_context(module: "FullyShardedDataParallel") -> _GeneratorContextManager:
+def _get_full_state_dict_context(
+    module: "FullyShardedDataParallel", rank0_only: bool = True
+) -> _GeneratorContextManager:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import FullOptimStateDictConfig, FullStateDictConfig, StateDictType
 
-    state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
-    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True)
+    state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
+    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
     state_dict_type_context = FSDP.state_dict_type(
         module=module,
         state_dict_type=StateDictType.FULL_STATE_DICT,
