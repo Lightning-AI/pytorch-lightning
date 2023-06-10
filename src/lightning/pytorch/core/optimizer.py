@@ -25,8 +25,8 @@ from lightning.fabric.utilities.types import _Stateful, Optimizable, ReduceLROnP
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
+from lightning.pytorch.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple
 
 
 def do_nothing_closure() -> None:
