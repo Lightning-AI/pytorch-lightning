@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 from contextlib import contextmanager
 from dataclasses import fields
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
@@ -27,6 +26,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 def do_nothing_closure() -> None:
@@ -335,7 +335,7 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
 
 
 def _validate_multiple_optimizers_support(optimizers: List[Optimizer], model: "pl.LightningModule") -> None:
-    if "optimizer_idx" in inspect.signature(model.training_step).parameters:
+    if is_param_in_hook_signature(model.training_step, "optimizer_idx", explicit=True):
         raise RuntimeError(
             "Training with multiple optimizers is only supported with manual optimization. Remove the `optimizer_idx`"
             " argument from `training_step`, set `self.automatic_optimization = False` and access your optimizers"
