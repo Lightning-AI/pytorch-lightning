@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 from contextlib import contextmanager
 from dataclasses import fields
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
@@ -334,6 +335,12 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
 
 
 def _validate_multiple_optimizers_support(optimizers: List[Optimizer], model: "pl.LightningModule") -> None:
+    if "optimizer_idx" in inspect.signature(model.training_step).parameters:
+        raise RuntimeError(
+            "Training with multiple optimizers is only supported with manual optimization. Remove the `optimizer_idx`"
+            " argument from `training_step`, set `self.automatic_optimization = False` and access your optimizers"
+            " in `training_step` with `opt1, opt2, ... = self.optimizers()`."
+        )
     if model.automatic_optimization and len(optimizers) > 1:
         raise RuntimeError(
             "Training with multiple optimizers is only supported with manual optimization. Set"
