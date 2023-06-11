@@ -11,11 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Literal, Optional, TYPE_CHECKING
+from contextlib import contextmanager
+from typing import Literal, Optional, TYPE_CHECKING, Generator, Any, Dict
 
 import torch
+from lightning_utilities import apply_to_collection
+from torch import Tensor
+from torch.optim import Optimizer
 
-from lightning.fabric.plugins.precision.amp import MixedPrecision
+from fabric.plugins.precision.amp import _optimizer_handles_unscaling
+from fabric.plugins.precision.utils import _convert_fp_tensor
+from fabric.utilities.types import Optimizable
+from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if TYPE_CHECKING:
@@ -23,25 +30,38 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
 
-class FSDPPrecision(MixedPrecision):
+class FSDPPrecision(Precision):
     """AMP for Fully Sharded Data Parallel training.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
     """
 
     def __init__(
-        self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional["ShardedGradScaler"] = None
+        self,
+        precision: Literal["16-mixed", "bf16-mixed", "bf16-true", "16-true"],
+        device: str,
+        scaler: Optional["ShardedGradScaler"] = None,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
             raise NotImplementedError("`FSDPPrecision` is supported from PyTorch v1.12.0 onwards.")
 
         from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-        super().__init__(
-            precision=precision,
-            device=device,
-            scaler=(ShardedGradScaler() if scaler is None and precision == "16-mixed" else None),
-        )
+        if scaler is not None and self.precision != "16-mixed":
+            raise ValueError(f"`precision={self.precision!r}` does not use a scaler, found {scaler}.")
+
+        self.scaler = ShardedGradScaler() if scaler is None and precision == "16-mixed" else None
+        self.precision = precision
+        self.device = device
+
+        precision_to_type = {
+            "bf16-mixed": torch.bfloat16,
+            "16-mixed": torch.float16,
+            "bf16-true": torch.bfloat16,
+            "16-true": torch.float16,
+            "32-true": torch.float32,
+        }
+        self._desired_input_dtype = precision_to_type[self.precision]
 
     @property
     def mixed_precision_config(self) -> "TorchMixedPrecision":
@@ -65,3 +85,70 @@ class FSDPPrecision(MixedPrecision):
             reduce_dtype=reduce_dtype,
             buffer_dtype=buffer_dtype,
         )
+
+    @contextmanager
+    def init_context(self) -> Generator[None, None, None]:
+        """A context manager to change the default tensor type when initializing module parameters or tensors.
+
+        See: :meth:`torch.set_default_tensor_type`
+        """
+        default_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(self.mixed_precision_config.param_dtype)
+        yield
+        torch.set_default_dtype(default_dtype)
+
+    @contextmanager
+    def forward_context(self) -> Generator:
+        if "mixed" in self.precision:
+            with self._autocast_context_manager():
+                yield
+        else:
+            default_dtype = torch.get_default_dtype()
+            torch.set_default_dtype(self._desired_input_dtype)
+            yield
+            torch.set_default_dtype(default_dtype)
+
+    def convert_input(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
+
+    def convert_output(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
+
+    def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
+        if self.scaler is not None:
+            tensor = self.scaler.scale(tensor)
+        super().backward(tensor, model, *args, **kwargs)
+
+    def optimizer_step(
+        self,
+        optimizer: Optimizable,
+        **kwargs: Any,
+    ) -> Any:
+        if self.scaler is None:
+            # skip scaler logic, as bfloat16 does not require scaler
+            return super().optimizer_step(optimizer, **kwargs)
+        # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
+        step_output = self.scaler.step(optimizer, **kwargs)
+        self.scaler.update()
+        return step_output
+
+    def state_dict(self) -> Dict[str, Any]:
+        if self.scaler is not None:
+            return self.scaler.state_dict()
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        if self.scaler is not None:
+            self.scaler.load_state_dict(state_dict)
+
+    def _autocast_context_manager(self) -> torch.autocast:
+        # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
+        # https://github.com/pytorch/pytorch/issues/67233
+        return torch.autocast(self.device, dtype=self._desired_input_dtype)
+
+    def unscale_gradients(self, optimizer: Optimizer) -> None:
+        scaler = self.scaler
+        if scaler is not None:
+            if _optimizer_handles_unscaling(optimizer):
+                raise NotImplementedError("Gradient clipping is not implemented for optimizers handling the unscaling.")
+            scaler.unscale_(optimizer)
