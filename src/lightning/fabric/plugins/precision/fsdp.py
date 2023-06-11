@@ -21,10 +21,10 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
-from lightning.fabric.utilities.types import Optimizable
 from lightning.fabric.plugins.precision.precision import Precision
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.types import Optimizable
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
