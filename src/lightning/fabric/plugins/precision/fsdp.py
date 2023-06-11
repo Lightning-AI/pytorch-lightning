@@ -15,9 +15,6 @@ from contextlib import contextmanager
 from typing import Any, Dict, Generator, Literal, Optional, TYPE_CHECKING
 
 import torch
-from fabric.plugins.precision.amp import _optimizer_handles_unscaling
-from fabric.plugins.precision.utils import _convert_fp_tensor
-from fabric.utilities.types import Optimizable
 from lightning_utilities import apply_to_collection
 from torch import Tensor
 from torch.optim import Optimizer
