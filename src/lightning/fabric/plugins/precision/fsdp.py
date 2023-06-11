@@ -17,6 +17,7 @@ from typing import Any, Dict, Generator, Literal, Optional, TYPE_CHECKING
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
+from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
