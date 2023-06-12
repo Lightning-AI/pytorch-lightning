@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from torch.utils.data import Dataset as TorchDataset
 
-from lightning.data.authenticators import _DatasetBackend, LocalDatasetBackend, S3DatasetBackend
+from lightning.data.backends import _DatasetBackend, LocalDatasetBackend, S3DatasetBackend
 from lightning.data.dataset_index import get_index
 from lightning.data.fileio import OpenCloudFileObj
 
@@ -15,9 +15,9 @@ class LightningDataset(TorchDataset, ABC):
 
     Arguments:
 
-        data_source: path of data directory.
+        data_source: path of data directory. ex. s3://mybucket/path
 
-        backend: current options are "s3" or "local"
+        backend: storage location of the data_source. current options are "s3" or "local"
 
         path_to_index_file: path to index file that lists all file contents of the data_source.
     """
@@ -34,17 +34,17 @@ class LightningDataset(TorchDataset, ABC):
 
         self.files = self.get_index()
 
-        self.authenticator = self._chose_authenticator(backend=backend)
+        self.authenticator = self._init_backend(backend=backend)
 
         assert isinstance(self.authenticator, _DatasetBackend)
 
-    def _chose_authenticator(self, backend: str):
+    def _init_backend(self, backend: str):
         """Picks the correct authenticator for the provided backend."""
         if backend == "s3":
             return S3DatasetBackend()
         if backend == "local":
             return LocalDatasetBackend()
-        raise ValueError("no valid backend found")
+        raise ValueError("Unsupported backend {backend}")
 
     def get_index(self) -> Tuple[str, ...]:
         """Gets existing index or triggers an index generation if it doesn't exist for the provided data_source.
