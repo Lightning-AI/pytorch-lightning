@@ -137,12 +137,12 @@ def test_fabric_module_setattr():
     assert original_module.new_attribute == 100
 
     # Modify existing attribute on original_module
-    fabric_module.attribute = 100
-    assert original_module.attribute == 100
+    fabric_module.attribute = 101
+    assert original_module.attribute == 101
 
     # Check setattr of original_module
-    fabric_module.x = 100
-    assert original_module.x == 100
+    fabric_module.x = 102
+    assert original_module.x == 102
 
     # Check set submodule
     assert not hasattr(original_module, "linear")
