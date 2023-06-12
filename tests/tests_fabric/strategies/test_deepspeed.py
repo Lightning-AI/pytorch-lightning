@@ -266,7 +266,9 @@ def test_deepspeed_load_checkpoint_client_state_missing(tmp_path):
     model.load_checkpoint.return_value = [None, None]
 
     # Check for our custom user error
-    with pytest.raises(RuntimeError, match="The provided checkpoint path does not seem to be a valid DeepSpeed checkpoint directory."):
+    with pytest.raises(
+        RuntimeError, match="The provided checkpoint path does not seem to be a valid DeepSpeed checkpoint directory."
+    ):
         strategy.load_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "test": "data"})
 
 

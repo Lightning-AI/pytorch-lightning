@@ -770,9 +770,8 @@ class DeepSpeedStrategy(DDPStrategy):
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint, tag="checkpoint")
 
     def validate_checkpoint_directory(self, checkpoint_path: _PATH) -> bool:
-        """
-        Function to check if the checkpoint directory is valid or not. 
-        
+        """Function to check if the checkpoint directory is valid or not.
+
         A valid deepspeed checkpoint dir normally looks like this:
 
         checkpoint-name-step-number/
@@ -781,7 +780,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         Args:
             checkpoint_path: The path to the checkpoint directory
-        
+
         Returns:
             True if the checkpoint directory is valid, False otherwise
         """
@@ -808,7 +807,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
 
-        is_deepspeed_checkpoint_dir = self.validate_checkpoint_directory(checkpoint_path = checkpoint_path)
+        is_deepspeed_checkpoint_dir = self.validate_checkpoint_directory(checkpoint_path=checkpoint_path)
 
         if not is_deepspeed_checkpoint_dir:
             raise MisconfigurationException(

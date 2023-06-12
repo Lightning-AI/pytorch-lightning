@@ -433,9 +433,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 
     def validate_checkpoint_directory(self, checkpoint_path: _PATH) -> bool:
-        """
-        Function to check if the checkpoint directory is valid or not. 
-        
+        """Function to check if the checkpoint directory is valid or not.
+
         A valid deepspeed checkpoint dir normally looks like this:
 
         checkpoint-name-step-number/
@@ -444,7 +443,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         Args:
             checkpoint_path: The path to the checkpoint directory
-        
+
         Returns:
             True if the checkpoint directory is valid, False otherwise
         """
@@ -520,14 +519,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             load_module_strict=strict,
         )
 
-        is_deepspeed_checkpoint_dir = self.validate_checkpoint_directory(checkpoint_path = path)
+        is_deepspeed_checkpoint_dir = self.validate_checkpoint_directory(checkpoint_path=path)
 
         if not is_deepspeed_checkpoint_dir:
             raise RuntimeError(
                 "The provided checkpoint path does not seem to be a valid DeepSpeed checkpoint directory. "
                 "Please ensure you pass the correct path to the parent folder of the checkpoint."
             )
-        
+
         if client_state is None:
             raise RuntimeError(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
