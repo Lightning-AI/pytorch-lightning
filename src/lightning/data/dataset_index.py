@@ -1,6 +1,6 @@
 import math
 import os
-from typing import TextIOWrapper
+from io import TextIOWrapper
 
 from lightning.app.utilities.network import LightningClient
 
