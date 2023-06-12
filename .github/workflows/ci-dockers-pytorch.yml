@@ -105,7 +105,8 @@ jobs:
 
   build-NGC:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-20.04
+    runs-on:
+      labels: ubuntu-20.04-16core
     steps:
       - name: Checkout
         uses: actions/checkout@v3
