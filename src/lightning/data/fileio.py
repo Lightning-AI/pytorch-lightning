@@ -98,7 +98,8 @@ class OpenCloudFileObj:
         return self._conditionally_open()
 
     def __exit__(self, exc_type: str, exc_val: str, exc_tb: str) -> None:
-        self._stream.close()
+        if self._stream is not None:
+            self._stream.close()
 
     def _conditionally_open(self) -> "StreamWrapper":
         if self._stream is None:

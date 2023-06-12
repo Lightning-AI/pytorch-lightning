@@ -61,7 +61,7 @@ def _create_index(data_connection_path: str, index_file_path: str) -> bool:
             os.makedirs(os.path.dirname(index_file_path))
 
         with open(index_file_path, "w") as f:
-            _create_index_recursive(root=[list_from], write_to=f)
+            _create_index_recursive(root=list_from, write_to=f)
 
         return True
     except NoCredentialsError as exc:
