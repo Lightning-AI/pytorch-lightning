@@ -30,7 +30,7 @@ def get_index(s3_connection_path: str, index_file_path: str) -> bool:
     return index_exists
 
 
-def _create_index_recursive(root, write_to):
+def _create_index_recursive(root, write_to) -> None:
     """Recursively pull files from s3 prefixes until full path is available."""
     from fsspec.core import url_to_fs
     from torchdata.datapipes.iter import FSSpecFileLister

@@ -1,6 +1,8 @@
 import os
 import time
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
+
+from torchdata.datapipes.utils import StreamWrapper
 
 
 def is_url(path: str) -> bool:
@@ -24,7 +26,9 @@ def path_to_url(path: str, bucket_name: str, bucket_root_path: str = "/") -> str
     return f"s3://{bucket_name}/{rel_path}"
 
 
-def open_single_file(path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs):
+def open_single_file(
+    path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs
+) -> StreamWrapper:
     """Streams the given file.
 
     Returns:
@@ -40,7 +44,9 @@ def open_single_file(path_or_url: str, mode: str = "r", kwargs_for_open: Optiona
     return None
 
 
-def open_single_file_with_retry(path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs):
+def open_single_file_with_retry(
+    path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs
+) -> StreamWrapper:
     """Streams the given file with a retry mechanism in case of high batch_size (>128) parallel opens.
 
     Returns:
@@ -78,21 +84,19 @@ class OpenCloudFileObj:
     """
 
     def __init__(self, path: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs):
-        from torchdata.datapipes.utils import StreamWrapper
-
         self._path = path
         self._stream: Optional["StreamWrapper"] = None
         self._mode = mode
         self._kwargs_for_open = kwargs_for_open
         self._kwargs = kwargs
 
-    def __enter__(self):
+    def __enter__(self) -> StreamWrapper:
         return self._conditionally_open()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self) -> None:
         self._stream.close()
 
-    def _conditionally_open(self):
+    def _conditionally_open(self) -> StreamWrapper:
         if self._stream is None:
             self._stream = open_single_file(
                 self._path, mode=self._mode, kwargs_for_open=self._kwargs_for_open, **self._kwargs
@@ -100,12 +104,12 @@ class OpenCloudFileObj:
 
         return self._stream
 
-    def _conditionally_close(self):
+    def _conditionally_close(self) -> None:
         if self._stream is not None:
             self._stream.close()
 
-    def __call__(self):
+    def __call__(self) -> StreamWrapper:
         return self._conditionally_open()
 
-    def __getattr__(self, attr: str):
+    def __getattr__(self, attr: str) -> Any:
         return getattr(self._conditionally_open(), attr)

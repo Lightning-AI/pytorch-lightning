@@ -38,7 +38,7 @@ class LightningDataset(TorchDataset, ABC):
 
         assert isinstance(self.backend, _DatasetBackend)
 
-    def _init_backend(self, backend: str):
+    def _init_backend(self, backend: str) -> _DatasetBackend:
         """Picks the correct backend handler."""
         if backend == "s3":
             return S3DatasetBackend()

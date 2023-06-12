@@ -17,8 +17,10 @@ class _DatasetBackend(Protocol):
 class S3DatasetBackend:
     """A backend handler for datasets stored on S3."""
 
+    from botocore.credentials import RefreshableCredentials
+
     @staticmethod
-    def get_aws_credentials():
+    def get_aws_credentials() -> RefreshableCredentials:
         """Gets AWS credentials from the current IAM role.
 
         Returns:
@@ -43,7 +45,7 @@ class S3DatasetBackend:
 
         return self.get_aws_credentials()
 
-    def handle_error(self, exc: Exception):
+    def handle_error(self, exc: Exception) -> None:
         from botocore.exceptions import NoCredentialsError
 
         if isinstance(exc, NoCredentialsError):
@@ -58,8 +60,8 @@ class S3DatasetBackend:
 class LocalDatasetBackend:
     """A backend handler for datasets stored locally."""
 
-    def credentials(self):
+    def credentials(self) -> Dict:
         return {}
 
-    def handle_error(self, exc: Exception):
+    def handle_error(self, exc: Exception) -> None:
         raise exc
