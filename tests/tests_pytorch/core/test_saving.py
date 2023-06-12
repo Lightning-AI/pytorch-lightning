@@ -58,12 +58,12 @@ def test_load_from_checkpoint_map_location_cpu_to_gpu(tmp_path, map_location):
 
 
 @RunIf(min_cuda_gpus=1)
-def test_load_from_checkpoint_default_map_location_extra_state(tmp_path):
-    """Test that the default map_location gets chosen based on the device of the saved tensors."""
+def test_load_from_checkpoint_device_placement_with_extra_state(tmp_path):
+    """Test that the device gets chosen based on the device of the saved tensors in the checkpoint."""
 
     class ExtraStateModel(BoringModel):
         def get_extra_state(self):
-            return {"extra": "state"}
+            return {"extra": "state"}  # state without tensors
 
         def set_extra_state(self, state):
             pass
