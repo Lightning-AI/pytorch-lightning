@@ -55,3 +55,17 @@ def test_load_from_checkpoint_map_location_cpu_to_gpu(tmp_path, map_location):
     create_boring_checkpoint(tmp_path, BoringModel(), accelerator="cpu")
     model = BoringModel.load_from_checkpoint(f"{tmp_path}/checkpoint.ckpt", map_location=map_location)
     assert model.device.type == "cuda"
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize(
+    "map_location", ["cuda", torch.device("cuda"), lambda storage, loc: storage.cuda(), {"cpu": "cuda"}]
+)
+def test_load_from_checkpoint_default_map_location_extra_state(tmp_path, map_location):
+    class ExtraStateModel(BoringModel):
+        def get_extra_state(self):
+            return {"extra": "state"}
+
+    create_boring_checkpoint(tmp_path, ExtraStateModel(), accelerator="cuda")
+    model = BoringModel.load_from_checkpoint(f"{tmp_path}/checkpoint.ckpt", map_location=None)
+    assert model.device.type == "cuda"
