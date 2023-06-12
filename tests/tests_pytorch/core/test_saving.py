@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 import torch
 
@@ -66,6 +67,9 @@ def test_load_from_checkpoint_default_map_location_extra_state(tmp_path, map_loc
         def get_extra_state(self):
             return {"extra": "state"}
 
+        def set_extra_state(self, state):
+            pass
+
     create_boring_checkpoint(tmp_path, ExtraStateModel(), accelerator="cuda")
-    model = BoringModel.load_from_checkpoint(f"{tmp_path}/checkpoint.ckpt", map_location=None)
+    model = ExtraStateModel.load_from_checkpoint(f"{tmp_path}/checkpoint.ckpt", map_location=None)
     assert model.device.type == "cuda"
