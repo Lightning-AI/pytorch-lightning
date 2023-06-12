@@ -65,7 +65,6 @@ def open_single_file_with_retry(
     for attempt in range(num_attempts):
         for _, stream in FSSpecFileOpener(datapipe, mode=mode, kwargs_for_open=kwargs_for_open, **kwargs):
             return stream
-        
 
         time.sleep(15 * (random.random() + 0.5))
     raise RuntimeError()
