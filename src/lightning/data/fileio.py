@@ -1,6 +1,12 @@
 import os
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    try:
+        from torchdata.datapipes.utils import StreamWrapper
+    except ImportError:
+        StreamWrapper = object
 
 
 def is_url(path: str) -> bool:
@@ -50,7 +56,6 @@ def open_single_file_with_retry(
     Returns:
         The opened file stream.
     """
-    from botocore.exceptions import NoCredentialsError
     from numpy import random
     from torchdata.datapipes.iter import FSSpecFileOpener, IterableWrapper
 
@@ -58,11 +63,9 @@ def open_single_file_with_retry(
 
     num_attempts = 5
     for attempt in range(num_attempts):
-        try:
-            for _, stream in FSSpecFileOpener(datapipe, mode=mode, kwargs_for_open=kwargs_for_open, **kwargs):
-                return stream
-        except NoCredentialsError:
-            print(f"Could not locate credentials, retrying: attempt {attempt}/{num_attempts}")
+        for _, stream in FSSpecFileOpener(datapipe, mode=mode, kwargs_for_open=kwargs_for_open, **kwargs):
+            return stream
+        
 
         time.sleep(15 * (random.random() + 0.5))
     raise RuntimeError()
