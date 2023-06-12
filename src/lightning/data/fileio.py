@@ -85,7 +85,13 @@ class OpenCloudFileObj:
         kwargs_for_open: Optional Dict to specify kwargs for opening files (``fs.open()``).
     """
 
-    def __init__(self, path: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs: Dict[str, Any]):
+    def __init__(
+        self,
+        path: str,
+        mode: str = "r",
+        kwargs_for_open: Optional[Dict[str, Any]] = None,
+        **kwargs: Optional[Dict[str, Any]],
+    ):
         from torchdata.datapipes.utils import StreamWrapper
 
         self._path = path

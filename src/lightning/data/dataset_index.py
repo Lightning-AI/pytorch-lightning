@@ -1,5 +1,6 @@
 import math
 import os
+from typing import TextIOWrapper
 
 from lightning.app.utilities.network import LightningClient
 
@@ -30,7 +31,7 @@ def get_index(s3_connection_path: str, index_file_path: str) -> bool:
     return index_exists
 
 
-def _create_index_recursive(root: str, write_to: str) -> None:
+def _create_index_recursive(root: str, write_to: TextIOWrapper) -> None:
     """Recursively pull files from s3 prefixes until full path is available."""
     from fsspec.core import url_to_fs
     from torchdata.datapipes.iter import FSSpecFileLister
