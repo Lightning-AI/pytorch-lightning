@@ -73,8 +73,9 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
     assert trainer.state.fn is not None
     fn = trainer.state.fn
 
-    # Trigger lazy creation of experiment in loggers
-    _ = trainer.loggers[0].experiment
+    # Trigger lazy creation of experiment in loggers so loggers have their metadata available
+    for logger in trainer.loggers:
+        _ = logger.experiment
 
     trainer.strategy.barrier("pre_setup")
 
