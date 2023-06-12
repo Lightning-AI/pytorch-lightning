@@ -169,9 +169,6 @@ subprojects:
       - "data-cpu (macOS-11, lightning, 3.10, 2.0)"
       - "data-cpu (ubuntu-20.04, lightning, 3.10, 2.0)"
       - "data-cpu (windows-2022, lightning, 3.10, 2.0)"
-      - "data-cpu (macOS-11, lightning, 3.8, 2.0, oldest)"
-      - "data-cpu (ubuntu-20.04, lightning, 3.8, 2.0, oldest)"
-      - "data-cpu (windows-2022, lightning, 3.8, 2.0, oldest)"
 
   # SECTION: lightning_fabric
 
