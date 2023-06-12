@@ -34,12 +34,12 @@ class LightningDataset(TorchDataset, ABC):
 
         self.files = self.get_index()
 
-        self.authenticator = self._init_backend(backend=backend)
+        self.backend = self._init_backend(backend=backend)
 
-        assert isinstance(self.authenticator, _DatasetBackend)
+        assert isinstance(self.backend, _DatasetBackend)
 
     def _init_backend(self, backend: str):
-        """Picks the correct authenticator for the provided backend."""
+        """Picks the correct backend handler."""
         if backend == "s3":
             return S3DatasetBackend()
         if backend == "local":
@@ -60,8 +60,13 @@ class LightningDataset(TorchDataset, ABC):
         return (line.strip("\n") for line in index)
 
     def open(self, file: str, mode: str = "r", kwargs_for_open: Optional[Dict] = {}, **kwargs):
+        """Opens a stream for the given file.
+
+        Returns:
+            A stream object of the file.
+        """
         return OpenCloudFileObj(
-            file, mode=mode, kwargs_for_open={**self.authenticator.credentials(), **kwargs_for_open}, **kwargs
+            file, mode=mode, kwargs_for_open={**self.backend.credentials(), **kwargs_for_open}, **kwargs
         )
 
     def __getitem__(self, idx: int) -> Any:
@@ -79,10 +84,14 @@ class LightningDataset(TorchDataset, ABC):
             ) as stream:
                 return self.load_sample(file_path, stream)
         except Exception as exc:
-            self.authenticator.handle_error(exc)
+            self.backend.handle_error(exc)
 
     @abstractmethod
     def load_sample(self, file_path: str, stream: OpenCloudFileObj) -> Any:
+        """Loads each sample in the dataset.
+
+        Any data prep/cleaning logic goes here. For ex. image transformations, text cleaning, etc.
+        """
         pass
 
     def __len__(self) -> int:
