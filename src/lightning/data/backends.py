@@ -13,7 +13,7 @@ class _DatasetBackend(Protocol):
     """This class is used to detect if an object implements a valid dataset backend using `isinstance(obj,
     _DatasetBackend)`."""
 
-    def credentials(self) -> Dict[str, str]:
+    def credentials(self) -> Dict[str, Optional[str]]:
         ...
 
     def handle_error(self, exc: Exception) -> None:
@@ -64,7 +64,7 @@ class S3DatasetBackend:
 class LocalDatasetBackend:
     """A backend handler for datasets stored locally."""
 
-    def credentials(self) -> Dict:
+    def credentials(self) -> Dict[str, Optional[str]]:
         return {}
 
     def handle_error(self, exc: Exception) -> None:
