@@ -189,7 +189,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
     def __setattr__(self, name: str, value: Any) -> None:
         if not getattr(self, "_fabric_module_initialized", False):
-            return super().__setattr__(name, value)
+            super().__setattr__(name, value)
+            return
 
         # Get the _original_module attribute
         original_module = self._original_module
@@ -198,7 +199,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         fabric_has_attr = name in self.__dict__
 
         if not (original_has_attr or fabric_has_attr):
-            return setattr(original_module, name, value)
+            setattr(original_module, name, value)
+            return
 
         # The original module can also inherit from _DeviceDtypeModuleMixin,
         # in this case, both the Fabric module and original module have attributes like _dtype
