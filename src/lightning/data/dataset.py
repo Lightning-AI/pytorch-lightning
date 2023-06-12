@@ -44,7 +44,7 @@ class LightningDataset(TorchDataset, ABC):
             return S3DatasetBackend()
         if backend == "local":
             return LocalDatasetBackend()
-        raise ValueError("Unsupported backend {backend}")
+        raise ValueError(f"Unsupported backend {backend}")
 
     def get_index(self) -> Tuple[str, ...]:
         """Gets existing index or triggers an index generation if it doesn't exist for the provided data_source.
