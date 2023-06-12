@@ -1,7 +1,7 @@
 import os
 import tempfile
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, Optional
+from typing import Any, Dict, Iterator, Optional
 
 from torch.utils.data import Dataset as TorchDataset
 
@@ -46,7 +46,7 @@ class LightningDataset(TorchDataset, ABC):
             return LocalDatasetBackend()
         raise ValueError(f"Unsupported backend {backend}")
 
-    def get_index(self) -> Generator[str, None, None]:
+    def get_index(self) -> Iterator:
         """Gets existing index or triggers an index generation if it doesn't exist for the provided data_source.
 
         Returns:
