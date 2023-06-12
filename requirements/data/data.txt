@@ -2,5 +2,7 @@
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
 lightning-utilities >=0.8.0, <0.9.0
-torchdata >0.6.0, < 0.7.0
-torch >2.0.0, < 2.1.0
+# to be able to include also 0.6 and preserve `>` needed for CI min version bypass
+torchdata >0.5.99, < 0.7.0
+# to be able to include also PL 2.0 and preserve `>` needed for CI min version bypass
+torch >0.14.0, < 2.1.0
