@@ -43,7 +43,6 @@ from lightning.fabric.utilities.imports import (
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ProcessGroup, ReduceOp
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
@@ -53,7 +52,6 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 _distributed_available = torch.distributed.is_available()
 _fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
@@ -162,8 +160,7 @@ class FSDPStrategy(ParallelStrategy):
             state_dict_type=StateDictType.FULL_STATE_DICT,
             state_dict_config=FullStateDictConfig(offload_to_cpu=(self.world_size > 1), rank0_only=True),
         ):
-            state_dict = self.model.state_dict()
-            return _strip_prefix_from_state_dict(state_dict, prefix="_forward_module.")
+            return self.model.state_dict()
 
     @property
     def root_device(self) -> torch.device:
@@ -255,18 +252,16 @@ class FSDPStrategy(ParallelStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
+        assert self.model is not None
         self.accelerator.setup(trainer)
 
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
-            assert self.model is not None
             self.model = self._layer_sync.apply(self.model)
 
         # we set the device so that optimizers can be created with distributed comms.
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
 
-        assert isinstance(self.model, pl.LightningModule)
-        self.model = _LightningModuleWrapperBase(self.model)
         if is_overridden("configure_sharded_model", self.lightning_module):
             rank_zero_info(
                 "You have overridden `LightningModule.configure_sharded_model` hook. It will assume that all the layers"
@@ -355,24 +350,6 @@ class FSDPStrategy(ParallelStrategy):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        # we don't need precision context since casting is done by FSDP
-        # read `mixed_precision` docstring here: https://pytorch.org/docs/stable/fsdp.html
-        assert self.model is not None
-        return self.model(*args, **kwargs)
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        return self.model(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        return self.model(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        return self.model(*args, **kwargs)
-
     def _determine_device_ids(self) -> List[int]:
         return [self.root_device.index]
 
@@ -419,8 +396,3 @@ class FSDPStrategy(ParallelStrategy):
             cpu_offload=True,
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
-
-
-def _strip_prefix_from_state_dict(state_dict: Dict[str, Any], prefix: str) -> Dict[str, Any]:
-    prefix_len = len(prefix)
-    return {k[prefix_len:]: v for k, v in state_dict.items()}
