@@ -15,6 +15,8 @@ class _DatasetBackend(Protocol):
 
 
 class S3DatasetBackend:
+    """A backend handler for datasets stored on S3."""
+
     @staticmethod
     def get_aws_credentials():
         """Gets AWS credentials from the current IAM role.
@@ -54,6 +56,8 @@ class S3DatasetBackend:
 
 
 class LocalDatasetBackend:
+    """A backend handler for datasets stored locally."""
+
     def credentials(self):
         return {}
 
