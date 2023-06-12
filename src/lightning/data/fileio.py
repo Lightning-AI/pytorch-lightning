@@ -1,5 +1,4 @@
 import os
-import time
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -56,7 +55,6 @@ def open_single_file_with_retry(
     Returns:
         The opened file stream.
     """
-    from numpy import random
     from torchdata.datapipes.iter import FSSpecFileOpener, IterableWrapper
 
     datapipe = IterableWrapper([path_or_url], **kwargs)
