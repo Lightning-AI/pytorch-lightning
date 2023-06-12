@@ -82,7 +82,6 @@ class _FabricOptimizer:
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
-
     def __init__(
         self, forward_module: nn.Module, precision: Precision, original_module: Optional[nn.Module] = None
     ) -> None:
