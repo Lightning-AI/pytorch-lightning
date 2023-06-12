@@ -57,6 +57,17 @@ def image_set(tmp_path_factory):
     return tmp_path_factory.getbasetemp()._str
 
 
+class TestLightningDataset(LightningDataset):
+    def __init__(self, data_source, backend, path_to_index_file):
+        super().__init__(data_source=data_source, backend=backend, path_to_index_file=path_to_index_file)
+
+    def load_sample(self, file_path, stream):
+        from PIL import Image
+
+        img = Image.open(stream)
+        return img
+
+
 @pytest.mark.skipif(not isConnectedWithInternet(), reason="Not connected to internet")
 @pytest.mark.skipif(not package_available("lightning"), reason="Supported only with mono-package")
 @mock.patch("lightning.data.dataset_index.LightningClient", MagicMock())
@@ -70,8 +81,8 @@ def test_lightning_dataset(tmpdir, image_set, monkeypatch):
     monkeypatch.setattr(dataset_index, "LightningClient", MagicMock(return_value=client))
 
     index_path = os.path.join(tmpdir, "index.txt")
-    # TODO: adapt this once the fallback and tests for get_index are ready!
-    dset = LightningDataset(image_set, path_to_index_file=index_path)
+
+    dset = TestLightningDataset(image_set, backend="local", path_to_index_file=index_path)
     tuple_of_files = dset.get_index()
     assert isinstance(tuple_of_files, GeneratorType)
     files_list = list(tuple_of_files)
