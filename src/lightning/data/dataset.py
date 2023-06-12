@@ -1,7 +1,7 @@
 import os
 import tempfile
 from abc import ABC, abstractmethod
-from typing import Any, Optional, SupportsKeysAndGetItem
+from typing import Any, Optional
 
 from torch.utils.data import Dataset as TorchDataset
 
@@ -59,9 +59,7 @@ class LightningDataset(TorchDataset, ABC):
             index = f.readlines()
         return (line.strip("\n") for line in index)
 
-    def open(
-        self, file: str, mode: str = "r", kwargs_for_open: SupportsKeysAndGetItem[str, Any] = {}, **kwargs: Any
-    ) -> OpenCloudFileObj:
+    def open(self, file: str, mode: str = "r", kwargs_for_open: Any = {}, **kwargs: Any) -> OpenCloudFileObj:
         """Opens a stream for the given file.
 
         Returns:
