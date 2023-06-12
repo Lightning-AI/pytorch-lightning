@@ -61,7 +61,6 @@ ALL_LOGGER_CLASSES = (
     WandbLogger,
 )
 ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls is not NeptuneLogger, ALL_LOGGER_CLASSES))
-ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB = tuple(filter(lambda cls: cls is not WandbLogger, ALL_LOGGER_CLASSES_WO_NEPTUNE))
 
 
 def _get_logger_args(logger_class, save_dir):
