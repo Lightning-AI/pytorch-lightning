@@ -1038,6 +1038,26 @@ def test_all_reduce():
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
 
 
+def test_rank_zero_first():
+    """Test that rank 0 completes first before all other processes can execute under `.rank_zero_first()`."""
+
+    def record_calls_for_rank(rank):
+        call_order = []
+
+        fabric = Fabric()
+        fabric._strategy = Mock(global_rank=rank)
+        fabric.barrier = Mock(side_effect=lambda *_: call_order.append("barrier"))
+        target = Mock(run=Mock(side_effect=lambda *_: call_order.append("run")))
+
+        with fabric.rank_zero_first():
+            target.run()
+
+        return call_order
+
+    assert record_calls_for_rank(0) == ["run", "barrier", "barrier"]
+    assert record_calls_for_rank(1) == ["barrier", "run", "barrier"]
+
+
 @pytest.mark.parametrize(("clip_val", "max_norm"), [(1e-3, None), (None, 1)])
 def test_grad_clipping(clip_val, max_norm):
     fabric = Fabric(devices=1)
