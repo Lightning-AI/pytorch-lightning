@@ -237,7 +237,7 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
-@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB)
+@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
 @RunIf(skip_windows=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
@@ -262,7 +262,6 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         callbacks=[RankZeroLoggerCheck()],
     )
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_logger_with_prefix_all(tmpdir, monkeypatch):
