@@ -93,7 +93,7 @@ class OpenCloudFileObj:
     def __enter__(self) -> "StreamWrapper":
         return self._conditionally_open()
 
-    def __exit__(self) -> None:
+    def __exit__(self, exc_type: str, exc_val: str, exc_tb: str) -> None:
         self._stream.close()
 
     def _conditionally_open(self) -> "StreamWrapper":
