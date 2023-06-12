@@ -194,7 +194,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         # Get the _original_module attribute
         original_module = self._original_module
         original_has_attr = hasattr(original_module, name)
-        # Can't use super().__getattrr__ because nn.Module only checks _parameters, _buffers, and _modules
+        # Can't use super().__getattr__ because nn.Module only checks _parameters, _buffers, and _modules
         # Can't use self.__getattr__ because it would pass through to the original module
         fabric_has_attr = name in self.__dict__
 
