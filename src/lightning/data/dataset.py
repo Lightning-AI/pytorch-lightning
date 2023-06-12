@@ -1,7 +1,7 @@
 import os
 import tempfile
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Optional, SupportsKeysAndGetItem
 
 from torch.utils.data import Dataset as TorchDataset
 
@@ -46,7 +46,7 @@ class LightningDataset(TorchDataset, ABC):
             return LocalDatasetBackend()
         raise ValueError(f"Unsupported backend {backend}")
 
-    def get_index(self) -> Iterator:
+    def get_index(self) -> Any:
         """Gets existing index or triggers an index generation if it doesn't exist for the provided data_source.
 
         Returns:
@@ -60,7 +60,7 @@ class LightningDataset(TorchDataset, ABC):
         return (line.strip("\n") for line in index)
 
     def open(
-        self, file: str, mode: str = "r", kwargs_for_open: Optional[Dict[str, Any]] = {}, **kwargs: Any
+        self, file: str, mode: str = "r", kwargs_for_open: SupportsKeysAndGetItem[str, Any] = {}, **kwargs: Any
     ) -> OpenCloudFileObj:
         """Opens a stream for the given file.
 
