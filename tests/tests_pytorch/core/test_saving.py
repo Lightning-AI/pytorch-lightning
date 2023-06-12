@@ -1,4 +1,3 @@
-
 import pytest
 import torch
 
@@ -61,6 +60,7 @@ def test_load_from_checkpoint_map_location_cpu_to_gpu(tmp_path, map_location):
 @RunIf(min_cuda_gpus=1)
 def test_load_from_checkpoint_default_map_location_extra_state(tmp_path):
     """Test that the default map_location gets chosen based on the device of the saved tensors."""
+
     class ExtraStateModel(BoringModel):
         def get_extra_state(self):
             return {"extra": "state"}
