@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Protocol, runtime_checkable, TYPE_CHECKING
+from typing import Dict, Optional, Protocol, runtime_checkable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     try:
@@ -43,7 +43,7 @@ class S3DatasetBackend:
 
         return credentials
 
-    def credentials(self) -> Dict[str, str]:
+    def credentials(self) -> Dict[str, Optional[str]]:
         if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
             return {"access_key": os.getenv("AWS_ACCESS_KEY"), "secret_key": os.getenv("AWS_SECRET_ACCESS_KEY")}
 

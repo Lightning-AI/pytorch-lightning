@@ -30,7 +30,7 @@ def path_to_url(path: str, bucket_name: str, bucket_root_path: str = "/") -> str
 
 
 def open_single_file(
-    path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs
+    path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs: Dict[str, Any]
 ) -> "StreamWrapper":
     """Streams the given file.
 
@@ -48,7 +48,7 @@ def open_single_file(
 
 
 def open_single_file_with_retry(
-    path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs
+    path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs: Dict[str, Any]
 ) -> "StreamWrapper":
     """Streams the given file with a retry mechanism in case of high batch_size (>128) parallel opens.
 
@@ -85,7 +85,7 @@ class OpenCloudFileObj:
         kwargs_for_open: Optional Dict to specify kwargs for opening files (``fs.open()``).
     """
 
-    def __init__(self, path: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs):
+    def __init__(self, path: str, mode: str = "r", kwargs_for_open: Optional[Dict] = None, **kwargs: Dict[str, Any]):
         from torchdata.datapipes.utils import StreamWrapper
 
         self._path = path

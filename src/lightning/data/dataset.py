@@ -1,7 +1,7 @@
 import os
 import tempfile
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Generator, Optional
 
 from torch.utils.data import Dataset as TorchDataset
 
@@ -46,7 +46,7 @@ class LightningDataset(TorchDataset, ABC):
             return LocalDatasetBackend()
         raise ValueError(f"Unsupported backend {backend}")
 
-    def get_index(self) -> Tuple[str, ...]:
+    def get_index(self) -> Generator[str, None, None]:
         """Gets existing index or triggers an index generation if it doesn't exist for the provided data_source.
 
         Returns:
@@ -59,14 +59,16 @@ class LightningDataset(TorchDataset, ABC):
             index = f.readlines()
         return (line.strip("\n") for line in index)
 
-    def open(self, file: str, mode: str = "r", kwargs_for_open: Optional[Dict] = {}, **kwargs) -> OpenCloudFileObj:
+    def open(
+        self, file: str, mode: str = "r", kwargs_for_open: Optional[Dict] = {}, **kwargs: Dict[str, Any]
+    ) -> OpenCloudFileObj:
         """Opens a stream for the given file.
 
         Returns:
             A stream object of the file.
         """
         return OpenCloudFileObj(
-            file, mode=mode, kwargs_for_open={**self.backend.credentials(), **kwargs_for_open}, **kwargs
+            path=file, mode=mode, kwargs_for_open={**self.backend.credentials(), **kwargs_for_open}, **kwargs
         )
 
     def __getitem__(self, idx: int) -> Any:
