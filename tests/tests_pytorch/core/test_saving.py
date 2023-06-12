@@ -1,4 +1,4 @@
-from typing import Any
+
 import pytest
 import torch
 
