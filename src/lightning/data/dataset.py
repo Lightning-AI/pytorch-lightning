@@ -59,7 +59,7 @@ class LightningDataset(TorchDataset, ABC):
             index = f.readlines()
         return (line.strip("\n") for line in index)
 
-    def open(self, file: str, mode: str = "r", kwargs_for_open: Optional[Dict] = {}, **kwargs):
+    def open(self, file: str, mode: str = "r", kwargs_for_open: Optional[Dict] = {}, **kwargs) -> OpenCloudFileObj:
         """Opens a stream for the given file.
 
         Returns:
