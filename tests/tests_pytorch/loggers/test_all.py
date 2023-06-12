@@ -225,12 +225,14 @@ def test_logger_reset_correctly(tmpdir, tuner_method):
 
 class LazyInitExperimentCheck(Callback):
     def setup(self, trainer, pl_module, stage=None):
-        if trainer.global_rank != 0:
+        if trainer.global_rank > 0:
             return
         if isinstance(trainer.logger, MLFlowLogger):
-            assert trainer.logger._mlflow_client is not None
+            assert trainer.logger._mlflow_client
+        elif isinstance(trainer.logger, NeptuneLogger):
+            assert trainer.logger._run_instance
         else:
-            assert trainer.logger._experiment is not None
+            assert trainer.logger._experiment
 
 
 class RankZeroLoggerCheck(Callback):
