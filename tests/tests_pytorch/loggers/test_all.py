@@ -223,10 +223,17 @@ def test_logger_reset_correctly(tmpdir, tuner_method):
     assert logger2 == logger3, "Finder altered the logger of model"
 
 
-class RankZeroLoggerCheck(Callback):
-    # this class has to be defined outside the test function, otherwise we get pickle error
-    # due to the way ddp process is launched
+class LazyInitExperimentCheck(Callback):
+    def setup(self, trainer, pl_module, stage=None):
+        if trainer.global_rank != 0:
+            return
+        if isinstance(trainer.logger, MLFlowLogger):
+            assert trainer.logger._mlflow_client is not None
+        else:
+            assert trainer.logger._experiment is not None
 
+
+class RankZeroLoggerCheck(Callback):
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         is_dummy = isinstance(trainer.logger.experiment, DummyExperiment)
         if trainer.is_global_zero:
@@ -238,8 +245,9 @@ class RankZeroLoggerCheck(Callback):
 
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
 @RunIf(skip_windows=True)
-def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
-    """Test that loggers get replaced by dummy loggers on global rank > 0."""
+def test_logger_initialization(tmpdir, monkeypatch, logger_class):
+    """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is available
+    at the right time in Trainer."""
     _patch_comet_atexit(monkeypatch)
     try:
         _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
@@ -258,7 +266,7 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         accelerator="cpu",
         devices=2,
         max_steps=1,
-        callbacks=[RankZeroLoggerCheck()],
+        callbacks=[RankZeroLoggerCheck(), LazyInitExperimentCheck()],
     )
     trainer.fit(model)
 
