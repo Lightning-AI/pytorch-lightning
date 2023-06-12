@@ -1,6 +1,12 @@
 import os
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    try:
+        from torchdata.datapipes.utils import StreamWrapper
+    except ImportError:
+        StreamWrapper = object
 
 
 def is_url(path: str) -> bool:
