@@ -248,8 +248,8 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
 @RunIf(skip_windows=True)
 def test_logger_initialization(tmpdir, monkeypatch, logger_class):
-    """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is available
-    at the right time in Trainer."""
+    """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is
+    available at the right time in Trainer."""
     _patch_comet_atexit(monkeypatch)
     try:
         _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
