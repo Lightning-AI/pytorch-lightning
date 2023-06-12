@@ -44,7 +44,8 @@ jobs:
       env:
         FREEZE_REQUIREMENTS: 1
       run: |
-        pip install -e '.[all]' -r requirements/typing.txt
+        pip install -e '.[all]' -r requirements/typing.txt \
+          -f https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
 
     - name: Check typing
