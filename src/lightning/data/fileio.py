@@ -1,5 +1,4 @@
 import os
-import random
 import time
 from typing import Dict, Optional
 
@@ -48,6 +47,7 @@ def open_single_file_with_retry(path_or_url: str, mode: str = "r", kwargs_for_op
         The opened file stream.
     """
     from botocore.exceptions import NoCredentialsError
+    from numpy import random
     from torchdata.datapipes.iter import FSSpecFileOpener, IterableWrapper
 
     datapipe = IterableWrapper([path_or_url], **kwargs)
