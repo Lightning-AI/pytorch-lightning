@@ -769,6 +769,31 @@ class DeepSpeedStrategy(DDPStrategy):
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint, tag="checkpoint")
 
+    def validate_checkpoint_directory(self, checkpoint_path: _PATH) -> bool:
+        """
+        Function to check if the checkpoint directory is valid or not. 
+        
+        A valid deepspeed checkpoint dir normally looks like this:
+
+        checkpoint-name-step-number/
+            checkpoint/
+            zero_to_fp16.py
+
+        Args:
+            checkpoint_path: The path to the checkpoint directory
+        
+        Returns:
+            True if the checkpoint directory is valid, False otherwise
+        """
+
+        # Determine the parent folder of the checkpoint_path
+        parent_folder = os.path.dirname(checkpoint_path)
+
+        # Check if the parent folder is a valid deepspeed checkpoint directory
+        is_deepspeed_checkpoint_dir = os.path.isdir(parent_folder) and "checkpoint" in os.listdir(parent_folder)
+
+        return is_deepspeed_checkpoint_dir
+
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
@@ -783,11 +808,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
 
-        # Determine the parent folder of the checkpoint_path
-        parent_folder = os.path.dirname(checkpoint_path)
-
-        # Check if the parent folder is a valid deepspeed checkpoint directory
-        is_deepspeed_checkpoint_dir = os.path.isdir(parent_folder) and "checkpoint" in os.listdir(parent_folder)
+        is_deepspeed_checkpoint_dir = self.validate_checkpoint_directory(checkpoint_path = checkpoint_path)
 
         if not is_deepspeed_checkpoint_dir:
             raise MisconfigurationException(
