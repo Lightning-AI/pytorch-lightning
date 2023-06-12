@@ -34,18 +34,9 @@ def test_rm(monkeypatch):
     client.lightningapp_instance_service_list_lightningapp_instances().get.return_value = (
         V1ListLightningappInstancesResponse(
             lightningapps=[
-                Externalv1LightningappInstance(
-                    name="app-name-0",
-                    id="app-id-0",
-                ),
-                Externalv1LightningappInstance(
-                    name="app-name-1",
-                    id="app-id-1",
-                ),
-                Externalv1LightningappInstance(
-                    name="app name 2",
-                    id="app-id-1",
-                ),
+                Externalv1LightningappInstance(name="app-name-0", id="app-id-0"),
+                Externalv1LightningappInstance(name="app-name-1", id="app-id-1"),
+                Externalv1LightningappInstance(name="app name 2", id="app-id-1"),
             ]
         )
     )

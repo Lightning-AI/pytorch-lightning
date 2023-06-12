@@ -637,6 +637,11 @@ def test_no_backward_sync():
     with fabric.no_backward_sync(model):
         pass
     fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
+    # same for XLA
+    fabric._strategy = Mock(spec=XLAStrategy, _backward_sync_control=MagicMock())
+    with fabric.no_backward_sync(model):
+        pass
+    fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
 
     # pretend that the strategy supports skipping backward sync
     fabric._strategy = Mock(_backward_sync_control=MagicMock())
@@ -644,7 +649,7 @@ def test_no_backward_sync():
     with fabric.no_backward_sync(model, enabled=False):
         pass
     fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
-    # when enabld, the wrapped module gets passed down
+    # when enabled, the wrapped module gets passed down
     with fabric.no_backward_sync(model):
         pass
     fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module)
@@ -739,7 +744,7 @@ def test_init_module_context(monkeypatch):
     fabric._strategy = strategy
     with fabric.init_module():
         pass
-    strategy.module_init_context.assert_called_once()
+    strategy.module_init_context.assert_called_once_with(empty_init=None)
     strategy.module_init_context.reset_mock()
 
     # Pretend we are using PyTorch < 2.0
@@ -1031,6 +1036,26 @@ def test_all_reduce():
     # dict
     fabric.all_reduce({"a": torch.tensor(4), "b": [torch.tensor(5)], "c": "string"})
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
+
+
+def test_rank_zero_first():
+    """Test that rank 0 completes first before all other processes can execute under `.rank_zero_first()`."""
+
+    def record_calls_for_rank(rank):
+        call_order = []
+
+        fabric = Fabric()
+        fabric._strategy = Mock(global_rank=rank)
+        fabric.barrier = Mock(side_effect=lambda *_: call_order.append("barrier"))
+        target = Mock(run=Mock(side_effect=lambda *_: call_order.append("run")))
+
+        with fabric.rank_zero_first():
+            target.run()
+
+        return call_order
+
+    assert record_calls_for_rank(0) == ["run", "barrier", "barrier"]
+    assert record_calls_for_rank(1) == ["barrier", "run", "barrier"]
 
 
 @pytest.mark.parametrize(("clip_val", "max_norm"), [(1e-3, None), (None, 1)])
