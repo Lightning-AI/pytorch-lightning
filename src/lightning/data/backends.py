@@ -1,5 +1,11 @@
 import os
-from typing import Dict, Protocol, runtime_checkable
+from typing import Dict, Protocol, runtime_checkable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    try:
+        from botocore.credentials import RefreshableCredentials
+    except ImportError:
+        RefreshableCredentials = object
 
 
 @runtime_checkable
@@ -17,10 +23,8 @@ class _DatasetBackend(Protocol):
 class S3DatasetBackend:
     """A backend handler for datasets stored on S3."""
 
-    from botocore.credentials import RefreshableCredentials
-
     @staticmethod
-    def get_aws_credentials() -> RefreshableCredentials:
+    def get_aws_credentials() -> "RefreshableCredentials":
         """Gets AWS credentials from the current IAM role.
 
         Returns:

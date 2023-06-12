@@ -1,5 +1,4 @@
 import os
-import time
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -56,19 +55,21 @@ def open_single_file_with_retry(
     Returns:
         The opened file stream.
     """
-    from numpy import random
     from torchdata.datapipes.iter import FSSpecFileOpener, IterableWrapper
 
     datapipe = IterableWrapper([path_or_url], **kwargs)
 
     num_attempts = 5
-    for attempt in range(num_attempts):
-        for _, stream in FSSpecFileOpener(datapipe, mode=mode, kwargs_for_open=kwargs_for_open, **kwargs):
-            return stream
-        
 
-        time.sleep(15 * (random.random() + 0.5))
-    raise RuntimeError()
+    for _, stream in FSSpecFileOpener(datapipe, mode=mode, kwargs_for_open=kwargs_for_open, **kwargs):
+        curr_attempt = 0
+        while curr_attempt < num_attempts:
+            try:
+                return stream
+            except Exception:
+                curr_attempt += 1
+
+    raise RuntimeError(f"Could not open {path_or_url}")
 
 
 # Necessary to support both a context manager and a call
