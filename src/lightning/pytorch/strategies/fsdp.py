@@ -432,8 +432,6 @@ class FSDPStrategy(ParallelStrategy):
         assert self.model is not None
 
         with _get_full_state_dict_context(self.model, rank0_only=True):
-            print(self.model, optimizer.state_dict())
-            # exit()
             state_dict = FullyShardedDataParallel.optim_state_dict(self.model, optimizer)
 
             # Store the optimizer state dict in standard format

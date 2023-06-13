@@ -58,7 +58,8 @@ class TestFSDPModel(BoringModel):
         self._init_model()
 
     def configure_optimizers(self):
-        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        # There is some issue with SGD optimizer state in FSDP
+        return torch.optim.AdamW(self.layer.parameters(), lr=0.1)
 
     def on_train_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
@@ -100,17 +101,21 @@ class TestFSDPModel(BoringModel):
             assert self.layer[layer_num].mixed_precision.buffer_dtype == buffer_dtype
 
 
-class TestFSDPModelAutoWrapped(BoringModel):
-    def __init__(self, wrap_min_params: int = 2):
+class TestBoringModel(BoringModel):
+    def __init__(self, wrap_min_params: int = 2, automatic_optimization: bool = True):
         super().__init__()
         self.save_hyperparameters()
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         self.should_be_wrapped = [(32 * 32 + 32) > wrap_min_params, None, (32 * 2 + 2) > wrap_min_params]
+        self.automatic_optimization = automatic_optimization
 
     def configure_optimizers(self):
         parameters = self.parameters() if _TORCH_GREATER_EQUAL_2_0 else self.trainer.model.parameters()
-        return torch.optim.SGD(parameters, lr=0.1)
+        # There are some issue when we are trying to store SGD optimizer state in FSDP
+        return torch.optim.AdamW(parameters, lr=0.1)
 
+
+class TestFSDPModelAutoWrapped(TestBoringModel):
     def on_train_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
 
@@ -479,3 +484,105 @@ def test_set_timeout(init_process_group_mock):
     init_process_group_mock.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
+def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
+    """Test to ensure that the full state dict and optimizer states is saved when using FSDP strategy.
+
+    Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the model can
+    be restored to DDP, it means that the optimizer states were saved correctly.
+    """
+
+    model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
+
+    strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=strategy, precision="16-mixed", max_epochs=1
+    )
+
+    trainer.fit(model)
+    model_path = os.path.join(tmpdir, "last.ckpt")
+    model_path = trainer.strategy.broadcast(model_path)
+    trainer.save_checkpoint(model_path)
+
+    model_state_dict = trainer.strategy.lightning_module_state_dict()
+    optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    if trainer.global_rank != 0:
+        assert len(model_state_dict) == 0
+
+    # restore model to ddp, disable automatic_optimization to avoid optimizer state / model state mismatch
+    model = TestBoringModel(automatic_optimization=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", precision="16-mixed", max_epochs=1
+    )
+
+    # This step will restore the model and optimizer states
+    trainer.fit(model, ckpt_path=model_path)
+
+    # Get the model and optimizer states from the restored ddp model
+    restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
+    restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    if trainer.global_rank != 0:
+        return
+
+    # assert everything is the same
+    assert len(model_state_dict) == len(restored_model_state_dict)
+    assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
+
+    torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
+    torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@pytest.mark.parametrize("wrap_min_params", [2])
+# @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
+def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
+    """Test to ensure that the full state dict and optimizer states can be load when using FSDP strategy.
+
+    Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the DDP model
+    can be restored to FSDP, it means that the optimizer states were restored correctly.
+    """
+
+    # restore model to ddp, disable automatic_optimization to avoid optimizer state / model state mismatch
+    model = TestBoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", precision="16-mixed", max_epochs=1
+    )
+
+    # This step will restore the model and optimizer states
+    trainer.fit(model)
+    model_path = os.path.join(tmpdir, "last.ckpt")
+    model_path = trainer.strategy.broadcast(model_path)
+    trainer.save_checkpoint(model_path)
+
+    # Get the model and optimizer states from the restored ddp model
+    model_state_dict = trainer.strategy.lightning_module_state_dict()
+    optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    # Build a new FSDP model, without automatic_optimization
+    model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params, automatic_optimization=False)
+
+    strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=strategy, precision="16-mixed", max_epochs=1
+    )
+
+    trainer.fit(model, ckpt_path=model_path)
+
+    restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
+    restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    if trainer.global_rank != 0:
+        assert len(restored_model_state_dict) == 0
+        return
+
+    # assert everything is the same
+    assert len(model_state_dict) == len(restored_model_state_dict)
+    assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
+
+    torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
+    torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
