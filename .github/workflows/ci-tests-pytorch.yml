@@ -112,6 +112,11 @@ jobs:
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
 
+    - name: install protobuf [hotfix]
+      if: ${{ matrix.python-version == '3.11' }}
+      # for some reason onnx does not pull wheel from pypi but builds it
+      run: pip install protobuf
+
     - name: Install package & dependencies
       run: |
         python -m pip install -q pip -U
