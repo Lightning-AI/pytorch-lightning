@@ -538,8 +538,7 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
-@pytest.mark.parametrize("wrap_min_params", [2])
-# @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
+@pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
 def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
     """Test to ensure that the full state dict and optimizer states can be load when using FSDP strategy.
 
