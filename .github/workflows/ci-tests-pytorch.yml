@@ -115,7 +115,7 @@ jobs:
     - name: install protobuf [hotfix]
       if: ${{ matrix.python-version == '3.11' }}
       # for some reason onnx does not pull wheel from pypi but builds it
-      run: pip install protobuf
+      run: pip install protobuf-compiler
 
     - name: Install package & dependencies
       run: |
