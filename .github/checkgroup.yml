@@ -150,6 +150,26 @@ subprojects:
       - "build-pl (3.9, 1.13, 11.7.1)"
       - "build-pl (3.10, 2.0, 11.7.1)"
 
+  # SECTIONS: lightning_data
+
+  - id: "lightning_data: CPU workflow"
+    paths:
+      - ".actions/**"
+      - "requirements/data/**"
+      - "src/lightning/data/**"
+      - "src/lightning_data/*"
+      - "tests/tests_data/**"
+      - "examples/data/**"
+      - "pyproject.toml"  # includes pytest config
+      - ".github/workflows/ci-tests-data.yml"
+      - "!requirements/*/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
+    checks:
+      - "data-cpu (macOS-11, lightning, 3.10, 2.0)"
+      - "data-cpu (ubuntu-20.04, lightning, 3.10, 2.0)"
+      - "data-cpu (windows-2022, lightning, 3.10, 2.0)"
+
   # SECTION: lightning_fabric
 
   - id: "lightning_fabric: CPU workflow"
