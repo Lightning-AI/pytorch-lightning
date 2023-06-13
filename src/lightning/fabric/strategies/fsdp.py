@@ -648,9 +648,7 @@ def _get_sharded_state_dict_context(module: "FullyShardedDataParallel") -> _Gene
     return state_dict_type_context
 
 
-def _get_full_state_dict_context(
-    module: "FullyShardedDataParallel", rank0_only: bool = True
-) -> _GeneratorContextManager:
+def _get_full_state_dict_context(module: torch.nn.Module, rank0_only: bool = True) -> _GeneratorContextManager:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import FullOptimStateDictConfig, FullStateDictConfig, StateDictType
 

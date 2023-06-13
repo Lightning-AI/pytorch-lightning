@@ -405,6 +405,9 @@ class FSDPStrategy(ParallelStrategy):
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         optimizer_states = checkpoint["optimizer_states"]
 
+        assert self.model is not None
+        assert isinstance(self.model, FullyShardedDataParallel)
+
         # rank0_only should be false because we need to load the optimizer state on all ranks
         with _get_full_state_dict_context(self.model, rank0_only=False):
             for optimizer, opt_state in zip(self.optimizers, optimizer_states):
@@ -422,10 +425,6 @@ class FSDPStrategy(ParallelStrategy):
                 optimizer.load_state_dict(opt_state)
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
-        """Returns state of an optimizer.
-
-        Allows for syncing/collating optimizer state from processes in custom plugins.
-        """
         if isinstance(optimizer, LightningOptimizer):
             optimizer = optimizer._optimizer
 
