@@ -245,19 +245,19 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
-@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
+@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE)
 @RunIf(skip_windows=True)
 def test_logger_initialization(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is
     available at the right time in Trainer."""
     _patch_comet_atexit(monkeypatch)
     try:
-        _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
+        _test_logger_initialization(tmpdir, logger_class)
     except (ImportError, ModuleNotFoundError):
         pytest.xfail(f"multi-process test requires {logger_class.__class__} dependencies to be installed.")
 
 
-def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
+def _test_logger_initialization(tmpdir, logger_class):
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
     model = BoringModel()
