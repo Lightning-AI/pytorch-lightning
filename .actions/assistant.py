@@ -461,7 +461,11 @@ class AssistantCLI:
                 rel_rst = rst.replace(os.path.join(repo_dir, source_dir) + os.path.sep, "")
                 rel_dir = os.path.dirname(rel_rst)
                 os.makedirs(os.path.join(_PROJECT_ROOT, target_dir, rel_dir), exist_ok=True)
-                shutil.copy(rst, os.path.join(_PROJECT_ROOT, target_dir, rel_rst))
+                new_rst = os.path.join(_PROJECT_ROOT, target_dir, rel_rst)
+                if os.path.isfile(new_rst):
+                    logging.warning(f"Page {new_rst} already exists in the local tree so it will be skipped.")
+                    continue
+                shutil.copy(rst, new_rst)
 
 
 if __name__ == "__main__":
