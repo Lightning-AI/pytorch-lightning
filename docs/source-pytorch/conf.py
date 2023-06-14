@@ -17,6 +17,8 @@ import os
 import shutil
 import sys
 import warnings
+from importlib.util import spec_from_file_location, module_from_spec
+from types import ModuleType
 
 import pt_lightning_sphinx_theme
 
@@ -34,11 +36,18 @@ PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, "..", "..")
 PATH_RAW_NB = os.path.join(PATH_ROOT, "_notebooks")
 _SHOULD_COPY_NOTEBOOKS = True
-sys.path.insert(0, os.path.abspath(PATH_ROOT))
-sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
 
-try:
-    from assistant import AssistantCLI
+def _load_py_module(name: str, location: str) -> ModuleType:
+    spec = spec_from_file_location(name, location)
+    py = module_from_spec(spec)
+    spec.loader.exec_module(py)
+    return py
+
+
+assist_local = _load_py_module("assistant", os.path.join(PATH_ROOT, ".actions", "assistant.py"))
+
+if os.path.isdir(os.path.join(PATH_RAW_NB, ".actions")):
+    assist_nb = _load_py_module("assistant", os.path.join(PATH_RAW_NB, ".actions", "assistant.py"))
 except ImportError:
     _SHOULD_COPY_NOTEBOOKS = False
     warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
@@ -48,7 +57,7 @@ SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
 # -- Project documents -------------------------------------------------------
 if _SHOULD_COPY_NOTEBOOKS:
-    AssistantCLI.copy_notebooks(
+    assist_nb.AssistantCLI.copy_notebooks(
         PATH_RAW_NB,
         PATH_HERE,
         "notebooks",
@@ -95,7 +104,7 @@ _transform_changelog(
 )
 
 
-AssistantCLI.pull_docs_files(
+assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/accelerators/hpu",
     checkout="tags/1.0.0.rc0",
