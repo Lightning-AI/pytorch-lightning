@@ -13,9 +13,11 @@
 # limitations under the License.
 """General utilities."""
 import sys
+from functools import lru_cache
 
 import torch
 from lightning_utilities.core.imports import package_available, RequirementCache
+from lightning_utilities.core.rank_zero import rank_zero_warn
 
 _PYTHON_GREATER_EQUAL_3_11_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 11)
 _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
@@ -28,3 +30,23 @@ _LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
 _LIGHTNING_BAGUA_AVAILABLE = RequirementCache("lightning-bagua")
 _LIGHTNING_HABANA_AVAILABLE = RequirementCache("lightning-habana")
 _LIGHTNING_GRAPHCORE_AVAILABLE = RequirementCache("lightning-graphcore")
+
+
+@lru_cache()
+def _try_import_graphcore() -> bool:
+    try:
+        from lightning_graphcore import *
+        return True
+    except ImportError as err:
+        rank_zero_warn(f"Import of Graphcore package failed for some compatibility issues: \n{err}")
+        return False
+
+
+@lru_cache()
+def _try_import_habana() -> bool:
+    try:
+        from lightning_habana import *
+        return True
+    except ImportError as err:
+        rank_zero_warn(f"Import of Habana package failed for some compatibility issues: \n{err}")
+        return False
