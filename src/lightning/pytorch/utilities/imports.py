@@ -13,7 +13,6 @@
 # limitations under the License.
 """General utilities."""
 import sys
-from functools import lru_cache
 
 import torch
 from lightning_utilities.core.imports import package_available, RequirementCache
@@ -32,10 +31,9 @@ _LIGHTNING_HABANA_AVAILABLE = RequirementCache("lightning-habana")
 _LIGHTNING_GRAPHCORE_AVAILABLE = RequirementCache("lightning-graphcore")
 
 
-@lru_cache
 def _try_import_graphcore() -> bool:
     try:
-        from lightning_graphcore import *
+        from lightning_graphcore import *  # noqa: F406
 
         return True
     except ImportError as err:
@@ -43,10 +41,9 @@ def _try_import_graphcore() -> bool:
         return False
 
 
-@lru_cache
 def _try_import_habana() -> bool:
     try:
-        from lightning_habana import *
+        from lightning_habana import *  # noqa: F406
 
         return True
     except ImportError as err:
