@@ -27,25 +27,21 @@ _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 _LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
 _LIGHTNING_BAGUA_AVAILABLE = RequirementCache("lightning-bagua")
-_LIGHTNING_HABANA_AVAILABLE = RequirementCache("lightning-habana")
-_LIGHTNING_GRAPHCORE_AVAILABLE = RequirementCache("lightning-graphcore")
 
-
-def _try_import_graphcore() -> bool:
+_LIGHTNING_GRAPHCORE_AVAILABLE = False
+if RequirementCache("lightning-graphcore"):
     try:
-        from lightning_graphcore import *  # noqa: F406
+        from lightning_graphcore import *  # noqa: F403
 
-        return True
+        _LIGHTNING_GRAPHCORE_AVAILABLE = True
     except ImportError as err:
         rank_zero_warn(f"Import of Graphcore package failed for some compatibility issues: \n{err}")
-        return False
 
-
-def _try_import_habana() -> bool:
+_LIGHTNING_HABANA_AVAILABLE = False
+if RequirementCache("lightning-habana"):
     try:
-        from lightning_habana import *  # noqa: F406
+        from lightning_habana import *  # noqa: F403
 
-        return True
+        _LIGHTNING_HABANA_AVAILABLE = True
     except ImportError as err:
         rank_zero_warn(f"Import of Habana package failed for some compatibility issues: \n{err}")
-        return False
