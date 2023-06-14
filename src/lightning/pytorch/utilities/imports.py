@@ -31,7 +31,7 @@ _LIGHTNING_BAGUA_AVAILABLE = RequirementCache("lightning-bagua")
 
 
 @functools.lru_cache(maxsize=128)
-def _try_import_module(module_name) -> bool:
+def _try_import_module(module_name: str) -> bool:
     try:
         __import__(module_name)
         return True
