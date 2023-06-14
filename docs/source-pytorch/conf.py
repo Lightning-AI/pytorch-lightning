@@ -94,6 +94,14 @@ _transform_changelog(
     os.path.join(PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
 )
 
+
+AssistantCLI.pull_docs_files(
+    gh_user_repo="Lightning-AI/lightning-Habana",
+    target_dir="docs/source-pytorch/accelerators/hpu",
+    checkout="tags/1.0.0.rc0",
+)
+
+
 # -- Project information -----------------------------------------------------
 
 project = "PyTorch Lightning"
@@ -311,6 +319,7 @@ intersphinx_mapping = {
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
     "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
+    "habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
 }
 
 # -- Options for todo extension ----------------------------------------------
