@@ -355,7 +355,7 @@ async def upload_file(response: Response, filename: str, uploaded_file: UploadFi
     return f"Successfully uploaded '{filename}' to the Drive"
 
 
-@fastapi_service.get("/api/v1/status", response_model=AppStatus)
+@fastapi_service.get("/api/v1/status", response_model=List[AppStatus])
 async def get_status() -> AppStatus:
     """Get the current status of the app and works."""
     global app_status

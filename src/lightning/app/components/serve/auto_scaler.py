@@ -331,7 +331,7 @@ class _LoadBalancer(LightningWork):
         def shutdown_event():
             fastapi_app.SEND_TASK.cancel()
 
-        @fastapi_app.get("/system/info", response_model=_SysInfo)
+        @fastapi_app.get("/system/info", response_model=List[_SysInfo])
         async def sys_info():
             return _SysInfo(
                 num_workers=len(self.servers),
