@@ -22,7 +22,7 @@ Accelerator: HPU training
    :header: Basic
    :description: Learn the basics of single and multi-HPU core training.
    :col_css: col-md-4
-   :button_link: hpu_basic.html
+   :button_link: ../integrations/hpu/basic.html
    :height: 150
    :tag: basic
 
@@ -30,7 +30,7 @@ Accelerator: HPU training
    :header: Intermediate
    :description: Enable state-of-the-art scaling with advanced mix-precision settings.
    :col_css: col-md-4
-   :button_link: hpu_intermediate.html
+   :button_link: ../integrations/hpu/intermediate.html
    :height: 150
    :tag: intermediate
 

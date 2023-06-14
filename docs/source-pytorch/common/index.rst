@@ -148,7 +148,7 @@ How-to Guides
 .. displayitem::
     :header: Train on single or multiple HPUs
     :description: Train models faster with HPU accelerators
-    :button_link: ../accelerators/hpu.html
+    :button_link: ../integrations/hpu/index.html
     :col_css: col-md-4
     :height: 180
 

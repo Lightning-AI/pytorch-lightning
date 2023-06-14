@@ -140,7 +140,7 @@ Glossary
    :header: HPU
    :description: Habana Gaudi AI Processor Unit for faster training
    :col_css: col-md-12
-   :button_link: ../accelerators/hpu.html
+   :button_link: ../integrations/hpu/index.html
    :height: 100
 
 .. displayitem::
