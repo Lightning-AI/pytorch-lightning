@@ -31,17 +31,15 @@ _LIGHTNING_BAGUA_AVAILABLE = RequirementCache("lightning-bagua")
 _LIGHTNING_GRAPHCORE_AVAILABLE = False
 if RequirementCache("lightning-graphcore"):
     try:
-        from lightning_graphcore import *  # noqa: F403
-
+        __import__("lightning_graphcore")
         _LIGHTNING_GRAPHCORE_AVAILABLE = True
-    except (ImportError, AttributeError) as err:
+    except ImportError as err:
         rank_zero_warn(f"Import of Graphcore package failed for some compatibility issues: \n{err}")
 
 _LIGHTNING_HABANA_AVAILABLE = False
 if RequirementCache("lightning-habana"):
     try:
-        from lightning_habana import *  # noqa: F403
-
+        __import__("lightning_habana")
         _LIGHTNING_HABANA_AVAILABLE = True
-    except (ImportError, AttributeError) as err:
+    except ImportError as err:
         rank_zero_warn(f"Import of Habana package failed for some compatibility issues: \n{err}")
