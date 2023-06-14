@@ -37,6 +37,7 @@ _PATH_ROOT = os.path.join(_PATH_HERE, "..", "..")
 _PATH_RAW_NB = os.path.join(_PATH_ROOT, "_notebooks")
 _SHOULD_COPY_NOTEBOOKS = True
 
+
 def _load_py_module(name: str, location: str) -> ModuleType:
     spec = spec_from_file_location(name, location)
     py = module_from_spec(spec)
