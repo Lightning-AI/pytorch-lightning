@@ -32,9 +32,9 @@ _PL_FAST_DOCS_DEV = bool(int(os.getenv("PL_FAST_DOCS_DEV", 0)))
 # -----------------------
 # BUILD stuff
 # -----------------------
-PATH_HERE = os.path.abspath(os.path.dirname(__file__))
-PATH_ROOT = os.path.join(PATH_HERE, "..", "..")
-PATH_RAW_NB = os.path.join(PATH_ROOT, "_notebooks")
+_PATH_HERE = os.path.abspath(os.path.dirname(__file__))
+_PATH_ROOT = os.path.join(_PATH_HERE, "..", "..")
+_PATH_RAW_NB = os.path.join(_PATH_ROOT, "_notebooks")
 _SHOULD_COPY_NOTEBOOKS = True
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -44,11 +44,11 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-assist_local = _load_py_module("assistant", os.path.join(PATH_ROOT, ".actions", "assistant.py"))
+assist_local = _load_py_module("assistant", os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
-if os.path.isdir(os.path.join(PATH_RAW_NB, ".actions")):
-    assist_nb = _load_py_module("assistant", os.path.join(PATH_RAW_NB, ".actions", "assistant.py"))
-except ImportError:
+if os.path.isdir(os.path.join(_PATH_RAW_NB, ".actions")):
+    assist_nb = _load_py_module("assistant", os.path.join(_PATH_RAW_NB, ".actions", "assistant.py"))
+else:
     _SHOULD_COPY_NOTEBOOKS = False
     warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
 
@@ -58,8 +58,8 @@ SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 # -- Project documents -------------------------------------------------------
 if _SHOULD_COPY_NOTEBOOKS:
     assist_nb.AssistantCLI.copy_notebooks(
-        PATH_RAW_NB,
-        PATH_HERE,
+        _PATH_RAW_NB,
+        _PATH_HERE,
         "notebooks",
         patterns=[".", "course_UvA-DL", "lightning_examples"],
     )
@@ -73,7 +73,7 @@ if _SHOULD_COPY_NOTEBOOKS:
         "lightning_examples/warp-drive",
     ]
     for file in ignore:
-        file = os.path.join(PATH_HERE, "notebooks", file)
+        file = os.path.join(_PATH_HERE, "notebooks", file)
         if os.path.exists(file):
             os.remove(file)
 
@@ -93,14 +93,14 @@ def _transform_changelog(path_in: str, path_out: str) -> None:
         fp.writelines(chlog_lines)
 
 
-os.makedirs(os.path.join(PATH_HERE, FOLDER_GENERATED), exist_ok=True)
+os.makedirs(os.path.join(_PATH_HERE, FOLDER_GENERATED), exist_ok=True)
 # copy all documents from GH templates like contribution guide
-for md in glob.glob(os.path.join(PATH_ROOT, ".github", "*.md")):
-    shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
+for md in glob.glob(os.path.join(_PATH_ROOT, ".github", "*.md")):
+    shutil.copy(md, os.path.join(_PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
 _transform_changelog(
-    os.path.join(PATH_ROOT, "src", "lightning", "fabric", "CHANGELOG.md"),
-    os.path.join(PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
+    os.path.join(_PATH_ROOT, "src", "lightning", "fabric", "CHANGELOG.md"),
+    os.path.join(_PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
 )
 
 
@@ -378,7 +378,7 @@ PACKAGE_MAPPING = {
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
-    _path_require = lambda fname: os.path.join(PATH_ROOT, "requirements", "pytorch", fname)
+    _path_require = lambda fname: os.path.join(_PATH_ROOT, "requirements", "pytorch", fname)
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(_path_require("base.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("extra.txt"))
