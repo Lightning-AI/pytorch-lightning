@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities."""
+import functools
 import sys
 
 import torch
@@ -28,18 +29,17 @@ _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 _LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
 _LIGHTNING_BAGUA_AVAILABLE = RequirementCache("lightning-bagua")
 
-_LIGHTNING_GRAPHCORE_AVAILABLE = False
-if RequirementCache("lightning-graphcore"):
-    try:
-        __import__("lightning_graphcore")
-        _LIGHTNING_GRAPHCORE_AVAILABLE = True
-    except (ImportError, AttributeError) as err:
-        rank_zero_warn(f"Import of Graphcore package failed for some compatibility issues: \n{err}")
 
-_LIGHTNING_HABANA_AVAILABLE = False
-if RequirementCache("lightning-habana"):
+@functools.lru_cache(maxsize=128)
+def _try_import_module(module_name) -> bool:
     try:
-        __import__("lightning_habana")
-        _LIGHTNING_HABANA_AVAILABLE = True
+        __import__(module_name)
+        return True
+    # added also AttributeError fro case of impoerts like pl.LightningModule
     except (ImportError, AttributeError) as err:
-        rank_zero_warn(f"Import of Habana package failed for some compatibility issues: \n{err}")
+        rank_zero_warn(f"Import of {module_name} package failed for some compatibility issues: \n{err}")
+        return False
+
+
+_LIGHTNING_GRAPHCORE_AVAILABLE = RequirementCache("lightning-graphcore") and _try_import_module("lightning_graphcore")
+_LIGHTNING_HABANA_AVAILABLE = RequirementCache("lightning-habana") and _try_import_module("lightning_habana")
