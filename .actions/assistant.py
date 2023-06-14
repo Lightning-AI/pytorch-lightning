@@ -435,9 +435,10 @@ class AssistantCLI:
     def pull_docs_files(
         gh_user_repo: str,
         target_dir: str = "docs/source-pytorch/XXX",
-        checkout: str = "tags/1.0.0.rc0",
+        checkout: str = "tags/1.0.0",
         source_dir: str = "docs/source",
     ) -> None:
+        """Pull docs pages from external source and append to local docs."""
         import zipfile
 
         zip_url = f"https://github.com/{gh_user_repo}/archive/refs/{checkout}.zip"
