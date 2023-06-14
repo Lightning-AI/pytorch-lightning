@@ -65,7 +65,9 @@ from lightning.pytorch.utilities.imports import (
     _LIGHTNING_BAGUA_AVAILABLE,
     _LIGHTNING_COLOSSALAI_AVAILABLE,
     _LIGHTNING_GRAPHCORE_AVAILABLE,
-    _LIGHTNING_HABANA_AVAILABLE, _try_import_habana, _try_import_graphcore,
+    _LIGHTNING_HABANA_AVAILABLE,
+    _try_import_graphcore,
+    _try_import_habana,
 )
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 

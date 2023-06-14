@@ -32,20 +32,22 @@ _LIGHTNING_HABANA_AVAILABLE = RequirementCache("lightning-habana")
 _LIGHTNING_GRAPHCORE_AVAILABLE = RequirementCache("lightning-graphcore")
 
 
-@lru_cache()
+@lru_cache
 def _try_import_graphcore() -> bool:
     try:
         from lightning_graphcore import *
+
         return True
     except ImportError as err:
         rank_zero_warn(f"Import of Graphcore package failed for some compatibility issues: \n{err}")
         return False
 
 
-@lru_cache()
+@lru_cache
 def _try_import_habana() -> bool:
     try:
         from lightning_habana import *
+
         return True
     except ImportError as err:
         rank_zero_warn(f"Import of Habana package failed for some compatibility issues: \n{err}")

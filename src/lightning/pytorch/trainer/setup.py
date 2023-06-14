@@ -28,8 +28,12 @@ from lightning.pytorch.profilers import (
     XLAProfiler,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE, _LIGHTNING_HABANA_AVAILABLE, \
-    _try_import_habana, _try_import_graphcore
+from lightning.pytorch.utilities.imports import (
+    _LIGHTNING_GRAPHCORE_AVAILABLE,
+    _LIGHTNING_HABANA_AVAILABLE,
+    _try_import_graphcore,
+    _try_import_habana,
+)
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
