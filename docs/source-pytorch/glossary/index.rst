@@ -15,7 +15,7 @@
    Finetuning <../advanced/finetuning>
    GPU <../accelerators/gpu>
    Half precision <../common/precision>
-   HPU <../accelerators/hpu>
+   HPU <../integrations/hpu/index>
    Inference <../deploy/production_intermediate>
    IPU <../accelerators/ipu>
    Lightning CLI <../cli/lightning_cli>

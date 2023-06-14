@@ -16,7 +16,7 @@
    Save memory with half-precision <precision>
    ../advanced/model_parallel
    Train on single or multiple GPUs <../accelerators/gpu>
-   Train on single or multiple HPUs <../accelerators/hpu>
+   Train on single or multiple HPUs <../integrations/hpu/index>
    Train on single or multiple IPUs <../accelerators/ipu>
    Train on single or multiple TPUs <../accelerators/tpu>
    Train on MPS <../accelerators/mps>
