@@ -34,7 +34,7 @@ if RequirementCache("lightning-graphcore"):
         from lightning_graphcore import *  # noqa: F403
 
         _LIGHTNING_GRAPHCORE_AVAILABLE = True
-    except ImportError as err:
+    except (ImportError, AttributeError) as err:
         rank_zero_warn(f"Import of Graphcore package failed for some compatibility issues: \n{err}")
 
 _LIGHTNING_HABANA_AVAILABLE = False
@@ -43,5 +43,5 @@ if RequirementCache("lightning-habana"):
         from lightning_habana import *  # noqa: F403
 
         _LIGHTNING_HABANA_AVAILABLE = True
-    except ImportError as err:
+    except (ImportError, AttributeError) as err:
         rank_zero_warn(f"Import of Habana package failed for some compatibility issues: \n{err}")
