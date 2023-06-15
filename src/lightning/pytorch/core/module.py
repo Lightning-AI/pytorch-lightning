@@ -25,6 +25,7 @@ from typing import (
     Dict,
     Generator,
     IO,
+    Iterable,
     List,
     Literal,
     Mapping,
@@ -653,7 +654,7 @@ class LightningModule(
         ...
 
     @overload
-    def training_step(self, dataloader_iter: Iterable[Dataloader[Any]]) -> Optional[STEP_OUTPUT]:
+    def training_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> Optional[STEP_OUTPUT]:
         ...
 
     def training_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -714,7 +715,7 @@ class LightningModule(
         ...
 
     @overload
-    def validation_step(self, dataloader_iter: Iterable[Dataloader[Any]]) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> Optional[STEP_OUTPUT]:
         ...
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -791,7 +792,7 @@ class LightningModule(
         ...
 
     @overload
-    def test_step(self, dataloader_iter: Iterable[Dataloader[Any]]) -> Optional[STEP_OUTPUT]:
+    def test_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> Optional[STEP_OUTPUT]:
         ...
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -868,7 +869,7 @@ class LightningModule(
         ...
 
     @overload
-    def predict_step(self, dataloader_iter: Iterable[Dataloader[Any]]) -> Optional[STEP_OUTPUT]:
+    def predict_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> Optional[STEP_OUTPUT]:
         ...
 
     def predict_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
