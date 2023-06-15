@@ -17,8 +17,8 @@ from tests_app import _PROJECT_ROOT
 
 @mock.patch("click.launch")
 @pytest.mark.parametrize("open_ui", [True, False])
-def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypatch):
-    """This test validates the command is runned properly and the LightningApp method is being executed."""
+def test_lightning_run_app(launch_mock: mock.MagicMock, open_ui: bool, caplog, monkeypatch):
+    """This test validates the command is ran properly and the LightningApp method is being executed."""
     monkeypatch.setattr("lightning.app._logger", logging.getLogger())
 
     original_method = LightningApp._run
@@ -52,9 +52,9 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
                 # Get the designated port
                 port = constants.APP_SERVER_PORT
 
-                lauch_mock.assert_called_with(f"http://127.0.0.1:{port}/view")
+                launch_mock.assert_called_with(f"http://127.0.0.1:{port}/view")
             else:
-                lauch_mock.assert_not_called()
+                launch_mock.assert_not_called()
         assert result.exit_code == 0
     assert len(caplog.messages) == 4
     assert bool(int(caplog.messages[0])) is open_ui
