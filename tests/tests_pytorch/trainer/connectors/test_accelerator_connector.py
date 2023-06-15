@@ -570,6 +570,7 @@ def mock_hpu_available(monkeypatch, value=True):
         return
 
     import lightning_habana
+
     monkeypatch.setattr(lightning_habana.accelerator.HPUAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning_habana.accelerator, "_HPU_AVAILABLE", value)
     monkeypatch.setattr(lightning_habana.strategies.parallel, "_HPU_AVAILABLE", value)
