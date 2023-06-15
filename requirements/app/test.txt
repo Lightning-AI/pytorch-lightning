@@ -5,8 +5,8 @@ pytest-cov ==4.0.0
 pytest-doctestplus >=0.9.0
 pytest-asyncio ==0.20.3
 pytest-rerunfailures <=11.1.2
-playwright ==1.32.1
-httpx
+playwright ==1.35.0
+httpx ==0.24.0
 trio <0.22.0  # strict https://github.com/python-trio/trio/pull/2213
 pympler
 psutil
