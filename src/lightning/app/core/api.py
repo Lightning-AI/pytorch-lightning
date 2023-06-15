@@ -231,7 +231,7 @@ def _get_component_by_name(component_name: str, state: dict) -> Union[LightningF
 
 
 @fastapi_service.get("/api/v1/layout", response_class=JSONResponse)
-async def get_layout() -> Mapping:
+async def get_layout() -> str:
     with lock:
         x_lightning_session_uuid = TEST_SESSION_UUID
         state = global_app_state_store.get_app_state(x_lightning_session_uuid)
@@ -240,7 +240,7 @@ async def get_layout() -> Mapping:
         for la in layout:
             if la["content"].startswith("root."):
                 la["content"] = _get_component_by_name(la["content"], state)
-        return layout
+        return json.dumps(layout)
 
 
 @fastapi_service.get("/api/v1/spec", response_class=JSONResponse)
