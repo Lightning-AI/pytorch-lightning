@@ -503,7 +503,8 @@ class Fabric:
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Gather tensors or collections of tensors from multiple processes.
 
-        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
+        This method needs to be called on all processes and the tensors need to have the same shape across all
+        processes, otherwise your program will stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -527,7 +528,8 @@ class Fabric:
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Reduce tensors or collections of tensors from multiple processes.
 
-        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
+        This method needs to be called on all processes and the tensors need to have the same shape across all
+        processes, otherwise your program will stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
