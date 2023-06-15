@@ -42,6 +42,7 @@ from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+from torch.utils.data import DataLoader
 from torchmetrics import Metric, MetricCollection
 from typing_extensions import Self
 
@@ -910,6 +911,7 @@ class LightningModule(
             trainer = Trainer(accelerator="gpu", devices=2)
             predictions = trainer.predict(model, dm)
         """
+        batch = args[0]
         return self(batch)
 
     def configure_callbacks(self) -> Union[Sequence[Callback], Callback]:
