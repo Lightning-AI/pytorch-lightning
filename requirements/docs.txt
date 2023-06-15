@@ -9,7 +9,7 @@ sphinx-autobuild
 sphinx-autodoc-typehints >=1.16
 sphinx-paramlinks >=0.5.1, <=0.5.4
 sphinx-togglebutton >=0.2, <=0.3.2
-sphinx-copybutton >=0.3, <=0.5.0
+sphinx-copybutton >=0.3, <=0.5.2
 sphinx-multiproject
 sphinx-toolbox ==3.4.0
 sphinx-rtd-dark-mode
