@@ -108,7 +108,8 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
     state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 0}
     metadata = fabric.load(checkpoint_path, state)
     params_after = deepcopy(list(fabric.model.parameters()))
-    assert all(torch.equal(p0, p1) for p0, p1 in zip(params_before, params_after))
+    for p0, p1 in zip(params_before, params_after):
+        torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
 
     # check user data in state reloaded
     assert state["steps"] == 1
