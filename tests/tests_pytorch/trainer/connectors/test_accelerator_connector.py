@@ -565,9 +565,11 @@ def mock_ipu_available(monkeypatch, value=True):
 
 def mock_hpu_available(monkeypatch, value=True):
     try:
-        import lightning_habana
-    except ModuleNotFoundError:
+        __import__("lightning_habana")
+    except (ImportError, AttributeError):
         return
+
+    import lightning_habana
 
     monkeypatch.setattr(lightning_habana.accelerator.HPUAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning_habana.accelerator, "_HPU_AVAILABLE", value)
