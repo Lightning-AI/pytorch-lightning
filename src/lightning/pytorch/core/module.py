@@ -651,7 +651,11 @@ class LightningModule(
         return super().forward(*args, **kwargs)
 
     @overload
-    def training_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Optional[STEP_OUTPUT]:
+    def training_step(self, batch: Any, batch_idx: int) -> Optional[STEP_OUTPUT]:
+        ...
+
+    @overload
+    def training_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         ...
 
     @overload
@@ -712,7 +716,11 @@ class LightningModule(
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
     @overload
-    def validation_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, batch: Any, batch_idx: int) -> Optional[STEP_OUTPUT]:
+        ...
+
+    @overload
+    def validation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         ...
 
     @overload
@@ -789,7 +797,11 @@ class LightningModule(
         """
 
     @overload
-    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Optional[STEP_OUTPUT]:
+    def test_step(self, batch: Any, batch_idx: int) -> Optional[STEP_OUTPUT]:
+        ...
+
+    @overload
+    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         ...
 
     @overload
@@ -866,7 +878,11 @@ class LightningModule(
         """
 
     @overload
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Optional[STEP_OUTPUT]:
+    def predict_step(self, batch: Any, batch_idx: int) -> Optional[STEP_OUTPUT]:
+        ...
+
+    @overload
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         ...
 
     @overload

@@ -351,7 +351,7 @@ class Strategy(ABC):
             optimizer.load_state_dict(opt_state)
             _optimizer_to_device(optimizer, self.root_device)
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """The actual training step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.training_step` for more details
@@ -394,7 +394,7 @@ class Strategy(ABC):
                 return self._forward_redirection(self.model, self.lightning_module, "test_step", *args, **kwargs)
             return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """The actual predict step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
