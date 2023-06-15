@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [master, "release/*"]
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - ".github/workflows/code-checks.yml"
       - "requirements/**"
       - "src/**"
