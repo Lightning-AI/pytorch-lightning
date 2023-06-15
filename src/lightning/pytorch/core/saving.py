@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, IO, Optional, Type, Union
 from warnings import warn
 
+import torch
 import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
 
@@ -86,13 +87,14 @@ def _load_from_checkpoint(
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
-        storage = _load_state(cls, checkpoint, strict=strict, **kwargs)
+        model = _load_state(cls, checkpoint, strict=strict, **kwargs)
         state_dict = checkpoint["state_dict"]
         if not state_dict:
             raise ValueError(f"The state dict in {checkpoint_path!r} contains no parameters.")
-        map_location = list(state_dict.values())[0].device
-        assert isinstance(storage, pl.LightningModule)
-        return storage.to(map_location)
+
+        device = next((t for t in state_dict.values() if isinstance(t, torch.Tensor)), torch.tensor(0)).device
+        assert isinstance(model, pl.LightningModule)
+        return model.to(device)
 
     raise NotImplementedError(f"Unsupported {cls}")
 
