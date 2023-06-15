@@ -2,6 +2,6 @@
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 torchvision >=0.12.0, <=0.15.2
 gym[classic_control] >=0.17.0, <0.26.3
-ipython[all] <8.7.1
+ipython[all] <8.14.1
 torchmetrics >=0.10.0, <0.12.0
 lightning-utilities >=0.7.0, <0.9.0
