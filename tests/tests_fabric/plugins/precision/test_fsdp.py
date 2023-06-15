@@ -32,8 +32,7 @@ def test_fsdp_precision_support(*_):
     [
         ("16-mixed", (torch.float32, torch.float16, torch.float16)),
         ("bf16-mixed", (torch.float32, torch.bfloat16, torch.bfloat16)),
-        ("16-true", (torch.float16, torch.float16, torch.float16)),
-        ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
+        # TODO: add 16-true and bf16-true once supported
     ],
 )
 def test_fsdp_precision_config(precision, expected):

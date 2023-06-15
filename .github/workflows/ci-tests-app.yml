@@ -8,7 +8,7 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - ".github/workflows/ci-tests-app.yml"
       - "src/lightning/app/**"
       - "src/lightning_app/*"
