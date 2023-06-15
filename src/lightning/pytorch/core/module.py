@@ -41,6 +41,7 @@ from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+from torch.utils.data import DataLoader
 from torchmetrics import Metric, MetricCollection
 from typing_extensions import Self
 
@@ -648,21 +649,28 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:  # type: ignore[return-value]
+    @overload
+    def training_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Optional[STEP_OUTPUT]:
+        ...
+
+    @overload
+    def training_step(self, dataloader_iter: Iterable[Dataloader[Any]]) -> Optional[STEP_OUTPUT]:
+        ...
+
+    def training_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         r"""Here you compute and return the training loss and some additional metrics for e.g. the progress bar or
         logger.
 
         Args:
-            batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-            batch_idx (``int``): Integer displaying index of this batch
+            batch: The output of your :class:`~torch.utils.data.DataLoader`.
+            batch_idx: The index of this batch.
+            dataloader_idx: The index of the dataloader that produced this batch.
+                (only if multiple dataloaders used)
 
         Return:
-            Any of.
-
             - :class:`~torch.Tensor` - The loss tensor
-            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
-            - ``None`` - Training will skip to the next batch. This is only for automatic optimization.
+            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``.
+            - ``None`` - Skip to the next batch. This is only for automatic optimization.
                 This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
@@ -702,6 +710,14 @@ class LightningModule(
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
+    @overload
+    def validation_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Optional[STEP_OUTPUT]:
+        ...
+
+    @overload
+    def validation_step(self, dataloader_iter: Iterable[Dataloader[Any]]) -> Optional[STEP_OUTPUT]:
+        ...
+
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         r"""Operates on a single batch of data from the validation set. In this step you'd might generate examples
         or calculate anything of interest like accuracy.
@@ -710,11 +726,13 @@ class LightningModule(
             batch: The output of your :class:`~torch.utils.data.DataLoader`.
             batch_idx: The index of this batch.
             dataloader_idx: The index of the dataloader that produced this batch.
-                (only if multiple val dataloaders used)
+                (only if multiple dataloaders used)
 
         Return:
-            - Any object or value
-            - ``None`` - Validation will skip to the next batch
+            - :class:`~torch.Tensor` - The loss tensor
+            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``.
+            - ``None`` - Skip to the next batch. This is only for automatic optimization.
+                This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
 
         .. code-block:: python
 
@@ -769,6 +787,14 @@ class LightningModule(
             the model goes back to training mode and gradients are enabled.
         """
 
+    @overload
+    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Optional[STEP_OUTPUT]:
+        ...
+
+    @overload
+    def test_step(self, dataloader_iter: Iterable[Dataloader[Any]]) -> Optional[STEP_OUTPUT]:
+        ...
+
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         r"""Operates on a single batch of data from the test set. In this step you'd normally generate examples or
         calculate anything of interest such as accuracy.
@@ -776,14 +802,14 @@ class LightningModule(
         Args:
             batch: The output of your :class:`~torch.utils.data.DataLoader`.
             batch_idx: The index of this batch.
-            dataloader_id: The index of the dataloader that produced this batch.
-                (only if multiple test dataloaders used).
+            dataloader_idx: The index of the dataloader that produced this batch.
+                (only if multiple dataloaders used)
 
         Return:
-           Any of.
-
-            - Any object or value
-            - ``None`` - Testing will skip to the next batch
+            - :class:`~torch.Tensor` - The loss tensor
+            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``.
+            - ``None`` - Skip to the next batch. This is only for automatic optimization.
+                This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
 
         .. code-block:: python
 
@@ -838,7 +864,15 @@ class LightningModule(
             to training mode and gradients are enabled.
         """
 
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
+    @overload
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Optional[STEP_OUTPUT]:
+        ...
+
+    @overload
+    def predict_step(self, dataloader_iter: Iterable[Dataloader[Any]]) -> Optional[STEP_OUTPUT]:
+        ...
+
+    def predict_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """Step function called during :meth:`~lightning.pytorch.trainer.trainer.Trainer.predict`. By default, it
         calls :meth:`~lightning.pytorch.core.module.LightningModule.forward`. Override to add any processing logic.
 
@@ -852,6 +886,18 @@ class LightningModule(
         based accelerator. This happens for ``Trainer(strategy="ddp_spawn")``
         or training on 8 TPU cores with ``Trainer(accelerator="tpu", devices=8)`` as predictions won't be returned.
 
+        Args:
+            batch: The output of your :class:`~torch.utils.data.DataLoader`.
+            batch_idx: The index of this batch.
+            dataloader_idx: The index of the dataloader that produced this batch.
+                (only if multiple dataloaders used)
+
+        Return:
+            - :class:`~torch.Tensor` - The loss tensor
+            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``.
+            - ``None`` - Skip to the next batch. This is only for automatic optimization.
+                This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
+
         Example ::
 
             class MyModel(LightningModule):
@@ -863,15 +909,6 @@ class LightningModule(
             model = MyModel()
             trainer = Trainer(accelerator="gpu", devices=2)
             predictions = trainer.predict(model, dm)
-
-
-        Args:
-            batch: Current batch.
-            batch_idx: Index of current batch.
-            dataloader_idx: Index of the current dataloader.
-
-        Return:
-            Predicted output
         """
         return self(batch)
 
