@@ -119,6 +119,7 @@ def test_simple_app(tmpdir):
                     "_url": "",
                     "_future_url": "",
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_paths": {},
                     "_port": None,
                     "_restarting": False,
@@ -136,6 +137,7 @@ def test_simple_app(tmpdir):
                     "_url": "",
                     "_future_url": "",
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_paths": {},
                     "_port": None,
                     "_restarting": False,
@@ -982,7 +984,7 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 7965
+    assert app.root._state_sizes[0] <= 8304
     assert app.root._state_sizes[20] <= 26550
 
 
