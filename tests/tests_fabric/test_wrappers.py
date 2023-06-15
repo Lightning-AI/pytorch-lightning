@@ -104,6 +104,56 @@ def test_fabric_module_method_lookup():
     warning_cache.clear()
 
 
+def test_fabric_module_setattr():
+    """Test that setattr sets attributes on the original module."""
+
+    class OriginalModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(2, 3)
+            self.attribute = 1
+            self._x = None
+
+        @property
+        def x(self):
+            return self._x
+
+        @x.setter
+        def x(self, value):
+            self._x = value
+
+    original_module = OriginalModule()
+
+    class ModuleWrapper(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.wrapped = original_module
+
+    wrapped_module = ModuleWrapper()
+    fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
+
+    # Check new attribute is set on original_module
+    fabric_module.new_attribute = 100
+    assert original_module.new_attribute == 100
+
+    # Modify existing attribute on original_module
+    fabric_module.attribute = 101
+    assert original_module.attribute == 101
+
+    # Check setattr of original_module
+    fabric_module.x = 102
+    assert original_module.x == 102
+
+    # Check set submodule
+    assert not hasattr(original_module, "linear")
+    linear = torch.nn.Linear(2, 2)
+    fabric_module.linear = linear
+    assert hasattr(original_module, "linear")
+    assert isinstance(original_module.linear, torch.nn.Module)
+    assert linear in fabric_module.modules()
+    assert linear in original_module.modules()
+
+
 def test_fabric_module_state_dict_access():
     """Test that state_dict access passes through to the original module."""
 

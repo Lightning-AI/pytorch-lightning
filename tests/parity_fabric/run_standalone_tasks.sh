@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_fabric DIRECTORY
+# THIS FILE ASSUMES IT IS RUN INSIDE THE tests/parity_fabric DIRECTORY
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/.."
 

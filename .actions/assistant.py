@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import glob
+import logging
 import os
 import pathlib
 import re
@@ -42,6 +43,11 @@ REQUIREMENT_FILES = {
     "fabric": (
         "requirements/fabric/base.txt",
         "requirements/fabric/strategies.txt",
+    ),
+    "data": (
+        "requirements/data/data.txt",
+        "requirements/data/cloud.txt",
+        "requirements/data/examples.txt",
     ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
@@ -146,6 +152,9 @@ def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str 
     """
     assert unfreeze in {"none", "major", "all"}
     path = Path(path_dir) / file_name
+    if not path.exists():
+        logging.warning(f"Folder {path_dir} does not have any base requirements.")
+        return []
     assert path.exists(), (path_dir, file_name, path)
     text = path.read_text()
     return [req.adjust(unfreeze) for req in _parse_requirements(text)]
@@ -240,7 +249,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     requires = [
         load_requirements(d, unfreeze="none" if freeze_requirements else "major")
         for d in glob.glob(os.path.join(req_dir, "*"))
-        # skip empty folder as git artefacts, and resolving Will's special issue
+        # skip empty folder (git artifacts), and resolving Will's special issue
         if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and not os.path.basename(d).startswith("_")
     ]
     if not requires:
@@ -404,6 +413,7 @@ class AssistantCLI:
     def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
         """Replace the min package version by fixed one."""
         for fname in requirement_fnames:
+            print(fname)
             AssistantCLI._replace_min(fname)
 
     @staticmethod

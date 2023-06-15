@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import re
 from unittest import mock
 
 import pytest
@@ -184,7 +185,7 @@ def test_amp_skip_optimizer(tmpdir):
     trainer.fit(model)
 
 
-def test_cpu_amp_precision_context_manager(tmpdir):
+def test_cpu_amp_precision_context_manager():
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
     plugin = MixedPrecisionPlugin("bf16-mixed", "cpu")
     assert plugin.device == "cpu"
@@ -193,3 +194,28 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     assert isinstance(context_manager, torch.autocast)
     # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
     assert str(context_manager.fast_dtype) == str(torch.bfloat16)
+
+
+def test_amp_precision_plugin_parameter_validation():
+    MixedPrecisionPlugin("16-mixed", "cpu")  # should not raise exception
+    MixedPrecisionPlugin("bf16-mixed", "cpu")
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Passed `MixedPrecisionPlugin(precision='16')`. Precision must be '16-mixed' or 'bf16-mixed'"),
+    ):
+        MixedPrecisionPlugin("16", "cpu")
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Passed `MixedPrecisionPlugin(precision=16)`. Precision must be '16-mixed' or 'bf16-mixed'"),
+    ):
+        MixedPrecisionPlugin(16, "cpu")
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Passed `MixedPrecisionPlugin(precision='bf16')`. Precision must be '16-mixed' or 'bf16-mixed'"
+        ),
+    ):
+        MixedPrecisionPlugin("bf16", "cpu")

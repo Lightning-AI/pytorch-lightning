@@ -13,8 +13,10 @@ fi
 
 echo "--- Install packages ---"
 # set particular PyTorch version
+pip install -q wget packaging
+python3 -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
 for fpath in `ls requirements/**/*.txt`; do
-  python3 requirements/pytorch/adjust-versions.py $fpath {PYTORCH_VERSION};
+  python3 adjust-torch-versions.py $fpath {PYTORCH_VERSION};
 done
 pip install .[fabric-test] pytest-timeout
 pip list
