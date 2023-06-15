@@ -41,7 +41,6 @@ from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader
 from torchmetrics import Metric, MetricCollection
 from typing_extensions import Self
 
