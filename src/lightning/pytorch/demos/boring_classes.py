@@ -124,7 +124,7 @@ class BoringModel(LightningModule):
         output = self(batch)
         return self.loss(output)
 
-    def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
+    def training_step(self, batch: Any, batch_idx: int) -> Optional[STEP_OUTPUT]:
         return {"loss": self.step(batch)}
 
     def validation_step(self, batch: Any, batch_idx: int) -> Optional[STEP_OUTPUT]:
@@ -195,7 +195,7 @@ class ManualOptimBoringModel(BoringModel):
         super().__init__()
         self.automatic_optimization = False
 
-    def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
+    def training_step(self, batch: Any, batch_idx: int) -> Optional[STEP_OUTPUT]:
         opt = self.optimizers()
         assert isinstance(opt, (Optimizer, LightningOptimizer))
         loss = self.step(batch)
@@ -218,7 +218,7 @@ class DemoModel(LightningModule):
     def forward(self, x: Tensor) -> Tensor:
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-    def training_step(self, batch: Any, batch_nb: int) -> STEP_OUTPUT:
+    def training_step(self, batch: Any, batch_nb: int) -> Optional[STEP_OUTPUT]:
         x = batch
         x = self(x)
         return x.sum()
