@@ -105,13 +105,16 @@ jobs:
 
   build-NGC:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest-4-cores
+    # fixme: use larger machine or optimize image size
+    # runs-on: ubuntu-latest-4-cores
+    # then drop continue-on-error
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Build Conda Docker
         # publish master/release
-        continue-on-error: true  # fixme: use larger machine or optimize image size
+        continue-on-error: true
         uses: docker/build-push-action@v4
         with:
           file: dockers/nvidia/Dockerfile
