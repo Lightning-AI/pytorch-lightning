@@ -180,9 +180,9 @@ class _LoadBalancer(LightningWork):
                 raise ValueError("cold_start_proxy must be of type ColdStartProxy or str")
 
     def get_internal_url(self) -> str:
-        if not self._internal_ip:
-            raise ValueError("Internal IP not set")
-        return f"http://{self._internal_ip}:{self._port}"
+        if not self._public_ip:
+            raise ValueError("Public IP not set")
+        return f"http://{self._public_ip}:{self._port}"
 
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]], server_url: str):
         request_data: List[_LoadBalancer._input_type] = [b[1] for b in batch]
@@ -229,6 +229,7 @@ class _LoadBalancer(LightningWork):
                 logger.error("Server is not found in the status list. This should not happen.")
             if status:
                 return server
+        return None
 
     async def consumer(self):
         """The consumer process that continuously checks for new requests and sends them to the API.
@@ -385,7 +386,7 @@ class _LoadBalancer(LightningWork):
         """
         old_server_urls = set(self.servers)
         current_server_urls = {
-            f"http://{server._internal_ip}:{server.port}" for server in server_works if server._internal_ip
+            f"http://{server._public_ip}:{server.port}" for server in server_works if server._internal_ip
         }
 
         # doing nothing if no server work has been added/removed
@@ -455,7 +456,7 @@ class _LoadBalancer(LightningWork):
             logger.warn(
                 "Some dependencies to run the UI are missing. To resolve, run `pip install lightning-api-access`"
             )
-            return
+            return None
 
         if is_running_in_cloud():
             url = f"{self._future_url}{self.endpoint}"
@@ -640,8 +641,7 @@ class AutoScaler(LightningFlow):
     def get_work(self, index: int) -> LightningWork:
         """Returns the ``LightningWork`` instance with the given index."""
         work_attribute = self._work_registry[index]
-        work = getattr(self, work_attribute)
-        return work
+        return getattr(self, work_attribute)
 
     def run(self):
         if not self.load_balancer.is_running:
@@ -741,8 +741,7 @@ class AutoScaler(LightningFlow):
         self.load_balancer.update_servers(self.workers)
 
     def configure_layout(self):
-        tabs = [
+        return [
             {"name": "Endpoint Info", "content": f"{self.load_balancer.url}/endpoint-info"},
             {"name": "Swagger", "content": self.load_balancer.url},
         ]
-        return tabs

@@ -23,7 +23,7 @@ class TopModule(_DeviceDtypeModuleMixin):
 
 
 @pytest.mark.parametrize(
-    "dst_device_str,dst_type",
+    ("dst_device_str", "dst_type"),
     [
         ("cpu", torch.half),
         ("cpu", torch.float),

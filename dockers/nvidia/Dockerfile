@@ -38,6 +38,8 @@ RUN \
     fi && \
 # save the examples \
     ls -lh lightning/ && \
+    rm -rf lightning/.git && \
+    rm -rf lightning/_notebooks/.git && \
     mv lightning/_notebooks/.notebooks/ notebooks && \
     cp -r lightning/*examples . && \
 
@@ -48,6 +50,10 @@ RUN \
     pip list
 
 RUN pip install jupyterlab[all] -U
+
+# create jupyter_notebook_config.py
+RUN mkdir -p /root/.jupyter && \
+    echo "c.NotebookApp.contents_manager_class = 'notebook.services.contents.largefilemanager.LargeFileManager'" > /root/.jupyter/jupyter_notebook_config.py
 
 ENV PYTHONPATH="/workspace"
 

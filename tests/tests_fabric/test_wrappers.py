@@ -23,7 +23,14 @@ from torch.utils.data.dataloader import DataLoader
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, is_wrapped
+from lightning.fabric.wrappers import (
+    _FabricDataLoader,
+    _FabricModule,
+    _FabricOptimizer,
+    _unwrap_objects,
+    is_wrapped,
+    warning_cache,
+)
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -69,7 +76,6 @@ def test_fabric_module_attribute_lookup():
 
 def test_fabric_module_method_lookup():
     """Test that access to methods warns about improper use when a wrapper from a strategy is involved."""
-    from lightning.fabric.wrappers import warning_cache
 
     class OriginalModule(torch.nn.Module):
         def method(self):
@@ -96,6 +102,56 @@ def test_fabric_module_method_lookup():
     with pytest.warns(UserWarning, match=r"You are calling the method `OriginalModule.method\(\)` from outside the"):
         assert fabric_module.method() == 100
     warning_cache.clear()
+
+
+def test_fabric_module_setattr():
+    """Test that setattr sets attributes on the original module."""
+
+    class OriginalModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(2, 3)
+            self.attribute = 1
+            self._x = None
+
+        @property
+        def x(self):
+            return self._x
+
+        @x.setter
+        def x(self, value):
+            self._x = value
+
+    original_module = OriginalModule()
+
+    class ModuleWrapper(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.wrapped = original_module
+
+    wrapped_module = ModuleWrapper()
+    fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
+
+    # Check new attribute is set on original_module
+    fabric_module.new_attribute = 100
+    assert original_module.new_attribute == 100
+
+    # Modify existing attribute on original_module
+    fabric_module.attribute = 101
+    assert original_module.attribute == 101
+
+    # Check setattr of original_module
+    fabric_module.x = 102
+    assert original_module.x == 102
+
+    # Check set submodule
+    assert not hasattr(original_module, "linear")
+    linear = torch.nn.Linear(2, 2)
+    fabric_module.linear = linear
+    assert hasattr(original_module, "linear")
+    assert isinstance(original_module.linear, torch.nn.Module)
+    assert linear in fabric_module.modules()
+    assert linear in original_module.modules()
 
 
 def test_fabric_module_state_dict_access():
@@ -126,7 +182,7 @@ def test_fabric_module_state_dict_access():
 
 
 @pytest.mark.parametrize(
-    "precision, input_type, expected_type, accelerator, device_str",
+    ("precision", "input_type", "expected_type", "accelerator", "device_str"),
     [
         pytest.param(32, torch.float16, torch.float16, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(32, torch.float32, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
@@ -227,7 +283,7 @@ def test_fabric_dataloader_iterator():
 
 
 @pytest.mark.parametrize(
-    "src_device_str, dest_device_str",
+    ("src_device_str", "dest_device_str"),
     [
         ("cpu", "cpu"),
         pytest.param("cpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
@@ -258,7 +314,7 @@ def test_fabric_dataloader_device_placement(src_device_str, dest_device_str):
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 
-@pytest.mark.parametrize("use_batch_sampler", (False, True))
+@pytest.mark.parametrize("use_batch_sampler", [False, True])
 def test_fabric_dataloader_distributed_sampler_set_epoch(use_batch_sampler):
     """Test that the FabricDataLoader calls `set_epoch()` on the wrapped sampler if applicable."""
     dataset = range(3)
@@ -358,7 +414,8 @@ def test_fabric_optimizer_zero_grad_kwargs():
     custom_zero_grad.assert_called_with(set_grads_to_None=False)
 
 
-def test_is_wrapped():
+@pytest.mark.parametrize("compile", [False, pytest.param(True, marks=RunIf(dynamo=True))])
+def test_is_wrapped(compile):
     """Test that the `is_wrapped` utility recognizes when an object was wrapped by Fabric."""
     assert not is_wrapped(None)
 
@@ -367,6 +424,15 @@ def test_is_wrapped():
     assert not is_wrapped(module)
     wrapped = _FabricModule(module, Mock())
     assert is_wrapped(wrapped)
+
+    # _FabricModule inside an OptimizedModule
+    if compile:
+        from torch._dynamo import OptimizedModule
+
+        module = torch.nn.Linear(2, 2)
+        wrapped = torch.compile(_FabricModule(module, Mock()))
+        assert isinstance(wrapped, OptimizedModule)
+        assert is_wrapped(wrapped)
 
     # _FabricOptimizer
     optimizer = torch.optim.Adam(module.parameters())
@@ -379,6 +445,43 @@ def test_is_wrapped():
     assert not is_wrapped(dataloader)
     wrapped = _FabricDataLoader(dataloader)
     assert is_wrapped(wrapped)
+
+
+@pytest.mark.parametrize("compile", [False, pytest.param(True, marks=RunIf(dynamo=True))])
+def test_unwrap_objects(compile):
+    # empty container
+    assert _unwrap_objects({}) == {}
+
+    # container with pure objects and wrapped objects
+    module = torch.nn.Linear(1, 1)
+    wrapped_module = _FabricModule(module, Mock())
+    if compile:
+        wrapped_module = torch.compile(wrapped_module)
+    optimizer = torch.optim.Adam(module.parameters())
+    wrapped_optimizer = _FabricOptimizer(optimizer, Mock())
+    dataloader = DataLoader([1, 2, 3])
+    wrapped_dataloader = _FabricDataLoader(dataloader)
+    container = {
+        "int": 1,
+        "module": module,
+        "wrapped_module": wrapped_module,
+        "optimizer": optimizer,
+        "wrapped_optimizer": wrapped_optimizer,
+        "dataloader": dataloader,
+        "wrapped_dataloader": wrapped_dataloader,
+        "nested": [module, wrapped_module, optimizer, wrapped_optimizer, dataloader, wrapped_dataloader],
+    }
+    expected = {
+        "int": 1,
+        "module": module,
+        "wrapped_module": wrapped_module._forward_module,
+        "optimizer": optimizer,
+        "wrapped_optimizer": optimizer,
+        "dataloader": dataloader,
+        "wrapped_dataloader": dataloader,
+        "nested": [module, wrapped_module._forward_module, optimizer, optimizer, dataloader, dataloader],
+    }
+    assert _unwrap_objects(container) == expected
 
 
 def test_step_method_redirection():

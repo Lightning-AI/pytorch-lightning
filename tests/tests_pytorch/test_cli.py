@@ -14,6 +14,7 @@
 import glob
 import inspect
 import json
+import operator
 import os
 from contextlib import contextmanager, ExitStack, redirect_stdout
 from io import StringIO
@@ -25,7 +26,10 @@ from unittest.mock import ANY
 import pytest
 import torch
 import yaml
+from lightning_utilities import compare_version
 from lightning_utilities.test.warning import no_warning_call
+from tensorboard.backend.event_processing import event_accumulator
+from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
@@ -70,10 +74,10 @@ def mock_subclasses(baseclass, *subclasses):
         yield None
 
 
-@pytest.fixture
+@pytest.fixture()
 def cleandir(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    yield
+    return
 
 
 @pytest.fixture(autouse=True)
@@ -118,7 +122,7 @@ def _trainer_builder(
     return Trainer(limit_train_batches=limit_train_batches, fast_dev_run=fast_dev_run, callbacks=callbacks)
 
 
-@pytest.mark.parametrize(["trainer_class", "model_class"], [(Trainer, Model), (_trainer_builder, _model_builder)])
+@pytest.mark.parametrize(("trainer_class", "model_class"), [(Trainer, Model), (_trainer_builder, _model_builder)])
 def test_lightning_cli(trainer_class, model_class, monkeypatch):
     """Test that LightningCLI correctly instantiates model, trainer and calls fit."""
     expected_model = {"model_param": 7}
@@ -146,7 +150,8 @@ def test_lightning_cli(trainer_class, model_class, monkeypatch):
 
     with mock.patch("sys.argv", ["any.py", "fit", "--model.model_param=7", "--trainer.limit_train_batches=100"]):
         cli = LightningCLI(model_class, trainer_class=trainer_class, save_config_callback=SaveConfigCallback)
-        assert hasattr(cli.trainer, "ran_asserts") and cli.trainer.ran_asserts
+        assert hasattr(cli.trainer, "ran_asserts")
+        assert cli.trainer.ran_asserts
 
 
 def test_lightning_cli_args_callbacks(cleandir):
@@ -183,7 +188,7 @@ def test_lightning_cli_single_arg_callback():
     assert not isinstance(cli.config_init.trainer, list)
 
 
-@pytest.mark.parametrize("run", (False, True))
+@pytest.mark.parametrize("run", [False, True])
 def test_lightning_cli_configurable_callbacks(cleandir, run):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
@@ -245,11 +250,13 @@ def test_lightning_cli_args(cleandir):
 
     cli_config = cli.config["fit"].as_dict()
     assert cli_config["seed_everything"] == 1234
-    assert "model" not in loaded_config and "model" not in cli_config  # no arguments to include
+    assert "model" not in loaded_config
+    assert "model" not in cli_config
     assert loaded_config["data"] == cli_config["data"]
     assert loaded_config["trainer"] == cli_config["trainer"]
 
 
+@pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
 def test_lightning_env_parse(cleandir):
     out = StringIO()
     with mock.patch("sys.argv", ["", "fit", "--help"]), redirect_stdout(out), pytest.raises(SystemExit):
@@ -311,6 +318,52 @@ def test_lightning_cli_save_config_only_once(cleandir):
     cli.trainer.test(cli.model)  # Should not fail because config already saved
 
 
+def test_save_to_log_dir_false_error():
+    with pytest.raises(ValueError):
+        SaveConfigCallback(
+            LightningArgumentParser(),
+            Namespace(),
+            save_to_log_dir=False,
+        )
+
+
+def test_lightning_cli_logger_save_config(cleandir):
+    class LoggerSaveConfigCallback(SaveConfigCallback):
+        def __init__(self, *args, **kwargs) -> None:
+            super().__init__(*args, save_to_log_dir=False, **kwargs)
+
+        def save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+            nonlocal config
+            config = self.parser.dump(self.config)
+            trainer.logger.log_hyperparams({"config": config})
+
+    config = None
+    cli_args = [
+        "fit",
+        "--trainer.max_epochs=1",
+        "--trainer.logger=TensorBoardLogger",
+        f"--trainer.logger.save_dir={os.getcwd()}",
+    ]
+
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(
+            BoringModel,
+            save_config_callback=LoggerSaveConfigCallback,
+        )
+
+    assert os.path.isdir(cli.trainer.log_dir)
+    assert not os.path.isfile(os.path.join(cli.trainer.log_dir, "config.yaml"))
+
+    events_file = glob.glob(os.path.join(cli.trainer.log_dir, "events.out.tfevents.*"))
+    assert len(events_file) == 1
+    ea = event_accumulator.EventAccumulator(events_file[0])
+    ea.Reload()
+    data = ea._plugin_to_tag_to_content["hparams"]["_hparams_/session_start_info"]
+    hparam_data = HParamsPluginData.FromString(data).session_start_info.hparams
+    assert hparam_data.get("config") is not None
+    assert hparam_data["config"].string_value == config
+
+
 def test_lightning_cli_config_and_subclass_mode(cleandir):
     input_config = {
         "fit": {
@@ -352,6 +405,7 @@ def any_model_any_data_cli():
     LightningCLI(LightningModule, LightningDataModule, subclass_mode_model=True, subclass_mode_data=True)
 
 
+@pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
 def test_lightning_cli_help():
     cli_args = ["any.py", "fit", "--help"]
     out = StringIO()
@@ -515,8 +569,8 @@ class EarlyExitTestModel(BoringModel):
 
 # mps not yet supported by distributed
 @RunIf(skip_windows=True, mps=False)
-@pytest.mark.parametrize("logger", (False, TensorBoardLogger(".")))
-@pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
+@pytest.mark.parametrize("logger", [False, TensorBoardLogger(".")])
+@pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp"])
 def test_cli_distributed_save_config_callback(cleandir, logger, strategy):
     from torch.multiprocessing import ProcessRaisedException
 
@@ -566,7 +620,7 @@ def test_cli_config_filename(tmpdir):
     assert os.path.isfile(tmpdir / "name.yaml")
 
 
-@pytest.mark.parametrize("run", (False, True))
+@pytest.mark.parametrize("run", [False, True])
 def test_lightning_cli_optimizer(run):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
@@ -705,6 +759,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
 
 
+@pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
 def test_lightning_cli_optimizers_and_lr_scheduler_with_callable_type():
     class TestModel(BoringModel):
         def __init__(
@@ -815,6 +870,7 @@ def test_lightning_cli_subcommands():
             assert e in parameters
 
 
+@pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
 def test_lightning_cli_custom_subcommand():
     class TestTrainer(Trainer):
         def foo(self, model: LightningModule, x: int, y: float = 1.0):
@@ -1519,11 +1575,11 @@ def test_pytorch_profiler_init_args():
 
 
 @pytest.mark.parametrize(
-    ["args"],
+    "args",
     [
-        (["--trainer.logger=False", "--model.foo=456"],),
-        ({"trainer": {"logger": False}, "model": {"foo": 456}},),
-        (Namespace(trainer=Namespace(logger=False), model=Namespace(foo=456)),),
+        ["--trainer.logger=False", "--model.foo=456"],
+        {"trainer": {"logger": False}, "model": {"foo": 456}},
+        Namespace(trainer=Namespace(logger=False), model=Namespace(foo=456)),
     ],
 )
 def test_lightning_cli_with_args_given(args):

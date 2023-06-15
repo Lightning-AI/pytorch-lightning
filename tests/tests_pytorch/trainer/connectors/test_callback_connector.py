@@ -19,6 +19,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
+from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 from lightning.pytorch import Callback, LightningModule, Trainer
 from lightning.pytorch.callbacks import (
     EarlyStopping,
@@ -32,7 +33,6 @@ from lightning.pytorch.callbacks import (
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
-from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):
@@ -149,9 +149,12 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     state0 = ckpt["callbacks"]["StatefulCallback0"]
     state1 = ckpt["callbacks"]["StatefulCallback1{'unique': 'one'}"]
     state2 = ckpt["callbacks"]["StatefulCallback1{'unique': 'two'}"]
-    assert "content0" in state0 and state0["content0"] == 0
-    assert "content1" in state1 and state1["content1"] == "one"
-    assert "content1" in state2 and state2["content1"] == "two"
+    assert "content0" in state0
+    assert state0["content0"] == 0
+    assert "content1" in state1
+    assert state1["content1"] == "one"
+    assert "content1" in state2
+    assert state2["content1"] == "two"
     assert (
         "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
         " 'train_time_interval': None}" in ckpt["callbacks"]

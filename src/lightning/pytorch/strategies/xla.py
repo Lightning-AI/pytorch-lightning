@@ -26,7 +26,6 @@ from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
@@ -35,7 +34,6 @@ from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -56,6 +54,7 @@ class XLAStrategy(DDPStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
+        sync_module_states: bool = True,
         **_: Any,
     ) -> None:
         if not _XLA_AVAILABLE:
@@ -71,6 +70,7 @@ class XLAStrategy(DDPStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self.debug = debug
         self._launched = False
+        self._sync_module_states = sync_module_states
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -93,11 +93,6 @@ class XLAStrategy(DDPStrategy):
 
         return xm.xla_device()
 
-    def connect(self, model: "pl.LightningModule") -> None:
-        # this is called in the spawned process, so no need to use `xmp.MpModelWrapper`
-        self.wrapped_model = _LightningModuleWrapperBase(model)
-        return super().connect(model)
-
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
@@ -115,9 +110,10 @@ class XLAStrategy(DDPStrategy):
         set_shared_parameters(self.lightning_module, shared_params)
         self.setup_precision_plugin()
 
-        from torch_xla.experimental import pjrt
+        if self._sync_module_states:
+            from torch_xla.experimental import pjrt
 
-        pjrt.broadcast_master_param(self.model)
+            pjrt.broadcast_master_param(self.model)
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
@@ -147,7 +143,8 @@ class XLAStrategy(DDPStrategy):
         pass
 
     def model_to_device(self) -> None:
-        self.model = self.wrapped_model.to(self.root_device)
+        assert self.model is not None
+        self.model = self.model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         if not self._launched:
@@ -233,21 +230,6 @@ class XLAStrategy(DDPStrategy):
         # processes (by the accelerator connector), we cannot run the code that would normally be here.
         # instead it's done in `setup_distributed`
         pass
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.val_step_context():
-            return self.model(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.test_step_context():
-            return self.model(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        with self.precision_plugin.predict_step_context():
-            return self.model(*args, **kwargs)
 
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         self._pod_progress_bar_force_stdout()

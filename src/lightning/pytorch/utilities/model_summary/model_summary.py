@@ -25,6 +25,7 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
 log = logging.getLogger(__name__)
@@ -32,6 +33,8 @@ warning_cache = WarningCache()
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
+LEFTOVER_PARAMS_NAME = "other params"
+NOT_APPLICABLE = "n/a"
 
 
 class LayerSummary:
@@ -87,14 +90,26 @@ class LayerSummary:
         def hook(_: nn.Module, inp: Any, out: Any) -> None:
             if len(inp) == 1:
                 inp = inp[0]
+
             self._in_size = parse_batch_shape(inp)
             self._out_size = parse_batch_shape(out)
             assert self._hook_handle is not None
             self._hook_handle.remove()
 
+        def hook_with_kwargs(_: nn.Module, args: Any, kwargs: Any, out: Any) -> None:
+            # We can't write them in the same function, since the forward hook
+            # uses positional arguments.
+
+            inp = (*args, *kwargs.values()) if kwargs is not None else args
+            hook(_, inp, out)
+
         handle = None
         if not isinstance(self._module, torch.jit.ScriptModule):
-            handle = self._module.register_forward_hook(hook)
+            if _TORCH_GREATER_EQUAL_2_0:
+                handle = self._module.register_forward_hook(hook_with_kwargs, with_kwargs=True)
+            else:
+                handle = self._module.register_forward_hook(hook)
+
         return handle
 
     def detach_hook(self) -> None:
@@ -141,6 +156,9 @@ class ModelSummary:
     intermediate input- and output shapes of all layers. Supported are tensors and
     nested lists and tuples of tensors. All other types of inputs will be skipped and show as `?`
     in the summary table. The summary will also display `?` for layers not used in the forward pass.
+    If there are parameters not associated with any layers or modules, the count of those parameters
+    will be displayed in the table under `other params`. The summary will display `n/a` for module type,
+    in size, and out size.
 
     Example::
 
@@ -236,6 +254,10 @@ class ModelSummary:
         )
 
     @property
+    def total_layer_params(self) -> int:
+        return sum(self.param_nums)
+
+    @property
     def model_size(self) -> float:
         return self.total_parameters * self._precision_megabytes
 
@@ -292,7 +314,23 @@ class ModelSummary:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
             arrays.append(("Out sizes", [str(x) for x in self.out_sizes]))
 
+        total_leftover_params = self.total_parameters - self.total_layer_params
+        if total_leftover_params > 0:
+            self._add_leftover_params_to_summary(arrays, total_leftover_params)
+
         return arrays
+
+    def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int) -> None:
+        """Add summary of params not associated with module or layer to model summary."""
+        layer_summaries = dict(arrays)
+        layer_summaries[" "].append(" ")
+        layer_summaries["Name"].append(LEFTOVER_PARAMS_NAME)
+        layer_summaries["Type"].append(NOT_APPLICABLE)
+        layer_summaries["Params"].append(get_human_readable_count(total_leftover_params))
+        if "In sizes" in layer_summaries:
+            layer_summaries["In sizes"].append(NOT_APPLICABLE)
+        if "Out sizes" in layer_summaries:
+            layer_summaries["Out sizes"].append(NOT_APPLICABLE)
 
     def __str__(self) -> str:
         arrays = self._get_summary_data()
@@ -312,8 +350,7 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
         return list(batch.shape)
 
     if isinstance(batch, (list, tuple)):
-        shape = [parse_batch_shape(el) for el in batch]
-        return shape
+        return [parse_batch_shape(el) for el in batch]
 
     return UNKNOWN_SIZE
 

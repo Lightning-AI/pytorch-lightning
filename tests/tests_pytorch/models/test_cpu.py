@@ -80,7 +80,8 @@ def test_cpu_slurm_save_load(_, tmpdir):
     class _StartCallback(Callback):
         # set the epoch start hook so we can predict before the model does the full training
         def on_train_epoch_start(self, trainer, model):
-            assert trainer.global_step == real_global_step and trainer.global_step > 0
+            assert trainer.global_step == real_global_step
+            assert trainer.global_step > 0
             # predict with loaded model to make sure answers are the same
             mode = model.training
             model.eval()
@@ -113,7 +114,7 @@ def test_early_stopping_cpu_model(tmpdir):
         "gradient_clip_val": 1.0,
         "enable_progress_bar": False,
         "accumulate_grad_batches": 2,
-        "limit_train_batches": 0.1,
+        "limit_train_batches": 0.3,
         "limit_val_batches": 0.1,
     }
 

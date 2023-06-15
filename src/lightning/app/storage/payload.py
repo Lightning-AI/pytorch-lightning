@@ -91,7 +91,7 @@ class _BasePayload(ABC):
     def _path(self) -> Optional[Path]:
         """Path to the file that the payload value gets serialized to."""
         if not self._name:
-            return
+            return None
         return Path("lit://", self._name)
 
     @abstractmethod
@@ -266,5 +266,4 @@ class Payload(_BasePayload):
 
     def load(self, path: str) -> Any:
         with open(path, "rb") as f:
-            obj = pickle.load(f)
-        return obj
+            return pickle.load(f)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from typing import Any, Callable, Dict, Generator, Iterator, Mapping, Optional, overload, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, overload, TypeVar, Union
 
 import torch
 from lightning_utilities import WarningCache
@@ -28,6 +28,7 @@ from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 
@@ -37,7 +38,7 @@ _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step
 
 
 class _FabricOptimizer:
-    def __init__(self, optimizer: Optimizer, strategy: Strategy) -> None:
+    def __init__(self, optimizer: Optimizer, strategy: Strategy, callbacks: Optional[List[Callable]] = None) -> None:
         """FabricOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the
         optimizer step calls to the strategy plugin.
 
@@ -53,6 +54,7 @@ class _FabricOptimizer:
         self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._strategy = strategy
+        self._callbacks = callbacks or []
 
     @property
     def optimizer(self) -> Optimizer:
@@ -68,10 +70,15 @@ class _FabricOptimizer:
             optimizer = self._strategy.model
         else:
             optimizer = self.optimizer
-        return self._strategy.optimizer_step(
+        output = self._strategy.optimizer_step(
             optimizer,
             **kwargs,
         )
+        for callback in self._callbacks:
+            hook = getattr(callback, "on_after_optimizer_step", None)
+            if callable(hook):
+                hook(strategy=self._strategy, optimizer=optimizer)
+        return output
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
@@ -94,6 +101,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         self._forward_module = forward_module
         self._original_module = original_module or forward_module
         self._precision = precision
+        self._fabric_module_initialized = True
 
     @property
     def module(self) -> nn.Module:
@@ -157,7 +165,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             warning_cache.warn(
                 f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
                 " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
-                f" `.backward()`. You should pass your inputs through `{type(self._original_module)}.forward()`.",
+                " `.backward()`. You should pass your inputs through"
+                f" `{type(self._original_module).__name__}.forward()`.",
                 category=PossibleUserWarning,
             )
 
@@ -176,6 +185,31 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             attr = getattr(original_module, item)
             self._validate_method_access(item, attr)
             return attr
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if not getattr(self, "_fabric_module_initialized", False):
+            super().__setattr__(name, value)
+            return
+
+        # Get the _original_module attribute
+        original_module = self._original_module
+        original_has_attr = hasattr(original_module, name)
+        # Can't use super().__getattr__ because nn.Module only checks _parameters, _buffers, and _modules
+        # Can't use self.__getattr__ because it would pass through to the original module
+        fabric_has_attr = name in self.__dict__
+
+        if not (original_has_attr or fabric_has_attr):
+            setattr(original_module, name, value)
+            return
+
+        # The original module can also inherit from _DeviceDtypeModuleMixin,
+        # in this case, both the Fabric module and original module have attributes like _dtype
+        # set attribute on both
+        if original_has_attr:
+            setattr(original_module, name, value)
+
+        if fabric_has_attr:
+            super().__setattr__(name, value)
 
 
 class _FabricDataLoader:
@@ -218,15 +252,35 @@ def _unwrap_objects(collection: Any) -> Any:
     def _unwrap(
         obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
     ) -> Union[nn.Module, Optimizer, DataLoader]:
-        if isinstance(obj, _FabricModule):
-            return obj._forward_module
+        if isinstance(unwrapped := _unwrap_compiled(obj), _FabricModule):
+            return unwrapped._forward_module
         if isinstance(obj, _FabricOptimizer):
             return obj.optimizer
         if isinstance(obj, _FabricDataLoader):
             return obj._dataloader
         return obj
 
-    return apply_to_collection(collection, dtype=(_FabricModule, _FabricOptimizer, _FabricDataLoader), function=_unwrap)
+    types = [_FabricModule, _FabricOptimizer, _FabricDataLoader]
+    if _TORCH_GREATER_EQUAL_2_0:
+        from torch._dynamo import OptimizedModule
+
+        types.append(OptimizedModule)
+
+    return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
+
+
+def _unwrap_compiled(obj: Any) -> Any:
+    """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
+
+    Use this function before instance checks against e.g. :class:`_FabricModule`.
+    """
+    if not _TORCH_GREATER_EQUAL_2_0:
+        return obj
+    from torch._dynamo import OptimizedModule
+
+    if isinstance(obj, OptimizedModule):
+        return obj._orig_mod
+    return obj
 
 
 def is_wrapped(obj: object) -> bool:
@@ -239,4 +293,5 @@ def is_wrapped(obj: object) -> bool:
     Args:
         obj: The object to test.
     """
+    obj = _unwrap_compiled(obj)
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))

@@ -231,7 +231,7 @@ def _get_component_by_name(component_name: str, state: dict) -> Union[LightningF
 
 
 @fastapi_service.get("/api/v1/layout", response_class=JSONResponse)
-async def get_layout() -> Mapping:
+async def get_layout() -> str:
     with lock:
         x_lightning_session_uuid = TEST_SESSION_UUID
         state = global_app_state_store.get_app_state(x_lightning_session_uuid)
@@ -240,7 +240,7 @@ async def get_layout() -> Mapping:
         for la in layout:
             if la["content"].startswith("root."):
                 la["content"] = _get_component_by_name(la["content"], state)
-        return layout
+        return json.dumps(layout)
 
 
 @fastapi_service.get("/api/v1/spec", response_class=JSONResponse)
@@ -285,6 +285,7 @@ async def post_delta(
     body: Dict = await request.json()
     assert api_app_delta_queue is not None
     api_app_delta_queue.put(_DeltaRequest(delta=Delta(body["delta"])))
+    return None
 
 
 @fastapi_service.post("/api/v1/state")
@@ -323,6 +324,7 @@ async def post_state(
         deep_diff = DeepDiff(last_state, state, verbose_level=2)
     assert api_app_delta_queue is not None
     api_app_delta_queue.put(_DeltaRequest(delta=Delta(deep_diff)))
+    return None
 
 
 @fastapi_service.put("/api/v1/upload_file/{filename}")
