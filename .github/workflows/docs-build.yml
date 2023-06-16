@@ -47,9 +47,6 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.8'
 
       - uses: aws-actions/configure-aws-credentials@v2
         if: ${{ matrix.pkg-name != 'pytorch' }}
@@ -58,7 +55,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: python -m aws s3 sync s3://sphinx-packages/ pypi_pkgs/
+      - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
