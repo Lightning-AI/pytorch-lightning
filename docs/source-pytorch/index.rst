@@ -147,10 +147,10 @@ Current Lightning Users
 .. toctree::
    :maxdepth: 1
    :name: start
-   :caption: Get Started
+   :caption: Home
 
    starter/introduction
-   starter/installation
+   Install <starter/installation>
    upgrade/migration_guide
 
 

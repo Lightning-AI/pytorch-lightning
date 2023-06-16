@@ -8,22 +8,6 @@ Installation
 
 
 
-*****************************
-Apple Silicon (M1/M2/M3) Macs
-*****************************
-While ML related python packages are updated to work with Apple Silicon, you'll need to set 2 environment variables on install.
-
-.. code-block:: bash
-
-    # needed for M1/M2/M3
-    export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
-    export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
-
-    python -m pip install -U lightning
-
-
-----
-
 ****************
 Install with pip
 ****************
@@ -53,6 +37,22 @@ You can also use `Conda Environments <https://docs.conda.io/projects/conda/en/la
 
     conda activate my_env
     conda install lightning -c conda-forge
+
+----
+
+*****************************
+Apple Silicon (M1/M2/M3) Macs
+*****************************
+While ML related python packages are updated to work with Apple Silicon, you'll need to set 2 environment variables on install.
+
+.. code-block:: bash
+
+    # needed for M1/M2/M3
+    export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
+    export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
+
+    python -m pip install -U lightning
+
 
 ----
 
