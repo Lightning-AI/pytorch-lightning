@@ -37,10 +37,10 @@
 
 ## Others
 
-| workflow file                            | action                                                                                                                                                         |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| .github/workflows/ci-dockers-pytorch.yml | Build docker images used for testing in CI. If run on nightly schedule, push to the [Docker Hub](https://hub.docker.com/r/pytorchlightning/pytorch_lightning). |
-| .github/workflows/ci-pkg-install.yml     | Test if pytorch-lightning is successfully installed using pip.                                                                                                 |
+| workflow file                           | action                                                                                                                                                         |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| .github/workflows/ci-dockers.yml | Build docker images used for testing in CI. If run on nightly schedule, push to the [Docker Hub](https://hub.docker.com/r/pytorchlightning/pytorch_lightning). |
+| .github/workflows/ci-pkg-install.yml    | Test if pytorch-lightning is successfully installed using pip.                                                                                                 |
 
 ## Deployment
 
