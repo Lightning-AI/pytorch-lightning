@@ -130,7 +130,7 @@ subprojects:
   - id: "pytorch_lightning: Docker"
     paths:
       - ".actions/*"
-      - ".github/workflows/ci-dockers-pytorch.yml"
+      - ".github/workflows/ci-dockers.yml"
       - "dockers/**"
       - "requirements/pytorch/**"
       - "requirements/fabric/**"

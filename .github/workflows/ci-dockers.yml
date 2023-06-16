@@ -8,7 +8,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/*"
-      - ".github/workflows/ci-dockers-pytorch.yml"
+      - ".github/workflows/ci-dockers.yml"
       - "dockers/**"
       - "requirements/*.txt"
       - "requirements/pytorch/**"
