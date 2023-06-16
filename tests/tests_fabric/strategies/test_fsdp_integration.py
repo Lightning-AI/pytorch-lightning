@@ -107,8 +107,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
     # check correctness with loaded state
     state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 0}
     metadata = fabric.load(checkpoint_path, state)
-    params_after = deepcopy(list(fabric.model.parameters()))
-    for p0, p1 in zip(params_before, params_after):
+    for p0, p1 in zip(params_before, fabric.model.parameters()):
         torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
 
     # check user data in state reloaded
@@ -377,3 +376,27 @@ def test_module_init_context(precision, expected_dtype):
     # Parameters get sharded in `.setup()` and moved to the target device
     assert model.weight.device == torch.device("cuda", fabric.local_rank)
     assert model.weight.dtype == expected_dtype
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+def test_fsdp_save_filter(tmp_path):
+    fabric = BoringFabric(accelerator="cuda", strategy=FSDPStrategy(state_dict_type="full"), devices=2)
+    fabric.launch()
+    model = fabric.get_model()
+    model = fabric.setup_module(model)
+
+    tmp_path = Path(fabric.broadcast(str(tmp_path)))
+    state = {"model": model}
+
+    checkpoint_path = tmp_path / "full.pth"
+    fabric.save(checkpoint_path, state, filter=lambda k, v: "bias" in k)
+    checkpoint = torch.load(checkpoint_path)["model"]
+    assert set(checkpoint) == {"bias"}
+    assert isinstance(checkpoint["bias"], torch.Tensor)
+
+    fabric.strategy._state_dict_type = "sharded"
+    checkpoint_path = tmp_path / "sharded"
+    fabric.save(checkpoint_path, state, filter=lambda k, v: "bias" in k)
+    data = torch.load(checkpoint_path / "__0_0.distcp")
+    assert isinstance(data, torch.Tensor)
+    assert data.shape == (1,)
