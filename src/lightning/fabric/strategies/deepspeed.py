@@ -438,7 +438,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         state = {k: v for k, v in state.items() if v not in excluded_objects}
         _validate_state_keys(state)
         # there might be other stateful objects unrelated to the deepspeed engine - convert them to a state_dict
-        state = self._convert_stateful_objects_in_state(state, filter=filter or {})
+        state = self._convert_stateful_objects_in_state(state, filter={})
         # use deepspeed's internal checkpointing function to handle partitioned weights across processes
         engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 
