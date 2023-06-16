@@ -941,7 +941,37 @@ def test_save_wrapped_objects(setup, tmp_path):
     state = {"model": model, "optimizer": optimizer, "anything": anything}
     expected = {"model": unwrapped_model, "optimizer": unwrapped_optimizer, "anything": anything}
     fabric.save(tmp_path, state)
-    save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path)
+    save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path, filter=None)
+
+
+def test_save_filter(tmp_path):
+    """Test that when modules and optimizers are in the state, they get unwrapped properly."""
+    fabric = Fabric(devices=1)
+    checkpoint_io_mock = Mock()
+    fabric.strategy.checkpoint_io = checkpoint_io_mock
+
+    model = BoringModel()
+    optimizer = torch.optim.Adam(model.parameters())
+
+    anything = {"cocofruit": 1}
+    state = {"model": model, "optimizer": optimizer, "anything": anything, "foo": 1}
+    save_path = tmp_path / "foo.pth"
+
+    # filter all dicts
+    fabric.save(save_path, state, filter=lambda k, v: False)
+    checkpoint_io_mock.save_checkpoint.assert_called_with(checkpoint={"foo": 1}, path=save_path, storage_options=None)
+    # bad filter
+    with pytest.raises(TypeError, match="callable, given 'foo"):
+        fabric.save(save_path, state, filter="foo")
+    # subset
+    checkpoint_io_mock.reset_mock()
+    # the filtering is applied to all dictionaries
+    fabric.save(save_path, state, filter=lambda k, v: "weight" in k or isinstance(v, int) or "param_groups" in k)
+    checkpoint_io_mock.save_checkpoint.assert_called_with(
+        checkpoint={"model": {"layer.weight": ANY}, "optimizer": {"param_groups": ANY}, "anything": anything, "foo": 1},
+        path=save_path,
+        storage_options=None,
+    )
 
 
 @pytest.mark.parametrize("setup", [True, False])

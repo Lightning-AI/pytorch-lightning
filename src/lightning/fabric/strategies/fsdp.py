@@ -32,6 +32,7 @@ from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessS
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import (
+    _apply_filter,
     _BackwardSyncControl,
     _Sharded,
     _validate_keys_for_strict_loading,
@@ -341,7 +342,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         )
 
     def save_checkpoint(
-        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+        self,
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
+        storage_options: Optional[Any] = None,
+        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state to a checkpoint on disk.
 
@@ -395,11 +400,15 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             with state_dict_ctx:
                 for key, obj in state.items():
                     if isinstance(obj, FSDP):
-                        converted_state[key] = obj.state_dict()
+                        converted = obj.state_dict()
+                        target_dict = converted_state
                     elif isinstance(obj, Optimizer):
-                        converted_state[key] = FSDP.optim_state_dict(module, obj)
+                        converted = FSDP.optim_state_dict(module, obj)
+                        target_dict = converted_state
                     else:  # everything not a module or optimizer is considered metadata
-                        metadata[key] = obj
+                        converted = obj
+                        target_dict = metadata
+                    _apply_filter(key, filter, converted, target_dict)
 
             # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
             writer = FileSystemWriter(path=path, single_file_per_rank=True)
@@ -414,11 +423,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             with state_dict_ctx:
                 for key, obj in state.items():
                     if isinstance(obj, FSDP):
-                        full_state[key] = obj.state_dict()
+                        converted = obj.state_dict()
                     elif isinstance(obj, Optimizer):
-                        full_state[key] = FSDP.optim_state_dict(module, obj)
+                        converted = FSDP.optim_state_dict(module, obj)
                     else:  # everything not a module or optimizer is considered metadata
-                        full_state[key] = obj  # type: ignore[assignment]
+                        converted = obj  # type: ignore[assignment]
+                    _apply_filter(key, filter, converted, full_state)
 
             if self.global_rank == 0:
                 torch.save(full_state, path)

@@ -667,7 +667,12 @@ class Fabric:
         with self._strategy.module_init_context(empty_init=empty_init):
             yield
 
-    def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
+    def save(
+        self,
+        path: Union[str, Path],
+        state: Dict[str, Union[nn.Module, Optimizer, Any]],
+        filter: Optional[Union[Callable[[str, Any], bool], Dict[str, Callable[[str, Any], bool]]]] = None,
+    ) -> None:
         """Save checkpoint contents to a file.
 
         How and which processes save gets determined by the `strategy`. For example, the `ddp` strategy
@@ -678,8 +683,17 @@ class Fabric:
             path: A path to where the file(s) should be saved
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
+            filter: An optional filter that returns a boolean indicating whether the given parameter should be saved
+                (``True``) or filtered out (``False``). It can be a callable that will be applied to each key in
+                ``state`` or a dictionary of the same format as ``state`` mapping each keys to a callable.
         """
-        self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state))
+        if filter is not None:
+            if not isinstance(filter, dict):
+                filter = {k: filter for k in state}
+            for k, v in filter.items():
+                if not callable(v):
+                    raise TypeError(f"Expected `fabric.save(filter=...)` for key {k!r} to be a callable, given {v!r}")
+        self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state), filter=filter)
         self.barrier()
 
     def load(

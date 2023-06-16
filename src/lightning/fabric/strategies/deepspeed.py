@@ -19,7 +19,7 @@ import platform
 from contextlib import contextmanager, nullcontext
 from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -380,7 +380,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             yield
 
     def save_checkpoint(
-        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+        self,
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
+        storage_options: Optional[Any] = None,
+        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state in a checkpoint directory.
 
@@ -389,6 +393,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
             storage_options: Unused by this strategy, since it doesn't use a ``CheckpointIO`` plugin.
+            filter: Unsupported.
 
         Raises:
             TypeError:
@@ -401,6 +406,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             raise TypeError(
                 "`DeepSpeedStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
                 " `DeepSpeedStrategy` does not use the `CheckpointIO`."
+            )
+        if filter is not None:
+            raise TypeError(
+                "`DeepSpeedStrategy.save_checkpoint(..., filter=...)` is not supported because"
+                " `DeepSpeedStrategy` manages the state serialization internally."
             )
 
         engines = _get_deepspeed_engines_from_state(state)
@@ -428,7 +438,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         state = {k: v for k, v in state.items() if v not in excluded_objects}
         _validate_state_keys(state)
         # there might be other stateful objects unrelated to the deepspeed engine - convert them to a state_dict
-        state = self._convert_stateful_objects_in_state(state)
+        state = self._convert_stateful_objects_in_state(state, filter=filter or {})
         # use deepspeed's internal checkpointing function to handle partitioned weights across processes
         engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 

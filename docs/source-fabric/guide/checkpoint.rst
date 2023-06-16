@@ -33,7 +33,7 @@ To save the state to the filesystem, pass it to the :meth:`~lightning.fabric.fab
 
     fabric.save("path/to/checkpoint.ckpt", state)
 
-This will unwrap your model and optimizer and automatically convert their `state_dict` for you.
+This will unwrap your model and optimizer and automatically convert their ``state_dict`` for you.
 Fabric and the underlying strategy will decide in which format your checkpoint gets saved.
 For example, ``strategy="ddp"`` saves a single file on rank 0, while ``strategy="fsdp"`` saves multiple files from all ranks.
 
@@ -121,6 +121,36 @@ Here is a trivial example to illustrate how it works:
 
 
 See also: `Saving and loading models in PyTorch <https://pytorch.org/tutorials/beginner/saving_loading_models.html>`_.
+
+
+----
+
+*************************
+Save a partial checkpoint
+*************************
+
+When saving a checkpoint using Fabric, you have the flexibility to choose which parameters to include in the saved file.
+This can be useful in scenarios such as fine-tuning, where you only want to save a subset of the parameters, reducing
+the size of the checkpoint and saving disk space.
+
+To accomplish this, you can use a filter during the saving proces. The filter is a function that determines whether
+an item should be saved (returning ``True``) or excluded (returning ``False``).
+The filter operates on dictionary objects and evaluates each key-value pair individually.
+
+Here's an example of using a filter when saving a checkpoint:
+
+.. code-block:: python
+
+    state = {"model": model, "optimizer": optimizer, "foo": 123}
+
+    # Apply the same filter to all keys in the state
+    filter = lambda k, v: "weight" in k or "param_groups" in k
+    fabric.save("path/to/checkpoint.ckpt", state, filter=filter)
+    # This will save {"model": {"layer.weight": ...}, "optimizer": {"param_groups": ...}, "foo": 123}
+
+    # Alternatively, specify a filter per key
+    filters = {"model": lambda k, v: "weight" in k, "optimizer": lambda k, v: "param_groups" in k}
+    fabric.save("path/to/checkpoint.ckpt", state, filter=filters)
 
 
 ----
