@@ -47,6 +47,9 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
 
       - uses: aws-actions/configure-aws-credentials@v2
         if: ${{ matrix.pkg-name != 'pytorch' }}
@@ -95,6 +98,9 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
 
       - uses: aws-actions/configure-aws-credentials@v2
         if: ${{ matrix.pkg-name != 'pytorch' }}
