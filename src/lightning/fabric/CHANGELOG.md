@@ -5,20 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2023-06-DD
-
-### Changed
-
--
-
+## [2.0.4] - 2023-06-19
 
 ### Fixed
 
 - Fixed validation of parameters of `plugins.precision.MixedPrecision` ([#17687](https://github.com/Lightning-AI/lightning/pull/17687))
-
-
--
-
 - Fixed an issue with hpu imports leading to performance degradation  ([#17788](https://github.com/Lightning-AI/lightning/pull/17788))
 
 
