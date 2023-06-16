@@ -367,7 +367,7 @@ class Strategy(ABC):
     def _convert_stateful_objects_in_state(
         self, state: Dict[str, Union[Module, Optimizer, Any]], filter: Dict[str, Callable[[str, Any], bool]]
     ) -> Dict[str, Any]:
-        converted_state = {}
+        converted_state: Dict[str, Any] = {}
         for key, obj in state.items():
             # convert the state
             if isinstance(obj, Module):

@@ -395,10 +395,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             # replace the modules and optimizer objects in the state with their local state dict
             # and separate the user's metadata
-            converted_state = {}
-            metadata = {}
+            converted_state: Dict[str, Any] = {}
+            metadata: Dict[str, Any] = {}
             with state_dict_ctx:
                 for key, obj in state.items():
+                    converted: Any
                     if isinstance(obj, FSDP):
                         converted = obj.state_dict()
                         target_dict = converted_state
@@ -408,7 +409,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                     else:  # everything not a module or optimizer is considered metadata
                         converted = obj
                         target_dict = metadata
-                    _apply_filter(key, filter, converted, target_dict)
+                    _apply_filter(key, filter or {}, converted, target_dict)
 
             # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
             writer = FileSystemWriter(path=path, single_file_per_rank=True)
@@ -419,7 +420,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         elif self._state_dict_type == "full":
             state_dict_ctx = _get_full_state_dict_context(module)
-            full_state = {}
+            full_state: Dict[str, Any] = {}
             with state_dict_ctx:
                 for key, obj in state.items():
                     if isinstance(obj, FSDP):
@@ -427,8 +428,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                     elif isinstance(obj, Optimizer):
                         converted = FSDP.optim_state_dict(module, obj)
                     else:  # everything not a module or optimizer is considered metadata
-                        converted = obj  # type: ignore[assignment]
-                    _apply_filter(key, filter, converted, full_state)
+                        converted = obj
+                    _apply_filter(key, filter or {}, converted, full_state)
 
             if self.global_rank == 0:
                 torch.save(full_state, path)
