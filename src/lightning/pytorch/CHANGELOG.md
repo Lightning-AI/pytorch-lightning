@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [UnReleased] - 2023-06-DD
+## [2.0.4] - 2023-06-19
 
 ### Changed
 
@@ -16,11 +16,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed validation of parameters of `plugins.precision.MixedPrecisionPlugin` ([#17687](https://github.com/Lightning-AI/lightning/pull/17687))
-
-
--
-
-
 - Fixed deriving default map location in `LightningModule.load_from_checkpoint` when there is extra state ([#17812](https://github.com/Lightning-AI/lightning/pull/17812))
 
 
