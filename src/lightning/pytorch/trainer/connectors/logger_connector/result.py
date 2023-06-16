@@ -360,6 +360,23 @@ class _ResultCollection(dict):
         rank_zero_only: bool = False,
     ) -> None:
         """See :meth:`~lightning.pytorch.core.module.LightningModule.log`"""
+        # For torchmetric.Metric, if sync_dist is True,
+        # set `sync_on_compute` and `dist_sync_on_step` properties
+        # based on the on_step and on_epoch arguments.
+        if isinstance(value, Metric) and sync_dist:
+            if on_step or on_epoch:
+                value.sync_on_compute = sync_dist
+                value.dist_sync_on_step = on_step
+
+            # All 3 (on_step, on_epoch and sync_dist) should not be set to True
+            if on_step and on_epoch and sync_dist:
+                raise MisconfigurationException(
+                    "Setting self.log(.., on_step=True, on_epoch=True, sync_dist=True)"
+                    " is ambiguous as it is unclear when to sync the metric state."
+                    " Please set either on_step=True or on_epoch=True or set the"
+                    " `sync_on_compute`/`dist_sync_on_step` properties of the metric directly."
+                )
+
         # no metrics should be logged with graphs
         if not enable_graph:
             value = recursive_detach(value)
