@@ -7,7 +7,7 @@ on:
     tags: ["*"]
   # use this event type to share secrets with forks.
   # it's important that the PR head SHA is checked out to run the changes
-  pull_request_target:
+  pull_request:  # FixMe: pull_request_target
     branches: ["master", "release/*"]
     paths:
       - ".actions/*"
@@ -58,7 +58,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
+      - run: python -m aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
