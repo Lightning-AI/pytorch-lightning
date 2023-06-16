@@ -157,10 +157,19 @@ This eliminates the waiting time to transfer the model parameters from the CPU t
 For strategies that handle large sharded models (FSDP, DeepSpeed), the :meth:`~lightning.fabric.fabric.Fabric.init_module` method will allocate the model parameters on the meta device first before sharding.
 This makes it possible to work with models that are larger than the memory of a single device.
 
-.. tip::
+When loading a model from a checkpoint, for example when fine-tuning, set `empty_init=True` to avoid expensive
+and redundant memory initialization:
 
-    This is a wrapper over :meth:`~lightning.fabric.fabric.Fabric.init` and :meth:`~lightning.fabric.fabric.Fabric.sharded_model` which implement the features described above.
-    Using these separately can provide more control for expert users.
+.. code-block:: python
+
+    with fabric.init_module(empty_init=True):
+        # creation of the model is very fast
+        # and depending on the strategy allocates no memory, or uninitialized memory
+        model = MyModel()
+
+    # weights get loaded into the model
+    model.load_state_dict(checkpoint["state_dict"])
+
 
 autocast
 ========
@@ -303,7 +312,8 @@ The three most common ones, :meth:`~lightning.fabric.fabric.Fabric.broadcast`, :
 
 .. important::
 
-    Every process needs to enter the collective calls. Otherwise, the program will hang!
+    Every process needs to enter the collective calls, and tensors need to have the same shape across all processes.
+    Otherwise, the program will hang!
 
 Learn more about :doc:`distributed communication <../advanced/distributed_communication>`.
 

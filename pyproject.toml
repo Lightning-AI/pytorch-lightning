@@ -31,6 +31,8 @@ known_first_party = [
     "lightning_app",
     "lightning_fabric",
     "pytorch_lightning",
+    "parity_fabric",
+    "parity_pytorch",
     "integrations_app",
     "tests_app",
     "tests_cloud",
@@ -98,6 +100,7 @@ ignore-init-module-imports = true
     "S605",  # todo: Starting a process with a shell: seems safe, but may be changed in the future; consider rewriting without `shell`
     "S607",  # todo: Starting a process with a partial executable path
     "RET504",  # todo:Unnecessary variable assignment before `return` statement
+    "RET503",
 ]
 "tests/**" = [
     "S101",  # Use of `assert` detected
