@@ -21,7 +21,7 @@ pydantic >=1.7.4, <2.0.0  # https://fastapi.tiangolo.com/deployment/versions/#ab
 dateutils <=0.6.12
 Jinja2 <=3.1.2
 PyYAML <=6.0
-requests <2.28.3
+requests <2.31.1
 rich >=12.3.0, <=13.4.2
 urllib3 <=2.0.2
 uvicorn <=0.22.0
