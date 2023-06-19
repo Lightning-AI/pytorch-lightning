@@ -945,7 +945,6 @@ def test_save_wrapped_objects(setup, tmp_path):
 
 
 def test_save_filter(tmp_path):
-    """Test that when modules and optimizers are in the state, they get unwrapped properly."""
     fabric = Fabric(devices=1)
     checkpoint_io_mock = Mock()
     fabric.strategy.checkpoint_io = checkpoint_io_mock

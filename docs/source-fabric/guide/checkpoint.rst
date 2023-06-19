@@ -133,7 +133,7 @@ When saving a checkpoint using Fabric, you have the flexibility to choose which 
 This can be useful in scenarios such as fine-tuning, where you only want to save a subset of the parameters, reducing
 the size of the checkpoint and saving disk space.
 
-To accomplish this, you can use a filter during the saving proces. The filter is a function that determines whether
+To accomplish this, you can use a filter during the saving process. The filter is a function that determines whether
 an item should be saved (returning ``True``) or excluded (returning ``False``).
 The filter operates on dictionary objects and evaluates each key-value pair individually.
 
