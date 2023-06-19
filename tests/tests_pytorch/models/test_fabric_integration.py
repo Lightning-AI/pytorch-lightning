@@ -73,7 +73,10 @@ def test_fabric_call_lightning_module_hooks():
 
     fabric = Fabric(accelerator="cpu", devices=1)
     module = Mock(wraps=HookedModel())
+
     _ = fabric.setup(module)
+    _ = fabric.setup(module)  # shouldn't add module to callbacks a second time
+    assert fabric._callbacks == [module]
 
     fabric.call("on_train_start")
     module.on_train_start.assert_called_once_with()
