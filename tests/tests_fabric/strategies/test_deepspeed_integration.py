@@ -371,7 +371,7 @@ def test_deepspeed_save_load_checkpoint_zero_3(stage, tmp_path):
 
     state = {"model": model, "optimizer": optimizer, "steps": 1}
     with pytest.raises(TypeError, match="manages the state serialization internally"):
-        fabric.save(checkpoint_path, state, filter=lambda k, v: True)
+        fabric.save(checkpoint_path, state, filter={"model": lambda k, v: True})
     fabric.save(checkpoint_path, state)
 
     # re-init all objects and resume
