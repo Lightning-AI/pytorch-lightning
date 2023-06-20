@@ -971,7 +971,6 @@ def test_save_filter(tmp_path):
 
     # subset
     checkpoint_io_mock.reset_mock()
-    # the filtering is applied to all dictionaries
     filter = {
         "model": lambda k, v: "weight" in k,
         "anything": lambda k, v: isinstance(v, int),
