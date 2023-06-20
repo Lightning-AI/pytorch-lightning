@@ -253,8 +253,9 @@ class Strategy(ABC):
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
             storage_options: Additional options for the ``CheckpointIO`` plugin
-            filter: An optional dictionary of the same format as ``state`` mapping keys to callables that return a
-                boolean indicating whether the given parameter should be saved (``True``) or filtered out (``False``).
+            filter: An optional dictionary containing filter callables that return a boolean indicating whether the
+                given item should be saved (``True``) or filtered out (``False``). Each filter key should match a
+                state key, where its filter will be applied to the ``state_dict`` generated.
         """
         state = self._convert_stateful_objects_in_state(state, filter=filter or {})
         if self.is_global_zero:

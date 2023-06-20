@@ -957,15 +957,27 @@ def test_save_filter(tmp_path):
     save_path = tmp_path / "foo.pth"
 
     # filter all dicts
-    fabric.save(save_path, state, filter=lambda k, v: False)
+    filter = {k: lambda k, v: False for k in state}
+    fabric.save(save_path, state, filter=filter)
     checkpoint_io_mock.save_checkpoint.assert_called_with(checkpoint={"foo": 1}, path=save_path, storage_options=None)
-    # bad filter
-    with pytest.raises(TypeError, match="callable, given 'foo"):
+
+    # bad filters
+    with pytest.raises(TypeError, match="should be a dict"):
         fabric.save(save_path, state, filter="foo")
+    with pytest.raises(TypeError, match="callable, given 'foo"):
+        fabric.save(save_path, state, filter={"model": "foo"})
+    with pytest.raises(ValueError, match="keys {'asd'} are not present in the state keys"):
+        fabric.save(save_path, state, filter={"asd": lambda k, v: True})
+
     # subset
     checkpoint_io_mock.reset_mock()
     # the filtering is applied to all dictionaries
-    fabric.save(save_path, state, filter=lambda k, v: "weight" in k or isinstance(v, int) or "param_groups" in k)
+    filter = {
+        "model": lambda k, v: "weight" in k,
+        "anything": lambda k, v: isinstance(v, int),
+        "optimizer": lambda k, v: "param_groups" in k,
+    }
+    fabric.save(save_path, state, filter=filter)
     checkpoint_io_mock.save_checkpoint.assert_called_with(
         checkpoint={"model": {"layer.weight": ANY}, "optimizer": {"param_groups": ANY}, "anything": anything, "foo": 1},
         path=save_path,

@@ -387,16 +387,17 @@ def test_fsdp_save_filter(tmp_path):
 
     tmp_path = Path(fabric.broadcast(str(tmp_path)))
     state = {"model": model}
+    filter = {"model": lambda k, v: "bias" in k}
 
     checkpoint_path = tmp_path / "full.pth"
-    fabric.save(checkpoint_path, state, filter=lambda k, v: "bias" in k)
+    fabric.save(checkpoint_path, state, filter=filter)
     checkpoint = torch.load(checkpoint_path)["model"]
     assert set(checkpoint) == {"bias"}
     assert isinstance(checkpoint["bias"], torch.Tensor)
 
     fabric.strategy._state_dict_type = "sharded"
     checkpoint_path = tmp_path / "sharded"
-    fabric.save(checkpoint_path, state, filter=lambda k, v: "bias" in k)
+    fabric.save(checkpoint_path, state, filter=filter)
     data = torch.load(checkpoint_path / "__0_0.distcp")
     assert isinstance(data, torch.Tensor)
     assert data.shape == (1,)

@@ -133,7 +133,7 @@ When saving a checkpoint using Fabric, you have the flexibility to choose which 
 This can be useful in scenarios such as fine-tuning, where you only want to save a subset of the parameters, reducing
 the size of the checkpoint and saving disk space.
 
-To accomplish this, you can use a filter during the saving process. The filter is a function that determines whether
+To accomplish this, you can use filters during the saving process. The filter is a function that determines whether
 an item should be saved (returning ``True``) or excluded (returning ``False``).
 The filter operates on dictionary objects and evaluates each key-value pair individually.
 
@@ -143,14 +143,10 @@ Here's an example of using a filter when saving a checkpoint:
 
     state = {"model": model, "optimizer": optimizer, "foo": 123}
 
-    # Apply the same filter to all keys in the state
-    filter = lambda k, v: "weight" in k or "param_groups" in k
+    # Apply the same filter to just the model
+    filter = {"model": lambda k, v: "weight"}
     fabric.save("path/to/checkpoint.ckpt", state, filter=filter)
-    # This will save {"model": {"layer.weight": ...}, "optimizer": {"param_groups": ...}, "foo": 123}
-
-    # Alternatively, specify a filter per key
-    filters = {"model": lambda k, v: "weight" in k, "optimizer": lambda k, v: "param_groups" in k}
-    fabric.save("path/to/checkpoint.ckpt", state, filter=filters)
+    # This will save {"model": {"layer.weight": ...}, "optimizer": ..., "foo": 123}
 
 
 ----
