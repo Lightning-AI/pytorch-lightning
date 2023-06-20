@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
@@ -212,21 +211,6 @@ class XLAStrategy(ParallelStrategy):
             obj = torch.load(buffer)
 
         return obj
-
-    def save_checkpoint(
-        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
-    ) -> None:
-        """Save model, optimizer, and other state as a checkpoint file.
-
-        Args:
-            path: A path to where the file(s) should be saved
-            state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
-                state-dict will be retrieved and converted automatically.
-            storage_options: Additional options for the ``CheckpointIO`` plugin
-        """
-        state = self._convert_stateful_objects_in_state(state)
-        # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
-        self.checkpoint_io.save_checkpoint(state, path, storage_options=storage_options)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
