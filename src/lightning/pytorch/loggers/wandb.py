@@ -41,7 +41,6 @@ except ModuleNotFoundError:
     wandb, Run, RunDisabled = None, None, None
 
 _WANDB_AVAILABLE = RequirementCache("wandb")
-_WANDB_GREATER_EQUAL_0_10_22 = RequirementCache("wandb>=0.10.22")
 _WANDB_GREATER_EQUAL_0_12_10 = RequirementCache("wandb>=0.12.10")
 
 
@@ -312,13 +311,6 @@ class WandbLogger(Logger):
                 f"Providing log_model={log_model} and offline={offline} is an invalid configuration"
                 " since model checkpoints cannot be uploaded in offline mode.\n"
                 "Hint: Set `offline=False` to log your model."
-            )
-
-        if log_model and not _WANDB_GREATER_EQUAL_0_10_22:
-            rank_zero_warn(
-                f"Providing log_model={log_model} requires wandb version >= 0.10.22"
-                " for logging associated model metadata.\n"
-                "Hint: Upgrade with `pip install --upgrade wandb`."
             )
 
         super().__init__()
@@ -595,8 +587,6 @@ class WandbLogger(Logger):
                         if hasattr(checkpoint_callback, k)
                     },
                 }
-                if _WANDB_GREATER_EQUAL_0_10_22
-                else None
             )
             if not self._checkpoint_name:
                 self._checkpoint_name = f"model-{self.experiment.id}"
