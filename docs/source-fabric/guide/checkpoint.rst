@@ -125,9 +125,9 @@ See also: `Saving and loading models in PyTorch <https://pytorch.org/tutorials/b
 
 ----
 
-**********
+**************************************
 Converting existing checkpointing code
-**********
+**************************************
 
 There are some things to keep in mind when converting existing code to use Fabric,
 especially if you do so because you want to easily scale to multi-gpu training.
