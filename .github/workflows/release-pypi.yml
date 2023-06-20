@@ -1,4 +1,4 @@
-name: PyPI
+name: Releasing
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
@@ -188,5 +188,6 @@ jobs:
     uses: ./.github/workflows/_legacy-checkpoints.yml
     with:
       push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
+      upload_local: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
       create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
     secrets: inherit
