@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -214,7 +214,11 @@ class XLAStrategy(ParallelStrategy):
         return obj
 
     def save_checkpoint(
-        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+        self,
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
+        storage_options: Optional[Any] = None,
+        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state as a checkpoint file.
 
@@ -223,13 +227,15 @@ class XLAStrategy(ParallelStrategy):
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
             storage_options: Additional options for the ``CheckpointIO`` plugin
+            filter: An optional dictionary of the same format as ``state`` mapping keys to callables that return a
+                boolean indicating whether the given parameter should be saved (``True``) or filtered out (``False``).
         """
         import torch_xla.core.xla_model as xm
 
         # sync any pending lazy tensors on all ranks before saving to prevent potential collective hangs
         xm.mark_step()
         # save on global rank zero only
-        super().save_checkpoint(path, state, storage_options=storage_options)
+        super().save_checkpoint(path, state, storage_options=storage_options, filter=filter)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
