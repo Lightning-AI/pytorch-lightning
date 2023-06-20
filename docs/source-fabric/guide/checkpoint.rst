@@ -125,6 +125,26 @@ See also: `Saving and loading models in PyTorch <https://pytorch.org/tutorials/b
 
 ----
 
+**********
+Converting existing checkpointing code
+**********
+
+There are some things to keep in mind when converting existing code to use Fabric,
+especially if you do so because you want to easily scale to multi-gpu training.
+By default, `torch.save` will store a tensor with storage metadata, e.g.,
+it was on device `cuda:0`. The default behaviour of `torch.load` is to then place this
+tensor directly back on `cuda:0`.
+This can lead to undesired behaviour when doing multi-gpu training.
+For example, if you're using ``strategy="ddp"`` with 2 GPUs, both ranks will silently
+load the checkpoint on `cuda:0`, even if you later move the checkpoint to `cuda:1` as well.
+This can negatively impact the amount of VRAM available on the rank 0 process.
+Under the hood, :meth:`~lightning.fabric.fabric.Fabric.save` and
+:meth:`~lightning.fabric.fabric.Fabric.load` takes care of placing a checkpoint on the
+correct device. Therefore, unless you desire specific behaviour, make sure to convert all
+calls of `torch.save` and `torch.load` to :meth:`~lightning.fabric.fabric.Fabric.save`
+and :meth:`~lightning.fabric.fabric.Fabric.load`.
+
+----
 
 **********
 Next steps
