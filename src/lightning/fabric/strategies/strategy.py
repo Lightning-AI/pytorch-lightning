@@ -425,16 +425,16 @@ def _validate_keys_for_strict_loading(
 
 
 def _apply_filter(
-    key: str, filter: Dict[str, Callable[[str, Any], bool]], converted: object, target_dict: Dict[str, Any]
+    key: str, filter: Dict[str, Callable[[str, Any], bool]], source_dict: object, target_dict: Dict[str, Any]
 ) -> None:
     # filter out if necessary
-    if key in filter and isinstance(converted, dict):
+    if key in filter and isinstance(source_dict, dict):
         filter_fn = filter[key]
-        for k, v in converted.items():
+        for k, v in source_dict.items():
             if filter_fn(k, v):
                 # save the state
                 target_dict.setdefault(key, {})
                 target_dict[key][k] = v
     else:
         # save the state
-        target_dict[key] = converted
+        target_dict[key] = source_dict

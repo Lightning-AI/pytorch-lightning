@@ -692,7 +692,7 @@ class Fabric:
                 raise TypeError(f"Filter should be a dictionary, given {filter!r}")
             if not set(filter).issubset(state):
                 raise ValueError(
-                    f"The filter keys {filter.keys() - state} are not present in the state keys {set(state)} "
+                    f"The filter keys {filter.keys() - state} are not present in the state keys {set(state)}."
                 )
             for k, v in filter.items():
                 if not callable(v):
