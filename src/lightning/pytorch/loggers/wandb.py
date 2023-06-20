@@ -569,25 +569,23 @@ class WandbLogger(Logger):
 
         # log iteratively all new checkpoints
         for t, p, s, tag in checkpoints:
-            metadata = (
-                {
-                    "score": s.item() if isinstance(s, Tensor) else s,
-                    "original_filename": Path(p).name,
-                    checkpoint_callback.__class__.__name__: {
-                        k: getattr(checkpoint_callback, k)
-                        for k in [
-                            "monitor",
-                            "mode",
-                            "save_last",
-                            "save_top_k",
-                            "save_weights_only",
-                            "_every_n_train_steps",
-                        ]
-                        # ensure it does not break if `ModelCheckpoint` args change
-                        if hasattr(checkpoint_callback, k)
-                    },
-                }
-            )
+            metadata = {
+                "score": s.item() if isinstance(s, Tensor) else s,
+                "original_filename": Path(p).name,
+                checkpoint_callback.__class__.__name__: {
+                    k: getattr(checkpoint_callback, k)
+                    for k in [
+                        "monitor",
+                        "mode",
+                        "save_last",
+                        "save_top_k",
+                        "save_weights_only",
+                        "_every_n_train_steps",
+                    ]
+                    # ensure it does not break if `ModelCheckpoint` args change
+                    if hasattr(checkpoint_callback, k)
+                },
+            }
             if not self._checkpoint_name:
                 self._checkpoint_name = f"model-{self.experiment.id}"
             artifact = wandb.Artifact(name=self._checkpoint_name, type="model", metadata=metadata)
