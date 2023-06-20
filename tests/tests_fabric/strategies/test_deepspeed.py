@@ -21,7 +21,7 @@ import pytest
 import torch
 from torch.optim import Optimizer
 
-from lightning import Fabric
+from lightning.fabric import Fabric
 from lightning.fabric.accelerators import CPUAccelerator
 from lightning.fabric.strategies import DeepSpeedStrategy
 from tests_fabric.helpers.runif import RunIf
