@@ -33,4 +33,5 @@ class XLAPrecision(Precision):
     ) -> Any:
         import torch_xla.core.xla_model as xm
 
-        return xm.optimizer_step(optimizer, optimizer_args=kwargs)
+        # you always want to `xm.mark_step()` after `optimizer.step` for better performance, so we set `wait=True`
+        return xm.optimizer_step(optimizer, optimizer_args=kwargs, barrier=True)
