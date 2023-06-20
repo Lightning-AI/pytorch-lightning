@@ -21,6 +21,7 @@ import pytest
 import torch
 from torch.optim import Optimizer
 
+from lightning import Fabric
 from lightning.fabric.accelerators import CPUAccelerator
 from lightning.fabric.strategies import DeepSpeedStrategy
 from tests_fabric.helpers.runif import RunIf
@@ -341,3 +342,9 @@ def test_errors_grad_clipping():
         ),
     ):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
+
+
+def test_deepspeed_save_filter(tmp_path):
+    fabric = Fabric(devices=1, strategy="deepspeed")
+    with pytest.raises(TypeError, match="manages the state serialization internally"):
+        fabric.save(tmp_path, {}, filter={})
