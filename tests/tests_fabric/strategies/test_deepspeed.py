@@ -344,6 +344,7 @@ def test_errors_grad_clipping():
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
 
+@RunIf(deepspeed=True)
 def test_deepspeed_save_filter(tmp_path):
     fabric = Fabric(devices=1, strategy="deepspeed")
     with pytest.raises(TypeError, match="manages the state serialization internally"):
