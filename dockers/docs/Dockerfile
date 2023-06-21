@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:22.04
+FROM ubuntu:20.04
 
 LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
@@ -61,4 +61,5 @@ RUN \
     python get-pip.py && \
     rm get-pip.py && \
     pip install awscli gsutil torch -r docs.txt \
-      -f https://download.pytorch.org/whl/cpu/torch_stable.html
+      -f https://download.pytorch.org/whl/cpu/torch_stable.html  && \
+    pip list

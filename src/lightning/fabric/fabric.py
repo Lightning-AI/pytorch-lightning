@@ -45,6 +45,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
+from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -111,8 +112,7 @@ class Fabric:
         self._strategy: Strategy = self._connector.strategy
         self._accelerator: Accelerator = self._connector.accelerator
         self._precision: Precision = self._strategy.precision
-        callbacks = callbacks if callbacks is not None else []
-        self._callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
+        self._callbacks = self._configure_callbacks(callbacks)
         loggers = loggers if loggers is not None else []
         self._loggers = loggers if isinstance(loggers, list) else [loggers]
         self._models_setup: int = 0
@@ -220,7 +220,10 @@ class Fabric:
         # Update the _DeviceDtypeModuleMixin's device parameter
         module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
 
-        optimizers = [_FabricOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+        optimizers = [
+            _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
+            for optimizer in optimizers
+        ]
 
         self._models_setup += 1
 
@@ -229,6 +232,8 @@ class Fabric:
             original_module._fabric_optimizers = optimizers  # type: ignore[assignment]
             if original_module not in self._callbacks:
                 self._callbacks.append(original_module)
+
+        self.call("on_after_setup", fabric=self, module=module)
 
         if optimizers:
             # join both types in a tuple for API convenience
@@ -288,7 +293,10 @@ class Fabric:
         """
         self._validate_setup_optimizers(optimizers)
         optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]
-        optimizers = [_FabricOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+        optimizers = [
+            _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
+            for optimizer in optimizers
+        ]
         return optimizers[0] if len(optimizers) == 1 else tuple(optimizers)
 
     def setup_dataloaders(
@@ -348,9 +356,9 @@ class Fabric:
 
         dataloader = self._strategy.process_dataloader(dataloader)
         device = self.device if move_to_device and not isinstance(self._strategy, XLAStrategy) else None
-        lite_dataloader = _FabricDataLoader(dataloader=dataloader, device=device)
-        lite_dataloader = cast(DataLoader, lite_dataloader)
-        return lite_dataloader
+        fabric_dataloader = _FabricDataLoader(dataloader=dataloader, device=device)
+        fabric_dataloader = cast(DataLoader, fabric_dataloader)
+        return fabric_dataloader
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_FabricModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
@@ -499,7 +507,8 @@ class Fabric:
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Gather tensors or collections of tensors from multiple processes.
 
-        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
+        This method needs to be called on all processes and the tensors need to have the same shape across all
+        processes, otherwise your program will stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -523,7 +532,8 @@ class Fabric:
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Reduce tensors or collections of tensors from multiple processes.
 
-        This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
+        This method needs to be called on all processes and the tensors need to have the same shape across all
+        processes, otherwise your program will stall forever.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -539,6 +549,28 @@ class Fabric:
         group = group if group is not None else torch.distributed.group.WORLD
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, self._strategy.all_reduce, group=group, reduce_op=reduce_op)
+
+    @contextmanager
+    def rank_zero_first(self, local: bool = False) -> Generator:
+        """The code block under this context manager gets executed first on the main process (rank 0) and only when
+        completed, the other processes get to run the code in parallel.
+
+        Args:
+            local: Set this to ``True`` if the **local** rank should be the one going first. Useful if you are
+                downloading data and the filesystem isn't shared between the nodes.
+
+        Example::
+
+            with fabric.rank_zero_first():
+                dataset = MNIST("datasets/", download=True)
+        """
+        rank = self.local_rank if local else self.global_rank
+        if rank > 0:
+            self.barrier()
+        yield
+        if rank == 0:
+            self.barrier()
+        self.barrier()
 
     @contextmanager
     def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> Generator:
@@ -569,7 +601,7 @@ class Fabric:
                 "You need to set up the model first before you can call `self.no_backward_sync()`:"
                 " `model = self.setup(model, ...)`"
             )
-        if not enabled or isinstance(self._strategy, SingleDeviceStrategy):
+        if not enabled or isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
             context = nullcontext()
         elif self._strategy._backward_sync_control is None:
             rank_zero_warn(
@@ -593,7 +625,10 @@ class Fabric:
         .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
         """
         rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
-        with _old_sharded_model_context(self._strategy):
+        if isinstance(self.strategy, _Sharded):
+            with self.strategy.module_sharded_context():
+                yield
+        else:
             yield
 
     @contextmanager
@@ -614,12 +649,17 @@ class Fabric:
             yield
 
     @contextmanager
-    def init_module(self) -> Generator:
+    def init_module(self, empty_init: Optional[bool] = None) -> Generator:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
         allocated unnecessarily. The automatic device placement under this context manager is only supported with
         PyTorch 2.0 and newer.
+
+        Args:
+            empty_init: Whether to initialize the model with empty weights (uninitialized memory).
+                If ``None``, the strategy will decide. Some strategies may not support all options.
+                Set this to ``True`` if you are loading a checkpoint into a large model. Requires `torch >= 1.13`.
         """
         if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
             rank_zero_warn(
@@ -628,10 +668,15 @@ class Fabric:
                 " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
                 category=PossibleUserWarning,
             )
-        with self._strategy.module_init_context():
+        with self._strategy.module_init_context(empty_init=empty_init):
             yield
 
-    def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
+    def save(
+        self,
+        path: Union[str, Path],
+        state: Dict[str, Union[nn.Module, Optimizer, Any]],
+        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
+    ) -> None:
         """Save checkpoint contents to a file.
 
         How and which processes save gets determined by the `strategy`. For example, the `ddp` strategy
@@ -642,12 +687,28 @@ class Fabric:
             path: A path to where the file(s) should be saved
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
+            filter: An optional dictionary containing filter callables that return a boolean indicating whether the
+                given item should be saved (``True``) or filtered out (``False``). Each filter key should match a
+                state key, where its filter will be applied to the ``state_dict`` generated.
         """
-        self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state))
+        if filter is not None:
+            if not isinstance(filter, dict):
+                raise TypeError(f"Filter should be a dictionary, given {filter!r}")
+            if not set(filter).issubset(state):
+                raise ValueError(
+                    f"The filter keys {filter.keys() - state} are not present in the state keys {set(state)}."
+                )
+            for k, v in filter.items():
+                if not callable(v):
+                    raise TypeError(f"Expected `fabric.save(filter=...)` for key {k!r} to be a callable, given {v!r}")
+        self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state), filter=filter)
         self.barrier()
 
     def load(
-        self, path: Union[str, Path], state: Optional[Dict[str, Union[nn.Module, Optimizer, Any]]] = None
+        self,
+        path: Union[str, Path],
+        state: Optional[Dict[str, Union[nn.Module, Optimizer, Any]]] = None,
+        strict: bool = True,
     ) -> Dict[str, Any]:
         """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
 
@@ -658,13 +719,14 @@ class Fabric:
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 If no state is given, then the checkpoint will be returned in full.
+            strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
             given, the full checkpoint will be returned.
         """
         unwrapped_state = _unwrap_objects(state)
-        remainder = self._strategy.load_checkpoint(path=path, state=unwrapped_state)
+        remainder = self._strategy.load_checkpoint(path=path, state=unwrapped_state, strict=strict)
         self.barrier()
         if state is not None:
             # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
@@ -802,11 +864,7 @@ class Fabric:
 
     def _wrap_with_setup(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
-        # TODO: remove sharded_context from here as users are meant to enable it manually
-        # apply sharded context to prevent OOM
-        with _old_sharded_model_context(self._strategy), _replace_dunder_methods(
-            DataLoader, "dataset"
-        ), _replace_dunder_methods(BatchSampler):
+        with _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(BatchSampler):
             return to_run(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
@@ -912,11 +970,9 @@ class Fabric:
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
 
-
-@contextmanager
-def _old_sharded_model_context(strategy: Strategy) -> Generator:
-    if isinstance(strategy, _Sharded):
-        with strategy.module_sharded_context():
-            yield
-    else:
-        yield
+    @staticmethod
+    def _configure_callbacks(callbacks: Optional[Union[List[Any], Any]]) -> List[Any]:
+        callbacks = callbacks if callbacks is not None else []
+        callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
+        callbacks.extend(_load_external_callbacks("lightning.fabric.callbacks_factory"))
+        return callbacks

@@ -39,7 +39,7 @@ class DoublePrecisionBoringFabric(BoringFabric):
 
     def step(self, model, batch):
         assert model.layer.weight.dtype == model.layer.bias.dtype == torch.float64
-        assert model.complex_buffer.dtype == torch.complex64
+        assert model.complex_buffer.dtype == torch.complex128
 
         assert batch.dtype == torch.float32
         output = model(batch)
