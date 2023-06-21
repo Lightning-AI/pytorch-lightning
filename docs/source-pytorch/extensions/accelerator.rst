@@ -11,7 +11,7 @@ Currently there are accelerators for:
 - :doc:`GPU <../accelerators/gpu>`
 - :doc:`TPU <../accelerators/tpu>`
 - :doc:`IPU <../accelerators/ipu>`
-- :doc:`HPU <../accelerators/hpu>`
+- :doc:`HPU <../integrations/hpu/index>`
 - :doc:`MPS <../accelerators/mps>`
 
 The Accelerator is part of the Strategy which manages communication across multiple devices (distributed communication).

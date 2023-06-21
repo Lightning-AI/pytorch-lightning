@@ -19,7 +19,7 @@ Explore Intel Habana Processing Unit (HPU) for model scaling.
    :header: Train models on HPUs
    :description: Learn the basics of single and multi-HPU core training.
    :col_css: col-md-6
-   :button_link: ../accelerators/hpu_basic.html
+   :button_link: ../integrations/hpu/basic.html
    :height: 150
    :tag: basic
 
@@ -27,7 +27,7 @@ Explore Intel Habana Processing Unit (HPU) for model scaling.
    :header: Optimize models training on HPUs
    :description: Enable state-of-the-art scaling with advanced mix-precision settings.
    :col_css: col-md-6
-   :button_link: ../accelerators/hpu_intermediate.html
+   :button_link: ../integrations/hpu/intermediate.html
    :height: 150
    :tag: intermediate
 
