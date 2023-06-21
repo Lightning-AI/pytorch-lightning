@@ -10,7 +10,7 @@ Currently there are accelerators for:
 - CPU
 - :doc:`GPU <../accelerators/gpu>`
 - :doc:`TPU <../accelerators/tpu>`
-- :doc:`IPU <../accelerators/ipu>`
+- :doc:`IPU <../integrations/ipu/index>`
 - :doc:`HPU <../integrations/hpu/index>`
 - :doc:`MPS <../accelerators/mps>`
 

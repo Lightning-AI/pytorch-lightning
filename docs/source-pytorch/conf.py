@@ -110,6 +110,11 @@ assist_local.AssistantCLI.pull_docs_files(
     target_dir="docs/source-pytorch/integrations/hpu",
     checkout="tags/1.0.0",
 )
+assist_local.AssistantCLI.pull_docs_files(
+    gh_user_repo="Lightning-AI/lightning-Graphcore",
+    target_dir="docs/source-pytorch/integrations/ipu",
+    checkout="tags/0.1.0.rc3",
+)
 
 
 # -- Project information -----------------------------------------------------

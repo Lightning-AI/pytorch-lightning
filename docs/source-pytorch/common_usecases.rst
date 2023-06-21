@@ -130,7 +130,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Train on single or multiple IPUs
    :description: Train models faster with IPUs.
    :col_css: col-md-12
-   :button_link: accelerators/ipu.html
+   :button_link: integrations/ipu/index.html
    :height: 100
 
 .. displayitem::

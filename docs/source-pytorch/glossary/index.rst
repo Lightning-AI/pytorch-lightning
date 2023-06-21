@@ -17,7 +17,7 @@
    Half precision <../common/precision>
    HPU <../integrations/hpu/index>
    Inference <../deploy/production_intermediate>
-   IPU <../accelerators/ipu>
+   IPU <../integrations/ipu/index>
    Lightning CLI <../cli/lightning_cli>
    LightningDataModule <../data/datamodule>
    LightningModule <../common/lightning_module>
@@ -154,7 +154,7 @@ Glossary
    :header: IPU
    :description: Graphcore Intelligence Processing Unit for faster training
    :col_css: col-md-12
-   :button_link: ../accelerators/ipu.html
+   :button_link: ../integrations/ipu/index.html
    :height: 100
 
 .. displayitem::
