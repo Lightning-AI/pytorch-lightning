@@ -230,6 +230,8 @@ class Fabric:
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self  # type: ignore[assignment]
             original_module._fabric_optimizers = optimizers  # type: ignore[assignment]
+            if original_module not in self._callbacks:
+                self._callbacks.append(original_module)
 
         self.call("on_after_setup", fabric=self, module=module)
 
@@ -271,6 +273,8 @@ class Fabric:
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self  # type: ignore[assignment]
+            if original_module not in self._callbacks:
+                self._callbacks.append(original_module)
 
         self._models_setup += 1
         return module
