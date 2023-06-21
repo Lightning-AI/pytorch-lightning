@@ -39,7 +39,7 @@ class LightningPlugin:
     actions."""
 
     def __init__(self) -> None:
-        self.plugin_id = ""
+        self.plugin_name = ""
         self.project_id = ""
         self.cloudspace_id = ""
         self.cluster_id = ""
@@ -86,26 +86,26 @@ class LightningPlugin:
             cloudspace_id=self.cloudspace_id,
             name=name,
             cluster_id=self.cluster_id,
-            source_app=self.plugin_id,
+            source_app=self.plugin_name,
         )
         # Return a relative URL so it can be used with the NavigateTo action.
         return url.replace(constants.get_lightning_cloud_url(), "")
 
     def _setup(
         self,
-        plugin_id: str,
+        plugin_name: str,
         project_id: str,
         cloudspace_id: str,
         cluster_id: str,
     ) -> None:
-        self.plugin_id = plugin_id
+        self.plugin_name = plugin_name
         self.project_id = project_id
         self.cloudspace_id = cloudspace_id
         self.cluster_id = cluster_id
 
 
 class _Run(BaseModel):
-    plugin_id: str
+    plugin_name: str
     plugin_entrypoint: str
     source_code_url: str
     project_id: str
@@ -164,7 +164,7 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
         # Setup and run the plugin
         try:
             plugin._setup(
-                plugin_id=run.plugin_id,
+                plugin_name=run.plugin_name,
                 project_id=run.project_id,
                 cloudspace_id=run.cloudspace_id,
                 cluster_id=run.cluster_id,
