@@ -230,9 +230,12 @@ class XLAStrategy(ParallelStrategy):
             filter: An optional dictionary of the same format as ``state`` mapping keys to callables that return a
                 boolean indicating whether the given parameter should be saved (``True``) or filtered out (``False``).
         """
-        state = self._convert_stateful_objects_in_state(state, filter=filter or {})
-        # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
-        self.checkpoint_io.save_checkpoint(state, path, storage_options=storage_options)
+        import torch_xla.core.xla_model as xm
+
+        # sync any pending lazy tensors on all ranks before saving to prevent potential collective hangs
+        xm.mark_step()
+        # save on global rank zero only
+        super().save_checkpoint(path, state, storage_options=storage_options, filter=filter)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
