@@ -196,6 +196,7 @@ class CloudRuntime(Runtime):
         cloudspace_id: str,
         name: str,
         cluster_id: str,
+        source_app: Optional[str] = None,
     ) -> str:
         """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties
         such as the project and cluster IDs that are instead passed directly.
@@ -260,6 +261,7 @@ class CloudRuntime(Runtime):
             V1LightningappInstanceState.RUNNING,
             queue_server_type,
             env_vars,
+            source_app=source_app,
         )
 
         return self._get_app_url(project, run_instance, "logs" if run.is_headless else "web-ui")
@@ -975,6 +977,7 @@ class CloudRuntime(Runtime):
         queue_server_type: Optional[V1QueueServerType] = None,
         env_vars: Optional[List[V1EnvVar]] = None,
         auth: Optional[V1LightningAuth] = None,
+        source_app: Optional[str] = None,
     ) -> Externalv1LightningappInstance:
         """Create a new instance of the given run with the given specification."""
         return self.backend.client.cloud_space_service_create_lightning_run_instance(
@@ -988,6 +991,7 @@ class CloudRuntime(Runtime):
                 queue_server_type=queue_server_type,
                 env=env_vars,
                 auth=auth,
+                source_app=source_app,
             ),
         )
 
