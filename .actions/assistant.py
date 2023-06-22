@@ -431,6 +431,42 @@ class AssistantCLI:
             source_dir, source_imports, target_imports, target_dir=target_dir, lightning_by=lightning_by
         )
 
+    @staticmethod
+    def pull_docs_files(
+        gh_user_repo: str,
+        target_dir: str = "docs/source-pytorch/XXX",
+        checkout: str = "tags/1.0.0",
+        source_dir: str = "docs/source",
+    ) -> None:
+        """Pull docs pages from external source and append to local docs."""
+        import zipfile
+
+        zip_url = f"https://github.com/{gh_user_repo}/archive/refs/{checkout}.zip"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            zip_file = os.path.join(tmp, "repo.zip")
+            urllib.request.urlretrieve(zip_url, zip_file)
+
+            with zipfile.ZipFile(zip_file, "r") as zip_ref:
+                zip_ref.extractall(tmp)
+
+            zip_dirs = [d for d in glob.glob(os.path.join(tmp, "*")) if os.path.isdir(d)]
+            # check that the extracted archive has only repo folder
+            assert len(zip_dirs) == 1
+            repo_dir = zip_dirs[0]
+
+            ls_pages = glob.glob(os.path.join(repo_dir, source_dir, "*.rst"))
+            ls_pages += glob.glob(os.path.join(repo_dir, source_dir, "**", "*.rst"))
+            for rst in ls_pages:
+                rel_rst = rst.replace(os.path.join(repo_dir, source_dir) + os.path.sep, "")
+                rel_dir = os.path.dirname(rel_rst)
+                os.makedirs(os.path.join(_PROJECT_ROOT, target_dir, rel_dir), exist_ok=True)
+                new_rst = os.path.join(_PROJECT_ROOT, target_dir, rel_rst)
+                if os.path.isfile(new_rst):
+                    logging.warning(f"Page {new_rst} already exists in the local tree so it will be skipped.")
+                    continue
+                shutil.copy(rst, new_rst)
+
 
 if __name__ == "__main__":
     import jsonargparse
