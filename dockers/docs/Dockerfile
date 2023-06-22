@@ -61,7 +61,7 @@ RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python get-pip.py && \
     rm get-pip.py && \
-    pip install awscli gsutil torch "botocore!=1.21.53"\
+    pip install awscli gsutil torch "botocore <1.21.53, >1.21.53"\
       -r docs.txt --no-cache-dir \
       -f https://download.pytorch.org/whl/cpu/torch_stable.html  && \
     pip list
