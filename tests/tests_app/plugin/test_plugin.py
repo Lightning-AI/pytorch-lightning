@@ -99,7 +99,6 @@ plugin = TestPlugin()
                 cluster_id="any",
                 plugin_arguments={},
                 source_app="any",
-
             ),
             "Error extracting plugin source:",
             None,
