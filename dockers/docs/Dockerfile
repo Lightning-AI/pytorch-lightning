@@ -62,6 +62,6 @@ RUN \
     python get-pip.py && \
     rm get-pip.py && \
     pip install awscli gsutil torch "botocore!=1.21.53"\
-      -r docs.txt--no-cache-dir \
+      -r docs.txt --no-cache-dir \
       -f https://download.pytorch.org/whl/cpu/torch_stable.html  && \
     pip list
