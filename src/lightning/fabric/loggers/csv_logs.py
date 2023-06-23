@@ -50,7 +50,7 @@ class CSVLogger(Logger):
         logger.log_metrics({"loss": 0.235, "acc": 0.75})
         logger.finalize("success")
 
-        if you run this consecutive times it will create sub-directories for each version 
+        if you run this consecutive times it will create sub-directories for each version
         and store it in the version folder {version_i} i.e. i will increment based on how many times
         you create the CSV logger.
     """
@@ -117,7 +117,7 @@ class CSVLogger(Logger):
         log_dir = os.path.expandvars(log_dir)
         log_dir = os.path.expanduser(log_dir)
         return log_dir
-        
+
     @property
     def sub_dir(self) -> Optional[str]:
         """Gets the sub directory where the TensorBoard experiments are saved.
@@ -170,8 +170,8 @@ class CSVLogger(Logger):
         self.save()
 
     def _get_next_version(self) -> int:
-        save_dir = os.path.join(self.root_dir,self.name)
-      
+        save_dir = os.path.join(self.root_dir, self.name)
+
         try:
             listdir_info = self._fs.listdir(save_dir)
         except OSError:
