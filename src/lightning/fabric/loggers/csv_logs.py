@@ -49,6 +49,10 @@ class CSVLogger(Logger):
         logger = CSVLogger("path/to/logs/root", name="my_model")
         logger.log_metrics({"loss": 0.235, "acc": 0.75})
         logger.finalize("success")
+
+        if you run this consecutive times it will create sub-directories for each version 
+        and store it in the version folder {version_i} i.e. i will increment based on how many times
+        you create the CSV logger.
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -59,6 +63,7 @@ class CSVLogger(Logger):
         name: str = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
+        sub_dir: Optional[_PATH] = None,
         flush_logs_every_n_steps: int = 100,
     ):
         super().__init__()
@@ -68,6 +73,7 @@ class CSVLogger(Logger):
         self._version = version
         self._prefix = prefix
         self._fs = get_filesystem(root_dir)
+        self._sub_dir = None if sub_dir is None else os.fspath(sub_dir)
         self._experiment: Optional[_ExperimentWriter] = None
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
@@ -105,7 +111,21 @@ class CSVLogger(Logger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        return os.path.join(self.root_dir, self.name, version)
+        log_dir = os.path.join(self.root_dir, self.name, version)
+        if isinstance(self.sub_dir, str):
+            log_dir = os.path.join(log_dir, self.sub_dir)
+        log_dir = os.path.expandvars(log_dir)
+        log_dir = os.path.expanduser(log_dir)
+        return log_dir
+        
+    @property
+    def sub_dir(self) -> Optional[str]:
+        """Gets the sub directory where the TensorBoard experiments are saved.
+
+        Returns:
+            The local path to the sub directory where the TensorBoard experiments are saved.
+        """
+        return self._sub_dir
 
     @property
     @rank_zero_experiment
@@ -120,7 +140,8 @@ class CSVLogger(Logger):
         if self._experiment is not None:
             return self._experiment
 
-        os.makedirs(self.root_dir, exist_ok=True)
+        if self.root_dir:
+            self._fs.makedirs(self.root_dir, exist_ok=True)
         self._experiment = _ExperimentWriter(log_dir=self.log_dir)
         return self._experiment
 
@@ -149,18 +170,22 @@ class CSVLogger(Logger):
         self.save()
 
     def _get_next_version(self) -> int:
-        root_dir = self.root_dir
-
-        if not self._fs.isdir(root_dir):
-            log.warning("Missing logger folder: %s", root_dir)
+        save_dir = os.path.join(self.root_dir,self.name)
+      
+        try:
+            listdir_info = self._fs.listdir(save_dir)
+        except OSError:
+            # TODO(fabric): This message can be confusing (did user do something wrong?). Improve it or remove it.
+            log.warning("Missing logger folder: %s", save_dir)
             return 0
 
         existing_versions = []
-        for d in self._fs.listdir(root_dir):
+        for d in listdir_info:
             full_path = d["name"]
             name = os.path.basename(full_path)
             if self._fs.isdir(full_path) and name.startswith("version_"):
-                existing_versions.append(int(name.split("_")[1]))
+                dir_ver = name.split("_")[1].replace("/", "")
+                existing_versions.append(int(dir_ver))
 
         if len(existing_versions) == 0:
             return 0
