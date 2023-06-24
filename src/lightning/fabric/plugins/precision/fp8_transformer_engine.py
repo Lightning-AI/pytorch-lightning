@@ -45,6 +45,12 @@ class Fp8TransformerEnginePrecision(Precision):
         replace_layers: Whether to replace ``Linear`` and ``LayerNorm`` layers automatically with their Transformer
             Engine alternatives. Note that they don't subclass the torch equivalents so checks like
             ``isinstance(l, torch.nn.Linear)`` will not pass.
+
+    .. note::
+
+        Support for FP8 in the linear layers with `precision='8-mixed'` is currently limited to tensors with shapes
+        where the dimensions are divisible by 8 and 16 respectively. You might want to add padding to your inputs to
+        conform to this restriction.
     """
 
     precision: Literal["8-mixed-transformer-engine"] = "8-mixed-transformer-engine"
