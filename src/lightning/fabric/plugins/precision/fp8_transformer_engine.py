@@ -111,18 +111,18 @@ if _TRANSFORMER_ENGINE_AVAILABLE:
     import transformer_engine.pytorch as te
 
     class Linear(te.Linear):
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             kwargs.setdefault("params_dtype", torch.get_default_dtype())
             super().__init__(*args, **kwargs)
 
     class LayerNorm(te.LayerNorm):
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             kwargs.setdefault("params_dtype", torch.get_default_dtype())
             super().__init__(*args, **kwargs)
 
 else:
-    Linear = torch.nn.Linear
-    LayerNorm = torch.nn.LayerNorm
+    Linear = torch.nn.Linear  # type: ignore[assignment,misc]
+    LayerNorm = torch.nn.LayerNorm  # type: ignore[assignment,misc]
 
 
 def _convert_layers(module: torch.nn.Module) -> None:
