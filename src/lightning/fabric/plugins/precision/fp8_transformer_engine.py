@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 from contextlib import contextmanager
-from functools import partial
 from typing import Any, Generator, Literal, Mapping, Optional, TYPE_CHECKING, Union
 
 import torch
@@ -89,18 +88,35 @@ class Fp8TransformerEnginePrecision(Precision):
             yield
             return
 
-        import transformer_engine.pytorch as te
-
         original_linear = torch.nn.Linear
         original_layer_norm = torch.nn.LayerNorm
-        # https://github.com/NVIDIA/TransformerEngine/issues/270
-        torch.nn.Linear = partial(te.Linear, params_dtype=torch.get_default_dtype())  # type: ignore[misc]
-        torch.nn.LayerNorm = partial(te.LayerNorm, params_dtype=torch.get_default_dtype())  # type: ignore[misc]
+
+        torch.nn.Linear = Linear  # type: ignore[misc]
+        torch.nn.LayerNorm = LayerNorm  # type: ignore[misc]
 
         yield
 
         torch.nn.Linear = original_linear  # type: ignore[misc]
         torch.nn.LayerNorm = original_layer_norm  # type: ignore[misc]
+
+
+# remove this block with when https://github.com/NVIDIA/TransformerEngine/issues/270 is resolved
+if _TRANSFORMER_ENGINE_AVAILABLE:
+    import transformer_engine.pytorch as te
+
+    class Linear(te.Linear):
+        def __init__(self, *args, **kwargs):
+            kwargs.setdefault("params_dtype", torch.get_default_dtype())
+            super().__init__(*args, **kwargs)
+
+    class LayerNorm(te.LayerNorm):
+        def __init__(self, *args, **kwargs):
+            kwargs.setdefault("params_dtype", torch.get_default_dtype())
+            super().__init__(*args, **kwargs)
+
+else:
+    Linear = torch.nn.Linear
+    LayerNorm = torch.nn.LayerNorm
 
 
 def _convert_layers(module: torch.nn.Module) -> None:
