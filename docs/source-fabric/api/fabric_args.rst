@@ -110,10 +110,12 @@ Learn more about :ref:`distributed multi-node training on clusters <Fabric Clust
 precision
 =========
 
-Fabric supports double precision (64 bit), full precision (32 bit), or half-precision (16 bit) floating point operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
-Half precision, or mixed precision, combines 32 and 16-bit floating points to reduce the memory footprint during model training.
-Automatic mixed precision settings are denoted by a ``"-mixed"`` suffix, while settings that only work in the specified precision have a ``"-true"`` suffix.
-This can result in improved performance, achieving significant speedups on modern GPUs.
+There are two different techniques to set the mixed precision. "True" precision and "Mixed" precision.
+For an extensive guide into their differences, please see: :doc:`../fundamentals/precision`
+
+Fabric supports doing floating point operations in 64-bit precision ("double"), 32-bit precision ("full"), or 16-bit ("half") with both regular and `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
+This selected precision will have a direct impact in the performance and memory usage based on your hardware.
+Automatic mixed precision settings are denoted by a ``"-mixed"`` suffix, while "true" precision settings have a ``"-true"`` suffix:
 
 .. code-block:: python
 
@@ -129,6 +131,9 @@ This can result in improved performance, achieving significant speedups on moder
     # 16-bit bfloat mixed precision (model weights remain in torch.float32)
     fabric = Fabric(precision="bf16-mixed", devices=1)
 
+    # 8-bit mixed precision (model weights remain in torch.float32)
+    fabric = Fabric(precision="8-mixed", devices=1)
+
     # 16-bit precision (model weights get cast to torch.float16)
     fabric = Fabric(precision="16-true", devices=1)
 
@@ -137,8 +142,6 @@ This can result in improved performance, achieving significant speedups on moder
 
     # 64-bit (double) precision (model weights get cast to torch.float64)
     fabric = Fabric(precision="64-true", devices=1)
-
-See also: :doc:`../fundamentals/precision`
 
 
 plugins

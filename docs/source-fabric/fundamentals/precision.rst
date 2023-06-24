@@ -12,8 +12,8 @@ Save memory with mixed precision
 What is Mixed Precision?
 ************************
 
-Like most deep learning frameworks, PyTorch trains on 32-bit floating-point (FP32) arithmetic by default.
-However, many deep learning models do not require this to reach complete accuracy.
+Like most deep learning frameworks, PyTorch runs on 32-bit floating-point (FP32) arithmetic by default.
+However, many deep learning models do not require this to reach complete accuracy during training.
 Mixed precision training delivers significant computational speedup by conducting operations in half-precision while keeping minimum information in single-precision to maintain as much information as possible in crucial areas of the network.
 Switching to mixed precision has resulted in considerable training speedups since the introduction of Tensor Cores in the Volta and Turing architectures.
 It combines FP32 and lower-bit floating points (such as FP16) to reduce memory footprint and increase performance during model training and evaluation.
@@ -29,25 +29,34 @@ This is how you select the precision in Fabric:
     # This is the default
     fabric = Fabric(precision="32-true")
 
-    # Also FP32
+    # Also FP32 (legacy)
     fabric = Fabric(precision=32)
 
-    # FP32 as well
+    # FP32 as well (legacy)
     fabric = Fabric(precision="32")
 
-    # FP16 mixed precision
+    # Float16 mixed precision
     fabric = Fabric(precision="16-mixed")
 
-    # BFloat16 precision (Volta GPUs and later)
+    # Float16 half precision
+    fabric = Fabric(precision="16-true")
+
+    # BFloat16 mixed precision (Volta GPUs and later)
     fabric = Fabric(precision="bf16-mixed")
+
+    # BFloat16 true half precision (Volta GPUs and later)
+    fabric = Fabric(precision="bf16-true")
+
+    # 8-bit mixed precision (Hopper GPUs and later)
+    fabric = Fabric(precision="8-mixed")
 
     # Double precision
     fabric = Fabric(precision="64-true")
 
-    # Or
+    # Or (legacy)
     fabric = Fabric(precision="64")
 
-    # Or
+    # Or (legacy)
     fabric = Fabric(precision=64)
 
 
@@ -73,7 +82,7 @@ FP16 Mixed Precision
 
 In most cases, mixed precision uses FP16.
 Supported `PyTorch operations <https://pytorch.org/docs/stable/amp.html#op-specific-behavior>`_ automatically run in FP16, saving memory and improving throughput on the supported accelerators.
-Since computation happens in FP16, there is a chance of numerical instability during training.
+Since computation happens in FP16, which has a very limited "dynamic range", there is a chance of numerical instability during training.
 This is handled internally by a dynamic grad scaler which skips invalid steps and adjusts the scaler to ensure subsequent steps fall within a finite range.
 For more information `see the autocast docs <https://pytorch.org/docs/stable/amp.html#gradient-scaling>`_.
 
@@ -112,7 +121,47 @@ It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDN
 .. note::
 
     BFloat16 may not provide significant speedups or memory improvements, offering better numerical stability.
-    For GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`_ based GPUs, such as A100s or 3090s.
+    For GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`_ based GPUs or posterior, such as A100s or 3090s.
+
+
+----
+
+
+*****************************************************
+Float8 Mixed Precision via Nvidia's TransformerEngine
+*****************************************************
+
+`Transformer Engine <https://github.com/NVIDIA/TransformerEngine>`__ (TE) is a library for accelerating models on the
+latest NVIDIA GPUs using 8-bit floating point (FP8) precision on Hopper GPUs, to provide better performance with lower
+memory utilization in both training and inference. It offers improved performance over FP16 with no degradation in accuracy.
+
+Using TE requires replacing some of the layers in your model. Fabric automatically replaces the :class:`torch.nn.Linear`
+and :class:`torch.nn.LayerNorm` layers in your model with their TE alternatives, however, TE also offers
+`fused layers <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html>`__
+to squeeze out all the possible performance. If Fabric detects that any layer has been replaced already, automatic
+replacement is not done.
+
+.. code-block:: python
+
+    # Select 8bit mixed precision
+    fabric = Fabric(precision="8-mixed")
+
+    # OR
+    fabric = Fabric(precision="8-mixed-transformer-engine")
+
+    # Customize the fp8 recipe:
+    from lightning.fabric.plugins.precision import Fp8TransformerEnginePrecision
+
+    recipe = {"fp8_format": "HYBRID", "amax_history_len": 16, "amax_compute_algo": "max"}
+    precision = Fp8TransformerEnginePrecision(recipe)
+    fabric = Fabric(plugins=precision)
+
+
+Under the hood, we use `transformer_engine.pytorch.fp8_autocast <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html#transformer_engine.pytorch.fp8_autocast>`__ with the default fp8 recipe.
+
+.. note::
+
+    This requires `Hopper <https://en.wikipedia.org/wiki/Hopper_(microarchitecture)>`_ based GPUs or posterior, such the H100.
 
 
 ----
