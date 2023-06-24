@@ -32,6 +32,7 @@ from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessS
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import (
+    _apply_filter,
     _BackwardSyncControl,
     _Sharded,
     _validate_keys_for_strict_loading,
@@ -341,7 +342,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         )
 
     def save_checkpoint(
-        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+        self,
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
+        storage_options: Optional[Any] = None,
+        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state to a checkpoint on disk.
 
@@ -390,16 +395,21 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             # replace the modules and optimizer objects in the state with their local state dict
             # and separate the user's metadata
-            converted_state = {}
-            metadata = {}
+            converted_state: Dict[str, Any] = {}
+            metadata: Dict[str, Any] = {}
             with state_dict_ctx:
                 for key, obj in state.items():
+                    converted: Any
                     if isinstance(obj, FSDP):
-                        converted_state[key] = obj.state_dict()
+                        converted = obj.state_dict()
+                        target_dict = converted_state
                     elif isinstance(obj, Optimizer):
-                        converted_state[key] = FSDP.optim_state_dict(module, obj)
+                        converted = FSDP.optim_state_dict(module, obj)
+                        target_dict = converted_state
                     else:  # everything not a module or optimizer is considered metadata
-                        metadata[key] = obj
+                        converted = obj
+                        target_dict = metadata
+                    _apply_filter(key, filter or {}, converted, target_dict)
 
             # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
             writer = FileSystemWriter(path=path, single_file_per_rank=True)
@@ -410,15 +420,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         elif self._state_dict_type == "full":
             state_dict_ctx = _get_full_state_dict_context(module)
-            full_state = {}
+            full_state: Dict[str, Any] = {}
             with state_dict_ctx:
                 for key, obj in state.items():
                     if isinstance(obj, FSDP):
-                        full_state[key] = obj.state_dict()
+                        converted = obj.state_dict()
                     elif isinstance(obj, Optimizer):
-                        full_state[key] = FSDP.optim_state_dict(module, obj)
+                        converted = FSDP.optim_state_dict(module, obj)
                     else:  # everything not a module or optimizer is considered metadata
-                        full_state[key] = obj  # type: ignore[assignment]
+                        converted = obj
+                    _apply_filter(key, filter or {}, converted, full_state)
 
             if self.global_rank == 0:
                 torch.save(full_state, path)
@@ -453,6 +464,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from torch.distributed.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp import OptimStateKeyType
 
         modules = {key: module for key, module in state.items() if isinstance(module, FSDP)}
         optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
@@ -506,20 +518,34 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return metadata
 
         if _is_full_checkpoint(path):
-            if optimizers:
-                rank_zero_warn(
-                    "Loading a full-state checkpoint into FSDP currently only supports loading the model weights."
-                    " The optimizer state won't be reloaded."
-                )
-
             # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
             # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
             checkpoint = torch.load(path, map_location="cpu")
             with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
                 module.load_state_dict(checkpoint.pop(module_key), strict=strict)
 
+            # Load optimizer states
+            for optim_key, optim in optimizers.items():
+                # rank0_only should be false because we need to load the optimizer state on all ranks
+                with _get_full_state_dict_context(module, rank0_only=False):
+                    temp_state_dict = checkpoint.pop(optim_key)
+
+                    # Handling the case where the optimizer state is saved from a normal optimizer
+                    if isinstance(list(temp_state_dict["state"].keys())[0], int):
+                        temp_state_dict = FSDP.rekey_optim_state_dict(
+                            temp_state_dict, OptimStateKeyType.PARAM_NAME, module
+                        )
+
+                    optim_state_dict = FSDP.optim_state_dict_to_load(
+                        optim_state_dict=temp_state_dict,
+                        model=module,
+                        optim=optim,
+                    )
+                    optim.load_state_dict(optim_state_dict)
+
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
+
             # Load metadata (anything not a module or optimizer)
             for key in requested_metadata_keys:
                 if key not in checkpoint:
@@ -633,12 +659,14 @@ def _get_sharded_state_dict_context(module: "FullyShardedDataParallel") -> _Gene
     return state_dict_type_context
 
 
-def _get_full_state_dict_context(module: "FullyShardedDataParallel") -> _GeneratorContextManager:
+def _get_full_state_dict_context(
+    module: "FullyShardedDataParallel", rank0_only: bool = True
+) -> _GeneratorContextManager:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import FullOptimStateDictConfig, FullStateDictConfig, StateDictType
 
-    state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
-    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True)
+    state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
+    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
     state_dict_type_context = FSDP.state_dict_type(
         module=module,
         state_dict_type=StateDictType.FULL_STATE_DICT,

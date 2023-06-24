@@ -1,0 +1,6 @@
+# on top of all other aggregated manifests from sub packages add also:
+
+include src/lightning/version.info
+include src/lightning/py.typed
+include requirements/base.txt
+recursive-include requirements/data *.txt
