@@ -25,6 +25,7 @@ from lightning.fabric.utilities.types import _Stateful, Optimizable, ReduceLROnP
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple
 
 
@@ -334,6 +335,12 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
 
 
 def _validate_multiple_optimizers_support(optimizers: List[Optimizer], model: "pl.LightningModule") -> None:
+    if is_param_in_hook_signature(model.training_step, "optimizer_idx", explicit=True):
+        raise RuntimeError(
+            "Training with multiple optimizers is only supported with manual optimization. Remove the `optimizer_idx`"
+            " argument from `training_step`, set `self.automatic_optimization = False` and access your optimizers"
+            " in `training_step` with `opt1, opt2, ... = self.optimizers()`."
+        )
     if model.automatic_optimization and len(optimizers) > 1:
         raise RuntimeError(
             "Training with multiple optimizers is only supported with manual optimization. Set"

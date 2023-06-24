@@ -57,6 +57,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Updated `LearningRateMonitor` to log monitored values to `trainer.callback_metrics` ([#17626](https://github.com/Lightning-AI/lightning/pull/17626))
 
 
+- Automatically call `xla_model.mark_step()` before saving checkpoints with XLA ([#17882](https://github.com/Lightning-AI/lightning/pull/17882))
+
 ### Changed
 
 - Removed the limitation to call `self.trainer.model.parameters()` in `LightningModule.configure_optimizers()` ([#17309](https://github.com/Lightning-AI/lightning/pull/17309))
@@ -89,6 +91,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Support kwargs input for LayerSummary ([#17709](https://github.com/Lightning-AI/lightning/pull/17709))
+
+
+- Dropped support for `wandb` versions older than 0.12.0 in `WandbLogger` ([#17876](https://github.com/Lightning-AI/lightning/pull/17876))
 
 
 ### Deprecated

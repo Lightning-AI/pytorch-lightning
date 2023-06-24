@@ -1,4 +1,4 @@
-name: PyPI
+name: Releasing
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
@@ -74,6 +74,7 @@ jobs:
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     env:
       TAG: ${{ needs.release-version.outputs.tag }}
+      BRANCH_NAME: "trigger/lightning-${{ needs.release-version.outputs.tag }}"
     steps:
     - uses: actions/setup-python@v4
       with:
@@ -85,16 +86,15 @@ jobs:
     - name: Update lightning version
       run: |
         import json, os
-        with open("versions.json") as fo:
+        fname = "versions.json"
+        with open(fname, encoding="utf-8") as fo:
             vers = json.load(fo)
         vers["lightning_version"] = os.getenv('TAG')
-        with open("versions.json", "w") as fw:
-            json.dump(vers, fw)
+        with open(fname, "w", encoding="utf-8") as fw:
+            json.dump(vers, fw, indent=2)
       shell: python
     - run: cat versions.json
     - name: GIT commit & push
-      env:
-        BRANCH_NAME: "trigger/lightning-${{ env.TAG }}"
       run: |
         git config --global user.name "PL Ghost"
         git config --global user.email pl-github@grid.ai
@@ -188,5 +188,6 @@ jobs:
     uses: ./.github/workflows/_legacy-checkpoints.yml
     with:
       push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
+      upload_local: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
       create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
     secrets: inherit

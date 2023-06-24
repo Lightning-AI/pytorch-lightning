@@ -30,6 +30,11 @@ on:
         default: ''
         required: false
         type: string
+      upload_local:
+        description: 'When releasing, it installs local but need to upload with the actual version tag.'
+        default: false
+        required: false
+        type: boolean
       create_pr:
         description: 'Create a PR to enable testing PL with a new checkpoint.'
         default: false
@@ -92,8 +97,12 @@ jobs:
     - name: Generate checkpoints
       working-directory: ${{ env.legacy_dir }}
       run: bash generate_checkpoints.sh ${{ inputs.pl_version }}
+    - name: Rename local to actual version
+      if: inputs.upload_local
+      working-directory: ${{ env.legacy_dir }}
+      run: mv checkpoints/local checkpoints/${{ steps.decide-version.outputs.pl-version }}
 
-    - name: Keep artifact & DryRun
+    - name: "Determine: Keep artifact & DryRun"
       run: |
         python -c "print('KEEP_DAYS=' + str(30 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_ENV
         python -c "print('AWS_RUN=' + str('' if '${{inputs.push_to_s3}}' == 'true' else '--dryrun'))" >> $GITHUB_ENV
@@ -130,6 +139,7 @@ jobs:
       with:
         title: Adding test for legacy checkpoint created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
         delete-branch: true
+        token: ${{ secrets.PAT_GHOST }}
         labels: |
           checkpointing
           tests
