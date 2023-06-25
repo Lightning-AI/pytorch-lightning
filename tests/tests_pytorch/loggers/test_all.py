@@ -125,6 +125,11 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         logger.experiment.id = "foo"
         logger.experiment.project_name = "bar"
 
+    if logger_class == NeptuneLogger:
+        logger._retrieve_run_data = Mock()
+        logger._run_short_id = "foo"
+        logger._run_name = "bar"
+
     if logger_class == MLFlowLogger:
         logger = mock_mlflow_run_creation(logger, experiment_id="foo", run_id="bar")
 
