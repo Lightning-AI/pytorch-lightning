@@ -13,12 +13,15 @@
 # limitations under the License.
 import logging
 from contextlib import contextmanager
-from typing import Any, Generator, Literal, Mapping, Optional, TYPE_CHECKING, Union
+from typing import Any, Generator, Literal, Mapping, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
+from lightning_utilities import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
+from torch import Tensor
 
 from lightning.fabric.plugins.precision.precision import Precision
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.rank_zero import rank_zero_warn
 
 _TRANSFORMER_ENGINE_AVAILABLE = RequirementCache("transformer_engine")
@@ -39,6 +42,7 @@ class Fp8TransformerEnginePrecision(Precision):
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Args:
+        dtype: The base dtype to use.
         recipe: Recipe for the DelayedScaling
             `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/common.html#transform
             er_engine.common.recipe.DelayedScaling`__. In dict format or the dataclass format.
@@ -56,7 +60,10 @@ class Fp8TransformerEnginePrecision(Precision):
     precision: Literal["8-mixed-transformer-engine"] = "8-mixed-transformer-engine"
 
     def __init__(
-        self, recipe: Optional[Union[Mapping[str, Any], "DelayedScaling"]] = None, replace_layers: bool = True
+        self,
+        dtype: Optional[torch.dtype] = None,
+        recipe: Optional[Union[Mapping[str, Any], "DelayedScaling"]] = None,
+        replace_layers: bool = True,
     ) -> None:
         if not _TRANSFORMER_ENGINE_AVAILABLE:
             raise ModuleNotFoundError(str(_TRANSFORMER_ENGINE_AVAILABLE))
@@ -72,42 +79,63 @@ class Fp8TransformerEnginePrecision(Precision):
                 recipe["fp8_format"] = getattr(Format, recipe["fp8_format"])
             recipe = DelayedScaling(**recipe)
 
+        if dtype is None:
+            dtype = torch.get_default_dtype()
+        self.dtype = dtype
         self.recipe = recipe
         self.replace_layers = replace_layers
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
+        default_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(self.dtype)
+
         import transformer_engine.pytorch as te
 
         with te.fp8_autocast(enabled=True, fp8_recipe=self.recipe):
             yield
 
+        torch.set_default_dtype(default_dtype)
+
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
         # avoid converting if any is found. assume the user took care of it
         if self.replace_layers and not any("transformer_engine" in m.__module__ for m in module.modules()):
-            _convert_layers(module)
+            _convert_layers(module, self.dtype)
+        module = module.to(dtype=self.dtype)
         return module
 
     @contextmanager
     def init_context(self) -> Generator[None, None, None]:
-        if not self.replace_layers:
-            yield
-            return
+        default_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(self.dtype)
 
         original_linear = torch.nn.Linear
         original_layer_norm = torch.nn.LayerNorm
-
-        torch.nn.Linear = Linear  # type: ignore[misc]
-        torch.nn.LayerNorm = LayerNorm  # type: ignore[misc]
+        if self.replace_layers:
+            Linear, LayerNorm = _patched_te_layers()
+            torch.nn.Linear = Linear  # type: ignore[misc]
+            torch.nn.LayerNorm = LayerNorm  # type: ignore[misc]
 
         yield
 
         torch.nn.Linear = original_linear  # type: ignore[misc]
         torch.nn.LayerNorm = original_layer_norm  # type: ignore[misc]
 
+        torch.set_default_dtype(default_dtype)
 
-# remove this block with when https://github.com/NVIDIA/TransformerEngine/issues/270 is resolved
-if _TRANSFORMER_ENGINE_AVAILABLE:
+    def convert_input(self, data: Any) -> Any:
+        if self.dtype is None:
+            return data
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self.dtype)
+
+    def convert_output(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
+
+
+def _patched_te_layers() -> Tuple[Type, Type]:
+    # remove function when https://github.com/NVIDIA/TransformerEngine/issues/270 is resolved
+    if not _TRANSFORMER_ENGINE_AVAILABLE:
+        return torch.nn.Linear, torch.nn.LayerNorm
     import transformer_engine.pytorch as te
 
     class Linear(te.Linear):
@@ -120,12 +148,10 @@ if _TRANSFORMER_ENGINE_AVAILABLE:
             kwargs.setdefault("params_dtype", torch.get_default_dtype())
             super().__init__(*args, **kwargs)
 
-else:
-    Linear = torch.nn.Linear  # type: ignore[assignment,misc]
-    LayerNorm = torch.nn.LayerNorm  # type: ignore[assignment,misc]
+    return Linear, LayerNorm
 
 
-def _convert_layers(module: torch.nn.Module) -> None:
+def _convert_layers(module: torch.nn.Module, dtype: torch.dtype) -> None:
     import transformer_engine.pytorch as te
 
     for name, child in module.named_children():
@@ -139,16 +165,14 @@ def _convert_layers(module: torch.nn.Module) -> None:
                 )
                 continue
             has_bias = child.bias is not None
-            replacement = te.Linear(
-                child.in_features, child.out_features, bias=has_bias, params_dtype=torch.get_default_dtype()
-            )
+            replacement = te.Linear(child.in_features, child.out_features, bias=has_bias, params_dtype=dtype)
             replacement.weight.data = child.weight.data.clone()
             if has_bias:
                 replacement.bias.data = child.bias.data.clone()
             log.debug(f"Replacing layer {name!r} with Transformer Engine equivalent")
             module.__setattr__(name, replacement)
         elif isinstance(child, torch.nn.LayerNorm):
-            replacement = te.LayerNorm(child.normalized_shape[0], eps=child.eps, params_dtype=torch.get_default_dtype())
+            replacement = te.LayerNorm(child.normalized_shape[0], eps=child.eps, params_dtype=dtype)
             replacement.weight.data = child.weight.data.clone()
             replacement.bias.data = child.bias.data.clone()
             log.debug(f"Replacing layer {name!r} with Transformer Engine equivalent")
@@ -156,4 +180,4 @@ def _convert_layers(module: torch.nn.Module) -> None:
         else:
             # there are other transformer engine layers that we could convert but require fusion. full list at:
             # https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html
-            _convert_layers(child)
+            _convert_layers(child, dtype)

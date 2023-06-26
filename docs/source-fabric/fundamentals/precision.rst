@@ -133,13 +133,16 @@ Float8 Mixed Precision via Nvidia's TransformerEngine
 
 `Transformer Engine <https://github.com/NVIDIA/TransformerEngine>`__ (TE) is a library for accelerating models on the
 latest NVIDIA GPUs using 8-bit floating point (FP8) precision on Hopper GPUs, to provide better performance with lower
-memory utilization in both training and inference. It offers improved performance over FP16 with no degradation in accuracy.
+memory utilization in both training and inference. It offers improved performance over true half precision with no degradation in accuracy.
 
 Using TE requires replacing some of the layers in your model. Fabric automatically replaces the :class:`torch.nn.Linear`
 and :class:`torch.nn.LayerNorm` layers in your model with their TE alternatives, however, TE also offers
 `fused layers <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html>`__
 to squeeze out all the possible performance. If Fabric detects that any layer has been replaced already, automatic
 replacement is not done.
+
+This plugin is a mix of "mixed" and "true" precision. The computation is downcasted to FP8 precision on the fly, but
+the model and inputs can be kept in true full or half precision.
 
 .. code-block:: python
 
@@ -149,11 +152,11 @@ replacement is not done.
     # OR
     fabric = Fabric(precision="8-mixed-transformer-engine")
 
-    # Customize the fp8 recipe:
+    # Customize the fp8 recipe or set a different base precision:
     from lightning.fabric.plugins.precision import Fp8TransformerEnginePrecision
 
     recipe = {"fp8_format": "HYBRID", "amax_history_len": 16, "amax_compute_algo": "max"}
-    precision = Fp8TransformerEnginePrecision(recipe)
+    precision = Fp8TransformerEnginePrecision(dtype=torch.bfloat16, recipe=recipe)
     fabric = Fabric(plugins=precision)
 
 

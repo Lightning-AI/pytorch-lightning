@@ -1041,11 +1041,12 @@ def test_connector_fp8_transformer_engine(monkeypatch):
     precision = Fp8TransformerEnginePrecision()
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
+    assert precision.dtype == torch.float32
     recipe_mock.DelayedScaling.assert_called_once_with()
 
     recipe_mock.reset_mock()
     recipe = {"foo": 0, "fp8_format": "HYBRID"}
-    precision = Fp8TransformerEnginePrecision(recipe)
+    precision = Fp8TransformerEnginePrecision(dtype=torch.float16, recipe=recipe)
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
     recipe_mock.DelayedScaling.assert_called_once_with(foo=0, fp8_format=recipe_mock.Format.HYBRID)
@@ -1069,6 +1070,7 @@ def test_connector_fp8_transformer_engine(monkeypatch):
     precision.replace_layers = False
     precision.convert_module(model)
     assert isinstance(model.l1, torch.nn.Linear)
+    assert model.l1.weight.dtype == torch.float16
     assert isinstance(model.l3.l, torch.nn.Linear)
     assert isinstance(model.l2, torch.nn.LayerNorm)
 
@@ -1091,9 +1093,21 @@ def test_connector_fp8_transformer_engine(monkeypatch):
     assert isinstance(model.l2, torch.nn.LayerNorm)
     assert isinstance(model.l3.l, torch.nn.Linear)
 
+    class TELinearMock(Mock):
+        ...
+
+    class TELayerNormMock(Mock):
+        ...
+
+    monkeypatch.setattr(
+        lightning.fabric.plugins.precision.fp8_transformer_engine,
+        "_patched_te_layers",
+        lambda: (TELinearMock(), TELayerNormMock()),
+    )
     precision.replace_layers = True
     with precision.init_context():
+        assert torch.get_default_dtype() == torch.float16
         model = MyModule()
-    assert model.l1._extract_mock_name() == "mock.pytorch.Linear()"
-    assert model.l2._extract_mock_name() == "mock.pytorch.LayerNorm()"
-    assert model.l3.l._extract_mock_name() == "mock.pytorch.Linear()"
+    assert isinstance(model.l1, TELinearMock)
+    assert isinstance(model.l2, TELayerNormMock)
+    assert isinstance(model.l3.l, TELinearMock)
