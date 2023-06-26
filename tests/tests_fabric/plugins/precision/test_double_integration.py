@@ -41,7 +41,7 @@ def test_double_precision():
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
     model, optimizer = fabric.setup(model, optimizer)
 
-    batch = torch.rand(2, 32)
+    batch = torch.rand(2, 32, device=fabric.device)
     assert model.layer.weight.dtype == model.layer.bias.dtype == torch.float64
     assert model.complex_buffer.dtype == torch.complex128
 
@@ -53,4 +53,3 @@ def test_double_precision():
     assert model.layer.weight.grad.dtype == torch.float64
     optimizer.step()
     optimizer.zero_grad()
-
