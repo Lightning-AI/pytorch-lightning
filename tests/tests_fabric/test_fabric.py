@@ -33,6 +33,7 @@ from lightning.fabric.strategies import (
     SingleDeviceStrategy,
     Strategy,
     XLAStrategy,
+    DataParallelStrategy,
 )
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.exceptions import MisconfigurationException
@@ -1133,6 +1134,8 @@ def test_verify_launch_called():
     fabric = Fabric(accelerator="cpu")
     assert not fabric._launched
     fabric._strategy = Mock(spec=SingleDeviceStrategy)
+    fabric._validate_launched()
+    fabric._strategy = Mock(spec=DataParallelStrategy)
     fabric._validate_launched()
     fabric._strategy = Mock(spec=DDPStrategy)
     with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
