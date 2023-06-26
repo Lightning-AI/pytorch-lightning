@@ -27,13 +27,13 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Samp
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
+    DataParallelStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     Strategy,
     XLAStrategy,
-    DataParallelStrategy,
 )
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.exceptions import MisconfigurationException
