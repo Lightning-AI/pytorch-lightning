@@ -42,6 +42,7 @@ class LightningPlugin:
         self.project_id = ""
         self.cloudspace_id = ""
         self.cluster_id = ""
+        self.source_app = ""
 
     def run(self, *args: str, **kwargs: str) -> Optional[List[_Action]]:
         """Override with the logic to execute on the cloudspace."""
@@ -85,6 +86,7 @@ class LightningPlugin:
             cloudspace_id=self.cloudspace_id,
             name=name,
             cluster_id=self.cluster_id,
+            source_app=self.source_app,
         )
         # Return a relative URL so it can be used with the NavigateTo action.
         return url.replace(constants.get_lightning_cloud_url(), "")
@@ -94,7 +96,9 @@ class LightningPlugin:
         project_id: str,
         cloudspace_id: str,
         cluster_id: str,
+        source_app: str,
     ) -> None:
+        self.source_app = source_app
         self.project_id = project_id
         self.cloudspace_id = cloudspace_id
         self.cluster_id = cluster_id
@@ -107,6 +111,7 @@ class _Run(BaseModel):
     cloudspace_id: str
     cluster_id: str
     plugin_arguments: Dict[str, str]
+    source_app: str
 
 
 def _run_plugin(run: _Run) -> Dict[str, Any]:
@@ -162,6 +167,7 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
                 project_id=run.project_id,
                 cloudspace_id=run.cloudspace_id,
                 cluster_id=run.cluster_id,
+                source_app=run.source_app,
             )
             actions = plugin.run(**run.plugin_arguments) or []
             return {"actions": [action.to_spec().to_dict() for action in actions]}
