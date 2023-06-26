@@ -35,7 +35,7 @@ else:
 class TestFSDPModel(BoringModel):
     def __init__(self):
         super().__init__()
-        self.layer: Optional[torch.nn.Module] = None
+        self.layer: Optional[nn.Module] = None
 
     def _init_model(self) -> None:
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
@@ -104,6 +104,7 @@ class TestFSDPModel(BoringModel):
 class TestBoringModel(BoringModel):
     def __init__(self, wrap_min_params: int = 2, automatic_optimization: bool = True):
         super().__init__()
+
         self.save_hyperparameters()
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         self.should_be_wrapped = [(32 * 32 + 32) > wrap_min_params, None, (32 * 2 + 2) > wrap_min_params]
@@ -111,7 +112,8 @@ class TestBoringModel(BoringModel):
 
     def configure_optimizers(self):
         parameters = self.parameters() if _TORCH_GREATER_EQUAL_2_0 else self.trainer.model.parameters()
-        # There are some issue when we are trying to store SGD optimizer state in FSDP
+
+        # SGD's FSDP optimier state is fixed in https://github.com/pytorch/pytorch/pull/99214
         return torch.optim.AdamW(parameters, lr=0.1)
 
 
