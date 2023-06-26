@@ -92,7 +92,7 @@ def _run_grad_clipping_test(fabric, clip_type):
                     ),
                     2,
                 )
-                torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
+                torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=fabric.device))
 
             else:
                 for p in model.parameters():
