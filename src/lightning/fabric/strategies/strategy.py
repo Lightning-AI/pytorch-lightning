@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -240,7 +240,11 @@ class Strategy(ABC):
         return decision
 
     def save_checkpoint(
-        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+        self,
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
+        storage_options: Optional[Any] = None,
+        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state as a checkpoint file.
 
@@ -249,8 +253,11 @@ class Strategy(ABC):
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
             storage_options: Additional options for the ``CheckpointIO`` plugin
+            filter: An optional dictionary containing filter callables that return a boolean indicating whether the
+                given item should be saved (``True``) or filtered out (``False``). Each filter key should match a
+                state key, where its filter will be applied to the ``state_dict`` generated.
         """
-        state = self._convert_stateful_objects_in_state(state)
+        state = self._convert_stateful_objects_in_state(state, filter=filter or {})
         if self.is_global_zero:
             self.checkpoint_io.save_checkpoint(checkpoint=state, path=path, storage_options=storage_options)
 
@@ -358,15 +365,19 @@ class Strategy(ABC):
             " Please call `setup_module_and_optimizers(model, [optimizer, ...])` to jointly set them up."
         )
 
-    def _convert_stateful_objects_in_state(self, state: Dict[str, Union[Module, Optimizer, Any]]) -> Dict[str, Any]:
-        converted_state = {}
+    def _convert_stateful_objects_in_state(
+        self, state: Dict[str, Union[Module, Optimizer, Any]], filter: Dict[str, Callable[[str, Any], bool]]
+    ) -> Dict[str, Any]:
+        converted_state: Dict[str, Any] = {}
         for key, obj in state.items():
+            # convert the state
             if isinstance(obj, Module):
-                converted_state[key] = self.get_module_state_dict(module=obj)
+                converted = self.get_module_state_dict(module=obj)
             elif isinstance(obj, Optimizer):
-                converted_state[key] = self.get_optimizer_state(optimizer=obj)
+                converted = self.get_optimizer_state(optimizer=obj)
             else:
-                converted_state[key] = obj
+                converted = obj
+            _apply_filter(key, filter, converted, converted_state)
         return converted_state
 
 
@@ -411,3 +422,19 @@ def _validate_keys_for_strict_loading(
             f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint."
             f" To disable strict loading, set `strict=False`."
         )
+
+
+def _apply_filter(
+    key: str, filter: Dict[str, Callable[[str, Any], bool]], source_dict: object, target_dict: Dict[str, Any]
+) -> None:
+    # filter out if necessary
+    if key in filter and isinstance(source_dict, dict):
+        filter_fn = filter[key]
+        for k, v in source_dict.items():
+            if filter_fn(k, v):
+                # save the state
+                target_dict.setdefault(key, {})
+                target_dict[key][k] = v
+    else:
+        # save the state
+        target_dict[key] = source_dict

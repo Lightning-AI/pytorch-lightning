@@ -312,7 +312,8 @@ The three most common ones, :meth:`~lightning.fabric.fabric.Fabric.broadcast`, :
 
 .. important::
 
-    Every process needs to enter the collective calls. Otherwise, the program will hang!
+    Every process needs to enter the collective calls, and tensors need to have the same shape across all processes.
+    Otherwise, the program will hang!
 
 Learn more about :doc:`distributed communication <../advanced/distributed_communication>`.
 
