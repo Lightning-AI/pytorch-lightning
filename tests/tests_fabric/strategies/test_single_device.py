@@ -67,6 +67,10 @@ def test_single_device_module_to_device():
 @pytest.mark.parametrize("clip_type", ["norm", "val"])
 def test_single_device_grad_clipping(clip_type, precision):
     fabric = Fabric(accelerator="auto", devices=1, precision=precision)
+    _run_grad_clipping_test(fabric=fabric, clip_type=clip_type)
+
+
+def _run_grad_clipping_test(fabric, clip_type):
     model = torch.nn.Linear(32, 2)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
     model, optimizer = fabric.setup(model, optimizer)
