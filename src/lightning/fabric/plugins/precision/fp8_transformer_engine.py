@@ -124,8 +124,6 @@ class Fp8TransformerEnginePrecision(Precision):
         torch.set_default_dtype(default_dtype)
 
     def convert_input(self, data: Any) -> Any:
-        if self.dtype is None:
-            return data
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self.dtype)
 
     def convert_output(self, data: Any) -> Any:
