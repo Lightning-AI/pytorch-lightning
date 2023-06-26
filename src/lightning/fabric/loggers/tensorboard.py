@@ -265,6 +265,11 @@ class TensorBoardLogger(Logger):
             input_array = model._on_before_batch_transfer(input_array)  # type: ignore[operator]
             input_array = model._apply_batch_transfer_handler(input_array)  # type: ignore[operator]
             self.experiment.add_graph(model, input_array)
+        elif hasattr(model, "module") and callable(getattr(model, "_redirection_through_forward", None)):
+            # this is probably is a _FabricModule
+            self.experiment.add_graph(model.module, input_array)
+        else:
+            self.experiment.add_graph(model, input_array)
 
     @rank_zero_only
     def save(self) -> None:
