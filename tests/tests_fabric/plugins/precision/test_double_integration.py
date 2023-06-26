@@ -16,9 +16,8 @@
 import torch
 import torch.nn as nn
 
-from tests_fabric.helpers.runif import RunIf
-
 from lightning.fabric import Fabric
+from tests_fabric.helpers.runif import RunIf
 
 
 class BoringDoubleModule(nn.Module):
