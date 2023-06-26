@@ -49,7 +49,7 @@ RUN \
     rm -rf lightning && \
     pip list
 
-RUN pip install jupyterlab[all] -U
+RUN pip install jupyterlab[all] -U --no-cache-dir
 
 ENV PYTHONPATH="/workspace"
 
