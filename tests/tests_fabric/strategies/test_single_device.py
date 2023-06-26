@@ -88,7 +88,8 @@ def _run_grad_clipping_test(fabric, clip_type):
                 parameters = model.parameters()
                 grad_norm = torch.linalg.vector_norm(
                     torch.stack(
-                        [torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32) for p in parameters]),
+                        [torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32) for p in parameters]
+                    ),
                     2,
                 )
                 torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))

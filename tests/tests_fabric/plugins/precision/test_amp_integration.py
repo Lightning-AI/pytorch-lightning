@@ -53,7 +53,7 @@ def test_amp(accelerator, precision, expected_dtype):
 
 def _test_amp(fabric, expected_dtype):
     model = MixedPrecisionModule(expected_dtype)
-    optimizer =  torch.optim.Adam(model.parameters(), lr=0.1)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
     model, optimizer = fabric.setup(model, optimizer)
 
     batch = torch.rand(2, 32, device=fabric.device)
