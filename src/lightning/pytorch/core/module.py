@@ -878,18 +878,18 @@ class LightningModule(
         """
 
     @overload
-    def predict_step(self, batch: Any, batch_idx: int) -> Optional[STEP_OUTPUT]:
+    def predict_step(self, batch: Any, batch_idx: int) -> Any:
         ...
 
     @overload
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Any:
         ...
 
     @overload
-    def predict_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> Optional[STEP_OUTPUT]:
+    def predict_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> Any:
         ...
 
-    def predict_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def predict_step(self, *args: Any, **kwargs: Any) -> Any:
         """Step function called during :meth:`~lightning.pytorch.trainer.trainer.Trainer.predict`. By default, it
         calls :meth:`~lightning.pytorch.core.module.LightningModule.forward`. Override to add any processing logic.
 
@@ -910,10 +910,7 @@ class LightningModule(
                 (only if multiple dataloaders used)
 
         Return:
-            - :class:`~torch.Tensor` - The loss tensor
-            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``.
-            - ``None`` - Skip to the next batch. This is only for automatic optimization.
-                This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
+            Predicted output (optional).
 
         Example ::
 

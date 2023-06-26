@@ -394,7 +394,7 @@ class Strategy(ABC):
                 return self._forward_redirection(self.model, self.lightning_module, "test_step", *args, **kwargs)
             return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def predict_step(self, *args: Any, **kwargs: Any) -> Any:
         """The actual predict step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
