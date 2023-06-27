@@ -11,6 +11,8 @@ docs/venv*/
 docs/build*/
 docs/source-app/generated
 docs/source-app/*/generated
+docs/source-app/_fetched_assets
+docs/source-fabric/_fetched_assets
 docs/source-pytorch/api
 docs/source-pytorch/*.md
 docs/source-pytorch/generated
@@ -18,6 +20,7 @@ docs/source-pytorch/*/generated
 docs/source-pytorch/notebooks
 docs/source-pytorch/_static/images/course_UvA-DL
 docs/source-pytorch/_static/images/lightning_examples
+docs/source-pytorch/_fetched_assets
 
 docs/source-fabric/*/generated
 

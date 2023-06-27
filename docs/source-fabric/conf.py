@@ -46,7 +46,7 @@ github_repo = project
 
 # -- Project documents -------------------------------------------------------
 
-fetch_external_assets(docs_folder="docs/source-fabric")
+fetch_external_assets(docs_folder=_PATH_HERE, retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+")
 
 # -- General configuration ---------------------------------------------------
 

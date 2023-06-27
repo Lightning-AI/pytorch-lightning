@@ -97,7 +97,10 @@ assist_local.AssistantCLI.pull_docs_files(
     checkout="tags/1.0.0",
 )
 
-fetch_external_assets(docs_folder="docs/source-pytorch")
+if not _PL_FAST_DOCS_DEV:
+    fetch_external_assets(
+        docs_folder=_PATH_HERE, retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
+    )
 
 
 # -- Project information -----------------------------------------------------
