@@ -17,10 +17,10 @@ import shutil
 import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
-from lightning_utilities.docs import fetch_external_assets
-from lightning_utilities.docs.formatting import _transform_changelog
 
 import pt_lightning_sphinx_theme
+from lightning_utilities.docs import fetch_external_assets
+from lightning_utilities.docs.formatting import _transform_changelog
 
 import lightning
 
