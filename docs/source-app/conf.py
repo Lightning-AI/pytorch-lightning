@@ -17,6 +17,7 @@ import shutil
 import sys
 
 import lai_sphinx_theme
+from lightning_utilities.docs import fetch_external_assets
 
 import lightning
 
@@ -46,23 +47,7 @@ github_repo = project
 # -- Project documents -------------------------------------------------------
 
 
-# def _transform_changelog(path_in: str, path_out: str) -> None:
-#     with open(path_in) as fp:
-#         chlog_lines = fp.readlines()
-#     # enrich short subsub-titles to be unique
-#     chlog_ver = ""
-#     for i, ln in enumerate(chlog_lines):
-#         if ln.startswith("## "):
-#             chlog_ver = ln[2:].split("-")[0].strip()
-#         elif ln.startswith("### "):
-#             ln = ln.replace("###", f"### {chlog_ver} -")
-#             chlog_lines[i] = ln
-#     with open(path_out, "w") as fp:
-#         fp.writelines(chlog_lines)
-
-
-# export the READme
-# _convert_markdown(os.path.join(_PATH_ROOT, "README.md"), "readme.md")
+fetch_external_assets(docs_folder="docs/source-app")
 
 # -- General configuration ---------------------------------------------------
 

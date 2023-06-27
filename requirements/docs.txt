@@ -14,3 +14,6 @@ sphinx-multiproject
 sphinx-toolbox ==3.4.0
 sphinx-rtd-dark-mode
 jinja2 >=3.0.0,<3.2.0
+
+# todo: replace with released version, likely 0.9
+lightning-utilities @ https://github.com/Lightning-AI/utilities/archive/refs/heads/docs/extracor.zip

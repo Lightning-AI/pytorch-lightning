@@ -11,14 +11,14 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-# import m2r
 import glob
 import os
 import shutil
-import sys
 import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
+from lightning_utilities.docs import fetch_external_assets
+from lightning_utilities.docs.formatting import _transform_changelog
 
 import pt_lightning_sphinx_theme
 
@@ -57,6 +57,7 @@ FOLDER_GENERATED = "generated"
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
 # -- Project documents -------------------------------------------------------
+
 if _SHOULD_COPY_NOTEBOOKS:
     assist_nb.AssistantCLI.copy_notebooks(
         _PATH_RAW_NB,
@@ -79,21 +80,6 @@ if _SHOULD_COPY_NOTEBOOKS:
             os.remove(file)
 
 
-def _transform_changelog(path_in: str, path_out: str) -> None:
-    with open(path_in) as fp:
-        chlog_lines = fp.readlines()
-    # enrich short subsub-titles to be unique
-    chlog_ver = ""
-    for i, ln in enumerate(chlog_lines):
-        if ln.startswith("## "):
-            chlog_ver = ln[2:].split("-")[0].strip()
-        elif ln.startswith("### "):
-            ln = ln.replace("###", f"### {chlog_ver} -")
-            chlog_lines[i] = ln
-    with open(path_out, "w") as fp:
-        fp.writelines(chlog_lines)
-
-
 os.makedirs(os.path.join(_PATH_HERE, FOLDER_GENERATED), exist_ok=True)
 # copy all documents from GH templates like contribution guide
 for md in glob.glob(os.path.join(_PATH_ROOT, ".github", "*.md")):
@@ -110,6 +96,8 @@ assist_local.AssistantCLI.pull_docs_files(
     target_dir="docs/source-pytorch/integrations/hpu",
     checkout="tags/1.0.0",
 )
+
+fetch_external_assets(docs_folder="docs/source-pytorch")
 
 
 # -- Project information -----------------------------------------------------
