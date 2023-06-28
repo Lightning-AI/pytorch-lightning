@@ -432,7 +432,9 @@ def _filesystem() -> AbstractFileSystem:
             del os.environ["AWS_ACCESS_KEY_ID"]
             del os.environ["AWS_SECRET_ACCESS_KEY"]
 
-        fs = S3FileSystem()
+        region_name = os.getenv("LIGHTNING_REGION_NAME", None)
+
+        fs = S3FileSystem(config_kwargs={"region_name": region_name})
 
         app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", "")
         if app_id == "":
