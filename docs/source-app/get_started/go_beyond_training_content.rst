@@ -6,14 +6,13 @@ Find the *Train & Demo PyTorch Lightning* application in the `Lightning.ai App G
 
 Here is a recording of this App running locally and in the cloud with the same behavior.
 
-.. raw:: html
-
-    <br />
-    <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.png" width="100%">
-        <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.mp4" type="video/mp4" width="100%">
-    </video>
-    <br />
-    <br />
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.mp4
+    :poster: https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.png
+    :width: 600
+    :class: background-video
+    :autoplay:
+    :loop:
+    :muted:
 
 In the steps below, we are going to show you how to build this application.
 

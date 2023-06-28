@@ -21,14 +21,13 @@ Provide a name and value to your secret, for example, name could be "github_api_
 .. note::
     Secret names must start with a letter and can only contain letters, numbers, dashes, and periods. The Secret names must comply with `RFC1123 naming conventions <https://www.rfc-editor.org/rfc/rfc1123>`_. The Secret value has no restrictions.
 
-.. raw:: html
-
-    <br />
-    <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning//encrypted_secrets_login.png" width="100%">
-        <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning//encrypted_secrets_login.mp4" type="video/mp4" width="100%">
-    </video>
-    <br />
-    <br />
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning//encrypted_secrets_login.mp4
+    :poster: https://pl-public-data.s3.amazonaws.com/assets_lightning//encrypted_secrets_login.png
+    :width: 600
+    :class: background-video
+    :autoplay:
+    :loop:
+    :muted:
 
 ************
 Use a secret

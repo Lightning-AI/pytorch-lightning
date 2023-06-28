@@ -2,11 +2,11 @@
 Save memory with mixed precision
 ################################
 
-.. raw:: html
-
-    <center>
-        <video width="100%" max-width="500px" src="https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/animations/precision.mp4", type="video/mp4" autoplay loop muted></video>
-    </center>
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/animations/precision.mp4
+    :width: 500
+    :autoplay:
+    :loop:
+    :muted:
 
 ************************
 What is Mixed Precision?

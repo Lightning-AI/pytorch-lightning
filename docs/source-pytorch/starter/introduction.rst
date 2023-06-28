@@ -11,12 +11,11 @@ PyTorch Lightning is the deep learning framework with "batteries included" for p
 
 Lightning organizes PyTorch code to remove boilerplate and unlock scalability.
 
-.. raw:: html
-
-    <video width="100%" max-width="800px" controls autoplay muted playsinline
-    src="https://pl-public-data.s3.amazonaws.com/assets_lightning/pl_readme_gif_2_0.m4v"></video>
-
-|
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/pl_readme_gif_2_0.m4v
+    :width: 600
+    :autoplay:
+    :loop:
+    :muted:
 
 By organizing PyTorch code, lightning enables:
 
@@ -286,10 +285,11 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 Extend the Trainer
 ==================
 
-.. raw:: html
-
-    <video width="100%" max-width="800px" controls autoplay muted playsinline
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cb.m4v"></video>
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cb.m4v
+    :width: 600
+    :autoplay:
+    :loop:
+    :muted:
 
 If you have multiple lines of code with similar functionalities, you can use callbacks to easily group them together and toggle all of those lines on or off at the same time.
 

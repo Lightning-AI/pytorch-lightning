@@ -73,6 +73,7 @@ extensions = [
     "sphinx.ext.imgmath",
     # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
+    "sphinxcontrib.video",
     "myst_parser",
     "sphinx.ext.autosectionlabel",
     "nbsphinx",
