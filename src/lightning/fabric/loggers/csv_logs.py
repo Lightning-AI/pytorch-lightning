@@ -131,8 +131,10 @@ class CSVLogger(Logger):
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+        if step is None:
+            step = len(self.experiment.metrics)
         self.experiment.log_metrics(metrics, step)
-        if step is not None and (step + 1) % self._flush_logs_every_n_steps == 0:
+        if (step + 1) % self._flush_logs_every_n_steps == 0:
             self.save()
 
     @rank_zero_only
