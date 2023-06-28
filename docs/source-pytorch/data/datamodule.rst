@@ -5,7 +5,7 @@ LightningDataModule
 ###################
 A datamodule is a shareable, reusable class that encapsulates all the steps needed to process data:
 
-.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/pt_dm_vid.mp4
     :width: 400
     :autoplay:
     :loop:

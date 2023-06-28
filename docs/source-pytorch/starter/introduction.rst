@@ -11,7 +11,7 @@ PyTorch Lightning is the deep learning framework with "batteries included" for p
 
 Lightning organizes PyTorch code to remove boilerplate and unlock scalability.
 
-.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/pl_readme_gif_2_0.m4v
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/pl_readme_gif_2_0.mp4
     :width: 600
     :autoplay:
     :loop:
@@ -285,7 +285,7 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 Extend the Trainer
 ==================
 
-.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cb.m4v
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/cb.mp4
     :width: 600
     :autoplay:
     :loop:
