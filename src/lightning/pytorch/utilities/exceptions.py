@@ -37,14 +37,9 @@ def _augment_message(exception: BaseException, pattern: str, new_message: str) -
     if not _PYTHON_GREATER_EQUAL_3_11_0:
         args = []
         for arg in exception.args:
-            if isinstance(arg, str):
-                if re.match(pattern, arg, re.DOTALL):
-                    arg = new_message
+            if isinstance(arg, str) and re.match(pattern, arg, re.DOTALL):
+                arg = new_message
             args.append(arg)
         exception.args = tuple(args)
-    elif any(
-        re.match(pattern, message, re.DOTALL)
-        for message in exception.args
-        if isinstance(message, str)
-    ):
+    elif any(re.match(pattern, message, re.DOTALL) for message in exception.args if isinstance(message, str)):
         exception.add_note(new_message)
