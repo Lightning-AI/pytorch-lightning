@@ -48,7 +48,7 @@ github_repo = project
 
 fetch_external_assets(
     docs_folder=_PATH_HERE,
-    assets_folder="fetched-s3-assets",
+    assets_folder="_static/fetched-s3-assets",
     retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+",
 )
 
@@ -63,8 +63,6 @@ needs_sphinx = "6.2"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
-    # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx_toolbox.collapse",
@@ -75,6 +73,8 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.imgmath",
     "sphinx.ext.autosectionlabel",
+    # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
+    # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "myst_parser",
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
