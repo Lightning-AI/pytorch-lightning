@@ -71,7 +71,7 @@ def test_num_replicas_not_below_min_replicas(*_):
 
 
 @pytest.mark.parametrize(
-    "replicas, metrics, expected_replicas",
+    ("replicas", "metrics", "expected_replicas"),
     [
         pytest.param(1, {"pending_requests": 1, "pending_works": 0}, 2, id="increase if no pending work"),
         pytest.param(1, {"pending_requests": 1, "pending_works": 1}, 1, id="dont increase if pending works"),
@@ -172,7 +172,7 @@ def test_autoscaler_scale_down(monkeypatch):
 
 
 class TestLoadBalancerProcessRequest:
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_workers_not_ready_with_cold_start_proxy(self, monkeypatch):
         monkeypatch.setattr(ColdStartProxy, "handle_request", mock.AsyncMock())
         load_balancer = _LoadBalancer(
@@ -182,7 +182,7 @@ class TestLoadBalancerProcessRequest:
         await load_balancer.process_request("test", req_id)
         load_balancer._cold_start_proxy.handle_request.assert_called_once_with("test")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_workers_not_ready_without_cold_start_proxy(self, monkeypatch):
         load_balancer = _LoadBalancer(
             input_type=Text,
@@ -195,7 +195,7 @@ class TestLoadBalancerProcessRequest:
         with pytest.raises(HTTPException):
             await load_balancer.process_request("test", req_id)
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_workers_have_no_capacity_with_cold_start_proxy(self, monkeypatch):
         monkeypatch.setattr(ColdStartProxy, "handle_request", mock.AsyncMock())
         load_balancer = _LoadBalancer(
@@ -208,7 +208,7 @@ class TestLoadBalancerProcessRequest:
         await load_balancer.process_request("test", req_id)
         load_balancer._cold_start_proxy.handle_request.assert_called_once_with("test")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_workers_are_free(self):
         load_balancer = _LoadBalancer(
             input_type=Text,

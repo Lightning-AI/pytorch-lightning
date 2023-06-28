@@ -72,9 +72,8 @@ def _maybe_raise_granular_exception(exception: Exception) -> None:
     if isinstance(exception, asyncio.TimeoutError):
         raise HTTPException(408, "Request timed out") from exception
 
-    if isinstance(exception, Exception):
-        if exception.args[0] == "Server disconnected":
-            raise HTTPException(500, "Worker Server disconnected") from exception
+    if isinstance(exception, Exception) and exception.args[0] == "Server disconnected":
+        raise HTTPException(500, "Worker Server disconnected") from exception
 
     logging.exception(exception)
     raise HTTPException(500, exception.args[0]) from exception
@@ -181,9 +180,9 @@ class _LoadBalancer(LightningWork):
                 raise ValueError("cold_start_proxy must be of type ColdStartProxy or str")
 
     def get_internal_url(self) -> str:
-        if not self._internal_ip:
-            raise ValueError("Internal IP not set")
-        return f"http://{self._internal_ip}:{self._port}"
+        if not self._public_ip:
+            raise ValueError("Public IP not set")
+        return f"http://{self._public_ip}:{self._port}"
 
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]], server_url: str):
         request_data: List[_LoadBalancer._input_type] = [b[1] for b in batch]
@@ -230,6 +229,7 @@ class _LoadBalancer(LightningWork):
                 logger.error("Server is not found in the status list. This should not happen.")
             if status:
                 return server
+        return None
 
     async def consumer(self):
         """The consumer process that continuously checks for new requests and sends them to the API.
@@ -312,7 +312,7 @@ class _LoadBalancer(LightningWork):
 
         @fastapi_app.middleware("http")
         async def current_request_counter(request: Request, call_next):
-            if not request.scope["path"] == self.endpoint:
+            if request.scope["path"] != self.endpoint:
                 return await call_next(request)
             fastapi_app.global_request_count += 1
             fastapi_app.num_current_requests += 1
@@ -386,7 +386,7 @@ class _LoadBalancer(LightningWork):
         """
         old_server_urls = set(self.servers)
         current_server_urls = {
-            f"http://{server._internal_ip}:{server.port}" for server in server_works if server._internal_ip
+            f"http://{server._public_ip}:{server.port}" for server in server_works if server._internal_ip
         }
 
         # doing nothing if no server work has been added/removed
@@ -456,7 +456,7 @@ class _LoadBalancer(LightningWork):
             logger.warn(
                 "Some dependencies to run the UI are missing. To resolve, run `pip install lightning-api-access`"
             )
-            return
+            return None
 
         if is_running_in_cloud():
             url = f"{self._future_url}{self.endpoint}"
@@ -609,10 +609,10 @@ class AutoScaler(LightningFlow):
         """Replicates a LightningWork instance with args and kwargs provided via ``__init__``."""
         cloud_compute = self._work_kwargs.get("cloud_compute", None)
         self._work_kwargs.update(
-            dict(
-                start_with_flow=False,
-                cloud_compute=cloud_compute.clone() if cloud_compute else None,
-            )
+            {
+                "start_with_flow": False,
+                "cloud_compute": cloud_compute.clone() if cloud_compute else None,
+            }
         )
         return self._work_cls(*self._work_args, **self._work_kwargs)
 
@@ -641,8 +641,7 @@ class AutoScaler(LightningFlow):
     def get_work(self, index: int) -> LightningWork:
         """Returns the ``LightningWork`` instance with the given index."""
         work_attribute = self._work_registry[index]
-        work = getattr(self, work_attribute)
-        return work
+        return getattr(self, work_attribute)
 
     def run(self):
         if not self.load_balancer.is_running:
@@ -742,8 +741,7 @@ class AutoScaler(LightningFlow):
         self.load_balancer.update_servers(self.workers)
 
     def configure_layout(self):
-        tabs = [
+        return [
             {"name": "Endpoint Info", "content": f"{self.load_balancer.url}/endpoint-info"},
             {"name": "Swagger", "content": self.load_balancer.url},
         ]
-        return tabs

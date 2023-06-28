@@ -58,7 +58,7 @@ class BatchSizeModel(BoringModel):
         return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
 
 
-@pytest.mark.parametrize(["model_bs", "dm_bs"], [(2, -1), (2, 2), (2, None), (None, 2), (16, 16)])
+@pytest.mark.parametrize(("model_bs", "dm_bs"), [(2, -1), (2, 2), (2, None), (None, 2), (16, 16)])
 def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_bs):
     """Test the tuner method `Tuner.scale_batch_size` with a datamodule."""
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
@@ -113,7 +113,7 @@ def test_trainer_reset_correctly(tmpdir, trainer_fn):
     assert actual == expected
 
     after_state_dict = model.state_dict()
-    for key in before_state_dict.keys():
+    for key in before_state_dict:
         assert torch.all(
             torch.eq(before_state_dict[key], after_state_dict[key])
         ), "Model was not reset correctly after scaling batch size"
@@ -294,7 +294,7 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
 
 
 @pytest.mark.parametrize("scale_method", ["power", "binsearch"])
-@pytest.mark.parametrize("init_batch_size", (8, 17, 64))
+@pytest.mark.parametrize("init_batch_size", [8, 17, 64])
 def test_dataloader_reset_with_scale_batch_size(tmp_path, caplog, scale_method, init_batch_size):
     """Test that train and val dataloaders are reset at every update in scale batch size."""
     model = BatchSizeModel(batch_size=16)
@@ -449,7 +449,7 @@ def test_batch_size_finder_with_multiple_eval_dataloaders(tmpdir):
         tuner.scale_batch_size(model, method="validate")
 
 
-@pytest.mark.parametrize("scale_method, expected_batch_size", [("power", 62), ("binsearch", 100)])
+@pytest.mark.parametrize(("scale_method", "expected_batch_size"), [("power", 62), ("binsearch", 100)])
 @patch("lightning.pytorch.tuner.batch_size_scaling.is_oom_error", return_value=True)
 def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expected_batch_size):
     class CustomBatchSizeModel(BatchSizeModel):

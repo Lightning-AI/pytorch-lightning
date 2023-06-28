@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from contextlib import nullcontext
 from datetime import timedelta
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
@@ -25,8 +26,8 @@ from torch.optim.optimizer import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.distributed import (
-    _distributed_available,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
@@ -37,16 +38,15 @@ from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
+from lightning.pytorch.overrides.base import _LightningPrecisionModuleWrapperBase
 from lightning.pytorch.overrides.distributed import _register_ddp_comm_hook, _sync_module_states, prepare_for_backward
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
 from lightning.pytorch.strategies.parallel import ParallelStrategy
-from lightning.pytorch.strategies.strategy import TBroadcast
+from lightning.pytorch.strategies.strategy import _ForwardRedirection, TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import _augment_message
 from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only
-from lightning.pytorch.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
 if torch.distributed.is_available():
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
@@ -90,6 +90,7 @@ class DDPStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         log.debug(f"{self.__class__.__name__}: initializing DDP plugin")
+        self._forward_redirection = _DDPForwardRedirection()
         self._num_nodes = 1
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
@@ -129,7 +130,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
     def process_group_backend(self) -> Optional[str]:
@@ -183,7 +184,10 @@ class DDPStrategy(ParallelStrategy):
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
-        return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
+        # https://pytorch.org/docs/stable/notes/cuda.html#id5
+        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        with ctx:
+            return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
     def setup_distributed(self) -> None:
         log.debug(f"{self.__class__.__name__}: setting up distributed...")
@@ -230,11 +234,7 @@ class DDPStrategy(ParallelStrategy):
                 optimizer = optimizer._optimizer
 
             is_distributed_optimizer = isinstance(optimizer, DistributedOptimizer) if not _IS_WINDOWS else False
-            if (
-                is_distributed_optimizer
-                or isinstance(optimizer, ZeroRedundancyOptimizer)
-                or isinstance(optimizer, PostLocalSGDOptimizer)
-            ):
+            if isinstance(optimizer, (ZeroRedundancyOptimizer, PostLocalSGDOptimizer)) or is_distributed_optimizer:
                 raise ValueError(
                     f"Currently model averaging cannot work with a distributed optimizer of type "
                     f"{optimizer.__class__.__name__}."
@@ -273,7 +273,7 @@ class DDPStrategy(ParallelStrategy):
     def configure_ddp(self) -> None:
         log.debug(f"{self.__class__.__name__}: configuring DistributedDataParallel")
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        self.model = self._setup_model(_LightningModuleWrapperBase(self.model))
+        self.model = self._setup_model(self.model)
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self) -> Optional[List[int]]:
@@ -282,19 +282,19 @@ class DDPStrategy(ParallelStrategy):
         return [self.root_device.index]
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not _distributed_available():
+        if not torch.distributed.is_initialized():
             return
+
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not _distributed_available():
+        if not torch.distributed.is_initialized():
             return obj
+
         obj = [obj]
-        if self.global_rank != src:
-            obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
@@ -326,44 +326,11 @@ class DDPStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        with self.precision_plugin.train_step_context():
-            return self.model(*args, **kwargs)
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.val_step_context():
-            assert self.lightning_module is not None
-            assert self.model is not None
-            if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-                # used when calling `trainer.fit`
-                return self.model(*args, **kwargs)
-            else:
-                # used when calling `trainer.validate`
-                assert isinstance(self.model, ValidationStep)
-                return self.model.validation_step(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, TestStep)
-            return self.model.test_step(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, PredictStep)
-            return self.model.predict_step(*args, **kwargs)
-
-    def post_training_step(self) -> None:
-        assert self.lightning_module is not None
-        if not self.lightning_module.automatic_optimization:
-            assert self.model is not None
-            self.model.require_backward_grad_sync = True  # type: ignore[assignment]
-
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         entries = (
             ("ddp", "popen"),
             ("ddp_spawn", "spawn"),
@@ -434,3 +401,15 @@ class DDPStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
+
+
+class _DDPForwardRedirection(_ForwardRedirection):
+    def on_after_inner_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
+        # In manual_optimization, we need to prevent DDP reducer as
+        # it is done manually in `LightningModule.manual_backward`
+        if isinstance(wrapper_module, DistributedDataParallel) and not original_module.automatic_optimization:
+            wrapper_module.require_backward_grad_sync = False
+
+    def on_after_outer_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
+        if isinstance(wrapper_module, DistributedDataParallel) and not original_module.automatic_optimization:
+            wrapper_module.require_backward_grad_sync = True

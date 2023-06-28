@@ -36,7 +36,7 @@ class MixedTree(EmptyFlow):
 
 
 @pytest.mark.parametrize(
-    "input_tree, types,expected_sequence",
+    ("input_tree", "types", "expected_sequence"),
     [
         (LeafFlow(), (LightningFlow,), ["root"]),
         (LeafWork(), (LightningFlow,), []),
@@ -100,4 +100,4 @@ class MixedTree(EmptyFlow):
     ],
 )
 def test_breadth_first(input_tree, types, expected_sequence):
-    assert list(node.name for node in breadth_first(input_tree, types=types)) == expected_sequence
+    assert [node.name for node in breadth_first(input_tree, types=types)] == expected_sequence

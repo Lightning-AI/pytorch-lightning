@@ -18,16 +18,46 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for the TPU-v4 architecture ([#17227](https://github.com/Lightning-AI/lightning/pull/17227))
 
 
+- Added support for XLA's new PJRT runtime ([#17352](https://github.com/Lightning-AI/lightning/pull/17352))
+
+
 - Check for invalid TPU device inputs ([#17227](https://github.com/Lightning-AI/lightning/pull/17227))
 
 
+- Added `XLAStrategy(sync_module_states=bool)` to control whether to broadcast the parameters to all devices ([#17522](https://github.com/Lightning-AI/lightning/pull/17522))
+
+
 - Added support for multiple optimizer parameter groups when using the FSDP strategy ([#17309](https://github.com/Lightning-AI/lightning/pull/17309))
+
 
 - Enabled saving the full model state dict when using the `FSDPStrategy` ([#16558](https://github.com/Lightning-AI/lightning/pull/16558))
 
 
 - Update `LightningDataModule.from_datasets` to support arbitrary iterables ([#17402](https://github.com/Lightning-AI/lightning/pull/17402))
 
+
+- Run the DDP wrapper in a CUDA stream ([#17334](https://github.com/Lightning-AI/lightning/pull/17334))
+
+
+- Added ``SaveConfigCallback.save_config`` to ease use cases such as saving the config to a logger ([#17475](https://github.com/Lightning-AI/lightning/pull/17475))
+
+
+- Enabled optional file versioning of model checkpoints ([#17320](hhttps://github.com/Lightning-AI/lightning/pull/17320))
+
+
+- Added the process group timeout argument `FSDPStrategy(timeout=...)` for the FSDP strategy ([#17274](https://github.com/Lightning-AI/lightning/pull/17274))
+
+
+- Added CLI option `--map-to-cpu` to the checkpoint upgrade script to enable converting GPU checkpoints on a CPU-only machine ([#17527](https://github.com/Lightning-AI/lightning/pull/17527))
+
+
+- Added non-layer param count to the model summary ([#17005](https://github.com/Lightning-AI/lightning/pull/17005))
+
+
+- Updated `LearningRateMonitor` to log monitored values to `trainer.callback_metrics` ([#17626](https://github.com/Lightning-AI/lightning/pull/17626))
+
+
+- Automatically call `xla_model.mark_step()` before saving checkpoints with XLA ([#17882](https://github.com/Lightning-AI/lightning/pull/17882))
 
 ### Changed
 
@@ -50,9 +80,38 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Increased the minimum XLA requirement to 1.13 ([#17368](https://github.com/Lightning-AI/lightning/pull/17368))
 
+
+- `self.log`ed tensors are now kept in the original device to reduce unnecessary host-to-device synchronizations ([#17334](https://github.com/Lightning-AI/lightning/pull/17334))
+
+
+- Made the run initialization in `WandbLogger` lazy to avoid creating artifacts when the CLI is used ([#17573](https://github.com/Lightning-AI/lightning/pull/17573))
+
+
+- Simplified redirection of `*_step` methods in strategies by removing the `_LightningModuleWrapperBase` wrapper module ([#17531](https://github.com/Lightning-AI/lightning/pull/17531))
+
+
+- Support kwargs input for LayerSummary ([#17709](https://github.com/Lightning-AI/lightning/pull/17709))
+
+
+- Dropped support for `wandb` versions older than 0.12.0 in `WandbLogger` ([#17876](https://github.com/Lightning-AI/lightning/pull/17876))
+
+
 ### Deprecated
 
--
+- Deprecated the `SingleTPUStrategy` (`strategy="single_tpu"`) in favor of `SingleDeviceXLAStrategy` (`strategy="single_xla"`) ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
+
+
+- Deprecated the `TPUAccelerator` in favor of `XLAAccelerator` ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
+
+
+- Deprecated the `TPUPrecisionPlugin` in favor of `XLAPrecisionPlugin` ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
+
+
+- Deprecated the `TPUBf16PrecisionPlugin` in favor of `XLABf16PrecisionPlugin` ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
+
+
+- Deprecated the `Strategy.post_training_step` method ([#17531](https://github.com/Lightning-AI/lightning/pull/17531))
+
 
 ### Removed
 
@@ -61,16 +120,49 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed issue where `Model.load_from_checkpoint("checkpoint.ckpt", map_location=map_location)` would always return model on CPU ([#17308](https://github.com/Lightning-AI/lightning/pull/17308))
+
+- Fixed an issue with reusing the same model across multiple trainer stages when using the `DeepSpeedStrategy` ([#17531](https://github.com/Lightning-AI/lightning/pull/17531))
 
 
+- Fixed validation of parameters of `plugins.precision.MixedPrecisionPlugin` ([#17687](https://github.com/Lightning-AI/lightning/pull/17687))
 
-## [2.0.1.post0] - 2023-04-11
+
+- Fixed deriving default map location in `LightningModule.load_from_checkpoint` when there is extra state ([#17812](https://github.com/Lightning-AI/lightning/pull/17812))
+
+
+- Fixed delayed creation of experiment metadata and checkpoint/log dir name when using `WandbLogger` ([#17818](https://github.com/Lightning-AI/lightning/pull/17818))
+
+
+## [2.0.3] - 2023-06-07
+
+### Changed
+
+- Made type hints public ([#17100](https://github.com/Lightning-AI/lightning/pull/17100))
+
 
 ### Fixed
 
-- Changed the `is_picklable` util function to handle the edge case that throws a `TypeError` ([#17270](https://github.com/Lightning-AI/lightning/pull/17270))
+- `CombinedLoader` only starts DataLoader workers when necessary when operating in sequential mode ([#17639](https://github.com/Lightning-AI/lightning/pull/17639))
+- Fixed a potential bug with uploading model checkpoints to Neptune.ai by uploading files from stream ([#17430](https://github.com/Lightning-AI/lightning/pull/17430))
+- Fixed signature inspection of decorated hooks ([#17507](https://github.com/Lightning-AI/lightning/pull/17507))
+- The `WandbLogger` no longer flattens dictionaries in the hyperparameters logged to the dashboard ([#17574](https://github.com/Lightning-AI/lightning/pull/17574))
+- Fixed computing the next version folder in `CSVLogger` ([#17139](https://github.com/Lightning-AI/lightning/pull/17139))
+- Fixed a formatting issue when the filename in `ModelCheckpoint` contained metrics that were substrings of each other ([#17610](https://github.com/Lightning-AI/lightning/pull/17610))
+- Fixed `WandbLogger` ignoring the `WANDB_PROJECT` environment variable ([#16222](https://github.com/Lightning-AI/lightning/pull/16222))
+- Fixed inconsistent settings for FSDP Precision ([#17670](https://github.com/Lightning-AI/lightning/issues/17670))
+- Fixed an edge case causing overlapping samples in DDP when no global seed is set ([#17713](https://github.com/Lightning-AI/lightning/pull/17713))
+- Fallback to module available check for mlflow ([#17467](https://github.com/Lightning-AI/lightning/pull/17467))
+- Fixed LR finder max val batches ([#17636](https://github.com/Lightning-AI/lightning/pull/17636))
+- Fixed multithreading checkpoint loading ([#17678](https://github.com/Lightning-AI/lightning/pull/17678))
 
+
+## [2.0.2] - 2023-04-24
+
+### Fixed
+
+- Fixed issue where `Model.load_from_checkpoint("checkpoint.ckpt", map_location=map_location)` would always return model on CPU ([#17308](https://github.com/Lightning-AI/lightning/pull/17308))
+- Fixed Sync module states during non-fit ([#17370](https://github.com/Lightning-AI/lightning/pull/17370))
+- Fixed an issue that caused `num_nodes` not to be set correctly for `FSDPStrategy` ([#17438](https://github.com/Lightning-AI/lightning/pull/17438))
 
 
 ## [2.0.1] - 2023-03-30
@@ -88,6 +180,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed the availability check for `rich` that prevented Lightning to be imported in Google Colab ([#17156](https://github.com/Lightning-AI/lightning/pull/17156))
 - Fixed parsing the precision config for inference in `DeepSpeedStrategy` ([#16973](https://github.com/Lightning-AI/lightning/pull/16973))
 - Fixed issue where `torch.compile` would fail when logging to WandB ([#17216](https://github.com/Lightning-AI/lightning/pull/17216))
+- Changed the `is_picklable` util function to handle the edge case that throws a `TypeError` ([#17270](https://github.com/Lightning-AI/lightning/pull/17270))
 
 
 ## [2.0.0] - 2023-03-15

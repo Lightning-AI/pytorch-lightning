@@ -122,8 +122,7 @@ def parse_args():
     parser.add_argument("--ent-coef", type=float, default=0.0, help="coefficient of the entropy")
     parser.add_argument("--vf-coef", type=float, default=1.0, help="coefficient of the value function")
     parser.add_argument("--max-grad-norm", type=float, default=0.5, help="the maximum norm for the gradient clipping")
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def layer_init(
@@ -149,11 +148,10 @@ def make_env(env_id: str, seed: int, idx: int, capture_video: bool, run_name: Op
     def thunk():
         env = gym.make(env_id, render_mode="rgb_array")
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        if capture_video:
-            if idx == 0 and run_name is not None:
-                env = gym.wrappers.RecordVideo(
-                    env, os.path.join(run_name, prefix + "_videos" if prefix else "videos"), disable_logger=True
-                )
+        if capture_video and idx == 0 and run_name is not None:
+            env = gym.wrappers.RecordVideo(
+                env, os.path.join(run_name, prefix + "_videos" if prefix else "videos"), disable_logger=True
+            )
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
         return env

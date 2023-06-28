@@ -83,19 +83,19 @@ The below table lists all relevant strategies available in Lightning with their 
      - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
    * - hpu_parallel
      - ``HPUParallelStrategy``
-     - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../accelerators/hpu>`
+     - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../integrations/hpu/index>`
    * - hpu_single
      - ``SingleHPUStrategy``
-     - Strategy for training on a single HPU device. :doc:`Learn more. <../accelerators/hpu>`
+     - Strategy for training on a single HPU device. :doc:`Learn more. <../integrations/hpu/index>`
    * - ipu_strategy
-     - :class:`~lightning.pytorch.strategies.IPUStrategy`
+     - ``IPUStrategy``
      - Plugin for training on IPU devices. :doc:`Learn more. <../accelerators/ipu>`
    * - xla
      - :class:`~lightning.pytorch.strategies.XLAStrategy`
      - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method. :doc:`Learn more. <../accelerators/tpu>`
-   * - single_tpu
-     - :class:`~lightning.pytorch.strategies.SingleTPUStrategy`
-     - Strategy for training on a single TPU device. :doc:`Learn more. <../accelerators/tpu>`
+   * - single_xla
+     - :class:`~lightning.pytorch.strategies.SingleXLAStrategy`
+     - Strategy for training on a single XLA device, like TPUs. :doc:`Learn more. <../accelerators/tpu>`
 
 ----
 

@@ -108,7 +108,7 @@ class _PatchedWork:
             if callable(attribute):
                 attribute = attribute.__get__(self, self._work_class)
                 return attribute
-            elif isinstance(attribute, (staticmethod, property)):
+            if isinstance(attribute, (staticmethod, property)):
                 return attribute.__get__(self, self._work_class)
 
             # Look for the name in the instance (e.g. for private variables)

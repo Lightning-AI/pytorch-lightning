@@ -16,13 +16,12 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.nn as nn
-from pytest import approx
 
 from lightning.pytorch.utilities import grad_norm
 
 
 @pytest.mark.parametrize(
-    "norm_type,expected",
+    ("norm_type", "expected"),
     [
         (
             1,
@@ -71,8 +70,8 @@ def test_grad_norm(norm_type, expected):
     norms = grad_norm(model, norm_type)
 
     assert norms.keys() == expected.keys()
-    for k in norms.keys():
-        assert norms[k] == approx(expected[k])
+    for k in norms:
+        assert norms[k] == pytest.approx(expected[k])
 
 
 @pytest.mark.parametrize("norm_type", [-1, 0])

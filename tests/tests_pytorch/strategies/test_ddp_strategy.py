@@ -151,7 +151,7 @@ def test_ddp_configure_ddp(mps_count_0):
 
 
 @RunIf(min_cuda_gpus=1)
-@pytest.mark.parametrize("trainer_fn", (TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING))
+@pytest.mark.parametrize("trainer_fn", [TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING])
 def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
     model = BoringModelGPU()
     model.layer = torch.nn.BatchNorm1d(10)
@@ -174,7 +174,7 @@ class CheckOptimizerDeviceModel(BoringModel):
 
 
 @RunIf(min_cuda_gpus=1)
-@pytest.mark.parametrize("strategy", ("ddp", "ddp_spawn"))
+@pytest.mark.parametrize("strategy", ["ddp", "ddp_spawn"])
 def test_model_parameters_on_device_for_optimizer(strategy):
     """Test that the strategy has moved the parameters to the device by the time the optimizer gets created."""
     model = CheckOptimizerDeviceModel()
@@ -266,7 +266,7 @@ class BoringZeroRedundancyOptimizerModel(BoringModel):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True)
-@pytest.mark.parametrize("strategy", (pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"))
+@pytest.mark.parametrize("strategy", [pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"])
 def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using zero redundancy optimizer."""
     model = BoringZeroRedundancyOptimizerModel()
@@ -278,7 +278,6 @@ def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     # need to broadcast because tmpdir is different on each process
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.strategy.barrier()  # ensure the checkpoint is saved before load
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     # Assert model parameters are identical after loading

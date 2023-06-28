@@ -11,4 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning.pytorch.utilities.testing import _RunIf as RunIf  # noqa: F401
+import pytest
+
+from lightning.pytorch.utilities.testing import _runif_reasons
+
+
+def RunIf(**kwargs):
+    reasons, marker_kwargs = _runif_reasons(**kwargs)
+    return pytest.mark.skipif(condition=len(reasons) > 0, reason=f"Requires: [{' + '.join(reasons)}]", **marker_kwargs)

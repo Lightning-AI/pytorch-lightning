@@ -16,7 +16,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional, Tuple, Union
 
-from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import lightning.pytorch as pl
@@ -27,7 +27,6 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
-from lightning.pytorch.accelerators.ipu import IPUAccelerator
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer import call
@@ -35,6 +34,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -165,13 +165,19 @@ class _DataConnector:
         datamodule.trainer = trainer
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator
+
+            # `DistributedSampler` is never used with `poptorch.DataLoader`
+            is_ipu = isinstance(self.trainer.accelerator, IPUAccelerator)
+        else:
+            is_ipu = False
         return (
             self.trainer._accelerator_connector.use_distributed_sampler
             and self.trainer._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
-            # `DistributedSampler` is never used with `poptorch.DataLoader`
-            and not isinstance(self.trainer.accelerator, IPUAccelerator)
+            and not is_ipu
         )
 
     def _prepare_dataloader(self, dataloader: object, shuffle: bool, mode: RunningStage) -> object:
@@ -184,14 +190,20 @@ class _DataConnector:
         if not isinstance(dataloader, DataLoader):
             return dataloader
 
+        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+            from lightning_graphcore import IPUAccelerator
+
+            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
+            is_ipu = isinstance(self.trainer.accelerator, IPUAccelerator)
+        else:
+            is_ipu = False
         if (
             self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
-            or isinstance(self.trainer.accelerator, IPUAccelerator)
+            or is_ipu
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
-            dataloader = _update_dataloader(dataloader, sampler, mode=mode)
+            return _update_dataloader(dataloader, sampler, mode=mode)
 
         return dataloader
 
@@ -239,9 +251,11 @@ def _get_distributed_sampler(
     """This function is used to created the distributed sampler injected within the user DataLoader."""
     kwargs["shuffle"] = shuffle and not overfit_batches
     kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-    cls = UnrepeatedDistributedSamplerWrapper if mode == RunningStage.PREDICTING else DistributedSamplerWrapper
-    sampler = cls(dataloader.sampler, **kwargs)
-    return sampler
+    if mode == RunningStage.PREDICTING:
+        return UnrepeatedDistributedSamplerWrapper(dataloader.sampler, **kwargs)
+    if isinstance(dataloader.sampler, (RandomSampler, SequentialSampler)):
+        return DistributedSampler(dataloader.dataset, **kwargs)
+    return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
 
 def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:

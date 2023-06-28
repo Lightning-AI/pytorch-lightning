@@ -2,7 +2,6 @@ import json
 import os
 import pathlib
 import pickle
-import sys
 from re import escape
 from time import sleep
 from unittest import mock, TestCase
@@ -330,7 +329,8 @@ def test_path_in_flow_and_work(cls, tmpdir):
     else:
         assert root.path_component.path_one._origin is None
         assert root.path_component.path_one._consumer is None
-    assert open(root.path_component.path_two).readlines() == ["Hello"]
+    with open(root.path_component.path_two) as fo:
+        assert fo.readlines() == ["Hello"]
 
 
 class SourceWork(LightningWork):
@@ -400,7 +400,7 @@ class DynamicSourceToDestFlow(LightningFlow):
 
 
 # FIXME(alecmerdler): This test is failing...
-@pytest.mark.skipif(sys.platform in ("linux", "win32"), reason="hanging...")
+@pytest.mark.skip(reason="hanging...")
 def test_multiprocess_path_in_work_and_flow_dynamic(tmpdir):
     root = DynamicSourceToDestFlow(tmpdir)
     app = LightningApp(root)
@@ -558,9 +558,10 @@ def test_path_get_overwrite(tmpdir):
 
 
 def test_path_get_error_in_flow_context():
-    with pytest.raises(RuntimeError, match=escape("`Path.get()` can only be called from within the `run()`")):
-        with _context("flow"):
-            Path().get()
+    with pytest.raises(RuntimeError, match=escape("`Path.get()` can only be called from within the `run()`")), _context(
+        "flow"
+    ):
+        Path().get()
 
 
 def test_path_response_with_exception(tmpdir):
@@ -583,9 +584,10 @@ def test_path_response_with_exception(tmpdir):
         )
     )
 
-    with pytest.raises(RuntimeError, match="An exception was raised while trying to transfer the contents at"):
-        with _context("work"):
-            path.get()
+    with pytest.raises(
+        RuntimeError, match="An exception was raised while trying to transfer the contents at"
+    ), _context("work"):
+        path.get()
 
 
 def test_path_response_not_matching_reqeuest(tmpdir):
@@ -692,8 +694,6 @@ def test_artifacts_path():
 @pytest.mark.skipif(not _is_s3fs_available(), reason="This test requires s3fs.")
 @mock.patch.dict(os.environ, {"LIGHTNING_BUCKET_ENDPOINT_URL": "a"})
 @mock.patch.dict(os.environ, {"LIGHTNING_BUCKET_NAME": "b"})
-@mock.patch.dict(os.environ, {"LIGHTNING_AWS_ACCESS_KEY_ID": "c"})
-@mock.patch.dict(os.environ, {"LIGHTNING_AWS_SECRET_ACCESS_KEY": "d"})
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_APP_ID": "e"})
 def test_filesystem(monkeypatch):
     from lightning.app.storage import path
@@ -701,24 +701,21 @@ def test_filesystem(monkeypatch):
     mock = MagicMock()
     monkeypatch.setattr(path, "S3FileSystem", mock)
     fs = _filesystem()
-    assert fs._mock_new_parent._mock_mock_calls[0].kwargs["key"] == "c"
-    assert fs._mock_new_parent._mock_mock_calls[0].kwargs["secret"] == "d"
-    assert not fs._mock_new_parent._mock_mock_calls[0].kwargs["use_ssl"]
-    assert fs._mock_new_parent._mock_mock_calls[0].kwargs["client_kwargs"] == {"endpoint_url": "a"}
+    assert fs == mock()
 
 
 class TestSharedStoragePath(TestCase):
     @mock.patch.dict(os.environ, {"LIGHTNING_STORAGE_PATH": "test-bucket/lightningapps/test-project/test-app"})
     def test_shared_storage_path_storage_path_set(self):
-        self.assertEqual(pathlib.Path("test-bucket/lightningapps/test-project/test-app"), _shared_storage_path())
+        assert pathlib.Path("test-bucket/lightningapps/test-project/test-app") == _shared_storage_path()
 
     @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_APP_ID": "test-app", "LIGHTNING_BUCKET_NAME": "test-bucket"})
     def test_shared_storage_path_bucket_and_app_id_set(self):
-        self.assertEqual(pathlib.Path("test-bucket/lightningapps/test-app"), _shared_storage_path())
+        assert pathlib.Path("test-bucket/lightningapps/test-app") == _shared_storage_path()
 
     @mock.patch.dict(os.environ, {"SHARED_MOUNT_DIRECTORY": "test-app/.shared"})
     def test_shared_storage_path_mount_directory_set(self):
-        self.assertTrue(_shared_storage_path().match("*/test-app/.shared"))
+        assert _shared_storage_path().match("*/test-app/.shared")
 
     def test_shared_storage_path_no_envvars_set(self):
-        self.assertTrue(_shared_storage_path().match("*/.shared"))
+        assert _shared_storage_path().match("*/.shared")

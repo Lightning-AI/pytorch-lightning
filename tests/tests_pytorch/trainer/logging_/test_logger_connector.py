@@ -274,10 +274,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
 
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args[:-1], **kwargs)
-            if add_dataloader_idx:
-                name = "val_loss"
-            else:
-                name = f"val_loss_custom_naming_{args[-1]}"
+            name = "val_loss" if add_dataloader_idx else f"val_loss_custom_naming_{args[-1]}"
 
             self.log(name, output["x"], add_dataloader_idx=add_dataloader_idx)
             return output
@@ -357,7 +354,7 @@ def test_metrics_reset(tmpdir):
 
         def validation_step(self, batch, batch_idx, *args, **kwargs):
             if self.trainer.sanity_checking:
-                return
+                return None
             return self._step(batch)
 
         def test_step(self, batch, batch_idx, *args, **kwargs):
@@ -448,7 +445,6 @@ def test_metriccollection_compute_groups(tmpdir, compute_groups):
             self.layer = torch.nn.Linear(32, 10)
 
         def training_step(self, batch):
-
             self.metrics(torch.rand(10, 10).softmax(-1), torch.randint(0, 10, (10,)))
             self.metrics._is_currently_logging = True
             self.log_dict(self.metrics, on_step=True, on_epoch=True)
@@ -459,8 +455,7 @@ def test_metriccollection_compute_groups(tmpdir, compute_groups):
             return DataLoader(RandomDataset(32, 64))
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=0.1)
 
         def on_train_epoch_end(self) -> None:
             self.metrics.wrapped_assertion_calls.call_count == 2
@@ -496,16 +491,16 @@ def test_result_collection_on_tensor_with_mean_reduction():
                         name += "_prog_bar"
                     if logger:
                         name += "_logger"
-                    log_kwargs = dict(
-                        fx="training_step",
-                        name=name,
-                        value=v,
-                        on_step=on_step,
-                        on_epoch=on_epoch,
-                        batch_size=batches[i],
-                        prog_bar=prog_bar,
-                        logger=logger,
-                    )
+                    log_kwargs = {
+                        "fx": "training_step",
+                        "name": name,
+                        "value": v,
+                        "on_step": on_step,
+                        "on_epoch": on_epoch,
+                        "batch_size": batches[i],
+                        "prog_bar": prog_bar,
+                        "logger": logger,
+                    }
                     if not on_step and not on_epoch:
                         with pytest.raises(MisconfigurationException, match="on_step=False, on_epoch=False"):
                             result_collection.log(**log_kwargs)
@@ -576,7 +571,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
     }
 
 
-@pytest.mark.parametrize("logger", (False, True))
+@pytest.mark.parametrize("logger", [False, True])
 def test_logged_metrics_has_logged_epoch_value(tmpdir, logger):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -584,9 +579,13 @@ def test_logged_metrics_has_logged_epoch_value(tmpdir, logger):
             return super().training_step(batch, batch_idx)
 
     model = TestModel()
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=0, max_epochs=1, logger=False
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "limit_train_batches": 2,
+        "limit_val_batches": 0,
+        "max_epochs": 1,
+        "logger": False,
+    }
     if logger:
         trainer_kwargs["logger"] = CSVLogger(tmpdir)
     trainer = Trainer(**trainer_kwargs)
@@ -604,7 +603,7 @@ def test_result_collection_batch_size_extraction():
     fx_name = "training_step"
     log_val = torch.tensor(7.0)
 
-    results = _ResultCollection(training=True, device="cpu")
+    results = _ResultCollection(training=True)
     results.batch = torch.randn(1, 4)
     train_mse = MeanSquaredError()
     train_mse(torch.randn(4, 5), torch.randn(4, 5))
@@ -614,7 +613,7 @@ def test_result_collection_batch_size_extraction():
     assert isinstance(results["training_step.mse"].value, MeanSquaredError)
     assert results["training_step.log_val"].value == log_val
 
-    results = _ResultCollection(training=True, device="cpu")
+    results = _ResultCollection(training=True)
     results.batch = torch.randn(1, 4)
     results.log(fx_name, "train_log", log_val, on_step=False, on_epoch=True)
     assert results.batch_size == 1
@@ -623,7 +622,7 @@ def test_result_collection_batch_size_extraction():
 
 
 def test_result_collection_no_batch_size_extraction():
-    results = _ResultCollection(training=True, device="cpu")
+    results = _ResultCollection(training=True)
     results.batch = torch.randn(1, 4)
     fx_name = "training_step"
     batch_size = 10

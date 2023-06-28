@@ -341,7 +341,6 @@ class LightningApp:
         t0 = time()
 
         while (time() - t0) < self.state_accumulate_wait:
-
             # TODO: Fetch all available deltas at once to reduce queue calls.
             delta: Optional[
                 Union[_DeltaRequest, _APIRequest, _CommandRequest, ComponentDelta]
@@ -356,8 +355,8 @@ class LightningApp:
                     work = None
                     try:
                         work = self.get_component_by_name(delta.id)
-                    except (KeyError, AttributeError) as e:
-                        logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
+                    except (KeyError, AttributeError) as ex:
+                        logger.error(f"The component {delta.id} couldn't be accessed. Exception: {ex}")
 
                     if work:
                         delta = _delta_to_app_state_delta(
@@ -422,12 +421,13 @@ class LightningApp:
         for delta in deltas:
             try:
                 state += delta
-            except Exception as e:
-                raise Exception(f"Current State {state}, {delta.to_dict()}") from e
+            except Exception as ex:
+                raise Exception(f"Current State {state}, {delta.to_dict()}") from ex
 
         # new_state = self.populate_changes(self.last_state, state)
         self.set_state(state)
         self._has_updated = True
+        return None
 
     def run_once(self) -> bool:
         """Method used to collect changes and run the root Flow once."""
@@ -451,7 +451,7 @@ class LightningApp:
         if self.stage in (AppStage.STOPPING, AppStage.FAILED):
             return True
 
-        elif self.stage == AppStage.RESTARTING:
+        if self.stage == AppStage.RESTARTING:
             return self._apply_restarting()
 
         t0 = time()
@@ -531,7 +531,6 @@ class LightningApp:
         return True
 
     def _update_layout(self) -> None:
-
         if self.backend:
             self.backend.resolve_url(self, base_url=None)
 
@@ -584,12 +583,11 @@ class LightningApp:
     def _should_snapshot(self) -> bool:
         if len(self.works) == 0:
             return True
-        elif self._has_updated:
+        if self._has_updated:
             work_finished_status = self._collect_work_finish_status()
             if work_finished_status:
                 return all(work_finished_status.values())
-            else:
-                return True
+            return True
         return False
 
     def state_dict(self) -> Dict:
@@ -616,10 +614,11 @@ class LightningApp:
         available_checkpoints = [c for c in checkpoints if c.startswith(f"v_{version}_")]
         if not available_checkpoints:
             raise FileNotFoundError(f"The version `{version}` wasn't found in {checkpoints}.")
-        elif len(available_checkpoints) > 1:
+        if len(available_checkpoints) > 1:
             raise Exception(f"Found 2 checkpoints `{available_checkpoints}`with the same version.")
         checkpoint_path = os.path.join(checkpoints_dir, available_checkpoints[0])
-        state = pickle.load(open(checkpoint_path, "rb"))
+        with open(checkpoint_path, "rb") as fo:
+            state = pickle.load(fo)
         self.load_state_dict(state)
 
     def _dump_checkpoint(self) -> Optional[str]:
@@ -634,11 +633,7 @@ class LightningApp:
             int(f.split("_")[1]) for f in os.listdir(checkpoints_dir) if f.startswith("v_") and f.endswith(".json")
         )
 
-        if checkpoint_versions:
-            previous_version = checkpoint_versions[-1]
-        else:
-            # initialization
-            previous_version = -1
+        previous_version = checkpoint_versions[-1] if checkpoint_versions else -1
 
         checkpoint_path = os.path.join(checkpoints_dir, f"v_{previous_version + 1}_{time()}.json")
 

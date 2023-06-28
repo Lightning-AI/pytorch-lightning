@@ -82,7 +82,7 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_coun
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
-@pytest.mark.parametrize("precision", ("16-mixed", "32-true"))
+@pytest.mark.parametrize("precision", ["16-mixed", "32-true"])
 def test_ddp_wrapper(tmpdir, precision):
     """Test parameters to ignore are carried over for DDP."""
 
@@ -101,7 +101,7 @@ def test_ddp_wrapper(tmpdir, precision):
     class CustomCallback(Callback):
         def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             assert isinstance(trainer.strategy.model, DistributedDataParallel)
-            expected = ["module.something"]
+            expected = ["something"]
             assert (
                 trainer.strategy.model.parameters_to_ignore == set(expected) if _TORCH_GREATER_EQUAL_2_0 else expected
             )
@@ -123,7 +123,7 @@ def test_ddp_wrapper(tmpdir, precision):
 
 
 @pytest.mark.parametrize(
-    ["process_group_backend", "device_str", "expected_process_group_backend"],
+    ("process_group_backend", "device_str", "expected_process_group_backend"),
     [
         pytest.param("foo", "cpu", "foo"),
         pytest.param("foo", "cuda:0", "foo"),
@@ -148,7 +148,7 @@ def test_ddp_process_group_backend(process_group_backend, device_str, expected_p
 
 
 @pytest.mark.parametrize(
-    "strategy_name,expected_ddp_kwargs",
+    ("strategy_name", "expected_ddp_kwargs"),
     [
         ("ddp", {}),
         ("ddp_find_unused_parameters_false", {"find_unused_parameters": False}),

@@ -21,12 +21,13 @@ import pytest
 import torch
 from torch.optim import Optimizer
 
+from lightning.fabric import Fabric
 from lightning.fabric.accelerators import CPUAccelerator
 from lightning.fabric.strategies import DeepSpeedStrategy
 from tests_fabric.helpers.runif import RunIf
 
 
-@pytest.fixture
+@pytest.fixture()
 def deepspeed_config():
     return {
         "optimizer": {"type": "SGD", "params": {"lr": 3e-5}},
@@ -37,7 +38,7 @@ def deepspeed_config():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def deepspeed_zero_config(deepspeed_config):
     return {**deepspeed_config, "zero_allow_untested_optimizer": True, "zero_optimization": {"stage": 2}}
 
@@ -53,7 +54,6 @@ def test_deepspeed_only_compatible_with_cuda():
 @RunIf(deepspeed=True)
 def test_deepspeed_with_invalid_config_path():
     """Test to ensure if we pass an invalid config path we throw an exception."""
-
     with pytest.raises(
         FileNotFoundError, match="You passed in a path to a DeepSpeed config but the path does not exist"
     ):
@@ -99,7 +99,6 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
 @RunIf(deepspeed=True)
 def test_deepspeed_config_zero_offload(deepspeed_zero_config):
     """Test the various ways optimizer-offloading can be configured."""
-
     # default config
     strategy = DeepSpeedStrategy(config=deepspeed_zero_config)
     assert "offload_optimizer" not in strategy.config["zero_optimization"]
@@ -343,3 +342,10 @@ def test_errors_grad_clipping():
         ),
     ):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_save_filter(tmp_path):
+    fabric = Fabric(devices=1, strategy="deepspeed")
+    with pytest.raises(TypeError, match="manages the state serialization internally"):
+        fabric.save(tmp_path, {}, filter={})

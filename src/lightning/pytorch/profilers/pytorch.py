@@ -21,7 +21,7 @@ from typing import Any, Callable, ContextManager, Dict, List, Optional, Type, TY
 
 import torch
 from torch import nn, Tensor
-from torch.autograd.profiler import record_function
+from torch.autograd.profiler import EventList, record_function
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.pytorch.profilers.profiler import Profiler
@@ -30,7 +30,6 @@ from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 
 if TYPE_CHECKING:
-    from torch.autograd.profiler import EventList
     from torch.utils.hooks import RemovableHandle
 
     from lightning.pytorch.core.module import LightningModule
@@ -216,7 +215,6 @@ class ScheduleWrapper:
 
 
 class PyTorchProfiler(Profiler):
-
     STEP_FUNCTIONS = {"training_step", "validation_step", "test_step", "predict_step"}
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
@@ -240,6 +238,7 @@ class PyTorchProfiler(Profiler):
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
         record_module_names: bool = True,
+        table_kwargs: Optional[Dict[str, Any]] = None,
         **profiler_kwargs: Any,
     ) -> None:
         r"""This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of.
@@ -280,6 +279,8 @@ class PyTorchProfiler(Profiler):
 
             record_module_names: Whether to add module names while recording autograd operation.
 
+            table_kwargs: Dictionary with keyword arguments for the summary table.
+
             \**profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
 
         Raises:
@@ -297,6 +298,7 @@ class PyTorchProfiler(Profiler):
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
+        self._table_kwargs = table_kwargs if table_kwargs is not None else {}
 
         self.profiler: Optional[_PROFILER] = None
         self.function_events: Optional["EventList"] = None
@@ -314,6 +316,19 @@ class PyTorchProfiler(Profiler):
             raise MisconfigurationException(
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
+
+        for key in self._table_kwargs:
+            if key in {"sort_by", "row_limit"}:
+                raise KeyError(
+                    f"Found invalid table_kwargs key: {key}. This is already a positional argument of the Profiler."
+                )
+            valid_table_keys = set(inspect.signature(EventList.table).parameters.keys()) - {
+                "self",
+                "sort_by",
+                "row_limit",
+            }
+            if key not in valid_table_keys:
+                raise KeyError(f"Found invalid table_kwargs key: {key}. Should be within {valid_table_keys}.")
 
     def _init_kineto(self, profiler_kwargs: Any) -> None:
         has_schedule = "schedule" in profiler_kwargs
@@ -382,6 +397,7 @@ class PyTorchProfiler(Profiler):
         if _KINETO_AVAILABLE:
             # Those schedule defaults allow the profiling overhead to be negligible over training time.
             return torch.profiler.schedule(wait=1, warmup=1, active=3)
+        return None
 
     def _default_activities(self) -> List["ProfilerActivity"]:
         activities: List["ProfilerActivity"] = []
@@ -485,7 +501,7 @@ class PyTorchProfiler(Profiler):
             self.function_events.export_chrome_trace(path_to_trace)
 
         data = self.function_events.key_averages(group_by_input_shapes=self._group_by_input_shapes)
-        table = data.table(sort_by=self._sort_by_key, row_limit=self._row_limit)
+        table = data.table(sort_by=self._sort_by_key, row_limit=self._row_limit, **self._table_kwargs)
 
         recorded_stats = {"records": table}
         return self._stats_to_str(recorded_stats)

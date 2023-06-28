@@ -211,34 +211,32 @@ def test_tqdm_progress_bar_fast_dev_run(tmpdir):
 
     pbar = trainer.progress_bar_callback
 
-    assert 1 == pbar.val_progress_bar.n
-    assert 1 == pbar.val_progress_bar.total
+    assert pbar.val_progress_bar.n == 1
+    assert pbar.val_progress_bar.total == 1
 
     # the train progress bar should display 1 batch
-    assert 1 == pbar.train_progress_bar.total
-    assert 1 == pbar.train_progress_bar.n
+    assert pbar.train_progress_bar.total == 1
+    assert pbar.train_progress_bar.n == 1
 
     trainer.validate(model)
 
     # the validation progress bar should display 1 batch
-    assert 1 == pbar.val_progress_bar.total
-    assert 1 == pbar.val_progress_bar.n
+    assert pbar.val_progress_bar.total == 1
+    assert pbar.val_progress_bar.n == 1
 
     trainer.test(model)
 
     # the test progress bar should display 1 batch
-    assert 1 == pbar.test_progress_bar.total
-    assert 1 == pbar.test_progress_bar.n
+    assert pbar.test_progress_bar.total == 1
+    assert pbar.test_progress_bar.n == 1
 
 
 @pytest.mark.parametrize("refresh_rate", [0, 1, 50])
 def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
-
     model = BoringModel()
 
     class CurrentProgressBar(TQDMProgressBar):
-
         train_batches_seen = 0
         val_batches_seen = 0
         test_batches_seen = 0
@@ -281,7 +279,7 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     assert pbar.test_batches_seen == pbar.test_progress_bar.total
 
 
-@pytest.mark.parametrize("limit_val_batches", (0, 5))
+@pytest.mark.parametrize("limit_val_batches", [0, 5])
 def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
     """Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument."""
 
@@ -337,15 +335,15 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "train_batches,val_batches,refresh_rate,train_updates,val_updates",
+    ("train_batches", "val_batches", "refresh_rate", "train_updates", "val_updates"),
     [
-        [2, 3, 1, [0, 1, 2], [0, 1, 2, 3]],
-        [0, 0, 3, None, None],
-        [1, 0, 3, [0, 1], None],
-        [1, 1, 3, [0, 1], [0, 1]],
-        [5, 0, 3, [0, 3, 5], None],
-        [5, 2, 3, [0, 3, 5], [0, 2]],
-        [5, 2, 6, [0, 5], [0, 2]],
+        (2, 3, 1, [0, 1, 2], [0, 1, 2, 3]),
+        (0, 0, 3, None, None),
+        (1, 0, 3, [0, 1], None),
+        (1, 1, 3, [0, 1], [0, 1]),
+        (5, 0, 3, [0, 3, 5], None),
+        (5, 2, 3, [0, 3, 5], [0, 2]),
+        (5, 2, 6, [0, 5], [0, 2]),
     ],
 )
 def test_train_progress_bar_update_amount(
@@ -375,7 +373,9 @@ def test_train_progress_bar_update_amount(
         assert progress_bar.val_progress_bar.n_values == val_updates
 
 
-@pytest.mark.parametrize("test_batches,refresh_rate,updates", [(1, 3, [0, 1]), (3, 1, [0, 1, 2, 3]), (5, 3, [0, 3, 5])])
+@pytest.mark.parametrize(
+    ("test_batches", "refresh_rate", "updates"), [(1, 3, [0, 1]), (3, 1, [0, 1, 2, 3]), (5, 3, [0, 3, 5])]
+)
 def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate: int, updates: list):
     """Test that test progress updates with the correct amount."""
     model = BoringModel()
@@ -417,16 +417,16 @@ def test_tensor_to_float_conversion(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "input_num, expected",
+    ("input_num", "expected"),
     [
-        [1, "1"],
-        [1.0, "1.000"],
-        [0.1, "0.100"],
-        [1e-3, "0.001"],
-        [1e-5, "1e-5"],
-        ["1.0", "1.000"],
-        ["10000", "10000"],
-        ["abc", "abc"],
+        (1, "1"),
+        (1.0, "1.000"),
+        (0.1, "0.100"),
+        (1e-3, "0.001"),
+        (1e-5, "1e-5"),
+        ("1.0", "1.000"),
+        ("10000", "10000"),
+        ("abc", "abc"),
     ],
 )
 def test_tqdm_format_num(input_num: Union[str, int, float], expected: str):
@@ -555,7 +555,7 @@ def test_tqdm_progress_bar_can_be_pickled():
 
 
 @pytest.mark.parametrize(
-    ["val_check_interval", "train_progress_bar_updates", "val_progress_bar_updates"],
+    ("val_check_interval", "train_progress_bar_updates", "val_progress_bar_updates"),
     [(4, [0, 3, 6, 7], [0, 3, 6, 7]), (0.5, [0, 3, 6, 7], [0, 3, 6, 7])],
 )
 def test_progress_bar_max_val_check_interval(

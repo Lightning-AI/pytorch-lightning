@@ -58,11 +58,11 @@ Cutting-edge and third-party Strategies
 
 Cutting-edge Lightning strategies are being developed by third-parties outside of Lightning.
 
-If you want to try some of the latest and greatest features for model-parallel training, check out the :doc:`Colossal-AI Strategy <./third_party/colossalai>` integration.
+If you want to try some of the latest and greatest features for model-parallel training, check out the :doc:`Colossal-AI Strategy <../integrations/strategies/colossalai>` integration.
 
-Another integration is :doc:`Bagua Strategy <./third_party/bagua>`, deep learning training acceleration framework for PyTorch, with advanced distributed training algorithms and system optimizations.
+Another integration is :doc:`Bagua Strategy <../integrations/strategies/bagua>`, deep learning training acceleration framework for PyTorch, with advanced distributed training algorithms and system optimizations.
 
-For training on unreliable mixed GPUs across the internet check out the :doc:`Hivemind Strategy <./third_party/hivemind>` integration.
+For training on unreliable mixed GPUs across the internet check out the :doc:`Hivemind Strategy <../integrations/strategies/hivemind>` integration.
 
 ----
 
@@ -658,7 +658,7 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
         },
         "zero_optimization": {
             "stage": 2,  # Enable Stage 2 ZeRO (Optimizer/Gradient state partitioning)
-            "offload_optimizer": True,  # Enable Offloading optimizer state/calculation to the host CPU
+            "offload_optimizer": {"device": "cpu"},  # Enable Offloading optimizer state/calculation to the host CPU
             "contiguous_gradients": True,  # Reduce gradient fragmentation.
             "overlap_comm": True,  # Overlap reduce/backward operation of gradients for speed.
             "allgather_bucket_size": 2e8,  # Number of elements to all gather at once.

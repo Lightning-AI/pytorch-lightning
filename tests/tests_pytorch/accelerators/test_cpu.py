@@ -34,7 +34,7 @@ def test_get_device_stats(tmpdir):
     fields = ["cpu_vm_percent", "cpu_percent", "cpu_swap_percent"]
 
     for f in fields:
-        assert any(f in h for h in gpu_stats.keys())
+        assert any(f in h for h in gpu_stats)
 
 
 @pytest.mark.parametrize("restore_after_pre_setup", [True, False])

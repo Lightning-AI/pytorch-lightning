@@ -19,7 +19,7 @@ from lightning.pytorch.trainer.trainer import Trainer
 
 
 @pytest.mark.parametrize(
-    "max_epochs,expected_val_loop_calls,expected_val_batches",
+    ("max_epochs", "expected_val_loop_calls", "expected_val_batches"),
     [(1, 0, [0]), (4, 2, [0, 2, 0, 2]), (5, 2, [0, 2, 0, 2, 0])],
 )
 def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, expected_val_batches):

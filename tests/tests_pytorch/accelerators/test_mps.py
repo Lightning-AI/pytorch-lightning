@@ -31,7 +31,7 @@ def test_get_mps_stats():
     fields = ["M1_vm_percent", "M1_percent", "M1_swap_percent"]
 
     for f in fields:
-        assert any(f in h for h in device_stats.keys())
+        assert any(f in h for h in device_stats)
 
 
 @RunIf(mps=True)
@@ -39,10 +39,9 @@ def test_mps_availability():
     assert MPSAccelerator.is_available()
 
 
-@RunIf(mps=True)
-def test_warning_if_mps_not_used():
-    with pytest.warns(UserWarning, match="MPS available but not used. Set `accelerator` and `devices`"):
-        Trainer()
+def test_warning_if_mps_not_used(mps_count_1):
+    with pytest.warns(UserWarning, match="GPU available but not used"):
+        Trainer(accelerator="cpu")
 
 
 @RunIf(mps=True)
@@ -57,15 +56,15 @@ def test_trainer_mps_accelerator(accelerator_value):
 @pytest.mark.parametrize("devices", [1, [0], "-1"])
 def test_single_gpu_model(tmpdir, devices):
     """Make sure single GPU works."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        accelerator="mps",
-        devices=devices,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "limit_train_batches": 0.1,
+        "limit_val_batches": 0.1,
+        "accelerator": "mps",
+        "devices": devices,
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
@@ -84,30 +83,38 @@ def test_single_gpu_batch_parse():
     # batch is just a tensor
     batch = torch.rand(2, 3)
     batch = trainer.strategy.batch_to_device(batch, torch.device("mps"))
-    assert batch.device.index == 0 and batch.type() == "torch.mps.FloatTensor"
+    assert batch.device.index == 0
+    assert batch.type() == "torch.mps.FloatTensor"
 
     # tensor list
     batch = [torch.rand(2, 3), torch.rand(2, 3)]
     batch = trainer.strategy.batch_to_device(batch, torch.device("mps"))
-    assert batch[0].device.index == 0 and batch[0].type() == "torch.mps.FloatTensor"
-    assert batch[1].device.index == 0 and batch[1].type() == "torch.mps.FloatTensor"
+    assert batch[0].device.index == 0
+    assert batch[0].type() == "torch.mps.FloatTensor"
+    assert batch[1].device.index == 0
+    assert batch[1].type() == "torch.mps.FloatTensor"
 
     # tensor list of lists
     batch = [[torch.rand(2, 3), torch.rand(2, 3)]]
     batch = trainer.strategy.batch_to_device(batch, torch.device("mps"))
-    assert batch[0][0].device.index == 0 and batch[0][0].type() == "torch.mps.FloatTensor"
-    assert batch[0][1].device.index == 0 and batch[0][1].type() == "torch.mps.FloatTensor"
+    assert batch[0][0].device.index == 0
+    assert batch[0][0].type() == "torch.mps.FloatTensor"
+    assert batch[0][1].device.index == 0
+    assert batch[0][1].type() == "torch.mps.FloatTensor"
 
     # tensor dict
     batch = [{"a": torch.rand(2, 3), "b": torch.rand(2, 3)}]
     batch = trainer.strategy.batch_to_device(batch, torch.device("mps"))
-    assert batch[0]["a"].device.index == 0 and batch[0]["a"].type() == "torch.mps.FloatTensor"
-    assert batch[0]["b"].device.index == 0 and batch[0]["b"].type() == "torch.mps.FloatTensor"
+    assert batch[0]["a"].device.index == 0
+    assert batch[0]["a"].type() == "torch.mps.FloatTensor"
+    assert batch[0]["b"].device.index == 0
+    assert batch[0]["b"].type() == "torch.mps.FloatTensor"
 
     # tuple of tensor list and list of tensor dict
     batch = ([torch.rand(2, 3) for _ in range(2)], [{"a": torch.rand(2, 3), "b": torch.rand(2, 3)} for _ in range(2)])
     batch = trainer.strategy.batch_to_device(batch, torch.device("mps"))
-    assert batch[0][0].device.index == 0 and batch[0][0].type() == "torch.mps.FloatTensor"
+    assert batch[0][0].device.index == 0
+    assert batch[0][0].type() == "torch.mps.FloatTensor"
 
     assert batch[1][0]["a"].device.index == 0
     assert batch[1][0]["a"].type() == "torch.mps.FloatTensor"

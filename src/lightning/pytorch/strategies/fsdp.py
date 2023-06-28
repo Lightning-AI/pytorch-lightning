@@ -13,6 +13,7 @@
 # limitations under the License.
 import contextlib
 import logging
+from datetime import timedelta
 from typing import Any, Dict, Generator, List, Optional, Type, Union
 
 import torch
@@ -21,6 +22,8 @@ from torch.nn import Module
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
+from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.fsdp import (
     _init_cpu_offload,
     _optimizer_has_flat_params,
@@ -40,7 +43,6 @@ from lightning.fabric.utilities.imports import (
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ProcessGroup, ReduceOp
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
@@ -50,7 +52,6 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 _distributed_available = torch.distributed.is_available()
 _fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
@@ -99,7 +100,6 @@ class FSDPStrategy(ParallelStrategy):
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
-
     """
 
     strategy_name = "fsdp"
@@ -113,6 +113,7 @@ class FSDPStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         process_group_backend: Optional[str] = None,
+        timeout: Optional[timedelta] = default_pg_timeout,
         cpu_offload: Union[bool, "CPUOffload", None] = None,
         mixed_precision: Optional[MixedPrecision] = None,
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
@@ -131,6 +132,7 @@ class FSDPStrategy(ParallelStrategy):
         self._process_group = None
         self.num_nodes = 1
         self._process_group_backend = process_group_backend
+        self._timeout: Optional[timedelta] = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
         if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
@@ -158,8 +160,7 @@ class FSDPStrategy(ParallelStrategy):
             state_dict_type=StateDictType.FULL_STATE_DICT,
             state_dict_config=FullStateDictConfig(offload_to_cpu=(self.world_size > 1), rank0_only=True),
         ):
-            state_dict = self.model.state_dict()
-            return _strip_prefix_from_state_dict(state_dict, prefix="_forward_module.")
+            return self.model.state_dict()
 
     @property
     def root_device(self) -> torch.device:
@@ -188,10 +189,11 @@ class FSDPStrategy(ParallelStrategy):
         plugin = self.precision_plugin
         if isinstance(plugin, FSDPMixedPrecisionPlugin):
             return plugin.mixed_precision_config
+        return None
 
     @property
     def distributed_sampler_kwargs(self) -> Dict:
-        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     def setup_environment(self) -> None:
         log.debug(f"{self.__class__.__name__}: setting up distributed...")
@@ -202,7 +204,7 @@ class FSDPStrategy(ParallelStrategy):
 
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(self.cluster_environment, self._process_group_backend)
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
         super().setup_environment()
 
     def _get_process_group_backend(self) -> str:
@@ -250,18 +252,16 @@ class FSDPStrategy(ParallelStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
+        assert self.model is not None
         self.accelerator.setup(trainer)
 
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
-            assert self.model is not None
             self.model = self._layer_sync.apply(self.model)
 
         # we set the device so that optimizers can be created with distributed comms.
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
 
-        assert isinstance(self.model, pl.LightningModule)
-        self.model = _LightningModuleWrapperBase(self.model)
         if is_overridden("configure_sharded_model", self.lightning_module):
             rank_zero_info(
                 "You have overridden `LightningModule.configure_sharded_model` hook. It will assume that all the layers"
@@ -283,8 +283,8 @@ class FSDPStrategy(ParallelStrategy):
         invalid_params_error = False
         try:
             super().setup_optimizers(trainer)
-        except ValueError as e:
-            if "optimizer got an empty parameter list" not in str(e):
+        except ValueError as ex:
+            if "optimizer got an empty parameter list" not in str(ex):
                 raise
             invalid_params_error = True
 
@@ -295,6 +295,7 @@ class FSDPStrategy(ParallelStrategy):
                 " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
                 " `configure_optimizers()` hook."
             )
+        return None
 
     def model_to_device(self) -> None:
         pass
@@ -313,7 +314,7 @@ class FSDPStrategy(ParallelStrategy):
             yield
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if not _distributed_available:
+        if not torch.distributed.is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_device_ids())
@@ -321,9 +322,10 @@ class FSDPStrategy(ParallelStrategy):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        if not torch.distributed.is_initialized():
+            return obj
+
         obj = [obj]
-        if self.global_rank != src:
-            obj = [None]  # type: ignore
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
@@ -345,26 +347,8 @@ class FSDPStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
-
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        # we don't need precision context since casting is done by FSDP
-        # read `mixed_precision` docstring here: https://pytorch.org/docs/stable/fsdp.html
-        assert self.model is not None
-        return self.model(*args, **kwargs)
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        return self.model(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        return self.model(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        return self.model(*args, **kwargs)
 
     def _determine_device_ids(self) -> List[int]:
         return [self.root_device.index]
@@ -395,7 +379,7 @@ class FSDPStrategy(ParallelStrategy):
         return cls._registered_strategies
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         if not _fsdp_available:
             return
         strategy_registry.register(
@@ -412,8 +396,3 @@ class FSDPStrategy(ParallelStrategy):
             cpu_offload=True,
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
-
-
-def _strip_prefix_from_state_dict(state_dict: Dict[str, Any], prefix: str) -> Dict[str, Any]:
-    prefix_len = len(prefix)
-    return {k[prefix_len:]: v for k, v in state_dict.items()}

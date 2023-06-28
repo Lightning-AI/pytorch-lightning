@@ -26,7 +26,7 @@ ______________________________________________________________________
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)](https://pypi.org/project/pytorch-lightning/)
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
 [![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
-[![Conda](https://img.shields.io/conda/v/conda-forge/pytorch-lightning?label=conda&color=success)](https://anaconda.org/conda-forge/pytorch-lightning)
+[![Conda](https://img.shields.io/conda/v/conda-forge/lightning?label=conda&color=success)](https://anaconda.org/conda-forge/lightning)
 [![DockerHub](https://img.shields.io/docker/pulls/pytorchlightning/pytorch_lightning.svg)](https://hub.docker.com/r/pytorchlightning/pytorch_lightning)
 [![codecov](https://codecov.io/gh/Lightning-AI/lightning/branch/master/graph/badge.svg?token=SmzX8mnKlA)](https://codecov.io/gh/Lightning-AI/lightning)
 
@@ -337,6 +337,10 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 + import lightning as L
   import torch; import torchvision as tv
 
+ dataset = tv.datasets.CIFAR10("data", download=True,
+                               train=True,
+                               transform=tv.transforms.ToTensor())
+
 + fabric = L.Fabric()
 + fabric.launch()
 
@@ -346,9 +350,6 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 - model.to(device)
 + model, optimizer = fabric.setup(model, optimizer)
 
-  dataset = tv.datasets.CIFAR10("data", download=True,
-                                train=True,
-                                transform=tv.transforms.ToTensor())
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
 + dataloader = fabric.setup_dataloaders(dataloader)
 
@@ -364,6 +365,7 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 -         loss.backward()
 +         fabric.backward(loss)
           optimizer.step()
+          print(loss.data)
 ```
 
 </sub>
@@ -374,6 +376,10 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 import lightning as L
 import torch; import torchvision as tv
 
+dataset = tv.datasets.CIFAR10("data", download=True,
+                              train=True,
+                              transform=tv.transforms.ToTensor())
+
 fabric = L.Fabric()
 fabric.launch()
 
@@ -381,9 +387,6 @@ model = tv.models.resnet18()
 optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
 model, optimizer = fabric.setup(model, optimizer)
 
-dataset = tv.datasets.CIFAR10("data", download=True,
-                              train=True,
-                              transform=tv.transforms.ToTensor())
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
 dataloader = fabric.setup_dataloaders(dataloader)
 
@@ -397,6 +400,7 @@ for epoch in range(num_epochs):
         loss = torch.nn.functional.cross_entropy(outputs, labels)
         fabric.backward(loss)
         optimizer.step()
+        print(loss.data)
 ```
 
 </sub>

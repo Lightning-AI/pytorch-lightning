@@ -297,6 +297,7 @@ def _lr_find(
     trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     trainer.fit_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
+    trainer.fit_loop.epoch_loop.val_loop._combined_loader = None
 
     return lr_finder
 
@@ -405,11 +406,14 @@ class _LRCallback(Callback):
         smoothed_loss = self.avg_loss / (1 - self.beta ** (current_step + 1))
 
         # Check if we diverging
-        if self.early_stop_threshold is not None:
-            if current_step > 1 and smoothed_loss > self.early_stop_threshold * self.best_loss:
-                trainer.should_stop = True  # stop signal
-                if self.progress_bar:
-                    self.progress_bar.close()
+        if (
+            self.early_stop_threshold is not None
+            and current_step > 1
+            and smoothed_loss > self.early_stop_threshold * self.best_loss
+        ):
+            trainer.should_stop = True  # stop signal
+            if self.progress_bar:
+                self.progress_bar.close()
 
         trainer.should_stop = trainer.strategy.broadcast(trainer.should_stop)
 
@@ -446,7 +450,7 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         if self.last_epoch > 0:
             val = [base_lr + r * (self.end_lr - base_lr) for base_lr in self.base_lrs]
         else:
-            val = [base_lr for base_lr in self.base_lrs]
+            val = list(self.base_lrs)
         self._lr = val
         return val
 
@@ -481,7 +485,7 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         if self.last_epoch > 0:
             val = [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
         else:
-            val = [base_lr for base_lr in self.base_lrs]
+            val = list(self.base_lrs)
         self._lr = val
         return val
 

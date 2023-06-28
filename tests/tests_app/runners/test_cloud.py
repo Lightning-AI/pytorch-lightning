@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import pathlib
@@ -93,21 +94,21 @@ class WorkWithTwoDrives(LightningWork):
 
 
 def get_cloud_runtime_request_body(**kwargs) -> "CloudspaceIdRunsBody":
-    default_request_body = dict(
-        app_entrypoint_file=mock.ANY,
-        enable_app_server=True,
-        is_headless=True,
-        flow_servers=[],
-        image_spec=None,
-        works=[],
-        local_source=True,
-        dependency_cache_key=mock.ANY,
-        user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
+    default_request_body = {
+        "app_entrypoint_file": mock.ANY,
+        "enable_app_server": True,
+        "is_headless": True,
+        "flow_servers": [],
+        "image_spec": None,
+        "works": [],
+        "local_source": True,
+        "dependency_cache_key": mock.ANY,
+        "user_requested_flow_compute_config": V1UserRequestedFlowComputeConfig(
             name="flow-lite",
             preemptible=False,
             shm_size=0,
         ),
-    )
+    }
 
     if kwargs.get("user_requested_flow_compute_config") is not None:
         default_request_body["user_requested_flow_compute_config"] = kwargs["user_requested_flow_compute_config"]
@@ -115,7 +116,7 @@ def get_cloud_runtime_request_body(**kwargs) -> "CloudspaceIdRunsBody":
     return CloudspaceIdRunsBody(**default_request_body)
 
 
-@pytest.fixture
+@pytest.fixture()
 def cloud_backend(monkeypatch):
     cloud_backend = mock.MagicMock()
     monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
@@ -124,7 +125,7 @@ def cloud_backend(monkeypatch):
     return cloud_backend
 
 
-@pytest.fixture
+@pytest.fixture()
 def project_id():
     return "test-project-id"
 
@@ -144,9 +145,7 @@ class TestAppCreationClient:
         )
 
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
-            [
-                Externalv1Cluster(id=DEFAULT_CLUSTER),
-            ]
+            [Externalv1Cluster(id=DEFAULT_CLUSTER)]
         )
         cloud_backend.client = mock_client
 
@@ -168,7 +167,7 @@ class TestAppCreationClient:
             cloud_runtime.dispatch(name=app_name, cluster_id="unknown-cluster")
 
     @pytest.mark.parametrize(
-        "old_cluster,new_cluster",
+        ("old_cluster", "new_cluster"),
         [
             ("test", "other"),
             ("test", "test"),
@@ -269,15 +268,11 @@ class TestAppCreationClient:
         )
 
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
-            [
-                Externalv1Cluster(id=DEFAULT_CLUSTER),
-            ]
+            [Externalv1Cluster(id=DEFAULT_CLUSTER)]
         )
 
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
-            clusters=[
-                V1ProjectClusterBinding(cluster_id=DEFAULT_CLUSTER),
-            ]
+            clusters=[V1ProjectClusterBinding(cluster_id=DEFAULT_CLUSTER)]
         )
 
         # Mock all clusters as global clusters
@@ -349,9 +344,7 @@ class TestAppCreationClient:
         user_requested_flow_compute_config = None
         if flow_cloud_compute is not None:
             user_requested_flow_compute_config = V1UserRequestedFlowComputeConfig(
-                name=flow_cloud_compute.name,
-                preemptible=False,
-                shm_size=0,
+                name=flow_cloud_compute.name, preemptible=False, shm_size=0
             )
 
         body = get_cloud_runtime_request_body(user_requested_flow_compute_config=user_requested_flow_compute_config)
@@ -457,10 +450,7 @@ class TestAppCreationClient:
 
         cloud_runtime.dispatch(no_cache=True)
         body.image_spec = Gridv1ImageSpec(
-            dependency_file_info=V1DependencyFileInfo(
-                package_manager=V1PackageManager.PIP,
-                path="requirements.txt",
-            ),
+            dependency_file_info=V1DependencyFileInfo(package_manager=V1PackageManager.PIP, path="requirements.txt")
         )
         cloud_runtime.backend.client.cloud_space_service_create_lightning_run.assert_called_with(
             project_id="test-project-id", cloudspace_id=mock.ANY, body=body
@@ -556,28 +546,20 @@ class TestAppCreationClient:
 
         # testing with no-cache False
         cloud_runtime.dispatch(no_cache=False)
-        (
-            func_name,
-            args,
-            kwargs,
-        ) = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
+        (func_name, args, kwargs) = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
         body = kwargs["body"]
         assert body.dependency_cache_key == "dummy-hash"
 
         # testing with no-cache True
         mock_client.reset_mock()
         cloud_runtime.dispatch(no_cache=True)
-        (
-            func_name,
-            args,
-            kwargs,
-        ) = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
+        (func_name, args, kwargs) = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
         body = kwargs["body"]
         assert body.dependency_cache_key is None
 
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize(
-        "lightningapps,start_with_flow",
+        ("lightningapps", "start_with_flow"),
         [([], False), ([MagicMock()], False), ([MagicMock()], True)],
     )
     def test_call_with_work_app(self, lightningapps, start_with_flow, monkeypatch, tmpdir):
@@ -600,9 +582,7 @@ class TestAppCreationClient:
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
-            clusters=[
-                V1ProjectClusterBinding(cluster_id="test"),
-            ]
+            clusters=[V1ProjectClusterBinding(cluster_id="test")]
         )
         mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
@@ -777,9 +757,7 @@ class TestAppCreationClient:
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
-            clusters=[
-                V1ProjectClusterBinding(cluster_id="test"),
-            ]
+            clusters=[V1ProjectClusterBinding(cluster_id="test")]
         )
         mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
@@ -871,11 +849,7 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="custom",
-                                count=1,
-                                disk_size=0,
-                                shm_size=0,
-                                preemptible=False,
+                                name="custom", count=1, disk_size=0, shm_size=0, preemptible=False
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -917,11 +891,7 @@ class TestAppCreationClient:
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
             mock_client.projects_service_list_project_cluster_bindings.return_value = (
-                V1ListProjectClusterBindingsResponse(
-                    clusters=[
-                        V1ProjectClusterBinding(cluster_id="test"),
-                    ]
-                )
+                V1ListProjectClusterBindingsResponse(clusters=[V1ProjectClusterBinding(cluster_id="test")])
             )
             mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
@@ -1261,11 +1231,7 @@ class TestAppCreationClient:
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
             mock_client.projects_service_list_project_cluster_bindings.return_value = (
-                V1ListProjectClusterBindingsResponse(
-                    clusters=[
-                        V1ProjectClusterBinding(cluster_id="test"),
-                    ]
-                )
+                V1ListProjectClusterBindingsResponse(clusters=[V1ProjectClusterBinding(cluster_id="test")])
             )
             mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
@@ -1419,8 +1385,7 @@ class TestOpen:
         """Tests that the open method calls the expected API endpoints."""
         mock_client = mock.MagicMock()
         mock_client.auth_service_get_user.return_value = V1GetUserResponse(
-            username="tester",
-            features=V1UserFeatures(code_tab=True),
+            username="tester", features=V1UserFeatures(code_tab=True)
         )
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -1447,19 +1412,14 @@ class TestOpen:
             project_id="test-project-id", body=mock.ANY
         )
         mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
-            project_id="test-project-id",
-            cloudspace_id="cloudspace_id",
-            body=mock.ANY,
+            project_id="test-project-id", cloudspace_id="cloudspace_id", body=mock.ANY
         )
 
         assert mock_client.cloud_space_service_create_cloud_space.call_args.kwargs["body"].name == "test_space"
 
     @pytest.mark.parametrize(
-        "path, expected_root, entries, expected_filtered_entries",
-        [
-            [".", ".", ["a.py", "b.ipynb"], ["a.py", "b.ipynb"]],
-            ["a.py", ".", ["a.py", "b.ipynb"], ["a.py"]],
-        ],
+        ("path", "expected_root", "entries", "expected_filtered_entries"),
+        [(".", ".", ["a.py", "b.ipynb"], ["a.py", "b.ipynb"]), ("a.py", ".", ["a.py", "b.ipynb"], ["a.py"])],
     )
     def test_open_repo(self, tmpdir, monkeypatch, path, expected_root, entries, expected_filtered_entries):
         """Tests that the local source code repo is set up with the correct path and ignore functions."""
@@ -1469,8 +1429,7 @@ class TestOpen:
 
         mock_client = mock.MagicMock()
         mock_client.auth_service_get_user.return_value = V1GetUserResponse(
-            username="tester",
-            features=V1UserFeatures(code_tab=True),
+            username="tester", features=V1UserFeatures(code_tab=True)
         )
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -1508,8 +1467,7 @@ class TestOpen:
         """Tests that the open method calls the expected API endpoints when the CloudSpace already exists."""
         mock_client = mock.MagicMock()
         mock_client.auth_service_get_user.return_value = V1GetUserResponse(
-            username="tester",
-            features=V1UserFeatures(code_tab=True),
+            username="tester", features=V1UserFeatures(code_tab=True)
         )
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -1563,9 +1521,7 @@ class TestOpen:
         mock_client.cloud_space_service_create_cloud_space.assert_not_called()
 
         mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
-            project_id="test-project-id",
-            cloudspace_id="cloudspace_id",
-            body=mock.ANY,
+            project_id="test-project-id", cloudspace_id="cloudspace_id", body=mock.ANY
         )
 
         out, _ = capsys.readouterr()
@@ -1603,20 +1559,20 @@ class TestOpen:
 class TestCloudspaceDispatch:
     @mock.patch.object(pathlib.Path, "exists")
     @pytest.mark.parametrize(
-        "custom_env_sync_path_value, cloudspace",
+        ("custom_env_sync_path_value", "cloudspace"),
         [
-            [None, V1CloudSpace(id="test_id", code_config=V1CloudSpaceInstanceConfig())],
-            [
+            (None, V1CloudSpace(id="test_id", code_config=V1CloudSpaceInstanceConfig())),
+            (
                 Path("/tmp/sys-customizations-sync"),
                 V1CloudSpace(id="test_id", code_config=V1CloudSpaceInstanceConfig()),
-            ],
-            [
+            ),
+            (
                 Path("/tmp/sys-customizations-sync"),
                 V1CloudSpace(
                     id="test_id",
                     code_config=V1CloudSpaceInstanceConfig(data_connection_mounts=[V1DataConnectionMount(id="test")]),
                 ),
-            ],
+            ),
         ],
     )
     def test_cloudspace_dispatch(self, custom_env_sync_root, custom_env_sync_path_value, cloudspace, monkeypatch):
@@ -1657,17 +1613,14 @@ class TestCloudspaceDispatch:
         cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name", "cluster_id")
 
         mock_client.cloud_space_service_get_cloud_space.assert_called_once_with(
-            project_id="project_id",
-            id="cloudspace_id",
+            project_id="project_id", id="cloudspace_id"
         )
 
         if custom_env_sync_path_value is not None:
             mock_repo.prepare_sys_customizations_sync.assert_called_once_with(custom_env_sync_path_value)
 
         mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
-            project_id="project_id",
-            cloudspace_id="cloudspace_id",
-            body=mock.ANY,
+            project_id="project_id", cloudspace_id="cloudspace_id", body=mock.ANY
         )
 
         assert (
@@ -1822,7 +1775,7 @@ def test_load_app_from_file():
     app = CloudRuntime.load_app_from_file(
         os.path.join(test_script_dir, "app_with_env.py"),
     )
-    assert app.works[0].cloud_compute.name == "default"
+    assert app.works[0].cloud_compute.name == "cpu-small"
 
     app = CloudRuntime.load_app_from_file(
         os.path.join(test_script_dir, "app_with_env.py"),
@@ -1832,7 +1785,7 @@ def test_load_app_from_file():
 
 
 @pytest.mark.parametrize(
-    "print_format,expected",
+    ("print_format", "expected"),
     [
         (
             "web",
@@ -1850,7 +1803,7 @@ def test_load_app_from_file():
                         "userRequestedComputeConfig": {
                             "count": 1,
                             "diskSize": 0,
-                            "name": "default",
+                            "name": "cpu-small",
                             "preemptible": "*",
                             "shmSize": 0,
                         },
@@ -1874,7 +1827,7 @@ def test_load_app_from_file():
                         "user_requested_compute_config": {
                             "count": 1,
                             "disk_size": 0,
-                            "name": "default",
+                            "name": "cpu-small",
                             "preemptible": "*",
                             "shm_size": 0,
                         },
@@ -1903,18 +1856,14 @@ def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
     cloud.LIGHTNING_CLOUD_PRINT_SPECS = print_format
 
     try:
-        with caplog.at_level(logging.INFO):
-            try:
-                cloud_runtime.dispatch()
-            except SystemExit:
-                # Expected behaviour
-                pass
+        with caplog.at_level(logging.INFO), contextlib.suppress(SystemExit):
+            cloud_runtime.dispatch()
 
         lines = caplog.text.split("\n")
 
         expected = re.escape(str(expected).replace("'", '"').replace(" ", "")).replace('"\\*"', "(.*)")
         expected = "INFO(.*)works: " + expected
-        assert any([re.fullmatch(expected, line) for line in lines])
+        assert any(re.fullmatch(expected, line) for line in lines)
     finally:
         cloud.LIGHTNING_CLOUD_PRINT_SPECS = None
 
@@ -1933,6 +1882,8 @@ def test_incompatible_cloud_compute_and_build_config(monkeypatch):
         def __init__(self):
             super().__init__()
             self.cloud_compute = CloudCompute(name="default")
+            # TODO: Remove me
+            self.cloud_compute.name = "default"
             self.cloud_build_config = BuildConfig(image="custom")
 
         def run(self):
@@ -2068,7 +2019,7 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
 
 
 @pytest.mark.parametrize(
-    "project, run_instance, user, tab, lightning_cloud_url, expected_url",
+    ("project", "run_instance", "user", "tab", "lightning_cloud_url", "expected_url"),
     [
         # Old style
         (
@@ -2121,7 +2072,7 @@ def test_get_app_url(monkeypatch, project, run_instance, user, tab, lightning_cl
 
 
 @pytest.mark.parametrize(
-    "user, project, cloudspace_name, tab, lightning_cloud_url, expected_url",
+    ("user", "project", "cloudspace_name", "tab", "lightning_cloud_url", "expected_url"),
     [
         (
             V1GetUserResponse(username="tester", features=V1UserFeatures()),

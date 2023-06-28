@@ -92,7 +92,7 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
             if isinstance(v, LightningCLI):
                 trainer = v.trainer
                 break
-            elif isinstance(v, Trainer):
+            if isinstance(v, Trainer):
                 trainer = v
                 break
         else:

@@ -1,5 +1,6 @@
 import os
 from contextlib import nullcontext
+from datetime import timedelta
 from functools import partial
 from typing import Any, Callable, Dict, Optional
 from unittest import mock
@@ -9,6 +10,7 @@ import pytest
 import torch
 import torch.nn as nn
 
+from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -73,16 +75,29 @@ class TestFSDPModel(BoringModel):
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, FullyShardedDataParallel)
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPMixedPrecisionPlugin)
-        precision = torch.float16 if self.trainer.precision == "16-mixed" else torch.bfloat16
-        assert self.layer.mixed_precision.param_dtype == precision
-        assert self.layer.mixed_precision.reduce_dtype == precision
-        assert self.layer.mixed_precision.buffer_dtype == precision
+
+        if self.trainer.precision == "16-mixed":
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.float16
+        elif self.trainer.precision == "bf16-mixed":
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self.trainer.precision == "16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.float16
+        elif self.trainer.precision == "bf16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
+        else:
+            raise ValueError(f"Unknown precision {self.trainer.precision}")
+
+        assert self.layer.mixed_precision.param_dtype == param_dtype
+        assert self.layer.mixed_precision.reduce_dtype == reduce_dtype
+        assert self.layer.mixed_precision.buffer_dtype == buffer_dtype
 
         for layer_num in [0, 2]:
             assert isinstance(self.layer.module[layer_num], FullyShardedDataParallel)
-            assert self.layer[layer_num].mixed_precision.param_dtype == precision
-            assert self.layer[layer_num].mixed_precision.reduce_dtype == precision
-            assert self.layer[layer_num].mixed_precision.buffer_dtype == precision
+            assert self.layer[layer_num].mixed_precision.param_dtype == param_dtype
+            assert self.layer[layer_num].mixed_precision.reduce_dtype == reduce_dtype
+            assert self.layer[layer_num].mixed_precision.buffer_dtype == buffer_dtype
 
 
 class TestFSDPModelAutoWrapped(BoringModel):
@@ -112,16 +127,28 @@ class TestFSDPModelAutoWrapped(BoringModel):
         assert isinstance(self.layer, torch.nn.Sequential)
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPMixedPrecisionPlugin)
 
-        precision = torch.float16 if self.trainer.precision == "16-mixed" else torch.bfloat16
+        if self.trainer.precision == "16-mixed":
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.float16
+        elif self.trainer.precision == "bf16-mixed":
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self.trainer.precision == "16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.float16
+        elif self.trainer.precision == "bf16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
+        else:
+            raise ValueError(f"Unknown precision {self.trainer.precision}")
+
         for layer_num in [0, 2]:
             if not self.should_be_wrapped[layer_num]:
                 # this layer is not wrapped
                 assert not isinstance(self.layer[layer_num], FullyShardedDataParallel)
                 continue
             assert isinstance(self.layer[layer_num], FullyShardedDataParallel)
-            assert self.layer[layer_num].mixed_precision.param_dtype == precision
-            assert self.layer[layer_num].mixed_precision.reduce_dtype == precision
-            assert self.layer[layer_num].mixed_precision.buffer_dtype == precision
+            assert self.layer[layer_num].mixed_precision.param_dtype == param_dtype
+            assert self.layer[layer_num].mixed_precision.reduce_dtype == reduce_dtype
+            assert self.layer[layer_num].mixed_precision.buffer_dtype == buffer_dtype
 
 
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
@@ -172,13 +199,21 @@ def test_invalid_on_cpu(tmpdir):
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
-@pytest.mark.parametrize("precision, expected", [("16-mixed", torch.float16), ("bf16-mixed", torch.bfloat16)])
+@pytest.mark.parametrize(
+    ("precision", "expected"),
+    [
+        ("16-mixed", (torch.float32, torch.float16, torch.float16)),
+        ("bf16-mixed", (torch.float32, torch.bfloat16, torch.bfloat16)),
+        # TODO: add 16-true and bf16-true once supported
+    ],
+)
 def test_precision_plugin_config(precision, expected):
     plugin = FSDPMixedPrecisionPlugin(precision=precision, device="cuda")
     config = plugin.mixed_precision_config
-    assert config.param_dtype == expected
-    assert config.buffer_dtype == expected
-    assert config.reduce_dtype == expected
+
+    assert config.param_dtype == expected[0]
+    assert config.buffer_dtype == expected[1]
+    assert config.reduce_dtype == expected[2]
 
 
 @RunIf(min_torch="1.12")
@@ -192,7 +227,6 @@ def test_fsdp_custom_mixed_precision(tmpdir):
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 def test_fsdp_strategy_sync_batchnorm(tmpdir):
     """Test to ensure that sync_batchnorm works when using FSDP and GPU, and all stages can be run."""
-
     model = TestFSDPModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -207,7 +241,7 @@ def test_fsdp_strategy_sync_batchnorm(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
-@pytest.mark.parametrize("precision", ("16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))))
+@pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 def test_fsdp_strategy_checkpoint(tmpdir, precision):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
     model = TestFSDPModel()
@@ -250,7 +284,7 @@ else:
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
-@pytest.mark.parametrize("wrap_min_params", (2, 1024, 100000000))
+@pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
 def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
     """Test to ensure that the full state dict is extracted when using FSDP strategy.
 
@@ -279,7 +313,7 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize(
-    "model, strategy, strategy_cfg",
+    ("model", "strategy", "strategy_cfg"),
     [
         pytest.param(TestFSDPModel(), "fsdp", None, id="manually_wrapped"),
         pytest.param(
@@ -307,7 +341,6 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
 )
 def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
-
     ck = ModelCheckpoint(save_last=True)
 
     strategy_cfg = strategy_cfg or {}
@@ -429,3 +462,20 @@ def test_fsdp_use_orig_params():
         assert strategy.kwargs["use_orig_params"]
         strategy = FSDPStrategy(use_orig_params=False)
         assert not strategy.kwargs["use_orig_params"]
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("torch.distributed.init_process_group")
+def test_set_timeout(init_process_group_mock):
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
+    test_timedelta = timedelta(seconds=30)
+    strategy = FSDPStrategy(timeout=test_timedelta, parallel_devices=[torch.device("cpu")])
+    strategy.cluster_environment = LightningEnvironment()
+    strategy.accelerator = Mock()
+    strategy.setup_environment()
+    process_group_backend = strategy._get_process_group_backend()
+    global_rank = strategy.cluster_environment.global_rank()
+    world_size = strategy.cluster_environment.world_size()
+    init_process_group_mock.assert_called_with(
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+    )

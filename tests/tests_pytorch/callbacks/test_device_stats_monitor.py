@@ -66,7 +66,7 @@ def test_device_stats_gpu_from_torch(tmpdir):
 
 
 @RunIf(psutil=True)
-@pytest.mark.parametrize("cpu_stats", (None, True, False))
+@pytest.mark.parametrize("cpu_stats", [None, True, False])
 @mock.patch("lightning.pytorch.accelerators.cpu.get_cpu_stats", side_effect=get_cpu_stats)
 def test_device_stats_cpu(cpu_stats_mock, tmpdir, cpu_stats):
     """Test CPU stats are logged when no accelerator is used."""
@@ -99,21 +99,20 @@ def test_device_stats_cpu(cpu_stats_mock, tmpdir, cpu_stats):
     assert cpu_stats_mock.call_count == expected
 
 
+class AssertTpuMetricsLogger(CSVLogger):
+    @rank_zero_only
+    def log_metrics(self, metrics, step=None) -> None:
+        fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
+        for f in fields:
+            assert any(f in h for h in metrics)
+
+
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_device_stats_monitor_tpu(tmpdir):
     """Test TPU stats are logged using a logger."""
-
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
-
-    class DebugLogger(CSVLogger):
-        @rank_zero_only
-        def log_metrics(self, metrics, step=None) -> None:
-            fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
-            for f in fields:
-                assert any(f in h for h in metrics)
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -122,16 +121,23 @@ def test_device_stats_monitor_tpu(tmpdir):
         devices="auto",
         log_every_n_steps=1,
         callbacks=[device_stats],
-        logger=DebugLogger(tmpdir),
+        logger=AssertTpuMetricsLogger(tmpdir),
         enable_checkpointing=False,
         enable_progress_bar=False,
     )
-    trainer.fit(model)
+
+    try:
+        trainer.fit(model)
+    except RuntimeError as e:
+        from torch_xla.experimental import pjrt
+
+        if pjrt.using_pjrt() and "GetMemoryInfo not implemented" in str(e):
+            pytest.xfail("`xm.get_memory_info` is not implemented with PJRT")
+        raise e
 
 
 def test_device_stats_monitor_no_logger(tmpdir):
     """Test DeviceStatsMonitor with no logger in Trainer."""
-
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
 
@@ -171,7 +177,6 @@ def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch, tmp
 
 def test_device_stats_monitor_logs_for_different_stages(tmpdir):
     """Test that metrics are logged for all stages that is training, testing and validation."""
-
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
 
@@ -194,7 +199,6 @@ def test_device_stats_monitor_logs_for_different_stages(tmpdir):
     trainer.fit(model)
 
     with open(f"{tmpdir}/lightning_logs/version_0/metrics.csv") as csvfile:
-
         content = csv.reader(csvfile, delimiter=",")
         it = iter(content).__next__()
 
@@ -212,7 +216,6 @@ def test_device_stats_monitor_logs_for_different_stages(tmpdir):
     trainer.test(model)
 
     with open(f"{tmpdir}/lightning_logs/version_0/metrics.csv") as csvfile:
-
         content = csv.reader(csvfile, delimiter=",")
         it = iter(content).__next__()
 

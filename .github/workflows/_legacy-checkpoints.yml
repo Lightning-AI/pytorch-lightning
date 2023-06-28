@@ -30,6 +30,11 @@ on:
         default: ''
         required: false
         type: string
+      upload_local:
+        description: 'When releasing, it installs local but need to upload with the actual version tag.'
+        default: false
+        required: false
+        type: boolean
       create_pr:
         description: 'Create a PR to enable testing PL with a new checkpoint.'
         default: false
@@ -67,16 +72,11 @@ jobs:
       env:
         PACKAGE_NAME: pytorch
         FREEZE_REQUIREMENTS: 1
-      run: |
-        pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip list
+      run: pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
       if: inputs.pl_version == ''
 
     - name: Install PL version
-      run: |
-        pip install "pytorch-lightning==${{ inputs.pl_version }}" \
-          -f https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip list
+      run: pip install "pytorch-lightning==${{ inputs.pl_version }}" -f https://download.pytorch.org/whl/cpu/torch_stable.html
       if: inputs.pl_version != ''
 
     - name: Adjust tests -> PL
@@ -92,39 +92,35 @@ jobs:
 
     - name: Decide PL version to create a PR with
       id: decide-version
-      run: |
-        python -c "import pytorch_lightning as pl; print(f'pl-version={pl.__version__}')" >> $GITHUB_OUTPUT || echo pl-version='' >> $GITHUB_OUTPUT
+      run: python -c "import pytorch_lightning as pl; print(f'pl-version={pl.__version__}')" >> $GITHUB_OUTPUT || echo pl-version='' >> $GITHUB_OUTPUT
 
     - name: Generate checkpoints
       working-directory: ${{ env.legacy_dir }}
-      run: |
-        bash generate_checkpoints.sh ${{ inputs.pl_version }}
+      run: bash generate_checkpoints.sh ${{ inputs.pl_version }}
+    - name: Rename local to actual version
+      if: inputs.upload_local
+      working-directory: ${{ env.legacy_dir }}
+      run: mv checkpoints/local checkpoints/${{ steps.decide-version.outputs.pl-version }}
 
-    - name: Keep artifact
-      id: keep-artifact
-      run: python -c "print('DAYS=' + str(30 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
+    - name: "Determine: Keep artifact & DryRun"
+      run: |
+        python -c "print('KEEP_DAYS=' + str(30 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_ENV
+        python -c "print('AWS_RUN=' + str('' if '${{inputs.push_to_s3}}' == 'true' else '--dryrun'))" >> $GITHUB_ENV
 
     - name: Upload checkpoints to GitHub Actions artifact
       uses: actions/upload-artifact@v3
       with:
         name: checkpoints-${{ github.sha }}
         path: ${{ env.legacy_dir }}/checkpoints/
-        retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
-
-    - name: Upload checkpoints to S3 (dryrun)
-      working-directory: ${{ env.legacy_dir }}
-      run: |
-        aws s3 sync --dryrun checkpoints/ s3://pl-public-data/legacy/checkpoints/
-        zip -r checkpoints.zip checkpoints
-        aws s3 cp --dryrun checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
+        retention-days: ${{ env.KEEP_DAYS }}
 
     - name: Upload checkpoints to S3
       working-directory: ${{ env.legacy_dir }}
       run: |
-        aws s3 sync checkpoints/ s3://pl-public-data/legacy/checkpoints/
+        aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/
         zip -r checkpoints.zip checkpoints
-        aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
-      if: inputs.push_to_s3
+        aws s3 cp $AWS_RUN checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
+
 
   add-ckpt-test:
     runs-on: ubuntu-20.04
@@ -143,6 +139,8 @@ jobs:
       with:
         title: Adding test for legacy checkpoint created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
         delete-branch: true
+        token: ${{ secrets.PAT_GHOST }}
         labels: |
+          checkpointing
           tests
           pl

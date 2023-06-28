@@ -36,10 +36,7 @@ class _WrapAttrTag(LightningEnum):
 
     def __call__(self, *args: Any) -> None:
         fn: Union[Callable[[object, str], None], Callable[[object, str, Any], None]]
-        if self == self.SET:
-            fn = setattr
-        else:
-            fn = delattr
+        fn = setattr if self == self.SET else delattr
         return fn(*args)
 
 
@@ -76,8 +73,7 @@ def has_len(dataloader: object) -> TypeGuard[Sized]:
 
 def _update_dataloader(dataloader: DataLoader, sampler: Union[Sampler, Iterable]) -> DataLoader:
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler)
-    dataloader = _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
-    return dataloader
+    return _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
 
 
 def _get_dataloader_init_args_and_kwargs(
@@ -221,10 +217,10 @@ def _dataloader_init_kwargs_resolve_sampler(
                         batch_size=batch_sampler.batch_size,
                         drop_last=batch_sampler.drop_last,
                     )
-                except TypeError as e:
+                except TypeError as ex:
                     import re
 
-                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(e))
+                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(ex))
                     if not match:
                         # an unexpected `TypeError`, continue failure
                         raise
@@ -235,7 +231,7 @@ def _dataloader_init_kwargs_resolve_sampler(
                         "We tried to re-instantiate your custom batch sampler and failed. "
                         "To mitigate this, either follow the API of `BatchSampler` or instantiate "
                         "your custom batch sampler inside `*_dataloader` hooks of your module."
-                    ) from e
+                    ) from ex
 
             return {
                 "sampler": None,
@@ -260,12 +256,12 @@ def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optio
 
     try:
         result = constructor(*args, **kwargs)
-    except TypeError as e:
+    except TypeError as ex:
         # improve exception message due to an incorrect implementation of the `DataLoader` where multiple subclass
         # `__init__` arguments map to one `DataLoader.__init__` argument
         import re
 
-        match = re.match(r".*__init__\(\) got multiple values .* '(\w+)'", str(e))
+        match = re.match(r".*__init__\(\) got multiple values .* '(\w+)'", str(ex))
         if not match:
             # an unexpected `TypeError`, continue failure
             raise
@@ -277,9 +273,9 @@ def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optio
             f" `kwargs` should be filtered to make sure they don't contain the `{argument}` key."
             " This argument was automatically passed to your object by PyTorch Lightning."
         )
-        raise MisconfigurationException(message) from e
+        raise MisconfigurationException(message) from ex
 
-    attrs_record = getattr(orig_object, "__pl_attrs_record", list())
+    attrs_record = getattr(orig_object, "__pl_attrs_record", [])
     for args, fn in attrs_record:
         fn(result, *args)
 
@@ -353,7 +349,7 @@ def _wrap_attr_method(method: Callable, tag: _WrapAttrTag) -> Callable:
         if first_call and not getattr(obj, "__pl_inside_init", True):
             # and save the value it was called with to the internal list,
             # if we're outside of __init__ and the original call did not fail and we're the first call
-            attrs_record = getattr(obj, "__pl_attrs_record", list())
+            attrs_record = getattr(obj, "__pl_attrs_record", [])
             attrs_record.append((args, tag))
             object.__setattr__(obj, "__pl_attrs_record", attrs_record)
         object.__setattr__(obj, "__pl_current_call", (prev_call_name, prev_call_method))
@@ -409,7 +405,7 @@ def _replace_value_in_saved_args(
         replace_index = arg_names.index(replace_key)
         args = args[:replace_index] + (replace_value,) + args[replace_index + 1 :]
         return True, args, kwargs
-    elif replace_key in kwargs or replace_key in default_kwargs:
+    if replace_key in kwargs or replace_key in default_kwargs:
         kwargs[replace_key] = replace_value
         return True, args, kwargs
 

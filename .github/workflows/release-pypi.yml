@@ -1,4 +1,4 @@
-name: PyPI
+name: Releasing
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
@@ -22,6 +22,7 @@ defaults:
 env:
   FREEZE_REQUIREMENTS: 1
   TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  PYTHON_VER: "3.8"
 
 jobs:
 
@@ -32,7 +33,7 @@ jobs:
 
 
   upload-packages:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: build-packages
     if: github.event_name == 'release'
     steps:
@@ -50,11 +51,14 @@ jobs:
 
 
   release-version:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       tag: ${{ steps.lai-package.outputs.version }}
     steps:
     - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VER }}
     - name: install Package
       run: |
         pip install . -f ${TORCH_URL}
@@ -65,15 +69,16 @@ jobs:
 
 
   signaling:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [release-version]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     env:
       TAG: ${{ needs.release-version.outputs.tag }}
+      BRANCH_NAME: "trigger/lightning-${{ needs.release-version.outputs.tag }}"
     steps:
     - uses: actions/setup-python@v4
       with:
-        python-version: 3.8
+        python-version: ${{ env.PYTHON_VER }}
     - uses: actions/checkout@v3
       with:
         repository: gridai/base-images
@@ -81,16 +86,15 @@ jobs:
     - name: Update lightning version
       run: |
         import json, os
-        with open("versions.json") as fo:
+        fname = "versions.json"
+        with open(fname, encoding="utf-8") as fo:
             vers = json.load(fo)
         vers["lightning_version"] = os.getenv('TAG')
-        with open("versions.json", "w") as fw:
-            json.dump(vers, fw)
+        with open(fname, "w", encoding="utf-8") as fw:
+            json.dump(vers, fw, indent=2)
       shell: python
     - run: cat versions.json
     - name: GIT commit & push
-      env:
-        BRANCH_NAME: "trigger/lightning-${{ env.TAG }}"
       run: |
         git config --global user.name "PL Ghost"
         git config --global user.email pl-github@grid.ai
@@ -102,7 +106,7 @@ jobs:
 
 
   waiting:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [release-version, signaling]
     env:
       TAG: ${{ needs.release-version.outputs.tag }}
@@ -111,7 +115,7 @@ jobs:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
       with:
-        python-version: 3.8
+        python-version: ${{ env.PYTHON_VER }}
     - run: pip install gitpython
     - name: Delay releasing
       run: |
@@ -130,7 +134,7 @@ jobs:
 
 
   pre-publish-packages:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
@@ -155,7 +159,7 @@ jobs:
 
 
   publish-packages:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
@@ -184,5 +188,6 @@ jobs:
     uses: ./.github/workflows/_legacy-checkpoints.yml
     with:
       push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
+      upload_local: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
       create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
     secrets: inherit

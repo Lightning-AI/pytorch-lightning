@@ -31,6 +31,9 @@ log = logging.getLogger(__name__)
 class SLURMEnvironment(ClusterEnvironment):
     """Cluster environment for training on a cluster managed by SLURM.
 
+    You can configure the `main_address` and `main_port` properties via the env variables `MASTER_ADDR` and
+    `MASTER_PORT`, respectively.
+
     Args:
         auto_requeue: Whether automatic job resubmission is enabled or not. How and under which conditions a job gets
             rescheduled gets determined by the owner of this plugin.
@@ -53,9 +56,12 @@ class SLURMEnvironment(ClusterEnvironment):
 
     @property
     def main_address(self) -> str:
-        nodelist = os.environ.get("SLURM_NODELIST", "127.0.0.1")
-        root_node = self.resolve_root_node_address(nodelist)
-        os.environ["MASTER_ADDR"] = root_node
+        root_node = os.environ.get("MASTER_ADDR")
+        if root_node is None:
+            nodelist = os.environ.get("SLURM_NODELIST", "127.0.0.1")
+            root_node = self.resolve_root_node_address(nodelist)
+            os.environ["MASTER_ADDR"] = root_node
+
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
         return root_node
 
@@ -173,8 +179,9 @@ class SLURMEnvironment(ClusterEnvironment):
         """Checks for conflicting or incorrectly set variables set through `srun` and raises a useful error
         message.
 
-        Right now, we only check for the most common user errors. See `the srun docs
-        <https://slurm.schedmd.com/srun.html>`_ for a complete list of supported srun variables.
+        Right now, we only check for the most common user errors. See
+        `the srun docs <https://slurm.schedmd.com/srun.html>`_
+        for a complete list of supported srun variables.
         """
         ntasks = int(os.environ.get("SLURM_NTASKS", "1"))
         if ntasks > 1 and "SLURM_NTASKS_PER_NODE" not in os.environ:

@@ -39,7 +39,7 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
-from tests_fabric.helpers.runif import RunIf, skip_if_dynamo_unsupported
+from tests_fabric.helpers.runif import RunIf
 
 
 class BoringModel(nn.Module):
@@ -56,7 +56,6 @@ def test_run_input_output():
     """Test that the dynamically patched run() method receives the input arguments and returns the result."""
 
     class RunFabric(Fabric):
-
         run_args = ()
         run_kwargs = {}
 
@@ -77,6 +76,7 @@ def test_run_input_output():
 def test_setup_module(ddp_mock, setup_method):
     """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
     fabric = Fabric(accelerator="cpu", strategy="ddp", devices=2)
+    fabric._launched = True  # pretend we have launched multiple processes
     model = nn.Linear(1, 2)
     setup_method = getattr(fabric, setup_method)
     fabric_model = setup_method(model)
@@ -86,15 +86,13 @@ def test_setup_module(ddp_mock, setup_method):
     assert fabric_model.forward != model.forward
 
 
-@RunIf(min_torch="2.0.0", skip_windows=True)
+@RunIf(skip_windows=True, dynamo=True)
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_compiled_module(setup_method):
     """Test that an `OptimizedModule` can be passed to the setup method."""
-    skip_if_dynamo_unsupported()
-
     from torch._dynamo.eval_frame import OptimizedModule
 
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     compiled_model = torch.compile(model)
     assert isinstance(compiled_model, OptimizedModule)
@@ -107,7 +105,7 @@ def test_setup_compiled_module(setup_method):
 
 
 @pytest.mark.parametrize(
-    "accelerator, initial_device, target_device",
+    ("accelerator", "initial_device", "target_device"),
     [
         ("cpu", "cpu", "cpu"),
         pytest.param("cpu", "cuda:0", "cpu", marks=RunIf(min_cuda_gpus=1)),
@@ -138,6 +136,11 @@ def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, 
 
     assert fabric_model.device == expected_device
     assert fabric.device == target_device
+
+    # edge case: model has no parameters
+    model = nn.Sequential()
+    fabric_model = setup_method(model, move_to_device=move_to_device)
+    assert fabric_model.device == target_device if move_to_device else torch.device("cpu")
 
 
 @RunIf(min_cuda_gpus=1)
@@ -172,7 +175,7 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
 
 def test_setup_module_and_optimizers():
     """Test that `setup()` can handle no optimizers, one optimizer, or multiple optimizers."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     optimizer0 = torch.optim.SGD(model.parameters(), lr=0.1)
     optimizer1 = torch.optim.Adam(model.parameters(), lr=0.1)
@@ -221,7 +224,7 @@ def test_setup_optimizers():
 
 def test_setup_twice_fails():
     """Test that calling `setup` with a model or optimizer that is already wrapped fails."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -236,7 +239,7 @@ def test_setup_twice_fails():
 
 def test_setup_module_twice_fails():
     """Test that calling `setup_module` with a model that is already wrapped fails."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
 
     fabric_model = fabric.setup_module(model)
@@ -260,6 +263,7 @@ def test_setup_optimizers_not_supported(strategy_cls):
     """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers
     independently."""
     fabric = Fabric()
+    fabric._launched = True  # pretend we have launched multiple processes
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
     fabric._strategy = Mock(spec=strategy_cls)
@@ -269,7 +273,7 @@ def test_setup_optimizers_not_supported(strategy_cls):
 
 def test_setup_tracks_num_models():
     """Test that setup() tracks how many times it has setup a model."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -295,7 +299,7 @@ def test_setup_dataloaders_unsupported_input():
 
 def test_setup_dataloaders_return_type():
     """Test that the setup method returns the dataloaders wrapped as FabricDataLoader and in the right order."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
 
     # single dataloader
     fabric_dataloader = fabric.setup_dataloaders(DataLoader(range(2)))
@@ -315,15 +319,15 @@ def test_setup_dataloaders_return_type():
 
 @mock.patch("lightning.fabric.fabric._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
-    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager in its run
-    method."""
+    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager when launching a
+    function."""
 
-    class RunFabric(Fabric):
-        def run(self):
-            # One for BatchSampler, another for DataLoader
-            assert ctx_manager().__enter__.call_count == 2
+    def run(_):
+        # One for BatchSampler, another for DataLoader
+        assert ctx_manager().__enter__.call_count == 2
 
-    RunFabric().run()
+    fabric = Fabric()
+    fabric.launch(run)
     assert ctx_manager().__exit__.call_count == 2
 
 
@@ -365,12 +369,12 @@ def test_setup_dataloaders_twice_fails():
 )
 def test_setup_dataloaders_move_to_device(fabric_device_mock):
     """Test that the setup configures FabricDataLoader to move the data to the device automatically."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloaders = fabric.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=False)
     assert all(dl.device is None for dl in fabric_dataloaders)
     fabric_device_mock.assert_not_called()
 
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloaders = fabric.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=True)
     assert all(dl.device == torch.device("cuda", 1) for dl in fabric_dataloaders)
     fabric_device_mock.assert_called()
@@ -382,7 +386,7 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
     # keep the custom sampler when not needed to replace
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloader = fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
     assert fabric_dataloader.sampler is custom_sampler
 
@@ -392,6 +396,7 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
     sampler."""
     fabric = Fabric(accelerator="cpu", strategy="ddp_spawn", devices=2)
     # no fabric.launch(): pretend we are on rank 0 now
+    fabric._launched = True
 
     dataset = TensorDataset(torch.arange(8))
 
@@ -403,14 +408,14 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
     ]
     for dataloader in no_shuffle_dataloaders:
         dataloader = fabric.setup_dataloaders(dataloader)
-        assert list(t[0].item() for t in iter(dataloader)) == [0, 2, 4, 6]
+        assert [t[0].item() for t in iter(dataloader)] == [0, 2, 4, 6]
 
     # shuffling turned on
     shuffle_dataloaders = [DataLoader(dataset, shuffle=True), DataLoader(dataset, sampler=RandomSampler(dataset))]
     for dataloader in shuffle_dataloaders:
         seed_everything(1)
         dataloader = fabric.setup_dataloaders(dataloader)
-        assert list(t[0].item() for t in iter(dataloader)) == [5, 2, 7, 1]
+        assert [t[0].item() for t in iter(dataloader)] == [5, 2, 7, 1]
 
 
 @pytest.mark.parametrize("shuffle", [True, False])
@@ -420,6 +425,7 @@ def test_setup_dataloaders_distributed_sampler_parity(shuffle, batch_size):
     torch.manual_seed(1)
     fabric = Fabric(accelerator="cpu", strategy="ddp", devices=2)
     # no fabric.launch(): pretend we are on rank 0 now
+    fabric._launched = True
 
     dataset = torch.arange(10)
     torch_dataloader = DataLoader(
@@ -457,7 +463,7 @@ def test_seed_everything():
     """Test that seed everything is static and sets the worker init function on the dataloader."""
     Fabric.seed_everything(3)
 
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     fabric_dataloader = fabric.setup_dataloaders(DataLoader(Mock()))
 
     assert fabric_dataloader.worker_init_fn.func is pl_worker_init_function
@@ -482,6 +488,7 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 
     # explicitly asking to replace when a custom sampler is already configured raises an exception
     fabric = Fabric(accelerator="cpu", strategy=strategy, devices=2)
+    fabric._launched = True  # pretend we have launched multiple processes
     if hasattr(fabric.strategy, "distributed_sampler_kwargs"):
         with pytest.raises(TypeError, match="You seem to have configured a sampler in your DataLoader"):
             fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
@@ -505,18 +512,19 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     """Test that Fabric replaces the default samplers with DistributedSampler automatically."""
     fabric = Fabric(accelerator="cpu", strategy=strategy, devices=2)
+    fabric._launched = True  # pretend we have launched multiple processes
     is_distributed = hasattr(fabric.strategy, "distributed_sampler_kwargs")
     fabric_dataloader = fabric.setup_dataloaders(DataLoader(range(3), shuffle=shuffle))
     assert not is_distributed or isinstance(fabric_dataloader.sampler, DistributedSampler)
 
 
 @pytest.mark.parametrize(
-    "accelerator, expected",
+    ("accelerator", "expected"),
     [
         ("cpu", "cpu"),
         pytest.param("cuda", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("tpu", "xla:1", marks=RunIf(tpu=True, standalone=True)),
+        pytest.param("tpu", "xla:0", marks=RunIf(tpu=True, standalone=True)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
         pytest.param("gpu", "mps:0", marks=RunIf(mps=True)),
     ],
@@ -524,28 +532,31 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
+    if accelerator == "tpu":
+        from torch_xla.experimental import pjrt
 
-    class RunFabric(Fabric):
-        def run(self):
-            expected_device = torch.device(expected)
+        if not pjrt.using_pjrt():
+            expected = "xla:1"
 
-            # module
-            module = torch.nn.Linear(2, 3)
-            module = fabric.to_device(module)
-            assert all(param.device == expected_device for param in module.parameters())
+    fabric = Fabric(accelerator=accelerator, devices=1)
+    fabric.launch()
 
-            # tensor
-            tensor = torch.rand(2, 2)
-            tensor = fabric.to_device(tensor)
-            assert tensor.device == expected_device
+    expected_device = torch.device(expected)
 
-            # collection
-            collection = {"data": torch.rand(2, 2), "int": 1}
-            collection = fabric.to_device(collection)
-            assert collection["data"].device == expected_device
+    # module
+    module = torch.nn.Linear(2, 3)
+    module = fabric.to_device(module)
+    assert all(param.device == expected_device for param in module.parameters())
 
-    fabric = RunFabric(accelerator=accelerator, devices=1)
-    fabric.run()
+    # tensor
+    tensor = torch.rand(2, 2)
+    tensor = fabric.to_device(tensor)
+    assert tensor.device == expected_device
+
+    # collection
+    collection = {"data": torch.rand(2, 2), "int": 1}
+    collection = fabric.to_device(collection)
+    assert collection["data"].device == expected_device
 
 
 def test_rank_properties():
@@ -565,16 +576,17 @@ def test_rank_properties():
 def test_backward():
     """Test that backward() calls into the precision plugin."""
     fabric = Fabric()
-    fabric._precision = Mock(spec=Precision)
+    fabric._strategy = Mock(spec=Precision)
     loss = Mock()
     fabric.backward(loss, "arg", keyword="kwarg")
-    fabric._precision.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+    fabric._strategy.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
 @RunIf(deepspeed=True, mps=False)
 def test_backward_model_input_required():
     """Test that when using deepspeed and multiple models, backward() requires the model as input."""
-    fabric = Fabric(strategy="deepspeed")
+    fabric = Fabric(strategy="deepspeed", devices=1)
+    fabric._launched = True  # pretend we have launched
 
     model0 = nn.Linear(1, 2)
     model1 = nn.Linear(1, 2)
@@ -587,7 +599,7 @@ def test_backward_model_input_required():
     fabric.setup(model0, optimizer0)
     fabric.setup(model1, optimizer1)
 
-    loss = model0(torch.randn(1, 1)).sum()
+    loss = model0(torch.randn(1, 1, device=fabric.device)).sum()
 
     with pytest.raises(ValueError, match="please provide the model used to perform"):
         fabric.backward(loss)
@@ -606,22 +618,27 @@ def test_autocast():
 
 def test_no_backward_sync():
     """Test that `Fabric.no_backward_sync()` validates the strategy and model is compatible."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     model = nn.Linear(3, 3)
-    with pytest.raises(TypeError, match="You need to set up the model first"):
-        with fabric.no_backward_sync(model):
-            pass
+    with pytest.raises(TypeError, match="You need to set up the model first"), fabric.no_backward_sync(model):
+        pass
 
     model = fabric.setup(model)
 
     # pretend that the strategy does not support skipping backward sync
     fabric._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
-    with pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"):
-        with fabric.no_backward_sync(model):
-            pass
+    with pytest.warns(
+        PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"
+    ), fabric.no_backward_sync(model):
+        pass
 
     # for single-device strategies, it becomes a no-op without warning
     fabric._strategy = Mock(spec=SingleDeviceStrategy, _backward_sync_control=MagicMock())
+    with fabric.no_backward_sync(model):
+        pass
+    fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
+    # same for XLA
+    fabric._strategy = Mock(spec=XLAStrategy, _backward_sync_control=MagicMock())
     with fabric.no_backward_sync(model):
         pass
     fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
@@ -632,7 +649,7 @@ def test_no_backward_sync():
     with fabric.no_backward_sync(model, enabled=False):
         pass
     fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
-    # when enabld, the wrapped module gets passed down
+    # when enabled, the wrapped module gets passed down
     with fabric.no_backward_sync(model):
         pass
     fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module)
@@ -640,11 +657,10 @@ def test_no_backward_sync():
 
 def test_launch_without_function():
     """Test the various ways `Fabric.launch()` can be called."""
-
     # default: no launcher, single process
     fabric = Fabric()
-    with mock.patch("lightning.fabric.fabric._do_nothing") as nothing:
-        fabric.launch()
+    nothing = Mock()
+    fabric.launch(nothing)
     nothing.assert_called()
 
     # with a launcher on the strategy
@@ -661,7 +677,7 @@ def test_launch_with_function():
         pass
 
     fabric = Fabric()
-    with pytest.raises(TypeError, match="The function passed to .* needs to take at least one argument"):
+    with pytest.raises(TypeError, match="needs to take at least one argument"):
         fabric.launch(fn_without_args)
 
     def fn_with_one_arg(arg):
@@ -672,11 +688,24 @@ def test_launch_with_function():
     fabric.launch(fn_with_one_arg)
     assert fn_with_one_arg.called
 
+    # common user mistake
+    fabric = Fabric()
+    with pytest.raises(TypeError, match="needs to be a callable"):
+        fabric.launch(fn_with_one_arg(fabric))
+
 
 @mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
 def test_launch_and_cli_not_allowed():
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     with pytest.raises(RuntimeError, match=escape("Calling  `.launch()` again is not allowed")):
+        fabric.launch()
+
+
+@RunIf(mps=False)
+@pytest.mark.parametrize("strategy", ["xla", "ddp_spawn"])
+def test_launch_and_strategies_unsupported_combinations(strategy, xla_available):
+    fabric = Fabric(strategy=strategy)
+    with pytest.raises(TypeError, match=r"launch\(\)` needs to be called with a function"):
         fabric.launch()
 
 
@@ -695,14 +724,56 @@ def test_module_sharding_context():
     otherwise."""
     fabric = Fabric()
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
-    with fabric.sharded_model():
+    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
     fabric._strategy.module_sharded_context.assert_not_called()
 
     fabric._strategy = MagicMock(spec=_Sharded)
-    with fabric.sharded_model():
+    with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
     fabric._strategy.module_sharded_context.assert_called_once()
+
+
+def test_init_module_context(monkeypatch):
+    """Test that the strategy returns the context manager for initializing the module."""
+    import lightning.fabric
+
+    fabric = Fabric(accelerator="cpu")
+    strategy = SingleDeviceStrategy(device=torch.device("cuda"))
+    strategy.module_init_context = Mock(wraps=strategy.module_init_context)
+    fabric._strategy = strategy
+    with fabric.init_module():
+        pass
+    strategy.module_init_context.assert_called_once_with(empty_init=None)
+    strategy.module_init_context.reset_mock()
+
+    # Pretend we are using PyTorch < 2.0
+    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
+    with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
+        with fabric.init_module():
+            pass
+    strategy.module_init_context.assert_called_once()
+
+
+def test_init_tensor_context(monkeypatch):
+    """Test that `.init_tensor()` warns if using PyTorch < 2.0."""
+    import lightning.fabric
+
+    fabric = Fabric(accelerator="cpu")
+    strategy = SingleDeviceStrategy(device=torch.device("cuda"))
+    strategy.tensor_init_context = Mock(wraps=strategy.tensor_init_context)
+    fabric._strategy = strategy
+    with fabric.init_tensor():
+        pass
+    strategy.tensor_init_context.assert_called_once()
+    strategy.tensor_init_context.reset_mock()
+
+    # Pretend we are using PyTorch < 2.0
+    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
+    with pytest.warns(PossibleUserWarning, match="can't place tensors on the device directly"):  # noqa: SIM117
+        with fabric.init_tensor():
+            pass
+    strategy.tensor_init_context.assert_called_once()
 
 
 def test_callbacks_input():
@@ -751,6 +822,29 @@ def test_call():
     assert not callback1.mock_calls
 
 
+def test_special_callbacks():
+    """Tests special callbacks that have hooks for internal Fabric events."""
+
+    class SpecialCallback:
+        def on_after_optimizer_step(self, strategy, optimizer):
+            pass
+
+        def on_after_setup(self, fabric, module):
+            pass
+
+    callback = Mock(wraps=SpecialCallback())
+    fabric = Fabric(accelerator="cpu", callbacks=[callback])
+
+    model = torch.nn.Linear(2, 2)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    fabric_model, fabric_optimizer = fabric.setup(model, optimizer)
+    callback.on_after_setup.assert_called_once_with(fabric=fabric, module=fabric_model)
+
+    model(torch.randn(2, 2)).sum().backward()
+    fabric_optimizer.step()
+    callback.on_after_optimizer_step.assert_called_once_with(strategy=fabric._strategy, optimizer=optimizer)
+
+
 def test_loggers_input():
     """Test the various ways in which loggers can be registered with Fabric."""
     logger0 = Mock()
@@ -773,7 +867,6 @@ def test_loggers_input():
 
 def test_log():
     """Test that `fabric.log` sends the metrics to each logger."""
-
     logger0 = Mock()
     logger1 = Mock()
     fabric = Fabric(loggers=[logger0, logger1])
@@ -789,7 +882,6 @@ def test_log():
 
 def test_log_dict():
     """Test that `fabric.log_dict` sends the metrics dict to each logger."""
-
     logger0 = Mock()
     logger1 = Mock()
     fabric = Fabric(loggers=[logger0, logger1])
@@ -831,7 +923,7 @@ def test_log_dict_input_parsing():
 @pytest.mark.parametrize("setup", [True, False])
 def test_save_wrapped_objects(setup, tmp_path):
     """Test that when modules and optimizers are in the state, they get unwrapped properly."""
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
     save_checkpoint_mock = Mock()
     fabric.strategy.save_checkpoint = save_checkpoint_mock
 
@@ -849,7 +941,47 @@ def test_save_wrapped_objects(setup, tmp_path):
     state = {"model": model, "optimizer": optimizer, "anything": anything}
     expected = {"model": unwrapped_model, "optimizer": unwrapped_optimizer, "anything": anything}
     fabric.save(tmp_path, state)
-    save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path)
+    save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path, filter=None)
+
+
+def test_save_filter(tmp_path):
+    fabric = Fabric(devices=1)
+    checkpoint_io_mock = Mock()
+    fabric.strategy.checkpoint_io = checkpoint_io_mock
+
+    model = BoringModel()
+    optimizer = torch.optim.Adam(model.parameters())
+
+    anything = {"cocofruit": 1}
+    state = {"model": model, "optimizer": optimizer, "anything": anything, "foo": 1}
+    save_path = tmp_path / "foo.pth"
+
+    # filter all dicts
+    filter = {k: lambda k, v: False for k in state}
+    fabric.save(save_path, state, filter=filter)
+    checkpoint_io_mock.save_checkpoint.assert_called_with(checkpoint={"foo": 1}, path=save_path, storage_options=None)
+
+    # bad filters
+    with pytest.raises(TypeError, match="should be a dict"):
+        fabric.save(save_path, state, filter="foo")
+    with pytest.raises(TypeError, match="callable, given 'foo"):
+        fabric.save(save_path, state, filter={"model": "foo"})
+    with pytest.raises(ValueError, match="keys {'asd'} are not present in the state keys"):
+        fabric.save(save_path, state, filter={"asd": lambda k, v: True})
+
+    # subset
+    checkpoint_io_mock.reset_mock()
+    filter = {
+        "model": lambda k, v: "weight" in k,
+        "anything": lambda k, v: isinstance(v, int),
+        "optimizer": lambda k, v: "param_groups" in k,
+    }
+    fabric.save(save_path, state, filter=filter)
+    checkpoint_io_mock.save_checkpoint.assert_called_with(
+        checkpoint={"model": {"layer.weight": ANY}, "optimizer": {"param_groups": ANY}, "anything": anything, "foo": 1},
+        path=save_path,
+        storage_options=None,
+    )
 
 
 @pytest.mark.parametrize("setup", [True, False])
@@ -859,7 +991,7 @@ def test_load_wrapped_objects(setup, tmp_path):
 
     expected_remainder = {"extra": "data"}
 
-    def mocked_load_checkpoint(path, state):
+    def mocked_load_checkpoint(path, state, strict):
         assert not isinstance(state["model"], _FabricModule)
         assert not isinstance(state["optimizer"], _FabricOptimizer)
         state.update({"int": 5, "dict": {"x": 1}})
@@ -888,6 +1020,7 @@ def test_barrier():
     """Test that `Fabric.barrier()` calls into the strategy."""
     fabric = Fabric()
     fabric._strategy = Mock()
+    fabric._launched = True
     fabric.barrier("test")
     fabric._strategy.barrier.assert_called_once_with(name="test")
 
@@ -896,6 +1029,7 @@ def test_broadcast():
     """Test that `Fabric.broadcast()` calls into the strategy."""
     fabric = Fabric()
     fabric._strategy = Mock()
+    fabric._launched = True
     fabric.broadcast(torch.tensor(1), src=2)
     fabric._strategy.broadcast.assert_called_once_with(torch.tensor(1), src=2)
 
@@ -904,7 +1038,8 @@ def test_all_gather():
     """Test that `Fabric.all_gather()` applies itself to collections and calls into the strategy."""
     fabric = Fabric()
     fabric._strategy = Mock(root_device=torch.device("cpu"))
-    defaults = dict(group=None, sync_grads=False)
+    fabric._launched = True
+    defaults = {"group": None, "sync_grads": False}
 
     # single tensor
     fabric.all_gather(torch.tensor(1))
@@ -925,7 +1060,8 @@ def test_all_reduce():
     """Test that `Fabric.all_reduce()` applies itself to collections and calls into the strategy."""
     fabric = Fabric()
     fabric._strategy = Mock(root_device=torch.device("cpu"))
-    defaults = dict(group=None, reduce_op="mean")
+    fabric._launched = True
+    defaults = {"group": None, "reduce_op": "mean"}
 
     # single tensor
     fabric.all_reduce(torch.tensor(1))
@@ -942,9 +1078,29 @@ def test_all_reduce():
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
 
 
-@pytest.mark.parametrize("clip_val,max_norm", [(1e-3, None), (None, 1)])
+def test_rank_zero_first():
+    """Test that rank 0 completes first before all other processes can execute under `.rank_zero_first()`."""
+
+    def record_calls_for_rank(rank):
+        call_order = []
+
+        fabric = Fabric()
+        fabric._strategy = Mock(global_rank=rank)
+        fabric.barrier = Mock(side_effect=lambda *_: call_order.append("barrier"))
+        target = Mock(run=Mock(side_effect=lambda *_: call_order.append("run")))
+
+        with fabric.rank_zero_first():
+            target.run()
+
+        return call_order
+
+    assert record_calls_for_rank(0) == ["run", "barrier", "barrier"]
+    assert record_calls_for_rank(1) == ["barrier", "run", "barrier"]
+
+
+@pytest.mark.parametrize(("clip_val", "max_norm"), [(1e-3, None), (None, 1)])
 def test_grad_clipping(clip_val, max_norm):
-    fabric = Fabric()
+    fabric = Fabric(devices=1)
 
     fabric.strategy.clip_gradients_norm = Mock()
     fabric.strategy.clip_gradients_value = Mock()
@@ -970,3 +1126,24 @@ def test_grad_clipping(clip_val, max_norm):
         fabric.strategy.clip_gradients_norm.assert_called_once_with(
             torch_model, torch_optimizer, max_norm=max_norm, norm_type=2.0, error_if_nonfinite=True
         )
+
+
+def test_verify_launch_called():
+    """Test that the user gets an error message if they forgot to call `.launch()`."""
+    fabric = Fabric(accelerator="cpu")
+    assert not fabric._launched
+    fabric._strategy = Mock(spec=SingleDeviceStrategy)
+    fabric._validate_launched()
+    fabric._strategy = Mock(spec=DDPStrategy)
+    with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
+        fabric._validate_launched()
+
+    method_names = ("setup", "setup_module", "setup_dataloaders", "broadcast", "barrier", "all_reduce", "all_gather")
+    for method_name in method_names:
+        method = getattr(fabric, method_name)
+        with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
+            method(Mock())
+
+    fabric.launch()
+    assert fabric._launched
+    fabric._validate_launched()

@@ -23,9 +23,8 @@ if _RICH_AVAILABLE:  # type: ignore[has-type]
 
 
 class RichModelSummary(ModelSummary):
-    r"""
-    Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule`
-    with `rich text formatting <https://github.com/Textualize/rich>`_.
+    r"""Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule` with `rich
+    text formatting <https://github.com/Textualize/rich>`_.
 
     Install it with pip:
 
@@ -74,7 +73,6 @@ class RichModelSummary(ModelSummary):
         model_size: float,
         **summarize_kwargs: Any,
     ) -> None:
-
         console = get_console()
 
         header_style: str = summarize_kwargs.get("header_style", "bold magenta")

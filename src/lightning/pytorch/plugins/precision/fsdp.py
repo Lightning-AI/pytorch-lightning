@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Literal, Optional
+from contextlib import contextmanager
+from typing import Any, Generator, Literal, Optional
 
 import torch
 
@@ -55,14 +56,30 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
     @property
     def mixed_precision_config(self) -> Optional[MixedPrecision]:
         assert MixedPrecision is not None
+
         if self.precision == "16-mixed":
-            dtype = torch.float16
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-mixed":
-            dtype = torch.bfloat16
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self.precision == "16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.float16
+        elif self.precision == "bf16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         else:
             raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision!r}.")
+
         return MixedPrecision(
-            param_dtype=dtype,
-            reduce_dtype=dtype,
-            buffer_dtype=dtype,
+            param_dtype=param_dtype,
+            reduce_dtype=reduce_dtype,
+            buffer_dtype=buffer_dtype,
         )
+
+    @contextmanager
+    def forward_context(self) -> Generator[None, None, None]:
+        """For FSDP, this context manager is a no-op since conversion is already handled internally.
+
+        See: https://pytorch.org/docs/stable/fsdp.html for more details on mixed precision.
+        """
+        yield

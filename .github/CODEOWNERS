@@ -8,14 +8,16 @@
 * @lantiga @borda @tchaton @awaelchli
 
 # CI/CD and configs
-/.actions/      @borda @carmocca
-/.github/       @borda @carmocca
-/.azure/        @borda @carmocca
-/dockers/       @borda @carmocca
-*.yml           @borda @carmocca
+/.actions/                  @borda @carmocca @ethanwharris
+/.github/                   @borda @carmocca @ethanwharris
+/.azure/                    @borda @carmocca @ethanwharris
+/.azure/app-cloud-e2e.yml   @awaelchli @ethanwharris @lantiga
+/dockers/                   @borda @carmocca @ethanwharris
+*.yml                       @borda @carmocca @ethanwharris
 
 # Docs
 /docs/                                      @edenlightning @lantiga @borda @awaelchli
+/docs/*/conf.py                             @borda @awaelchli @carmocca
 /.github/*.md                               @edenlightning @williamfalcon @lantiga @borda
 /.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton @awaelchli
 /docs/source-fabric/conf.py                 @borda @awaelchli @carmocca
@@ -23,9 +25,7 @@
 /docs/source-pytorch/conf.py                @borda @awaelchli @carmocca
 /docs/source-pytorch/index.rst              @williamfalcon @lantiga
 /docs/source-pytorch/levels                 @williamfalcon
-/docs/source-pytorch/expertise_levels       @williamfalcon
 /docs/source-app/                           @williamfalcon @tchaton @awaelchli
-/docs/source-app/conf.py                    @borda @awaelchli @carmocca
 /docs/source-app/index.rst                  @williamfalcon @lantiga
 /docs/source-app/expertise_levels           @williamfalcon
 
@@ -40,6 +40,11 @@
 /src/lightning/pytorch/trainer/trainer.py    @williamfalcon @tchaton @awaelchli @carmocca
 /src/lightning/pytorch/core/hooks.py         @williamfalcon @tchaton @awaelchli @carmocca
 /src/lightning/pytorch/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
+
+# Data Utilities
+/examples/data/           @nohalon @justusschock
+/src/lightning/data/      @nohalon @justusschock
+/tests/tests_data         @nohalon @justusschock
 
 # Lightning Fabric
 /src/lightning/fabric                       @awaelchli @carmocca @justusschock

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 from collections.abc import Iterable
 from typing import Any, Callable, Dict, Iterator, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
@@ -107,7 +108,7 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
         self._limits = limits
 
     def __next__(self) -> Tuple[Any, int, int]:
-        n = len(self.iterators)
+        n = len(self.iterables)
         if n == 0 or self._iterator_idx >= n:
             raise StopIteration
 
@@ -119,7 +120,7 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
                     raise StopIteration
 
         try:
-            out = next(self.iterators[self._iterator_idx])
+            out = next(self.iterators[0])
             index = self._idx
             self._idx += 1
             # batch, batch_idx, dataloader_idx
@@ -130,9 +131,9 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
             return self.__next__()
 
     def __iter__(self) -> Self:
-        super().__iter__()
         self._iterator_idx = 0
         self._idx = 0
+        self._load_current_iterator()
         return self
 
     def reset(self) -> None:
@@ -140,9 +141,18 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
         self._iterator_idx = 0
         self._idx = 0
 
+    def _load_current_iterator(self) -> None:
+        # Load a single DataLoader, prevents multiple sets of workers from starting unnecessarily
+        if self._iterator_idx < len(self.iterables):
+            self.iterators = [iter(self.iterables[self._iterator_idx])]
+        else:
+            # No more iterables to step through, return an empty list
+            self.iterators = []
+
     def _use_next_iterator(self) -> None:
         self._iterator_idx += 1
         self._idx = 0
+        self._load_current_iterator()
 
 
 class _MaxSize(_ModeIterator[List]):
@@ -151,11 +161,9 @@ class _MaxSize(_ModeIterator[List]):
         out = [None] * n
         all_exhausted = True
         for i in range(n):
-            try:
+            with contextlib.suppress(StopIteration):
                 out[i] = next(self.iterators[i])
                 all_exhausted = False
-            except StopIteration:
-                pass
         if all_exhausted:
             raise StopIteration
         return out

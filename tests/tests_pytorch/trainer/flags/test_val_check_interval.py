@@ -45,7 +45,7 @@ def test_val_check_interval(tmpdir, max_epochs, denominator):
     assert model.val_epoch_calls == max_epochs * denominator
 
 
-@pytest.mark.parametrize("value", (1, 1.0))
+@pytest.mark.parametrize("value", [1, 1.0])
 def test_val_check_interval_info_message(caplog, value):
     with caplog.at_level(logging.INFO):
         Trainer(val_check_interval=value)
@@ -101,7 +101,7 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infini
 
     assert trainer.current_epoch == 1 if use_infinite_dataset else max_epochs
     assert trainer.global_step == max_opt_steps
-    assert sorted(list(model.validation_called_at_step)) == [3, 6, 9, 12]
+    assert sorted(model.validation_called_at_step) == [3, 6, 9, 12]
 
 
 def test_validation_check_interval_exceed_data_length_wrong():

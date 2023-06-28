@@ -25,6 +25,7 @@ from lightning.fabric.utilities.types import _Stateful, Optimizable, ReduceLROnP
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple
 
 
@@ -56,12 +57,9 @@ class LightningOptimizer:
     def _to_lightning_optimizer(
         cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy"
     ) -> "LightningOptimizer":
-        if isinstance(optimizer, LightningOptimizer):
-            # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
-            # tests/core/test_lightning_optimizer.py::test_lightning_optimizer[False]
-            lightning_optimizer = optimizer
-        else:
-            lightning_optimizer = cls(optimizer)
+        # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
+        # tests/core/test_lightning_optimizer.py::test_lightning_optimizer[False]
+        lightning_optimizer = optimizer if isinstance(optimizer, LightningOptimizer) else cls(optimizer)
         lightning_optimizer._strategy = proxy(strategy)
         return lightning_optimizer
 
@@ -303,7 +301,7 @@ def _configure_schedulers_manual_opt(schedulers: list) -> List[LRSchedulerConfig
             # interval is not in this list even though the user needs to manually call the scheduler because
             # the `LearningRateMonitor` callback needs to check its value to know when to log the learning rate
             invalid_keys = {"reduce_on_plateau", "monitor", "strict"}
-            keys_to_warn = [k for k in scheduler.keys() if k in invalid_keys]
+            keys_to_warn = [k for k in scheduler if k in invalid_keys]
 
             if keys_to_warn:
                 rank_zero_warn(
@@ -337,6 +335,12 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
 
 
 def _validate_multiple_optimizers_support(optimizers: List[Optimizer], model: "pl.LightningModule") -> None:
+    if is_param_in_hook_signature(model.training_step, "optimizer_idx", explicit=True):
+        raise RuntimeError(
+            "Training with multiple optimizers is only supported with manual optimization. Remove the `optimizer_idx`"
+            " argument from `training_step`, set `self.automatic_optimization = False` and access your optimizers"
+            " in `training_step` with `opt1, opt2, ... = self.optimizers()`."
+        )
     if model.automatic_optimization and len(optimizers) > 1:
         raise RuntimeError(
             "Training with multiple optimizers is only supported with manual optimization. Set"
@@ -382,7 +386,7 @@ class _MockOptimizer(Optimizer):
         if closure is not None:
             closure()
 
-    def zero_grad(self, set_to_none: Optional[bool] = False) -> None:
+    def zero_grad(self, set_to_none: Optional[bool] = True) -> None:
         pass  # Do Nothing
 
     def __repr__(self) -> str:

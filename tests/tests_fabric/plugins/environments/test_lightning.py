@@ -48,7 +48,7 @@ def test_attributes_from_environment_variables():
 
 
 @pytest.mark.parametrize(
-    "environ, creates_processes_externally", [({}, False), (dict(LOCAL_RANK="2"), True), (dict(NODE_RANK="1"), False)]
+    ("environ", "creates_processes_externally"), [({}, False), ({"LOCAL_RANK": "2"}, True), ({"NODE_RANK": "1"}, False)]
 )
 def test_manual_user_launch(environ, creates_processes_externally):
     """Test that the environment switches to manual user mode when LOCAL_RANK env variable detected."""
