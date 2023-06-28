@@ -184,7 +184,7 @@ less memory bandwidth and run match operations much faster on GPUs that support 
 * You want to be the cool person in the lab :p
 
 .. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+9+-+precision_1.mp4
-    :width: 50%
+    :width: 400
     :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_precision.png
 
 |
