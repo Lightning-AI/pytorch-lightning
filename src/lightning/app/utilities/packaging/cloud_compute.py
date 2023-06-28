@@ -82,7 +82,8 @@ class CloudCompute:
         mounts: External data sources which should be mounted into a work as a filesystem at runtime.
 
         colocation_group_id: Identifier for groups of works to be colocated in the same datacenter.
-            Can be a string of max. 64 characters.
+            Set this to a string of max. 64 characters and all works with this group id will run in the same datacenter.
+            If not set, the works are not guaranteed to be colocated.
 
         interruptible: Whether to run on a interruptible machine e.g the machine can be stopped
             at any time by the providers. This is also known as spot or preemptible machines.
