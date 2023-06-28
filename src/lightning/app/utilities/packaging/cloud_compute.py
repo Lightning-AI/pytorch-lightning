@@ -128,7 +128,9 @@ class CloudCompute:
         if self._internal_id is None:
             self._internal_id = self._generate_id()
 
-        if not isinstance(self.colocation_group_id, str) or len(self.colocation_group_id) > 64:
+        if not isinstance(self.colocation_group_id, str) or (
+            isinstance(self.colocation_group_id, str) and len(self.colocation_group_id) > 64
+        ):
             raise ValueError("colocation_group_id can only be a string of maximum 64 characters.")
 
     def to_dict(self) -> dict:
