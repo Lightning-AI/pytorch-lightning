@@ -59,7 +59,7 @@ class StrEnum(str, Enum):
         try:
             return cls.from_str(value, source)
         except ValueError:
-            warnings.warn(
+            warnings.warn(  # noqa: B028
                 UserWarning(f"Invalid string: expected one of {cls._allowed_matches(source)}, but got {value}.")
             )
         return None

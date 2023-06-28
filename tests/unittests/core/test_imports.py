@@ -2,14 +2,13 @@ import operator
 import re
 
 import pytest
-
 from lightning_utilities.core.imports import (
+    ModuleAvailableCache,
+    RequirementCache,
     compare_version,
     get_dependency_min_version_spec,
     lazy_import,
     module_available,
-    ModuleAvailableCache,
-    RequirementCache,
     requires,
 )
 

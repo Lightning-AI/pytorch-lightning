@@ -2,7 +2,7 @@
 
 import os
 
-from lightning_utilities.__about__ import *  # noqa: F401, F403
+from lightning_utilities.__about__ import *  # noqa: F403
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.enums import StrEnum
 from lightning_utilities.core.imports import compare_version, module_available

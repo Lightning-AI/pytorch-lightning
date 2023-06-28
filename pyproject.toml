@@ -74,14 +74,28 @@ ignore_missing_imports = true
  select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
+    "I",  #see: https://pypi.org/project/isort/
     "D",  # see: https://pypi.org/project/pydocstyle
     "N",  # see: https://pypi.org/project/pep8-naming
+    "S",  # see: https://pypi.org/project/flake8-bandit
  ]
 extend-select = [
+    "A",  # see: https://pypi.org/project/flake8-builtins
+    "B",  # see: https://pypi.org/project/flake8-bugbear
     "C4",  # see: https://pypi.org/project/flake8-comprehensions
     "PT",  # see: https://pypi.org/project/flake8-pytest-style
     "RET",  # see: https://pypi.org/project/flake8-return
     "SIM",  # see: https://pypi.org/project/flake8-simplify
+    "YTT",  # see: https://pypi.org/project/flake8-2020
+    "ANN",  # see: https://pypi.org/project/flake8-annotations
+    "TID",  # see: https://pypi.org/project/flake8-tidy-imports/
+    "T10",  # see: https://pypi.org/project/flake8-debugger
+    "Q",  # see: https://pypi.org/project/flake8-quotes
+    "RUF",  # Ruff-specific rules
+    "EXE",  # see: https://pypi.org/project/flake8-executable
+    "ISC",  # see: https://pypi.org/project/flake8-implicit-str-concat
+    "PIE",  # see: https://pypi.org/project/flake8-pie
+    "PLE",  # see: https://pypi.org/project/pylint/
 ]
  ignore = [
      "E731",
@@ -100,20 +114,35 @@ extend-select = [
  ignore-init-module-imports = true
 
 [tool.ruff.per-file-ignores]
-"setup.py" = ["D100", "SIM115"]
+"setup.py" = ["ANN202", "D100", "SIM115"]
 "__about__.py" = ["D100"]
 "__init__.py" = ["D100"]
 "src/**" = [
+    "ANN101",  # Missing type annotation for `self` in method
+    "ANN102",  # Missing type annotation for `cls` in classmethod
+    "ANN401",  # Dynamically typed expressions (typing.Any)
+    "B905",  # `zip()` without an explicit `strict=` parameter
     "D100",  # Missing docstring in public module
     "D107",  # Missing docstring in `__init__`
 ]
 "tests/**" = [
+    "ANN001",  # Missing type annotation for function argument
+    "ANN101",  # Missing type annotation for `self` in method
+    "ANN201",  #  Missing return type annotation for public function
+    "ANN202",  # Missing return type annotation for private function
+    "ANN204",  # Missing return type annotation for special method
+    "ANN401",  # Dynamically typed expressions (typing.Any)
+    "B905",  # `zip()` without an explicit `strict=` parameter
     "D100",  # Missing docstring in public module
     "D101",  # Missing docstring in public class
     "D102",  # Missing docstring in public method
     "D103",  # Missing docstring in public function
     "D104",  # Missing docstring in public package
+    "D105",  # Missing docstring in magic method
     "D107",  # Missing docstring in `__init__`
+    "S101",  # Use of `assert` detected
+    "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "B028",  # No explicit `stacklevel` keyword argument found
 ]
 
 [tool.ruff.pydocstyle]

@@ -15,7 +15,8 @@ class _RequirementWithComment(Requirement):
     def __init__(self, *args: Any, comment: str = "", pip_argument: Optional[str] = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.comment = comment
-        assert pip_argument is None or pip_argument  # sanity check that it's not an empty str
+        if not (pip_argument is None or pip_argument):  # sanity check that it's not an empty str
+            raise RuntimeError(f"wrong pip argument: {pip_argument}")
         self.pip_argument = pip_argument
         self.strict = self.strict_string in comment.lower()
 
@@ -109,8 +110,10 @@ def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str 
     >>> load_requirements(path_req, "docs.txt", unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ['sphinx<6.0,>=4.0', ...]
     """
-    assert unfreeze in {"none", "major", "all"}
+    if unfreeze not in {"none", "major", "all"}:
+        raise ValueError(f'unsupported option of "{unfreeze}"')
     path = Path(path_dir) / file_name
-    assert path.exists(), (path_dir, file_name, path)
+    if not path.exists():
+        raise FileNotFoundError(f"missing file for {(path_dir, file_name, path)}")
     text = path.read_text()
     return [req.adjust(unfreeze) for req in _parse_requirements(text)]

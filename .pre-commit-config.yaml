@@ -28,11 +28,6 @@ repos:
         args: [--py37-plus]
         name: Upgrade code
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-
   - repo: https://github.com/psf/black
     rev: 23.3.0
     hooks:
@@ -54,15 +49,14 @@ repos:
     hooks:
       - id: yesqa
         additional_dependencies:
-          - flake8-docstrings
           - pep8-naming
-          - flake8-comprehensions
           - flake8-pytest-style
-          - flake8-return
-          - flake8-simplify
+          - flake8-bandit
+          - flake8-builtins
+          - flake8-bugbear
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.270
+    rev: v0.0.272
     hooks:
       - id: ruff
         args: ["--fix"]

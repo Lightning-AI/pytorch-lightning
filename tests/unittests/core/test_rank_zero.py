@@ -1,5 +1,4 @@
 import pytest
-
 from lightning_utilities.core.rank_zero import rank_prefixed_message, rank_zero_only
 
 

@@ -3,7 +3,7 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 import dataclasses
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict, defaultdict
 from copy import deepcopy
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -185,7 +185,8 @@ def apply_to_collections(
     is_namedtuple_ = is_namedtuple(data1)
     is_sequence = isinstance(data1, Sequence) and not isinstance(data1, str)
     if (is_namedtuple_ or is_sequence) and data2 is not None:
-        assert len(data1) == len(data2), "Sequence collections have different sizes."
+        if len(data1) != len(data2):
+            raise ValueError("Sequence collections have different sizes.")
         out = [
             apply_to_collections(v1, v2, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             for v1, v2 in zip(data1, data2)

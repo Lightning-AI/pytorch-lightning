@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Any, Iterable
 
 from lightning_utilities.core.imports import package_available
 
@@ -7,7 +7,7 @@ if package_available("torch"):
 else:
     # minimal torch implementation to avoid installing torch in testing CI
     class TensorMock:
-        def __init__(self, data):
+        def __init__(self, data) -> None:
             self.data = data
 
         def __add__(self, other):
@@ -32,7 +32,7 @@ else:
             """Iterate."""
             return iter(self.data)
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             """Return object representation."""
             return repr(self.data)
 
@@ -44,15 +44,15 @@ else:
         Tensor = TensorMock
 
         @staticmethod
-        def tensor(data):
+        def tensor(data: Any) -> TensorMock:
             return TensorMock(data)
 
         @staticmethod
-        def equal(a, b):
+        def equal(a: Any, b: Any) -> bool:
             return a == b
 
         @staticmethod
-        def arange(*args):
+        def arange(*args: Any) -> TensorMock:
             return TensorMock(list(range(*args)))
 
     torch = TorchMock()
