@@ -48,7 +48,7 @@ github_repo = project
 
 
 fetch_external_assets(
-    docs_folder=_PATH_HERE, retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
+    docs_folder=_PATH_HERE, assets_folder="fetched-s3-assets", retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
 )
 
 # -- General configuration ---------------------------------------------------
