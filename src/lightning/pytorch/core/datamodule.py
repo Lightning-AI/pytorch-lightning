@@ -158,6 +158,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         cls,
         checkpoint_path: Union[_PATH, IO],
         hparams_file: Optional[_PATH] = None,
+        map_location=None,  # Add for #17945
         **kwargs: Any,
     ) -> Self:
         r"""
@@ -216,7 +217,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         loaded = _load_from_checkpoint(
             cls,
             checkpoint_path,
-            map_location=None,
+            map_location=map_location,# Add for #17945
             hparams_file=hparams_file,
             strict=None,
             **kwargs,
