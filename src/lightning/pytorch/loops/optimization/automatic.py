@@ -55,9 +55,7 @@ class ClosureResult(OutputResult):
             self.loss = self.closure_loss.detach().clone()
 
     @classmethod
-    def from_training_step_output(
-        cls, training_step_output: STEP_OUTPUT, normalize: int = 1
-    ) -> "ClosureResult":
+    def from_training_step_output(cls, training_step_output: STEP_OUTPUT, normalize: int = 1) -> "ClosureResult":
         closure_loss, extra = None, {}
 
         if isinstance(training_step_output, dict):

@@ -14,7 +14,7 @@
 from collections import OrderedDict
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from torch import Tensor
 

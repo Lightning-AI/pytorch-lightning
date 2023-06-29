@@ -13,7 +13,7 @@
 # limitations under the License.
 r"""Base class used to build new callbacks."""
 
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Type
 
 from torch import Tensor
 from torch.optim import Optimizer

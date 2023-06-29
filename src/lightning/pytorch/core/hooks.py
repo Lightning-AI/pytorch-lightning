@@ -112,9 +112,7 @@ class ModelHooks:
             dataloader_idx: the index of the dataloader
         """
 
-    def on_test_batch_end(
-        self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0
-    ) -> None:
+    def on_test_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the test loop after the batch.
 
         Args:
