@@ -651,18 +651,18 @@ class LightningModule(
         return super().forward(*args, **kwargs)
 
     @overload
-    def training_step(self, batch: Any, batch_idx: int) -> Optional[STEP_OUTPUT]:
+    def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         ...
 
     @overload
-    def training_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
+    def training_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> STEP_OUTPUT:
         ...
 
     @overload
-    def training_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> Optional[STEP_OUTPUT]:
+    def training_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> STEP_OUTPUT:
         ...
 
-    def training_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         r"""Here you compute and return the training loss and some additional metrics for e.g. the progress bar or
         logger.
 
@@ -716,18 +716,18 @@ class LightningModule(
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
     @overload
-    def validation_step(self, batch: Any, batch_idx: int) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         ...
 
     @overload
-    def validation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> STEP_OUTPUT:
         ...
 
     @overload
-    def validation_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> STEP_OUTPUT:
         ...
 
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         r"""Operates on a single batch of data from the validation set. In this step you'd might generate examples
         or calculate anything of interest like accuracy.
 
@@ -797,18 +797,18 @@ class LightningModule(
         """
 
     @overload
-    def test_step(self, batch: Any, batch_idx: int) -> Optional[STEP_OUTPUT]:
+    def test_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         ...
 
     @overload
-    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
+    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> STEP_OUTPUT:
         ...
 
     @overload
-    def test_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> Optional[STEP_OUTPUT]:
+    def test_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> STEP_OUTPUT:
         ...
 
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         r"""Operates on a single batch of data from the test set. In this step you'd normally generate examples or
         calculate anything of interest such as accuracy.
 

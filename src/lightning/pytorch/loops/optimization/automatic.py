@@ -56,7 +56,7 @@ class ClosureResult(OutputResult):
 
     @classmethod
     def from_training_step_output(
-        cls, training_step_output: Optional[STEP_OUTPUT], normalize: int = 1
+        cls, training_step_output: STEP_OUTPUT, normalize: int = 1
     ) -> "ClosureResult":
         closure_loss, extra = None, {}
 
