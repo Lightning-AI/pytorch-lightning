@@ -183,7 +183,9 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         return super().log_hyperparams(params=params, metrics=metrics)
 
     @rank_zero_only
-    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
+    def log_graph(  # type: ignore[override]
+        self, model: "pl.LightningModule", input_array: Optional[Tensor] = None
+    ) -> None:
         if not self._log_graph:
             return
 

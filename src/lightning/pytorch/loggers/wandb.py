@@ -420,7 +420,7 @@ class WandbLogger(Logger):
         self.experiment.config.update(params, allow_val_change=True)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:  #type: ignore[arg-type]
+    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
@@ -476,7 +476,7 @@ class WandbLogger(Logger):
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
         kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
-        self.log_metrics(metrics, step)
+        self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
     @property
     def save_dir(self) -> Optional[str]:

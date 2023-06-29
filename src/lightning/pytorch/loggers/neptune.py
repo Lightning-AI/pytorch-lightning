@@ -423,7 +423,9 @@ class NeptuneLogger(Logger):
         self.run[parameters_key] = stringify_unsupported(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(  # type: ignore[override]
+        self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
+    ) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:
