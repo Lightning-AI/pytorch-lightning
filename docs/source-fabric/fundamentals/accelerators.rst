@@ -4,7 +4,7 @@ Accelerate your code with Fabric
 
 
 .. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/animations/accelerators.mp4
-    :width: 500
+    :width: 800
     :autoplay:
     :loop:
     :muted:

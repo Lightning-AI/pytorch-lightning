@@ -16,7 +16,7 @@ Simple Launch
 *************
 
 .. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/animations/launch.mp4
-    :width: 500
+    :width: 800
     :autoplay:
     :loop:
     :muted:
@@ -57,7 +57,7 @@ Launch with the CLI
 *******************
 
 .. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/animations/launch-cli.mp4
-    :width: 500
+    :width: 800
     :autoplay:
     :loop:
     :muted:
