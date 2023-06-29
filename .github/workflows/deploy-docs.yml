@@ -35,7 +35,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -e . -U -q -r requirements/docs.txt \
+        pip install -e . -U -q -r requirements/dev-docs.txt \
           -f https://download.pytorch.org/whl/cpu/torch_stable.html
         # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
         sudo apt-get update --fix-missing

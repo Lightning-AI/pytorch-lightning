@@ -27,7 +27,7 @@ with open(os.path.join(_PATH_REQUIRE, "base.txt")) as fp:
 # make extras as automated loading
 requirements_extra = {}
 for fpath in glob.glob(os.path.join(_PATH_REQUIRE, "*.txt")):
-    if os.path.basename(fpath) == "base.txt":
+    if os.path.basename(fpath) in ("base.txt", "dev-docs.txt", "dev-tests.txt"):
         continue
     name, _ = os.path.splitext(os.path.basename(fpath))
     with open(fpath) as fp:

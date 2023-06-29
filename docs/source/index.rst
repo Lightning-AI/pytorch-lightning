@@ -5,12 +5,17 @@
 
 Lightning-DevToolbox documentation
 ==================================
+
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/Lightning.gif
+    :alt: What is Lightning gif.
+    :width: 100 %
+
 .. toctree::
    :maxdepth: 1
-   :name: start
-   :caption: Start here
+   :name: content
+   :caption: Overview
 
-   readme
+   Utilities readme <readme>
 
 
 Indices and tables

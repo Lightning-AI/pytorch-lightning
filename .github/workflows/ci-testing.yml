@@ -45,9 +45,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -e . -U --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip install -q -r requirements/test.txt
-        python --version
+        pip install -e . -U -r requirements/dev-tests.txt \
+          -f https://download.pytorch.org/whl/cpu/torch_stable.html
         pip --version
         pip list
 
