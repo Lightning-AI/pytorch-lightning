@@ -13,6 +13,11 @@ on:
         default: './docs'
         required: false
         type: string
+      doctest:
+        description: 'test examples inside docs'
+        default: true
+        required: false
+        type: boolean
       timeout-minutes:
         description: 'timeout-minutes for each job'
         default: 15
@@ -44,6 +49,7 @@ jobs:
   docs-test:
     runs-on: ubuntu-20.04
     env: ${{ fromJSON(inputs.env-vars) }}
+    if: inputs.doctests != 'false'
     steps:
     - name: Checkout 🛎
       uses: actions/checkout@v3
