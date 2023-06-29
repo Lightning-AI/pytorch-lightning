@@ -35,11 +35,6 @@ class _TunerExitException(Exception):
 def _augment_message(exception: BaseException, pattern: str, new_message: str) -> None:
     # Remove this when Python 3.11 becomes the minimum supported version
     if not _PYTHON_GREATER_EQUAL_3_11_0:
-        args = []
-        for arg in exception.args:
-            if isinstance(arg, str) and re.match(pattern, arg, re.DOTALL):
-                arg = new_message
-            args.append(arg)
-        exception.args = tuple(args)
+        exception.args = tuple(new_message if isinstance(arg, str) and re.match(pattern, arg, re.DOTALL) else arg for arg in exception.args)
     elif any(re.match(pattern, message, re.DOTALL) for message in exception.args if isinstance(message, str)):
         exception.add_note(new_message)
