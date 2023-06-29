@@ -16,5 +16,4 @@ sphinx-rtd-dark-mode
 sphinxcontrib-video ==0.2.0
 jinja2 >=3.0.0,<3.2.0
 
-# todo: replace with released version, likely 0.9
-lightning-utilities @ https://github.com/Lightning-AI/utilities/archive/refs/heads/main.zip
+lightning-utilities >=0.9.0
