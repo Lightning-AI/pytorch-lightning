@@ -25,7 +25,6 @@ from typing import (
     Dict,
     Generator,
     IO,
-    Iterable,
     List,
     Literal,
     Mapping,
@@ -42,7 +41,6 @@ from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader
 from torchmetrics import Metric, MetricCollection
 from typing_extensions import Self
 
@@ -650,18 +648,6 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    @overload
-    def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
-        ...
-
-    @overload
-    def training_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> STEP_OUTPUT:
-        ...
-
-    @overload
-    def training_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> STEP_OUTPUT:
-        ...
-
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         r"""Here you compute and return the training loss and some additional metrics for e.g. the progress bar or
         logger.
@@ -715,18 +701,6 @@ class LightningModule(
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
-    @overload
-    def validation_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
-        ...
-
-    @overload
-    def validation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> STEP_OUTPUT:
-        ...
-
-    @overload
-    def validation_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> STEP_OUTPUT:
-        ...
-
     def validation_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         r"""Operates on a single batch of data from the validation set. In this step you'd might generate examples
         or calculate anything of interest like accuracy.
@@ -740,8 +714,7 @@ class LightningModule(
         Return:
             - :class:`~torch.Tensor` - The loss tensor
             - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``.
-            - ``None`` - Skip to the next batch. This is only supported for automatic optimization.
-                This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
+            - ``None`` - Skip to the next batch.
 
         .. code-block:: python
 
@@ -796,18 +769,6 @@ class LightningModule(
             the model goes back to training mode and gradients are enabled.
         """
 
-    @overload
-    def test_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
-        ...
-
-    @overload
-    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> STEP_OUTPUT:
-        ...
-
-    @overload
-    def test_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> STEP_OUTPUT:
-        ...
-
     def test_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         r"""Operates on a single batch of data from the test set. In this step you'd normally generate examples or
         calculate anything of interest such as accuracy.
@@ -821,8 +782,7 @@ class LightningModule(
         Return:
             - :class:`~torch.Tensor` - The loss tensor
             - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``.
-            - ``None`` - Skip to the next batch. This is only supported for automatic optimization.
-                This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
+            - ``None`` - Skip to the next batch.
 
         .. code-block:: python
 
@@ -876,18 +836,6 @@ class LightningModule(
             PyTorch gradients have been disabled. At the end of the test epoch, the model goes back
             to training mode and gradients are enabled.
         """
-
-    @overload
-    def predict_step(self, batch: Any, batch_idx: int) -> Any:
-        ...
-
-    @overload
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Any:
-        ...
-
-    @overload
-    def predict_step(self, dataloader_iter: Iterable[DataLoader[Any]]) -> Any:
-        ...
 
     def predict_step(self, *args: Any, **kwargs: Any) -> Any:
         """Step function called during :meth:`~lightning.pytorch.trainer.trainer.Trainer.predict`. By default, it
