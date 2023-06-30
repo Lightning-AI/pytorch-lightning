@@ -36,7 +36,9 @@ class BoringDoubleModule(nn.Module):
 @RunIf(mps=False)  # MPS doesn't support float64
 def test_double_precision():
     fabric = Fabric(devices=1, precision="64-true")
-    model = BoringDoubleModule()
+
+    with fabric.init_module():
+        model = BoringDoubleModule()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
     model, optimizer = fabric.setup(model, optimizer)
 
