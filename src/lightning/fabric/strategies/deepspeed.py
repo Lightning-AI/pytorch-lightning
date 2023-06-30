@@ -839,7 +839,7 @@ def _validate_device_index_selection(parallel_devices: List[torch.device]) -> No
     expected_device_indices = list(range(len(parallel_devices)))
     if selected_device_indices != expected_device_indices:
         raise ValueError(
-            f"The selected device indices {selected_device_indices!r} don't match the local rank values of the."
+            f"The selected device indices {selected_device_indices!r} don't match the local rank values of processes."
             " If you need to select GPUs at a specific index, set the `CUDA_VISIBLE_DEVICES` environment variable"
             f" instead. For example: `CUDA_VISIBLE_DEVICES={','.join(str(i) for i in selected_device_indices)}`."
         )
