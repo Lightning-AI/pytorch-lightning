@@ -17,10 +17,9 @@ from unittest.mock import MagicMock, Mock
 import pytest
 import torch
 
-from lightning.fabric import Fabric
 from lightning.fabric.strategies import DataParallelStrategy
 from tests_fabric.helpers.runif import RunIf
-from tests_fabric.strategies.test_single_device import _run_grad_clipping_test
+from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
 
 
 def test_data_parallel_root_device():
@@ -85,5 +84,6 @@ def test_dp_module_state_dict():
 @pytest.mark.parametrize("clip_type", ["norm", "val"])
 @RunIf(min_cuda_gpus=2)
 def test_dp_grad_clipping(clip_type, precision):
-    fabric = Fabric(accelerator="cuda", devices=2, precision=precision, strategy="dp")
-    _run_grad_clipping_test(fabric=fabric, clip_type=clip_type)
+    clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
+    fabric = clipping_test_cls(accelerator="cuda", devices=2, precision=precision, strategy="dp")
+    fabric.run()

@@ -20,14 +20,13 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from lightning.fabric import Fabric
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from tests_fabric.helpers.runif import RunIf
-from tests_fabric.strategies.test_single_device import _run_grad_clipping_test
+from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
 
 
 @pytest.mark.parametrize(
@@ -125,9 +124,9 @@ def test_ddp_module_state_dict():
 )
 @RunIf(standalone=True)
 def test_ddp_grad_clipping(clip_type, accelerator, precision):
-    fabric = Fabric(accelerator=accelerator, devices=2, precision=precision, strategy="ddp")
-    fabric.launch()
-    _run_grad_clipping_test(fabric=fabric, clip_type=clip_type)
+    clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
+    fabric = clipping_test_cls(accelerator=accelerator, devices=2, precision=precision, strategy="ddp")
+    fabric.run()
 
 
 @RunIf(min_cuda_gpus=2)

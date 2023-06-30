@@ -36,6 +36,7 @@ from lightning.fabric.strategies.fsdp import (
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_fabric.helpers.runif import RunIf
+from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
@@ -181,28 +182,28 @@ def test_fsdp_grad_clipping_value_error():
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
 
-# class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
-#     def after_backward(self, model, optimizer):
-#         self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
-#
-#         with model._forward_module.summon_full_params(model._forward_module):
-#             parameters = model.parameters()
-#             grad_norm = torch.linalg.vector_norm(
-#                 torch.stack([torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32) for p in parameters]),
-#                 2,
-#             )
-#             torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
-#
-#
-# @pytest.mark.parametrize(
-#     "precision",
-#     ["32-true", "16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))],
-# )
-# @RunIf(min_cuda_gpus=2, standalone=True)
-# @pytest.mark.xfail(reason="Testing with FSDP is not yet correct")  # TODO: Investigate testing with fsdp
-# def test_fsdp_grad_clipping_norm(precision):
-#     fabric = _MyFSDPFabricGradientNorm(accelerator="cuda", devices=2, precision=precision, strategy="fsdp")
-#     fabric.run()
+class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
+    def after_backward(self, model, optimizer):
+        self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
+
+        with model._forward_module.summon_full_params(model._forward_module):
+            parameters = model.parameters()
+            grad_norm = torch.linalg.vector_norm(
+                torch.stack([torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32) for p in parameters]),
+                2,
+            )
+            torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
+
+
+@pytest.mark.parametrize(
+    "precision",
+    ["32-true", "16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))],
+)
+@RunIf(min_cuda_gpus=2, standalone=True)
+@pytest.mark.xfail(reason="Testing with FSDP is not yet correct")  # TODO: Investigate testing with fsdp
+def test_fsdp_grad_clipping_norm(precision):
+    fabric = _MyFSDPFabricGradientNorm(accelerator="cuda", devices=2, precision=precision, strategy="fsdp")
+    fabric.run()
 
 
 @RunIf(min_torch="2.0.0")
