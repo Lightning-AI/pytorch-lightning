@@ -94,7 +94,7 @@ RUN \
       python ./adjust-torch-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
-    pip install \
+    pip install --no-cache-dir \
       -r requirements/pytorch/base.txt \
       -r requirements/pytorch/extra.txt \
       -r requirements/pytorch/test.txt \
