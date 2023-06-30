@@ -240,7 +240,7 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
-        if not _NEPTUNE_AVAILABLE:
+        if not _NEPTUNE_AVAILABLE and not _NEPTUNE_CLIENT_AVAILABLE:
             raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)

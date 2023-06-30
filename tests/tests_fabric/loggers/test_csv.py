@@ -104,3 +104,19 @@ def test_flush_n_steps(tmpdir):
     logger.save.assert_not_called()
     logger.log_metrics(metrics, step=1)
     logger.save.assert_called_once()
+
+
+def test_automatic_step_tracking(tmp_path):
+    """Test that the logger keeps track of the step value if it isn't passed in explicitly."""
+    logger = CSVLogger(tmp_path, flush_logs_every_n_steps=3)
+    logger.save = MagicMock()
+    metrics = {"test": 0.1}
+    logger.log_metrics(metrics, step=None)
+    logger.save.assert_not_called()
+    assert logger.experiment.metrics[0]["step"] == 0
+    logger.log_metrics(metrics, step=None)
+    logger.save.assert_not_called()
+    assert logger.experiment.metrics[1]["step"] == 1
+    logger.log_metrics(metrics, step=None)
+    logger.save.assert_called_once()
+    assert logger.experiment.metrics[2]["step"] == 2
