@@ -354,14 +354,14 @@ def test_deepspeed_save_filter(tmp_path):
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("device_indices", [[1], [1, 0], [0, 2], [3, 2, 1]])
 def test_validate_parallel_devices_indices(device_indices):
-    """Test that the strategy validates that it doesn't support selecting specific devices by index. DeepSpeed
-    doesn't support it and needs the index to match to the local rank of the process."""
+    """Test that the strategy validates that it doesn't support selecting specific devices by index.
+
+    DeepSpeed doesn't support it and needs the index to match to the local rank of the process.
+    """
     strategy = DeepSpeedStrategy(
-        accelerator=CUDAAccelerator(),
-        parallel_devices=[torch.device("cuda", i) for i in device_indices]
+        accelerator=CUDAAccelerator(), parallel_devices=[torch.device("cuda", i) for i in device_indices]
     )
     with pytest.raises(
-        RuntimeError,
-        match=escape(f"device indices {device_indices!r} don't match the local rank values of processes")
+        RuntimeError, match=escape(f"device indices {device_indices!r} don't match the local rank values of processes")
     ):
         strategy.setup_environment()
