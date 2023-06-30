@@ -711,7 +711,10 @@ def _apply_optimizers_during_fsdp_backward(
     assert param_handles, f"Module {module} does not appear to contain any FSDP modules."
     fsdp_state = _get_module_fsdp_state(module)
     assert fsdp_state is not None
-    fsdp_stream = fsdp_state._streams["post_backward"]
+
+    # There isn't a formal contract on the stream logic for FSDP, so we unfortunately
+    # have to manually bridge internal refactors. (e.g. https://github.com/pytorch/pytorch/pull/103902)
+    fsdp_stream = getattr(fsdp_state, "_streams_post_backward", None) or fsdp_state._streams["post_backward"]
 
     if isinstance(optimizers, Optimizer):
         optimizers = [optimizers]

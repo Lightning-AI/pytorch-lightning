@@ -329,63 +329,8 @@ class Block(nn.Module):
         return self.left(x) + self.right(x)
 
 
-class StatusChecker:
-    def __init__(self, fabric: Fabric) -> None:
-        self._fabric = fabric
-        self.is_rank_zero = fabric.is_global_zero
-        self.pids = tuple(int(pid) for pid in fabric.all_gather(os.getpid()).cpu().numpy())
-
-    @contextlib.contextmanager
-    def guard_region(self, name: str):
-        """Handle errors and graceful shutdown.
-
-        `pytest` interprets SystemExit as a faiure, so it will interpret shutdown of non-zero ranks as a test failure.
-        This is confusing (since it logs "FAILED"), but more importantly the orphan rank will continue trying to execute
-        the rest of the test suite. So instead we add calls to `os._exit` which actually forces the process to shut
-        down.
-        """
-        success = False
-        try:
-            yield
-            success = True
-
-        except BaseException:
-            if self.is_rank_zero:
-                raise
-
-        finally:
-            # All reduce will wait for all workers to enter. This means that if a
-            # worker dies the status check will deadlock.
-            import psutil
-
-            worker_status = tuple(psutil.Process(pid).status() for pid in self.pids)
-            if any(
-                status in (psutil.STATUS_DEAD, psutil.STATUS_STOPPED, psutil.STATUS_ZOMBIE) for status in worker_status
-            ):
-                if self.is_rank_zero:
-                    raise RuntimeError(f"({name}) Dead workers: [{', '.join(worker_status)}]")
-                else:
-                    os._exit(1)
-
-            rank_success = self._fabric.all_gather(success).cpu()
-            if not rank_success.all():
-                if self.is_rank_zero > 0:
-                    os._exit(1)
-                elif success:
-                    raise RuntimeError(f"({name}) Failure on different rank: {rank_success}")
-
-    def finalize(self) -> None:
-        if not self.is_rank_zero:
-            os._exit(0)
-
-    def __del__(self) -> None:
-        self.finalize()
-
-
-@pytest.mark.skip(reason="Flaky test")  # See also: https://github.com/Lightning-AI/lightning/pull/17774
 @RunIf(min_torch="2.0.0", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD, reason="Not supported in this version of PyTorch")
-@pytest.mark.skipif(not RequirementCache("psutil"), reason="psutil is needed to help prevent deadlocks.")
 @pytest.mark.parametrize(
     "checkpoint",
     [(Block,), (SubBlock,), (Block, SubBlock, nn.Linear), None],
@@ -424,84 +369,75 @@ def test_apply_optimizer_in_backward(checkpoint):
     strategy = FSDPStrategy(
         auto_wrap_policy=auto_wrap_policy,
         activation_checkpointing=checkpoint,
-        timeout=datetime.timedelta(seconds=10),
+        timeout=datetime.timedelta(seconds=5),
     )
     fabric = Fabric(accelerator="cuda", devices=num_gpus, strategy=strategy)
     fabric.launch()
-    status_checker = StatusChecker(fabric)
 
     def make_model_and_optimizers():
         torch.manual_seed(0)
 
-        with fabric.init_module():
+        with fabric.init_module(empty_init=False):
             backbone = [Block(feature_dim) for _ in range(num_blocks)]
             model = nn.Sequential(*backbone, nn.Linear(feature_dim, 1, bias=False))
             optimizers = [torch.optim.SGD(layer.parameters(), lr=0.1, momentum=0.9) for layer in model]
 
         return fabric.setup_module(model), fabric.setup_optimizers(*optimizers)
 
-    with status_checker.guard_region("Instantiate model."):
-        baseline_model, baseline_optimizers = make_model_and_optimizers()
-        test_model, test_optimizers = make_model_and_optimizers()
-        fabric.seed_everything(1337 + fabric.global_rank)
+    baseline_model, baseline_optimizers = make_model_and_optimizers()
+    test_model, test_optimizers = make_model_and_optimizers()
+    fabric.seed_everything(1337 + fabric.global_rank)
 
-        # Check that initialization is identical.
-        for p0, p1 in zip(baseline_model.parameters(), test_model.parameters()):
-            assert (p0 == p1).all()
+    # Check that initialization is identical.
+    for p0, p1 in zip(baseline_model.parameters(), test_model.parameters()):
+        assert (p0 == p1).all()
 
     num_steps = 50
     for step in range(num_steps):
         # Normal pattern: `.backward()` followed by `.step()`
-        with status_checker.guard_region(f"({step + 1} / {num_steps}) Baseline"):
-            x = torch.randn((4, feature_dim), device=fabric.device)
-            y_baseline = baseline_model(x)
+        x = torch.randn((4, feature_dim), device=fabric.device)
+        y_baseline = baseline_model(x)
 
-            torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats(fabric.device)
-            baseline_start_memory = torch.cuda.max_memory_allocated(fabric.device)
-            fabric.backward(y_baseline.mean().abs())
-            del y_baseline
-            for optimizer in baseline_optimizers:
-                optimizer.step()
-                optimizer.zero_grad(set_to_none=True)
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats(fabric.device)
+        baseline_start_memory = torch.cuda.max_memory_allocated(fabric.device)
+        fabric.backward(y_baseline.mean().abs())
+        del y_baseline
+        for optimizer in baseline_optimizers:
+            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
 
-                # FSDP sometimes holds onto grad memory until the next forward
-                # pass. In order to provide a fair comparison (and thus an
-                # accurate check that moving the step call into backward actually
-                # delivers the expected memory savings) we need to "help" the
-                # baseline case a bit.
-                param_handles = _get_fsdp_handles(baseline_model._forward_module)
-                for h in param_handles:
-                    h._clear_grads_if_needed()
+            # FSDP sometimes holds onto grad memory until the next forward
+            # pass. In order to provide a fair comparison (and thus an
+            # accurate check that moving the step call into backward actually
+            # delivers the expected memory savings) we need to "help" the
+            # baseline case a bit.
+            param_handles = _get_fsdp_handles(baseline_model._forward_module)
+            for h in param_handles:
+                h._clear_grads_if_needed()
 
-            baseline_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
+        baseline_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
 
         # `.step()` interleaved with `.backward()`
-        with status_checker.guard_region(f"({step + 1} / {num_steps}) Optimizer in backward"):
-            y_test = test_model(x)
-            torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats(fabric.device)
-            test_start_memory = torch.cuda.memory_allocated(fabric.device)
-            with fsdp_overlap_step_with_backward(test_optimizers, test_model):
-                fabric.backward(y_test.mean().abs())
-                del y_test
+        y_test = test_model(x)
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats(fabric.device)
+        test_start_memory = torch.cuda.memory_allocated(fabric.device)
+        with fsdp_overlap_step_with_backward(test_optimizers, test_model):
+            fabric.backward(y_test.mean().abs())
+            del y_test
 
-            test_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
+        test_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
 
         # Make sure the parameter updates match.
-        with status_checker.guard_region(f"({step + 1} / {num_steps}) Check equality"):
-            for idx, (p0, p1) in enumerate(zip(baseline_model.parameters(), test_model.parameters())):
-                assert (p0 == p1).all(), (step, idx, p0, p1)
+        for idx, (p0, p1) in enumerate(zip(baseline_model.parameters(), test_model.parameters())):
+            assert (p0 == p1).all(), (step, idx, p0, p1)
 
         # The first step is going to be odd due to lazy initialization of optimizer state.
         if not step:
             continue
 
-        with status_checker.guard_region(f"({step + 1} / {num_steps}) Confirm memory reduction"):
-            baseline_delta = baseline_peak_memory - baseline_start_memory
-            test_delta = test_peak_memory - test_start_memory
-            assert (baseline_delta - test_delta) >= lower_savings_bound, (baseline_delta, test_delta)
-            assert (baseline_delta - test_delta) <= upper_savings_bound, (baseline_delta, test_delta)
-
-    status_checker.finalize()
-    assert (pid := os.getpid()) == status_checker.pids[0], f"Orphan worker: {pid}"
+        baseline_delta = baseline_peak_memory - baseline_start_memory
+        test_delta = test_peak_memory - test_start_memory
+        assert (baseline_delta - test_delta) >= lower_savings_bound, (baseline_delta, test_delta)
+        assert (baseline_delta - test_delta) <= upper_savings_bound, (baseline_delta, test_delta)
