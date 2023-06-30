@@ -33,7 +33,14 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.connector import _Connector, _is_using_cli, _PLUGIN_INPUT, _PRECISION_INPUT
-from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
+from lightning.fabric.strategies import (
+    DataParallelStrategy,
+    DeepSpeedStrategy,
+    FSDPStrategy,
+    SingleDeviceStrategy,
+    Strategy,
+    XLAStrategy,
+)
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning.fabric.utilities import move_data_to_device
@@ -919,7 +926,7 @@ class Fabric:
         setattr(self, "run", partial(self._wrap_and_launch, self.run))
 
     def _validate_launched(self) -> None:
-        if not self._launched and not isinstance(self._strategy, SingleDeviceStrategy):
+        if not self._launched and not isinstance(self._strategy, (SingleDeviceStrategy, DataParallelStrategy)):
             raise RuntimeError(
                 "To use Fabric with more than one device, you must call `.launch()` or use the CLI:"
                 " `lightning run model --help`."
