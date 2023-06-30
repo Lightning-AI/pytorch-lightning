@@ -11,10 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
 import datetime
 import functools
-import os
 from datetime import timedelta
 from re import escape
 from unittest import mock
@@ -23,7 +21,6 @@ from unittest.mock import ANY, MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
-from lightning_utilities.core.imports import RequirementCache
 from torch.optim import Adam
 
 from lightning.fabric import Fabric
