@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pathlib import Path
+
 from lightning.pytorch.utilities.exceptions import _augment_message
 from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_11_0
 
@@ -53,3 +55,13 @@ def test_augment_message():
         )
     else:
         assert exception.args == ("Message 1", "New message 2", "Message 3")
+
+    # exception with non-string args
+    path = Path("foo.yaml")
+    exception = FileNotFoundError("Message 1", path)
+    _augment_message(exception, "Message 1", "New message 1")
+    if _PYTHON_GREATER_EQUAL_3_11_0:
+        assert exception.__notes__ == ["New message 1"]
+        assert exception.args == ("Message 1", path)
+    else:
+        assert exception.args == ("New message 1", path)
