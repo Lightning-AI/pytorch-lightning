@@ -35,9 +35,18 @@ _PRECISION_INPUT = Literal["32-true", "16-true", "bf16-true", "16-mixed", "bf16-
 
 
 class FSDPPrecision(Precision):
-    """AMP for Fully Sharded Data Parallel training.
+    """Precision plugin training with Fully Sharded Data Parallel (FSDP).
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
+    Args:
+        precision: Full precision (32-true), half precision (16-true, bf16-true) or
+            mixed precision (16-mixed, bf16-mixed).
+        scaler: An optional :class:`torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler` to use.
+
+    Raises:
+        ValueError:
+            If unsupported ``precision`` is provided.
     """
 
     def __init__(self, precision: _PRECISION_INPUT, scaler: Optional["ShardedGradScaler"] = None) -> None:
