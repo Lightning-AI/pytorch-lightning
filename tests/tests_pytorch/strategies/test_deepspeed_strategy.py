@@ -22,6 +22,7 @@ from unittest import mock
 import pytest
 import torch
 import torch.nn.functional as F
+from pytorch.accelerators import CUDAAccelerator
 from torch import nn, Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
@@ -31,13 +32,11 @@ from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelChec
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
-from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy, _DEEPSPEED_AVAILABLE
+from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE, DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
-
-from pytorch.accelerators import CUDAAccelerator
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
@@ -1314,14 +1313,14 @@ def test_deepspeed_tensors_cast_to_fp16_before_hosted_on_device():
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("device_indices", [[1], [1, 0], [0, 2], [3, 2, 1]])
 def test_validate_parallel_devices_indices(device_indices):
-    """Test that the strategy validates that it doesn't support selecting specific devices by index. DeepSpeed
-    doesn't support it and needs the index to match to the local rank of the process."""
+    """Test that the strategy validates that it doesn't support selecting specific devices by index.
+
+    DeepSpeed doesn't support it and needs the index to match to the local rank of the process.
+    """
     strategy = DeepSpeedStrategy(
-        accelerator=CUDAAccelerator(),
-        parallel_devices=[torch.device("cuda", i) for i in device_indices]
+        accelerator=CUDAAccelerator(), parallel_devices=[torch.device("cuda", i) for i in device_indices]
     )
     with pytest.raises(
-        RuntimeError,
-        match=escape(f"device indices {device_indices!r} don't match the local rank values of processes")
+        RuntimeError, match=escape(f"device indices {device_indices!r} don't match the local rank values of processes")
     ):
         strategy.setup_environment()
