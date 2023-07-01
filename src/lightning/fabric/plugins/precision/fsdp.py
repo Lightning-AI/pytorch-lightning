@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-_PRECISION_INPUT = Literal["16-mixed", "bf16-mixed", "bf16-true", "16-true"]
+_PRECISION_INPUT = Literal["32-true", "16-true", "bf16-true", "16-mixed", "bf16-mixed"]
 
 
 class FSDPPrecision(Precision):
