@@ -439,9 +439,11 @@ class _Connector:
                         " is not supported with TPUs. Using `precision='bf16-mixed'` instead."
                     )
                 return XLABf16Precision()
+
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
-
+        if isinstance(self.strategy, FSDPStrategy):
+            return FSDPPrecision(precision=self._precision_input)  # type: ignore[arg-type]
         if self._precision_input in ("16-true", "bf16-true"):
             return HalfPrecision(self._precision_input)  # type: ignore
         if self._precision_input == "32-true":
@@ -463,9 +465,6 @@ class _Connector:
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-
-            if isinstance(self.strategy, FSDPStrategy):
-                return FSDPPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
             return MixedPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
