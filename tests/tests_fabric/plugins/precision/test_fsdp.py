@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-import re
 from unittest.mock import Mock
 
 import pytest
@@ -49,6 +48,7 @@ def test_fsdp_precision_config(precision, expected):
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
 def test_fsdp_precision_default_scaler():
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
+
     precision = FSDPPrecision(precision="16-mixed")
     assert isinstance(precision.scaler, ShardedGradScaler)
 
@@ -69,7 +69,7 @@ def test_fsdp_precision_forward_context():
     with precision.forward_context():
         # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
         assert str(torch.get_autocast_gpu_dtype()) in ("torch.float16", "torch.half")
-    
+
     precision = FSDPPrecision(precision="bf16-mixed")
     assert precision.scaler is None
     with precision.forward_context():
