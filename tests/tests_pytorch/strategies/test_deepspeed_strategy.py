@@ -22,12 +22,12 @@ from unittest import mock
 import pytest
 import torch
 import torch.nn.functional as F
-from pytorch.accelerators import CUDAAccelerator
 from torch import nn, Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.accelerators import CUDAAccelerator
 from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
