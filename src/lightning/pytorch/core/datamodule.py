@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 from typing_extensions import Self
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.pytorch.core.hooks import DataHooks
 from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.saving import _load_from_checkpoint
@@ -157,8 +157,8 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[_PATH, IO],
+        map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[_PATH] = None,
-        map_location: Optional[str] = None,
         **kwargs: Any,
     ) -> Self:
         r"""
@@ -169,6 +169,10 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         Args:
             checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
+            map_location:
+                If your checkpoint saved a GPU model and you now load on CPUs
+                or a different number of GPUs, use this to map to the new setup.
+                The behaviour is the same as in :func:`torch.load`.
             hparams_file: Optional path to a ``.yaml`` or ``.csv`` file with hierarchical structure
                 as in this example::
 
