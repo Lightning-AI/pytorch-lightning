@@ -43,14 +43,14 @@ class FSDPPrecision(Precision):
     def __init__(self, precision: _PRECISION_INPUT, scaler: Optional["ShardedGradScaler"] = None) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
             raise NotImplementedError("`FSDPPrecision` is supported from PyTorch v1.12.0 onwards.")
-        
+
         supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:
             raise ValueError(
                 f"`precision={precision!r})` is not supported in FSDP."
                 f" `precision` must be one of: {supported_precision}."
             )
-        
+
         from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
         if scaler is not None and self.precision != "16-mixed":
