@@ -3,7 +3,7 @@ import torch
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel, BoringDataModule
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
