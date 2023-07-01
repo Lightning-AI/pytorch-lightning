@@ -325,6 +325,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return config
 
     def setup_distributed(self) -> None:
+        assert self.parallel_devices is not None
         _validate_device_index_selection(self.parallel_devices)
         reset_seed()
         self.set_world_ranks()
