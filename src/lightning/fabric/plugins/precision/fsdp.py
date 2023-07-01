@@ -91,7 +91,7 @@ class FSDPPrecision(Precision):
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
-        elif self.precision == "32-true":  # TODO: Should we handle this or not?
+        elif self.precision == "32-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float32
         else:
             raise ValueError(f"Was unable to infer precision type, received {self.precision!r}.")
