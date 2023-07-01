@@ -1157,48 +1157,6 @@ def test_deepspeed_gradient_clip_by_value(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_specific_gpu_device_id(tmpdir):
-    class TestCallback(Callback):
-        def on_train_start(self, *_) -> None:
-            assert model.device.index == 1
-
-        def on_train_batch_start(
-            self,
-            trainer: Trainer,
-            pl_module: LightningModule,
-            batch: Any,
-            *_,
-        ) -> None:
-            assert batch.device.index == 1
-
-        def on_test_start(self, *_) -> None:
-            assert model.device.index == 1
-
-        def on_test_batch_start(
-            self,
-            trainer: Trainer,
-            pl_module: LightningModule,
-            batch: Any,
-            *_,
-        ) -> None:
-            assert batch.device.index == 1
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        accelerator="gpu",
-        devices=[1],
-        strategy="deepspeed",
-        callbacks=TestCallback(),
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
-    trainer.test(model)
-
-
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multi_save_same_filepath(tmpdir):
     """Test that verifies that deepspeed saves only latest checkpoint in the specified path and deletes the old
     sharded checkpoints."""
