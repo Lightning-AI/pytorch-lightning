@@ -18,7 +18,7 @@ updates:
       # for example, `dependabot-npm_and_yarn-next_js-acorn-6.4.1`
       separator: "-"
     # Allow up to 5 open pull requests for pip dependencies
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     reviewers:
       - "Lightning-AI/teams/core-lightning"
 
@@ -36,6 +36,6 @@ updates:
       # for example, `dependabot-npm_and_yarn-next_js-acorn-6.4.1`
       separator: "-"
     # Allow up to 5 open pull requests for GitHub Actions
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     reviewers:
       - "Lightning-AI/teams/core-lightning"
