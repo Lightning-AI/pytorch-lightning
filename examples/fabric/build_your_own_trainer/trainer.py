@@ -216,6 +216,7 @@ class MyCustomTrainer:
         for batch_idx, batch in enumerate(iterable):
             # end epoch if stopping training completely or max batches for this epoch reached
             if self.should_stop or batch_idx >= limit_batches:
+                break
                 self.fabric.call("on_train_epoch_end")
                 return
 
