@@ -126,7 +126,6 @@ jobs:
         sleep 300
 
     - name: Run tests
-      if: steps.tpu-create.outcome == 'success'
       env:
         JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
       run: |
