@@ -86,7 +86,8 @@ after every ``N`` steps, you can do as such.
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
 
-        loss = self.compute_loss(batch)
+        # scale losses by 1/N (for N batches of gradient accumulation)
+        loss = self.compute_loss(batch) / N
         self.manual_backward(loss)
 
         # accumulate gradients of N batches
