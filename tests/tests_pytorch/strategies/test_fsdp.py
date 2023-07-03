@@ -496,7 +496,6 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the model can
     be restored to DDP, it means that the optimizer states were saved correctly.
     """
-
     model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
 
     strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
@@ -514,6 +513,7 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
 
     if trainer.global_rank != 0:
         assert len(model_state_dict) == 0
+        assert len(optimizer_state_dict) == 0
 
     # restore model to ddp, disable automatic_optimization to avoid optimizer state / model state mismatch
     model = TestBoringModel(automatic_optimization=False)
@@ -528,15 +528,15 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
     restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
     restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
 
-    if trainer.global_rank != 0:
-        return
+    if trainer.global_rank == 0:
+        # assert everything is the same
+        assert len(model_state_dict) == len(restored_model_state_dict)
+        assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
 
-    # assert everything is the same
-    assert len(model_state_dict) == len(restored_model_state_dict)
-    assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
-
-    torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
-    torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
+        torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
+        torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
+    
+    trainer.strategy.barrier()
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
@@ -579,11 +579,13 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
 
     if trainer.global_rank != 0:
         assert len(restored_model_state_dict) == 0
-        return
+        assert len(restored_optimizer_state_dict) == 0
 
-    # assert everything is the same
-    assert len(model_state_dict) == len(restored_model_state_dict)
-    assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
+    if trainer.global_rank == 0:
+        # assert everything is the same
+        assert len(model_state_dict) == len(restored_model_state_dict)
+        assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
+        torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
+        torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
 
-    torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
-    torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
+    trainer.strategy.barrier()
