@@ -113,19 +113,19 @@ jobs:
       id: tpu-create
       continue-on-error: true
       env:
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.sha }}
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
       run: |
         gcloud compute tpus tpu-vm create "$JOB_NAME" --accelerator-type=v4-8 --version="tpu-vm-v4-pt-$XLA_VER"
 
     - name: Cancel job
       if: steps.tpu-create.outcome != 'success'
-      run: sleep 90
-      timeout-minutes: 1
+      timeout-minutes: 0
+      run: sleep 5
 
     - name: Run tests
       if: steps.tpu-create.outcome == 'success'
       env:
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.sha }}
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
       run: |
         set -uex
 
