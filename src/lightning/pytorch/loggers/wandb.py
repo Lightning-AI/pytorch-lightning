@@ -419,7 +419,7 @@ class WandbLogger(Logger):
         self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
         self.experiment.config.update(params, allow_val_change=True)
@@ -481,7 +481,7 @@ class WandbLogger(Logger):
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
         kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
-        self.log_metrics(metrics, step)
+        self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
     @property
     def save_dir(self) -> Optional[str]:

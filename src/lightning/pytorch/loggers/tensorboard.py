@@ -158,7 +158,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         return self._root_dir
 
     @rank_zero_only
-    def log_hyperparams(
+    def log_hyperparams(  # type: ignore[override]
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
@@ -180,7 +180,9 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         return super().log_hyperparams(params=params, metrics=metrics)
 
     @rank_zero_only
-    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
+    def log_graph(  # type: ignore[override]
+        self, model: "pl.LightningModule", input_array: Optional[Tensor] = None
+    ) -> None:
         if not self._log_graph:
             return
 

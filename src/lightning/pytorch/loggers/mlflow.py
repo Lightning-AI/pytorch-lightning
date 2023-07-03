@@ -234,7 +234,7 @@ class MLFlowLogger(Logger):
         return self._experiment_id
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         params = _convert_params(params)
         params = _flatten_dict(params)
 
