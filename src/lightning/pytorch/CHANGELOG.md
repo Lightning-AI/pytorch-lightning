@@ -32,6 +32,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed incorrect parsing of arguments when augmenting exception messages in DDP ([#17948](https://github.com/Lightning-AI/lightning/pull/17948))
 
 
+- Added missing `map_location` argument for the `LightningDataModule.load_from_checkpoint` function ([#17950](https://github.com/Lightning-AI/lightning/pull/17950))
+
+
 ## [2.0.3] - 2023-06-07
 
 ### Changed
