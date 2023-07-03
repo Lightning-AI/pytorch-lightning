@@ -15,11 +15,11 @@ To run your code distributed across many devices and many machines, you need to 
 Simple Launch
 *************
 
-.. raw:: html
-
-    <center>
-        <video width="100%" max-width="500px" src="https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/animations/launch.mp4", type="video/mp4" autoplay loop muted></video>
-    </center>
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/animations/launch.mp4
+    :width: 800
+    :autoplay:
+    :loop:
+    :muted:
 
 
 You can configure and launch processes on your machine directly with Fabric's :meth:`~lightning.fabric.fabric.Fabric.launch` method:
@@ -56,11 +56,11 @@ You can learn more about it :ref:`here <Fabric in Notebooks>`.
 Launch with the CLI
 *******************
 
-.. raw:: html
-
-    <center>
-        <video width="100%" max-width="500px" src="https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/animations/launch-cli.mp4", type="video/mp4" autoplay loop muted></video>
-    </center>
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/animations/launch-cli.mp4
+    :width: 800
+    :autoplay:
+    :loop:
+    :muted:
 
 An alternative way to launch your Python script in multiple processes is to use the dedicated command line interface (CLI):
 
