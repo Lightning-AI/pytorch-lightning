@@ -25,5 +25,5 @@ requests <2.31.1
 rich >=12.3.0, <=13.4.2
 urllib3 <=2.0.2
 uvicorn <=0.22.0
-websocket-client <1.5.3
-websockets <=10.4
+websocket-client <1.6.2
+websockets <=11.0.3
