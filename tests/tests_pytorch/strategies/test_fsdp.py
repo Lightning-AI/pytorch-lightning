@@ -102,13 +102,12 @@ class TestFSDPModel(BoringModel):
 
 
 class TestBoringModel(BoringModel):
-    def __init__(self, wrap_min_params: int = 2, automatic_optimization: bool = True):
+    def __init__(self, wrap_min_params: int = 2):
         super().__init__()
 
         self.save_hyperparameters()
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         self.should_be_wrapped = [(32 * 32 + 32) > wrap_min_params, None, (32 * 2 + 2) > wrap_min_params]
-        self.automatic_optimization = automatic_optimization
 
     def configure_optimizers(self):
         parameters = self.parameters() if _TORCH_GREATER_EQUAL_2_0 else self.trainer.model.parameters()
@@ -515,8 +514,8 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
         assert len(model_state_dict) == 0
         assert len(optimizer_state_dict) == 0
 
-    # restore model to ddp, disable automatic_optimization to avoid optimizer state / model state mismatch
-    model = TestBoringModel(automatic_optimization=False)
+    # restore model to ddp
+    model = TestBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", precision="16-mixed", max_epochs=1
     )
@@ -548,7 +547,7 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
     can be restored to FSDP, it means that the optimizer states were restored correctly.
     """
 
-    # restore model to ddp, disable automatic_optimization to avoid optimizer state / model state mismatch
+    # restore model to ddp
     model = TestBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", precision="16-mixed", max_epochs=1
@@ -564,8 +563,8 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
     model_state_dict = trainer.strategy.lightning_module_state_dict()
     optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
 
-    # Build a new FSDP model, without automatic_optimization
-    model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params, automatic_optimization=False)
+    # Build a new FSDP model
+    model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
 
     strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
     trainer = Trainer(
