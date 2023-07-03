@@ -27,6 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Samp
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
+    DataParallelStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     ParallelStrategy,
@@ -1133,6 +1134,8 @@ def test_verify_launch_called():
     fabric = Fabric(accelerator="cpu")
     assert not fabric._launched
     fabric._strategy = Mock(spec=SingleDeviceStrategy)
+    fabric._validate_launched()
+    fabric._strategy = Mock(spec=DataParallelStrategy)
     fabric._validate_launched()
     fabric._strategy = Mock(spec=DDPStrategy)
     with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
