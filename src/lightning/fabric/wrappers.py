@@ -161,7 +161,11 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         return call_forward_module
 
     def _validate_method_access(self, name: str, attribute: Any) -> None:
-        if inspect.ismethod(attribute) and self._forward_module != self._original_module:
+        if (
+            inspect.ismethod(attribute)
+            and inspect.signature(attribute).parameters
+            and self._forward_module != self._original_module
+        ):
             warning_cache.warn(
                 f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
                 " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
