@@ -39,7 +39,7 @@ jobs:
     env:
       SCOPE: ${{ matrix.pkg-name }}
       RUNTIME: ${{ matrix.runtime }}
-      JOB_NAME: $PR_NUMBER-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
+      JOB_NAME: $PR_NUMBER-${{ matrix.pkg-name }}-${{ matrix.runtime }}-$SHA
     steps:
     - uses: actions/checkout@v3
       with:
