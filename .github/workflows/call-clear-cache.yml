@@ -13,12 +13,12 @@ jobs:
 
   cron-clear:
     if: github.event_name == 'schedule'
-    uses: Lightning-AI/utilities/.github/workflows/clear-cache.yml@v0.8.0
+    uses: Lightning-AI/utilities/.github/workflows/clear-cache.yml@v0.9.0
     with:
       pattern: 'latest|docs'
 
   direct-clear:
     if: github.event_name == 'workflow_dispatch'
-    uses: Lightning-AI/utilities/.github/workflows/clear-cache.yml@v0.8.0
+    uses: Lightning-AI/utilities/.github/workflows/clear-cache.yml@v0.9.0
     with:
       pattern: ${{ inputs.pattern }}
