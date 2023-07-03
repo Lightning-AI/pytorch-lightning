@@ -119,8 +119,9 @@ jobs:
 
     - name: Cancel job
       if: steps.tpu-create.outcome != 'success'
-      timeout-minutes: 0
-      run: sleep 5
+      run: |
+        gh run cancel ${{ github.run_id }}
+        sleep 300
 
     - name: Run tests
       if: steps.tpu-create.outcome == 'success'
