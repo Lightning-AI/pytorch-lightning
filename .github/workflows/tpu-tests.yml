@@ -3,7 +3,7 @@ name: Test PyTorch - TPU
 on:
   push:
     branches: [master, "release/*"]
-  pull_request:  # fixme: pull_request_target
+  pull_request_target:
     branches: [master, "release/*"]
     types: [ opened, reopened, edited, ready_for_review, synchronize ]
 
