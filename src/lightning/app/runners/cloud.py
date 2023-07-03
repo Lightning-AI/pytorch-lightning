@@ -770,6 +770,7 @@ class CloudRuntime(Runtime):
                 disk_size=work.cloud_compute.disk_size,
                 preemptible=work.cloud_compute.interruptible,
                 shm_size=work.cloud_compute.shm_size,
+                affinity_identifier=work.cloud_compute.colocation_group_id,
             )
 
             drives = self._get_drives(work)
