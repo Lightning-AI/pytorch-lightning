@@ -37,7 +37,6 @@ jobs:
       CLOUDSDK_COMPUTE_ZONE: us-central2-b  # --zone
       SCOPE: ${{ matrix.pkg-name }}
       RUNTIME: ${{ matrix.runtime }}
-      JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.sha }}
     steps:
     - uses: actions/checkout@v3
       with:
@@ -113,6 +112,8 @@ jobs:
     - name: Create node
       id: tpu-create
       continue-on-error: true
+      env:
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.sha }}
       run: |
         gcloud compute tpus tpu-vm create "$JOB_NAME" --accelerator-type=v4-8 --version="tpu-vm-v4-pt-$XLA_VER"
 
@@ -123,6 +124,8 @@ jobs:
 
     - name: Run tests
       if: steps.tpu-create.outcome == 'success'
+      env:
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.sha }}
       run: |
         set -uex
 
@@ -140,6 +143,8 @@ jobs:
 
     - name: Cleanup job
       if: always()
+      env:
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
       run: |
         if ! gcloud compute tpus tpu-vm list | grep -q "$JOB_NAME"; then
           echo "$JOB_NAME wasn't created"
