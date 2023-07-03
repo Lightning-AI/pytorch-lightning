@@ -119,6 +119,8 @@ jobs:
 
     - name: Cancel job
       if: steps.tpu-create.outcome != 'success'
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
         gh run cancel ${{ github.run_id }}
         sleep 300
