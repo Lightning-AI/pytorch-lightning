@@ -139,6 +139,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue causing the `torch.set_float32_matmul_precision` info message to show multiple times ([#17960](https://github.com/Lightning-AI/lightning/pull/17960))
 
 
+- Added missing `map_location` argument for the `LightningDataModule.load_from_checkpoint` function ([#17950](https://github.com/Lightning-AI/lightning/pull/17950))
+
+
 ## [2.0.3] - 2023-06-07
 
 ### Changed
