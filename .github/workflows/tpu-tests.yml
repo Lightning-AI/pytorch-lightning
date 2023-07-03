@@ -15,14 +15,6 @@ defaults:
   run:
     shell: bash
 
-env:
-  XLA_VER: '2.0'
-  PR_NUMBER: ${{ github.event.pull_request.number && github.event.pull_request.number || 'master' }}
-  SHA: ${{ github.event.pull_request.head.sha && github.event.pull_request.head.sha || github.sha }}
-  CLOUDSDK_CORE_DISABLE_PROMPTS: 1  # default to --quiet
-  # recommended zone for v4-8: https://cloud.google.com/tpu/docs/regions-zones
-  CLOUDSDK_COMPUTE_ZONE: us-central2-b  # --zone
-
 jobs:
   test-on-tpus:
     runs-on: ubuntu-22.04
@@ -37,9 +29,15 @@ jobs:
         runtime: ["xrt", "pjrt"]
     timeout-minutes: 30
     env:
+      XLA_VER: '2.0'
+      PR_NUMBER: ${{ github.event.pull_request.number && github.event.pull_request.number || 'master' }}
+      SHA: ${{ github.event.pull_request.head.sha && github.event.pull_request.head.sha || github.sha }}
+      CLOUDSDK_CORE_DISABLE_PROMPTS: 1  # default to --quiet
+      # recommended zone for v4-8: https://cloud.google.com/tpu/docs/regions-zones
+      CLOUDSDK_COMPUTE_ZONE: us-central2-b  # --zone
       SCOPE: ${{ matrix.pkg-name }}
       RUNTIME: ${{ matrix.runtime }}
-      JOB_NAME: $PR_NUMBER-${{ matrix.pkg-name }}-${{ matrix.runtime }}-$SHA
+      JOB_NAME: {PR_NUMBER}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${SHA}
     steps:
     - uses: actions/checkout@v3
       with:
