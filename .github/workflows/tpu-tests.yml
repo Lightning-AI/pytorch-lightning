@@ -37,7 +37,7 @@ jobs:
       CLOUDSDK_COMPUTE_ZONE: us-central2-b  # --zone
       SCOPE: ${{ matrix.pkg-name }}
       RUNTIME: ${{ matrix.runtime }}
-      JOB_NAME: {PR_NUMBER}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${SHA}
+      JOB_NAME: ${PR_NUMBER}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${SHA}
     steps:
     - uses: actions/checkout@v3
       with:
