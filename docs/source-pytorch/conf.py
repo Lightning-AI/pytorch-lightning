@@ -11,16 +11,16 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-# import m2r
 import glob
 import os
 import shutil
-import sys
 import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
 
 import pt_lightning_sphinx_theme
+from lightning_utilities.docs import fetch_external_assets
+from lightning_utilities.docs.formatting import _transform_changelog
 
 import lightning
 
@@ -57,6 +57,7 @@ FOLDER_GENERATED = "generated"
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
 # -- Project documents -------------------------------------------------------
+
 if _SHOULD_COPY_NOTEBOOKS:
     assist_nb.AssistantCLI.copy_notebooks(
         _PATH_RAW_NB,
@@ -79,21 +80,6 @@ if _SHOULD_COPY_NOTEBOOKS:
             os.remove(file)
 
 
-def _transform_changelog(path_in: str, path_out: str) -> None:
-    with open(path_in) as fp:
-        chlog_lines = fp.readlines()
-    # enrich short subsub-titles to be unique
-    chlog_ver = ""
-    for i, ln in enumerate(chlog_lines):
-        if ln.startswith("## "):
-            chlog_ver = ln[2:].split("-")[0].strip()
-        elif ln.startswith("### "):
-            ln = ln.replace("###", f"### {chlog_ver} -")
-            chlog_lines[i] = ln
-    with open(path_out, "w") as fp:
-        fp.writelines(chlog_lines)
-
-
 os.makedirs(os.path.join(_PATH_HERE, FOLDER_GENERATED), exist_ok=True)
 # copy all documents from GH templates like contribution guide
 for md in glob.glob(os.path.join(_PATH_ROOT, ".github", "*.md")):
@@ -110,6 +96,13 @@ assist_local.AssistantCLI.pull_docs_files(
     target_dir="docs/source-pytorch/integrations/hpu",
     checkout="tags/1.0.0",
 )
+
+if not _PL_FAST_DOCS_DEV:
+    fetch_external_assets(
+        docs_folder=_PATH_HERE,
+        assets_folder="_static/fetched-s3-assets",
+        retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+",
+    )
 
 
 # -- Project information -----------------------------------------------------
@@ -134,8 +127,6 @@ needs_sphinx = "6.2"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
-    # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx_toolbox.collapse",
@@ -146,6 +137,9 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.imgmath",
     "sphinx.ext.autosectionlabel",
+    # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
+    # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
+    "sphinxcontrib.video",
     "myst_parser",
     "nbsphinx",
     "sphinx_autodoc_typehints",
