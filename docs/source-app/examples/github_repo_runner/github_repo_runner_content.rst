@@ -14,14 +14,13 @@ Completed App
 
 Here is a recording of the final application built in this example. The example is around 200 lines in total and should give you a great foundation to build your own Lightning App.
 
-.. raw:: html
-
-    <br />
-    <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/github_app.png" width="100%">
-        <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/github_app.mp4" type="video/mp4" width="100%">
-    </video>
-    <br />
-    <br />
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/github_app.mp4
+    :poster: "https://pl-public-data.s3.amazonaws.com/assets_lightning/github_app.png
+    :width: 600
+    :class: background-video
+    :autoplay:
+    :loop:
+    :muted:
 
 ----
 
