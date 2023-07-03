@@ -30,14 +30,16 @@ jobs:
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
       (startsWith(github.event_name, 'pull_request') && contains(github.event.pull_request.title, 'TPU'))
-
     strategy:
       fail-fast: false
       matrix:
         pkg-name: ["fabric", "pytorch"]
         runtime: ["xrt", "pjrt"]
     timeout-minutes: 30
-
+    env:
+      SCOPE: ${{ matrix.pkg-name }}
+      RUNTIME: ${{ matrix.runtime }}
+      JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
     steps:
     - uses: actions/checkout@v3
       with:
@@ -96,9 +98,6 @@ jobs:
         fi
 
     - name: Update script
-      env:
-        SCOPE: ${{ matrix.pkg-name }}
-        RUNTIME: ${{ matrix.runtime }}
       run: |
         import os
         fname = f'tests/tests_{os.getenv("SCOPE")}/run_tpu_tests.sh'
@@ -113,20 +112,26 @@ jobs:
             fw.write(data)
       shell: python
 
+    - name: Create node
+      id: tpu-create
+      continue-on-error: true
+      run: |
+        gcloud compute tpus tpu-vm create "$JOB_NAME" --accelerator-type=v4-8 --version="tpu-vm-v4-pt-$XLA_VER"
+
+    - name: Cancel job
+      if: steps.tpu-create.outcome != 'success'
+      run: sleep 90
+      timeout-minutes: 1
+
     - name: Run tests
-      env:
-        SCOPE: ${{ matrix.pkg-name }}
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
+      if: steps.tpu-create.outcome == 'success'
       run: |
         set -uex
-
-        # create the job
-        gcloud compute tpus tpu-vm create "$JOB_NAME" --accelerator-type=v4-8 --version="tpu-vm-v4-pt-$XLA_VER"
 
         # copy the testing script
         gcloud compute tpus tpu-vm scp "tests/tests_$SCOPE/run_tpu_tests.sh" "$JOB_NAME":~
 
-        # run it
+        # run script
         gcloud compute tpus tpu-vm ssh "$JOB_NAME" --command="cd ~; bash run_tpu_tests.sh"
         exit_code=$?
 
@@ -137,8 +142,6 @@ jobs:
 
     - name: Cleanup job
       if: always()
-      env:
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
       run: |
         if ! gcloud compute tpus tpu-vm list | grep -q "$JOB_NAME"; then
           echo "$JOB_NAME wasn't created"
