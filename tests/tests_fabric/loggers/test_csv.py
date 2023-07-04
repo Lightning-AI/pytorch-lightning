@@ -21,23 +21,20 @@ from lightning.fabric.loggers import CSVLogger
 from lightning.fabric.loggers.csv_logs import _ExperimentWriter
 
 
-def test_file_logger_automatic_versioning(tmpdir):
+def test_file_logger_automatic_versioning(tmp_path):
     """Verify that automatic versioning works."""
-    root_dir = tmpdir.mkdir("exp")
-    root_dir.mkdir("version_0")
-    root_dir.mkdir("version_1")
-    logger = CSVLogger(root_dir=root_dir, name="exp")
+    os.makedirs(tmp_path / "exp" / "version_0")
+    os.makedirs(tmp_path / "exp" / "version_1")
+    logger = CSVLogger(root_dir=tmp_path, name="exp")
     assert logger.version == 2
 
 
-def test_file_logger_automatic_versioning_relative_root_dir(tmpdir, monkeypatch):
+def test_file_logger_automatic_versioning_relative_root_dir(tmp_path, monkeypatch):
     """Verify that automatic versioning works, when root_dir is given a relative path."""
-    root_dir = tmpdir.mkdir("exp")
-    logs_dir = root_dir.mkdir("logs")
-    logs_dir.mkdir("version_0")
-    logs_dir.mkdir("version_1")
-    monkeypatch.chdir(tmpdir)
-    logger = CSVLogger(root_dir="exp/logs", name="logs")
+    os.makedirs(tmp_path / "exp" / "logs" / "version_0")
+    os.makedirs(tmp_path / "exp" / "logs" / "version_1")
+    monkeypatch.chdir(tmp_path)
+    logger = CSVLogger(root_dir="exp", name="logs")
     assert logger.version == 2
 
 
