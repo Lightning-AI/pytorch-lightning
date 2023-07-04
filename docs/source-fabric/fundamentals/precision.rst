@@ -38,7 +38,7 @@ This is how you select the precision in Fabric:
     # Float16 mixed precision
     fabric = Fabric(precision="16-mixed")
 
-    # Float16 half precision
+    # Float16 true half precision
     fabric = Fabric(precision="16-true")
 
     # BFloat16 mixed precision (Volta GPUs and later)
@@ -47,8 +47,8 @@ This is how you select the precision in Fabric:
     # BFloat16 true half precision (Volta GPUs and later)
     fabric = Fabric(precision="bf16-true")
 
-    # 8-bit mixed precision (Hopper GPUs and later)
-    fabric = Fabric(precision="8-mixed")
+    # 8-bit mixed precision via TransformerEngine (Hopper GPUs and later)
+    fabric = Fabric(precision="transformer-engine")
 
     # Double precision
     fabric = Fabric(precision="64-true")
@@ -121,7 +121,7 @@ It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDN
 .. note::
 
     BFloat16 may not provide significant speedups or memory improvements, offering better numerical stability.
-    For GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`_ based GPUs or posterior, such as A100s or 3090s.
+    For GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`_ based GPUs or newer, such as A100s or 3090s.
 
 
 ----
@@ -133,7 +133,7 @@ Float8 Mixed Precision via Nvidia's TransformerEngine
 
 `Transformer Engine <https://github.com/NVIDIA/TransformerEngine>`__ (TE) is a library for accelerating models on the
 latest NVIDIA GPUs using 8-bit floating point (FP8) precision on Hopper GPUs, to provide better performance with lower
-memory utilization in both training and inference. It offers improved performance over true half precision with no degradation in accuracy.
+memory utilization in both training and inference. It offers improved performance over half precision with no degradation in accuracy.
 
 Using TE requires replacing some of the layers in your model. Fabric automatically replaces the :class:`torch.nn.Linear`
 and :class:`torch.nn.LayerNorm` layers in your model with their TE alternatives, however, TE also offers
@@ -146,17 +146,14 @@ the model and inputs can be kept in true full or half precision.
 
 .. code-block:: python
 
-    # Select 8bit mixed precision
-    fabric = Fabric(precision="8-mixed")
-
-    # OR
-    fabric = Fabric(precision="8-mixed-transformer-engine")
+    # Select 8bit mixed precision via TransformerEngine
+    fabric = Fabric(precision="transformer-engine")
 
     # Customize the fp8 recipe or set a different base precision:
-    from lightning.fabric.plugins.precision import Fp8TransformerEnginePrecision
+    from lightning.fabric.plugins.precision import TransformerEnginePrecision
 
     recipe = {"fp8_format": "HYBRID", "amax_history_len": 16, "amax_compute_algo": "max"}
-    precision = Fp8TransformerEnginePrecision(dtype=torch.bfloat16, recipe=recipe)
+    precision = TransformerEnginePrecision(dtype=torch.bfloat16, recipe=recipe)
     fabric = Fabric(plugins=precision)
 
 
@@ -164,7 +161,7 @@ Under the hood, we use `transformer_engine.pytorch.fp8_autocast <https://docs.nv
 
 .. note::
 
-    This requires `Hopper <https://en.wikipedia.org/wiki/Hopper_(microarchitecture)>`_ based GPUs or posterior, such the H100.
+    This requires `Hopper <https://en.wikipedia.org/wiki/Hopper_(microarchitecture)>`_ based GPUs or newer, such the H100.
 
 
 ----

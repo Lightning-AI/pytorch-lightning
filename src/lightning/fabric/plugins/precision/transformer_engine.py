@@ -28,14 +28,12 @@ _TRANSFORMER_ENGINE_AVAILABLE = RequirementCache("transformer_engine")
 
 if TYPE_CHECKING and _TRANSFORMER_ENGINE_AVAILABLE:
     from transformer_engine.common.recipe import DelayedScaling
-else:
-    DelayedScaling = None
 
 
 log = logging.getLogger(__name__)
 
 
-class Fp8TransformerEnginePrecision(Precision):
+class TransformerEnginePrecision(Precision):
     """Plugin for training with fp8 precision via nvidia's `Transformer Engine
     <https://docs.nvidia.com/deeplearning/transformer-engine`__.
 
@@ -52,18 +50,18 @@ class Fp8TransformerEnginePrecision(Precision):
 
     .. note::
 
-        Support for FP8 in the linear layers with `precision='8-mixed'` is currently limited to tensors with shapes
-        where the dimensions are divisible by 8 and 16 respectively. You might want to add padding to your inputs to
-        conform to this restriction.
+        Support for FP8 in the linear layers with `precision='transformer-engine'` is currently limited to tensors with
+        shapes where the dimensions are divisible by 8 and 16 respectively. You might want to add padding to your inputs
+        to conform to this restriction.
     """
 
-    precision: Literal["8-mixed-transformer-engine"] = "8-mixed-transformer-engine"
+    precision: Literal["transformer-engine"] = "transformer-engine"
 
     def __init__(
         self,
         dtype: Optional[torch.dtype] = None,
         recipe: Optional[Union[Mapping[str, Any], "DelayedScaling"]] = None,
-        replace_layers: bool = True,
+        replace_layers: Optional[bool] = None,
     ) -> None:
         if not _TRANSFORMER_ENGINE_AVAILABLE:
             raise ModuleNotFoundError(str(_TRANSFORMER_ENGINE_AVAILABLE))
@@ -85,18 +83,6 @@ class Fp8TransformerEnginePrecision(Precision):
         self.recipe = recipe
         self.replace_layers = replace_layers
 
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self.dtype)
-
-        import transformer_engine.pytorch as te
-
-        with te.fp8_autocast(enabled=True, fp8_recipe=self.recipe):
-            yield
-
-        torch.set_default_dtype(default_dtype)
-
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
         # avoid converting if any is found. assume the user took care of it
         if self.replace_layers and not any("transformer_engine" in m.__module__ for m in module.modules()):
@@ -109,17 +95,31 @@ class Fp8TransformerEnginePrecision(Precision):
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(self.dtype)
 
-        original_linear = torch.nn.Linear
-        original_layer_norm = torch.nn.LayerNorm
-        if self.replace_layers:
+        replace_layers = self.replace_layers
+        if replace_layers:
+            original_linear = torch.nn.Linear
+            original_layer_norm = torch.nn.LayerNorm
             Linear, LayerNorm = _patched_te_layers()
             torch.nn.Linear = Linear  # type: ignore[misc]
             torch.nn.LayerNorm = LayerNorm  # type: ignore[misc]
 
         yield
 
-        torch.nn.Linear = original_linear  # type: ignore[misc]
-        torch.nn.LayerNorm = original_layer_norm  # type: ignore[misc]
+        if replace_layers:
+            torch.nn.Linear = original_linear  # type: ignore[misc]
+            torch.nn.LayerNorm = original_layer_norm  # type: ignore[misc]
+
+        torch.set_default_dtype(default_dtype)
+
+    @contextmanager
+    def forward_context(self) -> Generator[None, None, None]:
+        default_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(self.dtype)
+
+        import transformer_engine.pytorch as te
+
+        with te.fp8_autocast(enabled=True, fp8_recipe=self.recipe):
+            yield
 
         torch.set_default_dtype(default_dtype)
 
@@ -157,8 +157,8 @@ def _convert_layers(module: torch.nn.Module, dtype: torch.dtype) -> None:
             if child.in_features % 8 != 0 or child.out_features % 16 != 0:
                 # https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/examples/fp8_primer.html#FP8-autocasting
                 rank_zero_warn(
-                    "Support for FP8 in the linear layers with `precision='8-mixed'` is currently limited to tensors"
-                    " with shapes where the dimensions are divisible by 8 and 16 respectively."
+                    "Support for FP8 in the linear layers with `precision='transformer-engine'` is currently limited to"
+                    "tensors with shapes where the dimensions are divisible by 8 and 16 respectively."
                     f"The layer {name!r} does not fit this criteria. You might want to add padding to your inputs."
                 )
                 continue

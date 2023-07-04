@@ -41,7 +41,7 @@ from lightning.fabric.plugins.environments import (
     XLAEnvironment,
 )
 from lightning.fabric.plugins.io import TorchCheckpointIO
-from lightning.fabric.plugins.precision.fp8_transformer_engine import Fp8TransformerEnginePrecision
+from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
     DataParallelStrategy,
     DDPStrategy,
@@ -1031,14 +1031,11 @@ def test_connector_fp8_transformer_engine(monkeypatch):
     recipe_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
 
-    connector = _Connector(precision="8-mixed")
-    assert isinstance(connector.precision, Fp8TransformerEnginePrecision)
-
-    connector = _Connector(precision="8-mixed-transformer-engine")
-    assert isinstance(connector.precision, Fp8TransformerEnginePrecision)
+    connector = _Connector(precision="transformer-engine")
+    assert isinstance(connector.precision, TransformerEnginePrecision)
 
     recipe_mock.reset_mock()
-    precision = Fp8TransformerEnginePrecision()
+    precision = TransformerEnginePrecision()
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
     assert precision.dtype == torch.float32
@@ -1046,7 +1043,7 @@ def test_connector_fp8_transformer_engine(monkeypatch):
 
     recipe_mock.reset_mock()
     recipe = {"foo": 0, "fp8_format": "HYBRID"}
-    precision = Fp8TransformerEnginePrecision(dtype=torch.float16, recipe=recipe)
+    precision = TransformerEnginePrecision(dtype=torch.float16, recipe=recipe)
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
     recipe_mock.DelayedScaling.assert_called_once_with(foo=0, fp8_format=recipe_mock.Format.HYBRID)
