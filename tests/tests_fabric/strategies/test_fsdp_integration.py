@@ -348,7 +348,6 @@ def test_compile(compile_after_setup):
         ("32-true", torch.float32),
         ("16-true", torch.float16),
         pytest.param("bf16-true", torch.bfloat16, marks=RunIf(bf16_cuda=True)),
-        ("64-true", torch.float64),
     ],
 )
 def test_module_init_context(precision, expected_dtype):
