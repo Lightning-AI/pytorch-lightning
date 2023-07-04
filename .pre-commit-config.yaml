@@ -50,20 +50,20 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+    rev: v3.8.0
     hooks:
       - id: pyupgrade
         args: [--py38-plus]
         name: Upgrade code
 
   - repo: https://github.com/PyCQA/docformatter
-    rev: v1.6.3
+    rev: v1.7.3
     hooks:
       - id: docformatter
         args: [--in-place, --wrap-summaries=115, --wrap-descriptions=120]
 
   - repo: https://github.com/asottile/yesqa
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: yesqa
         name: Unused noqa
@@ -89,7 +89,7 @@ repos:
         exclude: docs/source-app
 
   - repo: https://github.com/asottile/blacken-docs
-    rev: 1.13.0
+    rev: 1.14.0
     hooks:
       - id: blacken-docs
         args: [--line-length=120]
@@ -111,8 +111,8 @@ repos:
               README.md
           )$
 
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: 'v0.0.262'
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 'v0.0.276'
     hooks:
       - id: ruff
         args: ["--fix"]
