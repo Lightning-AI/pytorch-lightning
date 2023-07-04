@@ -517,12 +517,11 @@ class Trainer:
 
             val_dataloaders: An iterable or collection of iterables specifying validation samples.
 
-            ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
-                keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
-
-            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
             datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
                 the :class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
+
+            ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
+                keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
 
         Raises:
             TypeError:
