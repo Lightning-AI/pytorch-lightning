@@ -337,6 +337,7 @@ def _device_count_nvml() -> int:
     return len(visible_devices)
 
 
+@lru_cache(1)  # show the warning only ever once
 def _check_cuda_matmul_precision(device: torch.device) -> None:
     if not _TORCH_GREATER_EQUAL_1_12:
         # before 1.12, tf32 was used by default
