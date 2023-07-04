@@ -653,7 +653,7 @@ class LightningModule(
         logger.
 
         Args:
-            batch: The output of your :class:`~torch.utils.data.DataLoader`.
+            batch: The output of your data iterable, normally a :class:`~torch.utils.data.DataLoader`.
             batch_idx: The index of this batch.
             dataloader_idx: The index of the dataloader that produced this batch.
                 (only if multiple dataloaders used)
@@ -706,7 +706,7 @@ class LightningModule(
         or calculate anything of interest like accuracy.
 
         Args:
-            batch: The output of your :class:`~torch.utils.data.DataLoader`.
+            batch: The output of your data iterable, normally a :class:`~torch.utils.data.DataLoader`.
             batch_idx: The index of this batch.
             dataloader_idx: The index of the dataloader that produced this batch.
                 (only if multiple dataloaders used)
@@ -774,7 +774,7 @@ class LightningModule(
         calculate anything of interest such as accuracy.
 
         Args:
-            batch: The output of your :class:`~torch.utils.data.DataLoader`.
+            batch: The output of your data iterable, normally a :class:`~torch.utils.data.DataLoader`.
             batch_idx: The index of this batch.
             dataloader_idx: The index of the dataloader that produced this batch.
                 (only if multiple dataloaders used)
@@ -852,7 +852,7 @@ class LightningModule(
         or training on 8 TPU cores with ``Trainer(accelerator="tpu", devices=8)`` as predictions won't be returned.
 
         Args:
-            batch: The output of your :class:`~torch.utils.data.DataLoader`.
+            batch: The output of your data iterable, normally a :class:`~torch.utils.data.DataLoader`.
             batch_idx: The index of this batch.
             dataloader_idx: The index of the dataloader that produced this batch.
                 (only if multiple dataloaders used)
