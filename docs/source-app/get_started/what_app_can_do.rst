@@ -17,11 +17,13 @@ Train a model on any image or text dataset without writing any code. Flashy uses
 
 Find `Flashy <https://lightning.ai/app/PgM82rHUWu-Flashy>`_ on the App Gallery and the `Flashy codebase. <https://github.com/Lightning-AI/LAI-Flashy-App>`_ on GitHub.
 
-.. raw:: html
-
-   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/flashy.png" width="100%">
-      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/flashy.mp4" type="video/mp4" width="100%">
-   </video>
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/flashy.mp4
+    :poster: https://pl-public-data.s3.amazonaws.com/assets_lightning/flashy.png
+    :width: 600
+    :class: background-video
+    :autoplay:
+    :loop:
+    :muted:
 
 .. ----
 
@@ -31,11 +33,13 @@ Find `Flashy <https://lightning.ai/app/PgM82rHUWu-Flashy>`_ on the App Gallery a
 
 .. Use `Nvidia Sampling Omniverse <https://www.nvidia.com/en-gb/omniverse/>`_ to generate synthetic samples from 3D meshes and train an object detector on that data.
 
-.. .. raw:: html
-
-..    <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/Omniverse-Sampling.png" width="100%">
-..       <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/Omniverse-Sampling.mp4" type="video/mp4" width="100%">
-..    </video>
+.. .. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/Omniverse-Sampling.mp4
+        :poster: https://pl-public-data.s3.amazonaws.com/assets_lightning/Omniverse-Sampling.png
+        :width: 600
+        :class: background-video
+        :autoplay:
+        :loop:
+        :muted:
 
 ----
 
@@ -47,11 +51,13 @@ Share your paper ``bundled`` with the arxiv link, poster, live jupyter notebook,
 
 Find the `Research App <https://lightning.ai/app/KDKgKk3HVW-Research%20Poster>`_  on the App Gallery and the `Research App codebase. <https://github.com/Lightning-AI/LAI-research-template-App>`_ on GitHub.
 
-.. raw:: html
-
-   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/research_app.png" width="100%">
-      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/research_app.mp4" type="video/mp4" width="100%">
-   </video>
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/research_app.mp4
+    :poster: https://pl-public-data.s3.amazonaws.com/assets_lightning/research_app.png
+    :width: 600
+    :class: background-video
+    :autoplay:
+    :loop:
+    :muted:
 
 ----
 
@@ -65,11 +71,13 @@ Find the `ScratchPad App <https://lightning.ai/app/hvUwbEG70B-ScratchPad%2C%20No
 
 .. note:: ScratchPad is `tested end-to-end <https://github.com/Lightning-AI/LAI-lightning-template-jupyterlab-App/blob/master/tests/test_template_jupyterlab.py#L6>`_ on every Lightning App commit with `pytest <https://docs.pytest.org/en/7.1.x/>`_.
 
-.. raw:: html
-
-   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/notebook_apps.png" width="100%">
-      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/notebook_apps.mp4" type="video/mp4" width="100%">
-   </video>
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/notebook_apps.mp4
+    :poster: https://pl-public-data.s3.amazonaws.com/assets_lightning/notebook_apps.png
+    :width: 600
+    :class: background-video
+    :autoplay:
+    :loop:
+    :muted:
 
 ----
 
@@ -81,11 +89,13 @@ This App lets you find anything you're looking for inside a video. The engine is
 
 Find the `InVideo Search App <https://lightning.ai/app/7pmQNIDxAE-InVideo%20Search>`_  on the App Gallery and the `InVideo Search App codebase. <https://github.com/Lightning-AI/LAI-InVideo-search-App>`_ in GitHub.
 
-.. raw:: html
-
-   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/video_search_2.png" width="100%">
-      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/video_search_2.mp4" type="video/mp4" width="100%">
-   </video>
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/video_search_2.mp4
+    :poster: https://pl-public-data.s3.amazonaws.com/assets_lightning/video_search_2.png
+    :width: 600
+    :class: background-video
+    :autoplay:
+    :loop:
+    :muted:
 
 ----
 
@@ -97,11 +107,13 @@ Save yourself time, and get Hacker News story recommendations, chosen for you sp
 
 Find the `AI-powered HackerNews App <https://lightning.ai/app/g1VJ8GZ7XF-AI-powered%20HackerNews>`_  on the App Gallery and the `AI-powered HackerNews App codebase. <https://github.com/Lightning-AI/LAI-Hackernews-App>`_ on GitHub.
 
-.. raw:: html
-
-   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/hackernews_app.png" width="100%">
-      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/hackernews_app.mp4" type="video/mp4" width="100%">
-   </video>
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/hackernews_app.mp4
+    :poster: https://pl-public-data.s3.amazonaws.com/assets_lightning/hackernews_app.png
+    :width: 600
+    :class: background-video
+    :autoplay:
+    :loop:
+    :muted:
 
 ----
 
@@ -130,14 +142,13 @@ Lightning Apps are:
 - framework agnostic, use your own stack
 - and much more
 
-.. raw:: html
-
-   <br />
-   <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.png" width="100%">
-      <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.mp4" type="video/mp4" width="100%">
-   </video>
-   <br />
-   <br />
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.mp4
+    :poster: https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.png
+    :width: 600
+    :class: background-video
+    :autoplay:
+    :loop:
+    :muted:
 
 **********
 Next Steps
