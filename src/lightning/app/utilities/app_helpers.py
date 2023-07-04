@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class StateEntry:
-    """dataclass used to keep track the latest state shared through the app REST API."""
+    """Dataclass used to keep track the latest state shared through the app REST API."""
 
     app_state: Mapping = field(default_factory=dict)
     served_state: Mapping = field(default_factory=dict)
@@ -76,32 +76,32 @@ class StateStore(ABC):
 
     @abstractmethod
     def get_app_state(self, k: str) -> Mapping:
-        """returns a stored appstate for an input key 'k'."""
+        """Returns a stored appstate for an input key 'k'."""
         pass
 
     @abstractmethod
     def get_served_state(self, k: str) -> Mapping:
-        """returns a last served app state for an input key 'k'."""
+        """Returns a last served app state for an input key 'k'."""
         pass
 
     @abstractmethod
     def get_served_session_id(self, k: str) -> str:
-        """returns session id for state of a key 'k'."""
+        """Returns session id for state of a key 'k'."""
         pass
 
     @abstractmethod
     def set_app_state(self, k: str, v: Mapping):
-        """sets the app state for state of a key 'k'."""
+        """Sets the app state for state of a key 'k'."""
         pass
 
     @abstractmethod
     def set_served_state(self, k: str, v: Mapping):
-        """sets the served state for state of a key 'k'."""
+        """Sets the served state for state of a key 'k'."""
         pass
 
     @abstractmethod
     def set_served_session_id(self, k: str, v: str):
-        """sets the session id for state of a key 'k'."""
+        """Sets the session id for state of a key 'k'."""
         pass
 
 

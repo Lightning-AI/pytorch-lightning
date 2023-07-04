@@ -125,7 +125,7 @@ class AWSClusterManager:
         edit_before_creation: bool = False,
         do_async: bool = True,
     ) -> None:
-        """request Lightning AI BYOC compute cluster creation.
+        """Request Lightning AI BYOC compute cluster creation.
 
         Args:
             cost_savings: Specifies if the cluster uses cost savings mode

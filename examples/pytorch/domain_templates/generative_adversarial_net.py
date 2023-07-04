@@ -64,8 +64,7 @@ class Generator(nn.Module):
 
     def forward(self, z):
         img = self.model(z)
-        img = img.view(img.size(0), *self.img_shape)
-        return img
+        return img.view(img.size(0), *self.img_shape)
 
 
 class Discriminator(nn.Module):

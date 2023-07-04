@@ -38,7 +38,7 @@ class CustomInfDataloader:
 
 class CustomNotImplementedErrorDataloader(CustomInfDataloader):
     def __len__(self):
-        """raise NotImplementedError."""
+        """Raise NotImplementedError."""
         raise NotImplementedError
 
     def __next__(self):

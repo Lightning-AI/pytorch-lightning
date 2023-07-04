@@ -265,7 +265,7 @@ def test_fx_validator_integration(tmpdir):
 
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
 def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
-    """test that auto_add_dataloader_idx argument works."""
+    """Test that auto_add_dataloader_idx argument works."""
 
     class TestModel(BoringModel):
         def val_dataloader(self):

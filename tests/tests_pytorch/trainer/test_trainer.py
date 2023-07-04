@@ -242,7 +242,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
 
 
 def test_loading_meta_tags(tmpdir):
-    """test for backward compatibility to meta_tags.csv."""
+    """Test for backward compatibility to meta_tags.csv."""
     hparams = {
         "batch_size": 32,
         "learning_rate": 0.001 * 8,

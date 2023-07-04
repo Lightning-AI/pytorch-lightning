@@ -29,7 +29,7 @@ def _duplicate_checker(js):
 
 
 def string2dict(text):
-    """string2dict parses a JSON string into a dictionary, ensuring no keys are duplicated by accident."""
+    """String2dict parses a JSON string into a dictionary, ensuring no keys are duplicated by accident."""
     if not isinstance(text, str):
         text = text.decode("utf-8")
     try:

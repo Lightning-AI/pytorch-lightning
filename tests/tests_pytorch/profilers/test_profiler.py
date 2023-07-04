@@ -40,7 +40,7 @@ def _get_python_cprofile_total_duration(profile):
 
 
 def _sleep_generator(durations):
-    """the profile_iterable method needs an iterable in which we can ensure that we're properly timing how long it
+    """The profile_iterable method needs an iterable in which we can ensure that we're properly timing how long it
     takes to call __next__"""
     for duration in durations:
         time.sleep(duration)
@@ -277,7 +277,7 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
 
 @pytest.mark.flaky(reruns=3)
 def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
-    """ensure that the profiler doesn't introduce too much overhead during training."""
+    """Ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
         with advanced_profiler.profile("no-op"):
             pass
@@ -289,7 +289,7 @@ def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
 
 
 def test_advanced_profiler_describe(tmpdir, advanced_profiler):
-    """ensure the profiler won't fail when reporting the summary."""
+    """Ensure the profiler won't fail when reporting the summary."""
     # record at least one event
     with advanced_profiler.profile("test"):
         pass

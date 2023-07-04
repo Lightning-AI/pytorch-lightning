@@ -215,9 +215,8 @@ class TransferLearningModel(LightningModule):
         x = x.squeeze(-1).squeeze(-1)
 
         # 2. Classifier (returns logits):
-        x = self.fc(x)
+        return self.fc(x)
 
-        return x
 
     def loss(self, logits, labels):
         return self.loss_func(input=logits, target=labels)
