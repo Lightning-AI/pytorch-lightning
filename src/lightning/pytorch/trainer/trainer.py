@@ -1070,6 +1070,14 @@ class Trainer:
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn, local_rank=local_rank, log_dir=self.log_dir)
 
+    def print(self, *args: Any, **kwargs: Any) -> None:
+        """Print something only on the first process.
+
+        Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
+        """
+        if self.local_rank == 0:
+            print(*args, **kwargs)
+
     """
     Accelerator properties
     """
