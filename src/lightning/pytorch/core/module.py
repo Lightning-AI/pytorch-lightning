@@ -872,7 +872,8 @@ class LightningModule(
             trainer = Trainer(accelerator="gpu", devices=2)
             predictions = trainer.predict(model, dm)
         """
-        batch = args[0]
+        # For backwards compatibility
+        batch = kwargs.get("batch", args[0])
         return self(batch)
 
     def configure_callbacks(self) -> Union[Sequence[Callback], Callback]:
