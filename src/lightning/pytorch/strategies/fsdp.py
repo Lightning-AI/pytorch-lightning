@@ -435,6 +435,8 @@ class FSDPStrategy(ParallelStrategy):
 
         # Store the optimizer state dict in standard format
         if self.global_rank == 0:
-            state_dict = FullyShardedDataParallel.rekey_optim_state_dict(state_dict, OptimStateKeyType.PARAM_ID, self.model)
-        
+            state_dict = FullyShardedDataParallel.rekey_optim_state_dict(
+                state_dict, OptimStateKeyType.PARAM_ID, self.model
+            )
+
         return state_dict

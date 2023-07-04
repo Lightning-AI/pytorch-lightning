@@ -535,7 +535,7 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
 
         torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
         torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
-    
+
     trainer.strategy.barrier()
 
 
