@@ -92,11 +92,6 @@ class CSVLogger(Logger):
         return self._version
 
     @property
-    def root_dir(self) -> str:
-        """Gets the save directory where the versioned CSV experiments are saved."""
-        return self._root_dir
-
-    @property
     def log_dir(self) -> str:
         """The log directory for this run.
 
@@ -105,7 +100,7 @@ class CSVLogger(Logger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        return os.path.join(self.root_dir, self.name, version)
+        return os.path.join(self._root_dir, self.name, version)
 
     @property
     @rank_zero_experiment
@@ -120,7 +115,7 @@ class CSVLogger(Logger):
         if self._experiment is not None:
             return self._experiment
 
-        os.makedirs(self.root_dir, exist_ok=True)
+        os.makedirs(self._root_dir, exist_ok=True)
         self._experiment = _ExperimentWriter(log_dir=self.log_dir)
         return self._experiment
 
@@ -153,7 +148,7 @@ class CSVLogger(Logger):
         self.save()
 
     def _get_next_version(self) -> int:
-        versions_root = os.path.join(self.root_dir, self.name)
+        versions_root = os.path.join(self._root_dir, self.name)
 
         if not self._fs.isdir(versions_root):
             log.warning("Missing logger folder: %s", versions_root)

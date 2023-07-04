@@ -68,7 +68,7 @@ def test_file_logger_no_name(tmpdir, name):
     logger = CSVLogger(root_dir=tmpdir, name=name)
     logger.log_metrics({"a": 1})
     logger.save()
-    assert os.path.normpath(logger.root_dir) == tmpdir  # use os.path.normpath to handle trailing /
+    assert os.path.normpath(logger._root_dir) == tmpdir  # use os.path.normpath to handle trailing /
     assert os.listdir(tmpdir / "version_0")
 
 
