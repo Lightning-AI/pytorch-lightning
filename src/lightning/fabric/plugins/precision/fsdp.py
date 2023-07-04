@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Literal, Optional, TYPE_CHECKING
+from typing import Any, cast, Dict, Generator, Literal, Optional, TYPE_CHECKING
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -132,7 +132,7 @@ class FSDPPrecision(Precision):
 
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
-            tensor = self.scaler.scale(tensor)
+            tensor = cast(Tensor, self.scaler.scale(tensor))
         super().backward(tensor, model, *args, **kwargs)
 
     def optimizer_step(
@@ -167,4 +167,4 @@ class FSDPPrecision(Precision):
         if scaler is not None:
             if _optimizer_handles_unscaling(optimizer):
                 raise NotImplementedError("Gradient clipping is not implemented for optimizers handling the unscaling.")
-            scaler.unscale_(optimizer)
+            scaler.unscale_(optimizer)  # type: ignore[arg-type]  # ShardedGradScaler has wrong type annotation
