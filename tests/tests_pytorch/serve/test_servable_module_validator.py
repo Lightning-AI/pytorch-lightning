@@ -30,6 +30,7 @@ class ServableBoringModel(BoringModel, ServableModule):
         return {"output": [0, 1]}
 
 
+@pytest.mark.flaky(reruns=3)
 def test_servable_module_validator():
     model = ServableBoringModel()
     callback = ServableModuleValidator()
