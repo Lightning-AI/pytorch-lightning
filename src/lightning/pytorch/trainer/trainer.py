@@ -519,7 +519,6 @@ class Trainer:
 
             ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
                 keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
-                If resuming from mid-epoch checkpoint, training will start from the beginning of the next epoch.
 
             datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
             datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
