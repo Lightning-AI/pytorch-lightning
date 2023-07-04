@@ -21,7 +21,7 @@ import pytest
 import torch
 from torch.optim import Optimizer
 
-from lightning.fabric.accelerators import CPUAccelerator
+from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning.fabric.strategies import DeepSpeedStrategy
 from tests_fabric.helpers.runif import RunIf
 
@@ -341,3 +341,19 @@ def test_errors_grad_clipping():
         ),
     ):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
+
+
+@RunIf(deepspeed=True)
+@pytest.mark.parametrize("device_indices", [[1], [1, 0], [0, 2], [3, 2, 1]])
+def test_validate_parallel_devices_indices(device_indices):
+    """Test that the strategy validates that it doesn't support selecting specific devices by index.
+
+    DeepSpeed doesn't support it and needs the index to match to the local rank of the process.
+    """
+    strategy = DeepSpeedStrategy(
+        accelerator=CUDAAccelerator(), parallel_devices=[torch.device("cuda", i) for i in device_indices]
+    )
+    with pytest.raises(
+        RuntimeError, match=escape(f"device indices {device_indices!r} don't match the local rank values of processes")
+    ):
+        strategy.setup_environment()
