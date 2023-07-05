@@ -14,7 +14,7 @@
 import logging
 from typing import Any
 
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, XLAAccelerator
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE, XLAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 
 log = logging.getLogger(__name__)
@@ -72,6 +72,9 @@ class XLAEnvironment(ClusterEnvironment):
         return xm.get_local_ordinal()
 
     def node_rank(self) -> int:
+        if _using_pjrt():
+            # FIXME
+            return 0
         import torch_xla.core.xla_env_vars as xenv
         from torch_xla.utils.utils import getenv_as
 
