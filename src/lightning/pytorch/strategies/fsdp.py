@@ -403,9 +403,12 @@ class FSDPStrategy(ParallelStrategy):
         cls._registered_strategies.append("fsdp_cpu_offload")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        optimizer_states = checkpoint["optimizer_states"]
+        optimizer_states = checkpoint.get("optimizer_states")
 
-        assert self.model is not None
+        # If the optimizer states are not present, we don't need to do anything (backward compatibility)
+        if optimizer_states is None:
+            return
+
         assert isinstance(self.model, FullyShardedDataParallel)
 
         # rank0_only should be false because we need to load the optimizer state on all ranks

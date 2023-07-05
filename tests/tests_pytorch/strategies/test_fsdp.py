@@ -11,7 +11,11 @@ import torch
 import torch.nn as nn
 
 from lightning.fabric.plugins.environments import LightningEnvironment
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
+)
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -301,7 +305,13 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
 
     strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=strategy, precision="16-mixed", max_epochs=1
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        precision="16-mixed",
+        max_epochs=1,
+        barebones=True,
     )
     trainer.fit(model)
 
@@ -499,7 +509,13 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
 
     strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=strategy, precision="16-mixed", max_epochs=1
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        precision="16-mixed",
+        max_epochs=1,
+        barebones=True,
     )
 
     trainer.fit(model)
@@ -512,8 +528,9 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
 
     if trainer.global_rank != 0:
         assert len(model_state_dict) == 0
-        # TODO: Enable this assertion in PyTorch >= 2.1
-        # assert len(optimizer_state_dict) == 0
+
+        if _TORCH_GREATER_EQUAL_2_1:
+            assert len(optimizer_state_dict) == 0
 
     # restore model to ddp
     model = TestBoringModel()
@@ -569,7 +586,13 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
 
     strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=strategy, precision="16-mixed", max_epochs=1
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        precision="16-mixed",
+        max_epochs=1,
+        barebones=True,
     )
 
     trainer.fit(model, ckpt_path=model_path)
@@ -579,8 +602,9 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
 
     if trainer.global_rank != 0:
         assert len(restored_model_state_dict) == 0
-        # TODO: Enable this assertion in PyTorch >= 2.1
-        # assert len(restored_optimizer_state_dict) == 0
+
+        if _TORCH_GREATER_EQUAL_2_1:
+            assert len(restored_optimizer_state_dict) == 0
 
     if trainer.global_rank == 0:
         # assert everything is the same
