@@ -95,7 +95,7 @@ _XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
 _XLA_GREATER_EQUAL_2_1 = RequirementCache("torch_xla>=2.1")
 
 
-def _using_pjrt():
+def _using_pjrt() -> bool:
     # delete me when torch_xla 2.2 is the min supported version, where XRT support has been dropped.
     if _XLA_GREATER_EQUAL_2_1:
         from torch_xla import runtime as xr
