@@ -10,7 +10,7 @@ from lightning.pytorch.callbacks.callback import Callback
 
 class SpikeDetection(FabricSpikeDetection, Callback):
     @torch.no_grad()
-    def on_train_batch_end(
+    def on_train_batch_end(  # type: ignore
         self,
         trainer: pl.Trainer,
         pl_module: pl.LightningModule,

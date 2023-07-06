@@ -1,15 +1,60 @@
 import math
 from collections import Counter
 from functools import partial
+from typing import Any, Dict
 
 import pytest
 import torch
 
 import lightning
-from lightning.data.datasets.iterable import _Chunk, _SerializableIterableDataset, DataLoader, LightningIterableDataset
+from lightning.data.datasets.iterable import (
+    _Chunk,
+    _Stateful,
+    _StatefulIterableDataset,
+    DataLoader,
+    LightningIterableDataset,
+)
 
 
-class DummyIterableDataset(_SerializableIterableDataset):
+class Foo1:
+    def state_dict(self, returned_samples: int) -> Dict[str, Any]:
+        pass
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        pass
+
+
+class Foo2:
+    def state_dict(self) -> Dict[str, Any]:
+        pass
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        pass
+
+
+class Bar1:
+    pass
+
+
+class Bar2:
+    def state_dict(self) -> Dict[str, Any]:
+        pass
+
+
+@pytest.mark.parametrize(
+    ("klass", "fullfilled"),
+    [
+        pytest.param(Foo1, True),
+        pytest.param(Foo2, True),
+        pytest.param(Bar1, False),
+        pytest.param(Bar2, False),
+    ],
+)
+def test_serializable(klass, fullfilled):
+    assert isinstance(klass(), _Stateful) == fullfilled
+
+
+class DummyIterableDataset(_StatefulIterableDataset):
     def __init__(self, length: int):
         super().__init__()
         self.length = length
@@ -417,7 +462,7 @@ def test_chunk(chunk_size, shuffle, shuffle_seed, delayed_start):
         assert chunk.chunk_size == chunk_size
 
 
-class MyDataset(_SerializableIterableDataset):
+class MyDataset(_StatefulIterableDataset):
     def __init__(self, length):
         self.length = length
         self.samples = list(range(length))

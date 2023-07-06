@@ -2,7 +2,7 @@ import math
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Dict, Generator, Mapping, Optional, Sequence
+from typing import Any, Dict, Generator, List, Optional, Protocol, runtime_checkable, Sequence, Tuple
 
 import torch
 from torch.utils.data import DataLoader as _DataLoader
@@ -14,11 +14,11 @@ from lightning.data.datasets.env import DistributedEnv, Environment, WorkerEnv
 
 class _SerializableIterableDataset(ABC, IterableDataset):
     @abstractmethod
-    def state_dict(self, returned_samples: int, num_workers: int) -> Mapping[str, Any]:
+    def state_dict(self, returned_samples: int, num_workers: int) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    def load_state_dict(self, state_dict: Mapping[str, Any]) -> None:
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         pass
 
 
@@ -33,7 +33,7 @@ class _Chunk:
 
     def __init__(self, chunk_data: Any, chunk_size: int, start_index: int = 0):
         self._chunk_data = chunk_data
-        self._index_permutations = None
+        self._index_permutations: Optional[Tuple[int, ...]] = None
         self._start_index = start_index
         self._chunk_size = chunk_size
 
@@ -51,11 +51,11 @@ class _Chunk:
             yield index_permutations[i]
 
     @property
-    def chunk_size(self):
+    def chunk_size(self) -> int:
         return self._chunk_size
 
     @property
-    def index_permutations(self):
+    def index_permutations(self) -> Tuple[int, ...]:
         if self._index_permutations is None:
             return tuple(range(self._chunk_size))
         return self._index_permutations
@@ -143,7 +143,7 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
         self._original_chunks = chunks
 
         self._chunk_size = chunk_size
-        self._local_chunks = []
+        self._local_chunks: List[_Chunk] = []
         self._wrap = wrap
 
         self._start_index_chunk = 0
@@ -151,7 +151,7 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
         self._curr_chunk_index = 0
         self._curr_sample_index = 0
 
-        self._curr_loaded_chunks = []
+        self._curr_loaded_chunks: List[_Chunk] = []
         self._curr_loaded_num_samples = 0
 
     def prepare_chunk(self, chunk: Any) -> None:
@@ -237,7 +237,7 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
         finally:
             self._curr_sample_index += 1
 
-    def state_dict(self, returned_samples: int, num_workers: int = None) -> Dict[str, Any]:
+    def state_dict(self, returned_samples: int, num_workers: int) -> Dict[str, Any]:
         """Returns a global state-dict across all shards and workers. For construction of a global state-dict the
         `returned_samples` and `num_workers` arguments are required, since the main process, which is taking this
         state-dict, typically does not have access to worker_info.
@@ -254,6 +254,7 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
             num_workers = 1
 
         # manually compute num_shards since env doesn't know about num_workers in main process outside dataloader iter
+        assert self._env.dist_env is not None
         num_shards = self._env.dist_env.world_size * num_workers
 
         # fast-forward so that each chunk on each shard is finished -> this may skip a few samples!
@@ -355,11 +356,11 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
 
     def _shuffle_if_necessary(
         self,
-        chunks: Sequence[_Chunk],
+        chunks: List[_Chunk],
         first_chunk_index: int,
         shuffle_chunk_order: bool = True,
         shuffle_sample_order: bool = True,
-    ) -> Sequence[_Chunk]:
+    ) -> List[_Chunk]:
         """This shuffles the chunk-order and the order of samples within each chunk.
 
         Args:
@@ -400,11 +401,11 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
 class DataLoader(_DataLoader):
     __doc__ = _DataLoader.__doc__
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.returned_samples = 0
 
-    def __iter__(self) -> Generator[Any, None, None]:
+    def __iter__(self) -> Generator[Any, None, None]:  # type: ignore
         base_iter = super().__iter__()
 
         for batch in base_iter:
@@ -421,8 +422,6 @@ class DataLoader(_DataLoader):
 
     def state_dict(self) -> Dict[str, Any]:
         """Returns the state-dict of the dataset."""
-        from lightning.fabric.utilities.types import _Stateful
-
         if isinstance(self.dataset, _Stateful):
             state_dict = self.dataset.state_dict(returned_samples=self.returned_samples, num_workers=self.num_workers)
             return {"returned_samples": self.returned_samples, "dataset": state_dict}
@@ -431,10 +430,17 @@ class DataLoader(_DataLoader):
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         """Loads a given state-dict onto the dataset."""
-        from lightning.fabric.utilities.types import _Stateful
-
         self.returned_samples = state_dict.pop("returned_samples")
         if isinstance(self.dataset, _Stateful):
             return self.dataset.load_state_dict(state_dict["dataset"])
 
         raise TypeError("The dataset has no method `load_state_dict` accepting a `state_dict`")
+
+
+@runtime_checkable
+class _Stateful(Protocol):
+    def state_dict(self, returned_samples: int, num_workers: int) -> Dict[str, Any]:
+        pass
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        pass

@@ -118,6 +118,8 @@ class Environment:
             This may not be accurate in a non-dataloader-worker process like the main training process
             as it doesn't necessarily know about the number of dataloader workers.
         """
+        assert self.worker_env is not None
+        assert self.dist_env is not None
         return self.worker_env.world_size * self.dist_env.world_size
 
     @property
@@ -128,6 +130,8 @@ class Environment:
             This may not be accurate in a non-dataloader-worker process like the main training process as it
             doesn't necessarily know about the number of dataloader workers.
         """
+        assert self.worker_env is not None
+        assert self.dist_env is not None
         return self.dist_env.global_rank * self.worker_env.world_size + self.worker_env.rank
 
     def __repr__(self) -> str:
