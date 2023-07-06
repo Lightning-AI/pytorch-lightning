@@ -65,7 +65,6 @@ src/pytorch_lightning/*
 !src/*/__version__.py
 !src/*/MANIFEST.in
 !src/*/py.typed
-!src/*/README.md
 !src/*/shell-folder_code-lives-lightning.info
 
 # PyInstaller

@@ -5,7 +5,6 @@ include src/lightning_fabric/CHANGELOG.md
 recursive-include requirements/fabric *.txt
 include src/pytorch_lightning/version.info
 include src/pytorch_lightning/CHANGELOG.md
-include src/pytorch_lightning/README.md
 recursive-include requirements/pytorch *.txt
 include .actions/assistant.py
 include *.cff  # citation info
