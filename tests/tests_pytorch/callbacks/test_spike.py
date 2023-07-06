@@ -3,8 +3,8 @@ import contextlib
 import pytest
 import torch
 
-from lightning.pytorch import LightningModule, Trainer
 from lightning.fabric.utilities.spike import _TORCHMETRICS_GREATER_EQUAL_1_0_0, TrainingSpikeException
+from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks.spike import SpikeDetection
 
 
