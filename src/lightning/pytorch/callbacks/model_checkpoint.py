@@ -744,4 +744,3 @@ class ModelCheckpoint(Checkpoint):
     def _remove_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
         """Calls the strategy to remove the checkpoint file."""
         trainer.strategy.remove_checkpoint(filepath)
-
