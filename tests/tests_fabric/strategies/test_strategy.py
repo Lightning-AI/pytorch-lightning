@@ -66,6 +66,17 @@ def test_save_checkpoint_convert_stateful_objects(tmp_path):
     assert save_checkpoint_mock.call_args[1]["checkpoint"]["anything"] == expected["anything"]
 
 
+def test_load_module_state_dict():
+    """Test that `Strategy.load_module_state_dict()` calls `.load_state_dict()` on the module."""
+    strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
+    module = Mock()
+    state_dict = Mock()
+    strategy.load_module_state_dict(module, state_dict)
+    module.load_state_dict.assert_called_with(state_dict, strict=True)
+    strategy.load_module_state_dict(module, state_dict, strict=False)
+    module.load_state_dict.assert_called_with(state_dict, strict=False)
+
+
 def test_load_checkpoint_out_of_place(tmp_path):
     """Test that one can load the full checkpoint into memory just like `torch.load()`."""
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
