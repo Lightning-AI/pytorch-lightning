@@ -24,6 +24,10 @@ import pytest
 import torch
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    apply_activation_checkpointing,
+    CheckpointWrapper,
+)
 from torch.optim import Adam
 
 from lightning.fabric import Fabric
@@ -169,6 +173,27 @@ def test_fsdp_activation_checkpointing():
         ckpt_mock.assert_called_with(fsdp_mock(), checkpoint_wrapper_fn=ANY, check_fn=ANY)
 
 
+@RunIf(min_torch="1.13", min_cuda_gpus=1)
+def test_fsdp_manual_activation_checkpointing():
+    model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.Linear(1, 1))
+    strategy = FSDPStrategy(activation_checkpointing=torch.nn.Linear)
+    fabric = Fabric(devices=1, accelerator="cuda", strategy=strategy)
+    fabric.launch()
+
+    # manually apply activation checkpointing
+    apply_activation_checkpointing(model)
+
+    wrappers = {name for name, param in model.named_modules() if isinstance(param, CheckpointWrapper)}
+    assert wrappers == {"0", "1"}
+
+    # let fabric set-up the model, it shouldn't apply activation checkpointing again
+    with pytest.warns(match="Linear'>] is configured, but the model already contains checkpointed"):
+        model = fabric.setup(model)
+
+    wrappers = {name for name, param in model._forward_module.named_modules() if isinstance(param, CheckpointWrapper)}
+    assert wrappers == {"_fsdp_wrapped_module.0", "_fsdp_wrapped_module.1"}
+
+
 @RunIf(min_torch="1.13")
 def test_fsdp_grad_clipping_value_error():
     strategy = FSDPStrategy()
@@ -283,7 +308,7 @@ def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
 
 
 @RunIf(min_torch="2.0.0")
-def test_fsdp_load_unkown_checkpoint_type(tmp_path):
+def test_fsdp_load_unknown_checkpoint_type(tmp_path):
     """Test that the strategy validates the contents at the checkpoint path."""
     strategy = FSDPStrategy()
     model = Mock(spec=FullyShardedDataParallel)
