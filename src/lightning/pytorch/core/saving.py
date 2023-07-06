@@ -129,7 +129,7 @@ def _load_state(
 
         # 4. Update cls_kwargs_new with cls_kwargs_old, such that new has higher priority
         args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
-        if args_name and args_name in cls_init_args_name:
+        if args_name and (args_name in cls_init_args_name or not cls_init_args_name):
             cls_kwargs_loaded = {args_name: cls_kwargs_loaded}
 
     _cls_kwargs = {}

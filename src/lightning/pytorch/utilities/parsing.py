@@ -182,8 +182,7 @@ def save_hyperparameters(
         isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
         if len(isx_non_str) == 1:
             hp = args[isx_non_str[0]]
-            cand_names = [k for k, v in init_args.items() if v == hp]
-            obj._hparams_name = cand_names[0] if cand_names else None
+            obj._hparams_name = list(init_args.keys())[isx_non_str[0]]
         else:
             hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
             obj._hparams_name = "kwargs"
