@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -83,7 +84,7 @@ def test_ddp_extra_kwargs(ddp_mock):
 
 
 def test_ddp_module_state_dict():
-    """Test that the module state dict gets retrieved without the prefixed wrapper keys from DDP."""
+    """Test that the module state dict can be retrieved and loaded without the prefixed wrapper keys from DDP."""
 
     class DistributedDataParallelMock(MagicMock):
         def __instancecheck__(self, instance):
@@ -94,12 +95,18 @@ def test_ddp_module_state_dict():
 
     # Without DDP applied (no setup call)
     original_module = torch.nn.Linear(2, 3)
-    assert strategy.get_module_state_dict(original_module).keys() == original_module.state_dict().keys()
+    original_state_dict = deepcopy(original_module.state_dict())
+    retrieved_state_dict = strategy.get_module_state_dict(original_module)
+    assert retrieved_state_dict.keys() == original_state_dict.keys()
+    strategy.load_module_state_dict(original_module, retrieved_state_dict)
 
     # With DDP applied (setup called)
     with mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel", DistributedDataParallelMock):
         wrapped_module = strategy.setup_module(original_module)
-        assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()
+        retrieved_state_dict = strategy.get_module_state_dict(wrapped_module)
+    assert retrieved_state_dict.keys() == original_state_dict.keys()
+    strategy.load_module_state_dict(wrapped_module, retrieved_state_dict)
+    strategy.load_module_state_dict(wrapped_module, original_state_dict)
 
 
 @pytest.mark.parametrize(
