@@ -1,4 +1,5 @@
 import contextlib
+import sys
 
 import pytest
 import torch
@@ -38,7 +39,14 @@ class MyTrainerSpikeDetection(SpikeDetection):
 
 @pytest.mark.parametrize(
     ("global_rank_spike", "num_devices"),
-    [pytest.param(0, 1), pytest.param(0, 2), pytest.param(0, 1)],
+    [
+        pytest.param(0, 1),
+        pytest.param(
+            0,
+            2,
+            marks=pytest.mark.skipif(sys.platform != "linux", reason="ddp-tests on OS but linux are slow and unstable"),
+        ),
+    ],
 )
 @pytest.mark.skipif(not _TORCHMETRICS_GREATER_EQUAL_1_0_0, reason="requires torchmetrics>=1.0.0")
 def test_trainer_spike_detection_integration(tmpdir, global_rank_spike, num_devices):

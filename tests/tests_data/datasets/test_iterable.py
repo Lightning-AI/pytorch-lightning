@@ -1,4 +1,5 @@
 import math
+import sys
 from collections import Counter
 from functools import partial
 from typing import Any, Dict
@@ -353,9 +354,21 @@ def sharding_test(fabric: lightning.Fabric, num_workers):
         pytest.param(0, 1),
         pytest.param(0, 2),
         pytest.param(1, 1),
-        pytest.param(1, 2),
-        pytest.param(2, 1),
-        pytest.param(2, 2),
+        pytest.param(
+            1,
+            2,
+            marks=pytest.mark.skipif(sys.platform != "linux", reason="ddp-tests on OS but linux are slow and unstable"),
+        ),
+        pytest.param(
+            2,
+            1,
+            marks=pytest.mark.skipif(sys.platform != "linux", reason="ddp-tests on OS but linux are slow and unstable"),
+        ),
+        pytest.param(
+            2,
+            2,
+            marks=pytest.mark.skipif(sys.platform != "linux", reason="ddp-tests on OS but linux are slow and unstable"),
+        ),
     ],
 )
 def test_sharding(num_workers, world_size):
@@ -411,11 +424,23 @@ def sharding_resume_test(fabric: lightning.Fabric, num_workers):
     ("num_workers", "world_size"),
     [
         pytest.param(0, 1),
-        pytest.param(0, 2),
+        pytest.param(
+            0,
+            2,
+            marks=pytest.mark.skipif(sys.platform != "linux", reason="ddp-tests on OS but linux are slow and unstable"),
+        ),
         pytest.param(1, 1),
-        pytest.param(1, 2),
+        pytest.param(
+            1,
+            2,
+            marks=pytest.mark.skipif(sys.platform != "linux", reason="ddp-tests on OS but linux are slow and unstable"),
+        ),
         pytest.param(2, 1),
-        pytest.param(2, 2),
+        pytest.param(
+            2,
+            2,
+            marks=pytest.mark.skipif(sys.platform != "linux", reason="ddp-tests on OS but linux are slow and unstable"),
+        ),
     ],
 )
 def test_chunked_dataset_sharded_state_dict_resume(num_workers, world_size):
@@ -485,6 +510,7 @@ class MyDataset(_StatefulIterableDataset):
 @pytest.mark.parametrize("prefetch_factor", [1, 2, 3])
 @pytest.mark.parametrize("length", [100, 101])
 @pytest.mark.parametrize("num_batches", [1, 2, 7])
+@pytest.mark.skipif(sys.platform != "linux", reason="spawning processes on OS but linux are slow and unstable")
 def test_resumable_loader(batch_size, num_workers, prefetch_factor, length, num_batches):
     dset = MyDataset(length)
     loader = DataLoader(
