@@ -269,7 +269,7 @@ class Strategy(ABC):
         self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True
     ) -> None:
         """Loads the given state into the model."""
-        module.load_state_dict(state_dict)
+        module.load_state_dict(state_dict, strict=strict)
 
     def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.
