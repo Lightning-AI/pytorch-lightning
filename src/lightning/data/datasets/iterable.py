@@ -12,7 +12,7 @@ from lightning.data.datasets.base import _Dataset
 from lightning.data.datasets.env import DistributedEnv, Environment, WorkerEnv
 
 
-class _SerializableIterableDataset(ABC, IterableDataset):
+class _StatefulIterableDataset(ABC, IterableDataset):
     @abstractmethod
     def state_dict(self, returned_samples: int, num_workers: int) -> Dict[str, Any]:
         pass
@@ -61,7 +61,7 @@ class _Chunk:
         return self._index_permutations
 
 
-class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
+class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
     """An iterable dataset that can be resumed mid-epoch, implements chunking and sharding of chunks. The behavior
     of this dataset can be customized with the following hooks:
 
@@ -114,7 +114,7 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
         lazy_shuffle: bool = False,
         backend: str = "local",
     ):
-        _SerializableIterableDataset.__init__(self)
+        _StatefulIterableDataset.__init__(self)
         _Dataset.__init__(self, backend=backend)
 
         chunks = [_Chunk(c, chunk_size=chunk_size) for c in chunks]
