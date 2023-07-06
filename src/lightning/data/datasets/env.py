@@ -1,6 +1,8 @@
-import torch
 from typing import Optional
+
+import torch
 from torch.utils.data import get_worker_info
+
 
 class DistributedEnv:
     """The environment of the distributed training.
@@ -83,9 +85,7 @@ class Environment:
         worker_env: The worker environment (number of workers, worker rank)
     """
 
-    def __init__(
-        self, dist_env: Optional[DistributedEnv], worker_env: Optional[WorkerEnv]
-    ):
+    def __init__(self, dist_env: Optional[DistributedEnv], worker_env: Optional[WorkerEnv]):
         self.worker_env = worker_env
         self.dist_env = dist_env
 
@@ -97,13 +97,14 @@ class Environment:
         num_workers: int,
         current_worker_rank: int,
     ) -> "Environment":
-        """Generates the Environment class by already given arguments instead of detecting them
+        """Generates the Environment class by already given arguments instead of detecting them.
 
         Args:
-            dist_world_size: The worldsize used for distributed training (=total number of distributed training processes)
+            dist_world_size: The worldsize used for distributed training (=total number of distributed processes)
             global_rank: The distributed global rank of the current process
             num_workers: The number of workers per distributed training process
-            current_worker_rank: The rank of the current worker within the number of workers of the current training process
+            current_worker_rank: The rank of the current worker within the number of workers of
+                the current training process
         """
         dist_env = DistributedEnv(dist_world_size, global_rank)
         worker_env = WorkerEnv(num_workers, current_worker_rank)
@@ -114,7 +115,8 @@ class Environment:
         """Returns the total number of shards.
 
         Note:
-            This may not be accurate in a non-dataloader-worker process like the main training process as it doesn't necessarily know about the number of dataloader workers.
+            This may not be accurate in a non-dataloader-worker process like the main training process
+            as it doesn't necessarily know about the number of dataloader workers.
         """
         return self.worker_env.world_size * self.dist_env.world_size
 
@@ -123,18 +125,19 @@ class Environment:
         """Returns the rank of the current process wrt. the total number of shards.
 
         Note:
-            This may not be accurate in a non-dataloader-worker process like the main training process as it doesn't necessarily know about the number of dataloader workers.
+            This may not be accurate in a non-dataloader-worker process like the main training process as it
+            doesn't necessarily know about the number of dataloader workers.
         """
-        return (
-            self.dist_env.global_rank * self.worker_env.world_size
-            + self.worker_env.rank
-        )
+        return self.dist_env.global_rank * self.worker_env.world_size + self.worker_env.rank
 
     def __repr__(self) -> str:
         dist_env_repr = repr(self.dist_env)
         worker_env_repr = repr(self.worker_env)
 
-        return f"{self.__class__.__name__}(\n\tdist_env: {dist_env_repr},\n\tworker_env: {worker_env_repr}\n\tnum_shards: {self.num_shards},\n\tshard_rank: {self.shard_rank})"
+        return (
+            f"{self.__class__.__name__}(\n\tdist_env: {dist_env_repr},\n\tworker_env: "
+            + f"{worker_env_repr}\n\tnum_shards: {self.num_shards},\n\tshard_rank: {self.shard_rank})"
+        )
 
     def __str__(self) -> str:
         return repr(self)

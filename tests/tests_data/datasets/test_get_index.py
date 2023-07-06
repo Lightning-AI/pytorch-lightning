@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 from lightning_utilities.core.imports import package_available
 
+import lightning.data.dataset.index as dataset_index
 from lightning.data.datasets.index import get_index
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))

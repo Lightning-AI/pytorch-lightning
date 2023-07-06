@@ -1,10 +1,12 @@
-import torch
 import json
+import operator
 import os
 import warnings
-from typing import Any, Literal, Mapping, Optional, Protocol, Union, runtime_checkable
+from typing import Any, Literal, Mapping, Optional, Protocol, runtime_checkable
 
+import torch
 from lightning_utilities.core.imports import compare_version
+
 _TORCHMETRICS_GREATER_EQUAL_1_0_0 = compare_version("torchmetrics", operator.ge, "1.0.0")
 if _TORCHMETRICS_GREATER_EQUAL_1_0_0:
     from torchmetrics.aggregation import MeanMetric
@@ -27,9 +29,7 @@ class SpikeDetection:
 
         self.last_val: torch.Tensor = 0.0
         # spike detection happens individually on each machine
-        self.running_mean = Running(
-            MeanMetric(dist_sync_on_step=False, sync_on_compute=False), window=window
-        )
+        self.running_mean = Running(MeanMetric(dist_sync_on_step=False, sync_on_compute=False), window=window)
         self.mode = mode
         self.warmup = warmup
         self.atol = atol
@@ -38,9 +38,7 @@ class SpikeDetection:
         self.exclude_batches_path = exclude_batches_path
 
     @torch.no_grad()
-    def on_train_batch_end(
-        self, fabric: "BooleanReducer", loss: torch.Tensor, batch: Any, batch_idx: int
-    ) -> None:
+    def on_train_batch_end(self, fabric: "_BooleanReducer", loss: torch.Tensor, batch: Any, batch_idx: int) -> None:
         if batch_idx == 0:
             self.running_mean.to(fabric.strategy.root_device)
 
@@ -48,14 +46,9 @@ class SpikeDetection:
             self.exclude_batches_path = os.getcwd()
 
         if not str(self.exclude_batches_path).endswith(".json"):
-            self.exclude_batches_path = os.path.join(
-                self.exclude_batches_path, f"skip_batches.json"
-            )
+            self.exclude_batches_path = os.path.join(self.exclude_batches_path, "skip_batches.json")
 
-        if batch_idx >= self.warmup and self.is_spike(loss):
-            is_spike = True
-        else:
-            is_spike = False
+        is_spike = bool(batch_idx >= self.warmup and self.is_spike(loss))
 
         # While spike-detection happens on a per-rank level, we need to fail all ranks if any rank detected a spike
         is_spike_global = fabric.strategy.reduce_boolean_decision(is_spike, all=False)
@@ -68,7 +61,8 @@ class SpikeDetection:
             self.update_stats(loss)
 
     def is_spike(self, loss: torch.Tensor) -> bool:
-        # we might call compute more often than update which is fine as long as the metric has at least one internal value.
+        # we might call compute more often than update which is fine as long as the
+        # metric has at least one internal value.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             running_val = self.running_mean.compute()
@@ -77,9 +71,7 @@ class SpikeDetection:
         if self._is_better(curr_diff):
             return False
 
-        return self._check_atol(loss, running_val) and self._check_rtol(
-            loss, running_val
-        )
+        return self._check_atol(loss, running_val) and self._check_rtol(loss, running_val)
 
     def handle_spike(self, fabric: "_BooleanReducer", batch_idx: int) -> None:
         # Exclude current and last batch
@@ -104,10 +96,10 @@ class SpikeDetection:
     def _is_better(self, diff_val: torch.Tensor) -> bool:
         if self.mode == "min":
             return (diff_val <= 0.0).all()
-        elif self.mode == "max":
+        if self.mode == "max":
             return (diff_val >= 0).all()
-        else:
-            raise ValueError(f"invalid mode. Has to be min or max, found {self.mode}")
+
+        raise ValueError(f"invalid mode. Has to be min or max, found {self.mode}")
 
     def update_stats(self, val: torch.Tensor) -> None:
         self.running_mean.update(val)
@@ -137,6 +129,7 @@ class SpikeDetection:
         self.running.load_state_dict(state_dict.pop("running"))
         self.running_mean.base_metric.load_state_dict(state_dict.pop("mean"))
 
+
 @runtime_checkable
 class _BooleanReduceActor(Protocol):
     root_device: torch.device
@@ -147,10 +140,9 @@ class _BooleanReduceActor(Protocol):
 
 @runtime_checkable
 class _BooleanReducer(Protocol):
-    strategy: BooleanReduceActor
+    strategy: _BooleanReduceActor
+
 
 class TrainingSpikeException(RuntimeError):
     def __init__(self, batch_idx: int, *args, **kwargs):
-        super().__init__(
-            f"Training spike detected in batch {batch_idx}", *args, **kwargs
-        )
+        super().__init__(f"Training spike detected in batch {batch_idx}", *args, **kwargs)

@@ -1,22 +1,15 @@
-from torch.utils.data import IterableDataset
-from lightning.data.datasets.base import _Dataset
-from lightning.data.datasets.env import Environment
 import math
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import (
-    Any,
-    Dict,
-    Generator,
-    Mapping,
-    Optional,
-    Protocol,
-    Sequence,
-    runtime_checkable,
-)
-from torch.utils.data import DataLoader as _DataLoader
+from typing import Any, Dict, Generator, Mapping, Optional, Sequence
+
 import torch
+from torch.utils.data import DataLoader as _DataLoader
+from torch.utils.data import IterableDataset
+
+from lightning.data.datasets.base import _Dataset
+from lightning.data.datasets.env import DistributedEnv, Environment, WorkerEnv
 
 
 class _SerializableIterableDataset(ABC, IterableDataset):
@@ -27,6 +20,7 @@ class _SerializableIterableDataset(ABC, IterableDataset):
     @abstractmethod
     def load_state_dict(self, state_dict: Mapping[str, Any]) -> None:
         pass
+
 
 class _Chunk:
     """A single chunk of data.
@@ -43,16 +37,14 @@ class _Chunk:
         self._start_index = start_index
         self._chunk_size = chunk_size
 
-    def shuffle(self, generator: Optional[torch.Generator] = None) -> "Chunk":
-        """Shuffles index permutations for the current chunk"""
-        new_indices = torch.randperm(
-            self.chunk_size, generator=generator, device="cpu"
-        ).tolist()
+    def shuffle(self, generator: Optional[torch.Generator] = None) -> "_Chunk":
+        """Shuffles index permutations for the current chunk."""
+        new_indices = torch.randperm(self.chunk_size, generator=generator, device="cpu").tolist()
         self._index_permutations = tuple(new_indices)
         return self
 
     def __iter__(self) -> Generator[int, None, None]:
-        """Returns an iterator over the index permutations"""
+        """Returns an iterator over the index permutations."""
         # iterates over indices
         index_permutations = self.index_permutations
         for i in range(self._start_index, self.chunk_size):
@@ -66,42 +58,47 @@ class _Chunk:
     def index_permutations(self):
         if self._index_permutations is None:
             return tuple(range(self._chunk_size))
-        else:
-            return self._index_permutations
+        return self._index_permutations
+
 
 class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
-    """An iterable dataset that can be resumed mid-epoch, implements chunking and sharding of chunks.
-    The behavior of this dataset can be customized with the following hooks:
+    """An iterable dataset that can be resumed mid-epoch, implements chunking and sharding of chunks. The behavior
+    of this dataset can be customized with the following hooks:
 
-    - ``prepare_chunk`` gives the possibility to prepare the chunk one iteration before its actually loaded (e.g. download from s3).
-    - ``load_chunk`` implements how an entire chunk is loaded into memory (e.g. loading the previously downloaded file into memory)
-    - ``load_sample_from_chunk`` implements how to retrieve a single sample from the current chunk (e.g. indexing the chunk if it's a list or
-        just returning it if the chunk has a size of 1)
+    - ``prepare_chunk`` gives the possibility to prepare the chunk one iteration before its actually loaded
+        (e.g. download from s3).
+    - ``load_chunk`` implements how an entire chunk is loaded into memory
+        (e.g. loading the previously downloaded file into memory)
+    - ``load_sample_from_chunk`` implements how to retrieve a single sample from the current chunk
+        (e.g. indexing the chunk if it's a list or just returning it if the chunk has a size of 1)
 
     Args:
         chunks: The chunked_data to load.
         chunk_size: The number of samples in each chunk
         num_parallel_chunks: How many chunks to load in parallel.
-        env: The compute-environment. Important for sharding. Contains the distributed world-size, the distributed global rank,
-            the number of workers on the current rank and the current worker rank. If None, it will try to detect these things automatically.
-        shuffle: Whether to shuffle your data. Will shuffle both, order of chunks before sharding and order of samples within each chunk.
+        env: The compute-environment. Important for sharding. Contains the distributed world-size,
+            the distributed global rank, the number of workers on the current rank and the current worker rank.
+            If None, it will try to detect these things automatically.
+        shuffle: Whether to shuffle your data. Will shuffle both, order of chunks before sharding and order of
+            samples within each chunk.
         seed: The seed for the random number generator. If :param:`shuffle` = False, the seed has no effect.
-        wrap: Whether to restart your dataset if it's exhausted. If set to True, it results in a virtually infinite dataset
-            looping through the same data over and over again.
-        lazy_shuffle: Whether to shuffle your data lazily instead of upfront. This consumes a lot less memory, but may yield undeterministic results.
+        wrap: Whether to restart your dataset if it's exhausted. If set to True, it results in a
+            virtually infinite dataset looping through the same data over and over again.
+        lazy_shuffle: Whether to shuffle your data lazily instead of upfront.
+            This consumes a lot less memory, but may yield undeterministic results.
 
         Note:
             :param:`lazy_shuffle` is experimental, consumes less memory than shuffling everything in advance (default)
             but may result in undeterministic behavior.
 
         Note:
-            On resume from a state-dict, we always skip currently started chunks as these would make the data-order impossible to determine with sharding.
-            Upon resuming from a point, where a new chunk would be started anyways, nothing is skipped.
+            On resume from a state-dict, we always skip currently started chunks as these would make the data-order
+            impossible to determine with sharding. Upon resuming from a point, where a new chunk would be started
+            anyways, nothing is skipped.
 
         Note:
-            Order of data is only guaranteed when resuming with the same distributed settings and the same number of workers.
-            Everything else leads to different sharding and therefore results in different data order.
-
+            Order of data is only guaranteed when resuming with the same distributed settings and the same number of
+            workers. Everything else leads to different sharding and therefore results in different data order.
     """
 
     # TODO: backend docstring
@@ -115,10 +112,10 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
         seed: Optional[int] = None,
         wrap: bool = False,
         lazy_shuffle: bool = False,
-        backend: str = "local"
+        backend: str = "local",
     ):
         _SerializableIterableDataset.__init__(self)
-        _Dataset.__init__(self, backend=backend)  
+        _Dataset.__init__(self, backend=backend)
 
         chunks = [_Chunk(c, chunk_size=chunk_size) for c in chunks]
         if env is None:
@@ -139,9 +136,7 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
 
         self._seed = seed
         self._generator = generator
-        self._initial_generator_state = (
-            self._generator.get_state() if self._generator is not None else None
-        )
+        self._initial_generator_state = self._generator.get_state() if self._generator is not None else None
 
         self._num_parallel_chunks = num_parallel_chunks
         self._chunks = chunks
@@ -160,8 +155,7 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
         self._curr_loaded_num_samples = 0
 
     def prepare_chunk(self, chunk: Any) -> None:
-        """Prepares a single chunk before it is actually loaded.
-        This could e.g. download the actual file from s3.
+        """Prepares a single chunk before it is actually loaded. This could e.g. download the actual file from s3.
 
         Args:
             chunk: the chunk data to prepare.
@@ -169,8 +163,8 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
 
     @abstractmethod
     def load_chunk(self, chunk: Any) -> Any:
-        """Loads a single chunk into memory.
-        This could e.g. mean loading the file that has previously been downloaded from s3.
+        """Loads a single chunk into memory. This could e.g. mean loading the file that has previously been
+        downloaded from s3.
 
         Args:
             chunk: The chunk that should be currently loaded
@@ -178,26 +172,26 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
 
     @abstractmethod
     def load_sample_from_chunk(self, chunk: Any, index: int) -> Any:
-        """Retrieves a single sample from a given (already loaded) chunk.
-        This could be indexing a list or returning the entire chunk if it's size is 1
+        """Retrieves a single sample from a given (already loaded) chunk. This could be indexing a list or
+        returning the entire chunk if it's size is 1.
 
         Args:
             chunk: The chunk the sample should be retrieved from
             index: The index of the current sample to retrieve within the chunk.
         """
 
-    def __iter__(self) -> "ResumableIterableDataset":
-        """Creates an iterator. Before that, detects the env if necessary,
-        shuffles chunks, shards the data and shuffles sample orders within chunks.
+    def __iter__(self) -> "LightningIterableDataset":
+        """Creates an iterator.
+
+        Before that, detects the env if necessary, shuffles chunks, shards the data and shuffles sample orders within
+        chunks.
         """
         self._curr_chunk_index = self._start_index_chunk
         self._curr_sample_index = self._start_index_sample
         if self._env.worker_env is None:
             self._env.worker_env = WorkerEnv.detect()
 
-        self._chunks = self._shuffle_if_necessary(
-            self._chunks, 0, shuffle_chunk_order=True, shuffle_sample_order=False
-        )
+        self._chunks = self._shuffle_if_necessary(self._chunks, 0, shuffle_chunk_order=True, shuffle_sample_order=False)
         self._apply_sharding()
         self._local_chunks = self._shuffle_if_necessary(
             self._local_chunks,
@@ -210,6 +204,7 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
 
     def __next__(self) -> Any:
         """Returns the next sample.
+
         If necessary, this also loads the new chunks.
         """
         try:
@@ -229,14 +224,12 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
                 if c.chunk_size > remainder:
                     curr_loaded_chunk_idx = i
                     break
-                else:
-                    remainder -= c.chunk_size
+
+                remainder -= c.chunk_size
 
             sample = self.load_sample_from_chunk(
                 self._curr_loaded_chunks[curr_loaded_chunk_idx]._chunk_data,
-                self._curr_loaded_chunks[curr_loaded_chunk_idx].index_permutations[
-                    remainder
-                ],
+                self._curr_loaded_chunks[curr_loaded_chunk_idx].index_permutations[remainder],
             )
 
             return sample
@@ -244,15 +237,14 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
         finally:
             self._curr_sample_index += 1
 
-    def state_dict(
-        self, returned_samples: int, num_workers: int = None
-    ) -> Dict[str, Any]:
-        """Returns a global state-dict across all shards and workers.
-        For construction of a global state-dict the `returned_samples` and `num_workers` arguments are required, since the main process,
-        which is taking this state-dict, typically does not have access to worker_info.
+    def state_dict(self, returned_samples: int, num_workers: int = None) -> Dict[str, Any]:
+        """Returns a global state-dict across all shards and workers. For construction of a global state-dict the
+        `returned_samples` and `num_workers` arguments are required, since the main process, which is taking this
+        state-dict, typically does not have access to worker_info.
 
         Args:
-            returned_samples: the number of totally returned samples by the dataloader(s) (across all distributed training processes).
+            returned_samples: the number of totally returned samples by the dataloader(s) (across all distributed
+                training processes).
             num_workers: number of dataloader workers per distributed training process.
         """
 
@@ -265,11 +257,7 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
         num_shards = self._env.dist_env.world_size * num_workers
 
         # fast-forward so that each chunk on each shard is finished -> this may skip a few samples!
-        curr_index = (
-            math.ceil(returned_samples / num_shards / self._chunk_size)
-            * num_shards
-            * self._chunk_size
-        )
+        curr_index = math.ceil(returned_samples / num_shards / self._chunk_size) * num_shards * self._chunk_size
 
         # since we go to next chunk, always start at beginning of chunk
         curr_sample_in_chunk = 0
@@ -301,13 +289,13 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
         self._curr_loaded_num_samples = 0
 
     def _ensure_chunks_loaded(self) -> None:
-        """Ensures that the correct number of chunks is loaded"""
+        """Ensures that the correct number of chunks is loaded."""
         if len(self._curr_loaded_chunks) != self._num_parallel_chunks:
             self._check_dataset_end()
             self._load_next_chunks()
 
     def _load_next_chunks(self) -> None:
-        """Loads the current chunks and prepares the chunks thereafter"""
+        """Loads the current chunks and prepares the chunks thereafter."""
         self._curr_loaded_chunks = []
         self._curr_loaded_num_samples = 0
         # load next N chunks
@@ -333,31 +321,28 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
             self.prepare_chunk(curr_chunk._chunk_data)
 
     def _apply_sharding(self) -> None:
-        """Shards the chunks if necessary. No-op if already sharded"""
+        """Shards the chunks if necessary.
+
+        No-op if already sharded
+        """
         if not self._local_chunks:
             num_shards = self._env.num_shards
 
             # every shard must have the same number of chunks -> truncate if not evenly divisible
             max_chunks = len(self._chunks) // num_shards * num_shards
-            self._local_chunks = self._chunks[
-                self._env.shard_rank : max_chunks : num_shards
-            ]
+            self._local_chunks = self._chunks[self._env.shard_rank : max_chunks : num_shards]
 
-        # if state-dict was set, the curr chunk index was the global number across all shards -- divide it to get local number
-        if (
-            self._start_index_chunk
-            and self._start_index_chunk == self._curr_chunk_index
-        ):
-            self._curr_chunk_index = math.ceil(
-                self._curr_chunk_index // self._env.num_shards
-            )
+        # if state-dict was set, the curr chunk index was the global number across all shards
+        # --> divide it to get local number
+        if self._start_index_chunk and self._start_index_chunk == self._curr_chunk_index:
+            self._curr_chunk_index = math.ceil(self._curr_chunk_index // self._env.num_shards)
 
     def _check_if_sharded(self) -> None:
-        """Raises a warning if the dataset is not sharded"""
+        """Raises a warning if the dataset is not sharded."""
         if not self._local_chunks:
             warnings.warn(
-                "Chunks have not been sharded yet. Either call `iter()` on your dataset or manually call `.apply_sharding()` if you're sure you set the workers correctly. "
-                "It won't recognize dataloader workers when manually calling either of those outside an actual dataloader."
+                "Chunks have not been sharded yet. Call iter() on your dataset to ensure sharding is done correctly. "
+                "It won't recognize dataloader workers when manually calling it outside an actual dataloader."
             )
 
     def _check_dataset_end(self) -> None:
@@ -411,6 +396,7 @@ class LightningIterableDataset(_SerializableIterableDataset, _Dataset):
 
         return chunks
 
+
 class DataLoader(_DataLoader):
     __doc__ = _DataLoader.__doc__
 
@@ -428,24 +414,20 @@ class DataLoader(_DataLoader):
     def _get_batch_size(self, batch: Any) -> int:
         if isinstance(batch, torch.Tensor):
             return batch.size(0)
-        elif isinstance(batch, Sequence):
+        if isinstance(batch, Sequence):
             return len(batch[0])
-        else:
-            return self.batch_size
+
+        return self.batch_size
 
     def state_dict(self) -> Dict[str, Any]:
-        """Returns the state-dict of the dataset"""
+        """Returns the state-dict of the dataset."""
         from lightning.fabric.utilities.types import _Stateful
-        
+
         if isinstance(self.dataset, _Stateful):
-            state_dict = self.dataset.state_dict(
-                returned_samples=self.returned_samples, num_workers=self.num_workers
-            )
+            state_dict = self.dataset.state_dict(returned_samples=self.returned_samples, num_workers=self.num_workers)
             return {"returned_samples": self.returned_samples, "dataset": state_dict}
 
-        raise TypeError(
-            "The dataset has no method `state_dict` that accepts `returned_samples` and `num_workers`"
-        )
+        raise TypeError("The dataset has no method `state_dict` that accepts `returned_samples` and `num_workers`")
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         """Loads a given state-dict onto the dataset."""
@@ -455,6 +437,4 @@ class DataLoader(_DataLoader):
         if isinstance(self.dataset, _Stateful):
             return self.dataset.load_state_dict(state_dict["dataset"])
 
-        raise TypeError(
-            "The dataset has no method `load_state_dict` accepting a `state_dict`"
-        )
+        raise TypeError("The dataset has no method `load_state_dict` accepting a `state_dict`")

@@ -1,12 +1,22 @@
-from lightning.data.datasets.env import DistributedEnv, WorkerEnv, Environment
-import pytest
-from lightning.fabric import Fabric
-
-from torch.utils.data import get_worker_info
 from functools import partial
 
+import pytest
+import torch
+from torch.utils.data import get_worker_info
+
+from lightning.data.datasets.env import DistributedEnv, Environment, WorkerEnv
+from lightning.fabric import Fabric
+
+
 @pytest.mark.parametrize(
-    "num_workers,current_worker_rank,dist_world_size,global_rank,expected_num_shards,expected_shard_rank",
+    (
+        "num_workers",
+        "current_worker_rank",
+        "dist_world_size",
+        "global_rank",
+        "expected_num_shards",
+        "expected_shard_rank",
+    ),
     [
         pytest.param(1, 0, 1, 0, 1, 0),
         pytest.param(1, 0, 2, 0, 2, 0),
@@ -27,9 +37,7 @@ def test_environment(
     expected_num_shards,
     expected_shard_rank,
 ):
-    env = Environment.from_args(
-        dist_world_size, global_rank, num_workers, current_worker_rank
-    )
+    env = Environment.from_args(dist_world_size, global_rank, num_workers, current_worker_rank)
     assert env.num_shards == expected_num_shards
     assert env.shard_rank == expected_shard_rank
 
@@ -92,7 +100,7 @@ class EnvTestDataset(torch.utils.data.IterableDataset):
         yield 0
 
 
-def env_auto_test(fabric: lightning.Fabric, num_workers):
+def env_auto_test(fabric: Fabric, num_workers):
     dset = EnvTestDataset(max(1, num_workers), fabric.world_size, fabric.global_rank)
     loader = torch.utils.data.DataLoader(dset, num_workers=num_workers)
 
@@ -104,7 +112,5 @@ def env_auto_test(fabric: lightning.Fabric, num_workers):
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
 @pytest.mark.parametrize("dist_world_size", [1, 2])
 def test_env_auto(num_workers, dist_world_size):
-    fabric = lightning.Fabric(
-        accelerator="cpu", devices=dist_world_size, strategy="ddp_spawn"
-    )
+    fabric = Fabric(accelerator="cpu", devices=dist_world_size, strategy="ddp_spawn")
     fabric.launch(partial(env_auto_test, num_workers=num_workers))

@@ -1,18 +1,13 @@
 import math
 from collections import Counter
 from functools import partial
-from typing import Any, Mapping
 
-import lightning
 import pytest
 import torch
-from torch.utils.data import get_worker_info
 
-from lightning.data.datasets.iterable import (
-    _Chunk,
-    LightningIterableDataset,
-    _SerializableIterableDataset,
-)
+import lightning
+from lightning.data.datasets.iterable import _Chunk, _SerializableIterableDataset, DataLoader, LightningIterableDataset
+
 
 class DummyIterableDataset(_SerializableIterableDataset):
     def __init__(self, length: int):
@@ -49,7 +44,7 @@ class WorkingDummySerializableIterableDataset(
 
 
 @pytest.mark.parametrize(
-    "klass,missing_method",
+    ("klass", "missing_method"),
     [
         pytest.param(WrongDummySerializableIterableDataset1, "load_state_dict"),
         pytest.param(WrongDummySerializableIterableDataset2, "state_dict"),
@@ -131,7 +126,7 @@ class WorkingChunkedDataset(WrongChunkedDataset1, WrongChunkedDataset2):
 
 
 @pytest.mark.parametrize(
-    "klass,missing_method",
+    ("klass", "missing_method"),
     [
         pytest.param(WrongChunkedDataset1, "load_sample_from_chunk"),
         pytest.param(WrongChunkedDataset2, "load_chunk"),
@@ -146,9 +141,7 @@ def test_required_abstract_methods_chunked_dataset(klass, missing_method):
 
 
 def test_chunked_dataset_iteration():
-    dset = WorkingChunkedDataset(
-        list(range(5)), chunk_size=2, shuffle=False, wrap=False
-    )
+    dset = WorkingChunkedDataset(list(range(5)), chunk_size=2, shuffle=False, wrap=False)
 
     curr_item = 0
     for i, item in enumerate(dset):
@@ -193,9 +186,7 @@ def test_chunk_dataset_iteration_shuffle(lazy_shuffle):
 
 
 def test_chunked_dataset_wrap():
-    dset = WorkingChunkedDataset(
-        list(range(5)), chunk_size=2, shuffle=True, seed=12345, wrap=True
-    )
+    dset = WorkingChunkedDataset(list(range(5)), chunk_size=2, shuffle=True, seed=12345, wrap=True)
 
     dset_iter = iter(dset)
 
@@ -205,9 +196,7 @@ def test_chunked_dataset_wrap():
 
 
 def test_chunked_dataset_resume_and_reset():
-    dset = WorkingChunkedDataset(
-        list(range(5)), chunk_size=2, shuffle=False, wrap=False
-    )
+    dset = WorkingChunkedDataset(list(range(5)), chunk_size=2, shuffle=False, wrap=False)
 
     for i, item in enumerate(dset):
         assert item[0] == 0
@@ -240,9 +229,7 @@ def test_chunked_dataset_resume_and_reset():
 
 @pytest.mark.parametrize("shuffle", [False, True])
 def test_chunked_dataset_serialization(shuffle):
-    dset = WorkingChunkedDataset(
-        list(range(5)), chunk_size=2, shuffle=shuffle, wrap=False
-    )
+    dset = WorkingChunkedDataset(list(range(5)), chunk_size=2, shuffle=shuffle, wrap=False)
 
     assert dset.state_dict(0, 0) == {"current_chunk": 0, "current_sample_in_chunk": 0}
 
@@ -293,11 +280,7 @@ class ChunkedTestDatasetDistributed(WorkingChunkedDataset):
         assert len(self._local_chunks) == self.expected_num_chunks
 
         for i in range(1, len(self._local_chunks)):
-            assert (
-                self._local_chunks[i]._chunk_data
-                - self._local_chunks[i - 1]._chunk_data
-                == self.expected_step_width
-            )
+            assert self._local_chunks[i]._chunk_data - self._local_chunks[i - 1]._chunk_data == self.expected_step_width
 
 
 def sharding_test(fabric: lightning.Fabric, num_workers):
@@ -320,7 +303,7 @@ def sharding_test(fabric: lightning.Fabric, num_workers):
 
 
 @pytest.mark.parametrize(
-    "num_workers,world_size",
+    ("num_workers", "world_size"),
     [
         pytest.param(0, 1),
         pytest.param(0, 2),
@@ -331,17 +314,13 @@ def sharding_test(fabric: lightning.Fabric, num_workers):
     ],
 )
 def test_sharding(num_workers, world_size):
-    fabric = lightning.Fabric(
-        accelerator="cpu", devices=world_size, strategy="ddp_spawn"
-    )
+    fabric = lightning.Fabric(accelerator="cpu", devices=world_size, strategy="ddp_spawn")
     fabric.launch(partial(sharding_test, num_workers=num_workers))
 
 
 def sharding_resume_test(fabric: lightning.Fabric, num_workers):
     chunk_size = 2
-    dset = WorkingChunkedDataset(
-        list(range(100)), chunk_size, shuffle=False, wrap=False
-    )
+    dset = WorkingChunkedDataset(list(range(100)), chunk_size, shuffle=False, wrap=False)
     loader = torch.utils.data.DataLoader(dset, num_workers=num_workers, shuffle=False)
     num_shards = max(1, num_workers) * fabric.world_size
 
@@ -353,14 +332,13 @@ def sharding_resume_test(fabric: lightning.Fabric, num_workers):
         assert curr_state == {"current_chunk": next_chunk, "current_sample_in_chunk": 0}
 
         dset.load_state_dict(curr_state)
-        loader = torch.utils.data.DataLoader(
-            dset, num_workers=num_workers, shuffle=False
-        )
+        loader = torch.utils.data.DataLoader(dset, num_workers=num_workers, shuffle=False)
 
         # calculate starting chunks
         # next_chunk + fabric.global_rank * max(1,num_workers) determines the base offset for each rank
         # i % chunk_size makes sure that workers are alternating
-        #   e.g. w0 returns first element of first chunk then w1 returns first element of second chunk then w0 returns second element of first chunk etc.
+        #   e.g. w0 returns first element of first chunk then w1 returns first element of second chunk then w0 returns
+        #   second element of first chunk etc.
         # i // num_shards * num_shards progresses to next chunks
         curr_worker_chunk = {
             i: next_chunk
@@ -385,7 +363,7 @@ def sharding_resume_test(fabric: lightning.Fabric, num_workers):
 
 
 @pytest.mark.parametrize(
-    "num_workers,world_size",
+    ("num_workers", "world_size"),
     [
         pytest.param(0, 1),
         pytest.param(0, 2),
@@ -396,10 +374,9 @@ def sharding_resume_test(fabric: lightning.Fabric, num_workers):
     ],
 )
 def test_chunked_dataset_sharded_state_dict_resume(num_workers, world_size):
-    fabric = lightning.Fabric(
-        accelerator="cpu", devices=world_size, strategy="ddp_spawn"
-    )
+    fabric = lightning.Fabric(accelerator="cpu", devices=world_size, strategy="ddp_spawn")
     fabric.launch(partial(sharding_resume_test, num_workers=num_workers))
+
 
 @pytest.mark.parametrize("chunk_size", [20, 30, 40])
 @pytest.mark.parametrize("shuffle", [False, True])
@@ -418,10 +395,7 @@ def test_chunk(chunk_size, shuffle, shuffle_seed, delayed_start):
     assert chunk.chunk_size == chunk_size
 
     if shuffle:
-        if shuffle_seed:
-            generator = torch.Generator().manual_seed(shuffle_seed)
-        else:
-            generator = None
+        generator = torch.Generator().manual_seed(shuffle_seed) if shuffle_seed else None
 
         chunk = chunk.shuffle(generator=generator)
 
@@ -433,9 +407,7 @@ def test_chunk(chunk_size, shuffle, shuffle_seed, delayed_start):
         for i, index in enumerate(chunk):
             new_perm.append(index)
 
-        assert tuple(new_perm) == tuple(
-            [old_permutation[k] for k in range(delayed_start_index, chunk_size)]
-        )
+        assert tuple(new_perm) == tuple([old_permutation[k] for k in range(delayed_start_index, chunk_size)])
         assert len(new_perm) == chunk_size - delayed_start_index
 
         if shuffle_seed:
@@ -443,3 +415,73 @@ def test_chunk(chunk_size, shuffle, shuffle_seed, delayed_start):
             assert chunk.index_permutations == old_permutation
 
         assert chunk.chunk_size == chunk_size
+
+
+class MyDataset(_SerializableIterableDataset):
+    def __init__(self, length):
+        self.length = length
+        self.samples = list(range(length))
+        self.curr_iter = 0
+
+    def __iter__(self):
+        for sample in self.samples[self.curr_iter :]:
+            yield sample
+            self.curr_iter += 1
+
+    def state_dict(self, returned_samples, num_workers):
+        return {"curr_iter": returned_samples, "num_workers": num_workers}
+
+    def load_state_dict(self, state_dict):
+        self.curr_iter = state_dict.pop("curr_iter")
+
+
+@pytest.mark.parametrize("batch_size", [1, 2, 3])
+@pytest.mark.parametrize("num_workers", [0, 1, 2])
+@pytest.mark.parametrize("prefetch_factor", [1, 2, 3])
+@pytest.mark.parametrize("length", [100, 101])
+@pytest.mark.parametrize("num_batches", [1, 2, 7])
+def test_resumable_loader(batch_size, num_workers, prefetch_factor, length, num_batches):
+    dset = MyDataset(length)
+    loader = DataLoader(
+        dset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        prefetch_factor=prefetch_factor if num_workers > 0 else None,
+    )
+
+    loader_iter = iter(loader)
+    for i, batch in enumerate(loader_iter):
+        assert loader._get_batch_size(batch) == batch_size
+        if i == num_batches - 1:
+            break
+
+    state_dict = loader.state_dict()
+    assert state_dict["returned_samples"] == batch_size * num_batches
+    assert state_dict["dataset"] == {
+        "curr_iter": batch_size * num_batches,
+        "num_workers": num_workers,
+    }
+
+    state_dict["returned_samples"] += 1
+    state_dict["dataset"]["curr_iter"] += 1
+    loader.load_state_dict(state_dict)
+    assert loader.returned_samples == batch_size * num_batches + 1
+    assert loader.dataset.curr_iter == batch_size * num_batches + 1
+
+
+def test_state_dict_error():
+    loader = DataLoader([1, 2, 3])
+    with pytest.raises(
+        TypeError,
+        match="The dataset has no method `state_dict` that accepts `returned_samples` and `num_workers`",
+    ):
+        loader.state_dict()
+
+
+def test_load_state_dict_error():
+    loader = DataLoader([1, 2, 3])
+    with pytest.raises(
+        TypeError,
+        match="The dataset has no method `load_state_dict` accepting a `state_dict`",
+    ):
+        loader.load_state_dict({"returned_samples": 1, "dataset": {"some_key": "some_val"}})

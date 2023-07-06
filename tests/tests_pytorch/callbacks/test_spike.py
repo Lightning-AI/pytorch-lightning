@@ -1,7 +1,12 @@
-from lightning.fabric.utilities.spike import TrainingSpikeException, _TORCHMETRICS_GREATER_EQUAL_1_0_0
-from lightning import LightningModule, Trainer
+import contextlib
+
 import pytest
 import torch
+
+from lightning import LightningModule, Trainer
+from lightning.fabric.utilities.spike import _TORCHMETRICS_GREATER_EQUAL_1_0_0, TrainingSpikeException
+from lightning.pytorch.callbacks.spike import SpikeDetection
+
 
 class IdentityModule(LightningModule):
     def __init__(self, spike_global_rank: int):
@@ -14,14 +19,9 @@ class IdentityModule(LightningModule):
         with torch.no_grad():
             self.layer.weight.data = torch.ones_like(self.layer.weight.data)
 
-        if batch_idx == 4:
-            curr_loss_val = 3
-        else:
-            curr_loss_val = 1 / (batch_idx + 1)
+        curr_loss_val = 3 if batch_idx == 4 else 1 / (batch_idx + 1)
 
-        loss = self.layer(
-            torch.tensor(curr_loss_val, device=self.device, dtype=self.dtype).view(1, 1)
-        )
+        loss = self.layer(torch.tensor(curr_loss_val, device=self.device, dtype=self.dtype).view(1, 1))
         return loss
 
     def configure_optimizers(self):
@@ -30,16 +30,14 @@ class IdentityModule(LightningModule):
 
 class MyTrainerSpikeDetection(SpikeDetection):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        if batch_idx == 4:
-            context = pytest.raises(TrainingSpikeException)
-        else:
-            context = contextlib.nullcontext()
+        context = pytest.raises(TrainingSpikeException) if batch_idx == 4 else contextlib.nullcontext()
 
         with context:
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
 
+
 @pytest.mark.parametrize(
-    "global_rank_spike, num_devices",
+    ("global_rank_spike", "num_devices"),
     [pytest.param(0, 1), pytest.param(0, 2), pytest.param(0, 1)],
 )
 @pytest.mark.skipif(not _TORCHMETRICS_GREATER_EQUAL_1_0_0, reason="requires torchmetrics>=1.0.0")

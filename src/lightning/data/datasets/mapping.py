@@ -3,9 +3,9 @@ import tempfile
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
+from lightning.data.datasets.base import _Dataset
 from lightning.data.datasets.index import get_index
 from lightning.data.fileio import OpenCloudFileObj
-
 
 
 class LightningDataset(_Dataset, ABC):
