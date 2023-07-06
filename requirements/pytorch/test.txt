@@ -1,4 +1,4 @@
-coverage ==7.2.5
+coverage ==7.2.7
 pytest ==7.3.1
 pytest-cov ==4.0.0
 pytest-forked ==1.4.0
@@ -12,7 +12,7 @@ onnx <1.15.0
 onnxruntime <1.16.0
 psutil <5.9.5 # for `DeviceStatsMonitor`
 pandas >1.0, <2.0.3  # needed in benchmarks
-fastapi <0.98.0  # for `ServableModuleValidator`
+fastapi <0.100.0  # for `ServableModuleValidator`
 uvicorn <0.22.1  # for `ServableModuleValidator`
 
 tensorboard >=2.9.1, <2.14.0  # for `TensorBoardLogger`
