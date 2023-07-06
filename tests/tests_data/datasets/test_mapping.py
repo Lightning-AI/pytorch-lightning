@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from lightning_utilities.core.imports import package_available
 
-from lightning.data import dataset_index
+from lightning.data.datasets import index as dataset_index
 from lightning.data.dataset import LightningDataset
 from lightning.data.fileio import OpenCloudFileObj
 
