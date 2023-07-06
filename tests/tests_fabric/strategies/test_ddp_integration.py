@@ -47,7 +47,7 @@ def _run_ddp_save_load(fabric, tmp_path):
     fabric.save(tmp_path / "saved_after_setup.ckpt", {"model": wrapped_model})
 
     def assert_params_equal(params0, params1):
-        assert all(torch.equal(p0, p1) for p0, p1 in zip(params0, params1))
+        assert all(torch.equal(p0, p1.to(p0.device)) for p0, p1 in zip(params0, params1))
 
     # Load
     model = torch.nn.Linear(2, 2)
