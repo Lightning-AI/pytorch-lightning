@@ -162,6 +162,11 @@ class DDPStrategy(ParallelStrategy):
             module = module.module
         return super().get_module_state_dict(module)
 
+    def load_module_state_dict(self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True) -> None:
+        if isinstance(module, DistributedDataParallel):
+            module = module.module
+        super().load_module_state_dict(module=module, state_dict=state_dict, strict=strict)
+
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         entries = (

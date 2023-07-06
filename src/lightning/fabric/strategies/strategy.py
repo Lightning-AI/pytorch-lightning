@@ -265,6 +265,10 @@ class Strategy(ABC):
         """Returns model state."""
         return module.state_dict()
 
+    def load_module_state_dict(self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True) -> None:
+        """Loads the given state into the model."""
+        module.load_state_dict(state_dict)
+
     def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.
 
@@ -308,7 +312,7 @@ class Strategy(ABC):
                 continue
             if isinstance(obj, _Stateful):
                 if isinstance(obj, Module):
-                    obj.load_state_dict(checkpoint.pop(name), strict=strict)
+                    self.load_module_state_dict(module=obj, state_dict=checkpoint.pop(name), strict=strict)
                 else:
                     obj.load_state_dict(checkpoint.pop(name))
             else:
