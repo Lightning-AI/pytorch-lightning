@@ -24,10 +24,6 @@ import pytest
 import torch
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    apply_activation_checkpointing,
-    CheckpointWrapper,
-)
 from torch.optim import Adam
 
 from lightning.fabric import Fabric
@@ -179,6 +175,11 @@ def test_fsdp_manual_activation_checkpointing():
     strategy = FSDPStrategy(activation_checkpointing=torch.nn.Linear)
     fabric = Fabric(devices=1, accelerator="cuda", strategy=strategy)
     fabric.launch()
+
+    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+        apply_activation_checkpointing,
+        CheckpointWrapper,
+    )
 
     # manually apply activation checkpointing
     apply_activation_checkpointing(model)
