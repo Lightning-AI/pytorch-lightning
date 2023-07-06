@@ -265,7 +265,9 @@ class Strategy(ABC):
         """Returns model state."""
         return module.state_dict()
 
-    def load_module_state_dict(self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True) -> None:
+    def load_module_state_dict(
+        self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True
+    ) -> None:
         """Loads the given state into the model."""
         module.load_state_dict(state_dict)
 
