@@ -2,6 +2,7 @@ import os
 from typing import Any, Mapping, Union
 
 import torch
+
 from lightning.pytorch as pl
 from lightning.fabric.utilities.spike import SpikeDetection as FabricSpikeDetection
 from lightning.pytorch.callbacks.callback import Callback
