@@ -1412,3 +1412,63 @@ def test_train_epoch_end_ckpt_with_no_validation():
     assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
     trainer.val_check_interval = 0.8
     assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
+
+
+def test_ckpt_for_inherited_wrapped_hparams():
+    class BaseModel(BoringModel):
+        some_defaults = {"a": 1, "b": 2}
+
+        def __init__(self, hparams: dict):
+            super().__init__()
+            hparams = {**self.some_defaults, **hparams}
+            self.save_hyperparameters(hparams)
+
+        def configure_callbacks(self):
+            return [ModelCheckpoint(save_last=True)]
+
+    class ChildModel(BaseModel):
+        def __init__(self, hparams: dict):
+            super().__init__(hparams)
+
+    hparams = {"a": 3, "c": 7}
+    model = ChildModel(hparams)
+
+    trainer = Trainer(max_epochs=1)
+    trainer.fit(model)
+
+    assert trainer.checkpoint_callback.last_model_path
+
+    # should not raise
+    model = ChildModel.load_from_checkpoint(trainer.checkpoint_callback.last_model_path)
+
+    assert model.hparams == {"a": 3, "b": 2, "c": 7}
+
+
+def test_ckpt_for_inherited_wrapped_hparams_with_generic_signature():
+    class BaseModel(BoringModel):
+        some_defaults = {"a": 1, "b": 2}
+
+        def __init__(self, hparams: dict):
+            super().__init__()
+            hparams = {**self.some_defaults, **hparams}
+            self.save_hyperparameters(hparams)
+
+        def configure_callbacks(self):
+            return [ModelCheckpoint(save_last=True)]
+
+    class ChildModel(BaseModel):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+    hparams = {"a": 3, "c": 7}
+    model = ChildModel(hparams)
+
+    trainer = Trainer(max_epochs=1)
+    trainer.fit(model)
+
+    assert trainer.checkpoint_callback.last_model_path
+
+    # should not raise
+    model = ChildModel.load_from_checkpoint(trainer.checkpoint_callback.last_model_path)
+
+    assert model.hparams == {"a": 3, "b": 2, "c": 7}
