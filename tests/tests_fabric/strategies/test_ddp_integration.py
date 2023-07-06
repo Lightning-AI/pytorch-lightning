@@ -14,15 +14,19 @@
 from copy import deepcopy
 
 import pytest
-from tests_fabric.helpers.runif import RunIf
 import torch
+
 from lightning.fabric import Fabric
+from tests_fabric.helpers.runif import RunIf
 
 
-@pytest.mark.parametrize("accelerator", [
-    "cpu",
-    pytest.param("cuda", marks=RunIf(min_cuda_gpus=2, standalone=True)),
-])
+@pytest.mark.parametrize(
+    "accelerator",
+    [
+        "cpu",
+        pytest.param("cuda", marks=RunIf(min_cuda_gpus=2, standalone=True)),
+    ],
+)
 def test_ddp_save_load(accelerator, tmp_path):
     """Test that DDP model checkpoints can be saved and loaded successfully."""
     fabric = Fabric(devices=2, accelerator="cpu", strategy="ddp")
