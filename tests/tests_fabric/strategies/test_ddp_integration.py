@@ -24,13 +24,16 @@ from tests_fabric.helpers.runif import RunIf
     "accelerator",
     [
         "cpu",
-        pytest.param("cuda", marks=RunIf(min_cuda_gpus=2, standalone=True)),
+        pytest.param("cuda", marks=RunIf(min_cuda_gpus=2)),
     ],
 )
 def test_ddp_save_load(accelerator, tmp_path):
     """Test that DDP model checkpoints can be saved and loaded successfully."""
-    fabric = Fabric(devices=2, accelerator="cpu", strategy="ddp")
-    fabric.launch()
+    fabric = Fabric(devices=2, accelerator=accelerator, strategy="ddp_spawn")
+    fabric.launch(_run_ddp_save_load, tmp_path)
+
+
+def _run_ddp_save_load(fabric, tmp_path):
     fabric.seed_everything(0)
 
     tmp_path = fabric.broadcast(tmp_path)
