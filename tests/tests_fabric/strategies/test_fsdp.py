@@ -183,14 +183,14 @@ def test_fsdp_manual_activation_checkpointing():
     # manually apply activation checkpointing
     apply_activation_checkpointing(model)
 
-    wrappers = {name for name, param in model.named_modules() if isinstance(param, CheckpointWrapper)}
+    wrappers = {name for name, mod in model.named_modules() if isinstance(mod, CheckpointWrapper)}
     assert wrappers == {"0", "1"}
 
     # let fabric set-up the model, it shouldn't apply activation checkpointing again
     with pytest.warns(match="Linear'>] is configured, but the model already contains checkpointed"):
         model = fabric.setup(model)
 
-    wrappers = {name for name, param in model._forward_module.named_modules() if isinstance(param, CheckpointWrapper)}
+    wrappers = {name for name, mod in model._forward_module.named_modules() if isinstance(mod, CheckpointWrapper)}
     assert wrappers == {"_fsdp_wrapped_module.0", "_fsdp_wrapped_module.1"}
 
 
