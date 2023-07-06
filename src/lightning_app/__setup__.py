@@ -52,7 +52,7 @@ def _setup_args() -> Dict[str, Any]:
     about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
     long_description = assistant.load_readme_description(
-        _PACKAGE_ROOT, homepage=about.__homepage__, version=version.version
+        _PROJECT_ROOT, homepage=about.__homepage__, version=version.version
     )
 
     # TODO: remove this once lightning-ui package is ready as a dependency
