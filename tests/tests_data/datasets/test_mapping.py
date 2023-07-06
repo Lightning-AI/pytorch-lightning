@@ -70,7 +70,7 @@ class TestLightningDataset(LightningDataset):
 
 @pytest.mark.skipif(not isConnectedWithInternet(), reason="Not connected to internet")
 @pytest.mark.skipif(not package_available("lightning"), reason="Supported only with mono-package")
-@mock.patch("lightning.data.dataset_index.LightningClient", MagicMock())
+@mock.patch("lightning.data.datasets.index.LightningClient", MagicMock())
 def test_lightning_dataset(tmpdir, image_set, monkeypatch):
     client = MagicMock()
     client.projects_service_list_project_cluster_bindings.return_value = None
