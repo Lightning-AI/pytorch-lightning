@@ -1,4 +1,5 @@
 import contextlib
+import sys
 from functools import partial
 
 import pytest
@@ -28,7 +29,16 @@ def spike_detection_test(fabric, global_rank_spike):
 
 @pytest.mark.parametrize(
     ("global_rank_spike", "num_devices"),
-    [pytest.param(0, 1), pytest.param(0, 2)],
+    [
+        pytest.param(0, 1),
+        pytest.param(
+            0,
+            2,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+    ],
 )
 @pytest.mark.skipif(not _TORCHMETRICS_GREATER_EQUAL_1_0_0, reason="requires torchmetrics>=1.0.0")
 def test_fabric_spike_detection_integration(tmpdir, global_rank_spike, num_devices):

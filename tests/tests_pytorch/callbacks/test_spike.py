@@ -1,4 +1,5 @@
 import contextlib
+import sys
 
 import pytest
 import torch
@@ -40,7 +41,13 @@ class MyTrainerSpikeDetection(SpikeDetection):
     ("global_rank_spike", "num_devices"),
     [
         pytest.param(0, 1),
-        pytest.param(0, 2),
+        pytest.param(
+            0,
+            2,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
     ],
 )
 @pytest.mark.skipif(not _TORCHMETRICS_GREATER_EQUAL_1_0_0, reason="requires torchmetrics>=1.0.0")
