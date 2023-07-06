@@ -381,7 +381,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
         elif self._shuffle:
             _dummy_chunks = _Chunk(None, len(chunks._chunk_data))
             _dummy_chunks.shuffle(generator=self._generator)
-        chunks = tuple([chunks._chunk_data[i] for i in chunks])
+        chunks = [chunks._chunk_data[i] for i in chunks]
 
         if not shuffle_sample_order:
             return chunks
@@ -393,7 +393,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
                 chunk.shuffle(generator=self._generator)
         # shuffle samples within each chunk
         elif self._shuffle:
-            chunks = tuple([c.shuffle(generator=self._generator) for c in chunks])
+            chunks = [c.shuffle(generator=self._generator) for c in chunks]
 
         return chunks
 
@@ -418,6 +418,7 @@ class DataLoader(_DataLoader):
         if isinstance(batch, Sequence):
             return len(batch[0])
 
+        assert isinstance(self.batch_size, int)
         return self.batch_size
 
     def state_dict(self) -> Dict[str, Any]:

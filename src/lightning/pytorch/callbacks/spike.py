@@ -28,4 +28,4 @@ class SpikeDetection(FabricSpikeDetection, Callback):
         if self.exclude_batches_path is None:
             self.exclude_batches_path = os.path.join(trainer.default_root_dir, "skip_batches.json")
 
-        return FabricSpikeDetection.on_train_batch_end(self, trainer, loss, batch, batch_idx)
+        return FabricSpikeDetection.on_train_batch_end(self, trainer, loss, batch, batch_idx)  # type: ignore

@@ -96,9 +96,9 @@ class SpikeDetection:
 
     def _is_better(self, diff_val: torch.Tensor) -> bool:
         if self.mode == "min":
-            return (diff_val <= 0.0).all()
+            return bool((diff_val <= 0.0).all())
         if self.mode == "max":
-            return (diff_val >= 0).all()
+            return bool((diff_val >= 0).all())
 
         raise ValueError(f"invalid mode. Has to be min or max, found {self.mode}")
 
@@ -108,7 +108,7 @@ class SpikeDetection:
 
     def state_dict(self) -> Dict[str, Any]:
         return {
-            "last_val": self.last_val.item(),
+            "last_val": self.last_val.item() if isinstance(self.last_val, torch.Tensor) else self.last_val,
             "mode": self.mode,
             "warmup": self.warmup,
             "atol": self.atol,
@@ -119,7 +119,7 @@ class SpikeDetection:
             "mean": self.running_mean.base_metric.state_dict(),
         }
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> Dict[str, Any]:
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         self.last_val = state_dict.pop("last_val")
         self.mode = state_dict.pop("mode")
         self.warmup = state_dict.pop("warmup")
