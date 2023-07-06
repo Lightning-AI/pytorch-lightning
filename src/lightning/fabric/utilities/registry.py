@@ -61,9 +61,10 @@ def _load_external_callbacks(group: str) -> List[Any]:
         callback_factory = factory.load()
         callbacks_list: Union[List[Any], Any] = callback_factory()
         callbacks_list = [callbacks_list] if not isinstance(callbacks_list, list) else callbacks_list
-        _log.info(
-            f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"
-            f" {', '.join(type(cb).__name__ for cb in callbacks_list)}"
-        )
+        if callbacks_list:
+            _log.info(
+                f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"
+                f" {', '.join(type(cb).__name__ for cb in callbacks_list)}"
+            )
         external_callbacks.extend(callbacks_list)
     return external_callbacks
