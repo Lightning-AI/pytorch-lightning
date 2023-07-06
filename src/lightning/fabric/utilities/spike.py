@@ -145,5 +145,5 @@ class _BooleanReducer(Protocol):
 
 
 class TrainingSpikeException(RuntimeError):
-    def __init__(self, batch_idx: int, *args, **kwargs):
+    def __init__(self, batch_idx: int, *args: Any, **kwargs: Any):
         super().__init__(f"Training spike detected in batch {batch_idx}", *args, **kwargs)
