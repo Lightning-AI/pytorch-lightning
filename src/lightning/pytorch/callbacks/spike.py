@@ -2,8 +2,7 @@ import os
 from typing import Any, Mapping, Union
 
 import torch
-
-import lightning as L
+from lightning.pytorch as pl
 from lightning.fabric.utilities.spike import SpikeDetection as FabricSpikeDetection
 from lightning.pytorch.callbacks.callback import Callback
 
@@ -12,8 +11,8 @@ class SpikeDetection(FabricSpikeDetection, Callback):
     @torch.no_grad()
     def on_train_batch_end(
         self,
-        trainer: L.Trainer,
-        pl_module: L.LightningModule,
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
         outputs: Union[torch.Tensor, Mapping[str, torch.Tensor]],
         batch: Any,
         batch_idx: int,
