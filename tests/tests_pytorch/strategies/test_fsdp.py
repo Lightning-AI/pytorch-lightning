@@ -534,9 +534,7 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
 
     # restore model to ddp
     model = TestBoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", precision="16-mixed", max_epochs=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
 
     # This step will restore the model and optimizer states
     trainer.fit(model, ckpt_path=model_path)
@@ -567,9 +565,7 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
 
     # restore model to ddp
     model = TestBoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", precision="16-mixed", max_epochs=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
 
     # This step will restore the model and optimizer states
     trainer.fit(model)
