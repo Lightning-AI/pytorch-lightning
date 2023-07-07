@@ -19,7 +19,7 @@ from lightning_utilities.core.imports import module_available
 from packaging.version import Version
 
 import lightning.pytorch as pl
-from fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch.callbacks import Checkpoint, EarlyStopping
 from lightning.pytorch.trainer.states import TrainerStatus
 from lightning.pytorch.utilities.exceptions import _TunerExitException
