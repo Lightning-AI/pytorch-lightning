@@ -2,7 +2,7 @@ import math
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Dict, Generator, List, Optional, Protocol, runtime_checkable, Sequence, Tuple
+from typing import Any, Dict, Generator, List, Optional, Protocol, runtime_checkable, Sequence, Tuple, Literal
 
 import torch
 from torch.utils.data import DataLoader as _DataLoader
@@ -86,6 +86,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
             virtually infinite dataset looping through the same data over and over again.
         lazy_shuffle: Whether to shuffle your data lazily instead of upfront.
             This consumes a lot less memory, but may yield undeterministic results.
+        backend: A string pointing to the respective cloud-backend to use. Currently "s3" and "local" are supported.
 
         Note:
             :param:`lazy_shuffle` is experimental, consumes less memory than shuffling everything in advance (default)
@@ -100,8 +101,6 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
             Order of data is only guaranteed when resuming with the same distributed settings and the same number of
             workers. Everything else leads to different sharding and therefore results in different data order.
     """
-
-    # TODO: backend docstring
     def __init__(
         self,
         chunks: Sequence[Any],
@@ -112,7 +111,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
         seed: Optional[int] = None,
         wrap: bool = False,
         lazy_shuffle: bool = False,
-        backend: str = "local",
+        backend: Literal["local", "s3"] = "local",
     ):
         _StatefulIterableDataset.__init__(self)
         _Dataset.__init__(self, backend=backend)
@@ -154,16 +153,10 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
         self._curr_loaded_chunks: List[_Chunk] = []
         self._curr_loaded_num_samples = 0
 
-    def prepare_chunk(self, chunk: Any) -> None:
-        """Prepares a single chunk before it is actually loaded. This could e.g. download the actual file from s3.
-
-        Args:
-            chunk: the chunk data to prepare.
-        """
-
     @abstractmethod
     def load_chunk(self, chunk: Any) -> Any:
-        """Loads a single chunk into memory. This could e.g. mean loading the file that has previously been
+        """Implement this to load a single chunk into memory. 
+        This could e.g. mean loading the file that has previously been
         downloaded from s3.
 
         Args:
@@ -172,12 +165,19 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
 
     @abstractmethod
     def load_sample_from_chunk(self, chunk: Any, index: int) -> Any:
-        """Retrieves a single sample from a given (already loaded) chunk. This could be indexing a list or
-        returning the entire chunk if it's size is 1.
+        """Implement this to retrieve a single sample from a given (already loaded) chunk. 
+        This could be indexing a list or returning the entire chunk if it's size is 1.
 
         Args:
             chunk: The chunk the sample should be retrieved from
             index: The index of the current sample to retrieve within the chunk.
+        """
+
+    def prepare_chunk(self, chunk: Any) -> None:
+        """Prepares a single chunk before it is actually loaded. This could e.g. download the actual file from s3.
+
+        Args:
+            chunk: the chunk data to prepare.
         """
 
     def __iter__(self) -> "LightningIterableDataset":
