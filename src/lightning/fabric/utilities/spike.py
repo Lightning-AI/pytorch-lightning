@@ -78,9 +78,11 @@ class SpikeDetection:
             self.exclude_batches_path = os.path.join(self.exclude_batches_path, "skip_batches.json")
 
         is_spike = bool(batch_idx >= self.warmup and self._is_spike(loss))
+        fabric.strategy.barrier()
 
         # While spike-detection happens on a per-rank level, we need to fail all ranks if any rank detected a spike
         is_spike_global = fabric.strategy.reduce_boolean_decision(is_spike, all=False)
+        fabric.strategy.barrier()
 
         if is_spike_global:
             self._handle_spike(fabric, batch_idx)
