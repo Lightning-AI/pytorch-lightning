@@ -2,7 +2,7 @@ import math
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Dict, Generator, List, Optional, Protocol, runtime_checkable, Sequence, Tuple, Literal
+from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, runtime_checkable, Sequence, Tuple
 
 import torch
 from torch.utils.data import DataLoader as _DataLoader
@@ -155,9 +155,8 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
 
     @abstractmethod
     def load_chunk(self, chunk: Any) -> Any:
-        """Implement this to load a single chunk into memory. 
-        This could e.g. mean loading the file that has previously been
-        downloaded from s3.
+        """Implement this to load a single chunk into memory. This could e.g. mean loading the file that has
+        previously been downloaded from s3.
 
         Args:
             chunk: The chunk that should be currently loaded
@@ -165,8 +164,8 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
 
     @abstractmethod
     def load_sample_from_chunk(self, chunk: Any, index: int) -> Any:
-        """Implement this to retrieve a single sample from a given (already loaded) chunk. 
-        This could be indexing a list or returning the entire chunk if it's size is 1.
+        """Implement this to retrieve a single sample from a given (already loaded) chunk. This could be indexing a
+        list or returning the entire chunk if it's size is 1.
 
         Args:
             chunk: The chunk the sample should be retrieved from
