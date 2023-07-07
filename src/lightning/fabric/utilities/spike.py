@@ -2,14 +2,14 @@ import json
 import operator
 import os
 import warnings
-from typing import Any, Dict, List, Literal, Optional, type_checking, Union
+from typing import Any, Dict, List, Literal, Optional, Union, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.imports import compare_version
 
 _TORCHMETRICS_GREATER_EQUAL_1_0_0 = compare_version("torchmetrics", operator.ge, "1.0.0")
 
-if type_checking:
+if TYPE_CHECKING:
     from lightning.fabric.fabric import Fabric
 
 
@@ -74,17 +74,17 @@ class SpikeDetection:
         if not str(self.exclude_batches_path).endswith(".json"):
             self.exclude_batches_path = os.path.join(self.exclude_batches_path, "skip_batches.json")
 
-        is_spike = bool(batch_idx >= self.warmup and self.is_spike(loss))
+        is_spike = bool(batch_idx >= self.warmup and self._is_spike(loss))
 
         # While spike-detection happens on a per-rank level, we need to fail all ranks if any rank detected a spike
         is_spike_global = fabric.strategy.reduce_boolean_decision(is_spike, all=False)
 
         if is_spike_global:
-            self.handle_spike(fabric, batch_idx)
+            self._handle_spike(fabric, batch_idx)
         else:
-            self.update_stats(loss)
+            self._update_stats(loss)
 
-    def is_spike(self, loss: torch.Tensor) -> bool:
+    def _is_spike(self, loss: torch.Tensor) -> bool:
         # we might call compute more often than update which is fine as long as the
         # metric has at least one internal value.
         with warnings.catch_warnings():
@@ -100,7 +100,7 @@ class SpikeDetection:
 
         return self._check_atol(loss, running_val) and self._check_rtol(loss, running_val)
 
-    def handle_spike(self, fabric: "Fabric", batch_idx: int) -> None:
+    def _handle_spike(self, fabric: "Fabric", batch_idx: int) -> None:
         # Exclude current and last batch
         # Current batch is excluded since it could be that the data of this batch produces a high loss
         # Last batch is excluded since the previous batch could have "corrupted" the weights
@@ -129,7 +129,7 @@ class SpikeDetection:
 
         raise ValueError(f"Invalid mode. Has to be min or max, found {self.mode}")
 
-    def update_stats(self, val: torch.Tensor) -> None:
+    def _update_stats(self, val: torch.Tensor) -> None:
         self.running_mean.update(val)
         self.last_val = val
 
