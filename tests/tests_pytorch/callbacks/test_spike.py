@@ -22,10 +22,7 @@ class IdentityModule(LightningModule):
             self.layer.weight.data = torch.ones_like(self.layer.weight.data)
 
         if batch_idx == 4:
-            if self.spike_value is None:
-                curr_loss_val = 3
-            else:
-                curr_loss_val = self.spike_value
+            curr_loss_val = 3 if self.spike_value is None else self.spike_value
         curr_loss_val = 3 if batch_idx == 4 else 1 / (batch_idx + 1)
 
         loss = self.layer(torch.tensor(curr_loss_val, device=self.device, dtype=self.dtype).view(1, 1))
@@ -37,7 +34,9 @@ class IdentityModule(LightningModule):
 
 class MyTrainerSpikeDetection(SpikeDetection):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        context = pytest.raises(TrainingSpikeException) if batch_idx == 4 and self.should_raise else contextlib.nullcontext()
+        context = (
+            pytest.raises(TrainingSpikeException) if batch_idx == 4 and self.should_raise else contextlib.nullcontext()
+        )
 
         with context:
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
@@ -56,13 +55,12 @@ class MyTrainerSpikeDetection(SpikeDetection):
         ),
     ],
 )
-@pytest.mark.parametrize("spike_value", [None, float('inf'), float('NaN'), -float('inf')])
-@pytest.mark.parametrze('finite_only', [True, False])
+@pytest.mark.parametrize("spike_value", [None, float("inf"), float("NaN"), -float("inf")])
+@pytest.mark.parametrze("finite_only", [True, False])
 @pytest.mark.skipif(not _TORCHMETRICS_GREATER_EQUAL_1_0_0, reason="requires torchmetrics>=1.0.0")
 def test_trainer_spike_detection_integration(tmpdir, global_rank_spike, num_devices, spike_value, finite_only):
     cb = MyTrainerSpikeDetection(finite_only=finite_only)
 
-    should_raise = spike_value is None or (spike_value is not None and finite_only)
     cb.should_raise = shpuld_raise
 
     trainer = Trainer(
