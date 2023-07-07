@@ -14,7 +14,7 @@ def spike_detection_test(fabric, global_rank_spike, spike_value, should_raise):
         if spike_value is None:
             loss_vals[4] = 3
         else:
-            spike_value = spike_value
+            loss_vals[4] = spike_value
 
     for i in range(len(loss_vals)):
         context = pytest.raises(TrainingSpikeException) if i == 4 and should_raise else contextlib.nullcontext()
@@ -53,7 +53,7 @@ def test_fabric_spike_detection_integration(tmp_path, global_rank_spike, num_dev
         strategy="ddp_spawn",
     )
 
-    should_raise = spike_value is None or (spike_value is not None and finite_only)
+    should_raise = spike_value is None or finite_only
     fabric.launch(
         spike_detection_test,
         global_rank_spike=global_rank_spike,
