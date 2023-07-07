@@ -13,7 +13,7 @@ class SpikeDetection(FabricSpikeDetection, Callback):
     def on_train_batch_end(  # type: ignore
         self,
         trainer: "pl.Trainer",
-        pl_module: pl.LightningModule,
+        pl_module: "pl.LightningModule",
         outputs: Union[torch.Tensor, Mapping[str, torch.Tensor]],
         batch: Any,
         batch_idx: int,
