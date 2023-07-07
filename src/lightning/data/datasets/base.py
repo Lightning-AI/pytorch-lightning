@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from torch.utils.data import Dataset as TorchDataset
 
@@ -13,7 +13,7 @@ class _Dataset(TorchDataset):
         backend: storage location of the data_source. current options are "s3" or "local"
     """
 
-    def __init__(self, backend: str = "local"):
+    def __init__(self, backend: Literal["local", "s3"] = "local"):
         self.backend = self._init_backend(backend=backend)
 
         assert isinstance(self.backend, _DatasetBackend)
