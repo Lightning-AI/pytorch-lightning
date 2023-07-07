@@ -861,7 +861,7 @@ class CloudRuntime(Runtime):
         # if requirements file at the root of the repository is present,
         # we pass just the file name to the backend, so backend can find it in the relative path
         requirements_file = root / "requirements.txt"
-        if requirements_file.is_file():
+        if requirements_file.is_file() and requirements_file.exists():
             requirements_path = requirements_file if absolute_entrypoint else "requirements.txt"
             run_body.image_spec = Gridv1ImageSpec(
                 dependency_file_info=V1DependencyFileInfo(package_manager=V1PackageManager.PIP, path=requirements_path)

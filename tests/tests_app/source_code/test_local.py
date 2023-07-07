@@ -62,23 +62,19 @@ def test_repository_lightningignore(tmp_path):
 
     """
     (tmp_path / ".lightningignore").write_text(lightningignore)
+    (tmp_path / "test.txt").write_text("test")
 
-    # write some data to file and check version
-    (tmp_path / "test.txt").write_text(str(uuid.uuid4()))
-
-    # create repo object
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_a = repository.version
+
+    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
 
     # write file that needs to be ignored
     (tmp_path / "ignore").mkdir()
     (tmp_path / "ignore/test.txt").write_text(str(uuid.uuid4()))
 
-    # check that version remains the same
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_b = repository.version
 
-    assert checksum_a == checksum_b
+    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
 
 
 def test_repository_filters_with_absolute_relative_path(tmp_path):
@@ -89,16 +85,11 @@ def test_repository_filters_with_absolute_relative_path(tmp_path):
     /ignore_dir
     """
     (tmp_path / ".lightningignore").write_text(lightningignore)
+    (tmp_path / "test.txt").write_text("test")
 
-    # write some data to file and check version
-    (tmp_path / "test.txt").write_text(str(uuid.uuid4()))
-
-    # create repo object
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_a = repository.version
 
-    # only two files in hash
-    assert len(repository._non_ignored_files) == 2
+    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
 
     # write file that needs to be ignored
     (tmp_path / "ignore_file").mkdir()
@@ -106,14 +97,9 @@ def test_repository_filters_with_absolute_relative_path(tmp_path):
     (tmp_path / "ignore_file/test.txt").write_text(str(uuid.uuid4()))
     (tmp_path / "ignore_dir/test.txt").write_text(str(uuid.uuid4()))
 
-    # check that version remains the same
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_b = repository.version
 
-    # still only two files in hash
-    assert len(repository._non_ignored_files) == 2
-
-    assert checksum_a == checksum_b
+    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
 
 
 def test_repository_lightningignore_supports_different_patterns(tmp_path):
@@ -258,13 +244,11 @@ def test_repository_lightningignore_supports_different_patterns(tmp_path):
 
     """
     (tmp_path / ".lightningignore").write_text(lightningignore)
+    (tmp_path / "test.txt").write_text("test")
 
-    # write some data to file and check version
-    (tmp_path / "test.txt").write_text(str(uuid.uuid4()))
-
-    # create repo object
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_a = repository.version
+
+    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
 
     # write file that needs to be ignored
     (tmp_path / "ignore").mkdir()
@@ -272,9 +256,8 @@ def test_repository_lightningignore_supports_different_patterns(tmp_path):
 
     # check that version remains the same
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_b = repository.version
 
-    assert checksum_a == checksum_b
+    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
 
 
 def test_repository_lightningignore_unpackage(tmp_path, monkeypatch):
