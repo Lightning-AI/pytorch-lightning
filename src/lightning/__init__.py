@@ -22,7 +22,7 @@ from lightning.app.core.work import LightningWork  # noqa: E402
 from lightning.app.perf import pdb  # noqa: E402
 from lightning.app.utilities.packaging.build_config import BuildConfig  # noqa: E402
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute  # noqa: E402
-from lightning.data import LightningDataset  # noqa: E402
+from lightning.data import LightningDataset, LightningIterableDataset  # noqa: E402
 from lightning.fabric.fabric import Fabric  # noqa: E402
 from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
@@ -44,6 +44,7 @@ __all__ = [
     "CloudCompute",
     "Trainer",
     "LightningDataset",
+    "LightningIterableDataset",
     "LightningDataModule",
     "LightningModule",
     "Callback",
