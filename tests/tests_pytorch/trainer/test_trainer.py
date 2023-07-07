@@ -1476,18 +1476,24 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "accelerator",
+    "accelerator, expected_device",
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", marks=RunIf(mps=True)),
+        pytest.param("gpu", torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", torch.device("mps", 0), marks=RunIf(mps=True)),
     ],
 )
-def test_setup_hook_move_to_device_correctly(tmpdir, accelerator):
-    """Verify that if a user defines a layer in the setup hook function, this is moved to the correct device."""
+def test_setup_hook_device_and_layers(tmpdir, accelerator, expected_device):
+    """Test `LightningModule.device` access and creation of layers in `LightningModule.setup` hook."""
 
     class TestModel(BoringModel):
         def setup(self, stage: str) -> None:
+            # The `self.device` attribute already points to what device the model will land on
+            assert self.device == expected_device
+            # However, the model parameters have not yet been moved to that device
+            assert self.layer.weight.device == torch.device("cpu")
+            # Can create new layers in this hook (on CPU)
             self.new_layer = torch.nn.Linear(2, 2)
+            assert self.new_layer.weight.device == torch.device("cpu")
 
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
