@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Optional, Tuple
 from urllib.parse import urljoin
 
+import backoff
 import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 
@@ -431,6 +432,7 @@ class HTTPQueue(BaseQueue):
             # we consider the queue is empty to avoid failing the app.
             raise queue.Empty
 
+    @backoff.on_exception(backoff.expo, (RuntimeError, requests.exceptions.HTTPError))
     def put(self, item: Any) -> None:
         if not self.app_id:
             raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
