@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning.pytorch.cakkbacks.spike import SpikeDetection
+from lightning.pytorch.callbacks.spike import SpikeDetection
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.callbacks.checkpoint import Checkpoint
