@@ -98,14 +98,14 @@ This is useful if your model experiences *exploding gradients* during training.
     fabric.clip_gradients(model, optimizer, clip_val=0.5)
 
     # Clip gradients such that their total norm is no bigger than 2.0
-    fabric.clip_gradients(model, optimizer, clip_norm=2.0)
+    fabric.clip_gradients(model, optimizer, max_norm=2.0)
 
     # By default, clipping by norm uses the 2-norm
-    fabric.clip_gradients(model, optimizer, clip_norm=2.0, norm_type=2)
+    fabric.clip_gradients(model, optimizer, max_norm=2.0, norm_type=2)
 
     # You can also choose the infinity-norm, which clips the largest
     # element among all
-    fabric.clip_gradients(model, optimizer, clip_norm=2.0, norm_type="inf")
+    fabric.clip_gradients(model, optimizer, max_norm=2.0, norm_type="inf")
 
 The :meth:`~lightning.fabric.fabric.Fabric.clip_gradients` method is agnostic to the precision and strategy being used.
 Note: Gradient clipping with FSDP is not yet fully supported.
