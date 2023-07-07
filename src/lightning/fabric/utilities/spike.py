@@ -12,6 +12,8 @@ _TORCHMETRICS_GREATER_EQUAL_1_0_0 = compare_version("torchmetrics", operator.ge,
 if TYPE_CHECKING:
     from lightning.fabric.fabric import Fabric
 
+from lightning.fabric.utilities.types import _PATH
+
 
 class SpikeDetection:
     """Spike Detection Callback.
@@ -41,7 +43,7 @@ class SpikeDetection:
         warmup: int = 1,
         atol: Optional[float] = None,
         rtol: Optional[float] = 2.0,
-        exclude_batches_path: Optional[str] = None,
+        exclude_batches_path: Optional[_PATH] = None,
         finite_only: bool = True,
     ):
         if _TORCHMETRICS_GREATER_EQUAL_1_0_0:
