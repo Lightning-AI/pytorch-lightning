@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning.pytorch.callbacks.spike import SpikeDetection
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.callbacks.checkpoint import Checkpoint
@@ -29,6 +28,7 @@ from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.callbacks.progress import ProgressBar, RichProgressBar, TQDMProgressBar
 from lightning.pytorch.callbacks.pruning import ModelPruning
 from lightning.pytorch.callbacks.rich_model_summary import RichModelSummary
+from lightning.pytorch.callbacks.spike import SpikeDetection
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from lightning.pytorch.callbacks.timer import Timer
 
