@@ -63,7 +63,7 @@ def test_fabric_spike_detection_integration(tmp_path, global_rank_spike, num_dev
     # spike_value == None -> typical spike detection
     # finite_only -> typical spike detection and raise with NaN +/- inf
     # if inf -> inf >> other values -> typical spike detection
-    should_raise = spike_value is None or finite_only or spike_value == float('inf')
+    should_raise = spike_value is None or finite_only or spike_value == float("inf")
     fabric.launch(
         spike_detection_test,
         global_rank_spike=global_rank_spike,
