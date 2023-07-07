@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader as _DataLoader
 from torch.utils.data import IterableDataset
 
 from lightning.data.datasets.base import _Dataset
-from lightning.data.datasets.env import DistributedEnv, Environment, WorkerEnv
+from lightning.data.datasets.env import _DistributedEnv, Environment, _WorkerEnv
 
 
 class _StatefulIterableDataset(ABC, IterableDataset):
@@ -120,7 +120,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
         if env is None:
             # must detect distributed env here since distributed is not initialized in worker processes with ddp spawn
             # can't detect worker env here since workers not yet initialized
-            env = Environment(DistributedEnv.detect(), None)
+            env = Environment(_DistributedEnv.detect(), None)
         self._env = env
         self._shuffle = shuffle
         self._lazy_shuffle = lazy_shuffle
@@ -188,7 +188,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
         self._curr_chunk_index = self._start_index_chunk
         self._curr_sample_index = self._start_index_sample
         if self._env.worker_env is None:
-            self._env.worker_env = WorkerEnv.detect()
+            self._env.worker_env = _WorkerEnv.detect()
 
         self._chunks = self._shuffle_if_necessary(self._chunks, 0, shuffle_chunk_order=True, shuffle_sample_order=False)
         self._apply_sharding()
@@ -206,33 +206,32 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
 
         If necessary, this also loads the new chunks.
         """
-        try:
-            self._check_if_sharded()
-            self._ensure_chunks_loaded()
+        self._check_if_sharded()
+        self._ensure_chunks_loaded()
 
-            if self._curr_sample_index >= self._curr_loaded_num_samples:
-                self._curr_chunk_index += self._num_parallel_chunks
-                self._check_dataset_end()
+        if self._curr_sample_index >= self._curr_loaded_num_samples:
+            self._curr_chunk_index += self._num_parallel_chunks
+            self._check_dataset_end()
 
-                self._load_next_chunks()
-                self._curr_sample_index = 0
+            self._load_next_chunks()
+            self._curr_sample_index = 0
 
-            remainder = self._curr_sample_index
-            curr_loaded_chunk_idx = 0
-            for i, c in enumerate(self._curr_loaded_chunks):
-                if c.chunk_size > remainder:
-                    curr_loaded_chunk_idx = i
-                    break
+        remainder = self._curr_sample_index
+        curr_loaded_chunk_idx = 0
+        for i, c in enumerate(self._curr_loaded_chunks):
+            if c.chunk_size > remainder:
+                curr_loaded_chunk_idx = i
+                break
 
-                remainder -= c.chunk_size
+            remainder -= c.chunk_size
 
-            sample = self.load_sample_from_chunk(
-                self._curr_loaded_chunks[curr_loaded_chunk_idx]._chunk_data,
-                self._curr_loaded_chunks[curr_loaded_chunk_idx].index_permutations[remainder],
-            )
-            self._curr_sample_index += 1
+        sample = self.load_sample_from_chunk(
+            self._curr_loaded_chunks[curr_loaded_chunk_idx]._chunk_data,
+            self._curr_loaded_chunks[curr_loaded_chunk_idx].index_permutations[remainder],
+        )
+        self._curr_sample_index += 1
 
-            return sample
+        return sample
 
     def state_dict(self, returned_samples: int, num_workers: int) -> Dict[str, Any]:
         """Returns a global state-dict across all shards and workers. For construction of a global state-dict the
