@@ -1,3 +1,3 @@
-from lightning.data.datasets import LightningDataset, LightningIterableDataset
+from lightning.data.dataset import LightningDataset
 
-__all__ = ["LightningDataset", "LightningIterableDataset"]
+__all__ = ["LightningDataset"]
