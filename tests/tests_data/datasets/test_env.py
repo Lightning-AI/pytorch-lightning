@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch.utils.data import get_worker_info
 
-from lightning.data.datasets.env import DistributedEnv, Environment, WorkerEnv
+from lightning.data.datasets.env import _DistributedEnv, Environment, _WorkerEnv
 from lightning.fabric import Fabric
 
 
@@ -44,15 +44,15 @@ def test_environment(
     assert "Environment(" in repr(env)
     assert "Environment(" in str(env)
 
-    assert "\n\tdist_env: DistributedEnv(" in repr(env)
-    assert "\n\tdist_env: DistributedEnv(" in str(env)
-    assert "DistributedEnv(" in repr(env.dist_env)
-    assert "DistributedEnv(" in str(env.dist_env)
+    assert "\n\tdist_env: _DistributedEnv(" in repr(env)
+    assert "\n\tdist_env: _DistributedEnv(" in str(env)
+    assert "_DistributedEnv(" in repr(env.dist_env)
+    assert "_DistributedEnv(" in str(env.dist_env)
 
-    assert "\n\tworker_env: WorkerEnv(" in repr(env)
-    assert "\n\tworker_env: WorkerEnv(" in str(env)
-    assert "WorkerEnv(" in repr(env.worker_env)
-    assert "WorkerEnv(" in str(env.worker_env)
+    assert "\n\tworker_env: _WorkerEnv(" in repr(env)
+    assert "\n\tworker_env: _WorkerEnv(" in str(env)
+    assert "_WorkerEnv(" in repr(env.worker_env)
+    assert "_WorkerEnv(" in str(env.worker_env)
 
     assert f"world_size: {num_workers}" in repr(env)
     assert f"world_size: {num_workers}" in str(env)
@@ -86,12 +86,12 @@ class EnvTestDataset(torch.utils.data.IterableDataset):
         self.num_workers = num_workers
         self.dist_size = dist_size
         self.global_rank = global_rank
-        self.env = Environment(DistributedEnv.detect(), None)
+        self.env = Environment(_DistributedEnv.detect(), None)
 
     def __iter__(self):
         worker_info = get_worker_info()
         env = self.env
-        env.worker_env = WorkerEnv.detect()
+        env.worker_env = _WorkerEnv.detect()
         assert env.worker_env.world_size == self.num_workers
         assert env.dist_env.world_size == self.dist_size
         assert env.dist_env.global_rank == self.global_rank

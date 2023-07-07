@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import get_worker_info
 
 
-class DistributedEnv:
+class _DistributedEnv:
     """The environment of the distributed training.
 
     Args:
@@ -17,7 +17,7 @@ class DistributedEnv:
         self.global_rank = global_rank
 
     @classmethod
-    def detect(cls) -> "DistributedEnv":
+    def detect(cls) -> "_DistributedEnv":
         """Tries to automatically detect the distributed environment paramters.
 
         Note:
@@ -44,7 +44,7 @@ class DistributedEnv:
         return repr(self)
 
 
-class WorkerEnv:
+class _WorkerEnv:
     """Contains the environment for the current dataloader within the current training process.
 
     Args:
@@ -57,7 +57,7 @@ class WorkerEnv:
         self.rank = rank
 
     @classmethod
-    def detect(cls) -> "WorkerEnv":
+    def detect(cls) -> "_WorkerEnv":
         """Automatically detects the number of workers and the current rank.
 
         Note:
@@ -85,7 +85,7 @@ class Environment:
         worker_env: The worker environment (number of workers, worker rank)
     """
 
-    def __init__(self, dist_env: Optional[DistributedEnv], worker_env: Optional[WorkerEnv]):
+    def __init__(self, dist_env: Optional[_DistributedEnv], worker_env: Optional[_WorkerEnv]):
         self.worker_env = worker_env
         self.dist_env = dist_env
 
@@ -106,8 +106,8 @@ class Environment:
             current_worker_rank: The rank of the current worker within the number of workers of
                 the current training process
         """
-        dist_env = DistributedEnv(dist_world_size, global_rank)
-        worker_env = WorkerEnv(num_workers, current_worker_rank)
+        dist_env = _DistributedEnv(dist_world_size, global_rank)
+        worker_env = _WorkerEnv(num_workers, current_worker_rank)
         return cls(dist_env=dist_env, worker_env=worker_env)
 
     @property
