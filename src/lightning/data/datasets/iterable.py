@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader as _DataLoader
 from torch.utils.data import IterableDataset
 
 from lightning.data.datasets.base import _Dataset
-from lightning.data.datasets.env import _DistributedEnv, Environment, _WorkerEnv
+from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv, Environment
 
 
 class _StatefulIterableDataset(ABC, IterableDataset):
@@ -101,6 +101,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
             Order of data is only guaranteed when resuming with the same distributed settings and the same number of
             workers. Everything else leads to different sharding and therefore results in different data order.
     """
+
     def __init__(
         self,
         chunks: Sequence[Any],
