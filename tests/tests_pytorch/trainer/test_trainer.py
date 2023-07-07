@@ -1476,14 +1476,15 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "accelerator, expected_device",
+    "accelerator",
     [
-        pytest.param("gpu", torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", torch.device("mps", 0), marks=RunIf(mps=True)),
+        pytest.param("cuda", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=RunIf(mps=True)),
     ],
 )
-def test_setup_hook_device_and_layers(tmpdir, accelerator, expected_device):
+def test_setup_hook_device_and_layers(tmpdir, accelerator):
     """Test `LightningModule.device` access and creation of layers in `LightningModule.setup` hook."""
+    expected_device = torch.device(accelerator, 0)
 
     class TestModel(BoringModel):
         def setup(self, stage: str) -> None:
