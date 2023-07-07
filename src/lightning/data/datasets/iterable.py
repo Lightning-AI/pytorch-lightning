@@ -231,11 +231,9 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
                 self._curr_loaded_chunks[curr_loaded_chunk_idx]._chunk_data,
                 self._curr_loaded_chunks[curr_loaded_chunk_idx].index_permutations[remainder],
             )
+            self._curr_sample_index += 1
 
             return sample
-
-        finally:
-            self._curr_sample_index += 1
 
     def state_dict(self, returned_samples: int, num_workers: int) -> Dict[str, Any]:
         """Returns a global state-dict across all shards and workers. For construction of a global state-dict the
