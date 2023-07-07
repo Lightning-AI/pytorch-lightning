@@ -353,7 +353,7 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
     _FSDP_FLATTENED = "_fsdp_flattened"
     if _TORCH_GREATER_EQUAL_1_13:
         return any(
-            getattr(param, _FSDP_FLATTENED, False) for group in optimizer.param_group for param in group["params"]
+            getattr(param, _FSDP_FLATTENED, False) for group in optimizer.param_groups for param in group["params"]
         )
 
     from torch.distributed.fsdp import FlatParameter
