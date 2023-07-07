@@ -7,12 +7,12 @@ from typing import Any, Dict, List, Literal, Optional, TYPE_CHECKING, Union
 import torch
 from lightning_utilities.core.imports import compare_version
 
-_TORCHMETRICS_GREATER_EQUAL_1_0_0 = compare_version("torchmetrics", operator.ge, "1.0.0")
+from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
     from lightning.fabric.fabric import Fabric
 
-from lightning.fabric.utilities.types import _PATH
+_TORCHMETRICS_GREATER_EQUAL_1_0_0 = compare_version("torchmetrics", operator.ge, "1.0.0")
 
 
 class SpikeDetection:
@@ -32,7 +32,7 @@ class SpikeDetection:
             that's not an improvement and above ``atol`` will be considered a spike
         rtol: A relative tolerance. Every diff between the running mean and the current value,
             that's higher than ``rtol * running_mean`` is considered a spike
-        exclude_batches_path: Where to save the file that contains the batches to exclude. 
+        exclude_batches_path: Where to save the file that contains the batches to exclude.
             Will default to current directory.
         finite_only: If set to ``False``, consider non-finite values like NaN, inf and -inf a spike as well.
     """
