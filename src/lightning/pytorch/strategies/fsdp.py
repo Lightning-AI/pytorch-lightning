@@ -409,6 +409,13 @@ class FSDPStrategy(ParallelStrategy):
         if optimizer_states is None:
             return
 
+        if len(self.optimizers) != len(optimizer_states):
+            raise RuntimeError(
+                f"You have configured {len(self.optimizers)} optimizers but the checkpoint contains"
+                f" {len(optimizer_states)} optimizers to load. Please resume training with the same number"
+                " of optimizers or edit the checkpoint manually to remove states."
+            )
+
         assert isinstance(self.model, FullyShardedDataParallel)
 
         # rank0_only should be false because we need to load the optimizer state on all ranks

@@ -497,6 +497,23 @@ def test_set_timeout(init_process_group_mock):
     )
 
 
+@RunIf(min_torch="1.12")
+def test_fsdp_strategy_load_optimizer_states_multiple():
+    strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
+
+    # More states than optimizers configured
+    strategy.optimizers = [Mock()]
+    checkpoint = {"optimizer_states": [Mock(), Mock()]}
+    with pytest.raises(RuntimeError, match="1 optimizers but the checkpoint contains 2 optimizers to load"):
+        strategy.load_optimizer_state_dict(checkpoint)
+
+    # Fewer states than optimizers configured
+    strategy.optimizers = [Mock(), Mock()]
+    checkpoint = {"optimizer_states": [Mock()]}
+    with pytest.raises(RuntimeError, match="2 optimizers but the checkpoint contains 1 optimizers to load"):
+        strategy.load_optimizer_state_dict(checkpoint)
+
+
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
 def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
