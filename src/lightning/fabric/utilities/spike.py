@@ -2,18 +2,38 @@ import json
 import operator
 import os
 import warnings
-from typing import Any, Dict, List, Literal, Optional, Protocol, runtime_checkable, Union
+from typing import Any, Dict, List, Literal, Optional, Protocol, runtime_checkable, Union, type_checking
 
 import torch
 from lightning_utilities.core.imports import compare_version
 
 _TORCHMETRICS_GREATER_EQUAL_1_0_0 = compare_version("torchmetrics", operator.ge, "1.0.0")
-if _TORCHMETRICS_GREATER_EQUAL_1_0_0:
-    from torchmetrics.aggregation import MeanMetric
-    from torchmetrics.wrappers import Running
+
+if type_checking:
+    from lightning.fabric.fabric import Fabric
 
 
 class SpikeDetection:
+    """Spike Detection Callback.
+
+    Terminates training with a ``TrainingSpikeException`` when a loss-spike was detected and 
+    saves the batches to skip when resuming to a file.
+
+    Currently we skip the current and the previous batch since it is unclear, whether the previous batch 
+    altered the weights in a way that it causes the spike or just the current batch is corrupted somehow.
+
+    Args:
+        mode: Whether to minimize or maximize the tracked metric
+        window: A running mean of metrics with ``window`` size. Serves as reference value for spike3s
+        warmup: After how many batches should spike-tracking starts
+        atol: An absolute tolerance.  Every diff between the running mean and the current value, 
+            that's not an improvement and above ``atol`` will be considered a spike
+        rtol: A relative tolerance. Every diff between the running mean and the current value,
+            that's higher than ``rtol * running_mean`` is considered a spike
+        exclude_batches_path: Where to save the file that contains the batches to exclude. Will default to current directory.
+        finite_only: Will consider non-finite values like NaN, inf and -inf a spike as well
+
+    """
     def __init__(
         self,
         mode: Literal["min", "max"] = "min",
@@ -22,8 +42,12 @@ class SpikeDetection:
         atol: Optional[float] = None,
         rtol: Optional[float] = 2.0,
         exclude_batches_path: Optional[str] = None,
+        finite_only: bool = True
     ):
-        if not _TORCHMETRICS_GREATER_EQUAL_1_0_0:
+        if _TORCHMETRICS_GREATER_EQUAL_1_0_0:
+            from torchmetrics.aggregation import MeanMetric
+            from torchmetrics.wrappers import Running
+        else:
             raise RuntimeError("SpikeDetection requires torchmetrics>=1.0.0! Please upgrade your version!")
         super().__init__()
 
@@ -36,9 +60,11 @@ class SpikeDetection:
         self.rtol = rtol
         self.bad_batches: List[int] = []
         self.exclude_batches_path = exclude_batches_path
+        self.finite_only = finite_only
 
     @torch.no_grad()
-    def on_train_batch_end(self, fabric: "_BooleanReducer", loss: torch.Tensor, batch: Any, batch_idx: int) -> None:
+    def on_train_batch_end(self, fabric: "Fabric", loss: torch.Tensor, batch: Any, batch_idx: int) -> None:
+        """checks if we currently have a loss-spike"""
         if batch_idx == 0:
             self.running_mean.to(fabric.strategy.root_device)
 
@@ -69,9 +95,12 @@ class SpikeDetection:
         if self._is_better(curr_diff):
             return False
 
+        if self.finite_only and not torch.isfinite(loss):
+            return True
+
         return self._check_atol(loss, running_val) and self._check_rtol(loss, running_val)
 
-    def handle_spike(self, fabric: "_BooleanReducer", batch_idx: int) -> None:
+    def handle_spike(self, fabric: "Fabric", batch_idx: int) -> None:
         # Exclude current and last batch
         # Current batch is excluded since it could be that the data of this batch produces a high loss
         # Last batch is excluded since the previous batch could have "corrupted" the weights
@@ -129,19 +158,7 @@ class SpikeDetection:
         self.running_mean.base_metric.load_state_dict(state_dict.pop("mean"))
 
 
-@runtime_checkable
-class _BooleanReduceActor(Protocol):
-    root_device: torch.device
-
-    def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
-        pass
-
-
-@runtime_checkable
-class _BooleanReducer(Protocol):
-    strategy: _BooleanReduceActor
-
-
 class TrainingSpikeException(RuntimeError):
+    """Exception to be raised with Training Spikes"""
     def __init__(self, batch_idx: int, *args: Any, **kwargs: Any):
         super().__init__(f"Training spike detected in batch {batch_idx}", *args, **kwargs)
