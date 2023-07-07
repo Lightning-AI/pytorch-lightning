@@ -19,7 +19,7 @@ class SpikeDetection:
     Terminates training with a ``TrainingSpikeException`` when a loss-spike was detected and
     saves the batches to skip when resuming to a file.
 
-    Currently we skip the current and the previous batch since it is unclear, whether the previous batch
+    We skip the current and the previous batch since it is unclear whether the previous batch
     altered the weights in a way that it causes the spike or just the current batch is corrupted somehow.
 
     Args:
