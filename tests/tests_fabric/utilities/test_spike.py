@@ -22,10 +22,10 @@ def spike_detection_test(fabric, global_rank_spike, spike_value, should_raise):
         with context:
             fabric.call(
                 "on_train_batch_end",
-                fabric,
-                torch.tensor(loss_vals[i], device=fabric.device),
-                None,
-                i,
+                fabric=fabric,
+                loss=torch.tensor(loss_vals[i], device=fabric.device),
+                batch=None,
+                batch_idx=i,
             )
 
 
