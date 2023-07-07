@@ -1,7 +1,7 @@
 import os
 import tempfile
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Literal
+from typing import Any, Literal, Optional
 
 from lightning.data.datasets.base import _Dataset
 from lightning.data.datasets.index import get_index
@@ -17,7 +17,9 @@ class LightningDataset(_Dataset, ABC):
         path_to_index_file: path to index file that lists all file contents of the data_source.
     """
 
-    def __init__(self, data_source: str, backend: Literal["local", "s3"] = "local", path_to_index_file: Optional[str] = None):
+    def __init__(
+        self, data_source: str, backend: Literal["local", "s3"] = "local", path_to_index_file: Optional[str] = None
+    ):
         super().__init__(backend=backend)
         self.data_source = data_source
 
