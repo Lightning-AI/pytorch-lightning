@@ -370,7 +370,7 @@ class Strategy(ABC):
         """
         pass
 
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual validation step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
@@ -382,7 +382,7 @@ class Strategy(ABC):
                 return self._forward_redirection(self.model, self.lightning_module, "validation_step", *args, **kwargs)
             return self.lightning_module.validation_step(*args, **kwargs)
 
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual test step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
@@ -394,7 +394,7 @@ class Strategy(ABC):
                 return self._forward_redirection(self.model, self.lightning_module, "test_step", *args, **kwargs)
             return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> Any:
         """The actual predict step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
