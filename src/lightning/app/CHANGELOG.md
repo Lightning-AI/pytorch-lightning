@@ -29,6 +29,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue that would prevent the user to set the multiprocessing start method after importing lightning ([#18177](https://github.com/Lightning-AI/lightning/pull/18177))
 
 
+## [UnReleased] - 2023-08-DD
+
+### Fixed
+
+-
+
+
 ## [2.0.6] - 2023-07-20
 
 ### Fixed
