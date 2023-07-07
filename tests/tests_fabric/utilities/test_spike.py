@@ -40,10 +40,17 @@ def spike_detection_test(fabric, global_rank_spike, spike_value, should_raise):
                 sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
             ),
         ),
+        pytest.param(
+            1,
+            2,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
     ],
 )
 @pytest.mark.parametrize("spike_value", [None, float("inf"), float("NaN"), -float("inf")])
-@pytest.mark.parametrize("finite_only", [True, False])
+@pytest.mark.parametrize("finite_only", [False, True])
 @pytest.mark.skipif(not _TORCHMETRICS_GREATER_EQUAL_1_0_0, reason="requires torchmetrics>=1.0.0")
 def test_fabric_spike_detection_integration(tmp_path, global_rank_spike, num_devices, spike_value, finite_only):
     fabric = Fabric(
@@ -53,7 +60,10 @@ def test_fabric_spike_detection_integration(tmp_path, global_rank_spike, num_dev
         strategy="ddp_spawn",
     )
 
-    should_raise = spike_value is None or finite_only
+    # spike_value == None -> typical spike detection
+    # finite_only -> typical spike detection and raise with NaN +/- inf
+    # if inf -> inf >> other values -> typical spike detection
+    should_raise = spike_value is None or finite_only or spike_value == float('inf')
     fabric.launch(
         spike_detection_test,
         global_rank_spike=global_rank_spike,
