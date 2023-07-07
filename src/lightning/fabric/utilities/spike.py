@@ -25,7 +25,7 @@ class SpikeDetection:
     Args:
         mode: Whether to minimize or maximize the tracked metric
         window: A running mean of metrics with ``window`` size. Serves as reference value for spikes.
-        warmup: After how many batches should spike-tracking starts
+        warmup: After how many batches spike-tracking should start
         atol: An absolute tolerance.  Every diff between the running mean and the current value,
             that's not an improvement and above ``atol`` will be considered a spike
         rtol: A relative tolerance. Every diff between the running mean and the current value,
