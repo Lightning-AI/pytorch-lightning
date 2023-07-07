@@ -99,7 +99,7 @@ class SpikeDetection:
         if self.mode == "max":
             return bool((diff_val >= 0).all())
 
-        raise ValueError(f"invalid mode. Has to be min or max, found {self.mode}")
+        raise ValueError(f"Invalid mode. Has to be min or max, found {self.mode}")
 
     def update_stats(self, val: torch.Tensor) -> None:
         self.running_mean.update(val)
