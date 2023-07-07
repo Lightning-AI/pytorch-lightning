@@ -42,14 +42,14 @@ def spike_detection_test(fabric, global_rank_spike, spike_value, should_raise):
         ),
     ],
 )
-@pytest.mark.paramtetrize("spike_value", [None, float("inf"), float("NaN"), -float("inf")])
-@pytest.mark.parametrze("finite_only", [True, False])
+@pytest.mark.parametrize("spike_value", [None, float("inf"), float("NaN"), -float("inf")])
+@pytest.mark.parametrize("finite_only", [True, False])
 @pytest.mark.skipif(not _TORCHMETRICS_GREATER_EQUAL_1_0_0, reason="requires torchmetrics>=1.0.0")
-def test_fabric_spike_detection_integration(tmpdir, global_rank_spike, num_devices, spike_value, finite_only):
+def test_fabric_spike_detection_integration(tmp_path, global_rank_spike, num_devices, spike_value, finite_only):
     fabric = Fabric(
         accelerator="cpu",
         devices=num_devices,
-        callbacks=[SpikeDetection(exclude_batches_path=tmpdir, finite_only=finite_only)],
+        callbacks=[SpikeDetection(exclude_batches_path=tmp_path, finite_only=finite_only)],
         strategy="ddp_spawn",
     )
 
