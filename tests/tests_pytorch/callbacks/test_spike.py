@@ -56,7 +56,7 @@ class MyTrainerSpikeDetection(SpikeDetection):
     ],
 )
 @pytest.mark.parametrize("spike_value", [None, float("inf"), float("NaN"), -float("inf")])
-@pytest.mark.parametrze("finite_only", [True, False])
+@pytest.mark.parametrize("finite_only", [True, False])
 @pytest.mark.skipif(not _TORCHMETRICS_GREATER_EQUAL_1_0_0, reason="requires torchmetrics>=1.0.0")
 def test_trainer_spike_detection_integration(tmpdir, global_rank_spike, num_devices, spike_value, finite_only):
     cb = MyTrainerSpikeDetection(finite_only=finite_only)
