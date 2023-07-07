@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [UnReleased] - 2023-08-DD
+
+### Fixed
+
+-
+
+
 ## [2.0.6] - 2023-07-20
 
 ### Fixed
@@ -28,7 +35,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [2.0.4] - 2023-06-22
 
 - Added validation against misconfigured device selection when using the DeepSpeed strategy ([#17952](https://github.com/Lightning-AI/lightning/pull/17952))
-
 
 ### Changed
 
