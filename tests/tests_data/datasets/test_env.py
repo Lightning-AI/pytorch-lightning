@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch.utils.data import get_worker_info
 
-from lightning.data.datasets.env import _DistributedEnv, Environment, _WorkerEnv
+from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv, Environment
 from lightning.fabric import Fabric
 
 
