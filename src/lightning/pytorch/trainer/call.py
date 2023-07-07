@@ -19,6 +19,7 @@ from lightning_utilities.core.imports import module_available
 from packaging.version import Version
 
 import lightning.pytorch as pl
+from fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch.callbacks import Checkpoint, EarlyStopping
 from lightning.pytorch.trainer.states import TrainerStatus
 from lightning.pytorch.utilities.exceptions import _TunerExitException
@@ -72,6 +73,12 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
 def _call_setup_hook(trainer: "pl.Trainer") -> None:
     assert trainer.state.fn is not None
     fn = trainer.state.fn
+
+    # It is too early to move the model to the device, but we fake the `LightningModule.device` property
+    # so the user can access it in the `LightningModule.setup` hook
+    for module in trainer.lightning_module.modules():
+        if isinstance(module, _DeviceDtypeModuleMixin):
+            module._device = trainer.strategy.root_device
 
     # Trigger lazy creation of experiment in loggers so loggers have their metadata available
     for logger in trainer.loggers:
