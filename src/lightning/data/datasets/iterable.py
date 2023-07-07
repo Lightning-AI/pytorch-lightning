@@ -277,7 +277,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
             state_dict: the previous state-dict containing internal indices and random number generator states.
 
         Note:
-            some of the changes only take effect when creating a new iterator
+            Some of the changes only take effect when creating a new iterator
         """
         state_dict = deepcopy(state_dict)
         self._start_index_chunk = state_dict.pop("current_chunk")
