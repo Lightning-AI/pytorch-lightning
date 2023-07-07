@@ -56,10 +56,8 @@ def test_fabric_spike_detection_integration(tmpdir, global_rank_spike, num_devic
 
     should_raise = spike_value is None or (spike_value is not None and finite_only)
     fabric.launch(
-        partial(
             spike_detection_test,
             global_rank_spike=global_rank_spike,
             spike_value=spike_value,
             should_raise=should_raise,
-        )
     )
