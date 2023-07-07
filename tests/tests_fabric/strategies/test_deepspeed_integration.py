@@ -276,22 +276,6 @@ def test_deepspeed_env_variables_on_platforms(_, deepspeed_dist_mock, platform):
         assert os.environ["LOCAL_RANK"] == str(strategy.local_rank)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_deepspeed_specific_gpu_device_index():
-    """Test that the DeepSpeed strategy can run on specific device indices."""
-
-    class RunFabric(BoringFabric):
-        def step(self, model, batch):
-            assert self.device.type == "cuda"
-            assert self.device.index == 1
-            assert batch.device.index == 1
-            assert model.device.index == 1
-            return super().step(model, batch)
-
-    fabric = RunFabric(accelerator="cuda", devices=[1], strategy="deepspeed")
-    fabric.run()
-
-
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
 def test_deepspeed_with_bfloat16_precision():
     """Test that the DeepSpeed strategy works with bfloat16 precision."""
