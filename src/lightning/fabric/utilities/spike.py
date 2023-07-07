@@ -87,6 +87,9 @@ class SpikeDetection:
             self._update_stats(loss)
 
     def _is_spike(self, loss: torch.Tensor) -> bool:
+        if self.finite_only and not torch.isfinite(loss):
+            return True
+
         # we might call compute more often than update which is fine as long as the
         # metric has at least one internal value.
         with warnings.catch_warnings():
@@ -96,9 +99,6 @@ class SpikeDetection:
 
         if self._is_better(curr_diff):
             return False
-
-        if self.finite_only and not torch.isfinite(loss):
-            return True
 
         return self._check_atol(loss, running_val) and self._check_rtol(loss, running_val)
 
