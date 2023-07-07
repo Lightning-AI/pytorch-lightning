@@ -2,7 +2,7 @@ import json
 import operator
 import os
 import warnings
-from typing import Any, Dict, List, Literal, Optional, Protocol, runtime_checkable, Union, type_checking
+from typing import Any, Dict, List, Literal, Optional, type_checking, Union
 
 import torch
 from lightning_utilities.core.imports import compare_version
@@ -16,24 +16,24 @@ if type_checking:
 class SpikeDetection:
     """Spike Detection Callback.
 
-    Terminates training with a ``TrainingSpikeException`` when a loss-spike was detected and 
+    Terminates training with a ``TrainingSpikeException`` when a loss-spike was detected and
     saves the batches to skip when resuming to a file.
 
-    Currently we skip the current and the previous batch since it is unclear, whether the previous batch 
+    Currently we skip the current and the previous batch since it is unclear, whether the previous batch
     altered the weights in a way that it causes the spike or just the current batch is corrupted somehow.
 
     Args:
         mode: Whether to minimize or maximize the tracked metric
         window: A running mean of metrics with ``window`` size. Serves as reference value for spike3s
         warmup: After how many batches should spike-tracking starts
-        atol: An absolute tolerance.  Every diff between the running mean and the current value, 
+        atol: An absolute tolerance.  Every diff between the running mean and the current value,
             that's not an improvement and above ``atol`` will be considered a spike
         rtol: A relative tolerance. Every diff between the running mean and the current value,
             that's higher than ``rtol * running_mean`` is considered a spike
         exclude_batches_path: Where to save the file that contains the batches to exclude. Will default to current directory.
         finite_only: Will consider non-finite values like NaN, inf and -inf a spike as well
-
     """
+
     def __init__(
         self,
         mode: Literal["min", "max"] = "min",
@@ -42,7 +42,7 @@ class SpikeDetection:
         atol: Optional[float] = None,
         rtol: Optional[float] = 2.0,
         exclude_batches_path: Optional[str] = None,
-        finite_only: bool = True
+        finite_only: bool = True,
     ):
         if _TORCHMETRICS_GREATER_EQUAL_1_0_0:
             from torchmetrics.aggregation import MeanMetric
@@ -64,7 +64,7 @@ class SpikeDetection:
 
     @torch.no_grad()
     def on_train_batch_end(self, fabric: "Fabric", loss: torch.Tensor, batch: Any, batch_idx: int) -> None:
-        """checks if we currently have a loss-spike"""
+        """Checks if we currently have a loss-spike."""
         if batch_idx == 0:
             self.running_mean.to(fabric.strategy.root_device)
 
@@ -159,6 +159,7 @@ class SpikeDetection:
 
 
 class TrainingSpikeException(RuntimeError):
-    """Exception to be raised with Training Spikes"""
+    """Exception to be raised with Training Spikes."""
+
     def __init__(self, batch_idx: int, *args: Any, **kwargs: Any):
         super().__init__(f"Training spike detected in batch {batch_idx}", *args, **kwargs)
