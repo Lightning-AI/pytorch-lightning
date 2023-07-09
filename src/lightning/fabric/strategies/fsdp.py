@@ -669,9 +669,7 @@ def _get_sharded_state_dict_context(module: "FullyShardedDataParallel") -> _Gene
     return state_dict_type_context
 
 
-def _get_full_state_dict_context(
-    module: "FullyShardedDataParallel", rank0_only: bool = True
-) -> _GeneratorContextManager:
+def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> _GeneratorContextManager:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import FullOptimStateDictConfig, FullStateDictConfig, StateDictType
 
@@ -702,7 +700,7 @@ def _no_op() -> None:
 @contextmanager
 def _apply_optimizers_during_fsdp_backward(
     optimizers: Union[Optimizer, Iterable[Optimizer]],
-    module: torch.nn.Module,
+    module: Module,
 ) -> Generator[None, None, None]:
     """Call `Optimizer.step` as gradients become available.
 
