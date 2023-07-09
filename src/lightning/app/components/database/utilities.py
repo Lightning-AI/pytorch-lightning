@@ -20,7 +20,12 @@ from typing import Any, Dict, Generic, List, Type, TypeVar
 from fastapi import Response, status
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, parse_obj_as
-from pydantic.main import ModelMetaclass
+from lightning_utilities.core.imports import RequirementCache
+
+if RequirementCache("pydantic>=2.0.0"):
+    from pydantic._internal._model_construction import ModelMetaclass
+else:
+    from pydantic.main import ModelMetaclass
 
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.imports import _is_sqlmodel_available
