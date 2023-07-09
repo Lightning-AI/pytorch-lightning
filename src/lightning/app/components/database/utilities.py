@@ -19,8 +19,8 @@ from typing import Any, Dict, Generic, List, Type, TypeVar
 
 from fastapi import Response, status
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, parse_obj_as
 from lightning_utilities.core.imports import RequirementCache
+from pydantic import BaseModel, parse_obj_as
 
 if RequirementCache("pydantic>=2.0.0"):
     from pydantic._internal._model_construction import ModelMetaclass
