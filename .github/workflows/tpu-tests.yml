@@ -115,7 +115,7 @@ jobs:
       env:
         JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
       run: |
-        gcloud compute tpus tpu-vm create "$JOB_NAME" --accelerator-type=v4-8 --version="tpu-vm-v4-pt-$XLA_VER"
+        gcloud compute tpus tpu-vm create "$JOB_NAME" --accelerator-type=v4-8 --version="tpu-vm-v4-pt-$XLA_VER" --preemptible
 
     - name: Cancel job
       if: steps.tpu-create.outcome != 'success'
