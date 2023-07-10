@@ -53,7 +53,7 @@ jobs:
         run: |
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
           unzip -qq awscli.zip
-          sudo bash ./aws/install
+          bash ./aws/install
           aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         env:
@@ -105,7 +105,7 @@ jobs:
         run: |
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
           unzip -qq awscli.zip
-          sudo bash ./aws/install
+          bash ./aws/install
           aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         env:
