@@ -714,7 +714,7 @@ class Fabric:
     def load(
         self,
         path: Union[str, Path],
-        state: Optional[Union[nn.Module, Dict[str, Union[nn.Module, Optimizer, Any]]]] = None,
+        state: Optional[Dict[str, Union[nn.Module, Optimizer, Any]]] = None,
         strict: bool = True,
     ) -> Dict[str, Any]:
         """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
@@ -724,12 +724,8 @@ class Fabric:
 
         Args:
             path: A path to where the file is located
-            state: Can be one of:
-
-                - A dictionary of objects whose state will be restored in-place from the checkpoint path.
-                - ``None`` or the empty dict: The loaded checkpoint will be returned in full.
-                - A :class:`~torch.nn.Module` instance, if the checkpoint file contains a raw module state dict.
-
+            state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
+                If no state is given, then the checkpoint will be returned in full.
             strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
@@ -749,15 +745,19 @@ class Fabric:
                 state[k] = unwrapped_state[k]
         return remainder
 
-    # Name proposals:
-    # load_raw
-    # load_object
-    # load_torch
-    # load_from_torch
-    # load_non_fabric
-    # load_state_dict (?)
-    def load_object(self, path, obj: Any):
-        """This replaces `obj.load_state_dict(torch.load(path))` """
+    def load_object(self, path: Union[str, Path], obj: Union[nn.Module, Optimizer], strict: bool = True) -> None:
+        """Load the state of a module or optimizer from a single state-dict file.
+
+        Use this for loading a raw PyTorch model checkpoint created without Fabric.
+        This is conceptually equivalent to ``obj.load_state_dict(torch.load(path))``, but is agnostic to the strategy
+        being used.
+
+        Args:
+            path: A path to where the file is located
+            obj: A :class:`~torch.nn.Module` or :class:`~torch.optim.Optimizer` instance.
+            strict: Whether to enforce that the keys in the module's state-dict match the keys in the checkpoint.
+                Does not apply to optimizers.
+        """
         obj = _unwrap_objects(obj)
         self._strategy.load_checkpoint(path=path, state=obj, strict=strict)
 
