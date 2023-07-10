@@ -134,7 +134,6 @@ subprojects:
       - "dockers/**"
       - "requirements/pytorch/**"
       - "requirements/fabric/**"
-      - "environment.yml"
       - "setup.py"
       - "!requirements/*/docs.txt"
       - "!*.md"
