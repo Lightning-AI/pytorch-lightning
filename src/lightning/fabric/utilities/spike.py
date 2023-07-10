@@ -57,8 +57,10 @@ class SpikeDetection:
         self.last_val: Union[torch.Tensor, float] = 0.0
         # spike detection happens individually on each machine
         self.running_mean = Running(MeanMetric(dist_sync_on_step=False, sync_on_compute=False), window=window)
+        # workaround for https://github.com/Lightning-AI/torchmetrics/issues/1899
         self.running_mean.dist_sync_on_step = False
         self.running_mean.sync_on_compute = False
+
         self.mode = mode
         self.warmup = warmup
         self.atol = atol
