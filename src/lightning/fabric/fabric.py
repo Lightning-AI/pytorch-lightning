@@ -724,8 +724,12 @@ class Fabric:
 
         Args:
             path: A path to where the file is located
-            state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
-                If no state is given, then the checkpoint will be returned in full.
+            state: Can be one of:
+
+                - A dictionary of objects whose state will be restored in-place from the checkpoint path.
+                - ``None`` or the empty dict: The loaded checkpoint will be returned in full.
+                - A :class:`~torch.nn.Module` instance, if the checkpoint file contains a raw module state dict.
+
             strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
