@@ -21,7 +21,7 @@ class IdentityModule(LightningModule):
         with torch.no_grad():
             self.layer.weight.data = torch.ones_like(self.layer.weight.data)
 
-        if batch_idx == 4:
+        if batch_idx == 4 and self.trainer.global_rank == self.spike_global_rank:
             curr_loss_val = 3 if self.spike_value is None else self.spike_value
         curr_loss_val = 3 if batch_idx == 4 else 1 / (batch_idx + 1)
 
