@@ -714,7 +714,7 @@ class Fabric:
     def load(
         self,
         path: Union[str, Path],
-        state: Optional[Dict[str, Union[nn.Module, Optimizer, Any]]] = None,
+        state: Optional[Union[nn.Module, Dict[str, Union[nn.Module, Optimizer, Any]]]] = None,
         strict: bool = True,
     ) -> Dict[str, Any]:
         """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
