@@ -459,26 +459,37 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(path))
 
+        if isinstance(state, Module) and not _is_full_checkpoint(path):
+            raise ValueError(
+                "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
+                f" full state dict: {path}"
+            )
+
         from torch.distributed.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
 
-        modules = {key: module for key, module in state.items() if isinstance(module, FSDP)}
-        optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
-        if len(modules) == 0:
-            raise ValueError(
-                "Could not find a FSDP model in the provided checkpoint state. Please provide the model as"
-                " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
-                " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
-            )
-        if len(modules) > 1:
-            raise ValueError(
-                "Found multiple FSDP modules in the given state. Loading checkpoints with FSDP is"
-                " currently limited to a single model per checkpoint. To load multiple models, call the"
-                " load method for each model separately with a different path."
-            )
-        module_key, module = list(modules.items())[0]
+        if isinstance(state, Module):
+            modules = optimizers = {}
+            module_key = None
+            module = state
+        else:
+            modules = {key: module for key, module in state.items() if isinstance(module, FSDP)}
+            if len(modules) == 0:
+                raise ValueError(
+                    "Could not find a FSDP model in the provided checkpoint state. Please provide the model as"
+                    " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
+                    " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
+                )
+            optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
+            if len(modules) > 1:
+                raise ValueError(
+                    "Found multiple FSDP modules in the given state. Loading checkpoints with FSDP is"
+                    " currently limited to a single model per checkpoint. To load multiple models, call the"
+                    " load method for each model separately with a different path."
+                )
+            module_key, module = list(modules.items())[0]
 
         if _is_sharded_checkpoint(path):
             state_dict_ctx = _get_sharded_state_dict_context(module)
@@ -540,6 +551,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                         optim=optim,
                     )
                     optim.load_state_dict(optim_state_dict)
+
+            if isinstance(state, Module):
+                return {}
 
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
