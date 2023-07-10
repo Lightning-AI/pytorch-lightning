@@ -18,7 +18,6 @@ import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-
 from lightning.pytorch import seed_everything, Trainer
 from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
