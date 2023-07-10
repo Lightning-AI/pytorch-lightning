@@ -61,13 +61,6 @@ jobs:
         # Python version here needs to be supported by all PL versions listed in back-compatible-versions.txt.
         python-version: 3.8
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-        aws-region: us-east-1
-
     - name: Install PL from source
       env:
         PACKAGE_NAME: pytorch
@@ -114,8 +107,18 @@ jobs:
         path: ${{ env.legacy_dir }}/checkpoints/
         retention-days: ${{ env.KEEP_DAYS }}
 
+    - name: Install AWS CLI
+      run: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+        aws --version
     - name: Upload checkpoints to S3
       working-directory: ${{ env.legacy_dir }}
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY_ID }}
+        AWS_DEFAULT_REGION: us-east-1
       run: |
         aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/
         zip -r checkpoints.zip checkpoints
