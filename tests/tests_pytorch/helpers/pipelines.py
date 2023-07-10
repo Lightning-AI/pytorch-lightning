@@ -58,9 +58,11 @@ def run_model_test(
     logger = get_default_logger(save_dir, version=version)
     trainer_options.update(logger=logger)
     trainer = Trainer(**trainer_options)
-    initial_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
+    with torch.no_grad():
+        initial_values = torch.cat([x.view(-1) for x in model.parameters()])
     trainer.fit(model, datamodule=data)
-    post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
+    with torch.no_grad():
+        post_train_values = torch.cat([x.view(-1) for x in model.parameters()])
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     # Check that the model is actually changed post-training
