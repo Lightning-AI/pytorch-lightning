@@ -445,7 +445,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
+        state: Optional[Union[Module, Dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
