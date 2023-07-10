@@ -316,5 +316,4 @@ def test_all_features_cpu_model(tmpdir):
     }
 
     model = BoringModel()
-
     tpipes.run_model_test(trainer_options, model, min_acc=0.01)

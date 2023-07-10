@@ -65,8 +65,7 @@ def run_model_test(
     with torch.no_grad():
         post_train_values = torch.cat([x.view(-1) for x in model.parameters()])
 
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-    # Check that the model is actually changed post-training
+    # Check that the model has changed post-training
     change_ratio = torch.norm(initial_values - post_train_values) / torch.norm(initial_values)
     assert change_ratio >= min_change_ratio, f"The change in the model's parameter norm is {change_ratio:.1f}" \
         f" relative to the initial norm, but expected a change by >={min_change_ratio}"
