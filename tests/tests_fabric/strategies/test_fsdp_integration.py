@@ -400,3 +400,29 @@ def test_fsdp_save_filter(tmp_path):
     data = torch.load(checkpoint_path / "__0_0.distcp")
     assert isinstance(data, torch.Tensor)
     assert data.shape == (1,)
+
+
+@RunIf(min_torch="1.13", min_cuda_gpus=1)
+def test_fsdp_manual_activation_checkpointing():
+    model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.Linear(1, 1))
+    strategy = FSDPStrategy(activation_checkpointing=torch.nn.Linear)
+    fabric = Fabric(devices=1, accelerator="cuda", strategy=strategy)
+    fabric.launch()
+
+    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+        apply_activation_checkpointing,
+        CheckpointWrapper,
+    )
+
+    # manually apply activation checkpointing
+    apply_activation_checkpointing(model)
+
+    wrappers = {name for name, mod in model.named_modules() if isinstance(mod, CheckpointWrapper)}
+    assert wrappers == {"0", "1"}
+
+    # let fabric set up the model, it shouldn't apply activation checkpointing again
+    with pytest.warns(match="Linear'] is configured, but the model already contains checkpointed"):
+        model = fabric.setup(model)
+
+    wrappers = {name for name, mod in model._forward_module.named_modules() if isinstance(mod, CheckpointWrapper)}
+    assert wrappers == {"_fsdp_wrapped_module.0", "_fsdp_wrapped_module.1"}

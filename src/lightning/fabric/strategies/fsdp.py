@@ -599,7 +599,17 @@ def _setup_activation_checkpointing(module: "FullyShardedDataParallel", layers: 
         apply_activation_checkpointing,
         checkpoint_wrapper,
         CheckpointImpl,
+        CheckpointWrapper,
     )
+
+    if any(isinstance(mod, CheckpointWrapper) for mod in module.modules()):
+        if layers:
+            rank_zero_warn(
+                f"FSDP checkpointing for the layers {[layer.__name__ for layer in layers]} is configured, but the model"
+                " already contains checkpointed layers. Checkpointing will be ignored."
+            )
+        # the module is already wrapped with activation checkpointing, avoid wrapping again
+        return
 
     check_fn = lambda submodule: isinstance(submodule, tuple(layers))
     wrapper = functools.partial(
