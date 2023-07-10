@@ -15,7 +15,6 @@ import logging
 from copy import deepcopy
 from typing import Any, Callable, Dict, Optional, Type, Union
 
-from lightning_utilities.core.imports import module_available
 from packaging.version import Version
 
 import lightning.pytorch as pl
@@ -96,12 +95,6 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
 
 def _call_configure_sharded_model(trainer: "pl.Trainer") -> None:
     with trainer.strategy.model_sharded_context():
-        # experimental support for torchdistx
-        if module_available("torchdistx.deferred_init"):
-            from torchdistx.deferred_init import materialize_module
-
-            materialize_module(trainer.lightning_module)
-
         _call_lightning_module_hook(trainer, "configure_sharded_model")
 
 
