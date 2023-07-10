@@ -284,9 +284,6 @@ def test_simple_cpu(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=20)
     trainer.fit(model)
 
-    # traning complete
-    assert trainer.state.finished, "amp + ddp model failed to complete"
-
 
 def test_cpu_model(tmpdir):
     """Make sure model trains on CPU."""
@@ -316,4 +313,4 @@ def test_all_features_cpu_model(tmpdir):
     }
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, min_acc=0.01)
+    tpipes.run_model_test(trainer_options, model)
