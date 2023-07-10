@@ -313,7 +313,7 @@ class Strategy(ABC):
             return checkpoint
 
         if isinstance(state, Module):
-            state.load_state_dict(checkpoint, strict=strict)
+            self.load_module_state_dict(module=state, state_dict=checkpoint, strict=strict)
             return {}
 
         _validate_keys_for_strict_loading(state.keys(), checkpoint.keys(), strict=strict)
