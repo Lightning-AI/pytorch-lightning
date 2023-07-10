@@ -37,7 +37,8 @@ class DeepSpeedPrecision(Precision):
     """Precision plugin for DeepSpeed integration.
 
     Args:
-        precision: Full precision (32-true), half precision (16-mixed) or bfloat16 precision (bf16-mixed).
+        precision: Full precision (32-true), half precision (16-true, bf16-true) or
+            mixed precision (16-mixed, bf16-mixed).
 
     Raises:
         ValueError:
