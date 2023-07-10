@@ -109,10 +109,10 @@ jobs:
 
     - name: Install AWS CLI
       run: |
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        unzip awscliv2.zip
-        sudo ./aws/install
-        aws --version
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+          unzip awscli.zip -q
+          sudo bash ./aws/install
+          aws --version
     - name: Upload checkpoints to S3
       working-directory: ${{ env.legacy_dir }}
       env:
