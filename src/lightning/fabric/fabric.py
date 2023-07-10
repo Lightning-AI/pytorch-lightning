@@ -749,6 +749,18 @@ class Fabric:
                 state[k] = unwrapped_state[k]
         return remainder
 
+    # Name proposals:
+    # load_raw
+    # load_object
+    # load_torch
+    # load_from_torch
+    # load_non_fabric
+    # load_state_dict (?)
+    def load_object(self, path, obj: Any):
+        """This replaces `obj.load_state_dict(torch.load(path))` """
+        obj = _unwrap_objects(obj)
+        self._strategy.load_checkpoint(path=path, state=obj, strict=strict)
+
     def launch(self, function: Callable[["Fabric"], Any] = _do_nothing, *args: Any, **kwargs: Any) -> Any:
         """Launch and initialize all the processes needed for distributed execution.
 
