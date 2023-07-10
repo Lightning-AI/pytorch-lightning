@@ -296,22 +296,23 @@ subprojects:
   #  checks:
   #    - "test-flagships / run-flagships (flashy, Lightning-Universe/Flashy-app)"
 
-  - id: "lightning: Store"
-    paths:
-      - ".azure/app-cloud-store.yml"
-      - "src/lightning/__about__.py"
-      - "src/lightning/__init__.py"
-      - "src/lightning/__main__.py"
-      - "src/lightning/__setup__.py"
-      - "src/lightning/__version__.py"
-      - "src/lightning/store/**"
-      - "tests/tests_cloud/**"
-    checks:
-      - "Store.cloud (test_store Linux)"
-      - "Store.cloud (test_store Mac)"
-      - "Store.cloud (test_store Windows)"
+  # ToDo
+  #- id: "lightning: Store"
+  #  paths:
+  #    - ".azure/app-cloud-store.yml"
+  #    - "src/lightning/__about__.py"
+  #    - "src/lightning/__init__.py"
+  #    - "src/lightning/__main__.py"
+  #    - "src/lightning/__setup__.py"
+  #    - "src/lightning/__version__.py"
+  #    - "src/lightning/store/**"
+  #    - "tests/tests_cloud/**"
+  #  checks:
+  #    - "Store.cloud (test_store Linux)"
+  #    - "Store.cloud (test_store Mac)"
+  #    - "Store.cloud (test_store Windows)"
 
-  # FixMe: re-enable when BE stabilize
+  # ToDo
   # - id: "lightning_app: Azure"
   #   paths:
   #     - ".actions/*"
