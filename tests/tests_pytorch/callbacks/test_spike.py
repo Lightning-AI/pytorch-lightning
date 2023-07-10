@@ -89,7 +89,6 @@ class MyTrainerSpikeDetection(SpikeDetection):
                 sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
             ),
         ),
-        # only do one non-finite number in ddp, otherwise it will take forever!
         pytest.param(
             0,
             2,
@@ -121,6 +120,78 @@ class MyTrainerSpikeDetection(SpikeDetection):
             1,
             2,
             float("inf"),
+            False,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            0,
+            2,
+            float("-inf"),
+            True,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            0,
+            2,
+            float("-inf"),
+            False,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            1,
+            2,
+            float("-inf"),
+            True,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            1,
+            2,
+            float("-inf"),
+            False,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            0,
+            2,
+            float("NaN"),
+            True,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            0,
+            2,
+            float("NaN"),
+            False,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            1,
+            2,
+            float("NaN"),
+            True,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            1,
+            2,
+            float("NaN"),
             False,
             marks=pytest.mark.skipif(
                 sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
