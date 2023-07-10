@@ -49,9 +49,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Install AWS CLI
+        if: ${{ matrix.pkg-name != 'pytorch' }}
         run: |
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
-          unzip awscli.zip -q
+          unzip -qq awscli.zip
           sudo bash ./aws/install
           aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
@@ -100,9 +101,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Install AWS CLI
+        if: ${{ matrix.pkg-name != 'pytorch' }}
         run: |
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
-          unzip awscli.zip -q
+          unzip -qq awscli.zip
           sudo bash ./aws/install
           aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
