@@ -20,7 +20,7 @@ from typing import Any, Dict, Generic, List, Type, TypeVar
 from fastapi import Response, status
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, parse_obj_as
-from pydantic.main import ModelMetaclass
+from pydantic.v1.main import ModelMetaclass
 
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.imports import _is_sqlmodel_available

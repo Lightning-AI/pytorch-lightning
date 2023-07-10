@@ -28,6 +28,7 @@ from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402
+from lightning.pytorch.utilities.flat_params_wrapper import FlattenParamsWrapper  # noqa: E402
 
 import lightning.app  # isort: skip # noqa: E402
 
