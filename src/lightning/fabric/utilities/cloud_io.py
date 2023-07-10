@@ -24,6 +24,11 @@ from fsspec.implementations.local import AbstractFileSystem
 
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
+try:
+    import gcsfs
+except ImportError:
+    gcsfs = None
+
 
 def _load(
     path_or_url: Union[IO, _PATH],
@@ -70,3 +75,31 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
     torch.save(checkpoint, bytesbuffer)
     with fsspec.open(filepath, "wb") as f:
         f.write(bytesbuffer.getvalue())
+
+
+def is_dir(fs: AbstractFileSystem, path: Union[str, Path], strict: bool = False) -> bool:
+    """Check if a path is directory-like.
+
+    This function determines if a given path is considered directory-like, taking into account the behavior
+    specific to the `gcsfs` library. For other filesystems, it behaves similarly to the standard `fs.isdir` method.
+
+    Args:
+        fs: The filesystem to check the path against.
+        path: The path or URL to be checked.
+        strict: A flag specific to GCS. If set to ``False``, any non-existing path is considered
+            as a valid directory-like path. In such cases, the directory (and any non-existing parent directories)
+            will be created on the fly. Defaults to False.
+    """
+    # GCS fsspec's is inconsistent with other file systems because GCS does not have real directories,
+    # see https://gcsfs.readthedocs.io/en/latest/api.html?highlight=makedirs#gcsfs.core.GCSFileSystem.mkdir
+    # In particular, `fs.makedirs` is a no-op so we use `strict=False` to consider any path as valid, except if the
+    # path already exists but is a file
+    if gcsfs is not None and isinstance(fs, gcsfs.GCSFileSystem):
+        if strict:
+            return fs.isdir(path)
+
+        # Check if the path is not already taken by a file. If not, it is considered a valid directory-like path
+        # because the directory (and all non-existing parent directories) will be created on the fly by GCS.
+        return not fs.isfile(path)
+
+    return fs.isdir(path)

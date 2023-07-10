@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Union
 from torch import Tensor
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import get_filesystem, is_dir
 from lightning.fabric.utilities.logger import _add_prefix
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
@@ -155,7 +155,7 @@ class CSVLogger(Logger):
     def _get_next_version(self) -> int:
         root_dir = self.root_dir
 
-        if not self._fs.isdir(root_dir):
+        if not is_dir(self._fs, root_dir, strict=True):
             log.warning("Missing logger folder: %s", root_dir)
             return 0
 
@@ -163,7 +163,7 @@ class CSVLogger(Logger):
         for d in self._fs.listdir(root_dir):
             full_path = d["name"]
             name = os.path.basename(full_path)
-            if self._fs.isdir(full_path) and name.startswith("version_"):
+            if is_dir(self._fs, full_path) and name.startswith("version_"):
                 existing_versions.append(int(name.split("_")[1]))
 
         if len(existing_versions) == 0:

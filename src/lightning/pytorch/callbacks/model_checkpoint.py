@@ -32,7 +32,7 @@ import yaml
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import get_filesystem, is_dir
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -620,7 +620,7 @@ class ModelCheckpoint(Checkpoint):
         return set()
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
-        if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
+        if self.save_top_k != 0 and is_dir(self._fs, dirpath, strict=True) and len(self._fs.ls(dirpath)) > 0:
             rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
 
     def _get_metric_interpolated_filepath_name(

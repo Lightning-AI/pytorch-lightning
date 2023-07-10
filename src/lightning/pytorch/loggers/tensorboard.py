@@ -26,6 +26,7 @@ from torch import Tensor
 import lightning.pytorch as pl
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from lightning.fabric.loggers.tensorboard import TensorBoardLogger as FabricTensorBoardLogger
+from lightning.fabric.utilities.cloud_io import is_dir
 from lightning.fabric.utilities.logger import _convert_params
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -217,7 +218,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file if it doesn't exist and the log directory exists
-        if self._fs.isdir(dir_path) and not self._fs.isfile(hparams_file):
+        if is_dir(self._fs, dir_path) and not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only
@@ -248,7 +249,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         for listing in listdir_info:
             d = listing["name"]
             bn = os.path.basename(d)
-            if self._fs.isdir(d) and bn.startswith("version_"):
+            if is_dir(self._fs, d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace("/", "")
                 existing_versions.append(int(dir_ver))
         if len(existing_versions) == 0:
