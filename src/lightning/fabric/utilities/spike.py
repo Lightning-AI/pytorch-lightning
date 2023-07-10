@@ -57,6 +57,8 @@ class SpikeDetection:
         self.last_val: Union[torch.Tensor, float] = 0.0
         # spike detection happens individually on each machine
         self.running_mean = Running(MeanMetric(dist_sync_on_step=False, sync_on_compute=False), window=window)
+        self.running_mean.dist_sync_on_step = False
+        self.running_mean.sync_on_compute = False
         self.mode = mode
         self.warmup = warmup
         self.atol = atol
@@ -82,23 +84,26 @@ class SpikeDetection:
 
         # While spike-detection happens on a per-rank level, we need to fail all ranks if any rank detected a spike
         is_spike_global = fabric.strategy.reduce_boolean_decision(is_spike, all=False)
-        fabric.strategy.barrier()
 
         if is_spike_global:
             self._handle_spike(fabric, batch_idx)
         else:
-            self._update_stats(loss)
+            is_finite_all = self.finite_only or fabric.strategy.reduce_boolean_decision(
+                bool(torch.isfinite(loss).all()), all=True
+            )
+            if is_finite_all:
+                self._update_stats(loss)
 
     def _is_spike(self, loss: torch.Tensor) -> bool:
-        if self.finite_only and not torch.isfinite(loss):
-            return True
-
         # we might call compute more often than update which is fine as long as the
         # metric has at least one internal value.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             running_val = self.running_mean.compute()
         curr_diff = loss - self.last_val
+
+        if self.finite_only and not torch.isfinite(loss):
+            return True
 
         if self._is_better(curr_diff):
             return False
@@ -135,8 +140,6 @@ class SpikeDetection:
         raise ValueError(f"Invalid mode. Has to be min or max, found {self.mode}")
 
     def _update_stats(self, val: torch.Tensor) -> None:
-        if not torch.isfinite(val):
-            return
         # only update if finite
         self.running_mean.update(val)
         self.last_val = val

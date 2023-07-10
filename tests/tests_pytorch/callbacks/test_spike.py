@@ -43,24 +43,98 @@ class MyTrainerSpikeDetection(SpikeDetection):
 
 
 @pytest.mark.parametrize(
-    ("global_rank_spike", "num_devices"),
+    ("global_rank_spike", "num_devices", "spike_value", "finite_only"),
     [
-        pytest.param(0, 1),
+        pytest.param(0, 1, None, True),
+        pytest.param(0, 1, None, False),
+        pytest.param(0, 1, float("inf"), True),
+        pytest.param(0, 1, float("inf"), False),
+        pytest.param(0, 1, float("-inf"), True),
+        pytest.param(0, 1, float("-inf"), False),
+        pytest.param(0, 1, float("NaN"), True),
+        pytest.param(0, 1, float("NaN"), False),
         pytest.param(
             0,
             2,
+            None,
+            True,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            0,
+            2,
+            None,
+            False,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            1,
+            2,
+            None,
+            True,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            1,
+            2,
+            None,
+            False,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        # only do one non-finite number in ddp, otherwise it will take forever!
+        pytest.param(
+            0,
+            2,
+            float("inf"),
+            True,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            0,
+            2,
+            float("inf"),
+            False,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            1,
+            2,
+            float("inf"),
+            True,
+            marks=pytest.mark.skipif(
+                sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
+            ),
+        ),
+        pytest.param(
+            1,
+            2,
+            float("inf"),
+            False,
             marks=pytest.mark.skipif(
                 sys.platform != "linux", reason="multiprocessing on other platforms takes forever"
             ),
         ),
     ],
 )
-@pytest.mark.parametrize("spike_value", [None, float("inf"), float("NaN"), -float("inf")])
-@pytest.mark.parametrize("finite_only", [True, False])
 @pytest.mark.skipif(not _TORCHMETRICS_GREATER_EQUAL_1_0_0, reason="requires torchmetrics>=1.0.0")
 def test_trainer_spike_detection_integration(tmp_path, global_rank_spike, num_devices, spike_value, finite_only):
     cb = MyTrainerSpikeDetection(exclude_batches_path=tmp_path, finite_only=finite_only)
-    cb.should_raise = spike_value is None or (spike_value is not None and finite_only)
+    # spike_value == None -> typical spike detection
+    # finite_only -> typical spike detection and raise with NaN +/- inf
+    # if inf -> inf >> other values -> typical spike detection
+    cb.should_raise = spike_value is None or finite_only or spike_value == float("inf")
 
     trainer = Trainer(
         callbacks=[cb],
