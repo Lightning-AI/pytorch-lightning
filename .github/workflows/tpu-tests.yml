@@ -3,7 +3,7 @@ name: Test PyTorch - TPU
 on:
   push:
     branches: [master, "release/*"]
-  pull_request:  # FIXME: add back target after CI is green 
+  pull_request:  # FIXME: add back target after CI is green
     branches: [master, "release/*"]
     types: [ opened, reopened, edited, ready_for_review, synchronize ]
 
