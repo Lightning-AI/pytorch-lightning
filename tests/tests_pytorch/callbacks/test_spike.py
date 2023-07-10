@@ -21,9 +21,13 @@ class IdentityModule(LightningModule):
         with torch.no_grad():
             self.layer.weight.data = torch.ones_like(self.layer.weight.data)
 
-        if batch_idx == 4 and self.trainer.global_rank == self.spike_global_rank:
-            curr_loss_val = 3 if self.spike_value is None else self.spike_value
-        curr_loss_val = 3 if batch_idx == 4 else 1 / (batch_idx + 1)
+        curr_loss_val = 1/(batch_idx+1)
+        if self.trainer.global_rank == self.spike_global_rank:
+            if batch_idx == 4:
+                curr_loss_val = self.spike_value 
+        
+        if curr_loss_val is None:
+            curr_loss_val = batch_idx
 
         loss = self.layer(torch.tensor(curr_loss_val, device=self.device, dtype=self.dtype).view(1, 1))
         return loss
@@ -39,6 +43,8 @@ class MyTrainerSpikeDetection(SpikeDetection):
         )
 
         with context:
+            if batch_idx == 4:
+                print(outputs)
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
 
 
