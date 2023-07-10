@@ -68,8 +68,10 @@ def run_model_test(
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     # Check that the model is actually changed post-training
     change_ratio = torch.norm(initial_values - post_train_values) / torch.norm(initial_values)
-    assert change_ratio >= min_change_ratio, f"The change in the model's parameter norm is {change_ratio:.1f}" \
+    assert change_ratio >= min_change_ratio, (
+        f"The change in the model's parameter norm is {change_ratio:.1f}"
         f" relative to the initial norm, but expected a change by >={min_change_ratio}"
+    )
 
     # test model loading
     _ = load_model_from_checkpoint(trainer.checkpoint_callback.best_model_path, type(model))
