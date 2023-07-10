@@ -467,7 +467,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 If DeepSpeed was unable to load the checkpoint due to missing files or because the checkpoint is
                 not in the expected DeepSpeed format.
         """
-        if self.load_full_weights and self.zero_stage_3:
+        if isinstance(state, Module) or self.load_full_weights and self.zero_stage_3:
             # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
             # a consolidated checkpoint
             path = self.broadcast(path)
