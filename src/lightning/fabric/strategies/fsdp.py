@@ -531,7 +531,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
             checkpoint = torch.load(path, map_location="cpu")
             with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
-                module.load_state_dict(checkpoint.pop(module_key), strict=strict)
+                state_dict = checkpoint if isinstance(state, Module) else checkpoint.pop(module_key)
+                module.load_state_dict(state_dict, strict=strict)
+
+            if isinstance(state, Module):
+                return {}
 
             # Load optimizer states
             for optim_key, optim in optimizers.items():
@@ -551,9 +555,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                         optim=optim,
                     )
                     optim.load_state_dict(optim_state_dict)
-
-            if isinstance(state, Module):
-                return {}
 
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
