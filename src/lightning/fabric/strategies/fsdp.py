@@ -49,24 +49,24 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_12,
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
 )
 from lightning.fabric.utilities.init import _EmptyInit
-from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
-
-_SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD = False
-if _TORCH_GREATER_EQUAL_2_0 and torch.distributed.is_available():
-    from torch.distributed.fsdp._common_utils import _get_module_fsdp_state
-    from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
-    from torch.distributed.fsdp.flat_param import FlatParameter, FlatParamHandle
-
-    _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD = True
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 
     from lightning.fabric.wrappers import _FabricModule
+
+    if _TORCH_GREATER_EQUAL_2_0:
+        from torch.distributed.fsdp.wrap import _FSDPPolicy
+
+        _POLICY = Union[Callable[[Module, bool, int], bool], _FSDPPolicy]
+    else:
+        _POLICY = Callable[[Module, bool, int], bool]  # type: ignore[misc]
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 _METADATA_FILENAME = "meta.pt"
@@ -92,10 +92,13 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     Arguments:
         cpu_offload: See ``cpu_offload`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
         mixed_precision: See ``mixed_precision`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
-        activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation
-            checkpointing. This is typically your transformer block (including attention + feed-forward).
-            Enabling this can free up a significant amount of memory at the cost of speed since activations in
-            these layers need to be recomputed during backpropagation.
+        activation_checkpointing: Deprecated. Use ``activation_checkpointing_policy``. A single layer or a list of
+            layer classes for which you want to enable activation checkpointing. This is typically your transformer
+            block (including attention + feed-forward).
+        activation_checkpointing_policy: Same as ``auto_wrap_policy`` parameter in
+            :class:`torch.distributed.fsdp.FullyShardedDataParallel` but used when selecting the modules for which you
+            want to enable activation checkpointing. Enabling this can free up a significant amount of memory at the
+            cost of speed since activations in these layers need to be recomputed during backpropagation.
         state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
 
             - ``"full"``: The full weights and optimizer states get assembled on rank 0 and saved to a single file.
@@ -117,6 +120,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         cpu_offload: Union[bool, "CPUOffload", None] = None,
         mixed_precision: Optional["MixedPrecision"] = None,
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
+        activation_checkpointing_policy: Optional["_POLICY"] = None,
         state_dict_type: Literal["full", "sharded"] = "sharded",
         **kwargs: Any,
     ) -> None:
@@ -140,11 +144,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # Enables joint setup of model and optimizer, multiple optimizer param groups, and `torch.compile()`
             self._fsdp_kwargs.setdefault("use_orig_params", True)
 
-        if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
-            raise ValueError("Activation checkpointing requires torch >= 1.13.0. HINT: `pip install -U torch`")
-        activation_checkpointing = activation_checkpointing or []
-        self._activation_checkpointing = (
-            [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
+        self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
+            activation_checkpointing, activation_checkpointing_policy
         )
         self._state_dict_type = state_dict_type
         self.cpu_offload = _init_cpu_offload(cpu_offload)
@@ -236,8 +237,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         )
 
         # activation checkpointing needs to be set up after wrapping the model
-        if _TORCH_GREATER_EQUAL_1_13 and self._activation_checkpointing:
-            _setup_activation_checkpointing(module=wrapped_module, layers=self._activation_checkpointing)
+        if _TORCH_GREATER_EQUAL_1_13:
+            _setup_activation_checkpointing(wrapped_module, self._activation_checkpointing_kwargs)
 
         return wrapped_module
 
@@ -594,7 +595,51 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         rank_zero_only.rank = self.global_rank
 
 
-def _setup_activation_checkpointing(module: "FullyShardedDataParallel", layers: List[Type[Module]]) -> None:
+def _activation_checkpointing_kwargs(
+    activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
+    activation_checkpointing_policy: Optional["_POLICY"] = None,
+) -> Dict:
+    if activation_checkpointing is None and activation_checkpointing_policy is None:
+        return {}
+    if activation_checkpointing is not None and activation_checkpointing_policy is not None:
+        raise ValueError(
+            "You cannot set both `activation_checkpointing` and `activation_checkpointing_policy`. Use the latter."
+        )
+    if activation_checkpointing is not None:
+        if not _TORCH_GREATER_EQUAL_1_13:
+            raise ValueError("`activation_checkpointing` requires torch >= 1.13.0. HINT: `pip install -U torch`")
+        if isinstance(activation_checkpointing, list):
+            if len(activation_checkpointing) < 1:
+                raise ValueError("`activation_checkpointing` should not be an empty list")
+            classes = tuple(activation_checkpointing)
+        else:
+            classes = (activation_checkpointing,)
+        if _TORCH_GREATER_EQUAL_2_1:
+            rank_zero_deprecation(
+                f"`FSDPStrategy(activation_checkpointing={activation_checkpointing})` is deprecated, use "
+                "`FSDPStrategy(activation_checkpointing_policy=torch.distributed.fsdp.wrap.ModuleWrapPolicy"
+                f"({set(classes)}))` instead."
+            )
+        return {"check_fn": lambda submodule: isinstance(submodule, classes)}
+    assert activation_checkpointing_policy is not None
+    if not _TORCH_GREATER_EQUAL_2_1:
+        raise ValueError("`activation_checkpointing_policy` requires torch >= 2.1.0. HINT: `pip install -U torch`")
+    return {"auto_wrap_policy": activation_checkpointing_policy}
+
+
+def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwargs: Dict) -> None:
+    if not activation_checkpointing_kwargs:
+        return
+
+    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import CheckpointWrapper
+
+    if any(isinstance(mod, CheckpointWrapper) for mod in module.modules()):
+        rank_zero_warn(
+            "FSDP checkpointing is configured, but the model already contains checkpointed layers."
+            " Checkpointing will be ignored."
+        )
+        return
+
     from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
         apply_activation_checkpointing,
         checkpoint_wrapper,
@@ -602,21 +647,8 @@ def _setup_activation_checkpointing(module: "FullyShardedDataParallel", layers: 
         CheckpointWrapper,
     )
 
-    if any(isinstance(mod, CheckpointWrapper) for mod in module.modules()):
-        if layers:
-            rank_zero_warn(
-                f"FSDP checkpointing for the layers {[layer.__name__ for layer in layers]} is configured, but the model"
-                " already contains checkpointed layers. Checkpointing will be ignored."
-            )
-        # the module is already wrapped with activation checkpointing, avoid wrapping again
-        return
-
-    check_fn = lambda submodule: isinstance(submodule, tuple(layers))
-    wrapper = functools.partial(
-        checkpoint_wrapper,
-        checkpoint_impl=CheckpointImpl.NO_REENTRANT,
-    )
-    apply_activation_checkpointing(module, checkpoint_wrapper_fn=wrapper, check_fn=check_fn)
+    wrapper = functools.partial(checkpoint_wrapper, checkpoint_impl=CheckpointImpl.NO_REENTRANT)
+    apply_activation_checkpointing(module, checkpoint_wrapper_fn=wrapper, **activation_checkpointing_kwargs)
 
 
 class _FSDPBackwardSyncControl(_BackwardSyncControl):
@@ -710,7 +742,10 @@ def _apply_optimizers_during_fsdp_backward(
     By moving optimizer step invocation into the backward call we can free
     gradients earlier and reduce peak memory.
     """
-    assert _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD
+    from torch.distributed.fsdp._common_utils import _get_module_fsdp_state
+    from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
+    from torch.distributed.fsdp.flat_param import FlatParameter, FlatParamHandle
+
     apply_lock = threading.Lock()
 
     param_handles = _get_fsdp_handles(module)
@@ -791,6 +826,11 @@ def fsdp_overlap_step_with_backward(
     optimizers: Union[Optimizer, Iterable[Optimizer]],
     fabric_module: "_FabricModule",
 ) -> _GeneratorContextManager:
+    if not _TORCH_GREATER_EQUAL_2_0:
+        raise NotImplementedError(
+            "`fsdp_overlap_step_with_backward` requires torch >= 2.0.0. HINT: `pip install -U torch`"
+        )
+
     from lightning.fabric.wrappers import _FabricModule
 
     assert isinstance(fabric_module, _FabricModule)

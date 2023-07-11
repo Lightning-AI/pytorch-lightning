@@ -100,6 +100,31 @@ have to ``wrap`` layers manually as in the case of manual wrapping.
     trainer.fit(model)
 
 
+You can customize the strategy configuration by adjusting the arguments of :class:`~lightning.pytorch.strategies.FSDPStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
+
+.. code-block:: python
+
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import FSDPStrategy
+
+    # equivalent to passing `"fsdp_cpu_offload"`
+    fsdp = FSDPStrategy(cpu_offload=True)
+    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
+
+    # configure the wrapping condition
+    if torch.__version__ >= "2.1":
+        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+
+        my_policy = ModuleWrapPolicy({MyTransformerBlock})
+    else:
+        from torch.distributed.fsdp.wrap import lambda_auto_wrap_policy
+        import functools
+
+        my_policy = functools.partial(lambda_auto_wrap_policy, lambda_fn=lambda module: isinstance(module, torch.nn.Linear))
+    fsdp = FSDPStrategy(auto_wrap_policy=my_policy)
+    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
+
+
 Read more `here <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/#auto-wrapping>`__.
 
 
@@ -152,20 +177,6 @@ Here's an example using that uses ``wrap`` to create your model:
     trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
 
-
-You can customize the strategy configuration by adjusting the arguments of :class:`~lightning.pytorch.strategies.FSDPStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
-
-.. code-block:: python
-
-    from lightning.pytorch import Trainer
-    from lightning.pytorch.strategies import FSDPStrategy
-
-
-    fsdp = FSDPStrategy(cpu_offload=True)
-    # equivalent to passing `"fsdp_cpu_offload"`
-    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
-
-
 Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about it.
 
 ----
@@ -178,13 +189,20 @@ Activation checkpointing reduces GPU memory usage by avoiding the storage of int
 selected layers. The tradeoff is that computation cost for the backpropagation increases, as the dropped activations
 need to be recomputed.
 
-Enable checkpointing on large layers (like Transformers) by providing the layer class/type to the strategy:
+Enable checkpointing on large layers (like Transformers) by providing a policy:
 
 .. code-block:: python
 
     from lightning.pytorch.strategies import FSDPStrategy
 
-    fsdp = FSDPStrategy(activation_checkpointing=MyTransformerBlock)  # or pass a list with multiple types
+    if torch.__version__ >= "2.1":
+        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+
+        my_policy = ModuleWrapPolicy({MyTransformerBlock})
+        fsdp = FSDPStrategy(activation_checkpointing_policy=my_policy)
+    else:
+        fsdp = FSDPStrategy(activation_checkpointing=MyTransformerBlock)  # or pass a list with multiple types
+
     trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
 
 
