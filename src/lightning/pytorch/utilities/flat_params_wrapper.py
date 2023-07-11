@@ -24,11 +24,6 @@ from torch import Tensor
 import torch.nn as nn
 from lightning.pytorch.core.module import LightningModule
 
-# from fairscale.internal.state_dict import replace_by_prefix_
-
-# # See no_pre_load_state_dict_hook context manager function in FSDP for more details.
-# _enable_pre_load_state_dict_hook = True
-
 
 class FlatParameter(nn.Parameter):
     """A parameter that is initialized from a list of parameters and can be
@@ -64,93 +59,52 @@ class FlatParameter(nn.Parameter):
     def __init__(self, params: Sequence[nn.Parameter], requires_grad: bool = True):
         """Initialize the _param_numels and _param_shapes lists."""
         self._param_numels = [p.numel() for p in params]
-        assert self.numel() <= sum(
-            self._param_numels
-        ), f"Something wrong with __new__ method, {self.numel()} vs. {sum(self._param_numels)}"
+        
+        # TODO: Verify the number of parameters when sharding model
+        # assert self.numel() <= sum(
+        #     self._param_numels
+        # ), f"Something wrong with __new__ method, {self.numel()} vs. {sum(self._param_numels)}"
+        
         self._param_shapes = [p.size() for p in params]
-
         # These are set by FPW class below, not by this class itself.
         self._param_infos: List[Tuple[str, nn.Module, str]] = []
         self._shared_param_infos: List[Tuple[str, str, nn.Module, str, nn.Module, str]] = []
 
-    def get_param_views(self, external_data: Optional[Tensor] = None) -> Iterator[Tensor]:
+    def get_param_views(self) -> Iterator[Tensor]:
         """Return a generator of views that map to the original parameters."""
         # Note, self.data could be sharded, so its numel is <= to the sum.
         # TODO: Figure out what this means
-        # external_data probably refers to all parameters together when sharded,
-        # and so self.data would be a fraction of data 
         assert self.data.numel() <= sum(
             self._param_numels
         ), f"Incorrect internal state {self.data.numel()} vs. {sum(self._param_numels)}"
-        data = external_data if external_data is not None else self
-        if data.numel() != sum(self._param_numels):
+        if self.numel() != sum(self._param_numels):
             raise ValueError(
-                f"Incorrect numel of supplied data: got {data.numel()} but expected {sum(self._param_numels)}"
+                f"Incorrect numel of supplied data: got {self.numel()} but expected {sum(self._param_numels)}"
             )
-        return (t.view(s) for (t, s) in zip(data.split(self._param_numels), self._param_shapes))
-
-#     def metadata(self) -> Tuple[List[str], List[torch.Size], List[int]]:
-#         """Return tuple of (names, shapes, numels) metadata for this flat parameter."""
-#         names = [".".join([m, n]) if m else n for (m, _, n) in self._param_infos]
-#         return names, self._param_shapes, self._param_numels
-
-#     def __setstate__(self, state: Tuple[Any, Any, Any, Any]) -> None:
-#         """Use by pickle to set the internal states."""
-#         (self._param_numels, self._param_shapes, self._param_infos, self._shared_param_infos) = state
-#         assert self.numel() <= sum(
-#             self._param_numels
-#         ), f"Incorrect pickling {self.numel()} vs. {sum(self._param_numels)}"
-
-#     def __reduce_ex__(self, proto: int) -> Tuple[Any, Any, Any]:
-#         """Support pickling between ranks."""
-#         return (
-#             FlatParameter,  # Callable
-#             # Args to the callable above
-#             ([self.data], self.requires_grad),
-#             # Args to __setstate__
-#             (self._param_numels, self._param_shapes, self._param_infos, self._shared_param_infos),
-#         )
+        return (t.view(s) for (t, s) in zip(self.split(self._param_numels), self._param_shapes))
 
 
 class FlattenParamsWrapper(LightningModule):
     """
     A wrapper for transparently flattening a Module's parameters.
-
-    Compared to the original implementation [1], this version:
-    - removes tracing
-    - supports shared parameters
-    - handles state_dict/load_state_dict transparently
-    - is renamed to FlattenParamsWrapper
-    - refactored to use the FlatParameter class
-    - extended to support flattening multiple groups of params (useful
-      when different groups of params need different hyperparameters, like
-      learning rate or weight decay)
-
     [1] https://github.com/SsnL/PyTorch-Reparam-Module
+    [2] https://github.com/facebookresearch/fairscale/blob/main/fairscale/nn/misc/flatten_params_wrapper.py
 
     Args:
         module (lightning.LightningModule):
             The module to wrap.
-
-        Curently flatten all Parameters
-        ############################################
-        TODO: USE param_list, and flat_param_names in future update
         param_list (Optional[List[List[nn.Parameter]]]):
             Only flatten parameters appearing in the given groups.
-            If the param_list is an empty list, then no parameters will get flattened.
+            param_list cannot be an empty list.
             Note, if a single param is in one of the list, it still get flattened and the
             original param is removed and replaced with the flatten one.
             Default: None, flatten all parameters (if any)
-        flat_param_names (Optional[List[str]]):
-            originally, give each flat_param a unique name. Note a "flat_param_"
-            prefix will be added to those names.
-        ############################################
     """
 
     def __init__(
         self,
         module: LightningModule,
-        # param_list: Optional[Union[List[List[nn.Parameter]], List[nn.Parameter]]] = None,
+        param_list: Optional[List[List[nn.Parameter]]] = None,
         # flat_param_names: Optional[List[str]] = None,
     ):
         super().__init__()
@@ -158,33 +112,31 @@ class FlattenParamsWrapper(LightningModule):
         self.is_flattened = False
         self.optimizer_is_init = False
 
-        # TODO
-        # Handle param_list being None.
-        # if param_list is None:
-        #     param_list = list(module.parameters())
-
-        # TODO
         # Because self._fpw_module is LightningModule, all functions inherited from LightningModule must be overloaded with
         # functions from _fpw_module  
+        if param_list is None:
+            param_list = [list(module.parameters())]
 
-        # for now set param_list as all params
-        param_list = list(module.parameters())
-
-        # Be backward compatible and turn a single param list into a list of
-        # list.
-        if len(param_list) > 0 and isinstance(param_list[0], nn.Parameter):
-            param_list = [param_list]
+        # Be backward compatible and turn a single param list into a list of list.
+        # If input param_list is not List[List[nn.Parameter]] raise error
+        if len(param_list) == 0:
+            raise ValueError ("Parameter list cannot be empty")
+        if type(param_list).__name__ != 'list' or type(param_list[0]).__name__ != 'list':
+            raise ValueError ("Expected the parameter list to be a list of list")
 
         # Since the parameters will be deleted, let's record the number original
         # parameters managed by this class.
-        # TODO: Verify what this does, and add to implementation: This and get_param_views function
-        # below are used by fsdp_optim_utils.py to save/restore optimizer state,
-        # which mirrors the flatten parameters here.
         self.num_params_managed = 0
 
-        self._param_sets = []   # List containing Set(Tuple(the type of module (Conv) and the name 
-        # of the parameter (weight/bias)))
-
+        # List containing Set(Tuple(Module (Conv) and the name of the parameter (weight/bias)))
+        # Create a seperate set for each param group
+        # NOTE: Parameters cannot be shared across p_lists i.e the same parameter cannot exist in
+        # more than one list, as we will create seperate optimizers for each list if needed, and 
+        # a single parameter should not be optimized twice in the same iteration. Each group in 
+        # _param_sets is flattened individually.
+        self._param_sets = []   
+        
+        # Set of all flattened parameters
         overall_param_set: Set[nn.Parameter] = set()
         for p_list in param_list:
             # Remove any duplicates from the list.
@@ -197,15 +149,18 @@ class FlattenParamsWrapper(LightningModule):
             # which will survive in case the parameter instances are reset.
             # Also, a shared param will correctly appear under multiple modules
             # as they should.
+
+            # Set of Tuple(Module, param) of all parameters in current param_list that
+            # have to be flattened
             new_p_set_with_names = set()
             for m in self.modules():
                 for n, p in m.named_parameters(recurse=False): 
-                    # the FPW class is a module itself, and _fpw_module is
+                    # the FPW class is a nn.Module itself, and _fpw_module is
                     # a submodule here. Recursing over the _fpw_module, we 
-                    # have Conv2d, etc as submodules.
-                    # m will be the name of the final submodule, and as we
-                    # already recurse in the first for loop, we need not
-                    # recurse when searching for params  
+                    # have the layers of the model as submodules.
+                    # m will be the name of the final submodule which contains the parameters
+                    # such as conv layers, and as we already recurse over the entire model
+                    # in the first for loop, we need not recurse when searching for params  
                     if p in p_set:
                         new_p_set_with_names.add((m, n))
             if new_p_set_with_names:
@@ -216,11 +171,16 @@ class FlattenParamsWrapper(LightningModule):
             # have shared params across different p_list. That means part of
             # the flattened parameter must be shared, which is impossible to
             # support.
-            raise ValueError(f"Incorrect param groups {len(overall_param_set)} vs {self.num_param_managed}")
+            raise ValueError(f"Incorrect param groups {len(overall_param_set)} vs {self.num_param_managed}, some parameters appear in more than one param group")
 
+        # List of FlatParams() for each param group
         self.flat_params: List[nn.Parameter] = []
+        # Index of each parameter in the flat param group
+        self.params2idx = {}
+        self.idx2params = {}
 
         # Prepare flat param names.
+        # TODO: Only when flat_param_names is not given
         # if flat_param_names is None:
         flat_param_names = [f"{i}" for i, _ in enumerate(self._param_sets)]
         if len(flat_param_names) != len(self._param_sets):
@@ -231,60 +191,35 @@ class FlattenParamsWrapper(LightningModule):
         # flat_param: Optional[nn.Parameter] = None
 
         # Initialize all flat_params.
-        for new_p_set in self._param_sets:
+        # NOTE: All params may not be flattened
+        for i in range(len(self._param_sets)):
+            new_p_set = self._param_sets[i]
             params, param_infos, shared_param_infos = self._init_flatten_params(new_p_set)
             flat_param = FlatParameter(params, params[0].requires_grad)
             flat_param._param_infos = param_infos
             flat_param._shared_param_infos = shared_param_infos
             self.flat_params.append(flat_param)
-
-        # # Register hook to be called after state_dict() to remove the
-        # # "_fpw_module." prefix and before load_state_dict() to add it back.
-        # self._register_state_dict_hook(_post_state_dict_hook)
-        # self._register_load_state_dict_pre_hook(_pre_load_state_dict_hook)
-
-        # # Flag to indicate whether state_dict() should automatically unflatten
-        # # params. This defaults to True, but may be set to False if the user
-        # # explicitly requests a flat state dict via flat_state_dict().
-        # self._auto_unflatten_state_dict = True
-
-#     @property
-#     def module(self) -> Any:
-#         """Support fpw.module in case we are immitating DDP, which has .module
-#         property to the underlying module.
-#         """
-#         return self._fpw_module
-
-#     @property
-#     def flat_param(self) -> nn.Parameter:
-#         """We used to support only a single flat_param. This allows us to
-#         be backward compatible.
-#         """
-#         assert (
-#             len(self.flat_params) == 1
-#         ), f"Incorrect access to flat_param: len(self.flat_params)={len(self.flat_params)}"
-#         return self.flat_params[0]
+            for p in params:
+                self.params2idx[p] = i
+            self.idx2params[i] = params
+        # NOTE: The flattened parameters are actually set as parameters in configure_optimizers
+        # so that we can create an optimizer for the flattened params
 
     def _init_flatten_params(
         self, p_set: Set[Tuple[nn.Module, str]]
     ) -> Tuple[
         List[nn.Parameter], List[Tuple[str, nn.Module, str]], List[Tuple[str, str, nn.Module, str, nn.Module, str]]
     ]:
-        """Build metadata for need-to-be-flatten parameters and returns a list
-            contains the need-to-be-flatten parameters.
-
-            This also returns param_infos and shared_param_infos, which
-            will be attached to the flat parameter object.
-
+        """
         Args:
             p_set (set):
                 A set of (module, param_name) for a set of params that needed
                 to be flattened. There could be shared params in this set.
         """
         param_infos = []
-        # [(module_name='_fpw_module.0', Module=Conv2d(..), param_name=('weight))]
+        # [(module_name='_fpw_module.0', Module=Conv2d(..), param_name=('weight'))]
         shared_param_memo: Dict[nn.Parameter, Tuple[str, nn.Module, str]] = {}
-        # {param: (module_name='_fpw_module.0', Module=Conv2d(..), param_name=('weight))}
+        # {param: (module_name='_fpw_module.0', Module=Conv2d(..), param_name=('weight'))}
         shared_param_infos = []
         # [(module_name1, module_name2, Module1, param_name1, Module2, param_name2)]
         params = []
@@ -320,13 +255,6 @@ class FlattenParamsWrapper(LightningModule):
         assert len(params) == len(set(params)), "params list should not have dups"
         return params, param_infos, shared_param_infos
 
-#     @property
-#     def _param_infos(self) -> Iterator[Tuple[str, nn.Module, str]]:
-#         return chain(*[p._param_infos for p in self.flat_params])  # type: ignore
-
-#     @property
-#     def _shared_param_infos(self) -> Iterator[Tuple[str, str, nn.Module, str, nn.Module, str]]:
-#         return chain(*[p._shared_param_infos for p in self.flat_params])  # type: ignore
 
     def _flatten_params(self, flat_params: List[nn.Parameter]) -> None:
         """Flatten the managed parameters and replaced the original
@@ -341,14 +269,14 @@ class FlattenParamsWrapper(LightningModule):
         device = None
         for param in flat_params:
             for _, m, n in param._param_infos:
-                n_device = getattr(m, n).get_device()
+                n_device = getattr(m, n).device
                 if device is None:
                     device = n_device
                 if device != n_device:
                     raise ValueError(f"All tensors must be on the same device, got devices {device}, {n_device}")
                 delattr(m, n)
             for _, _, m, n, _, _ in param._shared_param_infos:
-                n_device = getattr(m, n).get_device()
+                n_device = getattr(m, n).device
                 if device is None:
                     device = n_device
                 if device != n_device:
@@ -361,38 +289,33 @@ class FlattenParamsWrapper(LightningModule):
             flat_param.data = flat_param.data.to(device)
             self.register_parameter(n, flat_param)
 
-        ## TODO: Check what this is for
-        # self.flat_params = flat_params
-
         # register the views as plain attributes
         self._unflatten_params_as_views()
 
-#     def _unflatten_params(self, external_data: Optional[List[Optional[Tensor]]] = None) -> None:
-#         """Undo flattening and create separate parameters from the already flattened
-#         self.flat_param or a user supplied external data.
-#         """
-#         assert self.is_flattened or external_data is not None
-#         self.is_flattened = False
+    def _unflatten_params(self) -> None:
+        """Undo flattening and create separate parameters from the already flattened
+        self.flat_param
+        """
+        assert self.is_flattened
+        self.is_flattened = False
 
-#         ps = self.get_param_views(external_data)
-#         for (_, m, n), p in zip(self._param_infos, ps):
-#             if hasattr(m, n):
-#                 delattr(m, n)
-#             m.register_parameter(n, nn.Parameter(p))
-#         for (_, _, m, n, shared_m, shared_n) in self._shared_param_infos:
-#             if hasattr(m, n):
-#                 delattr(m, n)
-#             m.register_parameter(n, getattr(shared_m, shared_n))
+        ps = self.get_param_views()
 
-#         # Delete the param views into the flat params since we will delete the
-#         # flat params next
-#         if hasattr(self._fpw_module, "_unflattened_param_views"):
-#             delattr(self._fpw_module, "_unflattened_param_views")
+        # Register parameters into original model
+        for fp in self.flat_params:
+            for (_, m, n), p in zip(fp._param_infos, ps):
+                if hasattr(m, n):
+                    delattr(m, n)
+                m.register_parameter(n, nn.Parameter(p))
+            for (_, _, m, n, shared_m, shared_n) in fp._shared_param_infos:
+                if hasattr(m, n):
+                    delattr(m, n)
+                m.register_parameter(n, getattr(shared_m, shared_n))
 
-#         for n in self.flat_param_names:
-#             # This ensures the flat params are removed from the module.
-#             delattr(self, n)
-#         self.flat_params = []
+        for n in self.flat_param_names:
+            # This ensures the flat params are removed from the module.
+            delattr(self, n)
+        self.flat_params = []
 
     def _unflatten_params_as_views(self) -> None:
         """Unlike ``_unflatten_params``, this function unflatten into views and keep
@@ -415,117 +338,7 @@ class FlattenParamsWrapper(LightningModule):
             for (_, _, m, n, shared_m, shared_n) in param._shared_param_infos:
                 setattr(m, n, getattr(shared_m, shared_n))
         
-
-#     @contextmanager
-#     def unflatten_params(self, flat_params: Optional[List[Tensor]] = None) -> Generator:
-#         """
-#         Unflatten params. If the current instance is already unflattened, then
-#         it will remain unflattened after the context manager exits.
-
-#         Args:
-#             flat_params (List[Tensor], Optional):
-#                 flat params to use for unflattening.
-#                 If provided, the current instance must be in a flattened state
-#                 at the start of the context manager. The provided Tensor must be
-#                 appropriately sized and will only be used within the context
-#                 manager. After the context manager exits, we will revert to
-#                 using ``self.flat_params``
-#                 Default: None.
-#         """
-#         assert (
-#             flat_params is None or self.is_flattened
-#         ), "Unflattening with external flat_param requires current instance to be flattened"
-
-#         orig_flattened = self.is_flattened
-#         if orig_flattened:
-#             orig_flat_params = self.flat_params
-#             self._unflatten_params(cast(Optional[List[Optional[Tensor]]], flat_params))
-
-#         # Put yield in a try...finally in case the caller catches the exception and handles
-#         # it. In that case, we need to properly handle the undoing of state here.
-#         try:
-#             yield
-#         finally:
-#             if orig_flattened:
-#                 self._flatten_params(orig_flat_params)
-
-#     def __getattr__(self, name: str) -> Any:
-#         """Forward missing attributes to wrapped module."""
-#         try:
-#             return super().__getattr__(name)  # defer to nn.Module's logic
-#         except AttributeError:
-#             return getattr(self.module, name)  # fallback to wrapped module
-
-#     def __getitem__(self, key: int) -> Any:
-#         """Forward indexing calls in case the module is a nn.Sequential."""
-#         return self.module.__getitem__(key)
-
-#     @typing.overload
-#     def state_dict(
-#         self, destination: Mapping[str, Tensor], prefix: str = ..., keep_vars: bool = ...
-#     ) -> Mapping[str, Tensor]:
-#         ...
-
-#     @typing.overload
-#     def state_dict(self, prefix: str = ..., keep_vars: bool = ...) -> "OrderedDict[str, Tensor]":
-#         ...
-
-#     # Since we have overloads above, we can use Any here.
-#     def state_dict(self, *args: Any, **kwargs: Any) -> Any:
-#         """Return the wrapped module's state_dict."""
-#         if self.is_flattened and self._auto_unflatten_state_dict:
-#             # Returns the original version.
-#             with self.unflatten_params():
-#                 return super().state_dict(*args, **kwargs)
-#         else:
-#             # Returns flattened version.
-#             return super().state_dict(*args, **kwargs)
-
-#     def flat_state_dict(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
-#         """Return the flattened state_dict."""
-#         assert self.is_flattened
-#         with self._no_auto_unflatten_state_dict():
-#             return self.state_dict(*args, **kwargs)
-
-#     @contextmanager
-#     def _no_auto_unflatten_state_dict(self) -> Generator:
-#         backup = self._auto_unflatten_state_dict
-#         self._auto_unflatten_state_dict = False
-#         # Put yield in a try...finally in case the caller catches the exception and handles
-#         # it. In that case, we need to properly handle the undoing of state.
-#         try:
-#             yield
-#         finally:
-#             self._auto_unflatten_state_dict = backup
-
-#     def load_state_dict(
-#         self, state_dict: Union[Dict[str, Tensor], "OrderedDict[str, Tensor]"], strict: bool = True
-#     ) -> NamedTuple:
-#         """
-#         Load a state dict. If necessary, ``unflatten_params`` will be called to
-#         match the input state_dict.
-#         """
-#         # Unflatten the module automatically if the state_dict is non-flat.
-#         # Note, we check the flat_param_ prefix since custom names can be given and flat_param_0 is
-#         # not always in the state dict's key list.
-#         if (
-#             self.num_params_managed > 0
-#             and self.is_flattened
-#             and not any(k.startswith("flat_param_") for k in state_dict.keys())
-#         ):
-#             # This object is flatten but state_dict is not. So we unflatten and load.
-#             with self.unflatten_params():
-#                 return super().load_state_dict(state_dict, strict)
-#         else:
-#             # Otherwise, load it as is but make older state dict compatible.
-#             if "flat_param" in state_dict:
-#                 state_dict["flat_param_0"] = state_dict["flat_param"]
-#                 del state_dict["flat_param"]
-#             return super().load_state_dict(state_dict, strict)
-
-    def forward(self, *args: Any, **kwargs: Any) -> Any:
-        # for n, m in self.named_modules():
-        #     print(n)
+    def forward(self, *args, **kwargs):
         self._unflatten_params_as_views()
         return self._fpw_module(*args, **kwargs)
 
@@ -533,56 +346,81 @@ class FlattenParamsWrapper(LightningModule):
         self._unflatten_params_as_views()
         return self._fpw_module.training_step(*args, **kwargs)
 
+    def validation_step(self , *args, **kwargs):
+        self._unflatten_params_as_views()
+        return self._fpw_module.training_step(*args, **kwargs)
+
+    def test_step(self , *args, **kwargs):
+        self._unflatten_params_as_views()
+        return self._fpw_module.test_step(*args, **kwargs)
+
+    def predict_step(self , *args, **kwargs):
+        return self._fpw_module.predict_step(*args, **kwargs)
+
+    def configure_callbacks(self):
+        return self._fpw_module.configure_callbacks()
+
+    def configure_gradient_clipping(self, optimizer, gradient_clip_val=None, gradient_clip_algorithm=None):
+        self._fpw_module.configure_gradient_clipping(optimizer, gradient_clip_val, gradient_clip_algorithm)
+
     def configure_optimizers(self, *args, **kwargs):
         # TODO: Change for multiple param groups
-        # Flatten parameters after determining initial optimizer
-        # optimizer = self._fpw_module.configure_optimizers(*args, **kwargs)
+        # TODO: Verify multiple param groups, one where some parameter is not included in any
+        # Get user defined optimizer
+        optimizer = self._fpw_module.configure_optimizers(*args, **kwargs)
+        optimizer_flattened = self._fpw_module.configure_optimizers(*args, **kwargs)
+        
+        # Handle the case of multiple optimizers by converting optimizers to a tuple
+        if type(optimizer).__name__ != 'tuple':
+            optimizer = (optimizer,)
+            optimizer_flattened = (optimizer_flattened,)
 
+        # Register FlatParams as parameters and delete old parameters 
         self._flatten_params(self.flat_params)
-        # optimizer.param_groups = [{'params': self.parameters()}]
-        # return optimizer
 
-        return torch.optim.Adam(self.parameters())
+        flat_params = 0
+        skipped_params = 0
+        for opt_idx in range(len(optimizer)):
+            for pg_idx in range(len(optimizer[opt_idx].param_groups)):
+                pg = optimizer[opt_idx].param_groups[pg_idx]
+                params = pg['params']
+                p = params[0]
+                idx = self.params2idx.get(p, None)
+                if idx is not None:
+                    assert self.idx2params[idx] == params, f"Flattened parameters at index {idx} and parameter group {pg_idx} do not match for optimizer {opt_idx}"
+                    flat_params += len(self.idx2params[idx])
+                    optimizer_flattened[opt_idx].param_groups[pg_idx]['params'] = [getattr(self, self.flat_param_names[idx])]
+                else:
+                    for p1 in params:
+                        assert self.params2idx.get(p1, None) == idx, f"Some parameters in this group are expected to be flattened while others are not"
+                        skipped_params += 1
 
-    def get_param_views(self, external_data_list: Optional[List[Optional[Tensor]]] = None) -> Iterator[Tensor]:
-        """Used to get a generator over all views from a list of external data list."""
-        params = self.flat_params
-        if external_data_list is None:
-            external_data_list = [None] * len(params)
-        assert len(external_data_list) == len(
-            params
-        ), f"Incorrect external data list: {len(external_data_list)} vs. {len(params)}"
+        assert flat_params == self.num_params_managed, f"All flattened parameters (total: {self.num_params_managed}) do not appear in the optimizer (total: {flat_params})"
+        assert flat_params + skipped_params == self.num_params_managed + len(list(self._fpw_module.parameters())), f"Total number parameters in the model (total: {self.num_params_managed + len(list(self._fpw_module.parameters()))}) does not match the number of parameters in all optimizers combined (total: {flat_params + skipped_params}): Some parameters are not optimized"
 
+        del optimizer
+        return optimizer_flattened
+
+    def manual_backward(self, loss, *args, **kwargs):
+        return self._fpw_module.manual_backward(loss, *args, **kwargs)
+
+    def backward(self, loss, *args, **kwargs):
+        return self._fpw_module.backward(loss, *args, **kwargs)
+
+    def lr_scheduler_step(self, scheduler, metric):
+        self._fpw_module.lr_scheduler_step(scheduler, metric)
+
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure=None):
+        self._fpw_module.optimizer_step(epoch, batch_idx, optimizer, optimizer_closure)
+
+    def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
+        self._fpw_module.optimizer_zero_grad(epoch, batch_idx, optimizer)
+
+    def get_param_views(self) -> Iterator[Tensor]:
+        """Used to get a generator over all views from a list of data list."""
+        params = self.flat_params        
         gens = []
-        for p, data in zip(params, external_data_list):
-            gens.append(p.get_param_views(data))  # type: ignore
+        for p in params:
+            gens.append(p.get_param_views())  # type: ignore
 
         return chain(*gens)
-
-#     def metadata(self, flat_param_idx: int) -> Tuple[List[str], Sequence[torch.Size], List[int]]:
-#         """Return metadata for a flat param given its index in the flat_params list."""
-#         return self.flat_params[flat_param_idx].metadata()  # type: ignore
-
-
-# def _post_state_dict_hook(
-#     module: nn.Module, state_dict: "OrderedDict[str, Tensor]", prefix: str, *args: Any
-# ) -> "OrderedDict[str, Tensor]":
-#     # Move everything from .fpw_module up one level.
-#     replace_by_prefix_(state_dict, prefix + "_fpw_module.", prefix)
-#     return state_dict
-
-
-# def _pre_load_state_dict_hook(
-#     state_dict: Union[Dict[str, Tensor], "OrderedDict[str, Tensor]"], prefix: str, *args: Any
-# ) -> None:
-#     if not _enable_pre_load_state_dict_hook:
-#         return
-#     # Push everything down to ._fpw_module level.
-#     replace_by_prefix_(state_dict, prefix, prefix + "_fpw_module.")
-#     # The flat_param_* keys actually needs to move one level up.
-#     flat_param_key = prefix + "_fpw_module.flat_param"
-#     for k in list(state_dict.keys()):
-#         if k.startswith(flat_param_key):
-#             last_part = k.split(".")[-1]
-#             assert last_part.startswith("flat_param_"), last_part
-#             replace_by_prefix_(state_dict, k, prefix + last_part)
