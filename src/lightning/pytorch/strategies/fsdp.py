@@ -54,7 +54,7 @@ from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
+from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 
 _distributed_available = torch.distributed.is_available()
 _fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
@@ -228,32 +228,32 @@ class FSDPStrategy(ParallelStrategy):
         if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
 
-    def _setup_model(self, model: Module) -> FullyShardedDataParallel:
+    def _setup_model(self, model: Module) -> Module:
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
-        # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
-        assert self.lightning_module is not None
-        if "auto_wrap_policy" in self.kwargs and any(
-            isinstance(mod, FullyShardedDataParallel) for mod in self.lightning_module.modules()
-        ):
-            del self.kwargs["auto_wrap_policy"]
-
-        log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
-
-        wrapped_module = FullyShardedDataParallel(
-            module=model,
-            process_group=self.process_group,
-            cpu_offload=self.cpu_offload,
-            mixed_precision=self.mixed_precision_config,
-            device_id=self.root_device.index,
-            **self.kwargs,
-        )
+        if any(isinstance(mod, FullyShardedDataParallel) for mod in model.modules()):
+            # the user wrapped at least one layer in `configure_model` already
+            if "auto_wrap_policy" in self.kwargs:
+                rank_zero_warn(
+                    "A FSDP `auto_wrap_policy` is set, but the model is already wrapped. The policy will be ignored."
+                )
+                del self.kwargs["auto_wrap_policy"]
+        else:
+            log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
+            model = FullyShardedDataParallel(
+                module=model,
+                process_group=self.process_group,
+                cpu_offload=self.cpu_offload,
+                mixed_precision=self.mixed_precision_config,
+                device_id=self.root_device.index,
+                **self.kwargs,
+            )
 
         # activation checkpointing needs to be set up after wrapping the model
         if _TORCH_GREATER_EQUAL_1_13 and self._activation_checkpointing:
-            _setup_activation_checkpointing(module=wrapped_module, layers=self._activation_checkpointing)
+            _setup_activation_checkpointing(module=model, layers=self._activation_checkpointing)
 
-        return wrapped_module
+        return model
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
