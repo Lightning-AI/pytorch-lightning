@@ -151,9 +151,11 @@ class ModuleAvailableCache:
 
     >>> ModuleAvailableCache("torch")
     Module 'torch' available
-    >>> bool(ModuleAvailableCache("torch"))
+    >>> bool(ModuleAvailableCache("torch.utils"))
     True
     >>> bool(ModuleAvailableCache("unknown_package"))
+    False
+    >>> bool(ModuleAvailableCache("unknown.module.path"))
     False
     """
 
