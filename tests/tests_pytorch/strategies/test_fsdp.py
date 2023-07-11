@@ -48,7 +48,7 @@ class TestFSDPModel(BoringModel):
         if self.layer is None:
             self._init_model()
 
-    def configure_sharded_model(self) -> None:
+    def configure_model(self) -> None:
         # the model is already wrapped with FSDP: no need to wrap again!
         if isinstance(self.layer, FullyShardedDataParallel):
             return
@@ -172,13 +172,13 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
 
     with torch.inference_mode():
         # Test entry point
-        trainer.test(model)  # model is wrapped, will not call `configure_sharded_model`
+        trainer.test(model)  # model is wrapped, will not call `configure_model`
 
         # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
         trainer.test(ckpt_path=model_path)
 
         # Predict entry point
-        trainer.predict(model)  # model is wrapped, will not call `configure_sharded_model`
+        trainer.predict(model)  # model is wrapped, will not call `configure_model`
 
         # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
         trainer.predict(ckpt_path=model_path)

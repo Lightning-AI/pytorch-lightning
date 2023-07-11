@@ -49,12 +49,12 @@ class ModelParallelBoringModel(BoringModel):
         super().__init__()
         self.layer = None
 
-    def configure_sharded_model(self) -> None:
+    def configure_model(self) -> None:
         if self.layer is None:
             self.layer = torch.nn.Linear(32, 2)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        self.configure_sharded_model()
+        self.configure_model()
 
 
 class ModelParallelBoringModelNoSchedulers(ModelParallelBoringModel):
@@ -74,12 +74,12 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         self.manual_backward(loss)
         opt.step()
 
-    def configure_sharded_model(self) -> None:
+    def configure_model(self) -> None:
         if self.layer is None:
             self.layer = torch.nn.Linear(32, 2)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        self.configure_sharded_model()
+        self.configure_model()
 
     @property
     def automatic_optimization(self) -> bool:
@@ -574,7 +574,7 @@ class ModelParallelClassificationModel(LightningModule):
     def make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
 
-    def configure_sharded_model(self) -> None:
+    def configure_model(self) -> None:
         # As of deepspeed v0.9.3, in ZeRO stage 3 all submodules need to be created within this hook,
         # including the metrics. Otherwise, modules that aren't affected by `deepspeed.zero.Init()`
         # won't be moved to the GPU. See https://github.com/microsoft/DeepSpeed/pull/3611
@@ -625,7 +625,7 @@ class ModelParallelClassificationModel(LightningModule):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         if not hasattr(self, "model"):
-            self.configure_sharded_model()
+            self.configure_model()
 
         # Lightning saves the lr schedulers, but DeepSpeed saves the optimizer states separately
         assert len(checkpoint["lr_schedulers"]) == 1
@@ -891,7 +891,7 @@ def test_deepspeed_multigpu_test(tmpdir):
 @pytest.mark.skip("Partial parameter partitioning for DeepSpeed is currently broken.")
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
-    """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_sharded_model``
+    """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_model``
     correctly converts all parameters to float16 when ``precision=16`` and runs successfully."""
 
     class TestModel(ModelParallelBoringModel):
@@ -899,7 +899,7 @@ def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
             super().__init__()
             self.layer_2 = torch.nn.Linear(32, 32)
 
-        def configure_sharded_model(self) -> None:
+        def configure_model(self) -> None:
             if self.layer is None:
                 self.layer = torch.nn.Linear(32, 2)
 

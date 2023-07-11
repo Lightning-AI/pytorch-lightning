@@ -93,9 +93,12 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
     trainer.strategy.barrier("post_setup")
 
 
-def _call_configure_sharded_model(trainer: "pl.Trainer") -> None:
+def _call_configure_model(trainer: "pl.Trainer") -> None:
     with trainer.strategy.model_sharded_context():
-        _call_lightning_module_hook(trainer, "configure_sharded_model")
+        _call_lightning_module_hook(trainer, "configure_sharded_model")  # legacy
+
+    with trainer.strategy.tensor_init_context(), trainer.strategy.model_sharded_context():
+        _call_lightning_module_hook(trainer, "configure_model")
 
 
 def _call_teardown_hook(trainer: "pl.Trainer") -> None:

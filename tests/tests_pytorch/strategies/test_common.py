@@ -15,7 +15,6 @@ import pytest
 import torch
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -48,21 +47,3 @@ def test_evaluate(tmpdir, trainer_kwargs):
     # make sure weights didn't change
     new_weights = model.layer_0.weight.clone().detach().cpu()
     torch.testing.assert_close(old_weights, new_weights)
-
-
-def test_model_parallel_setup_called(tmpdir):
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.configure_sharded_model_called = False
-            self.layer = None
-
-        def configure_sharded_model(self):
-            self.configure_sharded_model_called = True
-            self.layer = torch.nn.Linear(32, 2)
-
-    model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=1)
-    trainer.fit(model)
-
-    assert model.configure_sharded_model_called

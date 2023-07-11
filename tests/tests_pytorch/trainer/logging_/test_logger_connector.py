@@ -196,6 +196,7 @@ def test_fx_validator_integration(tmpdir):
         None: "`self.trainer` reference is not registered",
         "setup": "You can't",
         "configure_sharded_model": "You can't",
+        "configure_model": "You can't",
         "configure_optimizers": "You can't",
         "on_fit_start": "You can't",
         "train_dataloader": "You can't",
