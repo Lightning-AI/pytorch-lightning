@@ -14,7 +14,7 @@
 import functools
 import os
 import threading
-from contextlib import _GeneratorContextManager, contextmanager, nullcontext
+from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, List, Literal, Optional, Tuple, Type, TYPE_CHECKING, Union
@@ -64,7 +64,7 @@ if _TORCH_GREATER_EQUAL_2_0 and torch.distributed.is_available():
     _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD = True
 
 if TYPE_CHECKING:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision
 
     from lightning.fabric.wrappers import _FabricModule
 
@@ -320,22 +320,29 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     def clip_gradients_norm(  # type: ignore[override]
         self,
-        module: "FullyShardedDataParallel",
+        module: Module,
         optimizer: Optimizer,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
     ) -> Tensor:
         """Clip gradients by norm."""
-        rank_zero_warn("Gradient Clipping by Norm is currently experimental for FSDP. Proceed with Caution!")
+        from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+
+        if not isinstance(module, FullyShardedDataParallel):
+            # the root must be wrapped
+            raise TypeError(
+                "Gradient clipping with FSDP is only possible if the module passed to"
+                f" `{self.__class__.__name__}.clip_gradients_norm` is wrapped in `FullyShardedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
         self.precision.unscale_gradients(optimizer)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
     def clip_gradients_value(  # type: ignore[override]
-        self, module: "FullyShardedDataParallel", optimizer: Optimizer, clip_val: Union[float, int]
+        self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]
     ) -> None:
         """Clip gradients by value."""
-
         raise NotImplementedError(
             "FSDP currently does not support to clip gradients by value. "
             "Consider clipping by norm instead or choose another strategy!"
@@ -373,6 +380,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
+        # FIXME
         modules = [module for module in state.values() if isinstance(module, FSDP)]
         if len(modules) == 0:
             raise ValueError(
@@ -629,6 +637,7 @@ class _FSDPBackwardSyncControl(_BackwardSyncControl):
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
         if not isinstance(module, FullyShardedDataParallel):
+            # the root must be wrapped
             raise TypeError(
                 "Blocking backward sync is only possible if the module passed to"
                 f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `FullyShardedDataParallel`."
@@ -656,7 +665,7 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
     return any(isinstance(param, FlatParameter) for group in optimizer.param_groups for param in group["params"])
 
 
-def _get_sharded_state_dict_context(module: "FullyShardedDataParallel") -> _GeneratorContextManager:
+def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, None]:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
@@ -671,7 +680,7 @@ def _get_sharded_state_dict_context(module: "FullyShardedDataParallel") -> _Gene
     return state_dict_type_context
 
 
-def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> _GeneratorContextManager:
+def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> Generator[None, None, None]:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import FullOptimStateDictConfig, FullStateDictConfig, StateDictType
 
@@ -792,7 +801,7 @@ def _apply_optimizers_during_fsdp_backward(
 def fsdp_overlap_step_with_backward(
     optimizers: Union[Optimizer, Iterable[Optimizer]],
     fabric_module: "_FabricModule",
-) -> _GeneratorContextManager:
+) -> Generator[None, None, None]:
     from lightning.fabric.wrappers import _FabricModule
 
     assert isinstance(fabric_module, _FabricModule)
