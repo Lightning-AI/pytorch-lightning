@@ -467,7 +467,7 @@ class Strategy(ABC):
             self.checkpoint_io.remove_checkpoint(filepath)
 
     @contextmanager
-    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator:
+    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
         """Controls how tensors get created (device, dtype).
 
         Args:
@@ -480,7 +480,7 @@ class Strategy(ABC):
             yield
 
     @contextmanager
-    def model_sharded_context(self) -> Generator:
+    def model_sharded_context(self) -> Generator[None, None, None]:
         """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly, which is useful for extremely large models which can save memory and
         initialization time.

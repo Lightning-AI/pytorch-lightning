@@ -499,7 +499,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.model = model
 
     @contextmanager
-    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator:
+    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
         if self.zero_stage_3:
             if empty_init is False:
                 raise NotImplementedError(
@@ -507,7 +507,8 @@ class DeepSpeedStrategy(DDPStrategy):
                 )
             yield
             return
-        return super().tensor_init_context(empty_init=empty_init)
+        with super().tensor_init_context(empty_init=empty_init):
+            yield
 
     @contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:

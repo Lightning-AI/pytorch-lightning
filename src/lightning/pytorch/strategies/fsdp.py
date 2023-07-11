@@ -316,7 +316,7 @@ class FSDPStrategy(ParallelStrategy):
             yield
 
     @contextmanager
-    def model_sharded_context(self) -> Generator:
+    def model_sharded_context(self) -> Generator[None, None, None]:
         log.debug(f"{self.__class__.__name__}: entered model_sharded_context.")
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
