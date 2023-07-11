@@ -57,8 +57,8 @@ jobs:
           aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
@@ -109,8 +109,8 @@ jobs:
           aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
