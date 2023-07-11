@@ -476,7 +476,9 @@ class Fabric:
         return move_data_to_device(obj, device=self.device)
 
     def print(self, *args: Any, **kwargs: Any) -> None:
-        """Print something only on the first process.
+        """Print the arguments to standard output. When running on multiple devices on a single node, this method
+        will only print from one process to avoid redundant outputs. When running across multiple nodes, this
+        method will print from one process in each node.
 
         Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
         """
