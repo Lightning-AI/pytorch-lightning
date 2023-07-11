@@ -12,7 +12,7 @@ def test_ddp_is_distributed():
         _ = strategy.is_distributed
 
 
-@RunIf(min_torch="1.12")
+@RunIf(min_torch="1.13")
 def test_fsdp_activation_checkpointing(monkeypatch):
     with pytest.raises(ValueError, match="cannot set both `activation_checkpointing"):
         FSDPStrategy(activation_checkpointing=torch.nn.Linear, activation_checkpointing_policy=lambda *_: True)
