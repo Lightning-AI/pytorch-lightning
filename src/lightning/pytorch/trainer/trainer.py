@@ -1068,6 +1068,16 @@ class Trainer:
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn, local_rank=local_rank, log_dir=self.log_dir)
 
+    def print(self, *args: Any, **kwargs: Any) -> None:
+        """Print the arguments to standard output. When running on multiple devices on a single node, this method
+        will only print from one process to avoid redundant outputs. When running across multiple nodes, this
+        method will print from one process in each node.
+
+        Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
+        """
+        if self.local_rank == 0:
+            print(*args, **kwargs)
+
     """
     Accelerator properties
     """

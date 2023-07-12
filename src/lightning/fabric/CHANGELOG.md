@@ -80,6 +80,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Automatically call `xla_model.mark_step()` after `optimizer.step()` with XLA ([#17883](https://github.com/Lightning-AI/lightning/pull/17883))
 
 
+- Added support for all half-precision modes in FSDP precision plugin ([#17807](https://github.com/Lightning-AI/lightning/pull/17807))
+
+
+- Added validation against misconfigured device selection when using the DeepSpeed strategy ([#17952](https://github.com/Lightning-AI/lightning/pull/17952))
+
+
+- Added a callback for spike-detection ([#18014](https://github.com/Lightning-AI/lightning/pull/18014))
+
+
 ### Changed
 
 - Allow using iterable-style datasets with TPUs ([#17331](https://github.com/Lightning-AI/lightning/pull/17331))
@@ -149,6 +158,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed an issue causing the `torch.set_float32_matmul_precision` info message to show multiple times ([#17960](https://github.com/Lightning-AI/lightning/pull/17960))
+
+
+- Fixed loading model state when `Fabric.load()` is called after `Fabric.setup()` ([#17997](https://github.com/Lightning-AI/lightning/pull/17997))
+
+
+- Fixed FSDP re-applying activation checkpointing when the user had manually applied it already ([#18006](https://github.com/Lightning-AI/lightning/pull/18006))
 
 
 - Fixed computing the next version folder in `CSVLogger` ([#17139](https://github.com/Lightning-AI/lightning/pull/17139), [#17139](https://github.com/Lightning-AI/lightning/pull/17986))

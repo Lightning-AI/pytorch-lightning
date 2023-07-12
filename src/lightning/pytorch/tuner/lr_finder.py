@@ -393,6 +393,9 @@ class _LRCallback(Callback):
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
 
+        if outputs is None:
+            return
+
         if self.progress_bar:
             self.progress_bar.update()
 
