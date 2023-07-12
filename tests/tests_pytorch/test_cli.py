@@ -327,6 +327,13 @@ def test_lightning_cli_save_config_seed_everything(cleandir):
     assert isinstance(config["seed_everything"], int)
     assert config["seed_everything"] == cli.config.fit.seed_everything
 
+    cli_args = ["--seed_everything=true", "--trainer.logger=false"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(BoringModel, run=False)
+    config = yaml.safe_load(config_path.read_text())
+    assert isinstance(config["seed_everything"], int)
+    assert config["seed_everything"] == cli.config.seed_everything
+
 
 def test_save_to_log_dir_false_error():
     with pytest.raises(ValueError):
