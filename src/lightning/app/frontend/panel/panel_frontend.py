@@ -35,6 +35,7 @@ def _has_panel_autoreload() -> bool:
     """Returns True if the PANEL_AUTORELOAD environment variable is set to 'yes' or 'true'.
 
     Please note the casing of value does not matter
+
     """
     return os.environ.get("PANEL_AUTORELOAD", "no").lower() in ["yes", "y", "true"]
 
@@ -98,6 +99,7 @@ class PanelFrontend(Frontend):
     For development you can get Panel autoreload by setting the ``PANEL_AUTORELOAD``
     environment variable to 'yes', i.e. run
     ``PANEL_AUTORELOAD=yes lightning run app app_basic.py``
+
     """
 
     @requires("panel")

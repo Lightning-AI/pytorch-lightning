@@ -60,6 +60,7 @@ class GradientAccumulationScheduler(Callback):
         # because epoch (key) should be zero-indexed.
         >>> accumulator = GradientAccumulationScheduler(scheduling={4: 2})
         >>> trainer = Trainer(callbacks=[accumulator])
+
     """
 
     def __init__(self, scheduling: Dict[int, int]):
@@ -99,8 +100,7 @@ class GradientAccumulationScheduler(Callback):
         return accumulate_grad_batches
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Performns a configuration validation before training starts and raises errors for incompatible
-        settings."""
+        """Performns a configuration validation before training starts and raises errors for incompatible settings."""
 
         if not pl_module.automatic_optimization:
             raise RuntimeError(

@@ -31,12 +31,13 @@ class XLAProfiler(Profiler):
     }
 
     def __init__(self, port: int = 9012) -> None:
-        """XLA Profiler will help you debug and optimize training workload performance for your models using Cloud
-        TPU performance tools.
+        """XLA Profiler will help you debug and optimize training workload performance for your models using Cloud TPU
+        performance tools.
 
         Args:
             port: the port to start the profiler server on. An exception is
                 raised if the provided port is invalid or busy.
+
         """
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))

@@ -26,6 +26,7 @@ def _add_comment_to_literal_code(method, contains, comment):
     """Inspects a method's code and adds a message to it.
 
     This is a nice to have, so if it fails for some reason, it shouldn't affect the program.
+
     """
     try:
         lines = inspect.getsource(method)

@@ -25,6 +25,7 @@ class SIGTERMException(SystemExit):
 
     For example, you could use the :class:`lightning.pytorch.callbacks.fault_tolerance.OnExceptionCheckpoint` callback
     that saves a checkpoint for you when this exception is raised.
+
     """
 
 

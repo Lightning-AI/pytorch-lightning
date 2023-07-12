@@ -74,8 +74,7 @@ def test_ddp_no_backward_sync():
 
 @mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel")
 def test_ddp_extra_kwargs(ddp_mock):
-    """Test that additional kwargs passed to the DDPStrategy get passed down to the DistributedDataParallel
-    wrapper."""
+    """Test that additional kwargs passed to the DDPStrategy get passed down to the DistributedDataParallel wrapper."""
     module = torch.nn.Linear(1, 1)
     strategy = DDPStrategy(parallel_devices=[torch.device("cpu"), torch.device("cpu")])
     strategy.setup_module(module)

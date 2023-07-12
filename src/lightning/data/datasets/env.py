@@ -10,6 +10,7 @@ class _DistributedEnv:
     Args:
         world_size: The number of total distributed training processes
         global_rank: The rank of the current process within this pool of training processes
+
     """
 
     def __init__(self, world_size: int, global_rank: int):
@@ -24,6 +25,7 @@ class _DistributedEnv:
             This detection may not work in processes spawned from the distributed processes (e.g. DataLoader workers)
             as the distributed framework won't be initialized there.
             It will default to 1 distributed process in this case.
+
         """
         if torch.distributed.is_available() and torch.distributed.is_initialized():
             world_size = torch.distributed.get_world_size()
@@ -50,6 +52,7 @@ class _WorkerEnv:
     Args:
         world_size: The number of dataloader workers for the current training process
         rank: The rank of the current worker within the number of workers
+
     """
 
     def __init__(self, world_size: int, rank: int):
@@ -63,6 +66,7 @@ class _WorkerEnv:
         Note:
             This only works reliably within a dataloader worker as otherwise the necessary information won't be present.
             In such a case it will default to 1 worker
+
         """
         worker_info = get_worker_info()
         num_workers = worker_info.num_workers if worker_info is not None else 1
@@ -83,6 +87,7 @@ class Environment:
     Args:
         dist_env: The distributed environment (distributed worldsize and global rank)
         worker_env: The worker environment (number of workers, worker rank)
+
     """
 
     def __init__(self, dist_env: Optional[_DistributedEnv], worker_env: Optional[_WorkerEnv]):
@@ -105,6 +110,7 @@ class Environment:
             num_workers: The number of workers per distributed training process
             current_worker_rank: The rank of the current worker within the number of workers of
                 the current training process
+
         """
         dist_env = _DistributedEnv(dist_world_size, global_rank)
         worker_env = _WorkerEnv(num_workers, current_worker_rank)
@@ -117,6 +123,7 @@ class Environment:
         Note:
             This may not be accurate in a non-dataloader-worker process like the main training process
             as it doesn't necessarily know about the number of dataloader workers.
+
         """
         assert self.worker_env is not None
         assert self.dist_env is not None
@@ -129,6 +136,7 @@ class Environment:
         Note:
             This may not be accurate in a non-dataloader-worker process like the main training process as it
             doesn't necessarily know about the number of dataloader workers.
+
         """
         assert self.worker_env is not None
         assert self.dist_env is not None

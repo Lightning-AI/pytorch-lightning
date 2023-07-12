@@ -99,6 +99,7 @@ class BasePredictionWriter(Callback):
         trainer = Trainer(accelerator="gpu", strategy="ddp", devices=8, callbacks=[pred_writer])
         model = BoringModel()
         trainer.predict(model, return_predictions=False)
+
     """
 
     def __init__(self, write_interval: Literal["batch", "epoch", "batch_and_epoch"] = "batch") -> None:

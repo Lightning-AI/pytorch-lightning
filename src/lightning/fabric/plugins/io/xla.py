@@ -28,6 +28,7 @@ class XLACheckpointIO(TorchCheckpointIO):
     """CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -46,6 +47,7 @@ class XLACheckpointIO(TorchCheckpointIO):
         Raises:
             TypeError:
                 If ``storage_options`` arg is passed in
+
         """
         if storage_options is not None:
             raise TypeError(

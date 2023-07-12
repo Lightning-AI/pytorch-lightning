@@ -28,4 +28,5 @@ class BaseType(abc.ABCMeta):
         """Take the inputs from the network and deserilize/convert them them.
 
         Output from this method will go to the exposed method as arguments.
+
         """

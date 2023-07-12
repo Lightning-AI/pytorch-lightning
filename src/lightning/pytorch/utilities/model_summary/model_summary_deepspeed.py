@@ -85,6 +85,7 @@ class DeepSpeedSummary(ModelSummary):
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
+
         """
         arrays = [
             (" ", list(map(str, range(len(self._layer_summary))))),

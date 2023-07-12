@@ -62,6 +62,7 @@ class Profiler(ABC):
 
         The profiler will start once you've entered the context and will automatically
         stop once you exit the code block.
+
         """
         try:
             self.start(action_name)
@@ -134,6 +135,7 @@ class Profiler(ABC):
         """Execute arbitrary post-profiling tear-down steps.
 
         Closes the currently open file and stream.
+
         """
         self._write_stream = None
         if self._output_file is not None:

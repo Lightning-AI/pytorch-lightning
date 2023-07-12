@@ -155,6 +155,7 @@ def test_lbfgs_cpu_model(tmpdir):
     """Test each of the trainer options.
 
     Testing LBFGS optimizer
+
     """
     seed_everything(42)
 
@@ -247,6 +248,7 @@ def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_dataloader`.
 
     It performs train and test only
+
     """
     seed_everything(42)
 

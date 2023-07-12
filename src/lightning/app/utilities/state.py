@@ -93,6 +93,7 @@ class AppState:
             my_affiliation: A tuple describing the affiliation this app state represents. When storing a state dict
                 on this AppState, this affiliation will be used to reduce the scope of the given state.
             plugin: A plugin to handle authorization.
+
         """
         self._use_localhost = "LIGHTNING_APP_STATE_URL" not in os.environ
         self._host = host or ("http://127.0.0.1" if self._use_localhost else None)
@@ -132,6 +133,7 @@ class AppState:
 
         For example, if the affiliation is ``("root", "subflow")``, then the returned state will be
         ``state["flows"]["subflow"]``.
+
         """
         children_state = state
         for name in my_affiliation:

@@ -95,6 +95,7 @@ def _configure_session() -> Session:
     """Configures the session for GET and POST requests.
 
     It enables a generous retrial strategy that waits for the application server to connect.
+
     """
     retry_strategy = Retry(
         # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
@@ -124,10 +125,10 @@ def _get_next_backoff_time(num_retries: int, backoff_value: float = 0.5) -> floa
 
 
 def _retry_wrapper(self, func: Callable) -> Callable:
-    """Returns the function decorated by a wrapper that retries the call several times if a connection error
-    occurs.
+    """Returns the function decorated by a wrapper that retries the call several times if a connection error occurs.
 
     The retries follow an exponential backoff.
+
     """
 
     @wraps(func)
@@ -169,6 +170,7 @@ class LightningClient(GridRestClient):
 
     Args:
         retry: Whether API calls should follow a retry mechanism with exponential backoff.
+
     """
 
     def __init__(self, retry: bool = True) -> None:
@@ -269,5 +271,6 @@ class HTTPClient:
 
         We enabled customisation here instead of just using `logger.debug` because HTTP logging can be very noisy, but
         it is crucial for finding bugs when we have them
+
         """
         pass

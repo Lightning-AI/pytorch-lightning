@@ -139,11 +139,12 @@ def test_update_dataloader_typerror_custom_exception():
 
 @pytest.mark.parametrize("predicting", [True, False])
 def test_custom_batch_sampler(predicting):
-    """This test asserts, that custom `BatchSampler`, with all the arguments, that are required in order to
-    properly reinstantiate the class, is invoked properly.
+    """This test asserts, that custom `BatchSampler`, with all the arguments, that are required in order to properly
+    reinstantiate the class, is invoked properly.
 
     It also asserts, that during the reinstantiation, the wrapper of `__init__` method is not present anymore, therefore
     not setting `__pl_saved_{args,arg_names,kwargs}` attributes.
+
     """
 
     class MyBatchSampler(BatchSampler):
@@ -189,8 +190,8 @@ def test_custom_batch_sampler(predicting):
 
 
 def test_custom_batch_sampler_no_drop_last():
-    """Tests whether appropriate warning is raised when the custom `BatchSampler` does not support `drop_last` and
-    we want to reset it."""
+    """Tests whether appropriate warning is raised when the custom `BatchSampler` does not support `drop_last` and we
+    want to reset it."""
 
     class MyBatchSampler(BatchSampler):
         # Custom batch sampler with extra argument, but without `drop_last`
@@ -217,8 +218,7 @@ def test_custom_batch_sampler_no_drop_last():
 
 
 def test_custom_batch_sampler_no_sampler():
-    """Tests whether appropriate error is raised when the custom `BatchSampler` does not support sampler
-    argument."""
+    """Tests whether appropriate error is raised when the custom `BatchSampler` does not support sampler argument."""
 
     class MyBatchSampler(BatchSampler):
         # Custom batch sampler, without sampler argument.
@@ -269,10 +269,10 @@ def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
 
 
 def test_dataloader_kwargs_replacement_with_array_default_comparison():
-    """Test that the comparison of attributes and default argument values works with arrays (truth value
-    ambiguous).
+    """Test that the comparison of attributes and default argument values works with arrays (truth value ambiguous).
 
     Regression test for issue #15408.
+
     """
     dataset = RandomDataset(5, 100)
 

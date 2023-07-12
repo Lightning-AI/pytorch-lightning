@@ -20,6 +20,7 @@ class PassThroughProfiler(Profiler):
     """This class should be used when you don't want the (small) overhead of profiling.
 
     The Trainer uses this class by default.
+
     """
 
     def start(self, action_name: str) -> None:

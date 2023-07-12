@@ -52,6 +52,7 @@ class ServableModule(ABC, torch.nn.Module):
         )
         trainer.fit(ServableBoringModel())
         assert serve_cb.resp.json() == {"output": [0, 1]}
+
     """
 
     @abstractmethod
@@ -67,6 +68,7 @@ class ServableModule(ABC, torch.nn.Module):
 
         The second dictionary contains the name of the ``serve_step`` output variables name as its keys
         and the associated serialization function (e.g function to convert a tensors into payload).
+
         """
 
     @abstractmethod
@@ -84,6 +86,7 @@ class ServableModule(ABC, torch.nn.Module):
 
         Return:
             - ``dict`` - A dictionary with their associated tensors.
+
         """
 
     @abstractmethod

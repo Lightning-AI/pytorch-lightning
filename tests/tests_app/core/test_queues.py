@@ -21,6 +21,7 @@ def test_queue_api(queue_type, monkeypatch):
     """Test the Queue API.
 
     This test run all the Queue implementation but we monkeypatch the Redis Queues to avoid external interaction
+
     """
     import redis
 

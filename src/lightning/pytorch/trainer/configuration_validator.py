@@ -27,6 +27,7 @@ def _verify_loop_configurations(trainer: "pl.Trainer") -> None:
 
     Args:
         trainer: Lightning Trainer. Its `lightning_module` (the model) to check the configuration.
+
     """
     model = trainer.lightning_module
 

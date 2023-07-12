@@ -483,8 +483,8 @@ class RunPathWork(LightningWork):
 
 
 def test_path_as_argument_to_run_method():
-    """Test that Path objects can be passed as arguments to the run() method of a Work in various ways such that
-    the origin, consumer and queues get automatically attached."""
+    """Test that Path objects can be passed as arguments to the run() method of a Work in various ways such that the
+    origin, consumer and queues get automatically attached."""
     root = RunPathFlow()
     app = LightningApp(root)
     MultiProcessRuntime(app, start_server=False).dispatch()
@@ -621,8 +621,8 @@ def test_path_response_not_matching_reqeuest(tmpdir):
 
 
 def test_path_exists(tmpdir):
-    """Test that the Path.exists() behaves as expected: First it should check if the file exists locally, and if
-    not, send a message to the orchestrator to eventually check the existenc on the origin Work."""
+    """Test that the Path.exists() behaves as expected: First it should check if the file exists locally, and if not,
+    send a message to the orchestrator to eventually check the existenc on the origin Work."""
     # Local Path (no Work queues attached)
     assert not Path("file").exists()
     assert Path(tmpdir).exists()

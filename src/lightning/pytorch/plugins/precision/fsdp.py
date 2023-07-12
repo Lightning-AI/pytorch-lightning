@@ -32,6 +32,7 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
     """AMP for Fully Sharded Data Parallel (FSDP) Training.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     """
 
     def __init__(
@@ -81,5 +82,6 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
         """For FSDP, this context manager is a no-op since conversion is already handled internally.
 
         See: https://pytorch.org/docs/stable/fsdp.html for more details on mixed precision.
+
         """
         yield

@@ -897,6 +897,7 @@ def test_lightning_cli_custom_subcommand():
                 model: A model
                 x: The x
                 y: The y
+
             """
 
     class TestCLI(LightningCLI):

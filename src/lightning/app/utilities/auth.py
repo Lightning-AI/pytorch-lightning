@@ -42,6 +42,7 @@ def _credential_string_to_basic_auth_params(credential_string: str) -> Dict[str,
     """Returns the name/ID pair for each given Secret name.
 
     Raises a `ValueError` if any of the given Secret names do not exist.
+
     """
     if credential_string.count(":") != 1:
         raise ValueError(

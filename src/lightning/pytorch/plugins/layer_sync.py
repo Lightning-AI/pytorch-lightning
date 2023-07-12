@@ -33,10 +33,10 @@ class LayerSync(ABC):
 
 
 class TorchSyncBatchNorm(LayerSync):
-    """A plugin that wraps all batch normalization layers of a model with synchronization logic for
-    multiprocessing.
+    """A plugin that wraps all batch normalization layers of a model with synchronization logic for multiprocessing.
 
     This plugin has no effect in single-device operation.
+
     """
 
     def apply(self, model: Module) -> Module:
@@ -50,6 +50,7 @@ class TorchSyncBatchNorm(LayerSync):
 
         Return:
             LightningModule with batchnorm layers synchronized within the process groups.
+
         """
         return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
@@ -61,6 +62,7 @@ class TorchSyncBatchNorm(LayerSync):
 
         Return:
             LightningModule with regular batchnorm layers that will no longer sync across processes.
+
         """
         # Code adapted from https://github.com/pytorch/pytorch/issues/41081#issuecomment-783961547
         # Original author: Kapil Yedidi (@kapily)

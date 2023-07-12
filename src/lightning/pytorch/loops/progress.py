@@ -45,6 +45,7 @@ class _ReadyCompletedTracker(_BaseProgress):
         completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
 
     These attributes should be increased in order, that is, :attr:`ready` first and :attr:`completed` last.
+
     """
 
     ready: int = 0
@@ -60,6 +61,7 @@ class _ReadyCompletedTracker(_BaseProgress):
 
         If there is a failure before all attributes are increased, restore the attributes to the last fully completed
         value.
+
         """
         self.ready = self.completed
 
@@ -74,6 +76,7 @@ class _StartedTracker(_ReadyCompletedTracker):
         completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
 
     These attributes should be increased in order, that is, :attr:`ready` first and :attr:`completed` last.
+
     """
 
     started: int = 0
@@ -98,6 +101,7 @@ class _ProcessedTracker(_StartedTracker):
         completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
 
     These attributes should be increased in order, that is, :attr:`ready` first and :attr:`completed` last.
+
     """
 
     processed: int = 0
@@ -118,6 +122,7 @@ class _Progress(_BaseProgress):
     Args:
         total: Intended to track the total progress of an event.
         current: Intended to track the current progress of an event.
+
     """
 
     total: _ReadyCompletedTracker = field(default_factory=_ProcessedTracker)
@@ -177,6 +182,7 @@ class _BatchProgress(_Progress):
         total: Tracks the total batch progress.
         current: Tracks the current batch progress.
         is_last_batch: Whether the batch is the last one. This is useful for iterable datasets.
+
     """
 
     is_last_batch: bool = False
@@ -203,6 +209,7 @@ class _SchedulerProgress(_Progress):
     Args:
         total: Tracks the total scheduler progress.
         current: Tracks the current scheduler progress.
+
     """
 
     total: _ReadyCompletedTracker = field(default_factory=_ReadyCompletedTracker)
@@ -216,6 +223,7 @@ class _OptimizerProgress(_BaseProgress):
     Args:
         step: Tracks ``optimizer.step`` calls.
         zero_grad: Tracks ``optimizer.zero_grad`` calls.
+
     """
 
     step: _Progress = field(default_factory=lambda: _Progress.from_defaults(_ReadyCompletedTracker))
@@ -244,6 +252,7 @@ class _OptimizationProgress(_BaseProgress):
 
     Args:
         optimizer: Tracks optimizer progress.
+
     """
 
     optimizer: _OptimizerProgress = field(default_factory=_OptimizerProgress)

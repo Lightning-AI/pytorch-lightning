@@ -31,8 +31,7 @@ DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27
 
 
 def _create_synth_kitti_dataset(path_dir: str, image_dims: tuple = (1024, 512)):
-    """Create synthetic dataset with random images, just to simulate that the dataset have been already
-    downloaded."""
+    """Create synthetic dataset with random images, just to simulate that the dataset have been already downloaded."""
     path_dir_images = os.path.join(path_dir, KITTI.IMAGE_PATH)
     path_dir_masks = os.path.join(path_dir, KITTI.MASK_PATH)
     for p_dir in (path_dir_images, path_dir_masks):
@@ -65,6 +64,7 @@ class KITTI(Dataset):
     In the `get_item` function, images and masks are resized to the given `img_size`, masks are
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
+
     """
 
     IMAGE_PATH = os.path.join("training", "image_2")
@@ -154,6 +154,7 @@ class UNet(nn.Module):
         (5): Conv2d(64, 2, kernel_size=(1, 1), stride=(1, 1))
       )
     )
+
     """
 
     def __init__(self, num_classes: int = 19, num_layers: int = 5, features_start: int = 64, bilinear: bool = False):
@@ -200,6 +201,7 @@ class DoubleConv(nn.Module):
     DoubleConv(
       (net): Sequential(...)
     )
+
     """
 
     def __init__(self, in_ch: int, out_ch: int):
@@ -229,6 +231,7 @@ class Down(nn.Module):
         )
       )
     )
+
     """
 
     def __init__(self, in_ch: int, out_ch: int):
@@ -240,8 +243,8 @@ class Down(nn.Module):
 
 
 class Up(nn.Module):
-    """Upsampling (by either bilinear interpolation or transpose convolutions) followed by concatenation of feature
-    map from contracting path, followed by double 3x3 convolution.
+    """Upsampling (by either bilinear interpolation or transpose convolutions) followed by concatenation of feature map
+    from contracting path, followed by double 3x3 convolution.
 
     >>> Up(8, 4)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     Up(
@@ -250,6 +253,7 @@ class Up(nn.Module):
         (net): Sequential(...)
       )
     )
+
     """
 
     def __init__(self, in_ch: int, out_ch: int, bilinear: bool = False):
@@ -306,6 +310,7 @@ class SegModel(LightningModule):
         )
       )
     )
+
     """
 
     def __init__(

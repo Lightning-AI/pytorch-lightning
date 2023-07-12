@@ -26,6 +26,7 @@ class XLAAccelerator(Accelerator):
     """Accelerator for XLA devices, normally TPUs.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

@@ -10,6 +10,7 @@ class Locust(LightningWork):
 
         Arguments:
             num_users: Number of users emulated by Locust
+
         """
         # Note: Using the default port 8089 of Locust.
         super().__init__(

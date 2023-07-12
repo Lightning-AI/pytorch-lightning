@@ -53,6 +53,7 @@ class RunningStage(LightningEnum):
         - ``TrainerFn.VALIDATING`` - ``RunningStage.VALIDATING``
         - ``TrainerFn.TESTING`` - ``RunningStage.TESTING``
         - ``TrainerFn.PREDICTING`` - ``RunningStage.PREDICTING``
+
     """
 
     TRAINING = "train"

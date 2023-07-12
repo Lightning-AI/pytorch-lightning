@@ -118,6 +118,7 @@ def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
     Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+
     """
     import logging
 

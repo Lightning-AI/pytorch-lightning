@@ -134,6 +134,7 @@ class XLAStrategy(ParallelStrategy):
             sync_grads: flag that allows users to synchronize gradients for the all-gather operation.
         Return:
             A tensor of shape (world_size, ...)
+
         """
         if not self._launched:
             return tensor
@@ -229,6 +230,7 @@ class XLAStrategy(ParallelStrategy):
             storage_options: Additional options for the ``CheckpointIO`` plugin
             filter: An optional dictionary of the same format as ``state`` mapping keys to callables that return a
                 boolean indicating whether the given parameter should be saved (``True``) or filtered out (``False``).
+
         """
         import torch_xla.core.xla_model as xm
 
@@ -242,6 +244,7 @@ class XLAStrategy(ParallelStrategy):
 
         Args:
             filepath: Path to checkpoint
+
         """
         if self.local_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)

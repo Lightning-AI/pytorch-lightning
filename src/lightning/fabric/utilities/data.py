@@ -175,8 +175,8 @@ def _dataloader_init_kwargs_resolve_sampler(
     sampler: Union[Sampler, Iterable],
     disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:
-    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
-    re-instantiation."""
+    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its re-
+    instantiation."""
     batch_sampler = getattr(dataloader, "batch_sampler")
 
     if batch_sampler is not None:
@@ -362,6 +362,7 @@ def _replace_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = 
     """This context manager is used to add support for re-instantiation of custom (subclasses) of `base_cls`.
 
     It patches the ``__init__``, ``__setattr__`` and ``__delattr__`` methods.
+
     """
     classes = get_all_subclasses(base_cls) | {base_cls}
     for cls in classes:
@@ -399,6 +400,7 @@ def _replace_value_in_saved_args(
     """Tries to replace an argument value in a saved list of args and kwargs.
 
     Returns a tuple indicating success of the operation and modified saved args and kwargs
+
     """
 
     if replace_key in arg_names:

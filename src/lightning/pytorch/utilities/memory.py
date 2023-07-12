@@ -34,6 +34,7 @@ def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
 
     Return:
         out_dict: Dictionary with detached tensors
+
     """
 
     def detach_and_move(t: Tensor, to_cpu: bool) -> Tensor:

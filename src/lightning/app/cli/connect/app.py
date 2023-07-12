@@ -57,6 +57,7 @@ def connect_app(app_name_or_id: str):
     \b
     # once done, disconnect and go back to the standard lightning CLI commands
     lightning disconnect
+
     """
     from lightning.app.utilities.commands.base import _download_command
 

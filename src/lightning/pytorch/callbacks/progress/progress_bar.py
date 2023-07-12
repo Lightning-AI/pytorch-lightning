@@ -19,9 +19,9 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class ProgressBar(Callback):
-    r"""The base class for progress bars in Lightning. It is a :class:`~lightning.pytorch.callbacks.Callback` that
-    keeps track of the batch progress in the :class:`~lightning.pytorch.trainer.trainer.Trainer`. You should
-    implement your highly custom progress bars with this as the base class.
+    r"""The base class for progress bars in Lightning. It is a :class:`~lightning.pytorch.callbacks.Callback` that keeps
+    track of the batch progress in the :class:`~lightning.pytorch.trainer.trainer.Trainer`. You should implement your
+    highly custom progress bars with this as the base class.
 
     Example::
 
@@ -42,6 +42,7 @@ class ProgressBar(Callback):
 
         bar = LitProgressBar()
         trainer = Trainer(callbacks=[bar])
+
     """
 
     def __init__(self) -> None:
@@ -80,6 +81,7 @@ class ProgressBar(Callback):
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the training
         dataloader is of infinite size.
+
         """
         return self.trainer.num_training_batches
 
@@ -89,6 +91,7 @@ class ProgressBar(Callback):
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
         dataloader is of infinite size.
+
         """
         batches = self.trainer.num_sanity_val_batches if self.trainer.sanity_checking else self.trainer.num_val_batches
         if isinstance(batches, list):
@@ -102,6 +105,7 @@ class ProgressBar(Callback):
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the test dataloader is
         of infinite size.
+
         """
         batches = self.trainer.num_test_batches
         if isinstance(batches, list):
@@ -115,6 +119,7 @@ class ProgressBar(Callback):
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
         is of infinite size.
+
         """
         assert self._current_eval_dataloader_idx is not None
         return self.trainer.num_predict_batches[self._current_eval_dataloader_idx]
@@ -125,6 +130,7 @@ class ProgressBar(Callback):
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
         is of infinite size.
+
         """
         if not self.trainer.fit_loop.epoch_loop._should_check_val_epoch():
             return 0
@@ -152,6 +158,7 @@ class ProgressBar(Callback):
         The :class:`~lightning.pytorch.trainer.trainer.Trainer` will call this in e.g. pre-training
         routines like the :ref:`learning rate finder <advanced/training_tricks:Learning Rate Finder>`.
         to temporarily enable and disable the training progress bar.
+
         """
         raise NotImplementedError
 
@@ -167,8 +174,8 @@ class ProgressBar(Callback):
     def get_metrics(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
     ) -> Dict[str, Union[int, str, float, Dict[str, float]]]:
-        r"""Combines progress bar metrics collected from the trainer with standard metrics from
-        get_standard_metrics. Implement this to override the items displayed in the progress bar.
+        r"""Combines progress bar metrics collected from the trainer with standard metrics from get_standard_metrics.
+        Implement this to override the items displayed in the progress bar.
 
         Here is an example of how to override the defaults:
 
@@ -182,6 +189,7 @@ class ProgressBar(Callback):
 
         Return:
             Dictionary with the items to be displayed in the progress bar.
+
         """
         standard_metrics = get_standard_metrics(trainer)
         pbar_metrics = trainer.progress_bar_metrics
@@ -206,6 +214,7 @@ def get_standard_metrics(trainer: "pl.Trainer") -> Dict[str, Union[int, str]]:
 
     Return:
         Dictionary with the standard metrics to be displayed in the progress bar.
+
     """
     items_dict: Dict[str, Union[int, str]] = {}
     if trainer.loggers:

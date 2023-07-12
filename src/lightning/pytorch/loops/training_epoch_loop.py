@@ -181,6 +181,7 @@ class _TrainingEpochLoop(loops._Loop):
 
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
+
         """
         if self.restarting and self._should_check_val_fx():
             # skip training and run validation in `on_advance_end`
@@ -288,8 +289,7 @@ class _TrainingEpochLoop(loops._Loop):
         return epoch_finished_on_ready or self.batch_progress.is_last_batch
 
     def _should_accumulate(self) -> bool:
-        """Checks if the optimizer step should be performed or gradients should be accumulated for the current
-        step."""
+        """Checks if the optimizer step should be performed or gradients should be accumulated for the current step."""
         accumulation_done = self._accumulated_batches_reached()
         # Lightning steps on the final batch
         is_final_batch = self._num_ready_batches_reached()
@@ -312,6 +312,7 @@ class _TrainingEpochLoop(loops._Loop):
                 This is used so non-plateau schedulers can be updated before running validation. Checkpoints are
                 commonly saved during validation, however, on-plateau schedulers might monitor a validation metric
                 so they have to be updated separately.
+
         """
         trainer = self.trainer
 
@@ -413,6 +414,7 @@ class _TrainingEpochLoop(loops._Loop):
 
         Returns:
             The kwargs passed down to the hooks.
+
         """
         kwargs["batch"] = batch
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")

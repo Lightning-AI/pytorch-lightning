@@ -47,6 +47,7 @@ class StorageOrchestrator(Thread):
             put requests on this queue for the file-transfer thread to complete.
         copy_response_queues: A dictionary of Queues where each Queue connects to one Work. The queue is expected to
             contain the completion response from the file-transfer thread running in the Work process.
+
     """
 
     def __init__(

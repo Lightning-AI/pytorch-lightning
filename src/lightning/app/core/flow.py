@@ -396,6 +396,7 @@ class LightningFlow:
 
         .. deprecated:: 1.9.0
             This function is deprecated and will be removed in 2.0.0. Use :meth:`stop` instead.
+
         """
         warnings.warn(
             DeprecationWarning(
@@ -411,6 +412,7 @@ class LightningFlow:
         (prefixed by '__') attributes are not.
 
         Exceptions are listed in the `_INTERNAL_STATE_VARS` class variable.
+
         """
         return name in LightningFlow._INTERNAL_STATE_VARS or not name.startswith("_")
 
@@ -487,6 +489,7 @@ class LightningFlow:
                 </div>
             </div>
             <br />
+
         """
         if not user_key:
             frame = cast(FrameType, inspect.currentframe()).f_back
@@ -626,6 +629,7 @@ class LightningFlow:
                 </div>
             </div>
             <br />
+
         """
         return [{"name": name, "content": component} for (name, component) in self.flows.items()]
 
@@ -639,6 +643,7 @@ class LightningFlow:
             run_once: Whether to run the entire iteration only once.
                 Otherwise, it would restart from the beginning.
             user_key: Key to be used to track the caching mechanism.
+
         """
         if not isinstance(iterable, Iterable):
             raise TypeError(f"An iterable should be provided to `self.iterate` method. Found {iterable}")
@@ -708,6 +713,7 @@ class LightningFlow:
         .. code-block:: bash
 
             lightning my_command_name --args name=my_own_name
+
         """
         raise NotImplementedError
 
@@ -741,6 +747,7 @@ class LightningFlow:
 
         Once the app is running, you can access the Swagger UI of the app
         under the ``/docs`` route.
+
         """
         raise NotImplementedError
 
@@ -805,6 +812,7 @@ class LightningFlow:
             children_states: The state of the dynamic children of this flow.
             strict: Whether to raise an exception if a dynamic
                 children hasn't been re-created.
+
         """
         self.set_state(flow_state, recurse=False)
         direct_children_states = {k: v for k, v in children_states.items() if "." not in k}

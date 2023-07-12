@@ -43,6 +43,7 @@ class DeepSpeedPrecision(Precision):
     Raises:
         ValueError:
             If unsupported ``precision`` is provided.
+
     """
 
     def __init__(self, precision: _PRECISION_INPUT) -> None:

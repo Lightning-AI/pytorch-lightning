@@ -28,8 +28,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 @mock.patch("lightning.pytorch.loops.evaluation_loop._EvaluationLoop._on_evaluation_epoch_end")
 def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
-    """Tests that `on_evaluation_epoch_end` is called for `on_validation_epoch_end` and `on_test_epoch_end`
-    hooks."""
+    """Tests that `on_evaluation_epoch_end` is called for `on_validation_epoch_end` and `on_test_epoch_end` hooks."""
     model = BoringModel()
 
     trainer = Trainer(
@@ -112,6 +111,7 @@ def test_memory_consumption_validation(tmpdir):
 
     Cannot run with MPS, since there we can only measure shared memory and not dedicated, which device has how much
     memory allocated.
+
     """
 
     def get_memory():

@@ -14,6 +14,7 @@
 """Test that the warnings actually appear and they have the correct `stacklevel`
 
 Needs to be run outside of `pytest` as it captures all the warnings.
+
 """
 from contextlib import redirect_stderr
 from io import StringIO

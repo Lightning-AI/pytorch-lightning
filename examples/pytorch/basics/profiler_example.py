@@ -20,6 +20,7 @@ visualized in 2 ways:
 * With PyTorch Tensorboard Profiler (Instructions are here: https://github.com/pytorch/kineto/tree/master/tb_plugin)
     1. pip install tensorboard torch-tb-profiler
     2. tensorboard --logdir={FOLDER}
+
 """
 
 from os import path

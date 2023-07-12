@@ -29,6 +29,7 @@ class S3DatasetBackend:
 
         Returns:
             credentials object to be used for file reading
+
         """
         from botocore.credentials import InstanceMetadataProvider
         from botocore.utils import InstanceMetadataFetcher

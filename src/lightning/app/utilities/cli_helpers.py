@@ -129,6 +129,7 @@ class _LightningAppOpenAPIRetriever:
         Arguments:
             app_id_or_name_or_url: An identified for the app.
             use_cache: Whether to load the openapi spec from the cache.
+
         """
         self.app_id_or_name_or_url = app_id_or_name_or_url
         self.url = None

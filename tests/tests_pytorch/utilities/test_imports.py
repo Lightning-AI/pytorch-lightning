@@ -63,10 +63,11 @@ def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):
 
 @pytest.fixture()
 def clean_import():
-    """This fixture allows test to import {pytorch_}lightning* modules completely cleanly, regardless of the
-    current state of the imported modules.
+    """This fixture allows test to import {pytorch_}lightning* modules completely cleanly, regardless of the current
+    state of the imported modules.
 
     Afterwards, it restores the original state of the modules.
+
     """
     import sys
 
@@ -108,6 +109,7 @@ def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, cle
     When the patch is applied and the module is imported, it should not raise any errors. The list of cases to check was
     compiled by finding else branches of top-level if statements checking for the availability of the module and
     performing imports.
+
     """
     with mock.patch(patch_name, new=new_fn):
         importlib.import_module(to_import)

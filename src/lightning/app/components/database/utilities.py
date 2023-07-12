@@ -52,6 +52,7 @@ def _pydantic_column_type(pydantic_type: Any) -> Any:
         class TrialConfig(SQLModel, table=False):
             ...
             params: Dict[str, Union[Dict[str, float]] = Field(sa_column=Column(pydantic_column_type[Dict[str, float]))
+
     """
 
     class PydanticJSONType(TypeDecorator, Generic[T]):

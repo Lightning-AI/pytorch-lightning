@@ -119,8 +119,8 @@ def test_setup_compiled_module(setup_method):
 @pytest.mark.parametrize("move_to_device", [True, False])
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, initial_device, target_device):
-    """Test that `move_to_device` leads to parameters being moved to the correct device and that the device
-    attributes on the wrapper are updated."""
+    """Test that `move_to_device` leads to parameters being moved to the correct device and that the device attributes
+    on the wrapper are updated."""
     initial_device = torch.device(initial_device)
     target_device = torch.device(target_device)
     expected_device = target_device if move_to_device else initial_device
@@ -148,8 +148,7 @@ def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, 
 @pytest.mark.parametrize("move_to_device", [True, False])
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_module_parameters_on_different_devices(setup_method, move_to_device):
-    """Test that a warning is emitted when model parameters are on a different device prior to calling
-    `setup()`."""
+    """Test that a warning is emitted when model parameters are on a different device prior to calling `setup()`."""
     device0 = torch.device("cpu")
     device1 = torch.device("cuda", 0)
 
@@ -261,8 +260,7 @@ def test_setup_optimizers_twice_fails():
 
 @pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, XLAStrategy])
 def test_setup_optimizers_not_supported(strategy_cls):
-    """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers
-    independently."""
+    """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers independently."""
     fabric = Fabric()
     fabric._launched = True  # pretend we have launched multiple processes
     model = nn.Linear(1, 2)
@@ -333,8 +331,8 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
 
 
 def test_setup_dataloaders_raises_for_unknown_custom_args():
-    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's
-    run method."""
+    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's run
+    method."""
     fabric = Fabric()
 
     class CustomDataLoader(DataLoader):
@@ -482,8 +480,7 @@ def test_seed_everything():
     ],
 )
 def test_setup_dataloaders_replace_custom_sampler(strategy):
-    """Test that asking to replace a custom sampler results in an error when a distributed sampler would be
-    needed."""
+    """Test that asking to replace a custom sampler results in an error when a distributed sampler would be needed."""
     custom_sampler = Mock(spec=Sampler)
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
@@ -721,8 +718,7 @@ def test_overridden_run_and_cli_not_allowed():
 
 
 def test_module_sharding_context():
-    """Test that the sharding context manager gets applied when the strategy supports it and is a no-op
-    otherwise."""
+    """Test that the sharding context manager gets applied when the strategy supports it and is a no-op otherwise."""
     fabric = Fabric()
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
     with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():

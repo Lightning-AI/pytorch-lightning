@@ -57,8 +57,7 @@ class StateEntry:
 
 
 class StateStore(ABC):
-    """Base class of State store that provides simple key, value store to keep track of app state, served app
-    state."""
+    """Base class of State store that provides simple key, value store to keep track of app state, served app state."""
 
     @abstractmethod
     def __init__(self):
@@ -352,6 +351,7 @@ def _walk_to_component(
     """Returns a generator that runs through the tree starting from the root down to the given component.
 
     At each node, yields parent and child as a tuple.
+
     """
     from lightning.app.structures import Dict, List
 
@@ -469,6 +469,7 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
         root_flow: The flow at the top of the component tree.
         state: The collected state dict.
         strict: Whether to validate all components have been re-created.
+
     """
     # 1: Reload the state of the existing works
     for w in root_flow.works():

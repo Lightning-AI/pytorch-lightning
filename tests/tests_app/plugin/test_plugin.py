@@ -38,8 +38,8 @@ class _MockResponse:
 
 
 def mock_requests_get(valid_url, return_value):
-    """Used to replace `requests.get` with a function that returns the given value for the given valid URL and
-    raises otherwise."""
+    """Used to replace `requests.get` with a function that returns the given value for the given valid URL and raises
+    otherwise."""
 
     def inner(url):
         if url == valid_url:
@@ -195,8 +195,7 @@ plugin = TestPlugin()
 @mock.patch("lightning.app.runners.cloud.CloudRuntime")
 @mock.patch("lightning.app.plugin.plugin.requests")
 def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server, plugin_source, actions):
-    """Tests that running a job from a plugin calls the correct `CloudRuntime` methods with the correct
-    arguments."""
+    """Tests that running a job from a plugin calls the correct `CloudRuntime` methods with the correct arguments."""
     content = as_tar_bytes("plugin.py", plugin_source)
     mock_requests.get.side_effect = mock_requests_get("http://test.tar.gz", content)
 

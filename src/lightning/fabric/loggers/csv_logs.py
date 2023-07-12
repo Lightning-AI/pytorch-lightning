@@ -49,6 +49,7 @@ class CSVLogger(Logger):
         logger = CSVLogger("path/to/logs/root", name="my_model")
         logger.log_metrics({"loss": 0.235, "acc": 0.75})
         logger.finalize("success")
+
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -77,6 +78,7 @@ class CSVLogger(Logger):
 
         Returns:
             The name of the experiment.
+
         """
         return self._name
 
@@ -86,6 +88,7 @@ class CSVLogger(Logger):
 
         Returns:
             The version of the experiment if it is specified, else the next version.
+
         """
         if self._version is None:
             self._version = self._get_next_version()
@@ -102,6 +105,7 @@ class CSVLogger(Logger):
 
         By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
         constructor's version parameter instead of ``None`` or an int.
+
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
@@ -110,12 +114,12 @@ class CSVLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> "_ExperimentWriter":
-        """Actual ExperimentWriter object. To use ExperimentWriter features anywhere in your code, do the
-        following.
+        """Actual ExperimentWriter object. To use ExperimentWriter features anywhere in your code, do the following.
 
         Example::
 
             self.logger.experiment.some_experiment_writer_function()
+
         """
         if self._experiment is not None:
             return self._experiment
@@ -177,6 +181,7 @@ class _ExperimentWriter:
 
     Args:
         log_dir: Directory for the experiment logs
+
     """
 
     NAME_METRICS_FILE = "metrics.csv"

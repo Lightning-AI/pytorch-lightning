@@ -46,6 +46,7 @@ class Drive:
             component_name: The component name which owns this drive.
                 When not provided, it is automatically inferred by Lightning.
             root_folder: This is the folder from where the Drive perceives the data (e.g this acts as a mount dir).
+
         """
         if id.startswith("s3://"):
             raise ValueError(
@@ -96,6 +97,7 @@ class Drive:
 
         Arguments:
             path: The relative path to your files to be added to the Drive.
+
         """
         if not self.component_name:
             raise Exception("The component name needs to be known to put a path to the Drive.")
@@ -121,6 +123,7 @@ class Drive:
             path: The relative path you want to list files from the Drive.
             component_name: By default, the Drive lists files across all components.
                 If you provide a component name, the listing is specific to this component.
+
         """
         if _is_flow_context():
             raise Exception("The flow isn't allowed to list files from a Drive.")
@@ -165,6 +168,7 @@ class Drive:
                 If you provide a component name, the matching is specific to this component.
             timeout: Whether to wait for the files to be available if not created yet.
             overwrite: Whether to override the provided path if it exists.
+
         """
         if _is_flow_context():
             raise Exception("The flow isn't allowed to get files from a Drive.")
@@ -207,11 +211,12 @@ class Drive:
             self._get(self.fs, match, pathlib.Path(os.path.join(self.root_folder, path)).resolve(), overwrite=overwrite)
 
     def delete(self, path: str) -> None:
-        """This method enables to delete files under the provided path from the Drive in a blocking fashion. Only
-        the component which added a file can delete them.
+        """This method enables to delete files under the provided path from the Drive in a blocking fashion. Only the
+        component which added a file can delete them.
 
         Arguments:
             path: The relative path you want to delete files from the Drive.
+
         """
         if not self.component_name:
             raise Exception("The component name needs to be known to delete a path to the Drive.")

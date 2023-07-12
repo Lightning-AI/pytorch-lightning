@@ -89,6 +89,7 @@ class StochasticWeightAveraging(Callback):
             device: if provided, the averaged model will be stored on the ``device``.
                 When None is provided, it will infer the `device` from ``pl_module``.
                 (default: ``"cpu"``)
+
         """
 
         err_msg = "swa_epoch_start should be a >0 integer or a float between 0 and 1."

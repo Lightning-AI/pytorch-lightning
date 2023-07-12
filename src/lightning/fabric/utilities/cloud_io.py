@@ -34,6 +34,7 @@ def _load(
     Args:
         path_or_url: Path or URL of the checkpoint.
         map_location: a function, ``torch.device``, string or a dict specifying how to remap storage locations.
+
     """
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similar
@@ -65,6 +66,7 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
             accepts.
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
+
     """
     bytesbuffer = io.BytesIO()
     torch.save(checkpoint, bytesbuffer)

@@ -33,8 +33,8 @@ _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
 
 
 def _get_supported_strategies() -> List[str]:
-    """Returns strategy choices from the registry, with the ones removed that are incompatible to be launched from
-    the CLI or ones that require further configuration by the user."""
+    """Returns strategy choices from the registry, with the ones removed that are incompatible to be launched from the
+    CLI or ones that require further configuration by the user."""
     available_strategies = STRATEGY_REGISTRY.available_strategies()
     excluded = r".*(spawn|fork|notebook|xla|tpu|offload).*"
     return [strategy for strategy in available_strategies if not re.match(excluded, strategy)]
@@ -122,6 +122,7 @@ if _CLICK_AVAILABLE:
 
         SCRIPT_ARGS are the remaining arguments that you can pass to the script itself and are expected to be parsed
         there.
+
         """
         script_args = list(kwargs.pop("script_args", []))
         main(args=Namespace(**kwargs), script_args=script_args)
@@ -131,6 +132,7 @@ def _set_env_variables(args: Namespace) -> None:
     """Set the environment variables for the new processes.
 
     The Fabric connector will parse the arguments set here.
+
     """
     os.environ["LT_CLI_USED"] = "1"
     if args.accelerator is not None:

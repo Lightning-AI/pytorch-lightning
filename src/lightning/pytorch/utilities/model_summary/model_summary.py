@@ -38,8 +38,8 @@ NOT_APPLICABLE = "n/a"
 
 
 class LayerSummary:
-    """Summary class for a single layer in a :class:`~lightning.pytorch.core.module.LightningModule`. It collects
-    the following information:
+    """Summary class for a single layer in a :class:`~lightning.pytorch.core.module.LightningModule`. It collects the
+    following information:
 
     - Type of the layer (e.g. Linear, BatchNorm1d, ...)
     - Input shape
@@ -65,6 +65,7 @@ class LayerSummary:
 
     Args:
         module: A module to summarize
+
     """
 
     def __init__(self, module: nn.Module) -> None:
@@ -78,13 +79,13 @@ class LayerSummary:
         self.detach_hook()
 
     def _register_hook(self) -> Optional[RemovableHandle]:
-        """Registers a hook on the module that computes the input- and output size(s) on the first forward pass. If
-        the hook is called, it will remove itself from the from the module, meaning that recursive models will only
-        record their input- and output shapes once. Registering hooks on :class:`~torch.jit.ScriptModule` is not
-        supported.
+        """Registers a hook on the module that computes the input- and output size(s) on the first forward pass. If the
+        hook is called, it will remove itself from the from the module, meaning that recursive models will only record
+        their input- and output shapes once. Registering hooks on :class:`~torch.jit.ScriptModule` is not supported.
 
         Return:
             A handle for the installed hook, or ``None`` if registering the hook is not possible.
+
         """
 
         def hook(_: nn.Module, inp: Any, out: Any) -> None:
@@ -116,6 +117,7 @@ class LayerSummary:
         """Removes the forward hook if it was not already removed in the forward pass.
 
         Will be called after the summary is created.
+
         """
         if self._hook_handle is not None:
             self._hook_handle.remove()
@@ -194,6 +196,7 @@ class ModelSummary:
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
+
     """
 
     def __init__(self, model: "pl.LightningModule", max_depth: int = 1) -> None:
@@ -303,6 +306,7 @@ class ModelSummary:
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
+
         """
         arrays = [
             (" ", list(map(str, range(len(self._layer_summary))))),
@@ -361,8 +365,8 @@ def _format_summary_table(
     model_size: float,
     *cols: Tuple[str, List[str]],
 ) -> str:
-    """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one
-    big string defining the summary table that are nicely formatted."""
+    """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one big
+    string defining the summary table that are nicely formatted."""
     n_rows = len(cols[0][1])
     n_cols = 1 + len(cols)
 
@@ -425,6 +429,7 @@ def get_human_readable_count(number: int) -> str:
 
     Return:
         A string formatted according to the pattern described above.
+
     """
     assert number >= 0
     labels = PARAMETER_NUM_UNITS
@@ -463,5 +468,6 @@ def summarize(lightning_module: "pl.LightningModule", max_depth: int = 1) -> Mod
 
     Return:
         The model summary object
+
     """
     return ModelSummary(lightning_module, max_depth=max_depth)

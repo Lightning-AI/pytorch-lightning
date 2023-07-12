@@ -35,6 +35,7 @@ class SpikeDetection:
         exclude_batches_path: Where to save the file that contains the batches to exclude.
             Will default to current directory.
         finite_only: If set to ``False``, consider non-finite values like NaN, inf and -inf a spike as well.
+
     """
 
     def __init__(

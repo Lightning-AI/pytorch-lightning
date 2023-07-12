@@ -37,8 +37,7 @@ def test_prediction_writer_invalid_write_interval():
 
 
 def test_prediction_writer_hook_call_intervals():
-    """Test that the `write_on_batch_end` and `write_on_epoch_end` hooks get invoked based on the defined
-    interval."""
+    """Test that the `write_on_batch_end` and `write_on_epoch_end` hooks get invoked based on the defined interval."""
     DummyPredictionWriter.write_on_batch_end = Mock()
     DummyPredictionWriter.write_on_epoch_end = Mock()
 

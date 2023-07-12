@@ -27,6 +27,7 @@ For the Lightning developer: How to add a new migration?
 
    cp model.ckpt model.ckpt.backup
    python -m lightning.pytorch.utilities.upgrade_checkpoint model.ckpt
+
 """
 import re
 from typing import Any, Callable, Dict, List
@@ -60,6 +61,7 @@ def _migrate_model_checkpoint_early_stopping(checkpoint: _CHECKPOINT) -> _CHECKP
 
     Version: 0.10.0
     Commit: a5d1176
+
     """
     keys_mapping = {
         "checkpoint_callback_best_model_score": (ModelCheckpoint, "best_model_score"),
@@ -87,6 +89,7 @@ def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _
     Version: 1.6.0
     Commit: c67b075
     PR: #13645, #11805
+
     """
     global_step = checkpoint["global_step"]
     checkpoint.setdefault("loops", {"fit_loop": _get_fit_loop_initial_state_1_6_0()})
@@ -107,6 +110,7 @@ def _migrate_loop_current_epoch_to_progress_tracking(checkpoint: _CHECKPOINT) ->
     Version: 1.6.0
     Commit: aea96e4
     PR: #11805
+
     """
     epoch = checkpoint["epoch"]
     checkpoint.setdefault("loops", {"fit_loop": _get_fit_loop_initial_state_1_6_0()})
@@ -121,6 +125,7 @@ def _migrate_loop_batches_that_stepped(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
     Version: 1.6.5
     Commit: c67b075
     PR: #13645
+
     """
     global_step = checkpoint["global_step"]
     checkpoint["loops"]["fit_loop"]["epoch_loop.state_dict"].setdefault("_batches_that_stepped", global_step)
@@ -218,6 +223,7 @@ def _drop_apex_amp_state(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
     Version: 2.0.0
     Commit: e544676ff434ed96c6dd3b4e73a708bcb27ebcf1
     PR: #16149
+
     """
     key = "amp_scaling_state"
     if key in checkpoint:
@@ -234,6 +240,7 @@ def _migrate_loop_structure_after_tbptt_removal(checkpoint: _CHECKPOINT) -> _CHE
     Version: 2.0.0
     Commit: 7807454
     PR: #16337, #16172
+
     """
     if "loops" not in checkpoint:
         return checkpoint
@@ -265,13 +272,13 @@ def _migrate_loop_structure_after_tbptt_removal(checkpoint: _CHECKPOINT) -> _CHE
 
 
 def _migrate_loop_structure_after_optimizer_loop_removal(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Adjusts the loop structure since it changed when the support for multiple optimizers in automatic
-    optimization mode was removed. There is no longer a loop over optimizer, and hence no position to store for
-    resuming the loop.
+    """Adjusts the loop structure since it changed when the support for multiple optimizers in automatic optimization
+    mode was removed. There is no longer a loop over optimizer, and hence no position to store for resuming the loop.
 
     Version: 2.0.0
     Commit: 6a56586
     PR: #16539, #16598
+
     """
     if "loops" not in checkpoint:
         return checkpoint

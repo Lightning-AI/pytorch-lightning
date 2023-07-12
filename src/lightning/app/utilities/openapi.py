@@ -49,6 +49,7 @@ def create_openapi_object(json_obj: Dict, target: Any):
 
     Lightning AI uses the target object to make new objects from the given JSON spec so the target must be a valid
     object.
+
     """
     if not isinstance(json_obj, dict):
         raise TypeError("json_obj must be a dictionary")

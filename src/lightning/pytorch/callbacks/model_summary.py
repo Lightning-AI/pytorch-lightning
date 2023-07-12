@@ -47,6 +47,7 @@ class ModelSummary(Callback):
         >>> from lightning.pytorch import Trainer
         >>> from lightning.pytorch.callbacks import ModelSummary
         >>> trainer = Trainer(callbacks=[ModelSummary(max_depth=1)])
+
     """
 
     def __init__(self, max_depth: int = 1, **summarize_kwargs: Any) -> None:

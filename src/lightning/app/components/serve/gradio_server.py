@@ -77,6 +77,7 @@ class ServeGradio(LightningWork, abc.ABC):
         """Override to instantiate and return your model.
 
         The model would be accessible under self.model
+
         """
 
     def run(self, *args: Any, **kwargs: Any):

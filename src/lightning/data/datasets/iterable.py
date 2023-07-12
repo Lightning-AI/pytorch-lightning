@@ -29,6 +29,7 @@ class _Chunk:
         chunk_data: The original data contained by this chunk
         chunk_size: The number of samples contained in this chunk
         start_index: the index from where to start sampling the chunk (already retrieved samples)
+
     """
 
     def __init__(self, chunk_data: Any, chunk_size: int, start_index: int = 0):
@@ -62,8 +63,8 @@ class _Chunk:
 
 
 class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
-    """An iterable dataset that can be resumed mid-epoch, implements chunking and sharding of chunks. The behavior
-    of this dataset can be customized with the following hooks:
+    """An iterable dataset that can be resumed mid-epoch, implements chunking and sharding of chunks. The behavior of
+    this dataset can be customized with the following hooks:
 
     - ``prepare_chunk`` gives the possibility to prepare the chunk one iteration before its actually loaded
         (e.g. download from s3).
@@ -100,6 +101,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
         Note:
             Order of data is only guaranteed when resuming with the same distributed settings and the same number of
             workers. Everything else leads to different sharding and therefore results in different data order.
+
     """
 
     def __init__(
@@ -156,11 +158,12 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
 
     @abstractmethod
     def load_chunk(self, chunk: Any) -> Any:
-        """Implement this to load a single chunk into memory. This could e.g. mean loading the file that has
-        previously been downloaded from s3.
+        """Implement this to load a single chunk into memory. This could e.g. mean loading the file that has previously
+        been downloaded from s3.
 
         Args:
             chunk: The chunk that should be currently loaded
+
         """
 
     @abstractmethod
@@ -171,6 +174,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
         Args:
             chunk: The chunk the sample should be retrieved from
             index: The index of the current sample to retrieve within the chunk.
+
         """
 
     def prepare_chunk(self, chunk: Any) -> None:
@@ -178,6 +182,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
 
         Args:
             chunk: the chunk data to prepare.
+
         """
 
     def __iter__(self) -> "LightningIterableDataset":
@@ -185,6 +190,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
 
         Before that, detects the env if necessary, shuffles chunks, shards the data and shuffles sample orders within
         chunks.
+
         """
         self._curr_chunk_index = self._start_index_chunk
         self._curr_sample_index = self._start_index_sample
@@ -206,6 +212,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
         """Returns the next sample.
 
         If necessary, this also loads the new chunks.
+
         """
         self._check_if_sharded()
         self._ensure_chunks_loaded()
@@ -243,6 +250,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
             returned_samples: the number of totally returned samples by the dataloader(s) (across all distributed
                 training processes).
             num_workers: number of dataloader workers per distributed training process.
+
         """
 
         # compute indices locally again since other workers may have different offsets
@@ -275,6 +283,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
 
         Note:
             Some of the changes only take effect when creating a new iterator
+
         """
         state_dict = deepcopy(state_dict)
         self._start_index_chunk = state_dict.pop("current_chunk")
@@ -322,6 +331,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
         """Shards the chunks if necessary.
 
         No-op if already sharded
+
         """
         if not self._local_chunks:
             num_shards = self._env.num_shards
@@ -365,6 +375,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
             first_chunk_index: The point to which the generator should be replayed
             shuffle_chunk_order: Whether to shuffle the order of chunks
             shuffle_sample_order: Whether to shuffle the order of samples within a chunk
+
         """
         # re-seed generator
         if self._generator is not None and self._initial_generator_state is not None:

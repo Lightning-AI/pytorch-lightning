@@ -84,8 +84,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
 
 
 def test_ddp_spawn_find_unused_parameters_exception():
-    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning
-    users."""
+    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning users."""
     trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp_spawn", max_steps=2)
     with pytest.raises(
         ProcessRaisedException, match="It looks like your LightningModule has parameters that were not used in"

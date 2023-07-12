@@ -89,6 +89,7 @@ class _EvaluationLoop(_Loop):
         """In "sequential" mode, the max number of batches to run per dataloader.
 
         Otherwise, the max batches to run.
+
         """
         max_batches = self._max_batches
         if not self.trainer.sanity_checking:
@@ -377,6 +378,7 @@ class _EvaluationLoop(_Loop):
             batch: The current batch to run through the step.
             batch_idx: The index of the current batch
             dataloader_idx: the index of the dataloader producing the current batch
+
         """
         trainer = self.trainer
 
@@ -431,6 +433,7 @@ class _EvaluationLoop(_Loop):
 
         Returns:
             the dictionary containing all the keyboard arguments for the step
+
         """
         step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
         if dataloader_idx is not None:

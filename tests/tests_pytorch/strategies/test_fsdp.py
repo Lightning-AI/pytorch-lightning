@@ -299,6 +299,7 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
     """Test to ensure that the full state dict is extracted when using FSDP strategy.
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
+
     """
     model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
     correct_state_dict = model.state_dict()  # State dict before wrapping
@@ -521,6 +522,7 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the model can
     be restored to DDP, it means that the optimizer states were saved correctly.
+
     """
     model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
 
@@ -578,6 +580,7 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the DDP model
     can be restored to FSDP, it means that the optimizer states were restored correctly.
+
     """
 
     # restore model to ddp

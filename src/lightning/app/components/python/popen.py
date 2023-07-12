@@ -70,6 +70,7 @@ class PopenPythonScript(LightningWork):
 
         .. literalinclude:: ../../../../examples/app/components/python/component_popen.py
             :language: python
+
         """
         super().__init__(**kwargs)
         if not os.path.exists(script_path):

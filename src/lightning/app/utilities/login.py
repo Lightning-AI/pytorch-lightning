@@ -60,6 +60,7 @@ class Auth:
         Returns
         ----------
         True if credentials are available.
+
         """
         if not self.secrets_file.exists():
             logger.debug("Credentials file not found.")
@@ -117,6 +118,7 @@ class Auth:
         Returns
         ----------
         authorization header to use when authentication completes.
+
         """
         if not self.load():
             # First try to authenticate from env

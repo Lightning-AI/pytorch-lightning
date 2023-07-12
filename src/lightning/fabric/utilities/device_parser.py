@@ -113,8 +113,8 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
 
 
 def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: bool = False) -> List[int]:
-    """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of
-    the GPUs is not available.
+    """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of the
+    GPUs is not available.
 
     Args:
         gpus: List of ints corresponding to GPU indices
@@ -125,6 +125,7 @@ def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: 
     Raises:
         MisconfigurationException:
             If machine has fewer available GPUs than requested.
+
     """
     if sum((include_cuda, include_mps)) == 0:
         raise ValueError("At least one gpu type should be specified!")
@@ -172,6 +173,7 @@ def _check_unique(device_ids: List[int]) -> None:
     Raises:
         MisconfigurationException:
             If ``device_ids`` of GPUs aren't unique
+
     """
     if len(device_ids) != len(set(device_ids)):
         raise MisconfigurationException("Device ID's (GPU) must be unique.")
@@ -186,6 +188,7 @@ def _check_data_type(device_ids: object) -> None:
     Raises:
         TypeError:
             If ``device_ids`` of GPU/TPUs aren't ``int``, ``str`` or sequence of ``int```
+
     """
     msg = "Device IDs (GPU/TPU) must be an int, a string, a sequence of ints, but you passed"
     if device_ids is None:

@@ -81,6 +81,7 @@ class BuildConfig:
         image: The base image that the work runs on. This should be a publicly accessible image from a registry that
             doesn't enforce rate limits (such as DockerHub) to pull this image, otherwise your application will not
             start.
+
     """
 
     requirements: List[str] = field(default_factory=list)
@@ -111,6 +112,7 @@ class BuildConfig:
                     return ["apt-get install libsparsehash-dev"]
 
             BuildConfig(requirements=["git+https://github.com/mit-han-lab/torchsparse.git@v1.4.0"])
+
         """
         return []
 

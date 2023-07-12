@@ -33,6 +33,7 @@ def _get_hash(files: List[str], algorithm: str = "blake2", chunk_num_blocks: int
     ----------
     [1] https://crypto.stackexchange.com/questions/70101/blake2-vs-md5-for-checksum-file-integrity
     [2] https://stackoverflow.com/questions/1131220/get-md5-hash-of-big-files-in-python
+
     """
     # validate input
     if algorithm == "blake2":

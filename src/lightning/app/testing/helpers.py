@@ -62,6 +62,7 @@ class _RunIf:
     @pytest.mark.parametrize("arg1", [1, 2.0])
     def test_wrapper(arg1):
         assert arg1 > 0.0
+
     """
 
     def __new__(
@@ -155,6 +156,7 @@ class EmptyFlow(LightningFlow):
     """A LightningFlow that implements all abstract methods to do nothing.
 
     Useful for mocking in tests.
+
     """
 
     def run(self):
@@ -165,6 +167,7 @@ class EmptyWork(LightningWork):
     """A LightningWork that implements all abstract methods to do nothing.
 
     Useful for mocking in tests.
+
     """
 
     def run(self):

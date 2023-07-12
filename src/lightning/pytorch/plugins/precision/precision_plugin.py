@@ -32,6 +32,7 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
     """Base class for all plugins handling the precision-specific parts of the training.
 
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
+
     """
 
     def connect(
@@ -63,6 +64,7 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
             \*args: Positional arguments intended for the actual function that performs the backward, like
                 :meth:`~torch.Tensor.backward`.
             \**kwargs: Keyword arguments for the same purpose as ``*args``.
+
         """
         model.backward(tensor, *args, **kwargs)
 

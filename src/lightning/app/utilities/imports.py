@@ -32,6 +32,7 @@ def _get_extras(extras: str) -> str:
     """Get the given extras as a space delimited string.
 
     Used by the platform to install cloud extras in the cloud.
+
     """
     from lightning.app import __package_name__
 

@@ -94,6 +94,7 @@ def _watch_app_state(callback: Callable):
             def handle_state_change():
                 print("The App State changed.")
                 watch_app_state(handle_state_change)
+
     """
     _CALLBACKS.append(callback)
     _start_websocket()

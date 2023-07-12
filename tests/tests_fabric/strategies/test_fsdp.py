@@ -343,6 +343,7 @@ class StatusChecker:
         This is confusing (since it logs "FAILED"), but more importantly the orphan rank will continue trying to execute
         the rest of the test suite. So instead we add calls to `os._exit` which actually forces the process to shut
         down.
+
         """
         success = False
         try:

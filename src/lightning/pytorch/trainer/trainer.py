@@ -298,6 +298,7 @@ class Trainer:
             MisconfigurationException:
                 If ``gradient_clip_algorithm`` is invalid.
                 If ``track_grad_norm`` is not a positive number or inf.
+
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
@@ -530,6 +531,7 @@ class Trainer:
                 :class:`torch._dynamo.OptimizedModule` for torch versions greater than or equal to 2.0.0 .
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
+
         """
         model = _maybe_unwrap_optimized(model)
         self.strategy._lightning_module = model
@@ -622,6 +624,7 @@ class Trainer:
 
             RuntimeError:
                 If a compiled ``model`` is passed and the strategy is not supported.
+
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -692,8 +695,8 @@ class Trainer:
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
-        r"""Perform one evaluation epoch over the test set. It's separated from fit to make sure you never run on
-        your test set until you want to.
+        r"""Perform one evaluation epoch over the test set. It's separated from fit to make sure you never run on your
+        test set until you want to.
 
         Args:
             model: The model to test.
@@ -729,6 +732,7 @@ class Trainer:
 
             RuntimeError:
                 If a compiled ``model`` is passed and the strategy is not supported.
+
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -837,6 +841,7 @@ class Trainer:
                 If a compiled ``model`` is passed and the strategy is not supported.
 
         See :ref:`Lightning inference section<deploy/production_basic:Predict step with your LightningModule>` for more.
+
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -998,8 +1003,8 @@ class Trainer:
         return results
 
     def _teardown(self) -> None:
-        """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
-        Callback; those are handled by :meth:`_call_teardown_hook`."""
+        """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and Callback;
+        those are handled by :meth:`_call_teardown_hook`."""
         self.strategy.teardown()
         loop = self._active_loop
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
@@ -1069,11 +1074,12 @@ class Trainer:
         self.profiler.setup(stage=self.state.fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def print(self, *args: Any, **kwargs: Any) -> None:
-        """Print the arguments to standard output. When running on multiple devices on a single node, this method
-        will only print from one process to avoid redundant outputs. When running across multiple nodes, this
-        method will print from one process in each node.
+        """Print the arguments to standard output. When running on multiple devices on a single node, this method will
+        only print from one process to avoid redundant outputs. When running across multiple nodes, this method will
+        print from one process in each node.
 
         Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
+
         """
         if self.local_rank == 0:
             print(*args, **kwargs)
@@ -1171,6 +1177,7 @@ class Trainer:
 
         To access the pure LightningModule, use
         :meth:`~lightning.pytorch.trainer.trainer.Trainer.lightning_module` instead.
+
         """
         return self.strategy.model
 
@@ -1187,6 +1194,7 @@ class Trainer:
             def training_step(self, batch, batch_idx):
                 img = ...
                 save_img(img, self.trainer.log_dir)
+
         """
         if len(self.loggers) > 0:
             if not isinstance(self.loggers[0], TensorBoardLogger):
@@ -1208,6 +1216,7 @@ class Trainer:
             def training_step(self, batch, batch_idx):
                 if self.trainer.is_global_zero:
                     print("in node 0, accelerator 0")
+
         """
         return self.strategy.is_global_zero
 
@@ -1231,6 +1240,7 @@ class Trainer:
         """The default location to save artifacts of loggers, checkpoints etc.
 
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
+
         """
         if get_filesystem(self._default_root_dir).protocol == "file":
             return os.path.normpath(self._default_root_dir)
@@ -1245,8 +1255,8 @@ class Trainer:
 
     @property
     def early_stopping_callbacks(self) -> List[EarlyStopping]:
-        """A list of all instances of :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` found in
-        the Trainer.callbacks list."""
+        """A list of all instances of :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` found in the
+        Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
 
     @property
@@ -1258,8 +1268,8 @@ class Trainer:
 
     @property
     def checkpoint_callbacks(self) -> List[Checkpoint]:
-        """A list of all instances of :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` found
-        in the Trainer.callbacks list."""
+        """A list of all instances of :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` found in
+        the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, Checkpoint)]
 
     @property
@@ -1293,6 +1303,7 @@ class Trainer:
             # you will be in charge of resetting this
             trainer.ckpt_path = None
             trainer.test(model)
+
         """
         self._checkpoint_connector._ckpt_path = ckpt_path
         self._checkpoint_connector._user_managed = bool(ckpt_path)
@@ -1310,6 +1321,7 @@ class Trainer:
         Raises:
             AttributeError:
                 If the model is not attached to the Trainer before calling this method.
+
         """
         if self.model is None:
             raise AttributeError(
@@ -1381,6 +1393,7 @@ class Trainer:
         """Whether sanity checking is running.
 
         Useful to disable some hooks, logging or callbacks during the sanity checking.
+
         """
         return self.state.stage == RunningStage.SANITY_CHECKING
 
@@ -1408,6 +1421,7 @@ class Trainer:
         """The number of optimizer steps taken (does not reset each epoch).
 
         This includes multiple optimizers (if enabled).
+
         """
         return self.fit_loop.epoch_loop.global_step
 
@@ -1547,6 +1561,7 @@ class Trainer:
 
             for logger in trainer.loggers:
                 logger.log_metrics({"foo": 1.0})
+
         """
         return self._loggers
 
@@ -1566,6 +1581,7 @@ class Trainer:
 
             callback_metrics = trainer.callback_metrics
             assert callback_metrics["a_val"] == 2.0
+
         """
         return self._logger_connector.callback_metrics
 
@@ -1575,6 +1591,7 @@ class Trainer:
 
         This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
         :paramref:`~lightning.pytorch.core.module.LightningModule.log.logger` argument set.
+
         """
         return self._logger_connector.logged_metrics
 
@@ -1584,6 +1601,7 @@ class Trainer:
 
         This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
         :paramref:`~lightning.pytorch.core.module.LightningModule.log.prog_bar` argument set.
+
         """
         return self._logger_connector.progress_bar_metrics
 

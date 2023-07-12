@@ -267,8 +267,8 @@ def test_fabric_module_device_dtype_propagation(device_str, dtype):
 
 
 def test_fabric_dataloader_iterator():
-    """Test that the iteration over a FabricDataLoader wraps the iterator of the underlying dataloader (no
-    automatic device placement)."""
+    """Test that the iteration over a FabricDataLoader wraps the iterator of the underlying dataloader (no automatic
+    device placement)."""
     dataloader = DataLoader(range(5), batch_size=2)
     fabric_dataloader = _FabricDataLoader(dataloader)
     assert len(fabric_dataloader) == len(dataloader) == 3

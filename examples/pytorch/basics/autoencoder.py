@@ -14,6 +14,7 @@
 """MNIST autoencoder example.
 
 To run: python autoencoder.py --trainer.max_epochs=50
+
 """
 from os import path
 from typing import Optional, Tuple

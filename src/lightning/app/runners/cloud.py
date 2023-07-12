@@ -198,8 +198,8 @@ class CloudRuntime(Runtime):
         cluster_id: str,
         source_app: Optional[str] = None,
     ) -> str:
-        """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties
-        such as the project and cluster IDs that are instead passed directly.
+        """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties such
+        as the project and cluster IDs that are instead passed directly.
 
         Args:
             project_id: The ID of the project.
@@ -214,6 +214,7 @@ class CloudRuntime(Runtime):
 
         Returns:
             The URL of the created job.
+
         """
         # Dispatch in four phases: resolution, validation, spec creation, API transactions
         # Resolution
@@ -432,6 +433,7 @@ class CloudRuntime(Runtime):
         """Find and load the config file if it exists (otherwise create an empty config).
 
         Override the name if provided.
+
         """
         config_file = _get_config_file(self.entrypoint)
         cloudspace_config = AppConfig.load_from_file(config_file) if config_file.exists() and load else AppConfig()
@@ -611,6 +613,7 @@ class CloudRuntime(Runtime):
         """Check if the user likely needs credits to run the app with its hardware.
 
         Returns False if user has 1 or more credits.
+
         """
         balance = project.balance
         if balance is None:
@@ -698,8 +701,8 @@ class CloudRuntime(Runtime):
                         raise RuntimeError(f"Unknown mount protocol `{mount.protocol}` for work `{work.name}`.")
 
     def _get_flow_servers(self) -> List[V1Flowserver]:
-        """Collect a spec for each flow that contains a frontend so that the backend knows for which flows it needs
-        to start servers."""
+        """Collect a spec for each flow that contains a frontend so that the backend knows for which flows it needs to
+        start servers."""
         flow_servers: List[V1Flowserver] = []
         for flow_name in self.app.frontends:
             flow_server = V1Flowserver(name=flow_name)
@@ -889,8 +892,7 @@ class CloudRuntime(Runtime):
     def _get_env_vars(
         env_vars: Dict[str, str], secrets: Dict[str, str], run_app_comment_commands: bool
     ) -> List[V1EnvVar]:
-        """Generate the list of environment variable specs for the app, including variables set by the
-        framework."""
+        """Generate the list of environment variable specs for the app, including variables set by the framework."""
         v1_env_vars = [V1EnvVar(name=k, value=v) for k, v in env_vars.items()]
 
         if len(secrets.values()) > 0:
@@ -929,6 +931,7 @@ class CloudRuntime(Runtime):
         """Create the cloudspace if it doesn't exist.
 
         Return the cloudspace ID.
+
         """
         if existing_cloudspace is None:
             cloudspace_body = ProjectIdCloudspacesBody(name=name, can_download_source_code=True)
@@ -980,6 +983,7 @@ class CloudRuntime(Runtime):
         """Transfer an existing instance to the given run ID and update its specification.
 
         Return the instance.
+
         """
         run_instance = self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
             project_id=project_id,

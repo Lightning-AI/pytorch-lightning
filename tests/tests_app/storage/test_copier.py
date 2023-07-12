@@ -45,8 +45,8 @@ def test_copier_copies_all_files(fs_mock, stat_mock, dir_mock, tmpdir):
 @mock.patch("lightning.app.storage.path.pathlib.Path.is_dir")
 @mock.patch("lightning.app.storage.path.pathlib.Path.stat")
 def test_copier_handles_exception(stat_mock, dir_mock, monkeypatch):
-    """Test that the Copier captures exceptions from the file copy and forwards them through the queue without
-    raising it."""
+    """Test that the Copier captures exceptions from the file copy and forwards them through the queue without raising
+    it."""
     stat_mock().st_size = 0
     dir_mock.return_value = False
     copy_request_queue = _MockQueue()

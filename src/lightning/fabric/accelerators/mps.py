@@ -26,6 +26,7 @@ class MPSAccelerator(Accelerator):
     """Accelerator for Metal Apple Silicon GPU devices.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+
     """
 
     def setup_device(self, device: torch.device) -> None:

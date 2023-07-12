@@ -231,8 +231,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
 
 
 def test_error_on_dataloader_passed_to_fit(tmpdir):
-    """Verify that when the auto-scale batch size feature raises an error if a train dataloader is passed to
-    fit."""
+    """Verify that when the auto-scale batch size feature raises an error if a train dataloader is passed to fit."""
 
     # only train passed to fit
     model = BatchSizeModel(batch_size=2)

@@ -52,6 +52,7 @@ class _Copier(Thread):
             will send requests to this queue.
         copy_response_queue: A queue connecting the central StorageOrchestrator with the Copier. The Copier
             will send a response to this queue whenever a requested copy has finished.
+
     """
 
     def __init__(
@@ -116,6 +117,7 @@ def _copy_files(
     interpreted as a folder as well. If the source is a file, the destination path is interpreted as a file too.
 
     Files in a folder are copied recursively and efficiently using multiple threads.
+
     """
     if fs is None:
         fs = _filesystem()

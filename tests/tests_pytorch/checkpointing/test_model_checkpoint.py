@@ -85,8 +85,8 @@ def mock_training_epoch_loop(trainer):
 def test_model_checkpoint_score_and_ckpt(
     tmpdir, validation_step_none: bool, val_dataloaders_none: bool, monitor: str, reduce_lr_on_plateau: bool
 ):
-    """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path and
-    checkpoint data."""
+    """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path and checkpoint
+    data."""
     max_epochs = 3
     limit_train_batches = 5
     limit_val_batches = 7
@@ -190,8 +190,8 @@ def test_model_checkpoint_score_and_ckpt(
 def test_model_checkpoint_score_and_ckpt_val_check_interval(
     tmpdir, val_check_interval, reduce_lr_on_plateau, epoch_aligned
 ):
-    """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path and
-    checkpoint data with val_check_interval."""
+    """Test that when a model checkpoint is saved, it saves with the correct score appended to ckpt_path and checkpoint
+    data with val_check_interval."""
     seed_everything(0)
     max_epochs = 3
     limit_train_batches = 12
@@ -1131,8 +1131,8 @@ def test_hparams_type(tmpdir, use_omegaconf):
 
 
 def test_ckpt_version_after_rerun_new_trainer(tmpdir):
-    """Check that previous checkpoints are renamed to have the correct version suffix when new trainer instances
-    are used."""
+    """Check that previous checkpoints are renamed to have the correct version suffix when new trainer instances are
+    used."""
     epochs = 2
     for i in range(epochs):
         mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}")
@@ -1158,8 +1158,8 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
 
 
 def test_ckpt_version_after_rerun_same_trainer(tmpdir):
-    """Check that previous checkpoints are renamed to have the correct version suffix when the same trainer
-    instance is used."""
+    """Check that previous checkpoints are renamed to have the correct version suffix when the same trainer instance is
+    used."""
     mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test")
     mc.STARTING_VERSION = 9
     trainer = Trainer(
@@ -1303,8 +1303,8 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
 
 
 def test_resume_training_preserves_old_ckpt_last(tmpdir):
-    """Ensures that the last saved checkpoint is not deleted from the previous folder when training is resumed from
-    the old checkpoint."""
+    """Ensures that the last saved checkpoint is not deleted from the previous folder when training is resumed from the
+    old checkpoint."""
     model = BoringModel()
     trainer_kwargs = {
         "default_root_dir": tmpdir,

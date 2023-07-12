@@ -15,6 +15,7 @@ class LightningDataset(_Dataset, ABC):
         data_source: path of data directory. ex. s3://mybucket/path
         backend: storage location of the data_source. current options are "s3" or "local"
         path_to_index_file: path to index file that lists all file contents of the data_source.
+
     """
 
     def __init__(
@@ -36,6 +37,7 @@ class LightningDataset(_Dataset, ABC):
 
         Returns:
             The contents of the index file (all the file paths in the data_source)
+
         """
         if not os.path.isfile(self.index_file):
             get_index(self.data_source, self.index_file)
@@ -49,6 +51,7 @@ class LightningDataset(_Dataset, ABC):
 
         Returns:
             The loaded item
+
         """
         file_path = self.files[idx]
 
@@ -66,6 +69,7 @@ class LightningDataset(_Dataset, ABC):
         """Loads each sample in the dataset.
 
         Any data prep/cleaning logic goes here. For ex. image transformations, text cleaning, etc.
+
         """
         pass
 

@@ -181,8 +181,8 @@ class AppStageTestingApp(LightningApp):
 # FIXME: This test doesn't assert anything
 @pytest.mark.skip(reason="TODO: Resolve flaky test.")
 def test_app_stage_from_frontend():
-    """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would
-    start and stop the app."""
+    """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would start
+    and stop the app."""
     app = AppStageTestingApp(FlowA(), log_level="debug")
     app.stage = AppStage.BLOCKING
     MultiProcessRuntime(app, start_server=True).dispatch()
@@ -193,6 +193,7 @@ def test_update_publish_state_and_maybe_refresh_ui():
 
     - receives the state from the `publish_state_queue` and populates the app_state_store
     - receives a notification to refresh the UI and makes a GET Request (streamlit).
+
     """
     app = AppStageTestingApp(FlowA(), log_level="debug")
     publish_state_queue = _MockQueue("publish_state_queue")
@@ -215,6 +216,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
 
     - the state on GET /api/v1/state
     - push a delta when making a POST request to /api/v1/state
+
     """
 
     class InfiniteQueue(_MockQueue):

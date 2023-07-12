@@ -28,6 +28,7 @@ def test_deepspeed_precision_choice(_, precision):
     """Test to ensure precision plugin is correctly chosen.
 
     DeepSpeed handles precision via custom DeepSpeedPrecision.
+
     """
     connector = _Connector(
         accelerator="auto",

@@ -29,6 +29,7 @@ class AttributeDict(Dict):
     "key2":    abc
     "my-key":  3.14
     "new_key": 42
+
     """
 
     def __getattr__(self, key: str) -> Optional[Any]:

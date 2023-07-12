@@ -95,6 +95,7 @@ def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
     Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+
     """
     import logging
 
@@ -119,14 +120,15 @@ def caplog(caplog):
 
 @pytest.fixture()
 def patch_constants(request):
-    """This fixture can be used with indirect parametrization to patch values in `lightning.app.core.constants` for
-    the duration of a test.
+    """This fixture can be used with indirect parametrization to patch values in `lightning.app.core.constants` for the
+    duration of a test.
 
     Example::
 
         @pytest.mark.parametrize("patch_constants", [{"LIGHTNING_CLOUDSPACE_HOST": "any"}], indirect=True)
         def test_my_stuff(patch_constants):
             ...
+
     """
     # Set constants
     old_constants = {}

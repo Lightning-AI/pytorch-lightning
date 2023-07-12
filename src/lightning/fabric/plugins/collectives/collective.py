@@ -13,6 +13,7 @@ class Collective(ABC):
     Supports communications between multiple processes and multiple nodes. A collective owns a group.
 
     .. warning:: This is an :ref:`experimental <versioning:Experimental API>` feature which is still in development.
+
     """
 
     def __init__(self) -> None:
@@ -120,6 +121,7 @@ class Collective(ABC):
 
         This assumes that :meth:`~lightning.fabric.plugins.collectives.Collective.init_group` has been
         called already by the user.
+
         """
         if self._group is not None:
             raise RuntimeError(f"`{type(self).__name__}` already owns a group.")

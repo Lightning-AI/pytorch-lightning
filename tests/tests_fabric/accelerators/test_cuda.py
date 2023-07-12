@@ -71,8 +71,8 @@ def test_set_cuda_device(_, set_device_mock):
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=100)
 def test_num_cuda_devices_without_nvml(*_):
-    """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for
-    determining CUDA availability."""
+    """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for determining
+    CUDA availability."""
     num_cuda_devices.cache_clear()
     assert is_cuda_available()
     assert num_cuda_devices() == 100

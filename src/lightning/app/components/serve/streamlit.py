@@ -50,6 +50,7 @@ class ServeStreamlit(LightningWork, abc.ABC):
         """Optionally override to instantiate and return your model.
 
         The model will be accessible under ``self.model``.
+
         """
         return None
 

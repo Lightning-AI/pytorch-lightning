@@ -275,8 +275,7 @@ def test_mlflow_logger_with_long_param_value(client, _, param, tmpdir):
 @mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
 @mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_with_many_params(client, _, param, tmpdir):
-    """Test that the when logging more than 100 parameters, it will be split into batches of at most 100
-    parameters."""
+    """Test that the when logging more than 100 parameters, it will be split into batches of at most 100 parameters."""
     logger = MLFlowLogger("test", save_dir=tmpdir)
 
     params = {f"test_{idx}": f"test_param_{idx}" for idx in range(150)}

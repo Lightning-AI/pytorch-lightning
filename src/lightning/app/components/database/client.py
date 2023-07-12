@@ -29,6 +29,7 @@ def _configure_session() -> Session:
     """Configures the session for GET and POST requests.
 
     It enables a generous retrial strategy that waits for the application server to connect.
+
     """
     retry_strategy = Retry(
         # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))

@@ -47,8 +47,8 @@ class SingleDeviceStrategy(Strategy):
         self.world_size = 1
 
     def reduce(self, tensor: Any | Tensor, *args: Any, **kwargs: Any) -> Any | Tensor:
-        """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
-        operates with a single device, the reduction is simply the identity.
+        """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only operates
+        with a single device, the reduction is simply the identity.
 
         Args:
             tensor: the tensor to sync and reduce
@@ -57,6 +57,7 @@ class SingleDeviceStrategy(Strategy):
 
         Return:
             the unmodified input as reduction is not needed for single process operation
+
         """
         return tensor
 
