@@ -13,4 +13,7 @@ sphinx-copybutton >=0.3, <=0.5.2
 sphinx-multiproject
 sphinx-toolbox ==3.4.0
 sphinx-rtd-dark-mode
+sphinxcontrib-video ==0.2.0
 jinja2 >=3.0.0,<3.2.0
+
+lightning-utilities >=0.9.0
