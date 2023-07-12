@@ -14,17 +14,19 @@
 import contextlib
 import logging
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Type, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Type, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
+from torch.optim import Optimizer
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.fsdp import (
+    _get_full_state_dict_context,
     _init_cpu_offload,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
@@ -43,6 +45,7 @@ from lightning.fabric.utilities.imports import (
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ProcessGroup, ReduceOp
+from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
@@ -61,11 +64,13 @@ if _fsdp_available:
         FullStateDictConfig,
         FullyShardedDataParallel,
         MixedPrecision,
+        OptimStateKeyType,
         StateDictType,
     )
     from torch.distributed.fsdp.wrap import enable_wrap
 else:
     FullyShardedDataParallel = None  # type: ignore[misc,assignment]
+    OptimStateKeyType = None  # type: ignore[misc,assignment]
     MixedPrecision = None  # type: ignore[misc,assignment]
     CPUOffload = None  # type: ignore[misc,assignment]
 
@@ -223,7 +228,7 @@ class FSDPStrategy(ParallelStrategy):
         if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
 
-    def _setup_model(self, model: torch.nn.Module) -> FullyShardedDataParallel:
+    def _setup_model(self, model: Module) -> FullyShardedDataParallel:
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
@@ -396,3 +401,52 @@ class FSDPStrategy(ParallelStrategy):
             cpu_offload=True,
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
+
+    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        optimizer_states = checkpoint.get("optimizer_states")
+
+        # If the optimizer states are not present, we don't need to do anything (backward compatibility)
+        if optimizer_states is None:
+            return
+
+        if len(self.optimizers) != len(optimizer_states):
+            raise RuntimeError(
+                f"You have configured {len(self.optimizers)} optimizers but the checkpoint contains"
+                f" {len(optimizer_states)} optimizers to load. Please resume training with the same number"
+                " of optimizers or edit the checkpoint manually to remove states."
+            )
+
+        assert isinstance(self.model, FullyShardedDataParallel)
+
+        # rank0_only should be false because we need to load the optimizer state on all ranks
+        with _get_full_state_dict_context(self.model, rank0_only=False):
+            for optimizer, opt_state in zip(self.optimizers, optimizer_states):
+                # convert the optimizer state to the format expected by FSDP
+                opt_state = FullyShardedDataParallel.rekey_optim_state_dict(
+                    opt_state, OptimStateKeyType.PARAM_NAME, self.model
+                )
+
+                opt_state = FullyShardedDataParallel.optim_state_dict_to_load(
+                    optim_state_dict=opt_state,
+                    model=self.model,
+                    optim=optimizer,
+                )
+
+                optimizer.load_state_dict(opt_state)
+
+    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+        if isinstance(optimizer, LightningOptimizer):
+            optimizer = optimizer._optimizer
+
+        assert self.model is not None
+
+        with _get_full_state_dict_context(self.model, rank0_only=True):
+            state_dict = FullyShardedDataParallel.optim_state_dict(self.model, optimizer)
+
+        # Store the optimizer state dict in standard format
+        if self.global_rank == 0:
+            state_dict = FullyShardedDataParallel.rekey_optim_state_dict(
+                state_dict, OptimStateKeyType.PARAM_ID, self.model
+            )
+
+        return state_dict

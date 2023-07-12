@@ -184,10 +184,26 @@ Enable checkpointing on large layers (like Transformers) by providing the layer 
 
     from lightning.pytorch.strategies import FSDPStrategy
 
-    fsdp = FSDPStrategy(
-        activation_checkpointing=MyTransformerBlock,  # or pass a list with multiple types
-    )
+    fsdp = FSDPStrategy(activation_checkpointing=MyTransformerBlock)  # or pass a list with multiple types
     trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
+
+
+You could also configure activation checkpointing manually inside the ``configure_sharded_model`` hook:
+
+.. code-block:: python
+
+    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import apply_activation_checkpointing
+
+
+    class MyModel(pl.LightningModule):
+        ...
+
+        def configure_sharded_model(self):
+            # Same code as in the "Manual wrapping" snippet above
+            ...
+            apply_activation_checkpointing(self.model)
+
+In this case, Lightning will not re-configure activation checkpointing, so you don't need to set ``FSDPStrategy(activation_checkpointing=...)``.
 
 
 ----

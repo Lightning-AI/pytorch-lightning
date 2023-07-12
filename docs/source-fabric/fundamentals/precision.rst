@@ -7,6 +7,8 @@ Save memory with mixed precision
     :autoplay:
     :loop:
     :muted:
+    :nocontrols:
+
 
 ************************
 What is Mixed Precision?
