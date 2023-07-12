@@ -62,11 +62,11 @@ def test_lightning_client_retry_enabled():
 def test_retry_wrapper_max_tries(_):
     mock_client = mock.MagicMock()
     mock_client.test.__name__ = "test"
-    mock_client.test.side_effect = HTTPError()
+    mock_client.test.side_effect = HTTPError("failed")
 
     wrapped_mock_client = _retry_wrapper(mock_client, mock_client.test, max_tries=3)
 
-    with pytest.raises(Exception, match=re.escape("The maximum number of tries (3) has been reached.")):
+    with pytest.raises(Exception, match=re.escape("The test request failed to reach the server, error: failed")):
         wrapped_mock_client()
 
     assert mock_client.test.call_count == 3

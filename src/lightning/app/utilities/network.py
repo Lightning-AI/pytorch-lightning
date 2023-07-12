@@ -135,31 +135,35 @@ def _retry_wrapper(self, func: Callable, max_tries: Optional[int] = None) -> Cal
         consecutive_errors = 0
 
         while True:
-            if max_tries is not None and consecutive_errors == max_tries:
-                raise Exception(f"The maximum number of tries ({max_tries}) has been reached.")
-
             try:
                 return func(self, *args, **kwargs)
-            except lightning_cloud.openapi.rest.ApiException as ex:
-                # retry if the control plane fails with all errors except 4xx but not 408 - (Request Timeout)
-                if ex.status == 408 or ex.status == 409 or not str(ex.status).startswith("4"):
+            except (lightning_cloud.openapi.rest.ApiException, urllib3.exceptions.HTTPError) as ex:
+                # retry if the backend fails with all errors except 4xx but not 408 - (Request Timeout)
+                if (
+                    isinstance(ex, urllib3.exceptions.HTTPError)
+                    or ex.status == 408
+                    or ex.status == 409
+                    or not str(ex.status).startswith("4")
+                ):
                     consecutive_errors += 1
                     backoff_time = _get_next_backoff_time(consecutive_errors)
+
+                    msg = (
+                        f"error: {str(ex)}"
+                        if isinstance(ex, urllib3.exceptions.HTTPError)
+                        else f"response: {ex.status}"
+                    )
                     logger.debug(
-                        f"The {func.__name__} request failed to reach the server, got a response {ex.status}."
+                        f"The {func.__name__} request failed to reach the server, {msg}."
                         f" Retrying after {backoff_time} seconds."
                     )
+
+                    if max_tries is not None and consecutive_errors == max_tries:
+                        raise Exception(f"The {func.__name__} request failed to reach the server, {msg}.")
+
                     time.sleep(backoff_time)
                 else:
                     raise ex
-            except urllib3.exceptions.HTTPError as ex:
-                consecutive_errors += 1
-                backoff_time = _get_next_backoff_time(consecutive_errors)
-                logger.debug(
-                    f"The {func.__name__} request failed to reach the server, got a an error {str(ex)}."
-                    f" Retrying after {backoff_time} seconds."
-                )
-                time.sleep(backoff_time)
 
     return wrapped
 
