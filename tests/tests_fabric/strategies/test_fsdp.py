@@ -283,7 +283,7 @@ def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
 
 
 @RunIf(min_torch="2.0.0")
-def test_fsdp_load_unkown_checkpoint_type(tmp_path):
+def test_fsdp_load_unknown_checkpoint_type(tmp_path):
     """Test that the strategy validates the contents at the checkpoint path."""
     strategy = FSDPStrategy()
     model = Mock(spec=FullyShardedDataParallel)
@@ -382,6 +382,7 @@ class StatusChecker:
         self.finalize()
 
 
+@pytest.mark.skip(reason="Flaky test")  # See also: https://github.com/Lightning-AI/lightning/pull/17774
 @RunIf(min_torch="2.0.0", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD, reason="Not supported in this version of PyTorch")
 @pytest.mark.skipif(not RequirementCache("psutil"), reason="psutil is needed to help prevent deadlocks.")

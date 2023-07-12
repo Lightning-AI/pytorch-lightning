@@ -429,6 +429,13 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     assert ckpt_name == "test@epoch=3,acc=0.03000"
     ModelCheckpoint.CHECKPOINT_JOIN_CHAR = char_org
 
+    # non-default char for equals sign
+    default_char = ModelCheckpoint.CHECKPOINT_EQUALS_CHAR
+    ModelCheckpoint.CHECKPOINT_EQUALS_CHAR = ":"
+    ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch:03d}-{acc}", {"epoch": 3, "acc": 0.03})
+    assert ckpt_name == "epoch:003-acc:0.03"
+    ModelCheckpoint.CHECKPOINT_EQUALS_CHAR = default_char
+
     # no dirpath set
     ckpt_name = ModelCheckpoint(monitor="early_stop_on", dirpath=None).format_checkpoint_name({"epoch": 3, "step": 2})
     assert ckpt_name == "epoch=3-step=2.ckpt"

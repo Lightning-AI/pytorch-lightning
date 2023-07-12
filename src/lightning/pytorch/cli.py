@@ -691,7 +691,10 @@ class LightningCLI:
             config_seed = seed_everything(workers=True)
         else:
             config_seed = seed_everything(config_seed, workers=True)
-        self.config["seed_everything"] = config_seed
+        if self.subcommand:
+            self.config[self.subcommand]["seed_everything"] = config_seed
+        else:
+            self.config["seed_everything"] = config_seed
 
 
 def _class_path_from_class(class_type: Type) -> str:

@@ -216,8 +216,7 @@ class MyCustomTrainer:
         for batch_idx, batch in enumerate(iterable):
             # end epoch if stopping training completely or max batches for this epoch reached
             if self.should_stop or batch_idx >= limit_batches:
-                self.fabric.call("on_train_epoch_end")
-                return
+                break
 
             self.fabric.call("on_train_batch_start", batch, batch_idx)
 
@@ -293,8 +292,7 @@ class MyCustomTrainer:
         for batch_idx, batch in enumerate(iterable):
             # end epoch if stopping training completely or max batches for this epoch reached
             if self.should_stop or batch_idx >= limit_batches:
-                self.fabric.call("on_validation_epoch_end")
-                return
+                break
 
             self.fabric.call("on_validation_batch_start", batch, batch_idx)
 

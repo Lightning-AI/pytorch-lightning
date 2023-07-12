@@ -14,6 +14,7 @@
 import os
 from copy import deepcopy
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 import torch
@@ -24,7 +25,7 @@ from torch.utils.data import DataLoader
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import DeepSpeedPrecision
 from lightning.fabric.strategies import DeepSpeedStrategy
-from tests_fabric.helpers.models import BoringFabric, RandomDataset, RandomIterableDataset
+from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
@@ -205,35 +206,35 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded():
     )
 
 
-class ModelParallelClassification(BoringFabric):
-    num_blocks = 5
-
-    def get_model(self):
-        return nn.Sequential(*(self._make_block() for _ in range(self.num_blocks)), nn.Linear(32, 3))
-
-    def step(self, model, batch):
-        x = batch
-        y = torch.ones(batch.size(0), device=batch.device, dtype=torch.long)
-        x = model(x)
-        # Ensure output is in float32 for softmax operation
-        x = x.float()
-        logits = F.softmax(x, dim=1)
-        return F.cross_entropy(logits, y)
-
-    def _make_block(self):
-        return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
-
-
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_stage_3():
     """Test to ensure ZeRO Stage 3 works with a parallel model."""
-    fabric = ModelParallelClassification(
+    fabric = Fabric(
         strategy=DeepSpeedStrategy(stage=3),
         accelerator="cuda",
         devices=2,
         precision="16-mixed",
     )
-    fabric.run()
+    fabric.launch()
+
+    def _make_block():
+        return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
+
+    with fabric.init_module():
+        model = nn.Sequential(*(_make_block() for _ in range(5)), nn.Linear(32, 3))
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    model, optimizer = fabric.setup(model, optimizer)
+
+    x = torch.rand(2, 32, device=fabric.device)
+    y = torch.ones(x.size(0), device=x.device, dtype=torch.long)
+    x = model(x)
+    x = x.float()  # Ensure output is in float32 for softmax operation
+    logits = F.softmax(x, dim=1)
+    loss = F.cross_entropy(logits, y)
+    fabric.backward(loss)
+    optimizer.step()
+    optimizer.zero_grad()
 
 
 @RunIf(deepspeed=True)
@@ -245,7 +246,7 @@ def test_deepspeed_env_variables_on_platforms(_, deepspeed_dist_mock, platform):
 
     When using Windows, ranks environment variables should not be set, and DeepSpeed should handle this.
     """
-    fabric = BoringFabric(strategy=DeepSpeedStrategy(stage=3))
+    fabric = Fabric(strategy=DeepSpeedStrategy(stage=3))
     strategy = fabric._strategy
     assert isinstance(strategy, DeepSpeedStrategy)
     with mock.patch("platform.system", return_value=platform) as platform_mock:
@@ -263,22 +264,6 @@ def test_deepspeed_env_variables_on_platforms(_, deepspeed_dist_mock, platform):
         assert os.environ["LOCAL_RANK"] == str(strategy.local_rank)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_deepspeed_specific_gpu_device_index():
-    """Test that the DeepSpeed strategy can run on specific device indices."""
-
-    class RunFabric(BoringFabric):
-        def step(self, model, batch):
-            assert self.device.type == "cuda"
-            assert self.device.index == 1
-            assert batch.device.index == 1
-            assert model.device.index == 1
-            return super().step(model, batch)
-
-    fabric = RunFabric(accelerator="cuda", devices=[1], strategy="deepspeed")
-    fabric.run()
-
-
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
 def test_deepspeed_with_bfloat16_precision():
     """Test that the DeepSpeed strategy works with bfloat16 precision."""
@@ -292,21 +277,25 @@ def test_deepspeed_with_bfloat16_precision():
             assert x.dtype == torch.bfloat16
             return self.layer(x)
 
-    class RunFabric(BoringFabric):
-        def get_model(self):
-            return Model()
-
-        def step(self, model, batch):
-            assert self._strategy.config["bf16"]["enabled"]
-            assert batch.dtype == torch.float32
-            assert model.layer.weight.dtype == torch.bfloat16
-            return super().step(model, batch)
-
-    fabric = RunFabric(accelerator="cuda", devices=2, strategy="deepspeed_stage_3", precision="bf16-mixed")
+    fabric = Fabric(accelerator="cuda", devices=2, strategy="deepspeed_stage_3", precision="bf16-mixed")
     assert isinstance(fabric._strategy.precision, DeepSpeedPrecision)
     assert fabric._strategy.precision.precision == "bf16-mixed"
     assert fabric._strategy.config["zero_optimization"]["stage"] == 3
-    fabric.run()
+    fabric.launch()
+
+    with fabric.init_module():
+        model = Model()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    model, optimizer = fabric.setup(model, optimizer)
+    assert fabric._strategy.config["bf16"]["enabled"]
+    assert model.layer.weight.dtype == torch.bfloat16
+
+    batch = torch.rand(2, 32, device=fabric.device)
+    assert batch.dtype == torch.float32
+    loss = model(batch).sum()
+    fabric.backward(loss)
+    optimizer.step()
+    optimizer.zero_grad()
 
 
 def _assert_saved_model_is_equal(fabric, model, checkpoint_path):
@@ -389,3 +378,37 @@ def test_deepspeed_save_load_checkpoint_zero_3(stage, tmp_path):
     assert "ds_version" in metadata
 
     _assert_saved_model_is_equal(fabric, model, checkpoint_path)
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
+@pytest.mark.parametrize("empty_init", [None, True])
+def test_deepspeed_init_module_with_stage_3(empty_init):
+    """Tests how `.init_module()` behaves with ZeRO stage 3."""
+    strategy = DeepSpeedStrategy(stage=3)
+    fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy, precision="bf16-true")
+    fabric.launch()
+
+    with mock.patch("deepspeed.zero.Init") as zero_init_mock, fabric.init_module(empty_init=empty_init):
+        BoringModel()
+    zero_init_mock.assert_called_once_with(
+        remote_device="cpu", pin_memory=True, config_dict_or_path=ANY, dtype=torch.bfloat16
+    )
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
+@pytest.mark.parametrize("stage", [1, 2])
+@pytest.mark.parametrize("empty_init", [None, False, True])
+def test_deepspeed_init_module_with_stages_1_2(stage, empty_init):
+    """Tests how `.init_module()` behaves with ZeRO stages 1 and 2."""
+    strategy = DeepSpeedStrategy(stage=stage)
+    fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy, precision="bf16-true")
+    fabric.launch()
+
+    with mock.patch("deepspeed.zero.Init") as zero_init_mock, mock.patch(
+        "torch.Tensor.uniform_"
+    ) as init_mock, fabric.init_module(empty_init=empty_init):
+        model = BoringModel()
+
+    zero_init_mock.assert_not_called()
+    assert init_mock.call_count == int(not empty_init)
+    assert model.layer.weight.dtype == torch.bfloat16

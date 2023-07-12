@@ -101,6 +101,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         self._forward_module = forward_module
         self._original_module = original_module or forward_module
         self._precision = precision
+        self._fabric_module_initialized = True
 
     @property
     def module(self) -> nn.Module:
@@ -160,7 +161,11 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         return call_forward_module
 
     def _validate_method_access(self, name: str, attribute: Any) -> None:
-        if inspect.ismethod(attribute) and self._forward_module != self._original_module:
+        if (
+            inspect.ismethod(attribute)
+            and inspect.signature(attribute).parameters
+            and self._forward_module != self._original_module
+        ):
             warning_cache.warn(
                 f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
                 " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
@@ -184,6 +189,31 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             attr = getattr(original_module, item)
             self._validate_method_access(item, attr)
             return attr
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if not getattr(self, "_fabric_module_initialized", False):
+            super().__setattr__(name, value)
+            return
+
+        # Get the _original_module attribute
+        original_module = self._original_module
+        original_has_attr = hasattr(original_module, name)
+        # Can't use super().__getattr__ because nn.Module only checks _parameters, _buffers, and _modules
+        # Can't use self.__getattr__ because it would pass through to the original module
+        fabric_has_attr = name in self.__dict__
+
+        if not (original_has_attr or fabric_has_attr):
+            setattr(original_module, name, value)
+            return
+
+        # The original module can also inherit from _DeviceDtypeModuleMixin,
+        # in this case, both the Fabric module and original module have attributes like _dtype
+        # set attribute on both
+        if original_has_attr:
+            setattr(original_module, name, value)
+
+        if fabric_has_attr:
+            super().__setattr__(name, value)
 
 
 class _FabricDataLoader:

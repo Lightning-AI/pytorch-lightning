@@ -27,6 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Samp
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
+    DataParallelStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     ParallelStrategy,
@@ -637,6 +638,11 @@ def test_no_backward_sync():
     with fabric.no_backward_sync(model):
         pass
     fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
+    # same for XLA
+    fabric._strategy = Mock(spec=XLAStrategy, _backward_sync_control=MagicMock())
+    with fabric.no_backward_sync(model):
+        pass
+    fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
 
     # pretend that the strategy supports skipping backward sync
     fabric._strategy = Mock(_backward_sync_control=MagicMock())
@@ -644,7 +650,7 @@ def test_no_backward_sync():
     with fabric.no_backward_sync(model, enabled=False):
         pass
     fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
-    # when enabld, the wrapped module gets passed down
+    # when enabled, the wrapped module gets passed down
     with fabric.no_backward_sync(model):
         pass
     fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module)
@@ -739,7 +745,7 @@ def test_init_module_context(monkeypatch):
     fabric._strategy = strategy
     with fabric.init_module():
         pass
-    strategy.module_init_context.assert_called_once()
+    strategy.module_init_context.assert_called_once_with(empty_init=None)
     strategy.module_init_context.reset_mock()
 
     # Pretend we are using PyTorch < 2.0
@@ -936,7 +942,47 @@ def test_save_wrapped_objects(setup, tmp_path):
     state = {"model": model, "optimizer": optimizer, "anything": anything}
     expected = {"model": unwrapped_model, "optimizer": unwrapped_optimizer, "anything": anything}
     fabric.save(tmp_path, state)
-    save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path)
+    save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path, filter=None)
+
+
+def test_save_filter(tmp_path):
+    fabric = Fabric(devices=1)
+    checkpoint_io_mock = Mock()
+    fabric.strategy.checkpoint_io = checkpoint_io_mock
+
+    model = BoringModel()
+    optimizer = torch.optim.Adam(model.parameters())
+
+    anything = {"cocofruit": 1}
+    state = {"model": model, "optimizer": optimizer, "anything": anything, "foo": 1}
+    save_path = tmp_path / "foo.pth"
+
+    # filter all dicts
+    filter = {k: lambda k, v: False for k in state}
+    fabric.save(save_path, state, filter=filter)
+    checkpoint_io_mock.save_checkpoint.assert_called_with(checkpoint={"foo": 1}, path=save_path, storage_options=None)
+
+    # bad filters
+    with pytest.raises(TypeError, match="should be a dict"):
+        fabric.save(save_path, state, filter="foo")
+    with pytest.raises(TypeError, match="callable, given 'foo"):
+        fabric.save(save_path, state, filter={"model": "foo"})
+    with pytest.raises(ValueError, match="keys {'asd'} are not present in the state keys"):
+        fabric.save(save_path, state, filter={"asd": lambda k, v: True})
+
+    # subset
+    checkpoint_io_mock.reset_mock()
+    filter = {
+        "model": lambda k, v: "weight" in k,
+        "anything": lambda k, v: isinstance(v, int),
+        "optimizer": lambda k, v: "param_groups" in k,
+    }
+    fabric.save(save_path, state, filter=filter)
+    checkpoint_io_mock.save_checkpoint.assert_called_with(
+        checkpoint={"model": {"layer.weight": ANY}, "optimizer": {"param_groups": ANY}, "anything": anything, "foo": 1},
+        path=save_path,
+        storage_options=None,
+    )
 
 
 @pytest.mark.parametrize("setup", [True, False])
@@ -1033,6 +1079,26 @@ def test_all_reduce():
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
 
 
+def test_rank_zero_first():
+    """Test that rank 0 completes first before all other processes can execute under `.rank_zero_first()`."""
+
+    def record_calls_for_rank(rank):
+        call_order = []
+
+        fabric = Fabric()
+        fabric._strategy = Mock(global_rank=rank)
+        fabric.barrier = Mock(side_effect=lambda *_: call_order.append("barrier"))
+        target = Mock(run=Mock(side_effect=lambda *_: call_order.append("run")))
+
+        with fabric.rank_zero_first():
+            target.run()
+
+        return call_order
+
+    assert record_calls_for_rank(0) == ["run", "barrier", "barrier"]
+    assert record_calls_for_rank(1) == ["barrier", "run", "barrier"]
+
+
 @pytest.mark.parametrize(("clip_val", "max_norm"), [(1e-3, None), (None, 1)])
 def test_grad_clipping(clip_val, max_norm):
     fabric = Fabric(devices=1)
@@ -1068,6 +1134,8 @@ def test_verify_launch_called():
     fabric = Fabric(accelerator="cpu")
     assert not fabric._launched
     fabric._strategy = Mock(spec=SingleDeviceStrategy)
+    fabric._validate_launched()
+    fabric._strategy = Mock(spec=DataParallelStrategy)
     fabric._validate_launched()
     fabric._strategy = Mock(spec=DDPStrategy)
     with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):

@@ -30,6 +30,11 @@ on:
         default: ''
         required: false
         type: string
+      upload_local:
+        description: 'When releasing, it installs local but need to upload with the actual version tag.'
+        default: false
+        required: false
+        type: boolean
       create_pr:
         description: 'Create a PR to enable testing PL with a new checkpoint.'
         default: false
@@ -55,13 +60,6 @@ jobs:
       with:
         # Python version here needs to be supported by all PL versions listed in back-compatible-versions.txt.
         python-version: 3.8
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-        aws-region: us-east-1
 
     - name: Install PL from source
       env:
@@ -92,8 +90,12 @@ jobs:
     - name: Generate checkpoints
       working-directory: ${{ env.legacy_dir }}
       run: bash generate_checkpoints.sh ${{ inputs.pl_version }}
+    - name: Rename local to actual version
+      if: inputs.upload_local
+      working-directory: ${{ env.legacy_dir }}
+      run: mv checkpoints/local checkpoints/${{ steps.decide-version.outputs.pl-version }}
 
-    - name: Keep artifact & DryRun
+    - name: "Determine: Keep artifact & DryRun"
       run: |
         python -c "print('KEEP_DAYS=' + str(30 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_ENV
         python -c "print('AWS_RUN=' + str('' if '${{inputs.push_to_s3}}' == 'true' else '--dryrun'))" >> $GITHUB_ENV
@@ -105,8 +107,18 @@ jobs:
         path: ${{ env.legacy_dir }}/checkpoints/
         retention-days: ${{ env.KEEP_DAYS }}
 
+    - name: Install AWS CLI
+      run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+          unzip -qq awscli.zip
+          bash ./aws/install
+          aws --version
     - name: Upload checkpoints to S3
       working-directory: ${{ env.legacy_dir }}
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
       run: |
         aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/
         zip -r checkpoints.zip checkpoints
@@ -130,6 +142,7 @@ jobs:
       with:
         title: Adding test for legacy checkpoint created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
         delete-branch: true
+        token: ${{ secrets.PAT_GHOST }}
         labels: |
           checkpointing
           tests

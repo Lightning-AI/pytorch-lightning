@@ -41,7 +41,6 @@ except ModuleNotFoundError:
     wandb, Run, RunDisabled = None, None, None
 
 _WANDB_AVAILABLE = RequirementCache("wandb")
-_WANDB_GREATER_EQUAL_0_10_22 = RequirementCache("wandb>=0.10.22")
 _WANDB_GREATER_EQUAL_0_12_10 = RequirementCache("wandb>=0.12.10")
 
 
@@ -314,13 +313,6 @@ class WandbLogger(Logger):
                 "Hint: Set `offline=False` to log your model."
             )
 
-        if log_model and not _WANDB_GREATER_EQUAL_0_10_22:
-            rank_zero_warn(
-                f"Providing log_model={log_model} requires wandb version >= 0.10.22"
-                " for logging associated model metadata.\n"
-                "Hint: Upgrade with `pip install --upgrade wandb`."
-            )
-
         super().__init__()
         self._offline = offline
         self._log_model = log_model
@@ -422,7 +414,7 @@ class WandbLogger(Logger):
         self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
         self.experiment.config.update(params, allow_val_change=True)
@@ -484,7 +476,7 @@ class WandbLogger(Logger):
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
         kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
-        self.log_metrics(metrics, step)
+        self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
     @property
     def save_dir(self) -> Optional[str]:
@@ -577,27 +569,23 @@ class WandbLogger(Logger):
 
         # log iteratively all new checkpoints
         for t, p, s, tag in checkpoints:
-            metadata = (
-                {
-                    "score": s.item() if isinstance(s, Tensor) else s,
-                    "original_filename": Path(p).name,
-                    checkpoint_callback.__class__.__name__: {
-                        k: getattr(checkpoint_callback, k)
-                        for k in [
-                            "monitor",
-                            "mode",
-                            "save_last",
-                            "save_top_k",
-                            "save_weights_only",
-                            "_every_n_train_steps",
-                        ]
-                        # ensure it does not break if `ModelCheckpoint` args change
-                        if hasattr(checkpoint_callback, k)
-                    },
-                }
-                if _WANDB_GREATER_EQUAL_0_10_22
-                else None
-            )
+            metadata = {
+                "score": s.item() if isinstance(s, Tensor) else s,
+                "original_filename": Path(p).name,
+                checkpoint_callback.__class__.__name__: {
+                    k: getattr(checkpoint_callback, k)
+                    for k in [
+                        "monitor",
+                        "mode",
+                        "save_last",
+                        "save_top_k",
+                        "save_weights_only",
+                        "_every_n_train_steps",
+                    ]
+                    # ensure it does not break if `ModelCheckpoint` args change
+                    if hasattr(checkpoint_callback, k)
+                },
+            }
             if not self._checkpoint_name:
                 self._checkpoint_name = f"model-{self.experiment.id}"
             artifact = wandb.Artifact(name=self._checkpoint_name, type="model", metadata=metadata)

@@ -98,14 +98,14 @@ This is useful if your model experiences *exploding gradients* during training.
     fabric.clip_gradients(model, optimizer, clip_val=0.5)
 
     # Clip gradients such that their total norm is no bigger than 2.0
-    fabric.clip_gradients(model, optimizer, clip_norm=2.0)
+    fabric.clip_gradients(model, optimizer, max_norm=2.0)
 
     # By default, clipping by norm uses the 2-norm
-    fabric.clip_gradients(model, optimizer, clip_norm=2.0, norm_type=2)
+    fabric.clip_gradients(model, optimizer, max_norm=2.0, norm_type=2)
 
     # You can also choose the infinity-norm, which clips the largest
     # element among all
-    fabric.clip_gradients(model, optimizer, clip_norm=2.0, norm_type="inf")
+    fabric.clip_gradients(model, optimizer, max_norm=2.0, norm_type="inf")
 
 The :meth:`~lightning.fabric.fabric.Fabric.clip_gradients` method is agnostic to the precision and strategy being used.
 Note: Gradient clipping with FSDP is not yet fully supported.
@@ -156,6 +156,19 @@ To speed up initialization, you can force PyTorch to create the model directly o
 This eliminates the waiting time to transfer the model parameters from the CPU to the device.
 For strategies that handle large sharded models (FSDP, DeepSpeed), the :meth:`~lightning.fabric.fabric.Fabric.init_module` method will allocate the model parameters on the meta device first before sharding.
 This makes it possible to work with models that are larger than the memory of a single device.
+
+When loading a model from a checkpoint, for example when fine-tuning, set `empty_init=True` to avoid expensive
+and redundant memory initialization:
+
+.. code-block:: python
+
+    with fabric.init_module(empty_init=True):
+        # creation of the model is very fast
+        # and depending on the strategy allocates no memory, or uninitialized memory
+        model = MyModel()
+
+    # weights get loaded into the model
+    model.load_state_dict(checkpoint["state_dict"])
 
 
 autocast
@@ -299,7 +312,8 @@ The three most common ones, :meth:`~lightning.fabric.fabric.Fabric.broadcast`, :
 
 .. important::
 
-    Every process needs to enter the collective calls. Otherwise, the program will hang!
+    Every process needs to enter the collective calls, and tensors need to have the same shape across all processes.
+    Otherwise, the program will hang!
 
 Learn more about :doc:`distributed communication <../advanced/distributed_communication>`.
 
