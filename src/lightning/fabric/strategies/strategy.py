@@ -288,7 +288,7 @@ class Strategy(ABC):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Union[Module, Dict[str, Union[Module, Optimizer, Any]]]] = None,
+        state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
@@ -314,6 +314,10 @@ class Strategy(ABC):
 
         if isinstance(state, Module):
             self.load_module_state_dict(module=state, state_dict=checkpoint, strict=strict)
+            return {}
+
+        if isinstance(state, Optimizer):
+            state.load_state_dict(checkpoint)
             return {}
 
         _validate_keys_for_strict_loading(state.keys(), checkpoint.keys(), strict=strict)
