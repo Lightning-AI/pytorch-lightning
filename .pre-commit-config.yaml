@@ -60,7 +60,7 @@ repos:
     rev: v1.6.3
     hooks:
       - id: docformatter
-        args: [--in-place, --wrap-summaries=115, --wrap-descriptions=120]
+        args: ["--in-place"]
 
   - repo: https://github.com/asottile/yesqa
     rev: v1.4.0
