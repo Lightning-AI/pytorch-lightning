@@ -92,6 +92,11 @@ class CSVLogger(Logger):
         return self._version
 
     @property
+    def root_dir(self) -> str:
+        """Gets the save directory where the versioned CSV experiments are saved."""
+        return self._root_dir
+
+    @property
     def log_dir(self) -> str:
         """The log directory for this run.
 
