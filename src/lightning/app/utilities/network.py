@@ -123,7 +123,7 @@ def _get_next_backoff_time(num_retries: int, backoff_value: float = 0.5) -> floa
     return min(_DEFAULT_BACKOFF_MAX, next_backoff_value)
 
 
-def _retry_wrapper(self, func: Callable) -> Callable:
+def _retry_wrapper(self, func: Callable, max_tries: Optional[int] = None) -> Callable:
     """Returns the function decorated by a wrapper that retries the call several times if a connection error
     occurs.
 
@@ -133,7 +133,11 @@ def _retry_wrapper(self, func: Callable) -> Callable:
     @wraps(func)
     def wrapped(*args: Any, **kwargs: Any) -> Any:
         consecutive_errors = 0
-        while _get_next_backoff_time(consecutive_errors) != _DEFAULT_BACKOFF_MAX:
+
+        while True:
+            if max_tries is not None and consecutive_errors == max_tries:
+                raise Exception(f"The maximum number of tries ({max_tries}) has been reached.")
+
             try:
                 return func(self, *args, **kwargs)
             except lightning_cloud.openapi.rest.ApiException as ex:
@@ -157,8 +161,6 @@ def _retry_wrapper(self, func: Callable) -> Callable:
                 )
                 time.sleep(backoff_time)
 
-        raise Exception(f"The default maximum backoff {_DEFAULT_BACKOFF_MAX} seconds has been reached.")
-
     return wrapped
 
 
@@ -169,15 +171,16 @@ class LightningClient(GridRestClient):
 
     Args:
         retry: Whether API calls should follow a retry mechanism with exponential backoff.
+        max_tries: Maximum number of attempts (or -1 to retry forever).
     """
 
-    def __init__(self, retry: bool = True) -> None:
+    def __init__(self, retry: bool = True, max_tries: Optional[int] = None) -> None:
         super().__init__(api_client=create_swagger_client())
         if retry:
             for base_class in GridRestClient.__mro__:
                 for name, attribute in base_class.__dict__.items():
                     if callable(attribute) and attribute.__name__ != "__init__":
-                        setattr(self, name, _retry_wrapper(self, attribute))
+                        setattr(self, name, _retry_wrapper(self, attribute, max_tries=max_tries))
 
 
 class CustomRetryAdapter(HTTPAdapter):
