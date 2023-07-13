@@ -110,7 +110,10 @@ def test_deepspeed_strategy_string(tmpdir, strategy):
     set."""
 
     trainer = Trainer(
-        fast_dev_run=True, default_root_dir=tmpdir, strategy=strategy if isinstance(strategy, str) else strategy()
+        accelerator="cpu",
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+        strategy=strategy if isinstance(strategy, str) else strategy(),
     )
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
@@ -125,7 +128,7 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
         f.write(json.dumps(deepspeed_config))
     monkeypatch.setenv("PL_DEEPSPEED_CONFIG_PATH", config_path)
 
-    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed")
+    trainer = Trainer(accelerator="cpu", fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed")
 
     strategy = trainer.strategy
     assert isinstance(strategy, DeepSpeedStrategy)
@@ -1226,7 +1229,7 @@ def test_error_with_invalid_accelerator(tmpdir):
         fast_dev_run=True,
     )
     model = BoringModel()
-    with pytest.raises(MisconfigurationException, match="DeepSpeed strategy is only supported on GPU"):
+    with pytest.raises(RuntimeError, match="DeepSpeed strategy is only supported on CUDA"):
         trainer.fit(model)
 
 
