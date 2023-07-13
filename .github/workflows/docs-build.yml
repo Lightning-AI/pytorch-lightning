@@ -48,14 +48,18 @@ jobs:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - uses: aws-actions/configure-aws-credentials@v2
+      - name: Install AWS CLI
         if: ${{ matrix.pkg-name != 'pytorch' }}
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-          aws-region: us-east-1
-
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+          unzip -qq awscli.zip
+          bash ./aws/install
+          aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
@@ -96,14 +100,18 @@ jobs:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - uses: aws-actions/configure-aws-credentials@v2
+      - name: Install AWS CLI
         if: ${{ matrix.pkg-name != 'pytorch' }}
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-          aws-region: us-east-1
-
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+          unzip -qq awscli.zip
+          bash ./aws/install
+          aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
