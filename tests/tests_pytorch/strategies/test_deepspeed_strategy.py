@@ -1286,8 +1286,7 @@ def test_validate_parallel_devices_indices(device_indices):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
-@pytest.mark.parametrize("empty_init", [None, True])
-def test_deepspeed_init_module_with_stage_3(empty_init):
+def test_deepspeed_init_module_with_stage_3():
     """Tests how `.init_module()` behaves with ZeRO stage 3."""
     trainer = Trainer(
         accelerator="cuda", devices=2, strategy="deepspeed_stage_3", precision="bf16-mixed", fast_dev_run=1

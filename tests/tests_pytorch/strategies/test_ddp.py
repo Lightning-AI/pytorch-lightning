@@ -165,20 +165,20 @@ def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs, mps_count_
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    ("precision", "expected_dtype"),
+    ("precision_plugin", "expected_dtype"),
     [
         (PrecisionPlugin(), torch.float32),
         (DoublePrecisionPlugin(), torch.float64),
     ],
 )
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
-def test_tensor_init_context(precision, expected_dtype):
+def test_tensor_init_context(precision_plugin, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
     expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
 
     strategy = DDPStrategy(
-        parallel_devices=parallel_devices, precision=precision, cluster_environment=LightningEnvironment()
+        parallel_devices=parallel_devices, precision_plugin=precision_plugin, cluster_environment=LightningEnvironment()
     )
     assert strategy.local_rank == 1
     with strategy.tensor_init_context():
