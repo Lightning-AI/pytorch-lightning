@@ -6,7 +6,7 @@ from collections import namedtuple
 
 
 def test_s3_dataset_backend_credentials_env_vars():
-    from lightning.data.backends import LocalDatasetBackend
+    from lightning.data.backends import S3DatasetBackend
     os.environ["AWS_ACCESS_KEY"] = "123"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "abc"
 
@@ -32,4 +32,5 @@ def test_s3_dataset_backend_credentials_iam():
 
 
 def test_local_dataset_backend_credentials():
+    from lightning.data.backends import LocalDatasetBackend
     assert LocalDatasetBackend().credentials() == {}
