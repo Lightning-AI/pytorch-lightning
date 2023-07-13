@@ -18,6 +18,7 @@ import os
 from re import escape
 from typing import Any, Dict
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 import torch
@@ -1282,3 +1283,33 @@ def test_validate_parallel_devices_indices(device_indices):
         RuntimeError, match=escape(f"device indices {device_indices!r} don't match the local rank values of processes")
     ):
         strategy.setup_environment()
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
+@pytest.mark.parametrize("empty_init", [None, True])
+def test_deepspeed_init_module_with_stage_3(empty_init):
+    """Tests how `.init_module()` behaves with ZeRO stage 3."""
+    trainer = Trainer(
+        accelerator="cuda", devices=2, strategy="deepspeed_stage_3", precision="bf16-mixed", fast_dev_run=1
+    )
+    model = ModelParallelBoringModel()
+    with mock.patch("deepspeed.zero.Init") as zero_init_mock:
+        trainer.fit(model)
+
+    zero_init_mock.assert_called_once_with(
+        remote_device="cpu", pin_memory=True, config_dict_or_path=ANY, dtype=torch.bfloat16
+    )
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
+@pytest.mark.parametrize("stage", [1, 2])
+def test_deepspeed_init_module_with_stages_1_2(stage):
+    """Tests how `.init_module()` behaves with ZeRO stages 1 and 2."""
+    strategy = DeepSpeedStrategy(stage=stage)
+    trainer = Trainer(accelerator="cuda", devices=2, strategy=strategy, precision="bf16-mixed", fast_dev_run=1)
+    model = ModelParallelBoringModel()
+    with mock.patch("deepspeed.zero.Init") as zero_init_mock:
+        trainer.fit(model)
+
+    zero_init_mock.assert_not_called()
+    assert model.layer.weight.dtype == torch.bfloat16

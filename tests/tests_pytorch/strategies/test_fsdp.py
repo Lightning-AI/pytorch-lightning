@@ -26,14 +26,9 @@ from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-    from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy, wrap
-else:
-    size_based_auto_wrap_policy = object
-
+    from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
 if _TORCH_GREATER_EQUAL_2_0:
     from torch.distributed.fsdp.wrap import _FSDPPolicy
-else:
-    _FSDPPolicy = object
 
 
 class TestFSDPModel(BoringModel):
@@ -627,3 +622,38 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
         torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
 
     trainer.strategy.barrier()
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@pytest.mark.parametrize(
+    ("precision", "expected_dtype"),
+    [
+        ("32-true", torch.float32),
+    ],
+)
+def test_configure_model(precision, expected_dtype):
+    """Test that the module under configure_model gets moved to the right device and dtype."""
+    trainer = Trainer(
+        accelerator="cuda",
+        devices=2,
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
+        precision=precision,
+        fast_dev_run=1,
+    )
+
+    class MyModel(BoringModel):
+        def configure_model(self):
+            self.layer = torch.nn.Linear(32, 2)
+            # The model is on the CPU until `.setup()``
+            # TODO: Support initialization on meta device
+            expected_device = torch.device("cpu")
+            assert self.model.weight.device == expected_device
+            assert self.model.weight.dtype == expected_dtype
+
+        def on_fit_start(self):
+            # Parameters get sharded in `.setup()` and moved to the target device
+            assert self.model.weight.device == torch.device("cuda", self.local_rank)
+            assert self.model.weight.dtype == expected_dtype
+
+    model = MyModel()
+    trainer.fit(model)
