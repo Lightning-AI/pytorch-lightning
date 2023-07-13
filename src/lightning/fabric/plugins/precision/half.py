@@ -28,6 +28,7 @@ class HalfPrecision(Precision):
 
     Args:
         precision: Whether to use ``torch.float16`` (``'16-true'``) or ``torch.bfloat16`` (``'bf16-true'``).
+
     """
 
     precision: Literal["bf16-true", "16-true"] = "16-true"
@@ -44,6 +45,7 @@ class HalfPrecision(Precision):
         """A context manager to change the default tensor type when initializing module parameters or tensors.
 
         See: :meth:`torch.set_default_dtype`
+
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(self._desired_input_dtype)
@@ -52,10 +54,10 @@ class HalfPrecision(Precision):
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type when tensors get created during the module's
-        forward.
+        """A context manager to change the default tensor type when tensors get created during the module's forward.
 
         See: :meth:`torch.set_default_dtype`
+
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(self._desired_input_dtype)
