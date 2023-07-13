@@ -37,7 +37,7 @@ def test_selected_dtype(precision, expected_dtype):
         ("16-true", torch.half),
     ],
 )
-def test_module_init_context(precision, expected_dtype):
+def test_init_context(precision, expected_dtype):
     plugin = HalfPrecision(precision=precision)
     with plugin.init_context():
         model = torch.nn.Linear(2, 2)
