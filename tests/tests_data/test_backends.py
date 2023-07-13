@@ -14,11 +14,12 @@ def test_s3_dataset_backend_credentials_env_vars():
     os.environ.pop("AWS_ACCESS_KEY")
     os.environ.pop("AWS_SECRET_ACCESS_KEY")
 
+
 _Credentials = namedtuple("RefreshableCredentials", ("access_key", "secret_key", "token"))
 
-@mock.patch("botocore.credentials.InstanceMetadataProvider.load",return_value=_Credentials("abc", "def", "ghi"))
+
+@mock.patch("botocore.credentials.InstanceMetadataProvider.load", return_value=_Credentials("abc", "def", "ghi"))
 def test_s3_dataset_backend_credentials_iam(patch1):
-    import botocore
 
     from lightning.data.backends import S3DatasetBackend
 
