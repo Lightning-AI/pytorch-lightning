@@ -20,7 +20,6 @@ _Credentials = namedtuple("RefreshableCredentials", ("access_key", "secret_key",
 
 @mock.patch("botocore.credentials.InstanceMetadataProvider.load", return_value=_Credentials("abc", "def", "ghi"))
 def test_s3_dataset_backend_credentials_iam(patch1):
-
     from lightning.data.backends import S3DatasetBackend
 
     credentials = S3DatasetBackend().credentials()
