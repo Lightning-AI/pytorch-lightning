@@ -22,8 +22,6 @@ def test_s3_dataset_backend_credentials_iam(patch1):
 
     from lightning.data.backends import S3DatasetBackend
 
-    
-    # botocore.credentials.InstanceMetadataProvider.load = mock.Mock(spec=botocore.credentials.InstanceMetadataProvider.load, return_value=Credentials("abc", "def", "ghi"))
     credentials = S3DatasetBackend().credentials()
     assert isinstance(credentials, Mapping)
     assert credentials == {"access_key": "abc", "secret_key": "def", "token": "ghi"}
