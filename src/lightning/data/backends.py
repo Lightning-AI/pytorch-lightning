@@ -47,7 +47,9 @@ class S3DatasetBackend:
         if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
             return {"access_key": os.getenv("AWS_ACCESS_KEY"), "secret_key": os.getenv("AWS_SECRET_ACCESS_KEY")}
 
-        return self.get_aws_credentials()
+        aws_creds = self.get_aws_credentials()
+
+        return {"access_key": aws_creds.access_key, "secret_key": aws_creds.secret_key, "token": aws_creds.token}
 
     def handle_error(self, exc: Exception) -> None:
         from botocore.exceptions import NoCredentialsError
