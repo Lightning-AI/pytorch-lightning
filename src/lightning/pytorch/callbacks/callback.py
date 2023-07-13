@@ -13,7 +13,7 @@
 # limitations under the License.
 r"""Base class used to build new callbacks."""
 
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Type
 
 from torch import Tensor
 from torch.optim import Optimizer
@@ -148,7 +148,7 @@ class Callback:
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -169,7 +169,7 @@ class Callback:
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,

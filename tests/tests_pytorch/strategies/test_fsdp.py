@@ -11,7 +11,11 @@ import torch
 import torch.nn as nn
 
 from lightning.fabric.plugins.environments import LightningEnvironment
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
+)
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -35,7 +39,7 @@ else:
 class TestFSDPModel(BoringModel):
     def __init__(self):
         super().__init__()
-        self.layer: Optional[torch.nn.Module] = None
+        self.layer: Optional[nn.Module] = None
 
     def _init_model(self) -> None:
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
@@ -58,7 +62,8 @@ class TestFSDPModel(BoringModel):
         self._init_model()
 
     def configure_optimizers(self):
-        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        # There is some issue with SGD optimizer state in FSDP
+        return torch.optim.AdamW(self.layer.parameters(), lr=0.1)
 
     def on_train_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
@@ -100,17 +105,22 @@ class TestFSDPModel(BoringModel):
             assert self.layer[layer_num].mixed_precision.buffer_dtype == buffer_dtype
 
 
-class TestFSDPModelAutoWrapped(BoringModel):
+class TestBoringModel(BoringModel):
     def __init__(self, wrap_min_params: int = 2):
         super().__init__()
+
         self.save_hyperparameters()
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         self.should_be_wrapped = [(32 * 32 + 32) > wrap_min_params, None, (32 * 2 + 2) > wrap_min_params]
 
     def configure_optimizers(self):
         parameters = self.parameters() if _TORCH_GREATER_EQUAL_2_0 else self.trainer.model.parameters()
-        return torch.optim.SGD(parameters, lr=0.1)
 
+        # SGD's FSDP optimier state is fixed in https://github.com/pytorch/pytorch/pull/99214
+        return torch.optim.AdamW(parameters, lr=0.1)
+
+
+class TestFSDPModelAutoWrapped(TestBoringModel):
     def on_train_batch_end(self, *_) -> None:
         self._assert_layer_fsdp_instance()
 
@@ -193,7 +203,7 @@ def test_invalid_on_cpu(tmpdir):
         MisconfigurationException,
         match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used.",
     ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
+        trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
         assert isinstance(trainer.strategy, FSDPStrategy)
         trainer.strategy.setup_environment()
 
@@ -295,7 +305,13 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
 
     strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=strategy, precision="16-mixed", max_epochs=1
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        precision="16-mixed",
+        max_epochs=1,
+        barebones=True,
     )
     trainer.fit(model)
 
@@ -479,3 +495,135 @@ def test_set_timeout(init_process_group_mock):
     init_process_group_mock.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_strategy_load_optimizer_states_multiple():
+    strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
+
+    # More states than optimizers configured
+    strategy.optimizers = [Mock()]
+    checkpoint = {"optimizer_states": [Mock(), Mock()]}
+    with pytest.raises(RuntimeError, match="1 optimizers but the checkpoint contains 2 optimizers to load"):
+        strategy.load_optimizer_state_dict(checkpoint)
+
+    # Fewer states than optimizers configured
+    strategy.optimizers = [Mock(), Mock()]
+    checkpoint = {"optimizer_states": [Mock()]}
+    with pytest.raises(RuntimeError, match="2 optimizers but the checkpoint contains 1 optimizers to load"):
+        strategy.load_optimizer_state_dict(checkpoint)
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
+def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
+    """Test to ensure that the full state dict and optimizer states is saved when using FSDP strategy.
+
+    Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the model can
+    be restored to DDP, it means that the optimizer states were saved correctly.
+    """
+    model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
+
+    strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        precision="16-mixed",
+        max_epochs=1,
+        barebones=True,
+    )
+
+    trainer.fit(model)
+    model_path = os.path.join(tmpdir, "last.ckpt")
+    model_path = trainer.strategy.broadcast(model_path)
+    trainer.save_checkpoint(model_path)
+
+    model_state_dict = trainer.strategy.lightning_module_state_dict()
+    optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    if trainer.global_rank != 0:
+        assert len(model_state_dict) == 0
+
+        if _TORCH_GREATER_EQUAL_2_1:
+            assert len(optimizer_state_dict) == 0
+
+    # restore model to ddp
+    model = TestBoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
+
+    # This step will restore the model and optimizer states
+    trainer.fit(model, ckpt_path=model_path)
+
+    # Get the model and optimizer states from the restored ddp model
+    restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
+    restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    if trainer.global_rank == 0:
+        # assert everything is the same
+        assert len(model_state_dict) == len(restored_model_state_dict)
+        assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
+
+        torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
+        torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
+
+    trainer.strategy.barrier()
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
+def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
+    """Test to ensure that the full state dict and optimizer states can be load when using FSDP strategy.
+
+    Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the DDP model
+    can be restored to FSDP, it means that the optimizer states were restored correctly.
+    """
+
+    # restore model to ddp
+    model = TestBoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
+
+    # This step will restore the model and optimizer states
+    trainer.fit(model)
+    model_path = os.path.join(tmpdir, "last.ckpt")
+    model_path = trainer.strategy.broadcast(model_path)
+    trainer.save_checkpoint(model_path)
+
+    # Get the model and optimizer states from the restored ddp model
+    model_state_dict = trainer.strategy.lightning_module_state_dict()
+    optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    # Build a new FSDP model
+    model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
+
+    strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        precision="16-mixed",
+        max_epochs=1,
+        barebones=True,
+    )
+
+    trainer.fit(model, ckpt_path=model_path)
+
+    restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
+    restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    if trainer.global_rank != 0:
+        assert len(restored_model_state_dict) == 0
+
+        if _TORCH_GREATER_EQUAL_2_1:
+            assert len(restored_optimizer_state_dict) == 0
+
+    if trainer.global_rank == 0:
+        # assert everything is the same
+        assert len(model_state_dict) == len(restored_model_state_dict)
+        assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
+        torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
+        torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
+
+    trainer.strategy.barrier()

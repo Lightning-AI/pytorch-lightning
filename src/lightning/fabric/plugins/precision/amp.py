@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, cast, Dict, Generator, Literal, Optional
+from typing import Any, Dict, Generator, Literal, Optional
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -47,7 +47,7 @@ class MixedPrecision(Precision):
                 " Precision must be '16-mixed' or 'bf16-mixed'."
             )
 
-        self.precision = cast(Literal["16-mixed", "bf16-mixed"], str(precision))
+        self.precision = precision
         if scaler is None and self.precision == "16-mixed":
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
