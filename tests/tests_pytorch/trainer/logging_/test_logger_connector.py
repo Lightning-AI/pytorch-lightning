@@ -171,6 +171,7 @@ class HookedModel(BoringModel):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
         pl_module_hooks.difference_update({"log", "log_dict"})
+        pl_module_hooks.discard("configure_sharded_model")
         # remove `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         pl_module_hooks.difference_update(module_hooks)
@@ -195,7 +196,6 @@ def test_fx_validator_integration(tmpdir):
     not_supported = {
         None: "`self.trainer` reference is not registered",
         "setup": "You can't",
-        "configure_sharded_model": "You can't",
         "configure_model": "You can't",
         "configure_optimizers": "You can't",
         "on_fit_start": "You can't",
