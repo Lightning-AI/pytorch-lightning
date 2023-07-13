@@ -647,13 +647,13 @@ def test_configure_model(precision, expected_dtype):
             # The model is on the CPU until `.setup()``
             # TODO: Support initialization on meta device
             expected_device = torch.device("cpu")
-            assert self.model.weight.device == expected_device
-            assert self.model.weight.dtype == expected_dtype
+            assert self.layer.weight.device == expected_device
+            assert self.layer.weight.dtype == expected_dtype
 
         def on_fit_start(self):
             # Parameters get sharded in `.setup()` and moved to the target device
-            assert self.model.weight.device == torch.device("cuda", self.local_rank)
-            assert self.model.weight.dtype == expected_dtype
+            assert self.layer.weight.device == torch.device("cuda", self.local_rank)
+            assert self.layer.weight.dtype == expected_dtype
 
     model = MyModel()
     trainer.fit(model)
