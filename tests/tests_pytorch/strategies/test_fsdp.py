@@ -269,8 +269,6 @@ class CustomWrapPolicy(_FSDPPolicy):
         return self._policy
 
 
-custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
-
 if _TORCH_GREATER_EQUAL_2_0:
 
     def custom_auto_wrap_policy(
@@ -279,6 +277,9 @@ if _TORCH_GREATER_EQUAL_2_0:
         nonwrapped_numel: int,
     ) -> bool:
         return nonwrapped_numel >= 2
+
+    custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
+
 
 else:
 
