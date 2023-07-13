@@ -17,7 +17,7 @@ def test_s3_dataset_backend_credentials_env_vars():
 
 @mock.patch("botocore.credentials.InstanceMetadataProvider")
 @mock.patch("botocore.utils.InstanceMetadataFetcher")
-def test_s3_dataset_backend_credentials_iam():
+def test_s3_dataset_backend_credentials_iam(patch1, patch2):
     import botocore
 
     from lightning.data.backends import S3DatasetBackend
