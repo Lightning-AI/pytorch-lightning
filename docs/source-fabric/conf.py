@@ -253,6 +253,7 @@ intersphinx_mapping = {
     "torch": ("https://pytorch.org/docs/stable/", None),
     "pytorch_lightning": ("https://lightning.ai/docs/pytorch/stable/", None),
 }
+nitpicky = True
 
 # -- Options for todo extension ----------------------------------------------
 
