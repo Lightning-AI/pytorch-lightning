@@ -326,6 +326,11 @@ class DeepSpeedStrategy(DDPStrategy):
         return config
 
     def setup_distributed(self) -> None:
+        if not isinstance(self.accelerator, CUDAAccelerator):
+            raise RuntimeError(
+                f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
+                " is used."
+            )
         assert self.parallel_devices is not None
         _validate_device_index_selection(self.parallel_devices)
         reset_seed()
@@ -440,11 +445,6 @@ class DeepSpeedStrategy(DDPStrategy):
 
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
-
-        if not isinstance(self.accelerator, CUDAAccelerator):
-            raise MisconfigurationException(
-                f"DeepSpeed strategy is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
-            )
 
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         if self.lightning_module.trainer and self.lightning_module.trainer.training:

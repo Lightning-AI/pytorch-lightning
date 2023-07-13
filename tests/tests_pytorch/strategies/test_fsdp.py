@@ -203,7 +203,7 @@ def test_invalid_on_cpu(tmpdir):
         MisconfigurationException,
         match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used.",
     ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
+        trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
         assert isinstance(trainer.strategy, FSDPStrategy)
         trainer.strategy.setup_environment()
 
