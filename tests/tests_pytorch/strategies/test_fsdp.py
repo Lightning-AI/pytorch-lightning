@@ -27,6 +27,8 @@ from tests_pytorch.helpers.runif import RunIf
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
     from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
+else:
+    size_based_auto_wrap_policy = lambda *_, **__: False
 if _TORCH_GREATER_EQUAL_2_0:
     from torch.distributed.fsdp.wrap import _FSDPPolicy
 else:
@@ -269,6 +271,8 @@ class CustomWrapPolicy(_FSDPPolicy):
         return self._policy
 
 
+custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
+
 if _TORCH_GREATER_EQUAL_2_0:
 
     def custom_auto_wrap_policy(
@@ -277,9 +281,6 @@ if _TORCH_GREATER_EQUAL_2_0:
         nonwrapped_numel: int,
     ) -> bool:
         return nonwrapped_numel >= 2
-
-    custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
-
 
 else:
 
