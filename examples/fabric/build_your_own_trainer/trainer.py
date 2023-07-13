@@ -344,7 +344,7 @@ class MyCustomTrainer:
         Args:
             model: The LightningModule to train
             scheduler_cfg: The learning rate scheduler configuration.
-                Have a look at :meth:`lightning.pytorch.LightningModule.configure_optimizers` for supported values.
+                Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
             level: whether we are trying to step on epoch- or step-level
             current_value: Holds the current_epoch if ``level==epoch``, else holds the ``global_step``
         """

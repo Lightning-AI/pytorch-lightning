@@ -46,7 +46,7 @@ class DoublePrecision(Precision):
     def forward_context(self) -> Generator[None, None, None]:
         """A context manager to change the default tensor type.
 
-        See: :meth:`torch.set_default_dtype`
+        See: :meth:`torch.set_default_tensor_type`
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(torch.float64)

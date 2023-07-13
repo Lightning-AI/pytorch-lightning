@@ -43,7 +43,7 @@ class HalfPrecision(Precision):
     def init_context(self) -> Generator[None, None, None]:
         """A context manager to change the default tensor type when initializing module parameters or tensors.
 
-        See: :meth:`torch.set_default_dtype`
+        See: :meth:`torch.set_default_tensor_type`
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(self._desired_input_dtype)
@@ -55,7 +55,7 @@ class HalfPrecision(Precision):
         """A context manager to change the default tensor type when tensors get created during the module's
         forward.
 
-        See: :meth:`torch.set_default_dtype`
+        See: :meth:`torch.set_default_tensor_type`
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(self._desired_input_dtype)
