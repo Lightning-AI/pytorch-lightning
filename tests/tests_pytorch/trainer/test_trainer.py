@@ -33,6 +33,7 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
 import lightning.fabric
+import lightning.pytorch
 import tests_pytorch.helpers.utils as tutils
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.seed import seed_everything
