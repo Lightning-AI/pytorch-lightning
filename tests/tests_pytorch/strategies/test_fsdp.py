@@ -29,6 +29,8 @@ if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
 if _TORCH_GREATER_EQUAL_2_0:
     from torch.distributed.fsdp.wrap import _FSDPPolicy
+else:
+    _FSDPPolicy = object
 
 
 class TestFSDPModel(BoringModel):
