@@ -836,7 +836,6 @@ def _validate_state_keys(state: Dict[str, Any]) -> None:
 
 def _validate_device_index_selection(parallel_devices: List[torch.device]) -> None:
     selected_device_indices = [device.index for device in parallel_devices]
-    print(parallel_devices)
     expected_device_indices = list(range(len(parallel_devices)))
     if selected_device_indices != expected_device_indices:
         raise RuntimeError(
