@@ -636,24 +636,28 @@ def _activation_checkpointing_kwargs(
             )
         return {"check_fn": lambda submodule: isinstance(submodule, classes)}
     if isinstance(activation_checkpointing_policy, set):
-        return _auto_wrap_policy_kwargs(activation_checkpointing_policy, {})
+        if _TORCH_GREATER_EQUAL_2_1:
+            return _auto_wrap_policy_kwargs(activation_checkpointing_policy, {})
+        return {"check_fn": lambda submodule: isinstance(submodule, tuple(activation_checkpointing_policy))}
     if not _TORCH_GREATER_EQUAL_2_1:
         raise ValueError("`activation_checkpointing_policy` requires torch >= 2.1.0. HINT: `pip install -U torch`")
     return {"auto_wrap_policy": activation_checkpointing_policy}
 
 
 def _auto_wrap_policy_kwargs(policy: Optional["_POLICY"], kwargs: Dict) -> Dict:
+    if policy is None:
+        return kwargs
     if isinstance(policy, set):
         if _TORCH_GREATER_EQUAL_2_1:
             from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-            value = ModuleWrapPolicy(policy)
+            policy = ModuleWrapPolicy(policy)
         else:
             from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 
             # this is not transformer specific despite the name
-            value = partial(transformer_auto_wrap_policy, transformer_layer_cls=policy)
-        kwargs["auto_wrap_policy"] = value
+            policy = partial(transformer_auto_wrap_policy, transformer_layer_cls=policy)
+    kwargs["auto_wrap_policy"] = policy
     return kwargs
 
 

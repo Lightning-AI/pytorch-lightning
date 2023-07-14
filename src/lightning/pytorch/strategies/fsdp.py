@@ -139,7 +139,7 @@ class FSDPStrategy(ParallelStrategy):
         self._timeout: Optional[timedelta] = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
-        self._kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
+        self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
 
         if _TORCH_GREATER_EQUAL_2_0:
             # Avoids the need for user to reference params in `configure_optimizers` via
