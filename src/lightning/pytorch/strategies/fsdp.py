@@ -30,7 +30,7 @@ from lightning.fabric.strategies.fsdp import (
     _get_full_state_dict_context,
     _init_cpu_offload,
     _optimizer_has_flat_params,
-    _setup_activation_checkpointing,
+    _setup_activation_checkpointing, _init_sharding_strategy,
 )
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
@@ -60,6 +60,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+    from lightning.fabric.strategies.fsdp import _SHARDING_STRATEGY
 
     if _TORCH_GREATER_EQUAL_2_0:
         from torch.distributed.fsdp.wrap import _FSDPPolicy
@@ -117,6 +118,7 @@ class FSDPStrategy(ParallelStrategy):
         mixed_precision: Optional["MixedPrecision"] = None,
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         activation_checkpointing_policy: Optional["_POLICY"] = None,
+        sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -143,6 +145,7 @@ class FSDPStrategy(ParallelStrategy):
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
             activation_checkpointing, activation_checkpointing_policy
         )
+        self._sharding_strategy = _init_sharding_strategy(sharding_strategy)
 
     def lightning_module_state_dict(self) -> Dict[str, Any]:
         """Gathers the full state dict by unsharding all the parameters.
@@ -244,6 +247,7 @@ class FSDPStrategy(ParallelStrategy):
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
+            sharding_strategy=self._sharding_strategy,
             device_id=self.root_device.index,
             **self.kwargs,
         )

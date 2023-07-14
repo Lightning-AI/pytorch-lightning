@@ -57,8 +57,7 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-
+    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision, ShardingStrategy
     from lightning.fabric.wrappers import _FabricModule
 
     if _TORCH_GREATER_EQUAL_2_0:
@@ -67,6 +66,8 @@ if TYPE_CHECKING:
         _POLICY = Union[Callable[[Module, bool, int], bool], _FSDPPolicy]
     else:
         _POLICY = Callable[[Module, bool, int], bool]  # type: ignore[misc]
+
+    _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 _METADATA_FILENAME = "meta.pt"
@@ -121,6 +122,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         mixed_precision: Optional["MixedPrecision"] = None,
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         activation_checkpointing_policy: Optional["_POLICY"] = None,
+        sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "sharded",
         **kwargs: Any,
     ) -> None:
@@ -147,6 +149,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
             activation_checkpointing, activation_checkpointing_policy
         )
+        self._sharding_strategy = _init_sharding_strategy(sharding_strategy)
         self._state_dict_type = state_dict_type
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
@@ -232,6 +235,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             module=module,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
+            sharding_strategy=self._sharding_strategy,
             device_id=self.root_device.index,
             **self._fsdp_kwargs,
         )
@@ -670,6 +674,10 @@ def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUO
     from torch.distributed.fsdp import CPUOffload
 
     return cpu_offload if isinstance(cpu_offload, CPUOffload) else CPUOffload(offload_params=bool(cpu_offload))
+
+
+def _init_sharding_strategy(sharding_strategy: "_SHARDING_STRATEGY") -> "ShardingStrategy":
+    return ShardingStrategy[sharding_strategy.upper()] if isinstance(sharding_strategy, str) else sharding_strategy
 
 
 def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
