@@ -29,10 +29,20 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 @mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_project_name(*_):
-    logger = WandbLogger()
+    with mock.patch.dict(os.environ, {}):
+        logger = WandbLogger()
     assert logger.name == "lightning_logs"
 
-    logger = WandbLogger(project="project")
+    with mock.patch.dict(os.environ, {}):
+        logger = WandbLogger(project="project")
+    assert logger.name == "project"
+
+    with mock.patch.dict(os.environ, {"WANDB_PROJECT": "env_project"}):
+        logger = WandbLogger()
+    assert logger.name == "env_project"
+
+    with mock.patch.dict(os.environ, {"WANDB_PROJECT": "env_project"}):
+        logger = WandbLogger(project="project")
     assert logger.name == "project"
 
 
@@ -205,8 +215,6 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-    monkeypatch.setattr(lightning.pytorch.loggers.wandb, "_WANDB_GREATER_EQUAL_0_10_22", True)
-
     wandb.run = None
     model = BoringModel()
 
@@ -368,8 +376,6 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
 def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
     """Test to prevent regression on #15543, ensuring the score is logged as a Python number, not a scalar
     tensor."""
-    monkeypatch.setattr(lightning.pytorch.loggers.wandb, "_WANDB_GREATER_EQUAL_0_10_22", True)
-
     wandb.run = None
     model = BoringModel()
 

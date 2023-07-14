@@ -517,13 +517,11 @@ class Trainer:
 
             val_dataloaders: An iterable or collection of iterables specifying validation samples.
 
-            ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
-                keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
-                If resuming from mid-epoch checkpoint, training will start from the beginning of the next epoch.
-
-            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
             datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
                 the :class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
+
+            ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
+                keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
 
         Raises:
             TypeError:
@@ -1069,6 +1067,15 @@ class Trainer:
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn, local_rank=local_rank, log_dir=self.log_dir)
+
+    def print(self, *args: Any, **kwargs: Any) -> None:
+        """Print something only on the first process. If running on multiple machines, it will print from the first
+        process in each machine.
+
+        Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
+        """
+        if self.local_rank == 0:
+            print(*args, **kwargs)
 
     """
     Accelerator properties

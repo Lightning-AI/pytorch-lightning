@@ -34,14 +34,7 @@ from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.types import (
-    LRSchedulerConfig,
-    PredictStep,
-    STEP_OUTPUT,
-    TestStep,
-    TrainingStep,
-    ValidationStep,
-)
+from lightning.pytorch.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -64,6 +57,7 @@ class Strategy(ABC):
         self._lightning_module: Optional[pl.LightningModule] = None
         self._model: Optional[Module] = None
         self._launcher: Optional[_Launcher] = None
+        self._forward_redirection: _ForwardRedirection = _ForwardRedirection()
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: List[LightningOptimizer] = []
         self.lr_scheduler_configs: List[LRSchedulerConfig] = []
@@ -362,39 +356,55 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.training_step` for more details
         """
+        assert self.lightning_module is not None
+        assert self.model is not None
         with self.precision_plugin.train_step_context():
-            assert isinstance(self.model, TrainingStep)
-            return self.model.training_step(*args, **kwargs)
+            if self.model != self.lightning_module:
+                return self._forward_redirection(self.model, self.lightning_module, "training_step", *args, **kwargs)
+            return self.lightning_module.training_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
+        """This hook is deprecated.
+
+        Override :meth:`training_step` instead.
+        """
         pass
 
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual validation step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
         """
+        assert self.lightning_module is not None
+        assert self.model is not None
         with self.precision_plugin.val_step_context():
-            assert isinstance(self.model, ValidationStep)
-            return self.model.validation_step(*args, **kwargs)
+            if self.model != self.lightning_module:
+                return self._forward_redirection(self.model, self.lightning_module, "validation_step", *args, **kwargs)
+            return self.lightning_module.validation_step(*args, **kwargs)
 
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual test step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
         """
+        assert self.lightning_module is not None
+        assert self.model is not None
         with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, TestStep)
-            return self.model.test_step(*args, **kwargs)
+            if self.model != self.lightning_module:
+                return self._forward_redirection(self.model, self.lightning_module, "test_step", *args, **kwargs)
+            return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> Any:
         """The actual predict step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
         """
+        assert self.lightning_module is not None
+        assert self.model is not None
         with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, PredictStep)
-            return self.model.predict_step(*args, **kwargs)
+            if self.model != self.lightning_module:
+                return self._forward_redirection(self.model, self.lightning_module, "predict_step", *args, **kwargs)
+            return self.lightning_module.predict_step(*args, **kwargs)
 
     def process_dataloader(self, dataloader: object) -> object:
         """Wraps the dataloader if necessary.
@@ -532,3 +542,51 @@ class Strategy(ABC):
     def __setstate__(self, state: Dict) -> None:
         self.__dict__ = state
         self.optimizers = self.optimizers  # re-create the `_lightning_optimizers`
+
+
+class _ForwardRedirection:
+    """Implements the `forward-redirection`.
+
+    A method call to a wrapped module gets rerouted through the wrapper's `forward` method instead.
+    """
+
+    def __call__(
+        self, wrapper_module: Module, original_module: "pl.LightningModule", method_name: str, *args: Any, **kwargs: Any
+    ) -> STEP_OUTPUT:
+        """Reroutes a method call through the `wrapper_module`'s `forward` method.
+
+        Args:
+            wrapper_module: The module that has `original_module` wrapped.
+            original_module: The module that was wrapped inside `wrapper_module`.
+            method_name: The name of the method that should be called on the `original_module` after inputs get
+                redirected through the `wrapper_module`'s `forward` method.
+            *args: The positional arguments to the method `method_name`. They will get passed to a patched
+                `forward` method instead.
+            **kwargs: The keyword arguments to the method `method_name`. They will get passed to a patched
+                `forward` method instead.
+        """
+        assert method_name != "forward"
+        original_forward = original_module.forward
+
+        def wrapped_forward(*_args: Any, **_kwargs: Any) -> Any:
+            # Unpatch ourselves immediately before calling the method `method_name`
+            # because itself may want to call the real `forward`
+            original_module.forward = original_forward  # type: ignore[method-assign]
+            # Call the actual method e.g. `.training_step(...)`
+            method = getattr(original_module, method_name)
+            out = method(*_args, **_kwargs)
+            self.on_after_inner_forward(wrapper_module, original_module)
+            return out
+
+        # Patch the original_module's forward so we can redirect the arguments back to the real method
+        original_module.forward = wrapped_forward  # type: ignore[method-assign]
+
+        wrapper_output = wrapper_module(*args, **kwargs)
+        self.on_after_outer_forward(wrapper_module, original_module)
+        return wrapper_output
+
+    def on_after_inner_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
+        pass
+
+    def on_after_outer_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
+        pass

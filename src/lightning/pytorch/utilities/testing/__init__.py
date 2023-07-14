@@ -1,3 +1,3 @@
-from lightning.pytorch.utilities.testing._runif import _RunIf
+from lightning.pytorch.utilities.testing._runif import _runif_reasons
 
-__all__ = ["_RunIf"]
+__all__ = ["_runif_reasons"]

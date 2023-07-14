@@ -16,9 +16,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.strategies import SingleDeviceStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.wrappers import _FabricModule, _FabricOptimizer
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
@@ -152,32 +150,3 @@ def test_single_device_grad_clipping(clip_type, precision):
     clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
     fabric = clipping_test_cls(accelerator="auto", devices=1, precision=precision)
     fabric.run()
-
-
-@pytest.mark.parametrize(
-    "device",
-    [
-        "cpu",
-        pytest.param("cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps:0", marks=RunIf(mps=True)),
-    ],
-)
-@pytest.mark.parametrize(
-    ("precision", "dtype"),
-    [
-        (Precision(), torch.float32),
-        (HalfPrecision("16-true"), torch.float16),
-        pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(mps=False)),
-        pytest.param(DoublePrecision(), torch.float64, marks=RunIf(mps=False)),
-    ],
-)
-def test_init_context(device, precision, dtype):
-    """Test that the module under the init-context gets moved to the right device and dtype."""
-    device = torch.device(device)
-    strategy = SingleDeviceStrategy(device=device, precision=precision)
-    with strategy.init_context():
-        module = torch.nn.Linear(2, 2)
-
-    expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
-    assert module.weight.device == module.bias.device == expected_device
-    assert module.weight.dtype == module.bias.dtype == dtype

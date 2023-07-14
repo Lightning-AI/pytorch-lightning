@@ -30,7 +30,15 @@ from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.connector import _Connector
-from lightning.fabric.plugins import DoublePrecision, HalfPrecision, MixedPrecision, Precision, XLAPrecision
+from lightning.fabric.plugins import (
+    DeepSpeedPrecision,
+    DoublePrecision,
+    FSDPPrecision,
+    HalfPrecision,
+    MixedPrecision,
+    Precision,
+    XLAPrecision,
+)
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -770,19 +778,29 @@ def test_ddp_fork_on_unsupported_platform(_, __, strategy):
 
 
 @pytest.mark.parametrize(
-    ("precision_str", "precision_cls"),
+    ("precision_str", "strategy_str", "expected_precision_cls"),
     [
-        ("64-true", DoublePrecision),
-        ("32-true", Precision),
-        ("16-true", HalfPrecision),
-        ("bf16-true", HalfPrecision),
-        ("16-mixed", MixedPrecision),
-        ("bf16-mixed", MixedPrecision),
+        ("64-true", "auto", DoublePrecision),
+        ("32-true", "auto", Precision),
+        ("16-true", "auto", HalfPrecision),
+        ("bf16-true", "auto", HalfPrecision),
+        ("16-mixed", "auto", MixedPrecision),
+        ("bf16-mixed", "auto", MixedPrecision),
+        pytest.param("32-true", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("16-true", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("bf16-true", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("bf16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("32-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True)),
+        pytest.param("16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True)),
+        pytest.param("bf16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True)),
+        pytest.param("16-mixed", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True)),
+        pytest.param("bf16-mixed", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True)),
     ],
 )
-def test_precision_selection(precision_str, precision_cls):
-    connector = _Connector(precision=precision_str)
-    assert isinstance(connector.precision, precision_cls)
+def test_precision_selection(precision_str, strategy_str, expected_precision_cls):
+    connector = _Connector(precision=precision_str, strategy=strategy_str)
+    assert isinstance(connector.precision, expected_precision_cls)
 
 
 def test_precision_selection_16_on_cpu_warns():
@@ -876,27 +894,32 @@ def test_devices_from_environment(*_):
 
 def test_arguments_from_environment_collision():
     """Test that the connector raises an error when the CLI settings conflict with settings in the code."""
-    with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}), pytest.raises(
+
+    # Do not raise an error about collisions unless the CLI was used
+    with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}):
+        _Connector(accelerator="cuda")
+
+    with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu", "LT_CLI_USED": "1"}), pytest.raises(
         ValueError, match="`Fabric\\(accelerator='cuda', ...\\)` but .* `--accelerator=cpu`"
     ):
         _Connector(accelerator="cuda")
 
-    with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp"}), pytest.raises(
+    with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp", "LT_CLI_USED": "1"}), pytest.raises(
         ValueError, match="`Fabric\\(strategy='ddp_spawn', ...\\)` but .* `--strategy=ddp`"
     ):
         _Connector(strategy="ddp_spawn")
 
-    with mock.patch.dict(os.environ, {"LT_DEVICES": "2"}), pytest.raises(
+    with mock.patch.dict(os.environ, {"LT_DEVICES": "2", "LT_CLI_USED": "1"}), pytest.raises(
         ValueError, match="`Fabric\\(devices=3, ...\\)` but .* `--devices=2`"
     ):
         _Connector(devices=3)
 
-    with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3"}), pytest.raises(
+    with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3", "LT_CLI_USED": "1"}), pytest.raises(
         ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"
     ):
         _Connector(num_nodes=2)
 
-    with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed"}), pytest.raises(
+    with mock.patch.dict(os.environ, {"LT_PRECISION": "16-mixed", "LT_CLI_USED": "1"}), pytest.raises(
         ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"
     ):
         _Connector(precision="64-true")

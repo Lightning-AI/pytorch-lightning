@@ -16,10 +16,10 @@ import json
 import logging
 import os
 import platform
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -340,7 +340,17 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextmanager
-    def init_sharded_context(self) -> Generator[None, None, None]:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+        if self.zero_stage_3 and empty_init is False:
+            raise NotImplementedError(
+                f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
+            )
+        base_context = super().module_init_context(empty_init=empty_init) if not self.zero_stage_3 else nullcontext()
+        with base_context, self.module_sharded_context():
+            yield
+
+    @contextmanager
+    def module_sharded_context(self) -> Generator[None, None, None]:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
         # manager, which happens at the start of `Fabric.run()`. Later modifications through e.g. `Fabric.setup()`
         # won't have an effect here.
@@ -350,9 +360,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision.precision == "16-mixed":
+            # Note: For the mixed settings '16-mixed' and 'bf16-mixed', we shouldn't convert the weights to half
+            # precision, but we are keeping the 'bug' for backward compatibility.
+            # TODO: This can be properly implemented once https://github.com/Lightning-AI/lightning/issues/17581
+            #   gets resolved
+            if self.precision.precision in ("16-mixed", "16-true"):
                 dtype = torch.float16
-            elif self.precision.precision == "bf16-mixed":
+            elif self.precision.precision in ("bf16-mixed", "bf16-true"):
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float32
@@ -365,7 +379,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             yield
 
     def save_checkpoint(
-        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+        self,
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
+        storage_options: Optional[Any] = None,
+        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state in a checkpoint directory.
 
@@ -374,6 +392,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
             storage_options: Unused by this strategy, since it doesn't use a ``CheckpointIO`` plugin.
+            filter: Unsupported.
 
         Raises:
             TypeError:
@@ -386,6 +405,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             raise TypeError(
                 "`DeepSpeedStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
                 " `DeepSpeedStrategy` does not use the `CheckpointIO`."
+            )
+        if filter is not None:
+            raise TypeError(
+                "`DeepSpeedStrategy.save_checkpoint(..., filter=...)` is not supported because"
+                " `DeepSpeedStrategy` manages the state serialization internally."
             )
 
         engines = _get_deepspeed_engines_from_state(state)
@@ -413,12 +437,15 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         state = {k: v for k, v in state.items() if v not in excluded_objects}
         _validate_state_keys(state)
         # there might be other stateful objects unrelated to the deepspeed engine - convert them to a state_dict
-        state = self._convert_stateful_objects_in_state(state)
+        state = self._convert_stateful_objects_in_state(state, filter={})
         # use deepspeed's internal checkpointing function to handle partitioned weights across processes
         engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 
     def load_checkpoint(
-        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+        self,
+        path: _PATH,
+        state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
+        strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
@@ -426,6 +453,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 This should contain exactly one model, and the model must already be set up by DeepSpeed.
+            strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
             Dictionary with the state inside DeepSpeed's engine
@@ -442,7 +470,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
             # a consolidated checkpoint
             path = self.broadcast(path)
-            return super().load_checkpoint(path=path, state=state)
+            return super().load_checkpoint(path=path, state=state, strict=strict)
 
         if not state:
             raise ValueError(
@@ -473,13 +501,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             tag="checkpoint",
             load_optimizer_states=optimzer_state_requested,
             load_lr_scheduler_states=False,
-            load_module_strict=True,  # TODO(fabric): make strict loading configurable
+            load_module_strict=strict,
         )
         if client_state is None:
             raise RuntimeError(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
+
         for k in client_state.copy():
             if k not in state:
                 continue
@@ -568,6 +597,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
                 " is used."
             )
+        assert self.parallel_devices is not None
+        _validate_device_index_selection(self.parallel_devices)
         reset_seed()
         self._set_world_ranks()
         self._init_deepspeed_distributed()
@@ -624,7 +655,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision.precision == "16-mixed":
+        if self.precision.precision in ("16-mixed", "16-true"):
             if "fp16" not in self.config:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -636,7 +667,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-        elif "bf16" not in self.config and self.precision.precision == "bf16-mixed":
+        elif "bf16" not in self.config and self.precision.precision in ("bf16-mixed", "bf16-true"):
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 
@@ -800,4 +831,15 @@ def _validate_state_keys(state: Dict[str, Any]) -> None:
             "Your state has keys that collide with DeepSpeed's internal engine state. This could result in your"
             " values being overwritten by DeepSpeed. Consider changing the name of these keys to something else: "
             + ", ".join(colliding_keys)
+        )
+
+
+def _validate_device_index_selection(parallel_devices: List[torch.device]) -> None:
+    selected_device_indices = [device.index for device in parallel_devices]
+    expected_device_indices = list(range(len(parallel_devices)))
+    if selected_device_indices != expected_device_indices:
+        raise RuntimeError(
+            f"The selected device indices {selected_device_indices!r} don't match the local rank values of processes."
+            " If you need to select GPUs at a specific index, set the `CUDA_VISIBLE_DEVICES` environment variable"
+            f" instead. For example: `CUDA_VISIBLE_DEVICES={','.join(str(i) for i in selected_device_indices)}`."
         )

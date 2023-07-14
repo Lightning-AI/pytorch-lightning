@@ -30,13 +30,13 @@ from torch.optim import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
-from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE, _validate_device_index_selection
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
+from lightning.pytorch.overrides.base import _LightningPrecisionModuleWrapperBase
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.utils import _fp_to_half
@@ -45,7 +45,7 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn, WarningCache
-from lightning.pytorch.utilities.types import LRSchedulerConfig, STEP_OUTPUT
+from lightning.pytorch.utilities.types import LRSchedulerConfig
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -325,6 +325,13 @@ class DeepSpeedStrategy(DDPStrategy):
         return config
 
     def setup_distributed(self) -> None:
+        if not isinstance(self.accelerator, CUDAAccelerator):
+            raise RuntimeError(
+                f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
+                " is used."
+            )
+        assert self.parallel_devices is not None
+        _validate_device_index_selection(self.parallel_devices)
         reset_seed()
         self.set_world_ranks()
         self._init_deepspeed_distributed()
@@ -436,18 +443,11 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
-        if not isinstance(self.accelerator, CUDAAccelerator):
-            raise MisconfigurationException(
-                f"DeepSpeed strategy is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
-            )
-
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        model = _LightningModuleWrapperBase(forward_module=self.model)
-
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
-            self._initialize_deepspeed_train(model)
+            self._initialize_deepspeed_train(self.model)
         else:
-            self._initialize_deepspeed_inference(model)
+            self._initialize_deepspeed_inference(self.model)
 
     def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig]]:
         assert self.lightning_module is not None
@@ -898,18 +898,3 @@ class DeepSpeedStrategy(DDPStrategy):
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
         return super().batch_to_device(batch, device, dataloader_idx)
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.val_step_context():
-            return self.model(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.test_step_context():
-            return self.model(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        with self.precision_plugin.predict_step_context():
-            return self.model(*args, **kwargs)

@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Literal, Optional
+from contextlib import contextmanager
+from typing import Any, Generator, Literal, Optional, TYPE_CHECKING
 
 import torch
 
@@ -19,12 +20,9 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch.plugins.precision.amp import MixedPrecisionPlugin
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
-if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
-    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
+if TYPE_CHECKING:
+    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
-else:
-    MixedPrecision = None  # type: ignore[misc,assignment]
-    ShardedGradScaler = None  # type: ignore[misc,assignment]
 
 
 class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
@@ -34,10 +32,12 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
     """
 
     def __init__(
-        self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional[ShardedGradScaler] = None
+        self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional["ShardedGradScaler"] = None
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
             raise MisconfigurationException("`FSDPMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
+        from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
+
         super().__init__(
             precision, device, scaler=(ShardedGradScaler() if scaler is None and str(precision) == "16-mixed" else None)
         )
@@ -53,16 +53,32 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
         )
 
     @property
-    def mixed_precision_config(self) -> Optional[MixedPrecision]:
-        assert MixedPrecision is not None
+    def mixed_precision_config(self) -> "TorchMixedPrecision":
+        from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
+
         if self.precision == "16-mixed":
-            dtype = torch.float16
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-mixed":
-            dtype = torch.bfloat16
+            param_dtype = torch.float32
+            reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self.precision == "16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.float16
+        elif self.precision == "bf16-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         else:
             raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision!r}.")
-        return MixedPrecision(
-            param_dtype=dtype,
-            reduce_dtype=dtype,
-            buffer_dtype=dtype,
+
+        return TorchMixedPrecision(
+            param_dtype=param_dtype,
+            reduce_dtype=reduce_dtype,
+            buffer_dtype=buffer_dtype,
         )
+
+    @contextmanager
+    def forward_context(self) -> Generator[None, None, None]:
+        """For FSDP, this context manager is a no-op since conversion is already handled internally.
+
+        See: https://pytorch.org/docs/stable/fsdp.html for more details on mixed precision.
+        """
+        yield

@@ -23,7 +23,14 @@ from torch.utils.data.dataloader import DataLoader
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects, is_wrapped
+from lightning.fabric.wrappers import (
+    _FabricDataLoader,
+    _FabricModule,
+    _FabricOptimizer,
+    _unwrap_objects,
+    is_wrapped,
+    warning_cache,
+)
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -69,11 +76,13 @@ def test_fabric_module_attribute_lookup():
 
 def test_fabric_module_method_lookup():
     """Test that access to methods warns about improper use when a wrapper from a strategy is involved."""
-    from lightning.fabric.wrappers import warning_cache
 
     class OriginalModule(torch.nn.Module):
-        def method(self):
+        def method_no_args(self):
             return 100
+
+        def method_with_args(self, arg, kwarg=1):
+            return 101
 
     class ModuleWrapper(torch.nn.Module):
         def __init__(self, module):
@@ -85,17 +94,69 @@ def test_fabric_module_method_lookup():
     fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
     warning_cache.clear()
     with no_warning_call(UserWarning):
-        assert fabric_module.method() == 100
+        assert fabric_module.method_with_args(0) == 101
     assert not warning_cache
 
-    # Special case: original module wrapped by forward module: -> warn
+    # Special case: original module wrapped by forward module: -> warn if method accepts args
     original_module = OriginalModule()
     wrapped_module = ModuleWrapper(original_module)
     fabric_module = _FabricModule(forward_module=wrapped_module, precision=Mock(), original_module=original_module)
     warning_cache.clear()
-    with pytest.warns(UserWarning, match=r"You are calling the method `OriginalModule.method\(\)` from outside the"):
-        assert fabric_module.method() == 100
+    with no_warning_call(UserWarning):
+        assert fabric_module.method_no_args() == 100
+    with pytest.warns(UserWarning, match=r"You are calling the method `OriginalModule.method_with_args\(\)` from"):
+        assert fabric_module.method_with_args(0) == 101
     warning_cache.clear()
+
+
+def test_fabric_module_setattr():
+    """Test that setattr sets attributes on the original module."""
+
+    class OriginalModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(2, 3)
+            self.attribute = 1
+            self._x = None
+
+        @property
+        def x(self):
+            return self._x
+
+        @x.setter
+        def x(self, value):
+            self._x = value
+
+    original_module = OriginalModule()
+
+    class ModuleWrapper(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.wrapped = original_module
+
+    wrapped_module = ModuleWrapper()
+    fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
+
+    # Check new attribute is set on original_module
+    fabric_module.new_attribute = 100
+    assert original_module.new_attribute == 100
+
+    # Modify existing attribute on original_module
+    fabric_module.attribute = 101
+    assert original_module.attribute == 101
+
+    # Check setattr of original_module
+    fabric_module.x = 102
+    assert original_module.x == 102
+
+    # Check set submodule
+    assert not hasattr(original_module, "linear")
+    linear = torch.nn.Linear(2, 2)
+    fabric_module.linear = linear
+    assert hasattr(original_module, "linear")
+    assert isinstance(original_module.linear, torch.nn.Module)
+    assert linear in fabric_module.modules()
+    assert linear in original_module.modules()
 
 
 def test_fabric_module_state_dict_access():

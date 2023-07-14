@@ -11,14 +11,16 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-# import m2r
 import glob
 import os
 import shutil
-import sys
 import warnings
+from importlib.util import module_from_spec, spec_from_file_location
+from types import ModuleType
 
 import pt_lightning_sphinx_theme
+from lightning_utilities.docs import fetch_external_assets
+from lightning_utilities.docs.formatting import _transform_changelog
 
 import lightning
 
@@ -30,16 +32,24 @@ _PL_FAST_DOCS_DEV = bool(int(os.getenv("PL_FAST_DOCS_DEV", 0)))
 # -----------------------
 # BUILD stuff
 # -----------------------
-PATH_HERE = os.path.abspath(os.path.dirname(__file__))
-PATH_ROOT = os.path.join(PATH_HERE, "..", "..")
-PATH_RAW_NB = os.path.join(PATH_ROOT, "_notebooks")
+_PATH_HERE = os.path.abspath(os.path.dirname(__file__))
+_PATH_ROOT = os.path.join(_PATH_HERE, "..", "..")
+_PATH_RAW_NB = os.path.join(_PATH_ROOT, "_notebooks")
 _SHOULD_COPY_NOTEBOOKS = True
-sys.path.insert(0, os.path.abspath(PATH_ROOT))
-sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
 
-try:
-    from assistant import AssistantCLI
-except ImportError:
+
+def _load_py_module(name: str, location: str) -> ModuleType:
+    spec = spec_from_file_location(name, location)
+    py = module_from_spec(spec)
+    spec.loader.exec_module(py)
+    return py
+
+
+assist_local = _load_py_module("assistant", os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
+
+if os.path.isdir(os.path.join(_PATH_RAW_NB, ".actions")):
+    assist_nb = _load_py_module("assistant", os.path.join(_PATH_RAW_NB, ".actions", "assistant.py"))
+else:
     _SHOULD_COPY_NOTEBOOKS = False
     warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
 
@@ -47,10 +57,11 @@ FOLDER_GENERATED = "generated"
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
 # -- Project documents -------------------------------------------------------
+
 if _SHOULD_COPY_NOTEBOOKS:
-    AssistantCLI.copy_notebooks(
-        PATH_RAW_NB,
-        PATH_HERE,
+    assist_nb.AssistantCLI.copy_notebooks(
+        _PATH_RAW_NB,
+        _PATH_HERE,
         "notebooks",
         patterns=[".", "course_UvA-DL", "lightning_examples"],
     )
@@ -64,35 +75,35 @@ if _SHOULD_COPY_NOTEBOOKS:
         "lightning_examples/warp-drive",
     ]
     for file in ignore:
-        file = os.path.join(PATH_HERE, "notebooks", file)
+        file = os.path.join(_PATH_HERE, "notebooks", file)
         if os.path.exists(file):
             os.remove(file)
 
 
-def _transform_changelog(path_in: str, path_out: str) -> None:
-    with open(path_in) as fp:
-        chlog_lines = fp.readlines()
-    # enrich short subsub-titles to be unique
-    chlog_ver = ""
-    for i, ln in enumerate(chlog_lines):
-        if ln.startswith("## "):
-            chlog_ver = ln[2:].split("-")[0].strip()
-        elif ln.startswith("### "):
-            ln = ln.replace("###", f"### {chlog_ver} -")
-            chlog_lines[i] = ln
-    with open(path_out, "w") as fp:
-        fp.writelines(chlog_lines)
-
-
-os.makedirs(os.path.join(PATH_HERE, FOLDER_GENERATED), exist_ok=True)
+os.makedirs(os.path.join(_PATH_HERE, FOLDER_GENERATED), exist_ok=True)
 # copy all documents from GH templates like contribution guide
-for md in glob.glob(os.path.join(PATH_ROOT, ".github", "*.md")):
-    shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
+for md in glob.glob(os.path.join(_PATH_ROOT, ".github", "*.md")):
+    shutil.copy(md, os.path.join(_PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
 _transform_changelog(
-    os.path.join(PATH_ROOT, "src", "lightning", "fabric", "CHANGELOG.md"),
-    os.path.join(PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
+    os.path.join(_PATH_ROOT, "src", "lightning", "fabric", "CHANGELOG.md"),
+    os.path.join(_PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
 )
+
+
+assist_local.AssistantCLI.pull_docs_files(
+    gh_user_repo="Lightning-AI/lightning-Habana",
+    target_dir="docs/source-pytorch/integrations/hpu",
+    checkout="tags/1.0.0",
+)
+
+if not _PL_FAST_DOCS_DEV:
+    fetch_external_assets(
+        docs_folder=_PATH_HERE,
+        assets_folder="_static/fetched-s3-assets",
+        retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+",
+    )
+
 
 # -- Project information -----------------------------------------------------
 
@@ -109,15 +120,13 @@ release = lightning.__version__
 
 # If your documentation needs a minimal Sphinx version, state it here.
 
-needs_sphinx = "4.0"
+needs_sphinx = "6.2"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
-    # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx_toolbox.collapse",
@@ -128,6 +137,9 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.imgmath",
     "sphinx.ext.autosectionlabel",
+    # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
+    # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
+    "sphinxcontrib.video",
     "myst_parser",
     "nbsphinx",
     "sphinx_autodoc_typehints",
@@ -311,6 +323,7 @@ intersphinx_mapping = {
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
     "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
+    "habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
 }
 
 # -- Options for todo extension ----------------------------------------------
@@ -360,7 +373,7 @@ PACKAGE_MAPPING = {
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
-    _path_require = lambda fname: os.path.join(PATH_ROOT, "requirements", "pytorch", fname)
+    _path_require = lambda fname: os.path.join(_PATH_ROOT, "requirements", "pytorch", fname)
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(_path_require("base.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("extra.txt"))

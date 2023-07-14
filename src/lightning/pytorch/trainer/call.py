@@ -15,10 +15,10 @@ import logging
 from copy import deepcopy
 from typing import Any, Callable, Dict, Optional, Type, Union
 
-from lightning_utilities.core.imports import module_available
 from packaging.version import Version
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch.callbacks import Checkpoint, EarlyStopping
 from lightning.pytorch.trainer.states import TrainerStatus
 from lightning.pytorch.utilities.exceptions import _TunerExitException
@@ -73,6 +73,16 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
     assert trainer.state.fn is not None
     fn = trainer.state.fn
 
+    # It is too early to move the model to the device, but we fake the `LightningModule.device` property
+    # so the user can access it in the `LightningModule.setup` hook
+    for module in trainer.lightning_module.modules():
+        if isinstance(module, _DeviceDtypeModuleMixin):
+            module._device = trainer.strategy.root_device
+
+    # Trigger lazy creation of experiment in loggers so loggers have their metadata available
+    for logger in trainer.loggers:
+        _ = logger.experiment
+
     trainer.strategy.barrier("pre_setup")
 
     if trainer.datamodule is not None:
@@ -85,12 +95,6 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
 
 def _call_configure_sharded_model(trainer: "pl.Trainer") -> None:
     with trainer.strategy.model_sharded_context():
-        # experimental support for torchdistx
-        if module_available("torchdistx.deferred_init"):
-            from torchdistx.deferred_init import materialize_module
-
-            materialize_module(trainer.lightning_module)
-
         _call_lightning_module_hook(trainer, "configure_sharded_model")
 
 

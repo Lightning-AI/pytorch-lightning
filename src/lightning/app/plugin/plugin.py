@@ -42,6 +42,7 @@ class LightningPlugin:
         self.project_id = ""
         self.cloudspace_id = ""
         self.cluster_id = ""
+        self.source_app = ""
 
     def run(self, *args: str, **kwargs: str) -> Optional[List[_Action]]:
         """Override with the logic to execute on the cloudspace."""
@@ -59,6 +60,8 @@ class LightningPlugin:
             The relative URL of the created job.
         """
         from lightning.app.runners.cloud import CloudRuntime
+
+        logger.info(f"Processing job run request. name: {name}, app_entrypoint: {app_entrypoint}, env_vars: {env_vars}")
 
         # Dispatch the job
         _set_flow_context()
@@ -85,6 +88,7 @@ class LightningPlugin:
             cloudspace_id=self.cloudspace_id,
             name=name,
             cluster_id=self.cluster_id,
+            source_app=self.source_app,
         )
         # Return a relative URL so it can be used with the NavigateTo action.
         return url.replace(constants.get_lightning_cloud_url(), "")
@@ -94,7 +98,9 @@ class LightningPlugin:
         project_id: str,
         cloudspace_id: str,
         cluster_id: str,
+        source_app: str,
     ) -> None:
+        self.source_app = source_app
         self.project_id = project_id
         self.cloudspace_id = cloudspace_id
         self.cluster_id = cluster_id
@@ -107,6 +113,7 @@ class _Run(BaseModel):
     cloudspace_id: str
     cluster_id: str
     plugin_arguments: Dict[str, str]
+    source_app: str
 
 
 def _run_plugin(run: _Run) -> Dict[str, Any]:
@@ -118,6 +125,8 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
 
         # Download the tarball
         try:
+            logger.info(f"Downloading plugin source: {run.source_code_url}")
+
             # Sometimes the URL gets encoded, so we parse it here
             source_code_url = urlparse(run.source_code_url).geturl()
 
@@ -136,6 +145,8 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
 
         # Extract
         try:
+            logger.info("Extracting plugin source.")
+
             with tarfile.open(download_path, "r:gz") as tf:
                 tf.extractall(source_path)
         except Exception as ex:
@@ -146,6 +157,8 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
 
         # Import the plugin
         try:
+            logger.info(f"Importing plugin: {run.plugin_entrypoint}")
+
             plugin = _load_plugin_from_file(os.path.join(source_path, run.plugin_entrypoint))
         except Exception as ex:
             raise HTTPException(
@@ -158,10 +171,16 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
 
         # Setup and run the plugin
         try:
+            logger.info(
+                "Running plugin. "
+                f"project_id: {run.project_id}, cloudspace_id: {run.cloudspace_id}, cluster_id: {run.cluster_id}."
+            )
+
             plugin._setup(
                 project_id=run.project_id,
                 cloudspace_id=run.cloudspace_id,
                 cluster_id=run.cluster_id,
+                source_app=run.source_app,
             )
             actions = plugin.run(**run.plugin_arguments) or []
             return {"actions": [action.to_spec().to_dict() for action in actions]}

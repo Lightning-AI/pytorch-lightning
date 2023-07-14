@@ -9,7 +9,7 @@
 | .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific, standalone and slow tests.                                                                                                   | CPU           |
 | .azure-pipelines/ipu-tests.yml         | Run only IPU-specific tests.                                                                                                                                                | IPU           |
 | .azure-pipelines/gpu-tests-pytorch.yml | Run all CPU and GPU-specific tests, standalone, and examples. Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases. | GPU           |
-| .azure-pipelines/gpu-benchmark.yml     | Run speed/memory benchmarks for parity with pure PyTorch.                                                                                                                   | GPU           |
+| .azure-pipelines/gpu-benchmarks.yml    | Run speed/memory benchmarks for parity with pure PyTorch.                                                                                                                   | GPU           |
 | .github/workflows/tpu-tests.yml        | Run only TPU-specific tests. Requires that the PR title contains '\[TPU\]'                                                                                                  | TPU           |
 
 - \*Accelerators used in CI
@@ -37,10 +37,10 @@
 
 ## Others
 
-| workflow file                            | action                                                                                                                                                         |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| .github/workflows/ci-dockers-pytorch.yml | Build docker images used for testing in CI. If run on nightly schedule, push to the [Docker Hub](https://hub.docker.com/r/pytorchlightning/pytorch_lightning). |
-| .github/workflows/ci-pkg-install.yml     | Test if pytorch-lightning is successfully installed using pip.                                                                                                 |
+| workflow file                        | action                                                                                                                                                         |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| .github/workflows/ci-dockers.yml     | Build docker images used for testing in CI. If run on nightly schedule, push to the [Docker Hub](https://hub.docker.com/r/pytorchlightning/pytorch_lightning). |
+| .github/workflows/ci-pkg-install.yml | Test if pytorch-lightning is successfully installed using pip.                                                                                                 |
 
 ## Deployment
 

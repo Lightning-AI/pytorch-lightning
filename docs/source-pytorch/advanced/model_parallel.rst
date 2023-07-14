@@ -58,11 +58,11 @@ Cutting-edge and third-party Strategies
 
 Cutting-edge Lightning strategies are being developed by third-parties outside of Lightning.
 
-If you want to try some of the latest and greatest features for model-parallel training, check out the :doc:`Colossal-AI Strategy <./third_party/colossalai>` integration.
+If you want to try some of the latest and greatest features for model-parallel training, check out the :doc:`Colossal-AI Strategy <../integrations/strategies/colossalai>` integration.
 
-Another integration is :doc:`Bagua Strategy <./third_party/bagua>`, deep learning training acceleration framework for PyTorch, with advanced distributed training algorithms and system optimizations.
+Another integration is :doc:`Bagua Strategy <../integrations/strategies/bagua>`, deep learning training acceleration framework for PyTorch, with advanced distributed training algorithms and system optimizations.
 
-For training on unreliable mixed GPUs across the internet check out the :doc:`Hivemind Strategy <./third_party/hivemind>` integration.
+For training on unreliable mixed GPUs across the internet check out the :doc:`Hivemind Strategy <../integrations/strategies/hivemind>` integration.
 
 ----
 
@@ -184,10 +184,26 @@ Enable checkpointing on large layers (like Transformers) by providing the layer 
 
     from lightning.pytorch.strategies import FSDPStrategy
 
-    fsdp = FSDPStrategy(
-        activation_checkpointing=MyTransformerBlock,  # or pass a list with multiple types
-    )
+    fsdp = FSDPStrategy(activation_checkpointing=MyTransformerBlock)  # or pass a list with multiple types
     trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
+
+
+You could also configure activation checkpointing manually inside the ``configure_sharded_model`` hook:
+
+.. code-block:: python
+
+    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import apply_activation_checkpointing
+
+
+    class MyModel(pl.LightningModule):
+        ...
+
+        def configure_sharded_model(self):
+            # Same code as in the "Manual wrapping" snippet above
+            ...
+            apply_activation_checkpointing(self.model)
+
+In this case, Lightning will not re-configure activation checkpointing, so you don't need to set ``FSDPStrategy(activation_checkpointing=...)``.
 
 
 ----
@@ -658,7 +674,7 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
         },
         "zero_optimization": {
             "stage": 2,  # Enable Stage 2 ZeRO (Optimizer/Gradient state partitioning)
-            "offload_optimizer": True,  # Enable Offloading optimizer state/calculation to the host CPU
+            "offload_optimizer": {"device": "cpu"},  # Enable Offloading optimizer state/calculation to the host CPU
             "contiguous_gradients": True,  # Reduce gradient fragmentation.
             "overlap_comm": True,  # Overlap reduce/backward operation of gradients for speed.
             "allgather_bucket_size": 2e8,  # Number of elements to all gather at once.
