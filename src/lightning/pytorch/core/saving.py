@@ -38,7 +38,7 @@ from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
 from lightning.pytorch.utilities.parsing import AttributeDict, parse_class_init_keys
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-
+from lightning.pytorch.accelerators import CUDAAccelerator
 log = logging.getLogger(__name__)
 
 if _OMEGACONF_AVAILABLE:
@@ -59,9 +59,8 @@ def _load_from_checkpoint(
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     with pl_legacy_patch():
-        from lightning.pytorch.accelerators import CUDAAccelerator
-
-        map_location = "cpu" if not CUDAAccelerator.is_available() else None
+        if map_location is None:
+            map_location = "cpu" if not CUDAAccelerator.is_available() else None
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
     # convert legacy checkpoints to the new format
