@@ -325,7 +325,8 @@ def test_setup_with_orig_params_and_multiple_param_groups():
     "compile_after_setup",
     [
         False,
-        pytest.param(True, marks=RunIf(min_python="3.9", reason="https://github.com/pytorch/pytorch/issues/97811")),
+        # https://github.com/pytorch/pytorch/issues/97811
+        pytest.param(True, marks=RunIf(min_python="3.9")),
     ],
 )
 def test_compile(compile_after_setup):
