@@ -14,7 +14,7 @@
 import logging
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Type, TYPE_CHECKING, Union, Literal
 
 import torch
 from torch import Tensor
@@ -60,9 +60,7 @@ from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 
 if TYPE_CHECKING:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-
-    from lightning.fabric.strategies.fsdp import _SHARDING_STRATEGY
+    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision, ShardingStrategy
 
     if _TORCH_GREATER_EQUAL_2_0:
         from torch.distributed.fsdp.wrap import _FSDPPolicy
@@ -70,6 +68,9 @@ if TYPE_CHECKING:
         _POLICY = Union[Callable[[Module, bool, int], bool], _FSDPPolicy]
     else:
         _POLICY = Callable[[Module, bool, int], bool]  # type: ignore[misc]
+
+    _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
+
 
 log = logging.getLogger(__name__)
 
