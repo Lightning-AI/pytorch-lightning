@@ -112,7 +112,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             - ``"FULL_SHARD"``: Shards model parameters, gradients, and optimizer states (default).
             - ``"SHARD_GRAD_OP"``: Shards gradients and optimizer states only. Model parameters get replicated.
             - ``"NO_SHARD"``: No sharding (identical to regular DDP).
-            - ``HYBRID_SHARD``: Shards model parameters, gradients, and optimizer states within a single machine, but
+            - ``"HYBRID_SHARD"``: Shards model parameters, gradients, and optimizer states within a single machine, but
               replicates across machines.
 
             Also accepts a :class:`torch.distributed.fsdp.ShardingStrategy` enum value.
