@@ -75,8 +75,8 @@ jobs:
           - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "12.0.1"}
           - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "12.0.1"}
           # these are used in Azure GPU CI
+          - {python_version: "3.8", pytorch_version: "2.0", cuda_version: "11.7.1"}
           - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.7.1"}
-          - {python_version: "3.8", pytorch_version: "2.1", cuda_version: "11.7.1", is_nightly: "true"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -91,7 +91,6 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
-            IS_NIGHTLY=${{ matrix.is_nightly }}
           file: dockers/base-cuda/Dockerfile
           push: ${{ env.PUSH_NIGHTLY }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}

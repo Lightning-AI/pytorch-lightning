@@ -20,7 +20,6 @@ FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.10
 ARG PYTORCH_VERSION=2.0
-ARG IS_NIGHTLY="false"
 ARG MAX_ALLOWED_NCCL=2.16.2
 
 SHELL ["/bin/bash", "-c"]
@@ -95,21 +94,12 @@ RUN \
       python ./adjust-torch-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
-    if [ "$IS_NIGHLY" = "true" ]; then \
-      WHL_LINK="https://download.pytorch.org/whl/test/cu${CUDA_VERSION_MM}/torch_test.html" \
-    else \
-      WHL_LINK="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" \
-    fi \
     pip install --no-cache-dir \
       -r requirements/pytorch/base.txt \
       -r requirements/pytorch/extra.txt \
       -r requirements/pytorch/test.txt \
       -r requirements/pytorch/strategies.txt \
-      --find-links $WHL_LINK && \
-    if [ "$PYTHON_VERSION" = "3.8" ] && [ "$IS_NIGHTLY" = "true" ]; then \
-      pip install \
-        "https://storage.googleapis.com/pytorch-xla-releases/wheels/cuda/${CUDA_VERSION_MM}/torch_xla-nightly-cp38-cp38-linux_x86_64.whl"; \
-    fi
+      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
 
 RUN \
     # Show what we have
