@@ -695,8 +695,8 @@ def _is_full_checkpoint(path: Path) -> bool:
 def _load_raw_module_state_from_file(
     path_or_ckpt: Union[Path, Dict[str, Any]], module: Module, strict: bool = None
 ) -> None:
-    """Loads the state dict (given or from a path) into the module by gathering all weights first and then
-    and writing back to each shard."""
+    """Loads the state dict (given or from a path) into the module by gathering all weights first and then and
+    writing back to each shard."""
     if isinstance(path_or_ckpt, Path) and not _is_full_checkpoint(path_or_ckpt):
         raise ValueError(
             "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
