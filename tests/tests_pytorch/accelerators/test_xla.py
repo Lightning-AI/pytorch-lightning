@@ -22,6 +22,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
+import lightning.fabric
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, XLAAccelerator
@@ -314,9 +315,7 @@ def test_warning_if_tpus_not_used(tpu_available):
 @pytest.mark.parametrize("runtime", ["xrt", "pjrt"])
 @RunIf(min_python="3.9")  # mocking issue
 def test_trainer_config_device_ids(devices, expected_device_ids, runtime, tpu_available, monkeypatch):
-    from torch_xla.experimental import pjrt
-
-    monkeypatch.setattr(pjrt, "using_pjrt", lambda: runtime == "pjrt")
+    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_using_pjrt", lambda: runtime == "pjrt")
 
     mock = DeviceMock()
     monkeypatch.setattr(torch, "device", mock)

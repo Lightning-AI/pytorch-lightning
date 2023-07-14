@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
-import contextlib
 import json
 import logging
 import os
 import platform
 from collections import OrderedDict
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
@@ -498,7 +498,19 @@ class DeepSpeedStrategy(DDPStrategy):
             self.lr_scheduler_configs = [lr_scheduler]
         self.model = model
 
-    @contextlib.contextmanager
+    @contextmanager
+    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+        if self.zero_stage_3:
+            if empty_init is False:
+                raise NotImplementedError(
+                    f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
+                )
+            yield
+            return
+        with super().tensor_init_context(empty_init=empty_init):
+            yield
+
+    @contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
         import deepspeed
 
