@@ -196,7 +196,7 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
 
 
 @RunIf(min_torch="1.12")
-def test_invalid_on_cpu(tmpdir):
+def test_invalid_on_cpu(tmpdir, cuda_count_0):
     """Test to ensure that we raise Misconfiguration for FSDP on CPU."""
     with pytest.raises(
         MisconfigurationException,
@@ -411,10 +411,10 @@ def test_invalid_parameters_in_optimizer():
 
 
 @RunIf(min_torch="1.12")
-@mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
+@mock.patch("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
 def test_fsdp_activation_checkpointing_support():
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
-    with pytest.raises(ValueError, match="Activation checkpointing requires torch >= 1.13.0"):
+    with pytest.raises(ValueError, match="activation_checkpointing` requires torch >= 1.13.0"):
         FSDPStrategy(activation_checkpointing=Mock())
 
 
@@ -435,21 +435,34 @@ def test_fsdp_activation_checkpointing():
             self.layer1 = Block2(2, 2)
             self.layer2 = nn.Linear(3, 3)
 
-    strategy = FSDPStrategy(activation_checkpointing=Block1)
-    assert strategy._activation_checkpointing == [Block1]
+    if _TORCH_GREATER_EQUAL_2_1:
+        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-    strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
-    assert strategy._activation_checkpointing == [Block1, Block2]
+        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1}))
+        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+
+        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
+        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+    else:
+        strategy = FSDPStrategy(activation_checkpointing=Block1)
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
+        strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
 
     model = Model()
     strategy._parallel_devices = [torch.device("cuda", 0)]
     strategy._lightning_module = model
     strategy._process_group = Mock()
-    with mock.patch("lightning.pytorch.strategies.fsdp.FullyShardedDataParallel") as fsdp_mock, mock.patch(
+    with mock.patch(
+        "torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel"
+    ) as fsdp_mock, mock.patch(
         "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
     ) as ckpt_mock:
         strategy._setup_model(model)
-        ckpt_mock.assert_called_with(fsdp_mock(), checkpoint_wrapper_fn=ANY, check_fn=ANY)
+        ckpt_mock.assert_called_with(
+            fsdp_mock(), checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs
+        )
 
 
 @RunIf(min_torch="1.12")
