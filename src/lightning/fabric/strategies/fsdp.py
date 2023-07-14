@@ -609,8 +609,6 @@ def _activation_checkpointing_kwargs(
         if not _TORCH_GREATER_EQUAL_1_13:
             raise ValueError("`activation_checkpointing` requires torch >= 1.13.0. HINT: `pip install -U torch`")
         if isinstance(activation_checkpointing, list):
-            if len(activation_checkpointing) < 1:
-                raise ValueError("`activation_checkpointing` should not be an empty list")
             classes = tuple(activation_checkpointing)
         else:
             classes = (activation_checkpointing,)
