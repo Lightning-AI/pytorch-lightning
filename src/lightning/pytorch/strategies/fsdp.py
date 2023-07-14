@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
 import logging
+from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Type, TYPE_CHECKING, Union
 
@@ -43,6 +43,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
 )
+from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ProcessGroup, ReduceOp
@@ -266,6 +267,7 @@ class FSDPStrategy(ParallelStrategy):
         self.lightning_module._device = self.root_device
 
         if is_overridden("configure_sharded_model", self.lightning_module):
+            # legacy: we don't skip setup with the `configure_model` alternative
             rank_zero_info(
                 "You have overridden `LightningModule.configure_sharded_model` hook. It will assume that all the layers"
                 " are already wrapped for sharding and won't wrap the entire model using `FullyShardedDataParallel`."
@@ -303,8 +305,16 @@ class FSDPStrategy(ParallelStrategy):
     def model_to_device(self) -> None:
         pass
 
-    @contextlib.contextmanager
-    def model_sharded_context(self) -> Generator:
+    @contextmanager
+    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
+        # is resolved. For now, the module will get moved to the device in `setup_module`.
+        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        with empty_init_context, self.precision_plugin.init_context():
+            yield
+
+    @contextmanager
+    def model_sharded_context(self) -> Generator[None, None, None]:
         log.debug(f"{self.__class__.__name__}: entered model_sharded_context.")
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap

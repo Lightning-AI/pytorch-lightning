@@ -389,6 +389,10 @@ class HookedModel(BoringModel):
             )
         return out
 
+    # override so that it gets called
+    def configure_model(self):
+        ...
+
 
 @pytest.mark.parametrize(
     "kwargs",
@@ -457,7 +461,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         *([{"name": "train_dataloader"}] if using_deepspeed else []),
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "fit"}},
         {"name": "setup", "kwargs": {"stage": "fit"}},
-        {"name": "configure_sharded_model"},
+        {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
@@ -558,7 +562,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         {"name": "on_load_checkpoint", "args": (loaded_ckpt,)},
         {"name": "Callback.on_load_checkpoint", "args": (trainer, model, loaded_ckpt)},
         {"name": "Callback.load_state_dict", "args": ({"foo": True},)},
-        {"name": "configure_sharded_model"},
+        {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
@@ -636,7 +640,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         {"name": "on_load_checkpoint", "args": (loaded_ckpt,)},
         {"name": "Callback.on_load_checkpoint", "args": (trainer, model, loaded_ckpt)},
         {"name": "Callback.load_state_dict", "args": ({"foo": True},)},
-        {"name": "configure_sharded_model"},
+        {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
@@ -700,7 +704,7 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         {"name": "prepare_data"},
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": verb}},
         {"name": "setup", "kwargs": {"stage": verb}},
-        {"name": "configure_sharded_model"},
+        {"name": "configure_model"},
         *(hooks if batches else []),
         {"name": "Callback.teardown", "args": (trainer, model), "kwargs": {"stage": verb}},
         {"name": "teardown", "kwargs": {"stage": verb}},
@@ -722,7 +726,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
         {"name": "prepare_data"},
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "predict"}},
         {"name": "setup", "kwargs": {"stage": "predict"}},
-        {"name": "configure_sharded_model"},
+        {"name": "configure_model"},
         {"name": "predict_dataloader"},
         {"name": "train", "args": (False,)},
         {"name": "on_predict_model_eval"},

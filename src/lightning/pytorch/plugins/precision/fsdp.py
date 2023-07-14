@@ -44,10 +44,9 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
         # see https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.clip_grad_norm_
-        # section `Gradient Clipping`, using `torch.nn.utils.clip_grad_norm_` is incorrect
-        # for FSDP module. To overcome this, needs to call sharded_module.clip_grad_norm(clip_val)
-        # however we rely on LightningModule's configure_sharded_model to wrap FSDP, it would be hard to
-        # trace back the root FSDP. Now we only support clip by value.
+        # section `Gradient Clipping`, using `torch.nn.utils.clip_grad_norm_` is incorrect with FSDP.
+        # To overcome this we need to call root_sharded_module.clip_grad_norm(clip_val), but we don't have a reference
+        # to the root module
         raise MisconfigurationException(
             f"`gradient_clip_algorithm='norm'` is currently not supported for `{self.__class__.__name__}`"
         )
@@ -74,6 +73,17 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
             reduce_dtype=reduce_dtype,
             buffer_dtype=buffer_dtype,
         )
+
+    @contextmanager
+    def init_context(self) -> Generator[None, None, None]:
+        """A context manager to change the default tensor type when initializing module parameters or tensors.
+
+        See: :meth:`torch.set_default_dtype`
+        """
+        default_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(self.mixed_precision_config.param_dtype)
+        yield
+        torch.set_default_dtype(default_dtype)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
