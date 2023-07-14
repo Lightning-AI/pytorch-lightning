@@ -235,13 +235,20 @@ def test_fsdp_save_full_state_dict(tmp_path):
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
 def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
     fabric = BoringFabric(accelerator="cuda", devices=1)
+    fabric.seed_everything(0)
     fabric.run()
 
     # Save a full-state-dict checkpoint
     checkpoint_path = Path(fabric.broadcast(str(tmp_path / "full-checkpoint.pt")))
     state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
     fabric.save(checkpoint_path, state)
+
+    # Gather all weights and store a copy manually
+    with FSDP.summon_full_params(fabric.model, writeback=False, rank0_only=False):
+        params_before = torch.cat([p.cpu().view(-1) for p in fabric.model.parameters()])
 
     # Create a FSDP sharded model
     fabric = BoringFabric(
@@ -255,14 +262,25 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     fabric.load(checkpoint_path, state)
     assert state["steps"] == 1
 
-    # Create a raw state_dict checkpoint to test `Fabric.load_object` too
-    checkpoint_path = checkpoint_path.with_name("model-state-dict")
+    # Gather all weights and compare
+    with FSDP.summon_full_params(fabric.model, writeback=False, rank0_only=False):
+        params_after = torch.cat([p.cpu().view(-1) for p in fabric.model.parameters()])
+    assert torch.equal(params_before, params_after)
+
+    # Create a raw state-dict checkpoint to test `Fabric.load_object` too
+    raw_checkpoint_path = checkpoint_path.with_name("model-state-dict")
     if fabric.global_rank == 0:
         checkpoint = torch.load(checkpoint_path)
-        torch.save(checkpoint["model"], checkpoint_path)
+        torch.save(checkpoint["model"], raw_checkpoint_path)
+    fabric.barrier()
 
     fabric.run()
-    fabric.load_object(checkpoint_path, fabric.model)
+    fabric.load_object(raw_checkpoint_path, fabric.model)
+
+    # Gather all weights and compare
+    with FSDP.summon_full_params(fabric.model, writeback=False, rank0_only=False):
+        params_after = torch.cat([p.cpu().view(-1) for p in fabric.model.parameters()])
+    assert torch.equal(params_before, params_after)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
