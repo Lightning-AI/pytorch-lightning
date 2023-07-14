@@ -460,7 +460,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         path = Path(self.broadcast(path))
 
         if isinstance(state, Module):
-            _load_raw_module_state_from_file(path, module=state, strict=strict)
+            _load_raw_module_state(path, module=state, strict=strict)
             return {}
 
         if isinstance(state, Optimizer):
@@ -526,7 +526,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         if _is_full_checkpoint(path):
             checkpoint = torch.load(path, map_location="cpu")
-            _load_raw_module_state_from_file(checkpoint.pop(module_key), module=module, strict=strict)
+            _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
 
             if isinstance(state, Module):
                 return {}
@@ -692,9 +692,7 @@ def _is_full_checkpoint(path: Path) -> bool:
     return path.is_file()
 
 
-def _load_raw_module_state_from_file(
-    path_or_ckpt: Union[Path, Dict[str, Any]], module: Module, strict: bool = None
-) -> None:
+def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Module, strict: bool = None) -> None:
     """Loads the state dict (given or from a path) into the module by gathering all weights first and then and
     writing back to each shard."""
     if isinstance(path_or_ckpt, Path) and not _is_full_checkpoint(path_or_ckpt):
