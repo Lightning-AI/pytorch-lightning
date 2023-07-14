@@ -781,6 +781,7 @@ def test_connector_defaults_match_trainer_defaults():
 
 
 @RunIf(min_cuda_gpus=1)  # trigger this test on our GPU pipeline, because we don't install the package on the CPU suite
+@pytest.mark.xfail(raises=ImportError, reason="Not updated to latest API")
 @pytest.mark.skipif(not package_available("lightning_colossalai"), reason="Requires Colossal AI Strategy")
 def test_colossalai_external_strategy(monkeypatch):
     with mock.patch(
@@ -795,6 +796,7 @@ def test_colossalai_external_strategy(monkeypatch):
 
 
 @RunIf(min_cuda_gpus=1)  # trigger this test on our GPU pipeline, because we don't install the package on the CPU suite
+@pytest.mark.xfail(raises=ImportError, reason="Not updated to latest API")
 @pytest.mark.skipif(not package_available("lightning_bagua"), reason="Requires Bagua Strategy")
 def test_bagua_external_strategy(monkeypatch):
     with mock.patch(
