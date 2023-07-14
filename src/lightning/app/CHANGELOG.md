@@ -35,6 +35,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 -
 
 
+## [2.0.5] - 2023-07-07
+
+### Added
+
+- plugin: store source app ([#17892](https://github.com/Lightning-AI/lightning/pull/17892))
+- added colocation identifier ([#16796](https://github.com/Lightning-AI/lightning/pull/16796))
+- Added exponential backoff to HTTPQueue put ([#18013](https://github.com/Lightning-AI/lightning/pull/18013))
+- Content for plugins ([#17243](https://github.com/Lightning-AI/lightning/pull/17243))
+
+### Changed
+
+- Save a reference to created tasks, to avoid tasks disappearing ([#17946](https://github.com/Lightning-AI/lightning/pull/17946))
+
+
+## [2.0.4] - 2023-06-22
+
+### Fixed
+
+- bumped several dependencies to address security vulnerabilities.
+
+
 ## [2.0.3] - 2023-06-07
 
 - Added the property `LightningWork.public_ip` that exposes the public IP of the `LightningWork` instance ([#17742](https://github.com/Lightning-AI/lightning/pull/17742))
