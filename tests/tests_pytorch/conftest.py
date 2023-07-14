@@ -26,6 +26,7 @@ import torch.distributed
 
 import lightning.fabric
 import lightning.pytorch
+from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
@@ -182,7 +183,10 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
+    if _XLA_GREATER_EQUAL_2_1:
+        monkeypatch.setitem(sys.modules, "torch_xla.runtime", Mock())
+    else:
+        monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
 
 
 @pytest.fixture()
