@@ -76,6 +76,8 @@ class XLAAccelerator(Accelerator):
                 from torch_xla._internal import tpu
 
                 return tpu.num_available_devices()
+            from torch_xla.experimental import tpu
+
             device_count_on_version = {2: 8, 3: 8, 4: 4}
             return device_count_on_version.get(tpu.version(), 8)
         return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
@@ -83,7 +85,10 @@ class XLAAccelerator(Accelerator):
     @staticmethod
     @functools.lru_cache(maxsize=1)
     def is_available() -> bool:
-        return XLAAccelerator.auto_device_count() > 0
+        try:
+            return XLAAccelerator.auto_device_count() > 0
+        except (ValueError, AssertionError, OSError):
+            return False
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
