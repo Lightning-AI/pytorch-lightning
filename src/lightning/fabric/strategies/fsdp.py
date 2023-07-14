@@ -155,8 +155,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
             activation_checkpointing, activation_checkpointing_policy
         )
-        self._sharding_strategy = _init_sharding_strategy(sharding_strategy)
         self._state_dict_type = state_dict_type
+        self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
 
@@ -241,7 +241,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             module=module,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
-            sharding_strategy=self._sharding_strategy,
+            sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
             **self._fsdp_kwargs,
         )

@@ -147,7 +147,7 @@ class FSDPStrategy(ParallelStrategy):
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
             activation_checkpointing, activation_checkpointing_policy
         )
-        self._sharding_strategy = _init_sharding_strategy(sharding_strategy)
+        self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
 
     def lightning_module_state_dict(self) -> Dict[str, Any]:
         """Gathers the full state dict by unsharding all the parameters.
@@ -249,7 +249,7 @@ class FSDPStrategy(ParallelStrategy):
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
-            sharding_strategy=self._sharding_strategy,
+            sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
             **self.kwargs,
         )
