@@ -648,7 +648,7 @@ def test_configure_model(precision, expected_dtype):
     class MyModel(BoringModel):
         def configure_model(self):
             self.layer = torch.nn.Linear(32, 2)
-            # The model is on the CPU until `.setup()``
+            # The model is on the CPU until after `.setup()``
             # TODO: Support initialization on meta device
             expected_device = torch.device("cpu")
             assert self.layer.weight.device == expected_device

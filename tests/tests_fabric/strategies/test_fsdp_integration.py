@@ -363,7 +363,7 @@ def test_module_init_context(precision, expected_dtype):
     with fabric.init_module():
         model = torch.nn.Linear(100, 100, bias=False)
 
-    # The model is on the CPU until `.setup()``
+    # The model is on the CPU until after `.setup()``
     # TODO: Support initialization on meta device
     expected_device = torch.device("cpu")
     assert model.weight.device == expected_device
