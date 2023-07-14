@@ -57,7 +57,13 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision, ShardingStrategy
+    from torch.distributed.fsdp.fully_sharded_data_parallel import (
+        CPUOffload,
+        FullyShardedDataParallel,
+        MixedPrecision,
+        ShardingStrategy,
+    )
+
     from lightning.fabric.wrappers import _FabricModule
 
     if _TORCH_GREATER_EQUAL_2_0:

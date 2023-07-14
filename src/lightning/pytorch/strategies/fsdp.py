@@ -29,8 +29,9 @@ from lightning.fabric.strategies.fsdp import (
     _activation_checkpointing_kwargs,
     _get_full_state_dict_context,
     _init_cpu_offload,
+    _init_sharding_strategy,
     _optimizer_has_flat_params,
-    _setup_activation_checkpointing, _init_sharding_strategy,
+    _setup_activation_checkpointing,
 )
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
@@ -60,6 +61,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+
     from lightning.fabric.strategies.fsdp import _SHARDING_STRATEGY
 
     if _TORCH_GREATER_EQUAL_2_0:
