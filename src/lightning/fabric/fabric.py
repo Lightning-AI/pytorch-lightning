@@ -735,7 +735,7 @@ class Fabric:
         unwrapped_state = _unwrap_objects(state)
         remainder = self._strategy.load_checkpoint(path=path, state=unwrapped_state, strict=strict)
         self.barrier()
-        if state is not None and not isinstance(state, nn.Module):
+        if state is not None:
             # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
             # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
             for k in list(unwrapped_state.keys()):
