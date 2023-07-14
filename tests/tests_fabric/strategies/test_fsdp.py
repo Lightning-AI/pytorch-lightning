@@ -293,6 +293,16 @@ def test_fsdp_load_unkown_checkpoint_type(tmp_path):
         strategy.load_checkpoint(path=path, state={"model": model})
 
 
+def test_fsdp_load_raw_checkpoint_validate_single_file(tmp_path):
+    """Test that we validate the given checkpoint is a single file when loading a raw PyTorch state-dict checkpoint."""
+    strategy = FSDPStrategy()
+    model = Mock(spec=nn.Module)
+    path = tmp_path / "folder"
+    path.mkdir()
+    with pytest.raises(ValueError, match="The given path must be a single file containing the full state dict"):
+        strategy.load_checkpoint(path=path, state=model)
+
+
 @RunIf(min_torch="1.12")
 @mock.patch("torch.distributed.init_process_group")
 def test_set_timeout(init_process_group_mock):
