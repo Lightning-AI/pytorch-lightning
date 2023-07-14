@@ -255,6 +255,15 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     fabric.load(checkpoint_path, state)
     assert state["steps"] == 1
 
+    # Create a raw state_dict checkpoint to test `Fabric.load_object` too
+    checkpoint_path = checkpoint_path.with_name("model-state-dict")
+    if fabric.global_rank == 0:
+        checkpoint = torch.load(checkpoint_path)
+        torch.save(checkpoint["model"], checkpoint_path)
+
+    fabric.run()
+    fabric.load_object(checkpoint_path, fabric.model)
+
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("move_to_device", [True, False])
