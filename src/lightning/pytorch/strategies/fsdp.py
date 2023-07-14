@@ -101,6 +101,17 @@ class FSDPStrategy(ParallelStrategy):
             :class:`torch.distributed.fsdp.FullyShardedDataParallel` but used when selecting the modules for which you
             want to enable activation checkpointing. Enabling this can free up a significant amount of memory at the
             cost of speed since activations in these layers need to be recomputed during backpropagation.
+        sharding_strategy: Select whether to shard model parameters, gradients, optimizer states, or a combination of
+            them. Available values are:
+
+            - ``"FULL_SHARD"``: Shards model parameters, gradients, and optimizer states (default).
+            - ``"SHARD_GRAD_OP"``: Shards gradients and optimizer states only. Model parameters get replicated.
+            - ``"NO_SHARD"``: No sharding (identical to regular DDP).
+            - ``HYBRID_SHARD``: Shards model parameters, gradients, and optimizer states within a single machine, but
+              replicates across machines.
+
+            Also accepts a :class:`torch.distributed.fsdp.ShardingStrategy` enum value.
+
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
     """
 
@@ -138,6 +149,7 @@ class FSDPStrategy(ParallelStrategy):
         self._process_group_backend = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
+        self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
         self.mixed_precision = mixed_precision
         self.kwargs = kwargs
         if _TORCH_GREATER_EQUAL_2_0:
@@ -147,7 +159,6 @@ class FSDPStrategy(ParallelStrategy):
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
             activation_checkpointing, activation_checkpointing_policy
         )
-        self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
 
     def lightning_module_state_dict(self) -> Dict[str, Any]:
         """Gathers the full state dict by unsharding all the parameters.

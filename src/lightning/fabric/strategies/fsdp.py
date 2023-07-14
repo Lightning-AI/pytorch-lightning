@@ -106,6 +106,17 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             :class:`torch.distributed.fsdp.FullyShardedDataParallel` but used when selecting the modules for which you
             want to enable activation checkpointing. Enabling this can free up a significant amount of memory at the
             cost of speed since activations in these layers need to be recomputed during backpropagation.
+        sharding_strategy: Select whether to shard model parameters, gradients, optimizer states, or a combination of
+            them. Available values are:
+
+            - ``"FULL_SHARD"``: Shards model parameters, gradients, and optimizer states (default).
+            - ``"SHARD_GRAD_OP"``: Shards gradients and optimizer states only. Model parameters get replicated.
+            - ``"NO_SHARD"``: No sharding (identical to regular DDP).
+            - ``HYBRID_SHARD``: Shards model parameters, gradients, and optimizer states within a single machine, but
+              replicates across machines.
+
+            Also accepts a :class:`torch.distributed.fsdp.ShardingStrategy` enum value.
+
         state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
 
             - ``"full"``: The full weights and optimizer states get assembled on rank 0 and saved to a single file.
