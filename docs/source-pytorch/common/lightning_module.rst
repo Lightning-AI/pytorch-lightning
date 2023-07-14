@@ -1327,10 +1327,10 @@ on_validation_epoch_end
 .. automethod:: lightning.pytorch.core.module.LightningModule.on_validation_epoch_end
     :noindex:
 
-configure_sharded_model
+configure_model
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: lightning.pytorch.core.module.LightningModule.configure_sharded_model
+.. automethod:: lightning.pytorch.core.module.LightningModule.configure_model
     :noindex:
 
 on_validation_model_eval

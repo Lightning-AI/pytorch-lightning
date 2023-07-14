@@ -40,10 +40,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Handles initialization for FSDP models before wrapping and the Zero stage 3 initialization for DeepSpeed before sharding
 
 
-- Added supports for empty weight initialization with `Fabric.init_module(empty_init=True)` for efficient sharding and checkpoint loading ([#17627](https://github.com/Lightning-AI/lightning/pull/17627))
+- Added supports for empty weight initialization with `Fabric.init_module(empty_init=True)` for checkpoint loading ([#17627](https://github.com/Lightning-AI/lightning/pull/17627))
 
 
 - Added `lightning.fabric.plugins.Precision.init_context()` and `lightning.fabric.strategies.Strategy.module_init_context()` context managers to control model and tensor instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
+
+
+- `lightning.fabric.strategies.Strategy.tensor_init_context()` context manager to instantiate tensors efficiently directly on device and dtype ([#17607](https://github.com/Lightning-AI/lightning/pull/17607))
 
 
 - Run the DDP wrapper in a CUDA stream ([#17334](https://github.com/Lightning-AI/lightning/pull/17334))
@@ -80,6 +83,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Added support for all half-precision modes in FSDP precision plugin ([#17807](https://github.com/Lightning-AI/lightning/pull/17807))
+
+
+- Added `FSDPStrategy(activation_checkpointing_policy=...)` to customize the layer policy for automatic activation checkpointing (requires torch>=2.1) ([#18045](https://github.com/Lightning-AI/lightning/pull/18045))
 
 
 - Added a callback for spike-detection ([#18014](https://github.com/Lightning-AI/lightning/pull/18014))
