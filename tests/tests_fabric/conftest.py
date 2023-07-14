@@ -65,6 +65,7 @@ def restore_env_variables():
         "XLA_FLAGS",
         "PJRT_DEVICE",
         "TPU_ML_PLATFORM",
+        "TPU_LOAD_LIBRARY",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
