@@ -158,16 +158,7 @@ You can customize the strategy configuration by adjusting the arguments of :clas
     trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
 
     # configure the wrapping condition
-    if torch.__version__ >= "2.1":
-        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-
-        my_policy = ModuleWrapPolicy({MyTransformerBlock})
-    else:
-        from torch.distributed.fsdp.wrap import lambda_auto_wrap_policy
-        import functools
-
-        my_policy = functools.partial(lambda_auto_wrap_policy, lambda_fn=lambda module: isinstance(module, torch.nn.Linear))
-    fsdp = FSDPStrategy(auto_wrap_policy=my_policy)
+    fsdp = FSDPStrategy(auto_wrap_policy={MyTransformerBlock})
     trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
 
 
@@ -241,14 +232,7 @@ Enable checkpointing on large layers (like Transformers) by providing a policy:
 
     from lightning.pytorch.strategies import FSDPStrategy
 
-    if torch.__version__ >= "2.1":
-        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-
-        my_policy = ModuleWrapPolicy({MyTransformerBlock})
-        fsdp = FSDPStrategy(activation_checkpointing_policy=my_policy)
-    else:
-        fsdp = FSDPStrategy(activation_checkpointing=MyTransformerBlock)  # or pass a list with multiple types
-
+    fsdp = FSDPStrategy(activation_checkpointing_policy={MyTransformerBlock})
     trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
 
 

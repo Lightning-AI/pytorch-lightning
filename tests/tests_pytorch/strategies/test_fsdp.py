@@ -438,16 +438,24 @@ def test_fsdp_activation_checkpointing():
     if _TORCH_GREATER_EQUAL_2_1:
         from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1}))
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
         assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
 
         strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
         assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
     else:
         strategy = FSDPStrategy(activation_checkpointing=Block1)
         assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
 
         strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1, Block2})
         assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
 
     model = Model()
