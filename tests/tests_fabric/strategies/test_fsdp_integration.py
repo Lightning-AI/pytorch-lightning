@@ -41,14 +41,13 @@ if _TORCH_GREATER_EQUAL_1_12:
 class _MyFabric(BoringFabric):
     def get_model(self):
         model = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
-        self.num_wrapped = 3
+        self.num_wrapped = 4
         return model
 
     def step(self, model, batch):
         wrapped_layers = [m for m in model.modules() if isinstance(m, FullyShardedDataParallel)]
         assert len(wrapped_layers) == self.num_wrapped
-        if self.num_wrapped == 3:
-            assert isinstance(model._forward_module, FullyShardedDataParallel)
+        assert (self.num_wrapped == 4) == isinstance(model._forward_module, FullyShardedDataParallel)
 
         precision = self._precision
         assert isinstance(precision, FSDPPrecision)
