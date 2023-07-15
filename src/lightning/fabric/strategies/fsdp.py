@@ -692,7 +692,7 @@ def _is_full_checkpoint(path: Path) -> bool:
     return path.is_file()
 
 
-def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Module, strict: bool = None) -> None:
+def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Module, strict: bool = True) -> None:
     """Loads the state dict (given or from a path) into the module by gathering all weights first and then and
     writing back to each shard."""
     if isinstance(path_or_ckpt, Path) and not _is_full_checkpoint(path_or_ckpt):
