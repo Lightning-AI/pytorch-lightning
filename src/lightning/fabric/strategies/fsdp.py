@@ -71,7 +71,12 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+    from torch.distributed.fsdp.fully_sharded_data_parallel import (
+        CPUOffload,
+        FullyShardedDataParallel,
+        MixedPrecision,
+        ShardingStrategy,
+    )
 
     from lightning.fabric.wrappers import _FabricModule
 
@@ -81,6 +86,8 @@ if TYPE_CHECKING:
         _POLICY = Union[Set, Callable[[Module, bool, int], bool], _FSDPPolicy]
     else:
         _POLICY = Union[Set, Callable[[Module, bool, int], bool]]  # type: ignore[misc]
+
+    _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 _METADATA_FILENAME = "meta.pt"
@@ -115,6 +122,17 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             want to enable activation checkpointing. Enabling this can free up a significant amount of memory at the
             cost of speed since activations in these layers need to be recomputed during backpropagation. For
             convenience, this also accepts a set of the layer classes to wrap.
+        sharding_strategy: Select whether to shard model parameters, gradients, optimizer states, or a combination of
+            them. Available values are:
+
+            - ``"FULL_SHARD"``: Shards model parameters, gradients, and optimizer states (default).
+            - ``"SHARD_GRAD_OP"``: Shards gradients and optimizer states only. Model parameters get replicated.
+            - ``"NO_SHARD"``: No sharding (identical to regular DDP).
+            - ``"HYBRID_SHARD"``: Shards model parameters, gradients, and optimizer states within a single machine, but
+              replicates across machines.
+
+            Also accepts a :class:`torch.distributed.fsdp.ShardingStrategy` enum value.
+
         state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
 
             - ``"full"``: The full weights and optimizer states get assembled on rank 0 and saved to a single file.
@@ -138,6 +156,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         auto_wrap_policy: Optional["_POLICY"] = None,
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         activation_checkpointing_policy: Optional["_POLICY"] = None,
+        sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "sharded",
         **kwargs: Any,
     ) -> None:
@@ -165,6 +184,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             activation_checkpointing, activation_checkpointing_policy
         )
         self._state_dict_type = state_dict_type
+        self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
 
@@ -249,6 +269,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             module=module,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
+            sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
             **self._fsdp_kwargs,
         )
@@ -306,6 +327,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             wrapper_cls=FullyShardedDataParallel,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
+            sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
             **self._fsdp_kwargs,
         ):
@@ -705,6 +727,12 @@ def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUO
     from torch.distributed.fsdp import CPUOffload
 
     return cpu_offload if isinstance(cpu_offload, CPUOffload) else CPUOffload(offload_params=bool(cpu_offload))
+
+
+def _init_sharding_strategy(sharding_strategy: "_SHARDING_STRATEGY") -> "ShardingStrategy":
+    from torch.distributed.fsdp import ShardingStrategy
+
+    return ShardingStrategy[sharding_strategy.upper()] if isinstance(sharding_strategy, str) else sharding_strategy
 
 
 def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:

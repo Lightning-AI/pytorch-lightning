@@ -487,6 +487,26 @@ def test_fsdp_strategy_cpu_offload():
 
 
 @RunIf(min_torch="1.12")
+def test_fsdp_sharding_strategy():
+    """Test the different ways the sharding strategy can be set."""
+    from torch.distributed.fsdp import ShardingStrategy
+
+    # default
+    strategy = FSDPStrategy()
+    assert strategy.sharding_strategy == ShardingStrategy.FULL_SHARD
+
+    # enum
+    strategy = FSDPStrategy(sharding_strategy=ShardingStrategy.SHARD_GRAD_OP)
+    assert strategy.sharding_strategy == ShardingStrategy.SHARD_GRAD_OP
+
+    # string
+    strategy = FSDPStrategy(sharding_strategy="NO_SHARD")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
+    strategy = FSDPStrategy(sharding_strategy="no_shard")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
+
+
+@RunIf(min_torch="1.12")
 def test_fsdp_use_orig_params():
     """Test that Lightning enables `use_orig_params` in PyTorch >= 2.0."""
     with mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False):

@@ -66,6 +66,26 @@ def test_fsdp_cpu_offload():
 
 
 @RunIf(min_torch="1.12")
+def test_fsdp_sharding_strategy():
+    """Test the different ways the sharding strategy can be set."""
+    from torch.distributed.fsdp import ShardingStrategy
+
+    # default
+    strategy = FSDPStrategy()
+    assert strategy.sharding_strategy == ShardingStrategy.FULL_SHARD
+
+    # enum
+    strategy = FSDPStrategy(sharding_strategy=ShardingStrategy.SHARD_GRAD_OP)
+    assert strategy.sharding_strategy == ShardingStrategy.SHARD_GRAD_OP
+
+    # string
+    strategy = FSDPStrategy(sharding_strategy="NO_SHARD")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
+    strategy = FSDPStrategy(sharding_strategy="no_shard")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
+
+
+@RunIf(min_torch="1.12")
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
 def test_fsdp_setup_optimizer_validation(torch_ge_2_0):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
