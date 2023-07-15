@@ -310,6 +310,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             wrapper_cls=FullyShardedDataParallel,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
+            sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
             **self._fsdp_kwargs,
         ):

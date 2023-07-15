@@ -347,6 +347,7 @@ class FSDPStrategy(ParallelStrategy):
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
+            sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
             **self.kwargs,
         ):
