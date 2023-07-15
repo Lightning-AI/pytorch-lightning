@@ -319,7 +319,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
-    def clip_gradients_norm(  # type: ignore[override]
+    def clip_gradients_norm(
         self,
         module: Module,
         optimizer: Optimizer,
@@ -340,9 +340,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.precision.unscale_gradients(optimizer)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
-    def clip_gradients_value(  # type: ignore[override]
-        self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]
-    ) -> None:
+    def clip_gradients_value(self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
         """Clip gradients by value."""
         raise NotImplementedError(
             "FSDP currently does not support to clip gradients by value. "
@@ -710,7 +708,7 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
         state_dict_config=state_dict_config,
         optim_state_dict_config=optim_state_dict_config,
     )
-    return state_dict_type_context
+    return state_dict_type_context  # type ignore[return-value]
 
 
 def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> Generator[None, None, None]:
@@ -725,7 +723,7 @@ def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> Gen
         state_dict_config=state_dict_config,
         optim_state_dict_config=optim_state_dict_config,
     )
-    return state_dict_type_context
+    return state_dict_type_context  # type ignore[return-value]
 
 
 def _is_sharded_checkpoint(path: Path) -> bool:
@@ -846,4 +844,6 @@ def fsdp_overlap_step_with_backward(
     from lightning.fabric.wrappers import _FabricModule
 
     assert isinstance(fabric_module, _FabricModule)
-    return _apply_optimizers_during_fsdp_backward(optimizers, fabric_module._forward_module)
+    return _apply_optimizers_during_fsdp_backward(
+        optimizers, fabric_module._forward_module
+    )  # type ignore[return-value]
