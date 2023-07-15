@@ -373,6 +373,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
                 " `FSDPStrategy` does not use the `CheckpointIO`."
             )
+        if filter is not None and self._state_dict_type == "sharded":
+            # A KeyError is raised when `torch.distributed.checkpoint.load_state_dict` is called
+            raise NotImplementedError(
+                "FSDP doesn't support loading sharded filtered checkpoints, so saving them is disabled."
+            )
+
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
         path = Path(self.broadcast(path))
         if path.is_dir() and os.listdir(path):

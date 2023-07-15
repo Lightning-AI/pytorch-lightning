@@ -400,10 +400,8 @@ def test_fsdp_save_filter(tmp_path):
 
     fabric.strategy._state_dict_type = "sharded"
     checkpoint_path = tmp_path / "sharded"
-    fabric.save(checkpoint_path, state, filter=filter)
-    data = torch.load(checkpoint_path / "__0_0.distcp")
-    assert isinstance(data, torch.Tensor)
-    assert data.shape == (1,)
+    with pytest.raises(NotImplementedError, match="doesn't support loading sharded filtered"):
+        fabric.save(checkpoint_path, state, filter=filter)
 
 
 @RunIf(min_torch="1.13", min_cuda_gpus=1)
