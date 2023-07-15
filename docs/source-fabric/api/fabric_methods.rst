@@ -258,12 +258,12 @@ Fabric will handle the loading part correctly, whether running a single device, 
     ...
 
 
-To load the state of your model or optimizer from a raw PyTorch checkpoint (not saved with Fabric), use :meth:`~lightning.fabric.fabric.Fabric.load_object` instead.
+To load the state of your model or optimizer from a raw PyTorch checkpoint (not saved with Fabric), use :meth:`~lightning.fabric.fabric.Fabric.load_raw` instead.
 See also: :doc:`../guide/checkpoint`
 
 
-load_object
-===========
+load_raw
+========
 
 Load the state-dict of a model or optimizer from a raw PyTorch checkpoint not saved by Fabric.
 
@@ -272,7 +272,7 @@ Load the state-dict of a model or optimizer from a raw PyTorch checkpoint not sa
     model = MyModel()
 
     # A model weights file saved by your friend who doesn't use Fabric
-    fabric.load_object("path/to/model.pt", model)
+    fabric.load_raw("path/to/model.pt", model)
 
     # Equivalent to this:
     model.load_state_dict(torch.load("path/to/model.pt"))

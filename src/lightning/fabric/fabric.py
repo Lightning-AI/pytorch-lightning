@@ -745,7 +745,7 @@ class Fabric:
                 state[k] = unwrapped_state[k]
         return remainder
 
-    def load_object(self, path: Union[str, Path], obj: Union[nn.Module, Optimizer], strict: bool = True) -> None:
+    def load_raw(self, path: Union[str, Path], obj: Union[nn.Module, Optimizer], strict: bool = True) -> None:
         """Load the state of a module or optimizer from a single state-dict file.
 
         Use this for loading a raw PyTorch model checkpoint created without Fabric.

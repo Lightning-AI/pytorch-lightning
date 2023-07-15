@@ -267,7 +267,7 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
         params_after = torch.cat([p.cpu().view(-1) for p in fabric.model.parameters()])
     assert torch.equal(params_before, params_after)
 
-    # Create a raw state-dict checkpoint to test `Fabric.load_object` too
+    # Create a raw state-dict checkpoint to test `Fabric.load_raw` too
     raw_checkpoint_path = checkpoint_path.with_name("model-state-dict")
     if fabric.global_rank == 0:
         checkpoint = torch.load(checkpoint_path)
@@ -275,7 +275,7 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     fabric.barrier()
 
     fabric.run()
-    fabric.load_object(raw_checkpoint_path, fabric.model)
+    fabric.load_raw(raw_checkpoint_path, fabric.model)
 
     # Gather all weights and compare
     with FSDP.summon_full_params(fabric.model, writeback=False, rank0_only=False):
