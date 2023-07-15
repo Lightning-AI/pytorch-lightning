@@ -23,7 +23,11 @@ from torch.nn import Parameter
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
+)
 from lightning.fabric.wrappers import _FabricOptimizer
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
@@ -390,7 +394,7 @@ def test_module_init_context(precision, expected_dtype):
     with fabric.init_module():
         model = torch.nn.Linear(100, 100, bias=False)
 
-    # The model is on the CPU until `.setup()``
+    # The model is on the CPU until after `.setup()``
     # TODO: Support initialization on meta device
     expected_device = torch.device("cpu")
     assert model.weight.device == expected_device
@@ -427,3 +431,36 @@ def test_fsdp_save_filter(tmp_path):
     data = torch.load(checkpoint_path / "__0_0.distcp")
     assert isinstance(data, torch.Tensor)
     assert data.shape == (1,)
+
+
+@RunIf(min_torch="1.13", min_cuda_gpus=1)
+def test_fsdp_manual_activation_checkpointing():
+    model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.Linear(1, 1))
+
+    if _TORCH_GREATER_EQUAL_2_1:
+        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+
+        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({torch.nn.Linear}))
+    else:
+        strategy = FSDPStrategy(activation_checkpointing=torch.nn.Linear)
+
+    fabric = Fabric(devices=1, accelerator="cuda", strategy=strategy)
+    fabric.launch()
+
+    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+        apply_activation_checkpointing,
+        CheckpointWrapper,
+    )
+
+    # manually apply activation checkpointing
+    apply_activation_checkpointing(model)
+
+    wrappers = {name for name, mod in model.named_modules() if isinstance(mod, CheckpointWrapper)}
+    assert wrappers == {"0", "1"}
+
+    # let fabric set up the model, it shouldn't apply activation checkpointing again
+    with pytest.warns(match="is configured, but the model already contains checkpointed"):
+        model = fabric.setup(model)
+
+    wrappers = {name for name, mod in model._forward_module.named_modules() if isinstance(mod, CheckpointWrapper)}
+    assert wrappers == {"_fsdp_wrapped_module.0", "_fsdp_wrapped_module.1"}

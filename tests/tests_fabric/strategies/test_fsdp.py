@@ -26,15 +26,12 @@ import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
 from torch.optim import Adam
 
+import lightning.fabric
 from lightning.fabric import Fabric
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.strategies.fsdp import (
-    _FSDPBackwardSyncControl,
-    _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD,
-    fsdp_overlap_step_with_backward,
-)
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.strategies.fsdp import _FSDPBackwardSyncControl, fsdp_overlap_step_with_backward
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_1
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
 
@@ -129,11 +126,15 @@ def test_fsdp_no_backward_sync():
 
 
 @RunIf(min_torch="1.12")
-@mock.patch("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
-def test_fsdp_activation_checkpointing_support():
+def test_fsdp_activation_checkpointing_support(monkeypatch):
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
-    with pytest.raises(ValueError, match="Activation checkpointing requires torch >= 1.13.0"):
+    monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_1_13", False)
+    with pytest.raises(ValueError, match="activation_checkpointing` requires torch >= 1.13.0"):
         FSDPStrategy(activation_checkpointing=Mock())
+
+    monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_1", False)
+    with pytest.raises(ValueError, match="activation_checkpointing_policy` requires torch >= 2.1.0"):
+        FSDPStrategy(activation_checkpointing_policy=Mock())
 
 
 @RunIf(min_torch="1.13")
@@ -153,11 +154,20 @@ def test_fsdp_activation_checkpointing():
             self.layer1 = Block2(2, 2)
             self.layer2 = nn.Linear(3, 3)
 
-    strategy = FSDPStrategy(activation_checkpointing=Block1)
-    assert strategy._activation_checkpointing == [Block1]
+    if _TORCH_GREATER_EQUAL_2_1:
+        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-    strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
-    assert strategy._activation_checkpointing == [Block1, Block2]
+        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1}))
+        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+
+        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
+        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+    else:
+        strategy = FSDPStrategy(activation_checkpointing=Block1)
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
+        strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
 
     strategy._parallel_devices = [torch.device("cuda", 0)]
     with mock.patch(
@@ -166,7 +176,9 @@ def test_fsdp_activation_checkpointing():
         "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
     ) as ckpt_mock:
         strategy.setup_module(Model())
-        ckpt_mock.assert_called_with(fsdp_mock(), checkpoint_wrapper_fn=ANY, check_fn=ANY)
+        ckpt_mock.assert_called_with(
+            fsdp_mock(), checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs
+        )
 
 
 @RunIf(min_torch="1.13")
@@ -283,7 +295,7 @@ def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
 
 
 @RunIf(min_torch="2.0.0")
-def test_fsdp_load_unkown_checkpoint_type(tmp_path):
+def test_fsdp_load_unknown_checkpoint_type(tmp_path):
     """Test that the strategy validates the contents at the checkpoint path."""
     strategy = FSDPStrategy()
     model = Mock(spec=FullyShardedDataParallel)
@@ -405,7 +417,6 @@ class StatusChecker:
 
 @pytest.mark.skip(reason="Flaky test")  # See also: https://github.com/Lightning-AI/lightning/pull/17774
 @RunIf(min_torch="2.0.0", min_cuda_gpus=2, skip_windows=True, standalone=True)
-@pytest.mark.skipif(not _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD, reason="Not supported in this version of PyTorch")
 @pytest.mark.skipif(not RequirementCache("psutil"), reason="psutil is needed to help prevent deadlocks.")
 @pytest.mark.parametrize(
     "checkpoint",

@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
-import contextlib
 import json
 import logging
 import os
 import platform
 from collections import OrderedDict
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
@@ -325,6 +325,11 @@ class DeepSpeedStrategy(DDPStrategy):
         return config
 
     def setup_distributed(self) -> None:
+        if not isinstance(self.accelerator, CUDAAccelerator):
+            raise RuntimeError(
+                f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
+                " is used."
+            )
         assert self.parallel_devices is not None
         _validate_device_index_selection(self.parallel_devices)
         reset_seed()
@@ -438,11 +443,6 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
-        if not isinstance(self.accelerator, CUDAAccelerator):
-            raise MisconfigurationException(
-                f"DeepSpeed strategy is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
-            )
-
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(self.model)
@@ -498,7 +498,19 @@ class DeepSpeedStrategy(DDPStrategy):
             self.lr_scheduler_configs = [lr_scheduler]
         self.model = model
 
-    @contextlib.contextmanager
+    @contextmanager
+    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+        if self.zero_stage_3:
+            if empty_init is False:
+                raise NotImplementedError(
+                    f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
+                )
+            yield
+            return
+        with super().tensor_init_context(empty_init=empty_init):
+            yield
+
+    @contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
         import deepspeed
 

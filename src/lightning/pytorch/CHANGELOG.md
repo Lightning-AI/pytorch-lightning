@@ -50,6 +50,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added the process group timeout argument `FSDPStrategy(timeout=...)` for the FSDP strategy ([#17274](https://github.com/Lightning-AI/lightning/pull/17274))
 
 
+- Added `FSDPStrategy(activation_checkpointing_policy=...)` to customize the layer policy for automatic activation checkpointing (requires torch>=2.1) ([#18045](https://github.com/Lightning-AI/lightning/pull/18045))
+
+
 - Added CLI option `--map-to-cpu` to the checkpoint upgrade script to enable converting GPU checkpoints on a CPU-only machine ([#17527](https://github.com/Lightning-AI/lightning/pull/17527))
 
 
@@ -62,20 +65,26 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `Trainer.print()` to print on local rank zero only ([#17980](https://github.com/Lightning-AI/lightning/pull/17980))
 
 
+- Added `Trainer.init_module()` context manager to instantiate large models efficiently directly on device, dtype ([#18004](https://github.com/Lightning-AI/lightning/pull/18004))
+  * Creates the model parameters in the desired dtype (`torch.float32`, `torch.float64`) depending on the 'true' precision choice in `Trainer(precision='32-true'|'64-true')`
+
+
+- Added the `LightningModule.configure_model()` hook to instantiate large models efficiently directly on device, dtype, and with sharding support ([#18004](https://github.com/Lightning-AI/lightning/pull/18004))
+  * Handles initialization for FSDP models before wrapping and the Zero stage 3 initialization for DeepSpeed before sharding
+
+
+- Added `lightning.pytorch.plugins.PrecisionPlugin.init_context()` and `lightning.pytorch.strategies.Strategy.tensor_init_context()` context managers to control model and tensor instantiation ([#18004](https://github.com/Lightning-AI/lightning/pull/18004))
+
+
 - Automatically call `xla_model.mark_step()` before saving checkpoints with XLA ([#17882](https://github.com/Lightning-AI/lightning/pull/17882))
 
 
-- Added validation against misconfigured device selection when using the DeepSpeed strategy ([#17952](https://github.com/Lightning-AI/lightning/pull/17952))
+- Added a callback for spike-detection ([#18014](https://github.com/Lightning-AI/lightning/pull/18014))
 
 
 ### Changed
 
 - Removed the limitation to call `self.trainer.model.parameters()` in `LightningModule.configure_optimizers()` ([#17309](https://github.com/Lightning-AI/lightning/pull/17309))
-
-
-- Changes to the `NeptuneLogger` ([#16761](https://github.com/Lightning-AI/lightning/pull/16761)):
-  * It now supports neptune-client 0.16.16 and neptune >=1.0, and we have replaced the `log()` method with `append()` and `extend()`.
-  * It now accepts a namespace `Handler` as an alternative to `Run` for the `run` argument. This means that you can call it like `NeptuneLogger(run=run["some/namespace"])` to log everything to the `some/namespace/` location of the run.
 
 
 - `Trainer(accelerator="tpu", devices=[i])"` now selects the i-th TPU core (0-based, previously it was 1-based) ([#17227](https://github.com/Lightning-AI/lightning/pull/17227))
@@ -105,6 +114,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Dropped support for `wandb` versions older than 0.12.0 in `WandbLogger` ([#17876](https://github.com/Lightning-AI/lightning/pull/17876))
 
 
+- During `LightningModule.setup()`, the `self.device` now returns the device the module will be placed on instead of `cpu` ([#18021](https://github.com/Lightning-AI/lightning/pull/18021))
+
+
 ### Deprecated
 
 - Deprecated the `SingleTPUStrategy` (`strategy="single_tpu"`) in favor of `SingleDeviceXLAStrategy` (`strategy="single_xla"`) ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
@@ -122,6 +134,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the `Strategy.post_training_step` method ([#17531](https://github.com/Lightning-AI/lightning/pull/17531))
 
 
+- Deprecated the `LightningModule.configure_sharded_model` hook in favor of `LightningModule.configure_model` ([#18004](https://github.com/Lightning-AI/lightning/pull/18004))
+
+
 ### Removed
 
 - Removed the `XLAStrategy.is_distributed` property. It is always True ([#17381](https://github.com/Lightning-AI/lightning/pull/17381))
@@ -136,25 +151,40 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with reusing the same model across multiple trainer stages when using the `DeepSpeedStrategy` ([#17531](https://github.com/Lightning-AI/lightning/pull/17531))
 
 
-- Fixed validation of parameters of `plugins.precision.MixedPrecisionPlugin` ([#17687](https://github.com/Lightning-AI/lightning/pull/17687))
-
-
-- Fixed deriving default map location in `LightningModule.load_from_checkpoint` when there is extra state ([#17812](https://github.com/Lightning-AI/lightning/pull/17812))
-
-
-- Fixed delayed creation of experiment metadata and checkpoint/log dir name when using `WandbLogger` ([#17818](https://github.com/Lightning-AI/lightning/pull/17818))
-
-
-- Fixed incorrect parsing of arguments when augmenting exception messages in DDP ([#17948](https://github.com/Lightning-AI/lightning/pull/17948))
-
-
 - Fixed the saving and loading of FSDP optimizer states ([#17819](https://github.com/Lightning-AI/lightning/pull/17819))
 
 
+- Fixed FSDP re-applying activation checkpointing when the user had manually applied it already ([#18006](https://github.com/Lightning-AI/lightning/pull/18006))
+
+
+- `LightningCLI` not saving correctly `seed_everything` when `run=True` and `seed_everything=True` ([#18056](https://github.com/Lightning-AI/lightning/pull/18056))
+
+
+## [2.0.5] - 2023-07-07
+
+### Fixed
+
+- Fixed delayed creation of experiment metadata and checkpoint/log dir name when using `WandbLogger` ([#17818](https://github.com/Lightning-AI/lightning/pull/17818))
+- Fixed incorrect parsing of arguments when augmenting exception messages in DDP ([#17948](https://github.com/Lightning-AI/lightning/pull/17948))
 - Fixed an issue causing the `torch.set_float32_matmul_precision` info message to show multiple times ([#17960](https://github.com/Lightning-AI/lightning/pull/17960))
-
-
 - Added missing `map_location` argument for the `LightningDataModule.load_from_checkpoint` function ([#17950](https://github.com/Lightning-AI/lightning/pull/17950))
+- Fix support for `neptune-client` ([#17939](https://github.com/Lightning-AI/lightning/pull/17939))
+
+
+## [2.0.4] - 2023-06-22
+
+- Added validation against misconfigured device selection when using the DeepSpeed strategy ([#17952](https://github.com/Lightning-AI/lightning/pull/17952))
+
+### Changed
+
+- Changes to the `NeptuneLogger` ([#16761](https://github.com/Lightning-AI/lightning/pull/16761)):
+  * It now supports neptune-client 0.16.16 and neptune >=1.0, and we have replaced the `log()` method with `append()` and `extend()`.
+  * It now accepts a namespace `Handler` as an alternative to `Run` for the `run` argument. This means that you can call it like `NeptuneLogger(run=run["some/namespace"])` to log everything to the `some/namespace/` location of the run.
+
+### Fixed
+
+- Fixed validation of parameters of `plugins.precision.MixedPrecisionPlugin` ([#17687](https://github.com/Lightning-AI/lightning/pull/17687))
+- Fixed deriving default map location in `LightningModule.load_from_checkpoint` when there is extra state ([#17812](https://github.com/Lightning-AI/lightning/pull/17812))
 
 
 ## [2.0.3] - 2023-06-07
