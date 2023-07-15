@@ -20,6 +20,7 @@ import torch
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.pipelines as tpipes
+from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.callbacks import EarlyStopping
@@ -75,9 +76,8 @@ def test_model_tpu_index(tmpdir, tpu_core):
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
     import torch_xla
-    from torch_xla.experimental import pjrt
 
-    expected = tpu_core if pjrt.using_pjrt() else tpu_core + 1
+    expected = tpu_core if _using_pjrt() else tpu_core + 1
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{expected}"
 
 
@@ -138,9 +138,8 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
     import torch_xla
-    from torch_xla.experimental import pjrt
 
-    expected = tpu_core if pjrt.using_pjrt() else tpu_core + 1
+    expected = tpu_core if _using_pjrt() else tpu_core + 1
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{expected}"
 
 
@@ -348,9 +347,7 @@ class AssertXLAWorldSizeModel(BoringModel):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_host_world_size(tmpdir):
     """Test Host World size env setup on TPU."""
-    from torch_xla.experimental import pjrt
-
-    if pjrt.using_pjrt():
+    if _using_pjrt():
         pytest.skip("PJRT doesn't set 'XRT_HOST_WORLD_SIZE'")
 
     trainer_options = {

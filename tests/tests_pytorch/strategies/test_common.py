@@ -11,11 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest.mock import Mock
+
 import pytest
 import torch
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import DoublePrecisionPlugin, PrecisionPlugin
+from lightning.pytorch.strategies import SingleDeviceStrategy
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -50,19 +54,37 @@ def test_evaluate(tmpdir, trainer_kwargs):
     torch.testing.assert_close(old_weights, new_weights)
 
 
-def test_model_parallel_setup_called(tmpdir):
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.configure_sharded_model_called = False
-            self.layer = None
+@RunIf(min_torch="1.13")
+@pytest.mark.parametrize(
+    "device",
+    [
+        "cpu",
+        pytest.param("cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps:0", marks=RunIf(mps=True)),
+    ],
+)
+@pytest.mark.parametrize(
+    ("precision", "dtype"),
+    [
+        (PrecisionPlugin(), torch.float32),
+        pytest.param(DoublePrecisionPlugin(), torch.float64, marks=RunIf(mps=False)),
+    ],
+)
+@pytest.mark.parametrize("empty_init", [None, True, False])
+def test_module_init_context(device, precision, dtype, empty_init, monkeypatch):
+    """Test that the module under the init-module-context gets moved to the right device and dtype."""
+    init_mock = Mock()
+    monkeypatch.setattr(torch.Tensor, "uniform_", init_mock)
 
-        def configure_sharded_model(self):
-            self.configure_sharded_model_called = True
-            self.layer = torch.nn.Linear(32, 2)
+    device = torch.device(device)
+    strategy = SingleDeviceStrategy(device=device, precision_plugin=precision)  # surrogate class to test base class
+    with strategy.tensor_init_context(empty_init=empty_init):
+        module = torch.nn.Linear(2, 2)
 
-    model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=1)
-    trainer.fit(model)
-
-    assert model.configure_sharded_model_called
+    expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
+    assert module.weight.device == module.bias.device == expected_device
+    assert module.weight.dtype == module.bias.dtype == dtype
+    if not empty_init:
+        init_mock.assert_called()
+    else:
+        init_mock.assert_not_called()

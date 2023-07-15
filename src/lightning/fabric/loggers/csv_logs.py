@@ -105,7 +105,7 @@ class CSVLogger(Logger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        return os.path.join(self.root_dir, self.name, version)
+        return os.path.join(self._root_dir, self.name, version)
 
     @property
     @rank_zero_experiment
@@ -120,7 +120,7 @@ class CSVLogger(Logger):
         if self._experiment is not None:
             return self._experiment
 
-        os.makedirs(self.root_dir, exist_ok=True)
+        os.makedirs(self._root_dir, exist_ok=True)
         self._experiment = _ExperimentWriter(log_dir=self.log_dir)
         return self._experiment
 
@@ -153,14 +153,14 @@ class CSVLogger(Logger):
         self.save()
 
     def _get_next_version(self) -> int:
-        root_dir = self.root_dir
+        versions_root = os.path.join(self._root_dir, self.name)
 
-        if not is_dir(self._fs, root_dir, strict=True):
-            log.warning("Missing logger folder: %s", root_dir)
+        if not is_dir(self._fs, versions_root, strict=True):
+            log.warning("Missing logger folder: %s", versions_root)
             return 0
 
         existing_versions = []
-        for d in self._fs.listdir(root_dir):
+        for d in self._fs.listdir(versions_root):
             full_path = d["name"]
             name = os.path.basename(full_path)
             if is_dir(self._fs, full_path) and name.startswith("version_"):
