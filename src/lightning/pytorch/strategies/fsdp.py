@@ -59,7 +59,7 @@ from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision
 
     if _TORCH_GREATER_EQUAL_2_0:
         from torch.distributed.fsdp.wrap import _FSDPPolicy
@@ -228,6 +228,8 @@ class FSDPStrategy(ParallelStrategy):
     def _setup_model(self, model: Module) -> Module:
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
+        from torch.distributed.fsdp import FullyShardedDataParallel
+
         if any(isinstance(mod, FullyShardedDataParallel) for mod in model.modules()):
             # the user wrapped at least one layer in `configure_model` already
             if "auto_wrap_policy" in self.kwargs:

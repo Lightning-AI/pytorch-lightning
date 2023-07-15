@@ -221,7 +221,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def setup_module(self, module: Module) -> Module:
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
-        from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+        from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
             if "auto_wrap_policy" in self._fsdp_kwargs:
