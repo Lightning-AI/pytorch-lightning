@@ -231,7 +231,8 @@ def test_deepspeed_load_checkpoint_no_state(tmp_path):
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_load_checkpoint_one_deepspeed_engine_required(tmp_path):
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+def test_deepspeed_load_checkpoint_one_deepspeed_engine_required(_, tmp_path):
     """Test that the DeepSpeed strategy can only load one DeepSpeedEngine per checkpoint."""
     from deepspeed import DeepSpeedEngine
 
@@ -267,14 +268,13 @@ def test_deepspeed_load_checkpoint_client_state_missing(tmp_path):
     model.load_checkpoint.return_value = [None, None]
 
     # Check for our custom user error
-    with pytest.raises(
-        RuntimeError, match="The provided checkpoint path does not seem to be a valid DeepSpeed checkpoint directory."
-    ):
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
         strategy.load_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "test": "data"})
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_load_checkpoint_state_updated_with_client_state(tmp_path):
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+def test_deepspeed_load_checkpoint_state_updated_with_client_state(_, tmp_path):
     """Test that the DeepSpeed strategy properly updates the state variables and returns additional metadata."""
     from deepspeed import DeepSpeedEngine
 
@@ -298,7 +298,8 @@ def test_deepspeed_load_checkpoint_state_updated_with_client_state(tmp_path):
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("optimzer_state_requested", [True, False])
-def test_deepspeed_load_checkpoint_optimzer_state_requested(optimzer_state_requested, tmp_path):
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+def test_deepspeed_load_checkpoint_optimzer_state_requested(_, optimzer_state_requested, tmp_path):
     """Test that the DeepSpeed strategy loads the optimizer state only when requested."""
     from deepspeed import DeepSpeedEngine
 
@@ -346,7 +347,7 @@ def test_errors_grad_clipping():
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, mps=False)
 def test_deepspeed_save_filter(tmp_path):
     fabric = Fabric(devices=1, strategy="deepspeed")
     with pytest.raises(TypeError, match="manages the state serialization internally"):
