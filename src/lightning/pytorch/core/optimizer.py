@@ -182,8 +182,7 @@ def _init_optimizers_and_lr_schedulers(
     )
     _validate_multiple_optimizers_support(optimizers, model)
     _validate_optimizers_attached(optimizers, lr_scheduler_configs)
-    if model.automatic_optimization:
-        _validate_scheduler_api(lr_scheduler_configs, model)
+    _validate_scheduler_api(lr_scheduler_configs, model)
     return optimizers, lr_scheduler_configs
 
 
@@ -327,7 +326,7 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
                 " It should have `state_dict` and `load_state_dict` methods defined."
             )
 
-        if not isinstance(scheduler, LRSchedulerTypeTuple) and not is_overridden("lr_scheduler_step", model):
+        if not isinstance(scheduler, LRSchedulerTypeTuple) and not is_overridden("lr_scheduler_step", model) and model.automatic_optimization:
             raise MisconfigurationException(
                 f"The provided lr scheduler `{scheduler.__class__.__name__}` doesn't follow PyTorch's LRScheduler"
                 " API. You should override the `LightningModule.lr_scheduler_step` hook with your own logic if"
