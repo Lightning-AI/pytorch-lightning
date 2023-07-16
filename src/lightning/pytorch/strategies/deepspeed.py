@@ -32,8 +32,8 @@ from lightning.fabric.plugins import ClusterEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.deepspeed import (
     _DEEPSPEED_AVAILABLE,
-    _validate_device_index_selection,
     _validate_checkpoint_directory,
+    _validate_device_index_selection,
 )
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed

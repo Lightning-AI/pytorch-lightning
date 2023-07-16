@@ -857,14 +857,9 @@ def _validate_checkpoint_directory(path: _PATH) -> None:
 
     Example of a ZeRO stage-3 checkpoint:
 
-    epoch=5-step=10999.ckpt
-    ├── checkpoint
-    │   ├── zero_pp_rank_0_mp_rank_00_model_states.pt
-    │   ├── zero_pp_rank_0_mp_rank_00_optim_states.pt
-    │   ├── zero_pp_rank_1_mp_rank_00_model_states.pt
-    │   └── zero_pp_rank_1_mp_rank_00_optim_states.pt
-    ├── latest
-    └── zero_to_fp32.py
+    epoch=5-step=10999.ckpt ├── checkpoint │   ├── zero_pp_rank_0_mp_rank_00_model_states.pt │   ├──
+    zero_pp_rank_0_mp_rank_00_optim_states.pt │   ├── zero_pp_rank_1_mp_rank_00_model_states.pt │   └──
+    zero_pp_rank_1_mp_rank_00_optim_states.pt ├── latest └── zero_to_fp32.py
     """
     path = Path(path)
     path_is_ds_checkpoint = _is_deepspeed_checkpoint(path)
