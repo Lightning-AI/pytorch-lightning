@@ -442,30 +442,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # use deepspeed's internal checkpointing function to handle partitioned weights across processes
         engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 
-    def validate_checkpoint_directory(self, checkpoint_path: _PATH) -> bool:
-        """Function to check if the checkpoint directory is valid or not.
-
-        A valid deepspeed checkpoint dir normally looks like this:
-
-        checkpoint-name-step-number/
-            checkpoint/
-            zero_to_fp16.py
-
-        Args:
-            checkpoint_path: The path to the checkpoint directory
-
-        Returns:
-            True if the checkpoint directory is valid, False otherwise
-        """
-
-        # Determine the parent folder of the checkpoint_path
-        parent_folder = os.path.dirname(checkpoint_path)
-
-        # Check if the parent folder is a valid deepspeed checkpoint directory
-        is_deepspeed_checkpoint_dir = os.path.isdir(parent_folder) and "checkpoint" in os.listdir(parent_folder)
-
-        return is_deepspeed_checkpoint_dir
-
     def load_checkpoint(
         self,
         path: _PATH,
@@ -503,6 +479,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 f" a model instance to reload is required. Pass it in like so:"
                 " DeepSpeedStrategy.load_checkpoint(..., state={'model': model, ...})"
             )
+        _validate_checkpoint_directory(path)
 
         engines = _get_deepspeed_engines_from_state(state)
         if len(engines) == 0:
@@ -528,14 +505,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             load_lr_scheduler_states=False,
             load_module_strict=strict,
         )
-
-        is_deepspeed_checkpoint_dir = self.validate_checkpoint_directory(checkpoint_path=path)
-
-        if not is_deepspeed_checkpoint_dir:
-            raise RuntimeError(
-                "The provided checkpoint path does not seem to be a valid DeepSpeed checkpoint directory. "
-                "Please ensure you pass the correct path to the parent folder of the checkpoint."
-            )
 
         if client_state is None:
             raise RuntimeError(
@@ -864,3 +833,39 @@ def _validate_state_keys(state: Dict[str, Any]) -> None:
             " values being overwritten by DeepSpeed. Consider changing the name of these keys to something else: "
             + ", ".join(colliding_keys)
         )
+
+
+def _is_deepspeed_checkpoint(path: Path) -> bool:
+    """Heuristic check whether the path points to a top-level DeepSpeed checkpoint directory."""
+    return path.is_dir() and (path / "checkpoint").is_dir()
+
+
+def _validate_checkpoint_directory(path: _PATH) -> None:
+    """Checks if the path points to a valid DeepSpeed checkpoint directory.
+
+    A valid deepspeed checkpoint dir normally looks like this:
+
+    name-of-the-checkpoint.ckpt/
+        checkpoint/
+        zero_to_fp16.py
+    """
+    path = Path(path)
+    path_is_ds_checkpoint = _is_deepspeed_checkpoint(path)
+    # Case 1: User may have accidentally passed the subfolder of the checkpoint dir
+    parent_is_ds_checkpoint = _is_deepspeed_checkpoint(path.parent)
+    # Case 2: User may have accidentally passed the path to a file inside the checkpoint dir
+    parent_parent_is_ds_checkpoint = path.is_file() and _is_deepspeed_checkpoint(path.parent.parent)
+
+    default_message = f"The provided path is not a valid DeepSpeed checkpoint: {path}"
+    if not path_is_ds_checkpoint:
+        if parent_is_ds_checkpoint:
+            raise FileNotFoundError(
+                f"{default_message}. It looks like you passed the path to a subfolder."
+                f" Try to load using this parent directory instead: {path.parent}"
+            )
+        if parent_parent_is_ds_checkpoint:
+            raise FileNotFoundError(
+                f"{default_message}. It looks like you passed the path to a file inside a DeepSpeed checkpoint folder."
+                f" Try to load using this parent directory instead: {path.parent.parent}"
+            )
+        raise FileNotFoundError(default_message)
