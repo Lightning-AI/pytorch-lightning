@@ -220,6 +220,26 @@ def test_deepspeed_save_checkpoint_warn_colliding_keys(tmp_path):
 
 
 @RunIf(deepspeed=True)
+def test_deepspeed_load_checkpoint_validate_path(tmp_path):
+    """Test that we validate the checkpoint path for a DeepSpeed checkpoint and give suggestions for user error."""
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
+        strategy.load_checkpoint(path=tmp_path, state={"model": Mock()})
+
+    # User tries to pass the subfolder as the path
+    checkpoint_path = tmp_path / "checkpoint"
+    checkpoint_path.mkdir()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(path=checkpoint_path, state={"model": Mock()})
+
+    # User tries to pass an individual file inside the checkpoint folder
+    checkpoint_path = checkpoint_path / "zero_pp_rank_0_mp_rank_00_model_states.pt"
+    checkpoint_path.touch()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(path=checkpoint_path, state={"model": Mock()})
+
+
+@RunIf(deepspeed=True)
 def test_deepspeed_load_checkpoint_no_state(tmp_path):
     """Test that DeepSpeed can't load the full state without access to a model instance from the user."""
     strategy = DeepSpeedStrategy()
