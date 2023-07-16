@@ -1315,3 +1315,23 @@ def test_deepspeed_init_module_with_stages_1_2(stage):
 
     zero_init_mock.assert_not_called()
     assert model.layer.weight.dtype == torch.bfloat16
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_load_checkpoint_validate_path(tmp_path):
+    """Test that we validate the checkpoint path for a DeepSpeed checkpoint and give suggestions for user error."""
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
+        strategy.load_checkpoint(checkpoint_path=tmp_path)
+
+    # User tries to pass the subfolder as the path
+    checkpoint_path = tmp_path / "checkpoint"
+    checkpoint_path.mkdir()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(checkpoint_path=checkpoint_path)
+
+    # User tries to pass an individual file inside the checkpoint folder
+    checkpoint_path = checkpoint_path / "zero_pp_rank_0_mp_rank_00_model_states.pt"
+    checkpoint_path.touch()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(checkpoint_path=checkpoint_path)
