@@ -182,7 +182,8 @@ def _init_optimizers_and_lr_schedulers(
     )
     _validate_multiple_optimizers_support(optimizers, model)
     _validate_optimizers_attached(optimizers, lr_scheduler_configs)
-    _validate_scheduler_api(lr_scheduler_configs, model)
+    if model.automatic_optimization:
+        _validate_scheduler_api(lr_scheduler_configs, model)
     return optimizers, lr_scheduler_configs
 
 
