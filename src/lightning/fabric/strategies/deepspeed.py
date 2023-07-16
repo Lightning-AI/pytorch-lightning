@@ -855,7 +855,7 @@ def _is_deepspeed_checkpoint(path: Path) -> bool:
 def _validate_checkpoint_directory(path: _PATH) -> None:
     """Checks if the path points to a valid DeepSpeed checkpoint directory.
 
-    A valid deepspeed checkpoint dir normally looks like this:
+    Example of a ZeRO stage-3 checkpoint:
 
     epoch=5-step=10999.ckpt
     ├── checkpoint

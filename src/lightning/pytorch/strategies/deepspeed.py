@@ -30,7 +30,11 @@ from torch.optim import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
-from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE, _validate_device_index_selection
+from lightning.fabric.strategies.deepspeed import (
+    _DEEPSPEED_AVAILABLE,
+    _validate_device_index_selection,
+    _validate_checkpoint_directory,
+)
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
@@ -783,30 +787,6 @@ class DeepSpeedStrategy(DDPStrategy):
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint, tag="checkpoint")
 
-    def validate_checkpoint_directory(self, checkpoint_path: _PATH) -> bool:
-        """Function to check if the checkpoint directory is valid or not.
-
-        A valid deepspeed checkpoint dir normally looks like this:
-
-        checkpoint-name-step-number/
-            checkpoint/
-            zero_to_fp16.py
-
-        Args:
-            checkpoint_path: The path to the checkpoint directory
-
-        Returns:
-            True if the checkpoint directory is valid, False otherwise
-        """
-
-        # Determine the parent folder of the checkpoint_path
-        parent_folder = os.path.dirname(checkpoint_path)
-
-        # Check if the parent folder is a valid deepspeed checkpoint directory
-        is_deepspeed_checkpoint_dir = os.path.isdir(parent_folder) and "checkpoint" in os.listdir(parent_folder)
-
-        return is_deepspeed_checkpoint_dir
-
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
@@ -814,20 +794,14 @@ class DeepSpeedStrategy(DDPStrategy):
             checkpoint_path = self.broadcast(checkpoint_path)
             return super().load_checkpoint(checkpoint_path)
 
+        _validate_checkpoint_directory(checkpoint_path)
+
         # Rely on deepspeed to load the checkpoint and necessary information
         assert self.lightning_module is not None
 
         from lightning.pytorch.trainer.states import TrainerFn
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-
-        is_deepspeed_checkpoint_dir = self.validate_checkpoint_directory(checkpoint_path=checkpoint_path)
-
-        if not is_deepspeed_checkpoint_dir:
-            raise MisconfigurationException(
-                "The provided checkpoint path does not seem to be a valid DeepSpeed checkpoint directory. "
-                "Please ensure you pass the correct path to the parent folder of the checkpoint."
-            )
 
         _, client_state = self.deepspeed_engine.load_checkpoint(
             checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=False

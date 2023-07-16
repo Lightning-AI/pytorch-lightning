@@ -136,7 +136,7 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
     assert strategy.config == deepspeed_config
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, mps=False)
 def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
 
@@ -547,10 +547,7 @@ def test_deepspeed_multigpu_single_file(tmpdir):
     strategy = trainer.strategy
     assert isinstance(strategy, DeepSpeedStrategy)
     assert not strategy.load_full_weights
-    with pytest.raises(
-        MisconfigurationException,
-        match="The provided checkpoint path does not seem to be a valid DeepSpeed checkpoint directory.",
-    ):
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
         trainer.test(model, ckpt_path=checkpoint_path)
 
     trainer = Trainer(
@@ -958,7 +955,7 @@ def test_deepspeed_multigpu_test_rnn(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, mps=False)
 @mock.patch("deepspeed.init_distributed", autospec=True)
 @pytest.mark.parametrize("platform", ["Linux", "Windows"])
 def test_deepspeed_strategy_env_variables(mock_deepspeed_distributed, tmpdir, platform):
