@@ -46,9 +46,9 @@ warning_cache = WarningCache()
 class ModelCheckpoint(Checkpoint):
     r"""
     Save the model periodically by monitoring a quantity. Every metric logged with
-    :meth:`~lightning.pytorch.core.module.log` or :meth:`~lightning.pytorch.core.module.log_dict` in
-    LightningModule is a candidate for the monitor key. For more information, see
-    :ref:`checkpointing`.
+    :meth:`~lightning.pytorch.core.module.LightningModule.log` or
+    :meth:`~lightning.pytorch.core.module.LightningModule.log_dict` is a candidate for the monitor key.
+    For more information, see :ref:`checkpointing`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
@@ -137,6 +137,7 @@ class ModelCheckpoint(Checkpoint):
         For extra customization, ModelCheckpoint includes the following attributes:
 
         - ``CHECKPOINT_JOIN_CHAR = "-"``
+        - ``CHECKPOINT_EQUALS_CHAR = "="``
         - ``CHECKPOINT_NAME_LAST = "last"``
         - ``FILE_EXTENSION = ".ckpt"``
         - ``STARTING_VERSION = 1``
@@ -201,6 +202,7 @@ class ModelCheckpoint(Checkpoint):
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
+    CHECKPOINT_EQUALS_CHAR = "="
     CHECKPOINT_NAME_LAST = "last"
     FILE_EXTENSION = ".ckpt"
     STARTING_VERSION = 1
@@ -523,7 +525,7 @@ class ModelCheckpoint(Checkpoint):
             name = group[1:]
 
             if auto_insert_metric_name:
-                filename = filename.replace(group, name + "={" + name)
+                filename = filename.replace(group, name + cls.CHECKPOINT_EQUALS_CHAR + "{" + name)
 
             # support for dots: https://stackoverflow.com/a/7934969
             filename = filename.replace(group, f"{{0[{name}]")

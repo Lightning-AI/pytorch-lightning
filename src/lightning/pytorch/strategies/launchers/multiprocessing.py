@@ -94,7 +94,6 @@ class _MultiProcessingLauncher(_Launcher):
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        self._check_torchdistx_support()
         if self._start_method in ("fork", "forkserver"):
             _check_bad_cuda_fork()
 
@@ -197,16 +196,6 @@ class _MultiProcessingLauncher(_Launcher):
         extra = self.get_extra_results(trainer)
 
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
-
-    def _check_torchdistx_support(self) -> None:
-        if self._start_method == "spawn":
-            from lightning.pytorch.utilities.meta import _is_deferred
-
-            if _is_deferred(self._strategy.lightning_module):
-                raise NotImplementedError(
-                    f"The `{type(self._strategy).__name__}` strategy does not support `torchdistx`'s deferred"
-                    f" initialization when `start_method='spawn'`."
-                )
 
     def get_extra_results(self, trainer: "pl.Trainer") -> Dict[str, Any]:
         """Gather extra state from the Trainer and return it as a dictionary for sending back to the main process.

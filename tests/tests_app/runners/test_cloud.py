@@ -98,6 +98,7 @@ def get_cloud_runtime_request_body(**kwargs) -> "CloudspaceIdRunsBody":
         "app_entrypoint_file": mock.ANY,
         "enable_app_server": True,
         "is_headless": True,
+        "should_mount_cloudspace_content": False,
         "flow_servers": [],
         "image_spec": None,
         "works": [],
@@ -386,6 +387,7 @@ class TestAppCreationClient:
             app_entrypoint_file=mock.ANY,
             enable_app_server=True,
             is_headless=False,
+            should_mount_cloudspace_content=False,
             flow_servers=[],
             image_spec=None,
             works=[],
@@ -433,6 +435,7 @@ class TestAppCreationClient:
             app_entrypoint_file=mock.ANY,
             enable_app_server=True,
             is_headless=False,
+            should_mount_cloudspace_content=False,
             flow_servers=[],
             image_spec=None,
             works=[],
@@ -491,6 +494,7 @@ class TestAppCreationClient:
             app_entrypoint_file=mock.ANY,
             enable_app_server=True,
             is_headless=False,
+            should_mount_cloudspace_content=False,
             flow_servers=[],
             image_spec=None,
             works=[],
@@ -624,6 +628,7 @@ class TestAppCreationClient:
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
                 is_headless=False,
+                should_mount_cloudspace_content=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
@@ -639,6 +644,7 @@ class TestAppCreationClient:
                 expected_body.works = [
                     V1Work(
                         name="test-work",
+                        display_name="",
                         spec=V1LightningworkSpec(
                             build_spec=V1BuildSpec(
                                 commands=["echo 'start'"],
@@ -813,6 +819,7 @@ class TestAppCreationClient:
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
                 is_headless=False,
+                should_mount_cloudspace_content=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
@@ -825,6 +832,7 @@ class TestAppCreationClient:
                 works=[
                     V1Work(
                         name="test-work",
+                        display_name="",
                         spec=V1LightningworkSpec(
                             build_spec=V1BuildSpec(
                                 commands=["echo 'start'"],
@@ -942,6 +950,7 @@ class TestAppCreationClient:
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
                 is_headless=False,
+                should_mount_cloudspace_content=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
@@ -954,6 +963,7 @@ class TestAppCreationClient:
                 works=[
                     V1Work(
                         name="test-work",
+                        display_name="",
                         spec=V1LightningworkSpec(
                             build_spec=V1BuildSpec(
                                 commands=["echo 'start'"],
@@ -1112,6 +1122,7 @@ class TestAppCreationClient:
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
                 is_headless=False,
+                should_mount_cloudspace_content=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
@@ -1124,6 +1135,7 @@ class TestAppCreationClient:
                 works=[
                     V1Work(
                         name="test-work",
+                        display_name="",
                         spec=V1LightningworkSpec(
                             build_spec=V1BuildSpec(
                                 commands=["echo 'start'"],
@@ -1153,6 +1165,7 @@ class TestAppCreationClient:
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
                 is_headless=False,
+                should_mount_cloudspace_content=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
@@ -1165,6 +1178,7 @@ class TestAppCreationClient:
                 works=[
                     V1Work(
                         name="test-work",
+                        display_name="",
                         spec=V1LightningworkSpec(
                             build_spec=V1BuildSpec(
                                 commands=["echo 'start'"],
@@ -1300,6 +1314,7 @@ class TestAppCreationClient:
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
                 is_headless=False,
+                should_mount_cloudspace_content=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 image_spec=Gridv1ImageSpec(
@@ -1312,6 +1327,7 @@ class TestAppCreationClient:
                 works=[
                     V1Work(
                         name="test-work",
+                        display_name="",
                         spec=V1LightningworkSpec(
                             build_spec=V1BuildSpec(
                                 commands=["echo 'start'"],
@@ -1616,9 +1632,6 @@ class TestCloudspaceDispatch:
             project_id="project_id", id="cloudspace_id"
         )
 
-        if custom_env_sync_path_value is not None:
-            mock_repo.prepare_sys_customizations_sync.assert_called_once_with(custom_env_sync_path_value)
-
         mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
             project_id="project_id", cloudspace_id="cloudspace_id", body=mock.ANY
         )
@@ -1791,6 +1804,7 @@ def test_load_app_from_file():
             "web",
             [
                 {
+                    "displayName": "",
                     "name": "root.work",
                     "spec": {
                         "buildSpec": {
@@ -1815,6 +1829,7 @@ def test_load_app_from_file():
             "gallery",
             [
                 {
+                    "display_name": "",
                     "name": "root.work",
                     "spec": {
                         "build_spec": {
