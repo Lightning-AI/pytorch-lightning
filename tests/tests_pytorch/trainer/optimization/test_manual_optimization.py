@@ -891,6 +891,7 @@ def test_multiple_optimizers_logging(precision, tmpdir):
 
 @pytest.mark.parametrize("automatic_optimization", [True, False])
 def test_manual_optimization_with_non_pytorch_scheduler(automatic_optimization):
+    """In manual optimization, the user can provide a custom scheduler that doesn't follow PyTorch's interface."""
     class IncompatibleScheduler:
         def __init__(self, optimizer):
             self.optimizer = optimizer
