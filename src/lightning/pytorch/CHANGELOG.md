@@ -166,6 +166,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue that prevented the use of custom logger classes without an `experiment` property defined ([#18093](https://github.com/Lightning-AI/lightning/pull/18093))
 
 
+- Fixed validation of non-PyTorch LR schedulers in manual optimization mode ([#18092](https://github.com/Lightning-AI/lightning/pull/18092))
+
+
 ## [2.0.5] - 2023-07-07
 
 ### Fixed
