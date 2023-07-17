@@ -21,13 +21,13 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
 
-from lightning.fabric.wrappers import _unwrap_objects
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.wrappers import _unwrap_objects
 
 log = logging.getLogger(__name__)
 
