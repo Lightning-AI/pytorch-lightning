@@ -266,7 +266,13 @@ class CustomLoggerWithoutExperiment(Logger):
         pass
 
 
-@pytest.mark.parametrize("logger_class", (*ALL_LOGGER_CLASSES_WO_NEPTUNE, CustomLoggerWithoutExperiment, ))
+@pytest.mark.parametrize(
+    "logger_class",
+    (
+        *ALL_LOGGER_CLASSES_WO_NEPTUNE,
+        CustomLoggerWithoutExperiment,
+    ),
+)
 @RunIf(skip_windows=True)
 def test_logger_initialization(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is
