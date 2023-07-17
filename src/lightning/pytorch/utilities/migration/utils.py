@@ -117,6 +117,8 @@ class pl_legacy_patch:
         if hasattr(pl.utilities.argparse, "_gpus_arg_default"):
             delattr(pl.utilities.argparse, "_gpus_arg_default")
         del sys.modules["lightning.pytorch.utilities.argparse_utils"]
+        if hasattr(pl.utilities.enums, "_FaultTolerantMode"):
+            delattr(pl.utilities.enums, "_FaultTolerantMode")
         _lock.release()
 
 
