@@ -187,7 +187,6 @@ Here's an example using that uses ``wrap`` to create your model:
 
 
     class MyModel(pl.LightningModule):
-
         def configure_model(self):
             self.linear_layer = nn.Linear(32, 32)
             self.block = nn.Sequential(nn.Linear(32, 32), nn.Linear(32, 32))
