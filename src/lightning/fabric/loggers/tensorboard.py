@@ -264,8 +264,8 @@ class TensorBoardLogger(Logger):
             getattr(model, "_apply_batch_transfer_handler", None)
         ):
             # this is probably is a LightningModule
-            input_array = model._on_before_batch_transfer(input_array)  # type: ignore[operator]
-            input_array = model._apply_batch_transfer_handler(input_array)  # type: ignore[operator]
+            input_array = model._on_before_batch_transfer(input_array)
+            input_array = model._apply_batch_transfer_handler(input_array)
             self.experiment.add_graph(model, input_array)
         else:
             self.experiment.add_graph(model, input_array)
