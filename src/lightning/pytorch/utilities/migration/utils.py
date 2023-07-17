@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 from packaging.version import Version
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.enums import LightningEnum
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.types import _PATH
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -79,6 +80,8 @@ class pl_legacy_patch:
            version 1.2.8. See: https://github.com/Lightning-AI/lightning/pull/6898
         2. ``lightning.pytorch.utilities.argparse_utils``: A module that was deprecated in 1.2 and removed in 1.4,
            but still needs to be available for import for legacy checkpoints.
+        3. ``lightning.pytorch.utilities.enums._FaultTolerantMode``: This enum was removed in 2.0 but was pickled
+           into older checkpoints.
 
     Example:
 
@@ -95,6 +98,14 @@ class pl_legacy_patch:
         # `_gpus_arg_default` used to be imported from these locations
         legacy_argparse_module._gpus_arg_default = lambda x: x
         pl.utilities.argparse._gpus_arg_default = lambda x: x
+
+        # `_FaultTolerantMode` was removed from the enums
+        class _FaultTolerantMode(LightningEnum):
+            DISABLED = "disabled"
+            AUTOMATIC = "automatic"
+            MANUAL = "manual"
+
+        pl.utilities.enums._FaultTolerantMode = _FaultTolerantMode
         return self
 
     def __exit__(
