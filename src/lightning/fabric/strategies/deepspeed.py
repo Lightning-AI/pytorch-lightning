@@ -867,18 +867,18 @@ def _validate_checkpoint_directory(path: _PATH) -> None:
 
     path = Path(path)
     path_is_ds_checkpoint = _is_deepspeed_checkpoint(path)
-    # Case 1: User may have accidentally passed the subfolder "checkpoint"
-    parent_is_ds_checkpoint = _is_deepspeed_checkpoint(path.parent)
-    # Case 2: User may have accidentally passed the path to a file inside the "checkpoint" subfolder
-    parent_parent_is_ds_checkpoint = path.is_file() and _is_deepspeed_checkpoint(path.parent.parent)
-
     default_message = f"The provided path is not a valid DeepSpeed checkpoint: {path}"
+
     if not path_is_ds_checkpoint:
+        # Case 1: User may have accidentally passed the subfolder "checkpoint"
+        parent_is_ds_checkpoint = _is_deepspeed_checkpoint(path.parent)
         if parent_is_ds_checkpoint:
             raise FileNotFoundError(
                 f"{default_message}. It looks like you passed the path to a subfolder."
                 f" Try to load using this parent directory instead: {path.parent}"
             )
+        # Case 2: User may have accidentally passed the path to a file inside the "checkpoint" subfolder
+        parent_parent_is_ds_checkpoint = path.is_file() and _is_deepspeed_checkpoint(path.parent.parent)
         if parent_parent_is_ds_checkpoint:
             raise FileNotFoundError(
                 f"{default_message}. It looks like you passed the path to a file inside a DeepSpeed checkpoint folder."
