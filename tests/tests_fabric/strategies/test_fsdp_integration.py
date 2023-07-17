@@ -423,3 +423,19 @@ def test_fsdp_manual_activation_checkpointing():
 
     wrappers = {name for name, mod in model._forward_module.named_modules() if isinstance(mod, CheckpointWrapper)}
     assert wrappers == {"_fsdp_wrapped_module.0", "_fsdp_wrapped_module.1"}
+
+
+@RunIf(min_torch="1.12", min_cuda_gpus=1)
+def test_rewrap_warning():
+    from torch.distributed.fsdp import FullyShardedDataParallel
+    from torch.distributed.fsdp.wrap import wrap
+
+    strategy = FSDPStrategy(auto_wrap_policy={torch.nn.Linear})
+    fabric = Fabric(devices=1, accelerator="cuda", strategy=strategy)
+    fabric.launch()
+    with fabric.init_module():
+        model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.ReLU(), wrap(torch.nn.Linear(1, 1)))
+    with pytest.warns(match="the model is already wrapped"):
+        model = fabric.setup(model)
+    assert not isinstance(model._forward_module, FullyShardedDataParallel)
+    assert isinstance(model._forward_module[2], FullyShardedDataParallel)
