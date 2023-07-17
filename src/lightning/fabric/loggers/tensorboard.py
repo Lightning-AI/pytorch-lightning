@@ -21,6 +21,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
 
+from lightning.fabric.wrappers import _unwrap_objects
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
@@ -246,6 +247,7 @@ class TensorBoardLogger(Logger):
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         model_example_input = getattr(model, "example_input_array", None)
         input_array = model_example_input if input_array is None else input_array
+        model = _unwrap_objects(model)
 
         if input_array is None:
             rank_zero_warn(
@@ -265,9 +267,6 @@ class TensorBoardLogger(Logger):
             input_array = model._on_before_batch_transfer(input_array)  # type: ignore[operator]
             input_array = model._apply_batch_transfer_handler(input_array)  # type: ignore[operator]
             self.experiment.add_graph(model, input_array)
-        elif hasattr(model, "module") and callable(getattr(model, "_redirection_through_forward", None)):
-            # this is probably is a _FabricModule
-            self.experiment.add_graph(model.module, input_array)
         else:
             self.experiment.add_graph(model, input_array)
 
