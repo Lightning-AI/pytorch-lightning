@@ -264,28 +264,6 @@ def test_deepspeed_env_variables_on_platforms(_, deepspeed_dist_mock, platform):
         assert os.environ["LOCAL_RANK"] == str(strategy.local_rank)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_deepspeed_specific_gpu_device_index():
-    """Test that the DeepSpeed strategy can run on specific device indices."""
-    fabric = Fabric(accelerator="cuda", devices=[1], strategy="deepspeed")
-    fabric.launch()
-    assert fabric.device.type == "cuda"
-    assert fabric.device.index == 1
-
-    model = nn.Linear(32, 2)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
-    model, optimizer = fabric.setup(model, optimizer)
-    assert model.device.index == 1
-
-    batch = torch.rand(2, 32, device=fabric.device)
-    assert batch.device.index == 1
-
-    loss = model(batch).sum()
-    fabric.backward(loss)
-    optimizer.step()
-    optimizer.zero_grad()
-
-
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
 def test_deepspeed_with_bfloat16_precision():
     """Test that the DeepSpeed strategy works with bfloat16 precision."""

@@ -1,7 +1,7 @@
 # NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
-numpy >=1.17.2, <1.24.4
+numpy >=1.17.2, <1.25.1
 torch >=1.11.0, <2.1.0
 fsspec[http]>2021.06.0, <2023.5.0
 packaging >=17.1, <=23.0

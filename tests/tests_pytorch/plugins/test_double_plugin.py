@@ -164,3 +164,11 @@ def test_double_precision_pickle():
     plugin = DoublePrecisionPlugin()
     model, _, __ = plugin.connect(model, MagicMock(), MagicMock())
     pickle.dumps(model)
+
+
+def test_init_context():
+    plugin = DoublePrecisionPlugin()
+    with plugin.init_context():
+        model = torch.nn.Linear(2, 2)
+        assert torch.get_default_dtype() == torch.double
+    assert model.weight.dtype == torch.double
