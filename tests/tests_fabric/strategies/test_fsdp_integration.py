@@ -23,11 +23,7 @@ from torch.nn import Parameter
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_12,
-    _TORCH_GREATER_EQUAL_2_0,
-    _TORCH_GREATER_EQUAL_2_1,
-)
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.wrappers import _FabricOptimizer
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
@@ -406,14 +402,7 @@ def test_fsdp_save_filter(tmp_path):
 @RunIf(min_torch="1.13", min_cuda_gpus=1)
 def test_fsdp_manual_activation_checkpointing():
     model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.Linear(1, 1))
-
-    if _TORCH_GREATER_EQUAL_2_1:
-        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-
-        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({torch.nn.Linear}))
-    else:
-        strategy = FSDPStrategy(activation_checkpointing=torch.nn.Linear)
-
+    strategy = FSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
     fabric = Fabric(devices=1, accelerator="cuda", strategy=strategy)
     fabric.launch()
 
