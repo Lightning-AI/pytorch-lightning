@@ -30,7 +30,11 @@ from torch.optim import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
-from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE, _validate_device_index_selection
+from lightning.fabric.strategies.deepspeed import (
+    _DEEPSPEED_AVAILABLE,
+    _validate_checkpoint_directory,
+    _validate_device_index_selection,
+)
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
@@ -790,12 +794,15 @@ class DeepSpeedStrategy(DDPStrategy):
             checkpoint_path = self.broadcast(checkpoint_path)
             return super().load_checkpoint(checkpoint_path)
 
+        _validate_checkpoint_directory(checkpoint_path)
+
         # Rely on deepspeed to load the checkpoint and necessary information
         assert self.lightning_module is not None
 
         from lightning.pytorch.trainer.states import TrainerFn
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+
         _, client_state = self.deepspeed_engine.load_checkpoint(
             checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=False
         )
