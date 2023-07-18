@@ -101,7 +101,7 @@ def _is_dir(fs: AbstractFileSystem, path: Union[str, Path], strict: bool = False
     """Check if a path is directory-like.
 
     This function determines if a given path is considered directory-like, taking into account the behavior
-    specific to the `gcsfs` and `s3fs` library. For other filesystems, it behaves similarly to the standard `fs.isdir`
+    specific to object storage platforms. For other filesystems, it behaves similarly to the standard `fs.isdir`
     method.
 
     Args:
