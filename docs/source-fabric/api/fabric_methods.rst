@@ -275,7 +275,7 @@ Load the state-dict of a model or optimizer from a raw PyTorch checkpoint not sa
     fabric.load_raw("path/to/model.pt", model)
 
     # Equivalent to this:
-    model.load_state_dict(torch.load("path/to/model.pt"))
+    # model.load_state_dict(torch.load("path/to/model.pt"))
 
 
 See also: :doc:`../guide/checkpoint`

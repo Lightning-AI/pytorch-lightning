@@ -89,7 +89,7 @@ You can load a raw weights file into a model directly using the :meth:`~lightnin
     fabric.load_raw("path/to/model.pt", model)
 
     # Equivalent to this:
-    model.load_state_dict(torch.load("path/to/model.pt"))
+    # model.load_state_dict(torch.load("path/to/model.pt"))
 
     # Also supports optimizers
     optimizer = torch.optim.Adam(model.parameters())
