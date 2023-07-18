@@ -144,7 +144,19 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
 
 Verify that FSDP works with your model by comparing the peak memory usage printed in the CUDA memory summary (see example above) with regular DDP training:
 
-TODO: table here
+.. list-table:: Comparison of FSDP and DDP memory usage
+   :widths: 25 25 25
+   :header-rows: 1
+
+   * -
+     - DDP
+     - FSDP
+   * - Memory (MB)
+     - 26’953
+     - 11’578
+   * - Iteration time (sec)
+     - 0.26
+     - 0.36
 
 You should see a decrease in allocated memory and a slight increase in iteration time.
 
@@ -202,7 +214,25 @@ You can configure the following options to trade-off memory for speed:
 
 Here is the memory and speed impact for each option when configured in our example code:
 
-TODO: table here
+.. list-table:: Comparison of different sharding strategies for FSDP
+   :widths: 25 25 25 25 25
+   :header-rows: 1
+
+   * -
+     - DDP
+     - NO_SHARD
+     - SHARD_GRAD_OP
+     - FULL_SHARD
+   * - Memory (MB)
+     - 26’953
+     - 23’181
+     - 11’815
+     - 11’578
+   * - Iteration time (sec)
+     - 0.26
+     - 0.30
+     - 0.31
+     - 0.36
 
 **Recipe for choosing a sharding strategy:**
 
@@ -262,7 +292,22 @@ The drawback is a much slower training speed due to the added communication betw
 You should use this only if you have enough CPU memory and other scaling methods don’t give you enough memory savings.
 In our example, we see a 4x memory saving, but a 10x increase in iteration time:
 
-TODO: table here
+.. list-table:: Comparison of FSDP vs. FSDP with CPU offload
+   :widths: 25 25 25 25
+   :header-rows: 1
+
+   * -
+     - DDP
+     - FSDP
+     - FSDP + CPU offload
+   * - Memory (MB)
+     - 26’953
+     - 11’578
+     - 2’825
+   * - Iteration time (sec)
+     - 0.26
+     - 0.36
+     - 3.24
 
 
 ----
