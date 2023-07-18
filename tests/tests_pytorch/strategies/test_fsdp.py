@@ -26,10 +26,9 @@ from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-    from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy, wrap
+    from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
 else:
-    size_based_auto_wrap_policy = object
-
+    size_based_auto_wrap_policy = lambda *_, **__: False
 if _TORCH_GREATER_EQUAL_2_0:
     from torch.distributed.fsdp.wrap import _FSDPPolicy
 else:
@@ -48,7 +47,7 @@ class TestFSDPModel(BoringModel):
         if self.layer is None:
             self._init_model()
 
-    def configure_sharded_model(self) -> None:
+    def configure_model(self) -> None:
         # the model is already wrapped with FSDP: no need to wrap again!
         if isinstance(self.layer, FullyShardedDataParallel):
             return
@@ -172,13 +171,13 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
 
     with torch.inference_mode():
         # Test entry point
-        trainer.test(model)  # model is wrapped, will not call `configure_sharded_model`
+        trainer.test(model)  # model is wrapped, will not call `configure_model`
 
         # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
         trainer.test(ckpt_path=model_path)
 
         # Predict entry point
-        trainer.predict(model)  # model is wrapped, will not call `configure_sharded_model`
+        trainer.predict(model)  # model is wrapped, will not call `configure_model`
 
         # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
         trainer.predict(ckpt_path=model_path)
@@ -197,7 +196,7 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
 
 
 @RunIf(min_torch="1.12")
-def test_invalid_on_cpu(tmpdir):
+def test_invalid_on_cpu(tmpdir, cuda_count_0):
     """Test to ensure that we raise Misconfiguration for FSDP on CPU."""
     with pytest.raises(
         MisconfigurationException,
@@ -412,10 +411,10 @@ def test_invalid_parameters_in_optimizer():
 
 
 @RunIf(min_torch="1.12")
-@mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
+@mock.patch("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
 def test_fsdp_activation_checkpointing_support():
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
-    with pytest.raises(ValueError, match="Activation checkpointing requires torch >= 1.13.0"):
+    with pytest.raises(ValueError, match="activation_checkpointing` requires torch >= 1.13.0"):
         FSDPStrategy(activation_checkpointing=Mock())
 
 
@@ -436,21 +435,42 @@ def test_fsdp_activation_checkpointing():
             self.layer1 = Block2(2, 2)
             self.layer2 = nn.Linear(3, 3)
 
-    strategy = FSDPStrategy(activation_checkpointing=Block1)
-    assert strategy._activation_checkpointing == [Block1]
+    if _TORCH_GREATER_EQUAL_2_1:
+        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-    strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
-    assert strategy._activation_checkpointing == [Block1, Block2]
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
+        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
+
+        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
+        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
+    else:
+        strategy = FSDPStrategy(activation_checkpointing=Block1)
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
+        strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1, Block2})
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
 
     model = Model()
     strategy._parallel_devices = [torch.device("cuda", 0)]
     strategy._lightning_module = model
     strategy._process_group = Mock()
-    with mock.patch("lightning.pytorch.strategies.fsdp.FullyShardedDataParallel") as fsdp_mock, mock.patch(
+    with mock.patch(
+        "torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel"
+    ) as fsdp_mock, mock.patch(
         "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
     ) as ckpt_mock:
         strategy._setup_model(model)
-        ckpt_mock.assert_called_with(fsdp_mock(), checkpoint_wrapper_fn=ANY, check_fn=ANY)
+        ckpt_mock.assert_called_with(
+            fsdp_mock(), checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs
+        )
 
 
 @RunIf(min_torch="1.12")
@@ -464,6 +484,26 @@ def test_fsdp_strategy_cpu_offload():
     config = CPUOffload()
     strategy = FSDPStrategy(cpu_offload=config)
     assert strategy.cpu_offload == config
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_sharding_strategy():
+    """Test the different ways the sharding strategy can be set."""
+    from torch.distributed.fsdp import ShardingStrategy
+
+    # default
+    strategy = FSDPStrategy()
+    assert strategy.sharding_strategy == ShardingStrategy.FULL_SHARD
+
+    # enum
+    strategy = FSDPStrategy(sharding_strategy=ShardingStrategy.SHARD_GRAD_OP)
+    assert strategy.sharding_strategy == ShardingStrategy.SHARD_GRAD_OP
+
+    # string
+    strategy = FSDPStrategy(sharding_strategy="NO_SHARD")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
+    strategy = FSDPStrategy(sharding_strategy="no_shard")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
 
 
 @RunIf(min_torch="1.12")
@@ -627,3 +667,38 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
         torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
 
     trainer.strategy.barrier()
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@pytest.mark.parametrize(
+    ("precision", "expected_dtype"),
+    [
+        ("32-true", torch.float32),
+    ],
+)
+def test_configure_model(precision, expected_dtype):
+    """Test that the module under configure_model gets moved to the right device and dtype."""
+    trainer = Trainer(
+        accelerator="cuda",
+        devices=2,
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
+        precision=precision,
+        fast_dev_run=1,
+    )
+
+    class MyModel(BoringModel):
+        def configure_model(self):
+            self.layer = torch.nn.Linear(32, 2)
+            # The model is on the CPU until after `.setup()``
+            # TODO: Support initialization on meta device
+            expected_device = torch.device("cpu")
+            assert self.layer.weight.device == expected_device
+            assert self.layer.weight.dtype == expected_dtype
+
+        def on_fit_start(self):
+            # Parameters get sharded in `.setup()` and moved to the target device
+            assert self.layer.weight.device == torch.device("cuda", self.local_rank)
+            assert self.layer.weight.dtype == expected_dtype
+
+    model = MyModel()
+    trainer.fit(model)

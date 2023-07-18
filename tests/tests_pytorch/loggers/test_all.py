@@ -30,7 +30,7 @@ from lightning.pytorch.loggers import (
     TensorBoardLogger,
     WandbLogger,
 )
-from lightning.pytorch.loggers.logger import DummyExperiment
+from lightning.pytorch.loggers.logger import DummyExperiment, Logger
 from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.pytorch.tuner.tuning import Tuner
 from tests_pytorch.helpers.runif import RunIf
@@ -236,7 +236,7 @@ class LazyInitExperimentCheck(Callback):
             assert trainer.logger._mlflow_client
         elif isinstance(trainer.logger, NeptuneLogger):
             assert trainer.logger._run_instance
-        else:
+        elif hasattr(trainer.logger, "_experiment"):
             assert trainer.logger._experiment
 
 
@@ -250,7 +250,23 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
-@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE)
+class CustomLoggerWithoutExperiment(Logger):
+    @property
+    def name(self):
+        return ""
+
+    @property
+    def version(self):
+        return None
+
+    def log_metrics(self, metrics, step=None) -> None:
+        pass
+
+    def log_hyperparams(self, params, *args, **kwargs) -> None:
+        pass
+
+
+@pytest.mark.parametrize("logger_class", [*ALL_LOGGER_CLASSES_WO_NEPTUNE, CustomLoggerWithoutExperiment])
 @RunIf(skip_windows=True)
 def test_logger_initialization(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is
@@ -265,6 +281,9 @@ def test_logger_initialization(tmpdir, monkeypatch, logger_class):
 def _test_logger_initialization(tmpdir, logger_class):
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
+    callbacks = [LazyInitExperimentCheck()]
+    if not isinstance(logger, CustomLoggerWithoutExperiment):
+        callbacks.append(RankZeroLoggerCheck())
     model = BoringModel()
     trainer = Trainer(
         logger=logger,
@@ -273,7 +292,7 @@ def _test_logger_initialization(tmpdir, logger_class):
         accelerator="cpu",
         devices=2,
         max_steps=1,
-        callbacks=[RankZeroLoggerCheck(), LazyInitExperimentCheck()],
+        callbacks=callbacks,
     )
     trainer.fit(model)
 
