@@ -279,6 +279,8 @@ def test_fsdp_save_checkpoint_one_fsdp_module_required(tmp_path):
     # missing FSDP model
     with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
         strategy.save_checkpoint(path=tmp_path, state={})
+    with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
+        strategy.load_checkpoint(path=tmp_path, state={"model": torch.nn.Linear(3, 3)})
 
     # multiple FSDP models
     model1 = Mock(spec=FullyShardedDataParallel)
@@ -308,6 +310,8 @@ def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
     # missing FSDP model
     with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
         strategy.load_checkpoint(path=tmp_path, state={"other": "data"})
+    with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
+        strategy.load_checkpoint(path=tmp_path, state={"model": torch.nn.Linear(3, 3)})
 
     # multiple FSDP models
     model1 = Mock(spec=FullyShardedDataParallel)
