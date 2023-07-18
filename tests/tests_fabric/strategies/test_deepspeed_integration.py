@@ -407,6 +407,6 @@ def test_deepspeed_init_module_with_stages_1_2(stage, empty_init):
     ) as init_mock, fabric.init_module(empty_init=empty_init):
         model = BoringModel()
 
-    zero_init_mock.assert_not_called()
+    zero_init_mock.assert_called_with(enabled=False, remote_device=None, config_dict_or_path=ANY)
     assert init_mock.call_count == int(not empty_init)
     assert model.layer.weight.dtype == torch.bfloat16
