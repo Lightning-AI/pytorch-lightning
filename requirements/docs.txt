@@ -1,5 +1,5 @@
-sphinx >6.0, <7.0
-myst-parser ==2.0.0
+sphinx >=4.0, <5.0
+myst-parser >=0.18.1, <1.0.0
 nbsphinx >=0.8.5, <=0.8.9
 pandoc >=1.0, <=2.3
 docutils >=0.16, <0.21
@@ -14,6 +14,6 @@ sphinx-multiproject
 sphinx-toolbox ==3.4.0
 sphinx-rtd-dark-mode
 sphinxcontrib-video ==0.2.0
-jinja2 >=3.0.0,<3.2.0
+jinja2 <3.2.0
 
 lightning-utilities >=0.9.0
