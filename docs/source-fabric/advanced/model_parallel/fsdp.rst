@@ -4,10 +4,7 @@ Training models with billions of parameters
 
 Use Fully Shared Data Parallel (FSDP) to train large models with billions or trillions of parameters efficiently on multiple GPUs and across multiple machines.
 
-.. admonition:: This is an experimental feature.
-
-
-----
+.. note:: This is an experimental feature.
 
 
 Today, large models with billions of parameters are trained with many GPUs across several machines in parallel.
@@ -18,6 +15,8 @@ The memory consumption for training is generally made up of
 2. the optimizer states (e.g., Adam has two additional exponential averages per parameter),
 3. the layer activations (forward) and
 4. the gradients (backward).
+
+|
 
 When the sum of these memory components exceed the VRAM of a single GPU, regular data-parallel training (DDP) can no longer be employed.
 One of the methods that can alleviate this limitation is called **model-parallel** training, and known as **FSDP** in PyTorch, and in this guide, you will learn how to effectively scale large models with it.
@@ -100,8 +99,12 @@ Here is a full code example:
 We will reuse this Transformer example throughout the guide, optimize speed and memory usage, and compare it to regular DDP training.
 
 
+----
+
+
+*********************
 Identify large layers
-=====================
+*********************
 
 Models that have many large layers like linear layers in LLMs, ViTs, etc. with >100M parameters will benefit the most from FSDP because the memory they consume through parameters, activations and corresponding optimizer states can be evenly split across all GPUs.
 However, one should avoid splitting small layers that have a few thousand parameters because communication overhead would dominate and slow the training down.
@@ -117,8 +120,6 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
     strategy=FSDPStrategy(auto_wrap_policy=policy)
 
     fabric = L.Fabric(..., strategy=strategy)
-
-The policy we chose here is specific to the transformer model in the example.
 
 .. collapse:: Alternative ways to define the policy (Lightning < 2.1)
 
@@ -139,6 +140,8 @@ The policy we chose here is specific to the transformer model in the example.
 
     PyTorch provides several of these functional policies under :mod:`torch.distributed.fsdp.wrap`.
 
+|
+
 Verify that FSDP works with your model by comparing the peak memory usage printed in the CUDA memory summary (see example above) with regular DDP training:
 
 TODO: table here
@@ -146,8 +149,12 @@ TODO: table here
 You should see a decrease in allocated memory and a slight increase in iteration time.
 
 
+----
+
+
+*****************************
 Speed up model initialization
-=============================
+*****************************
 
 The standard practice in PyTorch is to put all model parameters into CPU memory first and then in a second step move them to the GPU device.
 However, the larger the model the longer these two steps take. With the :meth:`~lightning.fabric.fabric.Fabric.init_module` context manager, you can initialize very large models quickly and reduce memory peaks.
@@ -168,8 +175,12 @@ After:
         model = Transformer(vocab_size=dataset.vocab_size)
 
 
+----
+
+
+******************************
 Optimize the sharding strategy
-==============================
+******************************
 
 By default, FSDP will automatically shard 1) the model weights 2) the gradients during backward and 3) the optimizer states across all GPUs of the corresponding layers selected by the auto-wrap-policy.
 You can configure the following options to trade-off memory for speed:
@@ -223,15 +234,14 @@ This is typically your transformer block (including attention + feed-forward):
 .. code-block:: python
 
     strategy = FSDPStrategy(
-            ...
-            # Enable activation checkpointing on these layers
-            activation_checkpointing_policy={
-                    nn.TransformerEncoderLayer,
-                    nn.TransformerDecoderLayer,
-            },
+        ...
+        # Enable activation checkpointing on these layers
+        activation_checkpointing_policy={
+                nn.TransformerEncoderLayer,
+                nn.TransformerDecoderLayer,
+        },
     )
     fabric = L.Fabric(..., strategy=strategy)
-
 
 
 Offload parameters to CPU
@@ -382,6 +392,8 @@ Here is the recipe:
 .. collapse:: Full example
 
     TODO
+
+|
 
 `Read the detailed blog post here <https://lightning.ai/pages/community/tutorial/faster-pytorch-training-by-reducing-peak-memory/>`_.
 Note that this feature cannot work with gradient accumulation!
