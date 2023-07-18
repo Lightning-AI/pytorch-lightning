@@ -355,7 +355,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         assert self._config_initialized
         with deepspeed.zero.Init(
-            enabled=self.zero_stage_3, remote_device=self.remote_device, config_dict_or_path=self.config,
+            enabled=self.zero_stage_3,
+            remote_device=self.remote_device,
+            config_dict_or_path=self.config,
         ):
             yield
 
