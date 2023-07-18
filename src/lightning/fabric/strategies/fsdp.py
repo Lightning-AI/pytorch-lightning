@@ -37,6 +37,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from typing_extensions import TypeGuard
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, Precision
@@ -767,7 +768,7 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
         state_dict_config=state_dict_config,
         optim_state_dict_config=optim_state_dict_config,
     )
-    return state_dict_type_context  # type ignore[return-value]
+    return state_dict_type_context  # type: ignore[return-value]
 
 
 def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> Generator[None, None, None]:
@@ -782,7 +783,7 @@ def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> Gen
         state_dict_config=state_dict_config,
         optim_state_dict_config=optim_state_dict_config,
     )
-    return state_dict_type_context  # type ignore[return-value]
+    return state_dict_type_context  # type: ignore[return-value]
 
 
 def _is_sharded_checkpoint(path: Path) -> bool:
@@ -794,7 +795,7 @@ def _is_full_checkpoint(path: Path) -> bool:
     return path.is_file()
 
 
-def _has_fsdp_modules(module: Module) -> bool:
+def _has_fsdp_modules(module: object) -> TypeGuard[Module]:
     from torch.distributed.fsdp import FullyShardedDataParallel
 
     return isinstance(module, Module) and any(isinstance(m, FullyShardedDataParallel) for m in module.modules())
@@ -909,6 +910,6 @@ def fsdp_overlap_step_with_backward(
     from lightning.fabric.wrappers import _FabricModule
 
     assert isinstance(fabric_module, _FabricModule)
-    return _apply_optimizers_during_fsdp_backward(
+    return _apply_optimizers_during_fsdp_backward(  # type: ignore[return-value]
         optimizers, fabric_module._forward_module
-    )  # type ignore[return-value]
+    )
