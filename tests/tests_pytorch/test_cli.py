@@ -835,6 +835,53 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_callable_type():
     assert init[1]["lr_scheduler"].gamma == 0.3
 
 
+def test_lightning_cli_load_from_checkpoint_dependency_injection(cleandir):
+    class TestModel(BoringModel):
+        def __init__(
+            self,
+            optimizer: OptimizerCallable = torch.optim.Adam,
+            scheduler: LRSchedulerCallable = torch.optim.lr_scheduler.ConstantLR,
+            activation: torch.nn.Module = lazy_instance(torch.nn.LeakyReLU, negative_slope=0.05),
+        ):
+            super().__init__()
+            self.save_hyperparameters()
+            self.optimizer = optimizer
+            self.scheduler = scheduler
+            self.activation = activation
+
+        def configure_optimizers(self):
+            optimizer = self.optimizer(self.parameters())
+            scheduler = self.scheduler(optimizer)
+            return {"optimizer": optimizer, "lr_scheduler": scheduler}
+
+    with mock.patch("sys.argv", ["any.py", "--trainer.max_epochs=1"]):
+        cli = LightningCLI(TestModel, run=False, auto_configure_optimizers=False)
+    cli.trainer.fit(cli.model)
+
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+    expected = {
+        "optimizer": "torch.optim.Adam",
+        "scheduler": "torch.optim.lr_scheduler.ConstantLR",
+        "activation": {"class_path": "torch.nn.LeakyReLU", "init_args": {"negative_slope": 0.05, "inplace": False}},
+    }
+    assert hparams == expected
+
+    checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"), None)
+    assert checkpoint_path.is_file()
+    ckpt = torch.load(checkpoint_path)
+    assert ckpt["hyper_parameters"] == expected
+
+    model = TestModel.load_from_checkpoint(checkpoint_path, instantiator=instantiate_module)
+    assert isinstance(model, TestModel)
+    assert isinstance(model.activation, torch.nn.LeakyReLU)
+    assert model.activation.negative_slope == 0.05
+    optimizer, lr_scheduler = model.configure_optimizers().values()
+    assert isinstance(optimizer, torch.optim.Adam)
+    assert isinstance(lr_scheduler, torch.optim.lr_scheduler.ConstantLR)
+
+
 @pytest.mark.parametrize("fn", [fn.value for fn in TrainerFn])
 def test_lightning_cli_trainer_fn(fn):
     class TestCLI(LightningCLI):

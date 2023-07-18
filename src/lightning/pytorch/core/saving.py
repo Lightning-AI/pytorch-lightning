@@ -118,6 +118,7 @@ def _load_state(
     cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint: Dict[str, Any],
     strict: Optional[bool] = None,
+    instantiator=None,
     **cls_kwargs_new: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     cls_spec = inspect.getfullargspec(cls.__init__)
@@ -155,7 +156,7 @@ def _load_state(
         # filter kwargs according to class init unless it allows any argument via kwargs
         _cls_kwargs = {k: v for k, v in _cls_kwargs.items() if k in cls_init_args_name}
 
-    obj = cls(**_cls_kwargs)
+    obj = instantiator(cls, _cls_kwargs) if instantiator else cls(**_cls_kwargs)
 
     if isinstance(obj, pl.LightningDataModule):
         if obj.__class__.__qualname__ in checkpoint:

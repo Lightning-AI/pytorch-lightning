@@ -15,9 +15,10 @@ import os
 import sys
 from functools import partial, update_wrapper
 from types import MethodType
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 import torch
+import yaml
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import _warn
 from torch.optim import Optimizer
@@ -27,6 +28,7 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, seed_everything
+from lightning.pytorch.core.mixins.hparams_mixin import given_hyperparameters_context
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
@@ -196,6 +198,30 @@ class LightningArgumentParser(ArgumentParser):
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, sub_configs=True, **kwargs)
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
+
+    def class_instantiator(self, class_type, *args, **kwargs):
+        for key, (base_type, hparams) in getattr(self, "_hparam_context", {}).items():
+            if issubclass(class_type, base_type):
+                with given_hyperparameters_context(hparams):
+                    return super().class_instantiator(class_type, *args, **kwargs)
+        return super().class_instantiator(class_type, *args, **kwargs)
+
+    def instantiate_classes(
+        self,
+        cfg: Namespace,
+        instantiate_groups: bool = True,
+        hparam_context: Optional[Dict[str, type]] = None,
+    ) -> Namespace:
+        if hparam_context:
+            cfg_dict = yaml.safe_load(self.dump(cfg))  # TODO: do not remove link targets!
+            self._hparam_context = {}
+            for key, base_type in hparam_context.items():
+                hparams = cfg_dict.get(key, {})
+                self._hparam_context[key] = (base_type, hparams)
+        init = super().instantiate_classes(cfg, instantiate_groups=instantiate_groups)
+        if hparam_context:
+            delattr(self, "_hparam_context")
+        return init
 
 
 class SaveConfigCallback(Callback):
@@ -532,7 +558,13 @@ class LightningCLI:
 
     def instantiate_classes(self) -> None:
         """Instantiates the classes and sets their attributes."""
-        self.config_init = self.parser.instantiate_classes(self.config)
+        hparam_prefix = ""
+        if "subcommand" in self.config:
+            hparam_prefix = self.config["subcommand"] + "."
+        hparam_context = {hparam_prefix + "model": self._model_class}
+        if self.datamodule_class is not None:
+            hparam_context[hparam_prefix + "data"] = self._datamodule_class
+        self.config_init = self.parser.instantiate_classes(self.config, hparam_context=hparam_context)
         self.datamodule = self._get(self.config_init, "data")
         self.model = self._get(self.config_init, "model")
         self._add_configure_optimizers_method_to_model(self.subcommand)
@@ -755,3 +787,17 @@ def _get_short_description(component: object) -> Optional[str]:
         return docstring.short_description
     except (ValueError, docstring_parser.ParseError) as ex:
         rank_zero_warn(f"Failed parsing docstring for {component}: {ex}")
+
+
+ModuleType = TypeVar("ModuleType")
+
+
+def instantiate_module(class_type: Type[ModuleType], config: Dict[str, Any]) -> ModuleType:
+    parser = ArgumentParser(exit_on_error=False)
+    if "class_path" in config:
+        parser.add_subclass_arguments(class_type, "module")
+    else:
+        parser.add_class_arguments(class_type, "module")
+    cfg = parser.parse_object({"module": config})
+    init = parser.instantiate_classes(cfg)
+    return init.module
