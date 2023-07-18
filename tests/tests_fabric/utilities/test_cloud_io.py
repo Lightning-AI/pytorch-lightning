@@ -17,8 +17,7 @@ import fsspec
 from fsspec.implementations.local import LocalFileSystem
 from fsspec.spec import AbstractFileSystem
 
-from lightning.fabric.utilities.cloud_io import _is_dir
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 
 
 def test_get_filesystem_custom_filesystem():
