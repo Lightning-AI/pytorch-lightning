@@ -1298,9 +1298,7 @@ def test_deepspeed_init_module_with_stage_3():
     with mock.patch("deepspeed.zero.Init") as zero_init_mock:
         trainer.fit(model)
 
-    zero_init_mock.assert_called_once_with(
-        remote_device="cpu", pin_memory=True, config_dict_or_path=ANY, dtype=torch.bfloat16
-    )
+    zero_init_mock.assert_called_once_with(enabled=True, remote_device=None, config_dict_or_path=ANY)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
