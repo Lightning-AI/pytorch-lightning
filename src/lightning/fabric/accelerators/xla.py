@@ -48,12 +48,10 @@ class XLAAccelerator(Accelerator):
     @staticmethod
     def get_parallel_devices(devices: Union[int, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        from torch_xla.experimental import pjrt
-
         devices = _parse_tpu_devices(devices)
         # In XLA XRT index 0 maps to CPU, in fact, a `xla_device()` with no arguments has index 1
         # since the user passes a 0-based index, we need to adjust the indices
-        device_offset = 0 if pjrt.using_pjrt() else 1
+        device_offset = 0 if _using_pjrt() else 1
 
         if isinstance(devices, int):
             return [torch.device("xla", i) for i in range(device_offset, devices + device_offset)]
@@ -72,12 +70,15 @@ class XLAAccelerator(Accelerator):
         if not _XLA_AVAILABLE:
             return 0
         import torch_xla.core.xla_env_vars as xenv
-        from torch_xla.experimental import pjrt, tpu
         from torch_xla.utils.utils import getenv_as
 
-        if pjrt.using_pjrt():
+        if _using_pjrt():
             if _XLA_GREATER_EQUAL_2_1:
+                from torch_xla._internal import tpu
+
                 return tpu.num_available_devices()
+            from torch_xla.experimental import tpu
+
             device_count_on_version = {2: 8, 3: 8, 4: 4}
             return device_count_on_version.get(tpu.version(), 8)
         return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
@@ -85,7 +86,12 @@ class XLAAccelerator(Accelerator):
     @staticmethod
     @functools.lru_cache(maxsize=1)
     def is_available() -> bool:
-        return XLAAccelerator.auto_device_count() > 0
+        try:
+            return XLAAccelerator.auto_device_count() > 0
+        except (ValueError, AssertionError, OSError):
+            # XLA may raise these exceptions if it's not properly configured. This needs to be avoided for the cases
+            # when `torch_xla` is imported but not used
+            return False
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
@@ -95,6 +101,17 @@ class XLAAccelerator(Accelerator):
 # PJRT support requires this minimum version
 _XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
 _XLA_GREATER_EQUAL_2_1 = RequirementCache("torch_xla>=2.1")
+
+
+def _using_pjrt() -> bool:
+    # delete me when torch_xla 2.2 is the min supported version, where XRT support has been dropped.
+    if _XLA_GREATER_EQUAL_2_1:
+        from torch_xla import runtime as xr
+
+        return xr.using_pjrt()
+    from torch_xla.experimental import pjrt
+
+    return pjrt.using_pjrt()
 
 
 def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:

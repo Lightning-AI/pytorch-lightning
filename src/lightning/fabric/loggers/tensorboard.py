@@ -27,6 +27,7 @@ from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _fla
 from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.wrappers import _unwrap_objects
 
 log = logging.getLogger(__name__)
 
@@ -254,6 +255,7 @@ class TensorBoardLogger(Logger):
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         model_example_input = getattr(model, "example_input_array", None)
         input_array = model_example_input if input_array is None else input_array
+        model = _unwrap_objects(model)
 
         if input_array is None:
             rank_zero_warn(
@@ -270,8 +272,10 @@ class TensorBoardLogger(Logger):
             getattr(model, "_apply_batch_transfer_handler", None)
         ):
             # this is probably is a LightningModule
-            input_array = model._on_before_batch_transfer(input_array)  # type: ignore[operator]
-            input_array = model._apply_batch_transfer_handler(input_array)  # type: ignore[operator]
+            input_array = model._on_before_batch_transfer(input_array)
+            input_array = model._apply_batch_transfer_handler(input_array)
+            self.experiment.add_graph(model, input_array)
+        else:
             self.experiment.add_graph(model, input_array)
 
     @rank_zero_only

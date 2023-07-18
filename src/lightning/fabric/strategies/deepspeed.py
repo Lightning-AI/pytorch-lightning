@@ -484,6 +484,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 f" a model instance to reload is required. Pass it in like so:"
                 " DeepSpeedStrategy.load_checkpoint(..., state={'model': model, ...})"
             )
+        _validate_checkpoint_directory(path)
 
         engines = _get_deepspeed_engines_from_state(state)
         if len(engines) == 0:
@@ -509,6 +510,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             load_lr_scheduler_states=False,
             load_module_strict=strict,
         )
+
         if client_state is None:
             raise RuntimeError(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
@@ -851,3 +853,43 @@ def _validate_device_index_selection(parallel_devices: List[torch.device]) -> No
             " If you need to select GPUs at a specific index, set the `CUDA_VISIBLE_DEVICES` environment variable"
             f" instead. For example: `CUDA_VISIBLE_DEVICES={','.join(str(i) for i in selected_device_indices)}`."
         )
+
+
+def _is_deepspeed_checkpoint(path: Path) -> bool:
+    """Heuristic check whether the path points to a top-level DeepSpeed checkpoint directory."""
+    return path.is_dir() and (path / "checkpoint").is_dir()
+
+
+def _validate_checkpoint_directory(path: _PATH) -> None:
+    """Validates that the path points to a DeepSpeed checkpoint directory and suggests fixes for user error."""
+    # Example DeepSpeed checkpoint directory:
+    #
+    # epoch=5-step=10999.ckpt
+    # ├── checkpoint
+    # │   ├── zero_pp_rank_0_mp_rank_00_model_states.pt
+    # │   ├── zero_pp_rank_0_mp_rank_00_optim_states.pt
+    # │   ├── zero_pp_rank_1_mp_rank_00_model_states.pt
+    # │   └── zero_pp_rank_1_mp_rank_00_optim_states.pt
+    # ├── latest
+    # └── zero_to_fp32.py
+
+    path = Path(path)
+    path_is_ds_checkpoint = _is_deepspeed_checkpoint(path)
+    default_message = f"The provided path is not a valid DeepSpeed checkpoint: {path}"
+
+    if not path_is_ds_checkpoint:
+        # Case 1: User may have accidentally passed the subfolder "checkpoint"
+        parent_is_ds_checkpoint = _is_deepspeed_checkpoint(path.parent)
+        if parent_is_ds_checkpoint:
+            raise FileNotFoundError(
+                f"{default_message}. It looks like you passed the path to a subfolder."
+                f" Try to load using this parent directory instead: {path.parent}"
+            )
+        # Case 2: User may have accidentally passed the path to a file inside the "checkpoint" subfolder
+        parent_parent_is_ds_checkpoint = path.is_file() and _is_deepspeed_checkpoint(path.parent.parent)
+        if parent_parent_is_ds_checkpoint:
+            raise FileNotFoundError(
+                f"{default_message}. It looks like you passed the path to a file inside a DeepSpeed checkpoint folder."
+                f" Try to load using this parent directory instead: {path.parent.parent}"
+            )
+        raise FileNotFoundError(default_message)

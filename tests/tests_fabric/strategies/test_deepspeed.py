@@ -220,6 +220,26 @@ def test_deepspeed_save_checkpoint_warn_colliding_keys(tmp_path):
 
 
 @RunIf(deepspeed=True)
+def test_deepspeed_load_checkpoint_validate_path(tmp_path):
+    """Test that we validate the checkpoint path for a DeepSpeed checkpoint and give suggestions for user error."""
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
+        strategy.load_checkpoint(path=tmp_path, state={"model": Mock()})
+
+    # User tries to pass the subfolder as the path
+    checkpoint_path = tmp_path / "checkpoint"
+    checkpoint_path.mkdir()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(path=checkpoint_path, state={"model": Mock()})
+
+    # User tries to pass an individual file inside the checkpoint folder
+    checkpoint_path = checkpoint_path / "zero_pp_rank_0_mp_rank_00_model_states.pt"
+    checkpoint_path.touch()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(path=checkpoint_path, state={"model": Mock()})
+
+
+@RunIf(deepspeed=True)
 def test_deepspeed_load_checkpoint_no_state(tmp_path):
     """Test that DeepSpeed can't load the full state without access to a model instance from the user."""
     strategy = DeepSpeedStrategy()
@@ -230,7 +250,8 @@ def test_deepspeed_load_checkpoint_no_state(tmp_path):
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_load_checkpoint_one_deepspeed_engine_required(tmp_path):
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+def test_deepspeed_load_checkpoint_one_deepspeed_engine_required(_, tmp_path):
     """Test that the DeepSpeed strategy can only load one DeepSpeedEngine per checkpoint."""
     from deepspeed import DeepSpeedEngine
 
@@ -266,12 +287,13 @@ def test_deepspeed_load_checkpoint_client_state_missing(tmp_path):
     model.load_checkpoint.return_value = [None, None]
 
     # Check for our custom user error
-    with pytest.raises(RuntimeError, match="DeepSpeed was unable to load the checkpoint"):
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
         strategy.load_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "test": "data"})
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_load_checkpoint_state_updated_with_client_state(tmp_path):
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+def test_deepspeed_load_checkpoint_state_updated_with_client_state(_, tmp_path):
     """Test that the DeepSpeed strategy properly updates the state variables and returns additional metadata."""
     from deepspeed import DeepSpeedEngine
 
@@ -295,7 +317,8 @@ def test_deepspeed_load_checkpoint_state_updated_with_client_state(tmp_path):
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("optimzer_state_requested", [True, False])
-def test_deepspeed_load_checkpoint_optimzer_state_requested(optimzer_state_requested, tmp_path):
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+def test_deepspeed_load_checkpoint_optimzer_state_requested(_, optimzer_state_requested, tmp_path):
     """Test that the DeepSpeed strategy loads the optimizer state only when requested."""
     from deepspeed import DeepSpeedEngine
 
@@ -343,7 +366,7 @@ def test_errors_grad_clipping():
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, mps=False)
 def test_deepspeed_save_filter(tmp_path):
     strategy = DeepSpeedStrategy()
     with pytest.raises(TypeError, match="manages the state serialization internally"):

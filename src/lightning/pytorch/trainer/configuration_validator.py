@@ -18,7 +18,7 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
@@ -45,6 +45,8 @@ def _verify_loop_configurations(trainer: "pl.Trainer") -> None:
         __verify_eval_loop_configuration(model, "predict")
 
     __verify_batch_transfer_support(trainer)
+
+    __verify_configure_model_configuration(model)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -160,3 +162,18 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
                     " not match with the actual batch index when using a `dataloader_iter`"
                     " argument in your `training_step`."
                 )
+
+
+def __verify_configure_model_configuration(model: "pl.LightningModule") -> None:
+    if is_overridden("configure_sharded_model", model):
+        name = type(model).__name__
+        if is_overridden("configure_model", model):
+            raise RuntimeError(
+                f"Both `{name}.configure_model`, and `{name}.configure_sharded_model` are overridden. The latter is"
+                f" deprecated and it should be replaced with the former."
+            )
+        rank_zero_deprecation(
+            f"You have overridden `{name}.configure_sharded_model` which is deprecated. Please override the"
+            " `configure_model` hook instead. Instantiation with the newer hook will be created on the device right"
+            " away and have the right data type depending on the precision setting in the Trainer."
+        )

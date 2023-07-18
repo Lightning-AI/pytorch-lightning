@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
-import contextlib
 import json
 import logging
 import os
 import platform
 from collections import OrderedDict
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
@@ -30,7 +30,11 @@ from torch.optim import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
-from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE, _validate_device_index_selection
+from lightning.fabric.strategies.deepspeed import (
+    _DEEPSPEED_AVAILABLE,
+    _validate_checkpoint_directory,
+    _validate_device_index_selection,
+)
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
@@ -501,7 +505,19 @@ class DeepSpeedStrategy(DDPStrategy):
             self.lr_scheduler_configs = [lr_scheduler]
         self.model = model
 
-    @contextlib.contextmanager
+    @contextmanager
+    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+        if self.zero_stage_3:
+            if empty_init is False:
+                raise NotImplementedError(
+                    f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
+                )
+            yield
+            return
+        with super().tensor_init_context(empty_init=empty_init):
+            yield
+
+    @contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
         import deepspeed
 
@@ -783,12 +799,15 @@ class DeepSpeedStrategy(DDPStrategy):
             checkpoint_path = self.broadcast(checkpoint_path)
             return super().load_checkpoint(checkpoint_path)
 
+        _validate_checkpoint_directory(checkpoint_path)
+
         # Rely on deepspeed to load the checkpoint and necessary information
         assert self.lightning_module is not None
 
         from lightning.pytorch.trainer.states import TrainerFn
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+
         _, client_state = self.deepspeed_engine.load_checkpoint(
             checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=False
         )

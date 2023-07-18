@@ -22,6 +22,7 @@ from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixi
 from lightning.pytorch.callbacks import Checkpoint, EarlyStopping
 from lightning.pytorch.trainer.states import TrainerStatus
 from lightning.pytorch.utilities.exceptions import _TunerExitException
+from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -82,7 +83,8 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
 
     # Trigger lazy creation of experiment in loggers so loggers have their metadata available
     for logger in trainer.loggers:
-        _ = logger.experiment
+        if hasattr(logger, "experiment"):
+            _ = logger.experiment
 
     trainer.strategy.barrier("pre_setup")
 
@@ -94,9 +96,17 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
     trainer.strategy.barrier("post_setup")
 
 
-def _call_configure_sharded_model(trainer: "pl.Trainer") -> None:
-    with trainer.strategy.model_sharded_context():
-        _call_lightning_module_hook(trainer, "configure_sharded_model")
+def _call_configure_model(trainer: "pl.Trainer") -> None:
+    # legacy hook
+    if is_overridden("configure_sharded_model", trainer.lightning_module):
+        with trainer.strategy.model_sharded_context():
+            _call_lightning_module_hook(trainer, "configure_sharded_model")
+
+    # we don't normally check for this before calling the hook. it is done here to avoid instantiating the context
+    # managers
+    if is_overridden("configure_model", trainer.lightning_module):
+        with trainer.strategy.tensor_init_context(), trainer.strategy.model_sharded_context():
+            _call_lightning_module_hook(trainer, "configure_model")
 
 
 def _call_teardown_hook(trainer: "pl.Trainer") -> None:

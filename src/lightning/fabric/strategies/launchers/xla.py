@@ -17,7 +17,7 @@ from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 import torch.multiprocessing as mp
 
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.strategies.launchers.multiprocessing import _GlobalStateSnapshot
 from lightning.fabric.utilities.apply_func import move_data_to_device
@@ -65,9 +65,7 @@ class _XLALauncher(_Launcher):
             **kwargs: Optional keyword arguments to be passed to the given function.
 
         """
-        from torch_xla.experimental import pjrt
-
-        using_pjrt = pjrt.using_pjrt()
+        using_pjrt = _using_pjrt()
         return_queue: Union[queue.Queue, mp.SimpleQueue]
         # pjrt requires that the queue is serializable
         return_queue = mp.Manager().Queue() if using_pjrt else mp.get_context(self._start_method).SimpleQueue()
@@ -101,9 +99,8 @@ class _XLALauncher(_Launcher):
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
         import torch_xla.core.xla_model as xm
-        from torch_xla.experimental import pjrt
 
-        if pjrt.using_pjrt() and len(xm.get_xla_supported_devices()) > 1:
+        if _using_pjrt() and len(xm.get_xla_supported_devices()) > 1:
             # `get_xla_supported_devices` in the spawned process returns the logical devices (2 for v2/v3 and 1 for v4)
             # so when there's more than one (multithreading), objects need to be deep-copied
             import copy

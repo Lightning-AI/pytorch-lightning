@@ -363,7 +363,7 @@ def test_module_init_context(precision, expected_dtype):
     with fabric.init_module():
         model = torch.nn.Linear(100, 100, bias=False)
 
-    # The model is on the CPU until `.setup()``
+    # The model is on the CPU until after `.setup()``
     # TODO: Support initialization on meta device
     expected_device = torch.device("cpu")
     assert model.weight.device == expected_device
@@ -405,7 +405,7 @@ def test_fsdp_save_filter(tmp_path):
 @RunIf(min_torch="1.13", min_cuda_gpus=1)
 def test_fsdp_manual_activation_checkpointing():
     model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.Linear(1, 1))
-    strategy = FSDPStrategy(activation_checkpointing=torch.nn.Linear)
+    strategy = FSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
     fabric = Fabric(devices=1, accelerator="cuda", strategy=strategy)
     fabric.launch()
 
@@ -421,7 +421,7 @@ def test_fsdp_manual_activation_checkpointing():
     assert wrappers == {"0", "1"}
 
     # let fabric set up the model, it shouldn't apply activation checkpointing again
-    with pytest.warns(match="Linear'] is configured, but the model already contains checkpointed"):
+    with pytest.warns(match="is configured, but the model already contains checkpointed"):
         model = fabric.setup(model)
 
     wrappers = {name for name, mod in model._forward_module.named_modules() if isinstance(mod, CheckpointWrapper)}
