@@ -300,6 +300,7 @@ class Strategy(ABC):
                 - A dictionary of objects whose state will be restored in-place from the checkpoint path.
                 - ``None`` or the empty dict: The loaded checkpoint will be returned in full.
                 - A :class:`~torch.nn.Module` instance, if the checkpoint file contains a raw module state dict.
+                - A :class:`~torch.optim.Optimizer` instance, if the checkpoint file contains a raw optimizer state.
 
             strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
