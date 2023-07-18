@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
 import lightning as L
@@ -21,10 +20,12 @@ model, optimizer = fabric.setup(model, optimizer)
 dataloader = fabric.setup_dataloaders(dataloader)
 
 import time
+
 timings = []
 
 for i, (input, target) in enumerate(dataloader):
-    if i >= 100: break
+    if i >= 100:
+        break
 
     t0 = time.time()
 

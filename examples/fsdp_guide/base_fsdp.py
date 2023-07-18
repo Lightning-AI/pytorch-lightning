@@ -1,19 +1,17 @@
+from functools import partial
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.distributed.fsdp import ShardingStrategy
+from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 
 import lightning as L
-from lightning.pytorch.demos import Transformer, WikiText2
 from lightning.fabric.strategies import FSDPStrategy
-
-from functools import partial
-from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
-from torch.distributed.fsdp import ShardingStrategy
-
+from lightning.pytorch.demos import Transformer, WikiText2
 
 policy = partial(
-    transformer_auto_wrap_policy,
-    transformer_layer_cls={nn.TransformerEncoderLayer, nn.TransformerDecoderLayer}
+    transformer_auto_wrap_policy, transformer_layer_cls={nn.TransformerEncoderLayer, nn.TransformerDecoderLayer}
 )
 
 strategy = FSDPStrategy(
@@ -48,10 +46,12 @@ model, optimizer = fabric.setup(model, optimizer)
 dataloader = fabric.setup_dataloaders(dataloader)
 
 import time
+
 timings = []
 
 for i, (input, target) in enumerate(dataloader):
-    if i >= 100: break
+    if i >= 100:
+        break
 
     t0 = time.time()
 
