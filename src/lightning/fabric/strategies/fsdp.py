@@ -797,7 +797,7 @@ def _is_full_checkpoint(path: Path) -> bool:
 def _has_fsdp_modules(module: Module) -> bool:
     from torch.distributed.fsdp import FullyShardedDataParallel
 
-    return any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules())
+    return isinstance(module, Module) and any(isinstance(m, FullyShardedDataParallel) for m in module.modules())
 
 
 def _no_op() -> None:
