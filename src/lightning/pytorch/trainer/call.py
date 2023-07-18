@@ -82,7 +82,8 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
 
     # Trigger lazy creation of experiment in loggers so loggers have their metadata available
     for logger in trainer.loggers:
-        _ = logger.experiment
+        if hasattr(logger, "experiment"):
+            _ = logger.experiment
 
     trainer.strategy.barrier("pre_setup")
 

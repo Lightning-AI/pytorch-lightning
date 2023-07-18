@@ -13,7 +13,6 @@
 # limitations under the License.
 import contextlib
 import datetime
-import functools
 import os
 from datetime import timedelta
 from re import escape
@@ -64,6 +63,26 @@ def test_fsdp_cpu_offload():
     config = CPUOffload()
     strategy = FSDPStrategy(cpu_offload=config)
     assert strategy.cpu_offload == config
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_sharding_strategy():
+    """Test the different ways the sharding strategy can be set."""
+    from torch.distributed.fsdp import ShardingStrategy
+
+    # default
+    strategy = FSDPStrategy()
+    assert strategy.sharding_strategy == ShardingStrategy.FULL_SHARD
+
+    # enum
+    strategy = FSDPStrategy(sharding_strategy=ShardingStrategy.SHARD_GRAD_OP)
+    assert strategy.sharding_strategy == ShardingStrategy.SHARD_GRAD_OP
+
+    # string
+    strategy = FSDPStrategy(sharding_strategy="NO_SHARD")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
+    strategy = FSDPStrategy(sharding_strategy="no_shard")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
 
 
 @RunIf(min_torch="1.12")
@@ -157,16 +176,24 @@ def test_fsdp_activation_checkpointing():
     if _TORCH_GREATER_EQUAL_2_1:
         from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1}))
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
         assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
 
         strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
         assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
     else:
         strategy = FSDPStrategy(activation_checkpointing=Block1)
         assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
 
         strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1, Block2})
         assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
 
     strategy._parallel_devices = [torch.device("cuda", 0)]
@@ -425,11 +452,6 @@ class StatusChecker:
     [(Block,), (SubBlock,), (Block, SubBlock, nn.Linear), None],
 )
 def test_apply_optimizer_in_backward(checkpoint):
-    try:
-        from torch.distributed.fsdp.wrap import lambda_auto_wrap_policy
-    except ImportError:
-        pytest.skip("Failed to import `lambda_auto_wrap_policy`")
-
     from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
 
     num_gpus = 2
@@ -454,9 +476,8 @@ def test_apply_optimizer_in_backward(checkpoint):
     upper_savings_bound = 4 * feature_dim**2 * 2 * (num_blocks - 1)
     lower_savings_bound = upper_savings_bound / 3
 
-    auto_wrap_policy = functools.partial(lambda_auto_wrap_policy, lambda_fn=lambda module: isinstance(module, Block))
     strategy = FSDPStrategy(
-        auto_wrap_policy=auto_wrap_policy,
+        auto_wrap_policy={Block},
         activation_checkpointing=checkpoint,
         timeout=datetime.timedelta(seconds=10),
     )

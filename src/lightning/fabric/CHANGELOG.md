@@ -91,6 +91,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a callback for spike-detection ([#18014](https://github.com/Lightning-AI/lightning/pull/18014))
 
 
+- Added the ability to set the `torch.distributed.fsdp.ShardingStrategy` via string in `FSDPStrategy` ([#18087](https://github.com/Lightning-AI/lightning/pull/18087))
+
+
+- Improved error messages when attempting to load a DeepSpeed checkpoint at an invalid path ([#17795](https://github.com/Lightning-AI/lightning/pull/17795))
+
+
 - Added `Fabric.load_raw()` for loading raw PyTorch state dict checkpoints for model or optimizer objects ([#18049](https://github.com/Lightning-AI/lightning/pull/18049))
 
 
@@ -148,6 +154,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed FSDP re-applying activation checkpointing when the user had manually applied it already ([#18006](https://github.com/Lightning-AI/lightning/pull/18006))
+
+
+- Fixed `TensorBoardLogger.log_graph` not unwrapping the `_FabricModule` ([#17844](https://github.com/Lightning-AI/lightning/pull/17844))
 
 
 ## [2.0.5] - 2023-07-07
