@@ -51,7 +51,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         accelerator: Optional[Accelerator] = None,
         zero_optimization: bool = True,
         stage: int = 2,
-        remote_device: str = "cpu",
+        remote_device: Optional[str] = None,
         offload_optimizer: bool = False,
         offload_parameters: bool = False,
         offload_params_device: str = "cpu",
@@ -112,7 +112,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
                 3 is optimizer+gradient_parameter partitioning using the infinity engine.
 
-            remote_device: Device to instantiate the model on initially (``cpu`` or ``nvme``).
+            remote_device: Device to instantiate the model on initially (``cpu`` or ``nvme``). Defaults to GPU.
 
             offload_optimizer: Enable offloading optimizer memory and computation to CPU or NVMe
                 based on ``offload_optimizer_device``.
@@ -351,25 +351,12 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:
-        # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
-        # manager, which happens at the start of `Fabric.run()`. Later modifications through e.g. `Fabric.setup()`
-        # won't have an effect here.
         import deepspeed
 
-        if self.zero_stage_3:
-            assert self._config_initialized
-            # if self.precision.precision == "16-true":
-            #     dtype = torch.float16
-            # elif self.precision.precision == "bf16-true":
-            #     dtype = torch.bfloat16
-            # else:
-            #     dtype = torch.float32
-
-            with deepspeed.zero.Init(
-                remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config
-            ):
-                yield
-        else:
+        assert self._config_initialized
+        with deepspeed.zero.Init(
+            enabled=self.zero_stage_3, remote_device=self.remote_device, config_dict_or_path=self.config,
+        ):
             yield
 
     def save_checkpoint(
@@ -657,13 +644,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
                     "enabled": True,
+                    "auto_cast": True,
                     "loss_scale": self.loss_scale,
                     "initial_scale_power": self.initial_scale_power,
                     "loss_scale_window": self.loss_scale_window,
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-        elif "bf16" not in self.config and self.precision.precision in ("bf16-mixed", "bf16-true"):
+        elif "bf16" not in self.config and self.precision.precision == ("bf16-mixed", "bf16-true"):
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 
