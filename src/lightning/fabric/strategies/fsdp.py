@@ -419,16 +419,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-        modules = [module for module in state.values() if isinstance(module, Module)]
+        modules = [module for module in state.values() if _has_fsdp_modules(module)]
         if len(modules) == 0:
             raise ValueError(
-                "Could not find a model in the provided checkpoint state. Please provide the model as"
+                "Could not find a FSDP model in the provided checkpoint state. Please provide the model as"
                 " part of the state like so: `save_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before saving the checkpoint."
             )
         if len(modules) > 1:
             raise ValueError(
-                "Found multiple models in the given state. Saving checkpoints with FSDP is"
+                "Found multiple FSDP models in the given state. Saving checkpoints with FSDP is"
                 " currently limited to a single model per checkpoint. To save multiple models, call the"
                 " save method for each model separately with a different path."
             )
@@ -511,17 +511,17 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
 
-        modules = {key: module for key, module in state.items() if isinstance(module, Module)}
+        modules = {key: module for key, module in state.items() if _has_fsdp_modules(module)}
         optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
         if len(modules) == 0:
             raise ValueError(
-                "Could not find a model in the provided checkpoint state. Please provide the model as"
+                "Could not find a FSDP model in the provided checkpoint state. Please provide the model as"
                 " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
             )
         if len(modules) > 1:
             raise ValueError(
-                "Found multiple models in the given state. Loading checkpoints with FSDP is"
+                "Found multiple FSDP models in the given state. Loading checkpoints with FSDP is"
                 " currently limited to a single model per checkpoint. To load multiple models, call the"
                 " load method for each model separately with a different path."
             )
@@ -792,6 +792,12 @@ def _is_sharded_checkpoint(path: Path) -> bool:
 
 def _is_full_checkpoint(path: Path) -> bool:
     return path.is_file()
+
+
+def _has_fsdp_modules(module: Module) -> bool:
+    from torch.distributed.fsdp import FullyShardedDataParallel
+
+    return any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules())
 
 
 def _no_op() -> None:

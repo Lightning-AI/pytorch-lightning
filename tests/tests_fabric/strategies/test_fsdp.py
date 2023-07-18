@@ -217,6 +217,16 @@ def test_fsdp_grad_clipping_value_error():
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
 
+@RunIf(min_torch="1.13")
+def test_fsdp_grad_clipping_norm_error():
+    strategy = FSDPStrategy()
+    with pytest.raises(
+        TypeError,
+        match="only possible if the module.*is wrapped in `FullyShardedDataParallel`",
+    ):
+        strategy.clip_gradients_norm(Mock(), Mock(), Mock())
+
+
 class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
     def after_backward(self, model, optimizer):
         self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
