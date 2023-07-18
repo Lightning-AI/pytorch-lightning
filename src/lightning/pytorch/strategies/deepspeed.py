@@ -78,7 +78,7 @@ class DeepSpeedStrategy(DDPStrategy):
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
-        remote_device: str = "cpu",
+        remote_device: Optional[str] = None,
         offload_optimizer: bool = False,
         offload_parameters: bool = False,
         offload_params_device: str = "cpu",
@@ -139,7 +139,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
                 3 is optimizer+gradient_parameter partitioning using the infinity engine.
 
-            remote_device: Device to instantiate the model on initially (``cpu`` or ``nvme``).
+            remote_device: Device to instantiate the model on initially (``cpu`` or ``nvme``). Defaults to GPU.
 
             offload_optimizer: Enable offloading optimizer memory and computation to CPU or NVMe
                 based on ``offload_optimizer_device``.
