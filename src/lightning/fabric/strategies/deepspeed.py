@@ -651,7 +651,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-        elif "bf16" not in self.config and self.precision.precision == ("bf16-mixed", "bf16-true"):
+        elif "bf16" not in self.config and self.precision.precision in ("bf16-mixed", "bf16-true"):
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 
