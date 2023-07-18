@@ -1078,8 +1078,8 @@ class Trainer:
 
     @contextmanager
     def init_module(self, empty_init: Optional[bool] = None) -> Generator:
-        """Tensors that you instantiate under this context manager will be created on the device right away and
-        have the right data type depending on the precision setting in the Trainer.
+        """Tensors that you instantiate under this context manager will be created on the device right away and have
+        the right data type depending on the precision setting in the Trainer.
 
         The parameters and tensors get created on the device and with the right data type right away without wasting
         memory being allocated unnecessarily. The automatic device placement under this context manager is only
@@ -1089,6 +1089,7 @@ class Trainer:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
                 Set this to ``True`` if you are loading a checkpoint into a large model. Requires `torch >= 1.13`.
+
         """
         if not _TORCH_GREATER_EQUAL_2_0 and self.strategy.root_device.type != "cpu":
             rank_zero_warn(

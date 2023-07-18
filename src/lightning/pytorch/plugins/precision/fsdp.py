@@ -80,6 +80,7 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
         """A context manager to change the default tensor type when initializing module parameters or tensors.
 
         See: :meth:`torch.set_default_dtype`
+
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(self.mixed_precision_config.param_dtype)
