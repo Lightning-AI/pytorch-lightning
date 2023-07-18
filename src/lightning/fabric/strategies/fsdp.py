@@ -407,7 +407,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 " `FSDPStrategy` does not use the `CheckpointIO`."
             )
         if filter is not None and self._state_dict_type == "sharded":
-            # A KeyError is raised when `torch.distributed.checkpoint.load_state_dict` is called
+            # https://github.com/pytorch/pytorch/issues/105379
             raise NotImplementedError(
                 "FSDP doesn't support loading sharded filtered checkpoints, so saving them is disabled."
             )
