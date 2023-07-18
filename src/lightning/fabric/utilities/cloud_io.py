@@ -77,7 +77,7 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
         f.write(bytesbuffer.getvalue())
 
 
-def is_dir(fs: AbstractFileSystem, path: Union[str, Path], strict: bool = False) -> bool:
+def _is_dir(fs: AbstractFileSystem, path: Union[str, Path], strict: bool = False) -> bool:
     """Check if a path is directory-like.
 
     This function determines if a given path is considered directory-like, taking into account the behavior
