@@ -354,25 +354,19 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
         # manager, which happens at the start of `Fabric.run()`. Later modifications through e.g. `Fabric.setup()`
         # won't have an effect here.
-
         import deepspeed
 
         if self.zero_stage_3:
             assert self._config_initialized
-
-            # Note: For the mixed settings '16-mixed' and 'bf16-mixed', we shouldn't convert the weights to half
-            # precision, but we are keeping the 'bug' for backward compatibility.
-            # TODO: This can be properly implemented once https://github.com/Lightning-AI/lightning/issues/17581
-            #   gets resolved
-            if self.precision.precision in ("16-mixed", "16-true"):
-                dtype = torch.float16
-            elif self.precision.precision in ("bf16-mixed", "bf16-true"):
-                dtype = torch.bfloat16
-            else:
-                dtype = torch.float32
+            # if self.precision.precision == "16-true":
+            #     dtype = torch.float16
+            # elif self.precision.precision == "bf16-true":
+            #     dtype = torch.bfloat16
+            # else:
+            #     dtype = torch.float32
 
             with deepspeed.zero.Init(
-                remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
+                remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config
             ):
                 yield
         else:
