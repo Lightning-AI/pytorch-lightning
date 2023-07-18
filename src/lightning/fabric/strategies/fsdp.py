@@ -500,7 +500,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         path = Path(self.broadcast(path))
 
         if isinstance(state, Module):
-            _load_raw_module_state(path, module=state, strict=strict)
+            self._load_raw_module_state(path, module=state, strict=strict)
             return {}
 
         if isinstance(state, Optimizer):
@@ -566,7 +566,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         if _is_full_checkpoint(path):
             checkpoint = torch.load(path, map_location="cpu")
-            _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
+            self._load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
 
             if isinstance(state, Module):
                 return {}
@@ -641,6 +641,31 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
         # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
         rank_zero_only.rank = self.global_rank
+
+    def _load_raw_module_state(self, path_or_ckpt: Union[Path, Dict[str, Any]], module: Module, strict: bool = True) -> None:
+        """Loads the state dict (given or from a path) into the module by gathering all weights first and then and
+        writing back to each shard."""
+        if isinstance(path_or_ckpt, Path) and not _is_full_checkpoint(path_or_ckpt):
+            raise ValueError(
+                "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
+                f" full state dict: {path_or_ckpt}"
+            )
+
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
+        # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
+        # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
+        with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
+            local_world_size = len(self.parallel_devices)
+            for i in range(local_world_size):
+                if self.local_rank == i:
+                    # Local rank i loads, frees memory when done
+                    state_dict = torch.load(path_or_ckpt, map_location="cpu") if not isinstance(path_or_ckpt, dict) else path_or_ckpt
+                    module.load_state_dict(state_dict, strict=strict)
+                    del state_dict
+                    self.barrier()
+                else:
+                    self.barrier()
 
 
 def _activation_checkpointing_kwargs(
@@ -793,24 +818,6 @@ def _is_sharded_checkpoint(path: Path) -> bool:
 
 def _is_full_checkpoint(path: Path) -> bool:
     return path.is_file()
-
-
-def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Module, strict: bool = True) -> None:
-    """Loads the state dict (given or from a path) into the module by gathering all weights first and then and
-    writing back to each shard."""
-    if isinstance(path_or_ckpt, Path) and not _is_full_checkpoint(path_or_ckpt):
-        raise ValueError(
-            "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
-            f" full state dict: {path_or_ckpt}"
-        )
-
-    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-
-    # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
-    # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
-    state_dict = torch.load(path_or_ckpt, map_location="cpu") if not isinstance(path_or_ckpt, dict) else path_or_ckpt
-    with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
-        module.load_state_dict(state_dict, strict=strict)
 
 
 def _no_op() -> None:
