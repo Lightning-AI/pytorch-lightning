@@ -112,7 +112,7 @@ def _is_dir(fs: AbstractFileSystem, path: Union[str, Path], strict: bool = False
             will be created on the fly. Defaults to False.
     """
     # Object storage fsspec's are inconsistent with other file systems because they do not have real directories,
-    # see or instance https://gcsfs.readthedocs.io/en/latest/api.html?highlight=makedirs#gcsfs.core.GCSFileSystem.mkdir
+    # see for instance https://gcsfs.readthedocs.io/en/latest/api.html?highlight=makedirs#gcsfs.core.GCSFileSystem.mkdir
     # In particular, `fs.makedirs` is a no-op so we use `strict=False` to consider any path as valid, except if the
     # path already exists but is a file
     if _is_object_storage(fs):
