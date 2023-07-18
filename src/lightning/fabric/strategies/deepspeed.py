@@ -444,7 +444,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
+        state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
@@ -466,7 +466,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 If DeepSpeed was unable to load the checkpoint due to missing files or because the checkpoint is
                 not in the expected DeepSpeed format.
         """
-        if self.load_full_weights and self.zero_stage_3:
+        if isinstance(state, (Module, Optimizer)) or self.load_full_weights and self.zero_stage_3:
             # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
             # a consolidated checkpoint
             path = self.broadcast(path)

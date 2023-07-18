@@ -332,6 +332,29 @@ def test_fsdp_load_unknown_checkpoint_type(tmp_path):
         strategy.load_checkpoint(path=path, state={"model": model})
 
 
+@RunIf(min_torch="2.0.0")
+def test_fsdp_load_raw_checkpoint_validate_single_file(tmp_path):
+    """Test that we validate the given checkpoint is a single file when loading a raw PyTorch state-dict
+    checkpoint."""
+    strategy = FSDPStrategy()
+    model = Mock(spec=nn.Module)
+    path = tmp_path / "folder"
+    path.mkdir()
+    with pytest.raises(ValueError, match="The given path must be a single file containing the full state dict"):
+        strategy.load_checkpoint(path=path, state=model)
+
+
+@RunIf(min_torch="2.0.0")
+def test_fsdp_load_raw_checkpoint_optimizer_unsupported(tmp_path):
+    """Validate that the FSDP strategy does not yet support loading the raw PyTorch state-dict for an optimizer."""
+    strategy = FSDPStrategy()
+    optimizer = Mock(spec=torch.optim.Optimizer)
+    with pytest.raises(
+        NotImplementedError, match="Loading a single optimizer object from a checkpoint is not supported"
+    ):
+        strategy.load_checkpoint(path=tmp_path, state=optimizer)
+
+
 @RunIf(min_torch="1.12")
 @mock.patch("torch.distributed.init_process_group")
 def test_set_timeout(init_process_group_mock):
