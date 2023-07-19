@@ -485,7 +485,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
+        state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
@@ -507,19 +507,28 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(path))
 
+        if isinstance(state, Module):
+            _load_raw_module_state(path, module=state, strict=strict)
+            return {}
+
+        if isinstance(state, Optimizer):
+            raise NotImplementedError(
+                "Loading a single optimizer object from a checkpoint is not supported yet with the FSDP strategy."
+            )
+
         from torch.distributed.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
 
         modules = {key: module for key, module in state.items() if _has_fsdp_modules(module)}
-        optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
         if len(modules) == 0:
             raise ValueError(
                 "Could not find a FSDP model in the provided checkpoint state. Please provide the model as"
                 " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
             )
+        optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
         if len(modules) > 1:
             raise ValueError(
                 "Found multiple FSDP models in the given state. Loading checkpoints with FSDP is"
@@ -564,11 +573,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return metadata
 
         if _is_full_checkpoint(path):
-            # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
-            # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
             checkpoint = torch.load(path, map_location="cpu")
-            with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
-                module.load_state_dict(checkpoint.pop(module_key), strict=strict)
+            _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
+
+            if isinstance(state, Module):
+                return {}
 
             # Load optimizer states
             for optim_key, optim in optimizers.items():
@@ -799,6 +808,24 @@ def _has_fsdp_modules(module: object) -> TypeGuard[Module]:
     from torch.distributed.fsdp import FullyShardedDataParallel
 
     return isinstance(module, Module) and any(isinstance(m, FullyShardedDataParallel) for m in module.modules())
+
+
+def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Module, strict: bool = True) -> None:
+    """Loads the state dict (given or from a path) into the module by gathering all weights first and then and
+    writing back to each shard."""
+    if isinstance(path_or_ckpt, Path) and not _is_full_checkpoint(path_or_ckpt):
+        raise ValueError(
+            "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
+            f" full state dict: {path_or_ckpt}"
+        )
+
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
+    # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
+    # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
+    state_dict = torch.load(path_or_ckpt, map_location="cpu") if not isinstance(path_or_ckpt, dict) else path_or_ckpt
+    with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
+        module.load_state_dict(state_dict, strict=strict)
 
 
 def _no_op() -> None:
