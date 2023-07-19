@@ -44,9 +44,11 @@ In the cloud, every :class:`~lightning.app.core.work.LightningWork` runs in a se
 This means files in one Work cannot be directly accessed in another like you would be able to when running the app locally.
 But with Lightning Storage, this is easy: Simply declare which files need to be shared and Lightning will take care of the rest.
 
-.. raw:: html
-
-    <video width="100%" max-width="800px" controls autoplay src="https://pl-public-data.s3.amazonaws.com/assets_lightning//path.m4v" />
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/path.mp4
+    :width: 600
+    :autoplay:
+    :loop:
+    :muted:
 
 
 ----

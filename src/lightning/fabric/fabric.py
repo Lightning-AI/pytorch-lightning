@@ -33,7 +33,14 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.connector import _Connector, _is_using_cli, _PLUGIN_INPUT, _PRECISION_INPUT
-from lightning.fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
+from lightning.fabric.strategies import (
+    DataParallelStrategy,
+    DeepSpeedStrategy,
+    FSDPStrategy,
+    SingleDeviceStrategy,
+    Strategy,
+    XLAStrategy,
+)
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning.fabric.utilities import move_data_to_device
@@ -469,7 +476,8 @@ class Fabric:
         return move_data_to_device(obj, device=self.device)
 
     def print(self, *args: Any, **kwargs: Any) -> None:
-        """Print something only on the first process.
+        """Print something only on the first process. If running on multiple machines, it will print from the first
+        process in each machine.
 
         Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
         """
@@ -738,6 +746,22 @@ class Fabric:
                 state[k] = unwrapped_state[k]
         return remainder
 
+    def load_raw(self, path: Union[str, Path], obj: Union[nn.Module, Optimizer], strict: bool = True) -> None:
+        """Load the state of a module or optimizer from a single state-dict file.
+
+        Use this for loading a raw PyTorch model checkpoint created without Fabric.
+        This is conceptually equivalent to ``obj.load_state_dict(torch.load(path))``, but is agnostic to the strategy
+        being used.
+
+        Args:
+            path: A path to where the file is located
+            obj: A :class:`~torch.nn.Module` or :class:`~torch.optim.Optimizer` instance.
+            strict: Whether to enforce that the keys in the module's state-dict match the keys in the checkpoint.
+                Does not apply to optimizers.
+        """
+        obj = _unwrap_objects(obj)
+        self._strategy.load_checkpoint(path=path, state=obj, strict=strict)
+
     def launch(self, function: Callable[["Fabric"], Any] = _do_nothing, *args: Any, **kwargs: Any) -> Any:
         """Launch and initialize all the processes needed for distributed execution.
 
@@ -919,7 +943,7 @@ class Fabric:
         setattr(self, "run", partial(self._wrap_and_launch, self.run))
 
     def _validate_launched(self) -> None:
-        if not self._launched and not isinstance(self._strategy, SingleDeviceStrategy):
+        if not self._launched and not isinstance(self._strategy, (SingleDeviceStrategy, DataParallelStrategy)):
             raise RuntimeError(
                 "To use Fabric with more than one device, you must call `.launch()` or use the CLI:"
                 " `lightning run model --help`."

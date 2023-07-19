@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-
 ## [UnReleased] - 2023-MM-DD
 
 ### Added
@@ -41,10 +40,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Handles initialization for FSDP models before wrapping and the Zero stage 3 initialization for DeepSpeed before sharding
 
 
-- Added supports for empty weight initialization with `Fabric.init_module(empty_init=True)` for efficient sharding and checkpoint loading ([#17627](https://github.com/Lightning-AI/lightning/pull/17627))
+- Added supports for empty weight initialization with `Fabric.init_module(empty_init=True)` for checkpoint loading ([#17627](https://github.com/Lightning-AI/lightning/pull/17627))
 
 
 - Added `lightning.fabric.plugins.Precision.init_context()` and `lightning.fabric.strategies.Strategy.module_init_context()` context managers to control model and tensor instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
+
+
+- `lightning.fabric.strategies.Strategy.tensor_init_context()` context manager to instantiate tensors efficiently directly on device and dtype ([#17607](https://github.com/Lightning-AI/lightning/pull/17607))
 
 
 - Run the DDP wrapper in a CUDA stream ([#17334](https://github.com/Lightning-AI/lightning/pull/17334))
@@ -78,6 +80,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Automatically call `xla_model.mark_step()` after `optimizer.step()` with XLA ([#17883](https://github.com/Lightning-AI/lightning/pull/17883))
+
+
+- Added support for all half-precision modes in FSDP precision plugin ([#17807](https://github.com/Lightning-AI/lightning/pull/17807))
+
+
+- Added `FSDPStrategy(activation_checkpointing_policy=...)` to customize the layer policy for automatic activation checkpointing (requires torch>=2.1) ([#18045](https://github.com/Lightning-AI/lightning/pull/18045))
+
+
+- Added a callback for spike-detection ([#18014](https://github.com/Lightning-AI/lightning/pull/18014))
+
+
+- Added the ability to set the `torch.distributed.fsdp.ShardingStrategy` via string in `FSDPStrategy` ([#18087](https://github.com/Lightning-AI/lightning/pull/18087))
+
+
+- Improved error messages when attempting to load a DeepSpeed checkpoint at an invalid path ([#17795](https://github.com/Lightning-AI/lightning/pull/17795))
+
+
+- Added `Fabric.load_raw()` for loading raw PyTorch state dict checkpoints for model or optimizer objects ([#18049](https://github.com/Lightning-AI/lightning/pull/18049))
 
 
 ### Changed
@@ -130,19 +150,46 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed false positive warning when using `fabric.no_backward_sync` with XLA strategies ([#17761](https://github.com/Lightning-AI/lightning/pull/17761))
 
 
-- Fixed validation of parameters of `plugins.precision.MixedPrecision` ([#17687](https://github.com/Lightning-AI/lightning/pull/17687))
+- Removed the need to call `.launch()` when using the DP-strategy (`strategy="dp"`) ([#17931](https://github.com/Lightning-AI/lightning/pull/17931))
 
 
-- Fixed an issue with hpu imports leading to performance degradation ([#17788](https://github.com/Lightning-AI/lightning/pull/17788))
+- Fixed FSDP re-applying activation checkpointing when the user had manually applied it already ([#18006](https://github.com/Lightning-AI/lightning/pull/18006))
 
+
+- Fixed FSDP re-wrapping the module root when the user had manually wrapped the model ([#18054](https://github.com/Lightning-AI/lightning/pull/18054))
+
+
+- Fixed `TensorBoardLogger.log_graph` not unwrapping the `_FabricModule` ([#17844](https://github.com/Lightning-AI/lightning/pull/17844))
+
+
+## [2.0.5] - 2023-07-07
+
+### Added
+
+- Added validation against misconfigured device selection when using the DeepSpeed strategy ([#17952](https://github.com/Lightning-AI/lightning/pull/17952))
+
+### Changed
+
+- Avoid info message when loading 0 entry point callbacks ([#17990](https://github.com/Lightning-AI/lightning/pull/17990))
+
+### Fixed
 
 - Fixed the emission of a false-positive warning when calling a method on the Fabric-wrapped module that accepts no arguments ([#17875](https://github.com/Lightning-AI/lightning/pull/17875))
-
-
 - Fixed check for FSDP's flat parameters in all parameter groups ([#17914](https://github.com/Lightning-AI/lightning/pull/17914))
-
-
 - Fixed automatic step tracking in Fabric's CSVLogger ([#17942](https://github.com/Lightning-AI/lightning/pull/17942))
+- Fixed an issue causing the `torch.set_float32_matmul_precision` info message to show multiple times ([#17960](https://github.com/Lightning-AI/lightning/pull/17960))
+- Fixed loading model state when `Fabric.load()` is called after `Fabric.setup()` ([#17997](https://github.com/Lightning-AI/lightning/pull/17997))
+
+
+## [2.0.4] - 2023-06-22
+
+### Fixed
+
+- Fixed validation of parameters of `plugins.precision.MixedPrecision` ([#17687](https://github.com/Lightning-AI/lightning/pull/17687))
+- Fixed an issue with hpu imports leading to performance degradation  ([#17788](https://github.com/Lightning-AI/lightning/pull/17788))
+
+
+- Fixed computing the next version folder in `CSVLogger` ([#17139](https://github.com/Lightning-AI/lightning/pull/17139), [#17139](https://github.com/Lightning-AI/lightning/pull/17986))
 
 
 ## [2.0.3] - 2023-06-07

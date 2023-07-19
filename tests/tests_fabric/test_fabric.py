@@ -24,9 +24,11 @@ from lightning_utilities.test.warning import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
 
+from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
+    DataParallelStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     ParallelStrategy,
@@ -532,11 +534,8 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
-    if accelerator == "tpu":
-        from torch_xla.experimental import pjrt
-
-        if not pjrt.using_pjrt():
-            expected = "xla:1"
+    if accelerator == "tpu" and not _using_pjrt():
+        expected = "xla:1"
 
     fabric = Fabric(accelerator=accelerator, devices=1)
     fabric.launch()
@@ -1016,6 +1015,23 @@ def test_load_wrapped_objects(setup, tmp_path):
     assert remainder == expected_remainder
 
 
+def test_load_raw():
+    """Test that `Fabric.load_raw()` unwraps the object to load and calls into the strategy."""
+    fabric = Fabric(accelerator="cpu")
+    fabric.strategy.load_checkpoint = Mock()
+
+    model = torch.nn.Linear(2, 2)
+    optimizer = torch.optim.Adam(model.parameters())
+    wrapped_model, wrapped_optimizer = fabric.setup(model, optimizer)
+
+    fabric.load_raw(path="path0", obj=model)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path0", state=model, strict=True)
+    fabric.load_raw(path="path1", obj=wrapped_model, strict=False)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path1", state=model, strict=False)
+    fabric.load_raw(path="path2", obj=wrapped_optimizer)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path2", state=optimizer, strict=True)
+
+
 def test_barrier():
     """Test that `Fabric.barrier()` calls into the strategy."""
     fabric = Fabric()
@@ -1133,6 +1149,8 @@ def test_verify_launch_called():
     fabric = Fabric(accelerator="cpu")
     assert not fabric._launched
     fabric._strategy = Mock(spec=SingleDeviceStrategy)
+    fabric._validate_launched()
+    fabric._strategy = Mock(spec=DataParallelStrategy)
     fabric._validate_launched()
     fabric._strategy = Mock(spec=DDPStrategy)
     with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
