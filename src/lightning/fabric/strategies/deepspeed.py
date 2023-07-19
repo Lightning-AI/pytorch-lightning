@@ -878,7 +878,6 @@ def _format_precision_config(
             rank_zero_info("Enabling DeepSpeed FP16. Model parameters and inputs will be cast to `float16`.")
             config["fp16"] = {
                 "enabled": True,
-                "auto_cast": True,
                 "loss_scale": loss_scale,
                 "initial_scale_power": initial_scale_power,
                 "loss_scale_window": loss_scale_window,
