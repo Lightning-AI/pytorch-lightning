@@ -121,7 +121,7 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
     policy = {nn.TransformerEncoderLayer, nn.TransformerDecoderLayer}
 
     # 2. Pass the policy to the FSDPStrategy object
-    strategy=FSDPStrategy(auto_wrap_policy=policy)
+    strategy = FSDPStrategy(auto_wrap_policy=policy)
 
     fabric = L.Fabric(..., strategy=strategy)
 
@@ -140,7 +140,7 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
         policy = partial(size_based_auto_wrap_policy, min_num_params=10000)
 
         # 3. Pass it to the FSDPStrategy object
-        strategy=FSDPStrategy(auto_wrap_policy=policy)
+        strategy = FSDPStrategy(auto_wrap_policy=policy)
 
     PyTorch provides several of these functional policies under :mod:`torch.distributed.fsdp.wrap`.
 
@@ -204,11 +204,9 @@ You can configure the following options to trade-off memory for speed:
     strategy = FSDPStrategy(
         # Default: Shard weights, gradients, optimizer state (1 + 2 + 3)
         sharding_strategy="FULL_SHARD",
-
-            # Shard gradients, optimizer state (2 + 3)
+        # Shard gradients, optimizer state (2 + 3)
         sharding_strategy="SHARD_GRAD_OP",
-
-            # Don't shard anything (similar to DDP)
+        # Don't shard anything (similar to DDP)
         sharding_strategy="NO_SHARD",
     )
     fabric = L.Fabric(..., strategy=strategy)
@@ -429,10 +427,10 @@ Here is the recipe:
     for i in range(max_iters):
         loss = ...
 
-            # 3. Instead of calling `optimizer.step()`, call `fabric.backward(loss)`
+        # 3. Instead of calling `optimizer.step()`, call `fabric.backward(loss)`
         #    within the context manager
         with fsdp_overlap_step_with_backward(optimizers, model):
-              fabric.backward(loss)
+            fabric.backward(loss)
 
         # optimizer.step()
 
@@ -450,7 +448,7 @@ Here is the recipe:
         from lightning.pytorch.demos import Transformer, WikiText2
 
         policy = {nn.TransformerEncoderLayer, nn.TransformerDecoderLayer}
-        strategy=FSDPStrategy(auto_wrap_policy=policy)
+        strategy = FSDPStrategy(auto_wrap_policy=policy)
         fabric = L.Fabric(accelerator="cuda", devices=2, strategy=strategy)
         fabric.launch()
 
@@ -514,7 +512,6 @@ With FSDP, you have one more knob you can tweak to combat the issue, by setting 
         # Default: The CPU will schedule the transfer of weights between GPUs
         # at will, sometimes too aggressively
         limit_all_gathers=False,
-
         # Enable this if you are close to the max. GPU memory usage
         limit_all_gathers=True,
     )
