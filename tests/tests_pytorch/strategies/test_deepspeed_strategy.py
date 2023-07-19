@@ -1311,7 +1311,7 @@ def test_deepspeed_init_module_with_stages_1_2(stage):
     with mock.patch("deepspeed.zero.Init") as zero_init_mock:
         trainer.fit(model)
 
-    zero_init_mock.assert_not_called()
+    zero_init_mock.assert_called_once_with(enabled=False, remote_device=None, config_dict_or_path=ANY)
     assert model.layer.weight.dtype == torch.bfloat16
 
 
