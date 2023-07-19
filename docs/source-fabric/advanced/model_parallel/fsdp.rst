@@ -29,10 +29,13 @@ One of the methods that can alleviate this limitation is called **model-parallel
 Checklist: When to use FSDP
 ***************************
 
+|
 
-- ✅ I have multiple GPUs
-- ✅ I have tried regular DDP training with batch size 1 but I run out of memory
-- ✅ I have PyTorch 2.0 or newer installed
+✅   I have multiple GPUs
+
+✅   I have tried regular DDP training with batch size 1 but I run out of memory
+
+✅   I have PyTorch 2.0 or newer installed
 
 
 ----
@@ -142,7 +145,8 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
 
 |
 
-Verify that FSDP works with your model by comparing the peak memory usage printed in the CUDA memory summary (see example above) with regular DDP training:
+Verify that FSDP works with your model by comparing the peak memory usage printed in the CUDA memory summary (see example above) with regular DDP training.
+You should see a decrease in allocated memory and a slight increase in iteration time:
 
 .. list-table:: Comparison of FSDP and DDP memory usage
    :widths: 25 25 25
@@ -157,9 +161,6 @@ Verify that FSDP works with your model by comparing the peak memory usage printe
    * - Iteration time (sec)
      - 0.26
      - 0.36
-
-You should see a decrease in allocated memory and a slight increase in iteration time.
-
 
 ----
 
