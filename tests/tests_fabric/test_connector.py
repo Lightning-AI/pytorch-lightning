@@ -1041,11 +1041,12 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert connector.strategy.launcher.is_interactive_compatible
 
 
-def test_connector_fp8_transformer_engine(monkeypatch):
+def test_connector_transformer_engine(monkeypatch):
     monkeypatch.setattr(
         lightning.fabric.plugins.precision.transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True
     )
-    monkeypatch.setitem(sys.modules, "transformer_engine", Mock())
+    transformer_engine_mock = Mock()
+    monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
     recipe_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
 
@@ -1114,11 +1115,8 @@ def test_connector_fp8_transformer_engine(monkeypatch):
     class TELayerNormMock(Mock):
         ...
 
-    monkeypatch.setattr(
-        lightning.fabric.plugins.precision.fp8_transformer_engine,
-        "_patched_te_layers",
-        lambda: (TELinearMock(), TELayerNormMock()),
-    )
+    transformer_engine_mock.pytorch.Linear = TELinearMock
+    transformer_engine_mock.pytorch.LayerNorm = TELayerNormMock
     precision.replace_layers = True
     with precision.init_context():
         assert torch.get_default_dtype() == torch.float16
