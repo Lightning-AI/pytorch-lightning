@@ -903,7 +903,11 @@ def _apply_optimizers_during_fsdp_backward(
                     assert prepare_gradient.__func__ is FlatParamHandle.prepare_gradient_for_optim
                     prepare_gradient()
                     h.prepare_gradient_for_optim = _no_op  # type: ignore[method-assign]
-                    post_step = h._reset_flat_param_grad_info_if_needed if _TORCH_GREATER_EQUAL_2_1 else h._clear_grads_if_needed
+                    post_step = (
+                        h._reset_flat_param_grad_info_if_needed
+                        if _TORCH_GREATER_EQUAL_2_1
+                        else h._clear_grads_if_needed
+                    )
                     maybe_step(flat_param._params or (), post_step=post_step)
 
             hook = partial(_opt_hook, h, flat_param)
