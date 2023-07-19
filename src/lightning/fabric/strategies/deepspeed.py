@@ -639,26 +639,15 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             )
 
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
-        self._format_precision_config()
-
-    def _format_precision_config(self) -> None:
-        assert isinstance(self.config, dict)
-        if self.precision.precision in ("16-mixed", "16-true"):
-            if "fp16" not in self.config:
-                # FP16 is a DeepSpeed standalone AMP implementation
-                rank_zero_info("Enabling DeepSpeed FP16.")
-                self.config["fp16"] = {
-                    "enabled": True,
-                    "auto_cast": True,
-                    "loss_scale": self.loss_scale,
-                    "initial_scale_power": self.initial_scale_power,
-                    "loss_scale_window": self.loss_scale_window,
-                    "hysteresis": self.hysteresis,
-                    "min_loss_scale": self.min_loss_scale,
-                }
-        elif "bf16" not in self.config and self.precision.precision in ("bf16-mixed", "bf16-true"):
-            rank_zero_info("Enabling DeepSpeed BF16.")
-            self.config["bf16"] = {"enabled": True}
+        _format_precision_config(
+            config=self.config,
+            precision=self.precision.precision,
+            loss_scale=self.loss_scale,
+            loss_scale_window=self.loss_scale_window,
+            min_loss_scale=self.min_loss_scale,
+            initial_scale_power=self.initial_scale_power,
+            hysteresis=self.hysteresis,
+        )
 
     def _create_default_config(
         self,
@@ -872,3 +861,30 @@ def _validate_checkpoint_directory(path: _PATH) -> None:
                 f" Try to load using this parent directory instead: {path.parent.parent}"
             )
         raise FileNotFoundError(default_message)
+
+
+def _format_precision_config(
+    config: Dict[str, Any],
+    precision: str,
+    loss_scale: float,
+    loss_scale_window: int,
+    min_loss_scale: int,
+    initial_scale_power: int,
+    hysteresis: int,
+) -> None:
+    if precision == "16-mixed":
+        if "fp16" not in ("16-mixed", "16-true"):
+            # FP16 is a DeepSpeed standalone AMP implementation
+            rank_zero_info("Enabling DeepSpeed FP16.")
+            config["fp16"] = {
+                "enabled": True,
+                "auto_cast": True,
+                "loss_scale": loss_scale,
+                "initial_scale_power": initial_scale_power,
+                "loss_scale_window": loss_scale_window,
+                "hysteresis": hysteresis,
+                "min_loss_scale": min_loss_scale,
+            }
+    elif "bf16" not in config and precision in ("bf16-mixed", "bf16-true"):
+        rank_zero_info("Enabling DeepSpeed BF16.")
+        config["bf16"] = {"enabled": True}

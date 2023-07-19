@@ -32,6 +32,7 @@ from lightning.fabric.plugins import ClusterEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.deepspeed import (
     _DEEPSPEED_AVAILABLE,
+    _format_precision_config,
     _validate_checkpoint_directory,
     _validate_device_index_selection,
 )
@@ -602,7 +603,15 @@ class DeepSpeedStrategy(DDPStrategy):
                 " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
             )
         self._format_batch_size_and_grad_accum_config()
-        self._format_precision_config()
+        _format_precision_config(
+            config=self.config,
+            precision=self.precision_plugin.precision,
+            loss_scale=self.loss_scale,
+            loss_scale_window=self.loss_scale_window,
+            min_loss_scale=self.min_loss_scale,
+            initial_scale_power=self.initial_scale_power,
+            hysteresis=self.hysteresis,
+        )
 
     def _format_batch_size_and_grad_accum_config(self) -> None:
         # TODO: Using Fabric, we do not support these variables within the config
@@ -645,24 +654,6 @@ class DeepSpeedStrategy(DDPStrategy):
                         "batch size, `Trainer(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=batch_size))`."
                     )
         return batch_size
-
-    def _format_precision_config(self) -> None:
-        assert isinstance(self.config, dict)
-        if self.precision_plugin.precision == "16-mixed":
-            if "fp16" not in self.config:
-                # FP16 is a DeepSpeed standalone AMP implementation
-                rank_zero_info("Enabling DeepSpeed FP16.")
-                self.config["fp16"] = {
-                    "enabled": True,
-                    "loss_scale": self.loss_scale,
-                    "initial_scale_power": self.initial_scale_power,
-                    "loss_scale_window": self.loss_scale_window,
-                    "hysteresis": self.hysteresis,
-                    "min_loss_scale": self.min_loss_scale,
-                }
-        elif "bf16" not in self.config and self.precision_plugin.precision == "bf16-mixed":
-            rank_zero_info("Enabling DeepSpeed BF16.")
-            self.config["bf16"] = {"enabled": True}
 
     def _create_default_config(
         self,
