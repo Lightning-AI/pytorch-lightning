@@ -96,7 +96,7 @@ def test_lazy_import():
     assert os.getcwd()
 
 
-@requires("torch")
+@requires("torch.unknown.subpackage")
 def my_torch_func(i: int) -> int:
     import torch  # noqa
 
@@ -105,7 +105,8 @@ def my_torch_func(i: int) -> int:
 
 def test_torch_func_raised():
     with pytest.raises(
-        ModuleNotFoundError, match="Required dependencies not available. Please run `pip install torch`"
+        ModuleNotFoundError,
+        match="Required dependencies not available: \nModule not found: 'torch.unknown.subpackage'. ",
     ):
         my_torch_func(42)
 
@@ -122,7 +123,7 @@ def test_rand_func_passed():
 
 
 class MyTorchClass:
-    @requires("torch", "random")
+    @requires("torch>99.0", "random")
     def __init__(self):
         from random import randint
 
@@ -133,7 +134,7 @@ class MyTorchClass:
 
 def test_torch_class_raised():
     with pytest.raises(
-        ModuleNotFoundError, match="Required dependencies not available. Please run `pip install torch`"
+        ModuleNotFoundError, match="Required dependencies not available: \nModule not found: 'torch>99.0'."
     ):
         MyTorchClass()
 

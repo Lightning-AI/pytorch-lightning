@@ -4,6 +4,7 @@
 
 import functools
 import importlib
+import os
 import warnings
 from functools import lru_cache
 from importlib.util import find_spec
@@ -266,8 +267,12 @@ def lazy_import(module_name: str, callback: Optional[Callable] = None) -> LazyMo
     return LazyModule(module_name, callback=callback)
 
 
-def requires(*module_path: str, raise_exception: bool = True) -> Callable[[Callable[P, T]], Callable[P, T]]:
+def requires(*module_path_version: str, raise_exception: bool = True) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Wrap early import failure with some nice exception message.
+
+    Args:
+        module_path_version: pythin package path (e.g. `torch.cuda`) or pip like requiremsnt (e.g. `torch>=2.0.0`)
+        raise_exception: how strict the check shall be if exit the code or just warn user
 
     Example:
         >>> @requires("libpath", raise_exception=bool(int(os.getenv("LIGHTING_TESTING", "0"))))
@@ -284,11 +289,17 @@ def requires(*module_path: str, raise_exception: bool = True) -> Callable[[Calla
     """
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        reqs = [
+            ModuleAvailableCache(mod_ver) if "." in mod_ver else RequirementCache(mod_ver)
+            for mod_ver in module_path_version
+        ]
+        available = all(map(bool, reqs))
+
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            unavailable_modules = [module for module in module_path if not module_available(module)]
-            if any(unavailable_modules):
-                msg = f"Required dependencies not available. Please run `pip install {' '.join(unavailable_modules)}`"
+            if not available:
+                missing = os.linesep.join([repr(r) for r in reqs if not bool(r)])
+                msg = f"Required dependencies not available: \n{missing}"
                 if raise_exception:
                     raise ModuleNotFoundError(msg)
                 warnings.warn(msg, stacklevel=2)
