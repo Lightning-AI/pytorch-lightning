@@ -1043,7 +1043,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
 
 def test_connector_fp8_transformer_engine(monkeypatch):
     monkeypatch.setattr(
-        lightning.fabric.plugins.precision.fp8_transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True
+        lightning.fabric.plugins.precision.transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True
     )
     monkeypatch.setitem(sys.modules, "transformer_engine", Mock())
     recipe_mock = Mock()
