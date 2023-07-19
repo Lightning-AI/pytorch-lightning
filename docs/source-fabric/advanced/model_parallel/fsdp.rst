@@ -137,7 +137,7 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
         from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
 
         # 2. Configure the policy
-        policy = partial(size_based_auto_wrap_policy, min_num_params=10000))
+        policy = partial(size_based_auto_wrap_policy, min_num_params=10000)
 
         # 3. Pass it to the FSDPStrategy object
         strategy=FSDPStrategy(auto_wrap_policy=policy)
@@ -149,7 +149,7 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
 Verify that FSDP works with your model by comparing the peak memory usage printed in the CUDA memory summary (see example above) with regular DDP training.
 You should see a decrease in allocated memory and a slight increase in iteration time:
 
-.. list-table:: Comparison of FSDP and DDP memory usage
+.. list-table::
    :widths: 25 25 25
    :header-rows: 1
 
@@ -214,9 +214,16 @@ You can configure the following options to trade-off memory for speed:
     fabric = L.Fabric(..., strategy=strategy)
 
 
+**Recipe for choosing a sharding strategy:**
+
+1. Try the default settings first (FULL_SHARD). This is the slowest but will save you the most memory.
+2. Try SHARD_GRAD_OP. If you run out of memory, revert back to the default (FULL_SHARD). Otherwise you should expect to see an increase in iteration speed.
+
+|
+
 Here is the memory and speed impact for each option when configured in our example code:
 
-.. list-table:: Comparison of different sharding strategies for FSDP
+.. list-table::
    :widths: 25 25 25 25 25
    :header-rows: 1
 
@@ -235,11 +242,6 @@ Here is the memory and speed impact for each option when configured in our examp
      - 0.30
      - 0.31
      - 0.36
-
-**Recipe for choosing a sharding strategy:**
-
-1. Try the default settings first (FULL_SHARD). This is the slowest but will save you the most memory.
-2. Try SHARD_GRAD_OP. If you run out of memory, revert back to the default (FULL_SHARD). Otherwise you should expect to see an increase in iteration speed.
 
 
 ----
@@ -266,7 +268,6 @@ This is typically your transformer block (including attention + feed-forward):
 .. code-block:: python
 
     strategy = FSDPStrategy(
-        ...
         # Enable activation checkpointing on these layers
         activation_checkpointing_policy={
             nn.TransformerEncoderLayer,
@@ -294,7 +295,7 @@ The drawback is a much slower training speed due to the added communication betw
 You should use this only if you have enough CPU memory and other scaling methods don’t give you enough memory savings.
 In our example, we see a 4x memory saving, but a 10x increase in iteration time:
 
-.. list-table:: Comparison of FSDP vs. FSDP with CPU offload
+.. list-table::
    :widths: 25 25 25 25
    :header-rows: 1
 
