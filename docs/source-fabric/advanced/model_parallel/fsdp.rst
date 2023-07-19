@@ -71,9 +71,10 @@ Here is a full code example:
     import torch.nn.functional as F
 
     import lightning as L
+    from lightning.fabric.strategies import FSDPStrategy
     from lightning.pytorch.demos import Transformer, WikiText2
 
-    fabric = L.Fabric(accelerator="cuda", devices=2, strategy="fsdp")
+    fabric = L.Fabric(accelerator="cuda", devices=2, strategy=FSDPStrategy())
     fabric.launch()
 
     fabric.seed_everything(42)
