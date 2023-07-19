@@ -50,6 +50,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added the process group timeout argument `FSDPStrategy(timeout=...)` for the FSDP strategy ([#17274](https://github.com/Lightning-AI/lightning/pull/17274))
 
 
+- Added `FSDPStrategy(activation_checkpointing_policy=...)` to customize the layer policy for automatic activation checkpointing (requires torch>=2.1) ([#18045](https://github.com/Lightning-AI/lightning/pull/18045))
+
+
 - Added CLI option `--map-to-cpu` to the checkpoint upgrade script to enable converting GPU checkpoints on a CPU-only machine ([#17527](https://github.com/Lightning-AI/lightning/pull/17527))
 
 
@@ -62,10 +65,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `Trainer.print()` to print on local rank zero only ([#17980](https://github.com/Lightning-AI/lightning/pull/17980))
 
 
+- Added `Trainer.init_module()` context manager to instantiate large models efficiently directly on device, dtype ([#18004](https://github.com/Lightning-AI/lightning/pull/18004))
+  * Creates the model parameters in the desired dtype (`torch.float32`, `torch.float64`) depending on the 'true' precision choice in `Trainer(precision='32-true'|'64-true')`
+
+
+- Added the `LightningModule.configure_model()` hook to instantiate large models efficiently directly on device, dtype, and with sharding support ([#18004](https://github.com/Lightning-AI/lightning/pull/18004))
+  * Handles initialization for FSDP models before wrapping and the Zero stage 3 initialization for DeepSpeed before sharding
+
+
+- Added `lightning.pytorch.plugins.PrecisionPlugin.init_context()` and `lightning.pytorch.strategies.Strategy.tensor_init_context()` context managers to control model and tensor instantiation ([#18004](https://github.com/Lightning-AI/lightning/pull/18004))
+
+
 - Automatically call `xla_model.mark_step()` before saving checkpoints with XLA ([#17882](https://github.com/Lightning-AI/lightning/pull/17882))
 
 
 - Added a callback for spike-detection ([#18014](https://github.com/Lightning-AI/lightning/pull/18014))
+
+
+- Added the ability to set the `torch.distributed.fsdp.ShardingStrategy` via string in `FSDPStrategy` ([#18087](https://github.com/Lightning-AI/lightning/pull/18087))
+
+
+- Improved error messages when attempting to load a DeepSpeed checkpoint at an invalid path ([#17795](https://github.com/Lightning-AI/lightning/pull/17795))
 
 
 ### Changed
@@ -120,6 +140,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the `Strategy.post_training_step` method ([#17531](https://github.com/Lightning-AI/lightning/pull/17531))
 
 
+- Deprecated the `LightningModule.configure_sharded_model` hook in favor of `LightningModule.configure_model` ([#18004](https://github.com/Lightning-AI/lightning/pull/18004))
+
+
 ### Removed
 
 - Removed the `XLAStrategy.is_distributed` property. It is always True ([#17381](https://github.com/Lightning-AI/lightning/pull/17381))
@@ -141,6 +164,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - `LightningCLI` not saving correctly `seed_everything` when `run=True` and `seed_everything=True` ([#18056](https://github.com/Lightning-AI/lightning/pull/18056))
+
+
+- Fixed an issue that prevented the use of custom logger classes without an `experiment` property defined ([#18093](https://github.com/Lightning-AI/lightning/pull/18093))
+
+
+- Fixed validation of non-PyTorch LR schedulers in manual optimization mode ([#18092](https://github.com/Lightning-AI/lightning/pull/18092))
+
+
+- Fixed an attribute error for `_FaultTolerantMode` when loading an old checkpoint that pickled the enum ([#18094](https://github.com/Lightning-AI/lightning/pull/18094))
 
 
 ## [2.0.5] - 2023-07-07

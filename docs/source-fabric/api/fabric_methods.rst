@@ -254,8 +254,28 @@ Fabric will handle the loading part correctly, whether running a single device, 
 
     # Or load everything and restore your objects manually
     checkpoint = fabric.load("./checkpoints/version_2/checkpoint.ckpt")
-    model.load_state_dict(all_states["model"])
+    model.load_state_dict(checkpoint["model"])
     ...
+
+
+To load the state of your model or optimizer from a raw PyTorch checkpoint (not saved with Fabric), use :meth:`~lightning.fabric.fabric.Fabric.load_raw` instead.
+See also: :doc:`../guide/checkpoint`
+
+
+load_raw
+========
+
+Load the state-dict of a model or optimizer from a raw PyTorch checkpoint not saved by Fabric.
+
+.. code-block:: python
+
+    model = MyModel()
+
+    # A model weights file saved by your friend who doesn't use Fabric
+    fabric.load_raw("path/to/model.pt", model)
+
+    # Equivalent to this:
+    # model.load_state_dict(torch.load("path/to/model.pt"))
 
 
 See also: :doc:`../guide/checkpoint`
