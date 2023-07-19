@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
-import functools
-import os
 from datetime import timedelta
 from re import escape
 from unittest import mock
