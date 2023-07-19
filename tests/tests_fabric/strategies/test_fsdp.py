@@ -539,7 +539,10 @@ def test_apply_optimizer_in_backward(checkpoint):
                 # baseline case a bit.
                 param_handles = _get_fsdp_handles(baseline_model._forward_module)
                 for h in param_handles:
-                    h._clear_grads_if_needed()
+                    if _TORCH_GREATER_EQUAL_2_1:
+                        h._reset_flat_param_grad_info_if_needed()
+                    else:
+                        h._clear_grads_if_needed()
 
             baseline_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
 
