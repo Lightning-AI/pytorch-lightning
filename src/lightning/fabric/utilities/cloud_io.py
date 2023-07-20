@@ -14,10 +14,11 @@
 """Utilities related to data saving/loading."""
 
 import io
+from functools import lru_cache
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Dict, IO, Union, Optional
-from functools import lru_cache
+from typing import Any, Dict, IO, Optional, Union
+
 import fsspec
 import torch
 from fsspec.core import url_to_fs
