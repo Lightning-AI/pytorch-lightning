@@ -15,8 +15,9 @@
 
 import io
 from pathlib import Path
-from typing import Any, Dict, IO, Union
-
+from types import ModuleType
+from typing import Any, Dict, IO, Union, Optional
+from functools import lru_cache
 import fsspec
 import torch
 from fsspec.core import url_to_fs
@@ -72,28 +73,24 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
         f.write(bytesbuffer.getvalue())
 
 
-def _is_object_storage(fs: AbstractFileSystem) -> bool:
+@lru_cache(maxsize=None)
+def _lazy_import(module_name: str) -> Optional[ModuleType]:
     try:
-        import adlfs
+        return __import__(module_name)
     except ImportError:
-        adlfs = None
+        return None
 
+
+def _is_object_storage(fs: AbstractFileSystem) -> bool:
+    adlfs = _lazy_import("adlfs")
     if adlfs is not None and isinstance(fs, adlfs.AzureBlobFileSystem):
         return True
 
-    try:
-        import gcsfs
-    except ImportError:
-        gcsfs = None
-
+    gcsfs = _lazy_import("gcsfs")
     if gcsfs is not None and isinstance(fs, gcsfs.GCSFileSystem):
         return True
 
-    try:
-        import s3fs
-    except ImportError:
-        s3fs = None
-
+    s3fs = _lazy_import("s3fs")
     if s3fs is not None and isinstance(fs, s3fs.S3FileSystem):
         return True
 
