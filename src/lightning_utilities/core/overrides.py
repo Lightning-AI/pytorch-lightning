@@ -12,7 +12,7 @@ def is_overridden(method_name: str, instance: object, parent: Type[object]) -> b
     instance_attr = getattr(instance, method_name, None)
     if instance_attr is None:
         return False
-    # `functools.wraps()` support
+    # `functools.wraps()` and `@contextmanager` support
     if hasattr(instance_attr, "__wrapped__"):
         instance_attr = instance_attr.__wrapped__
     # `Mock(wraps=...)` support
@@ -28,5 +28,8 @@ def is_overridden(method_name: str, instance: object, parent: Type[object]) -> b
     parent_attr = getattr(parent, method_name, None)
     if parent_attr is None:
         raise ValueError("The parent should define the method")
+    # `@contextmanager` support
+    if hasattr(parent_attr, "__wrapped__"):
+        parent_attr = parent_attr.__wrapped__
 
     return instance_attr.__code__ != parent_attr.__code__
