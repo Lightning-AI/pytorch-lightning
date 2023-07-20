@@ -51,6 +51,7 @@ from lightning.fabric.plugins.precision.precision import (
     _PRECISION_INPUT_STR_ALIAS,
     _PRECISION_INPUT_STR_ALIAS_CONVERSION,
 )
+from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
     DeepSpeedStrategy,
     ParallelStrategy,
@@ -454,6 +455,8 @@ class _Connector:
             return Precision()
         if self._precision_input == "64-true":
             return DoublePrecision()
+        if self._precision_input == "transformer-engine":
+            return TransformerEnginePrecision()
 
         if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(

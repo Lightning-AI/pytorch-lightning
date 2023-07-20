@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from unittest import mock
 
 import pytest
@@ -18,10 +19,12 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import lightning.pytorch as pl
+from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import seed_everything, Trainer
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import DoublePrecisionPlugin, PrecisionPlugin
 from lightning.pytorch.strategies import DDPStrategy
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -158,3 +161,27 @@ def test_ddp_process_group_backend(process_group_backend, device_str, expected_p
 def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs, mps_count_0):
     trainer = Trainer(strategy=strategy_name)
     assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs
+
+
+@RunIf(min_cuda_gpus=2)
+@pytest.mark.parametrize(
+    ("precision_plugin", "expected_dtype"),
+    [
+        (PrecisionPlugin(), torch.float32),
+        (DoublePrecisionPlugin(), torch.float64),
+    ],
+)
+@mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
+def test_tensor_init_context(precision_plugin, expected_dtype):
+    """Test that the module under the init-context gets moved to the right device and dtype."""
+    parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
+    expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
+
+    strategy = DDPStrategy(
+        parallel_devices=parallel_devices, precision_plugin=precision_plugin, cluster_environment=LightningEnvironment()
+    )
+    assert strategy.local_rank == 1
+    with strategy.tensor_init_context():
+        module = torch.nn.Linear(2, 2)
+    assert module.weight.device == module.bias.device == expected_device
+    assert module.weight.dtype == module.bias.dtype == expected_dtype

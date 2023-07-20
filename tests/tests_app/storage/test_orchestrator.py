@@ -47,6 +47,13 @@ def test_orchestrator():
     orchestrator.run_once("work_a")
     orchestrator.run_once("work_b")
 
+    # edge case: `None` requests on the queue get ignored
+    # TODO: Investigate how `None` values end up in the queue
+    request_queues["work_a"].put(None)
+    orchestrator.run_once("work_a")
+    orchestrator.run_once("work_b")
+    assert not request_queues["work_a"]._queue
+
     # simulate copier A confirms that the file is available on the shared volume
     response = _GetResponse(source="work_a", path="/a/b/c.txt", hash="", destination="work_b", name="")
     copy_request_queues["work_a"].get()
