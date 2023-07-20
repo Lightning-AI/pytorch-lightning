@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities related to data saving/loading."""
-
+import importlib
 import io
 from functools import lru_cache
 from pathlib import Path
@@ -77,7 +77,7 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
 @lru_cache(maxsize=None)
 def _lazy_import(module_name: str) -> Optional[ModuleType]:
     try:
-        return __import__(module_name)
+        return importlib.import_module(module_name)
     except ImportError:
         return None
 
