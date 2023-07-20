@@ -855,7 +855,7 @@ def _apply_optimizers_during_fsdp_backward(
     assert param_handles, f"Module {module} does not appear to contain any FSDP modules."
     fsdp_state = _get_module_fsdp_state(module)
     assert fsdp_state is not None
-    fsdp_stream = fsdp_state._streams["post_backward"]
+    fsdp_stream = fsdp_state._post_backward_stream if _TORCH_GREATER_EQUAL_2_1 else fsdp_state._streams["post_backward"]
 
     if isinstance(optimizers, Optimizer):
         optimizers = [optimizers]
@@ -879,7 +879,7 @@ def _apply_optimizers_during_fsdp_backward(
                 optimizer.step()
                 optimizer.zero_grad()
 
-                # Used to call `_clear_grads_if_needed`. Otherwise FSDP might hold on to the memory.
+                # Used to call `_reset_flat_param_grad_info_if_needed`. Otherwise FSDP might hold on to the memory.
                 post_step()
 
     try:
@@ -903,7 +903,12 @@ def _apply_optimizers_during_fsdp_backward(
                     assert prepare_gradient.__func__ is FlatParamHandle.prepare_gradient_for_optim
                     prepare_gradient()
                     h.prepare_gradient_for_optim = _no_op  # type: ignore[method-assign]
-                    maybe_step(flat_param._params or (), h._clear_grads_if_needed)
+                    post_step = (
+                        h._reset_flat_param_grad_info_if_needed
+                        if _TORCH_GREATER_EQUAL_2_1
+                        else h._clear_grads_if_needed
+                    )
+                    maybe_step(flat_param._params or (), post_step=post_step)
 
             hook = partial(_opt_hook, h, flat_param)
             hook_handles.append(fsdp_acc_grad.register_hook(hook))
