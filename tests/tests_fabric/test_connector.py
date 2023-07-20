@@ -57,6 +57,7 @@ from lightning.fabric.strategies import (
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
     XLAStrategy,
+    XLAFSDPStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
@@ -1039,6 +1040,28 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
     assert connector.strategy.launcher._start_method == "fork"
     assert connector.strategy.launcher.is_interactive_compatible
+
+
+def test_xla_fsdp_automatic_strategy_selection(tpu_available):
+    connector = _Connector(accelerator="tpu", strategy="fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _Connector(accelerator="auto", strategy="fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _Connector(accelerator="auto", strategy="xla_fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+
+def test_xla_fsdp_automatic_strategy_selection(tpu_available):
+    connector = _Connector(accelerator="tpu", strategy="fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _Connector(accelerator="auto", strategy="fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _Connector(accelerator="auto", strategy="xla_fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
 
 
 def test_connector_transformer_engine(monkeypatch):

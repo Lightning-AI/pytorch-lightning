@@ -39,6 +39,7 @@ from lightning.fabric.strategies import (
     FSDPStrategy,
     SingleDeviceStrategy,
     Strategy,
+    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
@@ -971,7 +972,9 @@ class Fabric:
 
     def _validate_setup_optimizers(self, optimizers: Sequence[Optimizer]) -> None:
         self._validate_launched()
-        if isinstance(self._strategy, (DeepSpeedStrategy, XLAStrategy)):
+        if isinstance(self._strategy, (DeepSpeedStrategy, XLAStrategy)) and not isinstance(
+            self._strategy, XLAFSDPStrategy
+        ):
             raise RuntimeError(
                 f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
                 " through `.setup(model, optimizer, ...)`."
