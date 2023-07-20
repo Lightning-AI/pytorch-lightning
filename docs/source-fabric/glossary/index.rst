@@ -65,7 +65,7 @@ Glossary
 
 .. displayitem::
     :header: FSDP
-    :button_link: ../advanced/model_parallel/fdsp.html
+    :button_link: ../advanced/model_parallel/fsdp.html
     :col_css: col-md-4
 
 .. displayitem::
