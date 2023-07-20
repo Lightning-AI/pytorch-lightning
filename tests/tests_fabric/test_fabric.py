@@ -1015,6 +1015,23 @@ def test_load_wrapped_objects(setup, tmp_path):
     assert remainder == expected_remainder
 
 
+def test_load_raw():
+    """Test that `Fabric.load_raw()` unwraps the object to load and calls into the strategy."""
+    fabric = Fabric(accelerator="cpu")
+    fabric.strategy.load_checkpoint = Mock()
+
+    model = torch.nn.Linear(2, 2)
+    optimizer = torch.optim.Adam(model.parameters())
+    wrapped_model, wrapped_optimizer = fabric.setup(model, optimizer)
+
+    fabric.load_raw(path="path0", obj=model)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path0", state=model, strict=True)
+    fabric.load_raw(path="path1", obj=wrapped_model, strict=False)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path1", state=model, strict=False)
+    fabric.load_raw(path="path2", obj=wrapped_optimizer)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path2", state=optimizer, strict=True)
+
+
 def test_barrier():
     """Test that `Fabric.barrier()` calls into the strategy."""
     fabric = Fabric()
