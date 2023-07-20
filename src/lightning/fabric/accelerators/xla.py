@@ -80,6 +80,8 @@ class XLAAccelerator(Accelerator):
                 from torch_xla._internal import tpu
 
                 return tpu.num_available_devices()
+            from torch_xla.experimental import tpu
+
             device_count_on_version = {2: 8, 3: 8, 4: 4}
             return device_count_on_version.get(tpu.version(), 8)
 
@@ -97,6 +99,8 @@ class XLAAccelerator(Accelerator):
         try:
             return XLAAccelerator.auto_device_count() > 0
         except (ValueError, AssertionError, OSError):
+            # XLA may raise these exceptions if it's not properly configured. This needs to be avoided for the cases
+            # when `torch_xla` is imported but not used
             return False
 
     @staticmethod

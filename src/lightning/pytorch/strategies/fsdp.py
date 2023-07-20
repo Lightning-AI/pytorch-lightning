@@ -14,7 +14,7 @@
 import logging
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -27,8 +27,10 @@ from lightning.fabric.plugins.collectives.torch_collective import default_pg_tim
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.fsdp import (
     _activation_checkpointing_kwargs,
+    _auto_wrap_policy_kwargs,
     _get_full_state_dict_context,
     _init_cpu_offload,
+    _init_sharding_strategy,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
 )
@@ -56,17 +58,20 @@ from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
+from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
 
     if _TORCH_GREATER_EQUAL_2_0:
         from torch.distributed.fsdp.wrap import _FSDPPolicy
 
-        _POLICY = Union[Callable[[Module, bool, int], bool], _FSDPPolicy]
+        _POLICY = Union[Set, Callable[[Module, bool, int], bool], _FSDPPolicy]
     else:
-        _POLICY = Callable[[Module, bool, int], bool]  # type: ignore[misc]
+        _POLICY = Union[Set, Callable[[Module, bool, int], bool]]  # type: ignore[misc]
+
+    _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
+
 
 log = logging.getLogger(__name__)
 
@@ -91,13 +96,26 @@ class FSDPStrategy(ParallelStrategy):
     Arguments:
         cpu_offload: See ``cpu_offload`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
         mixed_precision: See ``mixed_precision`` parameter in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
-        activation_checkpointing: Deprecated. Use ``activation_checkpointing_policy``. A single layer or a list of
-            layer classes for which you want to enable activation checkpointing. This is typically your transformer
-            block (including attention + feed-forward).
+        auto_wrap_policy: Same as ``auto_wrap_policy`` parameter in
+            :class:`torch.distributed.fsdp.FullyShardedDataParallel`. For convenience, this also accepts a set of the
+            layer classes to wrap.
+        activation_checkpointing: Deprecated. Use ``activation_checkpointing_policy``.
         activation_checkpointing_policy: Same as ``auto_wrap_policy`` parameter in
             :class:`torch.distributed.fsdp.FullyShardedDataParallel` but used when selecting the modules for which you
             want to enable activation checkpointing. Enabling this can free up a significant amount of memory at the
-            cost of speed since activations in these layers need to be recomputed during backpropagation.
+            cost of speed since activations in these layers need to be recomputed during backpropagation. For
+            convenience, this also accepts a set of the layer classes to wrap.
+        sharding_strategy: Select whether to shard model parameters, gradients, optimizer states, or a combination of
+            them. Available values are:
+
+            - ``"FULL_SHARD"``: Shards model parameters, gradients, and optimizer states (default).
+            - ``"SHARD_GRAD_OP"``: Shards gradients and optimizer states only. Model parameters get replicated.
+            - ``"NO_SHARD"``: No sharding (identical to regular DDP).
+            - ``"HYBRID_SHARD"``: Shards model parameters, gradients, and optimizer states within a single machine, but
+              replicates across machines.
+
+            Also accepts a :class:`torch.distributed.fsdp.ShardingStrategy` enum value.
+
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
     """
 
@@ -115,8 +133,10 @@ class FSDPStrategy(ParallelStrategy):
         timeout: Optional[timedelta] = default_pg_timeout,
         cpu_offload: Union[bool, "CPUOffload", None] = None,
         mixed_precision: Optional["MixedPrecision"] = None,
+        auto_wrap_policy: Optional["_POLICY"] = None,
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         activation_checkpointing_policy: Optional["_POLICY"] = None,
+        sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -134,12 +154,15 @@ class FSDPStrategy(ParallelStrategy):
         self._process_group_backend = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
+        self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
         self.mixed_precision = mixed_precision
-        self.kwargs = kwargs
+        self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
+
         if _TORCH_GREATER_EQUAL_2_0:
             # Avoids the need for user to reference params in `configure_optimizers` via
             # `self.trainer.model.parameters()` and enables support for multiple parameter groups.
             self.kwargs.setdefault("use_orig_params", True)
+
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
             activation_checkpointing, activation_checkpointing_policy
         )
@@ -225,34 +248,35 @@ class FSDPStrategy(ParallelStrategy):
         if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
 
-    def _setup_model(self, model: Module) -> "FullyShardedDataParallel":
+    def _setup_model(self, model: Module) -> Module:
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
-        from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+        from torch.distributed.fsdp import FullyShardedDataParallel
 
-        # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
-        assert self.lightning_module is not None
-        if "auto_wrap_policy" in self.kwargs and any(
-            isinstance(mod, FullyShardedDataParallel) for mod in self.lightning_module.modules()
-        ):
-            del self.kwargs["auto_wrap_policy"]
-
-        log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
-
-        wrapped_module = FullyShardedDataParallel(
-            module=model,
-            process_group=self.process_group,
-            cpu_offload=self.cpu_offload,
-            mixed_precision=self.mixed_precision_config,
-            device_id=self.root_device.index,
-            **self.kwargs,
-        )
+        if any(isinstance(mod, FullyShardedDataParallel) for mod in model.modules()):
+            # the user wrapped at least one layer in `configure_model` already
+            if "auto_wrap_policy" in self.kwargs:
+                rank_zero_warn(
+                    "A FSDP `auto_wrap_policy` is set, but the model is already wrapped. The policy will be ignored."
+                )
+                del self.kwargs["auto_wrap_policy"]
+        else:
+            log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
+            model = FullyShardedDataParallel(
+                module=model,
+                process_group=self.process_group,
+                cpu_offload=self.cpu_offload,
+                mixed_precision=self.mixed_precision_config,
+                sharding_strategy=self.sharding_strategy,
+                device_id=self.root_device.index,
+                **self.kwargs,
+            )
 
         # activation checkpointing needs to be set up after wrapping the model
         if _TORCH_GREATER_EQUAL_1_13:
-            _setup_activation_checkpointing(wrapped_module, self._activation_checkpointing_kwargs)
+            _setup_activation_checkpointing(model, self._activation_checkpointing_kwargs)
 
-        return wrapped_module
+        return model
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
@@ -324,6 +348,7 @@ class FSDPStrategy(ParallelStrategy):
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
+            sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
             **self.kwargs,
         ):
@@ -429,7 +454,7 @@ class FSDPStrategy(ParallelStrategy):
                 " of optimizers or edit the checkpoint manually to remove states."
             )
 
-        assert isinstance(self.model, FullyShardedDataParallel)
+        assert self.model is not None
 
         # rank0_only should be false because we need to load the optimizer state on all ranks
         with _get_full_state_dict_context(self.model, rank0_only=False):

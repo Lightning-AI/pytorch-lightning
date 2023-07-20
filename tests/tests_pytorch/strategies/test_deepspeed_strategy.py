@@ -136,7 +136,7 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
     assert strategy.config == deepspeed_config
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, mps=False)
 def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
 
@@ -547,7 +547,7 @@ def test_deepspeed_multigpu_single_file(tmpdir):
     strategy = trainer.strategy
     assert isinstance(strategy, DeepSpeedStrategy)
     assert not strategy.load_full_weights
-    with pytest.raises(MisconfigurationException, match="DeepSpeed was unable to load the checkpoint."):
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
         trainer.test(model, ckpt_path=checkpoint_path)
 
     trainer = Trainer(
@@ -955,7 +955,7 @@ def test_deepspeed_multigpu_test_rnn(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, mps=False)
 @mock.patch("deepspeed.init_distributed", autospec=True)
 @pytest.mark.parametrize("platform", ["Linux", "Windows"])
 def test_deepspeed_strategy_env_variables(mock_deepspeed_distributed, tmpdir, platform):
@@ -1298,9 +1298,7 @@ def test_deepspeed_init_module_with_stage_3():
     with mock.patch("deepspeed.zero.Init") as zero_init_mock:
         trainer.fit(model)
 
-    zero_init_mock.assert_called_once_with(
-        remote_device="cpu", pin_memory=True, config_dict_or_path=ANY, dtype=torch.bfloat16
-    )
+    zero_init_mock.assert_called_once_with(enabled=True, remote_device=None, config_dict_or_path=ANY)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
@@ -1313,5 +1311,25 @@ def test_deepspeed_init_module_with_stages_1_2(stage):
     with mock.patch("deepspeed.zero.Init") as zero_init_mock:
         trainer.fit(model)
 
-    zero_init_mock.assert_not_called()
+    zero_init_mock.assert_called_once_with(enabled=False, remote_device=None, config_dict_or_path=ANY)
     assert model.layer.weight.dtype == torch.bfloat16
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_load_checkpoint_validate_path(tmp_path):
+    """Test that we validate the checkpoint path for a DeepSpeed checkpoint and give suggestions for user error."""
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
+        strategy.load_checkpoint(checkpoint_path=tmp_path)
+
+    # User tries to pass the subfolder as the path
+    checkpoint_path = tmp_path / "checkpoint"
+    checkpoint_path.mkdir()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(checkpoint_path=checkpoint_path)
+
+    # User tries to pass an individual file inside the checkpoint folder
+    checkpoint_path = checkpoint_path / "zero_pp_rank_0_mp_rank_00_model_states.pt"
+    checkpoint_path.touch()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(checkpoint_path=checkpoint_path)
