@@ -872,18 +872,17 @@ def _format_precision_config(
     initial_scale_power: int,
     hysteresis: int,
 ) -> None:
-    if precision == "16-mixed":
-        if "fp16" not in ("16-mixed", "16-true"):
-            # FP16 is a DeepSpeed standalone AMP implementation
-            rank_zero_info("Enabling DeepSpeed FP16. Model parameters and inputs will be cast to `float16`.")
-            config["fp16"] = {
-                "enabled": True,
-                "loss_scale": loss_scale,
-                "initial_scale_power": initial_scale_power,
-                "loss_scale_window": loss_scale_window,
-                "hysteresis": hysteresis,
-                "min_loss_scale": min_loss_scale,
-            }
+    if "fp16" not in config and precision in ("16-mixed", "16-true"):
+        # FP16 is a DeepSpeed standalone AMP implementation
+        rank_zero_info("Enabling DeepSpeed FP16. Model parameters and inputs will be cast to `float16`.")
+        config["fp16"] = {
+            "enabled": True,
+            "loss_scale": loss_scale,
+            "initial_scale_power": initial_scale_power,
+            "loss_scale_window": loss_scale_window,
+            "hysteresis": hysteresis,
+            "min_loss_scale": min_loss_scale,
+        }
     elif "bf16" not in config and precision in ("bf16-mixed", "bf16-true"):
         rank_zero_info("Enabling DeepSpeed BF16. Model parameters and inputs will be cast to `bfloat16`.")
         config["bf16"] = {"enabled": True}
