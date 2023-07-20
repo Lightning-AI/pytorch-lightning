@@ -24,21 +24,6 @@ from fsspec.implementations.local import AbstractFileSystem
 
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
-try:
-    import adlfs
-except ImportError:
-    adlfs = None
-
-try:
-    import gcsfs
-except ImportError:
-    gcsfs = None
-
-try:
-    import s3fs
-except ImportError:
-    s3fs = None
-
 
 def _load(
     path_or_url: Union[IO, _PATH],
@@ -88,12 +73,30 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
 
 
 def _is_object_storage(fs: AbstractFileSystem) -> bool:
+    try:
+        import adlfs
+    except ImportError:
+        adlfs = None
+
     if adlfs is not None and isinstance(fs, adlfs.AzureBlobFileSystem):
         return True
+
+    try:
+        import gcsfs
+    except ImportError:
+        gcsfs = None
+
     if gcsfs is not None and isinstance(fs, gcsfs.GCSFileSystem):
         return True
+
+    try:
+        import s3fs
+    except ImportError:
+        s3fs = None
+
     if s3fs is not None and isinstance(fs, s3fs.S3FileSystem):
         return True
+
     return False
 
 
