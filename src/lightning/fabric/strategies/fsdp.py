@@ -310,9 +310,19 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @contextmanager
     def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
-        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
-        # is resolved. For now, the module will get moved to the device in `setup_module`.
-        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        if _TORCH_GREATER_EQUAL_2_1 and empty_init:
+            # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
+            # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
+            # These operations are applied to each submodule 'bottom up' in the module hierarchy.
+            empty_init_context = torch.device("meta")
+            # TODO (in setup):
+            # - check that `reset_parameters` is defined on every module that owns 'meta' device params
+            # - What if root module is not wrapped (manual wrapping)?
+            # - Investigate what happens to modules that aren't wrapped.
+        elif _TORCH_GREATER_EQUAL_1_13:
+            empty_init_context = _EmptyInit(enabled=bool(empty_init))
+        else:
+            empty_init_context = nullcontext()
         with empty_init_context, self.precision.init_context(), self.module_sharded_context():
             yield
 
