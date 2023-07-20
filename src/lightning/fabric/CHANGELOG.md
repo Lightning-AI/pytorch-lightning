@@ -7,15 +7,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [2.0.6] - 2023-07-20
 
-### Changed
-
--
-
 #### Fixed
-
--
-
-
 
 - Fixed `TensorBoardLogger.log_graph` not unwrapping the `_FabricModule` ([#17844](https://github.com/Lightning-AI/lightning/pull/17844))
 
