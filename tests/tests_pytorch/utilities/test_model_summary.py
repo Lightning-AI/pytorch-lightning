@@ -11,15 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
 from typing import Any
 
 import pytest
 import torch
 import torch.nn as nn
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.model_summary.model_summary import ModelSummary, summarize, UNKNOWN_SIZE
+from lightning.pytorch.utilities.model_summary.model_summary import (
+    LEFTOVER_PARAMS_NAME,
+    ModelSummary,
+    NOT_APPLICABLE,
+    summarize,
+    UNKNOWN_SIZE,
+)
 from tests_pytorch.helpers.advanced_models import ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
 
@@ -137,6 +145,18 @@ class DeepNestedModel(LightningModule):
         return self.head(self.branch1(inp), self.branch2(inp))
 
 
+class NonLayerParamsModel(LightningModule):
+    """A model with parameters not associated with pytorch layer."""
+
+    def __init__(self):
+        super().__init__()
+        self.param = torch.nn.Parameter(torch.ones(2, 2))
+        self.layer = torch.nn.Linear(2, 2)
+
+    def forward(self, inp):
+        self.layer(self.param @ inp)
+
+
 def test_invalid_max_depth():
     """Test that invalid value for max_depth raises an error."""
     model = LightningModule()
@@ -251,7 +271,8 @@ def test_summary_with_scripted_modules(max_depth):
         ([], UNKNOWN_SIZE),
         ((1, 2, 3), [UNKNOWN_SIZE] * 3),
         (torch.tensor(0), UNKNOWN_SIZE),
-        ({"tensor": torch.zeros(1, 2, 3)}, UNKNOWN_SIZE),
+        ({"tensor": torch.zeros(1, 2, 3)}, [1, 2, 3]),
+        ({"tensor0": torch.zeros(1, 2, 3), "tensor1": torch.zeros(4, 5, 6)}, [[1, 2, 3], [4, 5, 6]]),
         (torch.zeros(2, 3, 4), [2, 3, 4]),
         ([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
         ((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
@@ -272,6 +293,10 @@ def test_example_input_array_types(example_input, expected_size, max_depth):
         # this LightningModule and submodule accept any type of input
         def forward(self, *args, **kwargs):
             return self.layer(*args, **kwargs)
+
+    if isinstance(example_input, dict) and not _TORCH_GREATER_EQUAL_2_0:
+        # kwargs are not supported when torch < 2.0
+        expected_size = UNKNOWN_SIZE
 
     model = DummyLightningModule()
     model.example_input_array = example_input
@@ -358,3 +383,25 @@ def test_summary_data_output(example_input):
     summary_data = summary._get_summary_data()
     for column_name, entries in summary_data:
         assert all(isinstance(entry, str) for entry in entries)
+
+
+@pytest.mark.parametrize("example_input", [None, torch.ones(2, 2)])
+def test_summary_data_with_non_layer_params(example_input):
+    model = NonLayerParamsModel()
+    model.example_input_array = example_input
+
+    summary = summarize(model)
+    summary_data = OrderedDict(summary._get_summary_data())
+    assert summary_data[" "][-1] == " "
+    assert summary_data["Name"][-1] == LEFTOVER_PARAMS_NAME
+    assert summary_data["Type"][-1] == NOT_APPLICABLE
+    assert int(summary_data["Params"][-1]) == 4
+    if example_input is not None:
+        assert summary_data["In sizes"][-1] == NOT_APPLICABLE
+        assert summary_data["Out sizes"][-1] == NOT_APPLICABLE
+
+
+def test_summary_data_with_no_non_layer_params():
+    summary = summarize(PreCalculatedModel())
+    summary_data = OrderedDict(summary._get_summary_data())
+    assert summary_data["Name"][-1] != LEFTOVER_PARAMS_NAME

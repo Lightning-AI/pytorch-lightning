@@ -240,7 +240,7 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
-        if not _NEPTUNE_AVAILABLE:
+        if not _NEPTUNE_AVAILABLE and not _NEPTUNE_CLIENT_AVAILABLE:
             raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
@@ -380,7 +380,7 @@ class NeptuneLogger(Logger):
         return self._run_instance
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # skipcq: PYL-W0221
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         r"""Log hyperparameters to the run.
 
         Hyperparameters will be logged under the "<prefix>/hyperparams" namespace.
@@ -423,7 +423,9 @@ class NeptuneLogger(Logger):
         self.run[parameters_key] = stringify_unsupported(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(  # type: ignore[override]
+        self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
+    ) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:

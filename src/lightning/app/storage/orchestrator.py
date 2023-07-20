@@ -70,7 +70,13 @@ class StorageOrchestrator(Thread):
         # Note: Use different sleep time locally and in the cloud
         # to reduce queue calls.
         self._sleep_time = 0.1 if "LIGHTNING_APP_STATE_URL" not in os.environ else 2
-        self.fs = _filesystem()
+        self._fs = None
+
+    @property
+    def fs(self):
+        if self._fs is None:
+            self._fs = _filesystem()
+        return self._fs
 
     def _validate_queues(self):
         assert (
@@ -100,6 +106,11 @@ class StorageOrchestrator(Thread):
             request_queue = self.request_queues[work_name]
             try:
                 request: _PathRequest = request_queue.get(timeout=0)  # this should not block
+                # This should not happen under normal conditions, but it has occurred.
+                # For now we are tolerant with respect to requests being None in the queue
+                # and just move on.
+                if request is None:
+                    raise Empty
             except Empty:
                 pass
             else:

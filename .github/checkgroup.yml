@@ -5,7 +5,7 @@ subprojects:
 
   - id: "pytorch_lightning: Tests workflow"
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - ".github/workflows/ci-tests-pytorch.yml"
       - "requirements/fabric/**"
       - "src/lightning/fabric/**"
@@ -41,7 +41,7 @@ subprojects:
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - ".azure/gpu-tests-pytorch.yml"
       # only the azure GPU workflow runs the examples
       # all examples don't need to be added because they aren't used in CI, but these are
@@ -70,14 +70,19 @@ subprojects:
 
   - id: "pytorch_lightning: Benchmarks"
     paths:
-      - ".azure/gpu-benchmark.yml"
-      - "tests/tests_pytorch/benchmarks/**"
+      - ".azure/gpu-benchmarks.yml"
+      - "requirements/fabric/**"
       - "requirements/pytorch/**"
+      - "src/lightning/fabric/**"
+      - "src/lightning/pytorch/**"
+      - "tests/parity_fabric/**"
+      - "tests/parity_pytorch/**"
+      - "!requirements/fabric/docs.txt"
       - "!requirements/pytorch/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "pytorch-lightning.Benchmark"
+      - "lightning.Benchmarks"
 
   - id: "pytorch-lightning: TPU workflow"
     paths:
@@ -110,7 +115,7 @@ subprojects:
       - "src/lightning/pytorch/**"
       - "src/pytorch_lightning/*"
       - "docs/source-pytorch/**"
-      - ".actions/**"
+      - ".actions/*"
       - ".github/workflows/docs-build.yml"
       - "requirements/docs.txt"
       - "requirements/pytorch/**"
@@ -124,32 +129,52 @@ subprojects:
 
   - id: "pytorch_lightning: Docker"
     paths:
-      - ".actions/**"
-      - ".github/workflows/ci-dockers-pytorch.yml"
+      - ".actions/*"
+      - ".github/workflows/ci-dockers.yml"
       - "dockers/**"
       - "requirements/pytorch/**"
       - "requirements/fabric/**"
-      - "environment.yml"
       - "setup.py"
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
       - "build-cuda (3.9, 1.11, 11.3.1)"
-      - "build-cuda (3.9, 1.12, 11.6.1)"
-      - "build-cuda (3.9, 1.13, 11.7.1)"
+      - "build-cuda (3.9, 1.12, 11.7.1)"
+      - "build-cuda (3.9, 1.13, 12.0.1)"
+      - "build-cuda (3.10, 2.0, 12.0.1)"
       - "build-cuda (3.10, 2.0, 11.7.1)"
-      - "build-NGC"
+      #- "build-NGC"
       - "build-pl (3.9, 1.11, 11.3.1)"
-      - "build-pl (3.9, 1.12, 11.6.1)"
-      - "build-pl (3.9, 1.13, 11.7.1)"
-      - "build-pl (3.10, 2.0, 11.7.1)"
+      - "build-pl (3.9, 1.12, 11.7.1)"
+      - "build-pl (3.9, 1.13, 12.0.1)"
+      - "build-pl (3.10, 2.0, 12.0.1)"
+
+  # SECTIONS: lightning_data
+
+  - id: "lightning_data: CPU workflow"
+    paths:
+      - ".actions/*"
+      - "requirements/data/**"
+      - "src/lightning/data/**"
+      - "src/lightning_data/*"
+      - "tests/tests_data/**"
+      - "examples/data/**"
+      - "pyproject.toml"  # includes pytest config
+      - ".github/workflows/ci-tests-data.yml"
+      - "!requirements/*/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
+    checks:
+      - "data-cpu (macOS-11, lightning, 3.10, 2.0)"
+      - "data-cpu (ubuntu-20.04, lightning, 3.10, 2.0)"
+      - "data-cpu (windows-2022, lightning, 3.10, 2.0)"
 
   # SECTION: lightning_fabric
 
   - id: "lightning_fabric: CPU workflow"
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - "requirements/fabric/**"
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
@@ -181,7 +206,7 @@ subprojects:
 
   - id: "lightning_fabric: Azure GPU"
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - ".azure/gpu-tests-fabric.yml"
       - "examples/fabric/**"
       - "examples/run_fabric_examples.sh"
@@ -217,7 +242,7 @@ subprojects:
 
   - id: "lightning_app: Tests workflow"
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - ".github/workflows/ci-tests-app.yml"
       - "src/lightning/app/**"
       - "src/lightning_app/*"
@@ -240,7 +265,7 @@ subprojects:
 
   - id: "lightning_app: Examples"
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - ".github/workflows/ci-examples-app.yml"
       - "src/lightning/app/**"
       - "src/lightning_app/*"
@@ -287,31 +312,32 @@ subprojects:
       - "Store.cloud (test_store Mac)"
       - "Store.cloud (test_store Windows)"
 
-  - id: "lightning_app: Azure"
-    paths:
-      - ".actions/**"
-      - ".azure/app-cloud-e2e.yml"
-      - "src/lightning/__about__.py"
-      - "src/lightning/__init__.py"
-      - "src/lightning/__main__.py"
-      - "src/lightning/__setup__.py"
-      - "src/lightning/__version__.py"
-      - "src/lightning/app/**"
-      - "src/lightning_app/*"
-      - "examples/app/**"
-      - "requirements/app/**"
-      - "tests/integrations_app/**"
-      - "!tests/integrations_app/flagship/**"
-      - "setup.py"
-      - "!requirements/*/docs.txt"
-      - "!*.md"
-      - "!**/*.md"
-    checks:
-      - "App.cloud-e2e"
+  # FixMe: re-enable when BE stabilize
+  # - id: "lightning_app: Azure"
+  #   paths:
+  #     - ".actions/*"
+  #     - ".azure/app-cloud-e2e.yml"
+  #     - "src/lightning/__about__.py"
+  #     - "src/lightning/__init__.py"
+  #     - "src/lightning/__main__.py"
+  #     - "src/lightning/__setup__.py"
+  #     - "src/lightning/__version__.py"
+  #     - "src/lightning/app/**"
+  #     - "src/lightning_app/*"
+  #     - "examples/app/**"
+  #     - "requirements/app/**"
+  #     - "tests/integrations_app/**"
+  #     - "!tests/integrations_app/flagship/**"
+  #     - "setup.py"
+  #     - "!requirements/*/docs.txt"
+  #     - "!*.md"
+  #     - "!**/*.md"
+  #   checks:
+  #     - "App.cloud-e2e"
 
   - id: "lightning_app: Docs"
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - "src/lightning/app/**"
       - "src/lightning_app/*"
       - "docs/source-app/**"
@@ -330,7 +356,7 @@ subprojects:
 
   - id: "mypy"
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - ".github/workflows/code-checks.yml"
       - "requirements/**"
       - "src/**"
@@ -344,7 +370,7 @@ subprojects:
 
   - id: "install"
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - ".github/actions/pkg-check/*"
       - ".github/actions/pkg-install/*"
       - ".github/workflows/_build-packages.yml"

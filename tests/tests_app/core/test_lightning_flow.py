@@ -324,6 +324,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
@@ -334,6 +335,7 @@ def test_lightning_flow_and_work():
                         "shm_size": 0,
                         "_internal_id": "default",
                         "interruptible": False,
+                        "colocation_group_id": None,
                     },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
@@ -349,6 +351,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
@@ -359,6 +362,7 @@ def test_lightning_flow_and_work():
                         "shm_size": 0,
                         "_internal_id": "default",
                         "interruptible": False,
+                        "colocation_group_id": None,
                     },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
@@ -388,6 +392,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
@@ -398,6 +403,7 @@ def test_lightning_flow_and_work():
                         "shm_size": 0,
                         "_internal_id": "default",
                         "interruptible": False,
+                        "colocation_group_id": None,
                     },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
@@ -413,6 +419,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
@@ -423,6 +430,7 @@ def test_lightning_flow_and_work():
                         "shm_size": 0,
                         "_internal_id": "default",
                         "interruptible": False,
+                        "colocation_group_id": None,
                     },
                 },
                 "calls": {

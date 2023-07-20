@@ -180,9 +180,9 @@ class _LoadBalancer(LightningWork):
                 raise ValueError("cold_start_proxy must be of type ColdStartProxy or str")
 
     def get_internal_url(self) -> str:
-        if not self._internal_ip:
-            raise ValueError("Internal IP not set")
-        return f"http://{self._internal_ip}:{self._port}"
+        if not self._public_ip:
+            raise ValueError("Public IP not set")
+        return f"http://{self._public_ip}:{self._port}"
 
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]], server_url: str):
         request_data: List[_LoadBalancer._input_type] = [b[1] for b in batch]
@@ -257,7 +257,9 @@ class _LoadBalancer(LightningWork):
             if batch and (is_batch_ready or is_batch_timeout):
                 self._server_status[server_url] = False
                 # find server with capacity
-                asyncio.create_task(self.send_batch(batch, server_url))
+                # Saving a reference to the result of this function, protects the task disappearing mid-execution
+                # https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
+                task = asyncio.create_task(self.send_batch(batch, server_url))  # noqa: F841
                 # resetting the batch array, TODO - not locking the array
                 self._batch = self._batch[len(batch) :]
                 self._last_batch_sent = time.time()
@@ -386,7 +388,7 @@ class _LoadBalancer(LightningWork):
         """
         old_server_urls = set(self.servers)
         current_server_urls = {
-            f"http://{server._internal_ip}:{server.port}" for server in server_works if server._internal_ip
+            f"http://{server._public_ip}:{server.port}" for server in server_works if server._internal_ip
         }
 
         # doing nothing if no server work has been added/removed

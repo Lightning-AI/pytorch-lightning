@@ -50,6 +50,7 @@ from lightning.fabric.plugins.precision.precision import (
     _PRECISION_INPUT_STR_ALIAS,
     _PRECISION_INPUT_STR_ALIAS_CONVERSION,
 )
+from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
     DeepSpeedStrategy,
     ParallelStrategy,
@@ -377,7 +378,6 @@ class _Connector:
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
-            # TODO: Change this once gpu accelerator was renamed to cuda accelerator
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
                 isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
             ):
@@ -442,15 +442,19 @@ class _Connector:
                         " is not supported with TPUs. Using `precision='bf16-mixed'` instead."
                     )
                 return XLABf16Precision()
+
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
-
+        if isinstance(self.strategy, FSDPStrategy):
+            return FSDPPrecision(precision=self._precision_input)  # type: ignore[arg-type]
         if self._precision_input in ("16-true", "bf16-true"):
             return HalfPrecision(self._precision_input)  # type: ignore
         if self._precision_input == "32-true":
             return Precision()
         if self._precision_input == "64-true":
             return DoublePrecision()
+        if self._precision_input == "transformer-engine":
+            return TransformerEnginePrecision()
 
         if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(
@@ -466,9 +470,6 @@ class _Connector:
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-
-            if isinstance(self.strategy, FSDPStrategy):
-                return FSDPPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
             return MixedPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
@@ -536,14 +537,12 @@ class _Connector:
         if env_value is None:
             return current
 
-        if env_value is not None and env_value != str(current) and str(current) != str(default):
+        if env_value is not None and env_value != str(current) and str(current) != str(default) and _is_using_cli():
             raise ValueError(
                 f"Your code has `Fabric({name}={current!r}, ...)` but it conflicts with the value "
                 f"`--{name}={env_value}` set through the CLI. "
                 " Remove it either from the CLI or from the Lightning Fabric object."
             )
-        if env_value is None:
-            return current
         return env_value
 
 
@@ -564,3 +563,7 @@ def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISIO
             )
         precision = _PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]
     return cast(_PRECISION_INPUT_STR, precision)
+
+
+def _is_using_cli() -> bool:
+    return bool(int(os.environ.get("LT_CLI_USED", "0")))

@@ -444,7 +444,6 @@ class _AcceleratorConnector:
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
-            # TODO: Change this once gpu accelerator was renamed to cuda accelerator
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
                 isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
             ):

@@ -20,13 +20,12 @@ from torch import Tensor
 from torch.nn import Module
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
@@ -35,7 +34,6 @@ from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -95,11 +93,6 @@ class XLAStrategy(DDPStrategy):
 
         return xm.xla_device()
 
-    def connect(self, model: "pl.LightningModule") -> None:
-        # this is called in the spawned process, so no need to use `xmp.MpModelWrapper`
-        self.wrapped_model = _LightningModuleWrapperBase(model)
-        return super().connect(model)
-
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
@@ -118,9 +111,12 @@ class XLAStrategy(DDPStrategy):
         self.setup_precision_plugin()
 
         if self._sync_module_states:
-            from torch_xla.experimental import pjrt
+            if _XLA_GREATER_EQUAL_2_1:
+                from torch_xla.core.model import broadcast_master_param
+            else:
+                from torch_xla.experimental.pjrt import broadcast_master_param
 
-            pjrt.broadcast_master_param(self.model)
+            broadcast_master_param(self.model)
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
@@ -150,7 +146,8 @@ class XLAStrategy(DDPStrategy):
         pass
 
     def model_to_device(self) -> None:
-        self.model = self.wrapped_model.to(self.root_device)
+        assert self.model is not None
+        self.model = self.model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         if not self._launched:
@@ -217,10 +214,8 @@ class XLAStrategy(DDPStrategy):
         return output
 
     def setup_distributed(self) -> None:
-        from torch_xla.experimental.pjrt import using_pjrt
-
         assert self.parallel_devices is not None
-        if using_pjrt() and len(self.parallel_devices) == 1:
+        if _using_pjrt() and len(self.parallel_devices) == 1:
             # spawning only 1 device with PjRT is not supported:
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
@@ -237,23 +232,18 @@ class XLAStrategy(DDPStrategy):
         # instead it's done in `setup_distributed`
         pass
 
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.val_step_context():
-            return self.model(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.test_step_context():
-            return self.model(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        with self.precision_plugin.predict_step_context():
-            return self.model(*args, **kwargs)
-
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         self._pod_progress_bar_force_stdout()
+
+    def save_checkpoint(
+        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+    ) -> None:
+        import torch_xla.core.xla_model as xm
+
+        # sync any pending lazy tensors on all ranks before saving to prevent potential collective hangs
+        xm.mark_step()
+        # save on global rank zero only
+        super().save_checkpoint(checkpoint, filepath, storage_options=storage_options)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.

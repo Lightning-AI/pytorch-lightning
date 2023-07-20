@@ -38,6 +38,8 @@ RUN \
     fi && \
 # save the examples \
     ls -lh lightning/ && \
+    rm -rf lightning/.git && \
+    rm -rf lightning/_notebooks/.git && \
     mv lightning/_notebooks/.notebooks/ notebooks && \
     cp -r lightning/*examples . && \
 
@@ -47,7 +49,7 @@ RUN \
     rm -rf lightning && \
     pip list
 
-RUN pip install jupyterlab[all] -U
+RUN pip install jupyterlab[all] -U --no-cache-dir
 
 # create jupyter_notebook_config.py
 RUN mkdir -p /root/.jupyter && \

@@ -105,7 +105,7 @@ class CSVLogger(Logger):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        return os.path.join(self.root_dir, self.name, version)
+        return os.path.join(self._root_dir, self.name, version)
 
     @property
     @rank_zero_experiment
@@ -120,19 +120,23 @@ class CSVLogger(Logger):
         if self._experiment is not None:
             return self._experiment
 
-        os.makedirs(self.root_dir, exist_ok=True)
+        os.makedirs(self._root_dir, exist_ok=True)
         self._experiment = _ExperimentWriter(log_dir=self.log_dir)
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         raise NotImplementedError("The `CSVLogger` does not yet support logging hyperparameters.")
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(  # type: ignore[override]
+        self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
+    ) -> None:
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+        if step is None:
+            step = len(self.experiment.metrics)
         self.experiment.log_metrics(metrics, step)
-        if step is not None and (step + 1) % self._flush_logs_every_n_steps == 0:
+        if (step + 1) % self._flush_logs_every_n_steps == 0:
             self.save()
 
     @rank_zero_only
@@ -149,14 +153,14 @@ class CSVLogger(Logger):
         self.save()
 
     def _get_next_version(self) -> int:
-        root_dir = self.root_dir
+        versions_root = os.path.join(self._root_dir, self.name)
 
-        if not self._fs.isdir(root_dir):
-            log.warning("Missing logger folder: %s", root_dir)
+        if not self._fs.isdir(versions_root):
+            log.warning("Missing logger folder: %s", versions_root)
             return 0
 
         existing_versions = []
-        for d in self._fs.listdir(root_dir):
+        for d in self._fs.listdir(versions_root):
             full_path = d["name"]
             name = os.path.basename(full_path)
             if self._fs.isdir(full_path) and name.startswith("version_"):
