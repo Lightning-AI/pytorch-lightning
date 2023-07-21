@@ -52,8 +52,10 @@ Don't run torch CUDA functions before calling ``fabric.launch(train)`` in any of
     torch.cuda.empty_cache()
     torch.cuda.is_available()
 
+
     def train(fabric):
         ...
+
 
     fabric = Fabric(accelerator="cuda", devices=2)
     fabric.launch(train)
@@ -69,6 +71,7 @@ Don't run torch CUDA functions before calling ``fabric.launch(train)`` in any of
         torch.cuda.empty_cache()
         torch.cuda.is_available()
         ...
+
 
     fabric = Fabric(accelerator="cuda", devices=2)
     fabric.launch(train)
@@ -88,8 +91,10 @@ The best practice is to move your data loading code inside the training function
     dataset = MyDataset("data/")
     dataloader = torch.utils.data.DataLoader(dataset)
 
+
     def train(fabric):
         ...
+
 
     fabric = Fabric(accelerator="cuda", devices=2)
     fabric.launch(train)
@@ -104,6 +109,7 @@ The best practice is to move your data loading code inside the training function
         dataset = MyDataset("data/")
         dataloader = torch.utils.data.DataLoader(dataset)
         ...
+
 
     fabric = Fabric(accelerator="cuda", devices=2)
     fabric.launch(train)
