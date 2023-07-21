@@ -56,8 +56,8 @@ from lightning.fabric.strategies import (
     DeepSpeedStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
-    XLAStrategy,
     XLAFSDPStrategy,
+    XLAStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
