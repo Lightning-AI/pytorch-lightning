@@ -393,7 +393,11 @@ class _LRCallback(Callback):
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
 
-        if outputs is None:
+        # _AutomaticOptimization.run turns None STEP_OUTPUT into an empty dict
+        if outputs is None or not outputs:
+            # need to add an element, because we also added one element to lrs in on_train_batch_start
+            # so add nan, because they are not considered when computing the suggestion
+            self.losses.append(float("nan"))
             return
 
         if self.progress_bar:
