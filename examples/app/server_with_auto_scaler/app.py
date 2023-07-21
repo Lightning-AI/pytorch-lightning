@@ -28,10 +28,10 @@ class PyTorchServer(L.app.components.PythonServer):
     def setup(self):
         if torch.cuda.is_available():
             self._device = torch.device("cuda:0")
-        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-            self._device = torch.device('mps')
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            self._device = torch.device("mps")
         else:
-            self._device = torch.device('cpu')
+            self._device = torch.device("cpu")
         self._model = torchvision.models.resnet18(pretrained=True).to(self._device)
 
     def predict(self, requests: BatchRequestModel):
