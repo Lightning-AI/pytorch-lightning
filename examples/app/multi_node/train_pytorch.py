@@ -22,7 +22,12 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
 
     # 2. PREPARE DISTRIBUTED MODEL
     model = torch.nn.Linear(32, 2)
-    device = torch.device(f"cuda:{local_rank}") if torch.cuda.is_available() else torch.device("cpu")
+    if torch.cuda.is_available():
+        device = torch.device(f"cuda:{local_rank}")
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        device = torch.device('mps')
+    else:
+        device = torch.device('cpu')
     model = DistributedDataParallel(model, device_ids=[local_rank] if torch.cuda.is_available() else None).to(device)
 
     # 3. SETUP LOSS AND OPTIMIZER

@@ -69,7 +69,12 @@ def main():
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=workers)
 
     # Decide which device we want to run on
-    device = torch.device("cuda:0" if (torch.cuda.is_available() and num_gpus > 0) else "cpu")
+    if (torch.cuda.is_available() and num_gpus > 0):
+        device = torch.device("cuda:0")
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        device = torch.device('mps')
+    else:
+        device = torch.device('cpu')
 
     output_dir = Path("outputs-torch", time.strftime("%Y%m%d-%H%M%S"))
     output_dir.mkdir(parents=True, exist_ok=True)
