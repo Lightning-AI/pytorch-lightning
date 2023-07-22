@@ -108,20 +108,10 @@ jobs:
       shell: python
 
     - name: Create node
-      id: tpu-create
-      continue-on-error: true
       env:
         JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
       run: |
         gcloud compute tpus tpu-vm create "$JOB_NAME" --accelerator-type=v4-8 --version="tpu-vm-v4-pt-$XLA_VER" --preemptible
-
-    - name: Cancel job
-      if: steps.tpu-create.outcome != 'success'
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        gh run cancel ${{ github.run_id }}
-        sleep 300
 
     - name: Run tests
       env:
