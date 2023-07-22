@@ -13,18 +13,18 @@ fi
 
 echo "--- Install packages ---"
 # show what's already installed
-pip list
+pip3 list
 # typing-extensions==4.5.0 comes pre-installed in the environment, and pydantic doesnt support that, however,
 # pip is not smart enough to upgrade it
-pip uninstall -y typing-extensions
+pip3 uninstall -y typing-extensions
 # set particular PyTorch version
-pip install -q wget packaging
+pip3 install -q wget packaging
 python3 -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
 for fpath in `ls requirements/**/*.txt`; do
   python3 adjust-torch-versions.py $fpath {PYTORCH_VERSION};
 done
-pip install .[pytorch-extra,pytorch-test] pytest-timeout
-pip list
+pip3 install .[pytorch-extra,pytorch-test] pytest-timeout
+pip3 list
 
 # https://cloud.google.com/tpu/docs/v4-users-guide#train_ml_workloads_with_pytorch_xla
 export ALLOW_MULTIPLE_LIBTPU_LOAD=1
