@@ -15,8 +15,8 @@ echo "--- Install packages ---"
 # show what's already installed
 pip3 list
 # typing-extensions==4.5.0 comes pre-installed in the environment, and pydantic doesnt support that, however,
-# pip is not smart enough to upgrade it
-pip3 uninstall -y typing-extensions
+# pip cannot upgrade it because it's in the system folder: needs sudo
+sudo pip3 install -U typing-extensions
 # set particular PyTorch version
 pip3 install -q wget packaging
 python3 -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
