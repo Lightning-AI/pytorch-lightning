@@ -21,7 +21,10 @@ log = logging.getLogger(__name__)
 
 
 class KubeflowEnvironment(ClusterEnvironment):
-    """Environment for distributed training using the `PyTorchJob`_ operator from `Kubeflow`_
+    """Environment for distributed training using the `PyTorchJob`_ operator from `Kubeflow`_.
+
+    This environment, unlike others, does not get auto-detected and needs to be passed to the Fabric/Trainer
+    constructor manually.
 
     .. _PyTorchJob: https://www.kubeflow.org/docs/components/training/pytorch/
     .. _Kubeflow: https://www.kubeflow.org
@@ -41,12 +44,8 @@ class KubeflowEnvironment(ClusterEnvironment):
 
     @staticmethod
     def detect() -> bool:
-        """Returns ``True`` if the current process was launched using Kubeflow PyTorchJob."""
-        required_env_vars = {"KUBERNETES_PORT", "MASTER_ADDR", "MASTER_PORT", "WORLD_SIZE", "RANK"}
-        # torchelastic sets these. Make sure we're not in torchelastic
-        excluded_env_vars = {"GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE"}
-        env_vars = os.environ.keys()
-        return required_env_vars.issubset(env_vars) and excluded_env_vars.isdisjoint(env_vars)
+        # The Kubeflow environment can't be detected automatically
+        return False
 
     def world_size(self) -> int:
         return int(os.environ["WORLD_SIZE"])
