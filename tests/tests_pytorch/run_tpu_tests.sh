@@ -1,7 +1,6 @@
 set -e  # exit on error
 
 echo "--- Cloning lightning repo ---"
-pip list  # show what's already installed
 git clone --single-branch --depth 1 https://github.com/Lightning-AI/lightning.git
 cd lightning
 # PR triggered it, check it out
@@ -13,13 +12,14 @@ if [ "{PR_NUMBER}" != "master" ]; then  # if PR number is set
 fi
 
 echo "--- Install packages ---"
+pip list  # show what's already installed
 # set particular PyTorch version
 pip install -q wget packaging
 python3 -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
 for fpath in `ls requirements/**/*.txt`; do
   python3 adjust-torch-versions.py $fpath {PYTORCH_VERSION};
 done
-pip install .[pytorch-extra,pytorch-test] pytest-timeout
+pip install -U .[pytorch-extra,pytorch-test] pytest-timeout
 pip list
 
 # https://cloud.google.com/tpu/docs/v4-users-guide#train_ml_workloads_with_pytorch_xla

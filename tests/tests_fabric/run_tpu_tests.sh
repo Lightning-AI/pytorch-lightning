@@ -19,7 +19,7 @@ python3 -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/sc
 for fpath in `ls requirements/**/*.txt`; do
   python3 adjust-torch-versions.py $fpath {PYTORCH_VERSION};
 done
-pip install .[fabric-test] pytest-timeout
+pip install -U .[fabric-test] pytest-timeout
 pip list
 
 # https://cloud.google.com/tpu/docs/v4-users-guide#train_ml_workloads_with_pytorch_xla
