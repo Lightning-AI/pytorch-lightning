@@ -29,14 +29,19 @@ from tests_fabric.helpers.runif import RunIf
 def test_default_attributes(monkeypatch):
     """Test the default attributes when no environment variables are set."""
     if _using_pjrt():
-        if _XLA_GREATER_EQUAL_2_1:
-            from torch_xla import runtime as module
-        else:
-            from torch_xla.experimental import pjrt as module
         # calling these creates side effects in other tests
-        monkeypatch.setattr(module, "world_size", lambda: 1)
-        monkeypatch.setattr(module, "global_ordinal", lambda: 0)
-        monkeypatch.setattr(module, "local_ordinal", lambda: 0)
+        if _XLA_GREATER_EQUAL_2_1:
+            from torch_xla import runtime
+
+            monkeypatch.setattr(runtime, "world_size", lambda: 1)
+            monkeypatch.setattr(runtime, "global_ordinal", lambda: 0)
+            monkeypatch.setattr(runtime, "local_ordinal", lambda: 0)
+        else:
+            from torch_xla.experimental import pjrt
+
+            monkeypatch.setattr(pjrt, "world_size", lambda: 1)
+            monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
+            monkeypatch.setattr(pjrt, "local_ordinal", lambda: 0)
     else:
         from torch_xla import _XLAC
 

@@ -12,6 +12,7 @@ if [ "{PR_NUMBER}" != "master" ]; then  # if PR number is set
 fi
 
 echo "--- Install packages ---"
+pip list  # show what's already installed
 # set particular PyTorch version
 pip install -q wget packaging
 python3 -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py

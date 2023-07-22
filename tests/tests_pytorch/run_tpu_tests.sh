@@ -1,6 +1,7 @@
 set -e  # exit on error
 
 echo "--- Cloning lightning repo ---"
+pip list  # show what's already installed
 git clone --single-branch --depth 1 https://github.com/Lightning-AI/lightning.git
 cd lightning
 # PR triggered it, check it out
