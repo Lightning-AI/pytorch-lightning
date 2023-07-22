@@ -13,7 +13,6 @@
 # limitations under the License.
 import contextlib
 import datetime
-import functools
 import os
 from datetime import timedelta
 from re import escape
@@ -64,6 +63,26 @@ def test_fsdp_cpu_offload():
     config = CPUOffload()
     strategy = FSDPStrategy(cpu_offload=config)
     assert strategy.cpu_offload == config
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_sharding_strategy():
+    """Test the different ways the sharding strategy can be set."""
+    from torch.distributed.fsdp import ShardingStrategy
+
+    # default
+    strategy = FSDPStrategy()
+    assert strategy.sharding_strategy == ShardingStrategy.FULL_SHARD
+
+    # enum
+    strategy = FSDPStrategy(sharding_strategy=ShardingStrategy.SHARD_GRAD_OP)
+    assert strategy.sharding_strategy == ShardingStrategy.SHARD_GRAD_OP
+
+    # string
+    strategy = FSDPStrategy(sharding_strategy="NO_SHARD")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
+    strategy = FSDPStrategy(sharding_strategy="no_shard")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
 
 
 @RunIf(min_torch="1.12")
@@ -157,11 +176,13 @@ def test_fsdp_activation_checkpointing():
     if _TORCH_GREATER_EQUAL_2_1:
         from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1}))
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
         assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
 
         strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
         assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
     else:
         strategy = FSDPStrategy(activation_checkpointing=Block1)
         assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
@@ -169,16 +190,18 @@ def test_fsdp_activation_checkpointing():
         strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
         assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
 
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1, Block2})
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
     strategy._parallel_devices = [torch.device("cuda", 0)]
-    with mock.patch(
-        "torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel"
-    ) as fsdp_mock, mock.patch(
+    with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", new=MagicMock), mock.patch(
         "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
-    ) as ckpt_mock:
-        strategy.setup_module(Model())
-        ckpt_mock.assert_called_with(
-            fsdp_mock(), checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs
-        )
+    ) as apply_mock:
+        wrapped = strategy.setup_module(Model())
+    apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
 @RunIf(min_torch="1.13")
@@ -192,6 +215,16 @@ def test_fsdp_grad_clipping_value_error():
         ),
     ):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
+
+
+@RunIf(min_torch="1.13")
+def test_fsdp_grad_clipping_norm_error():
+    strategy = FSDPStrategy()
+    with pytest.raises(
+        TypeError,
+        match="only possible if the module.*is wrapped in `FullyShardedDataParallel`",
+    ):
+        strategy.clip_gradients_norm(Mock(), Mock(), Mock())
 
 
 class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
@@ -247,12 +280,14 @@ def test_fsdp_save_checkpoint_one_fsdp_module_required(tmp_path):
     with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
         strategy.save_checkpoint(path=tmp_path, state={})
     with pytest.raises(ValueError, match="Could not find a FSDP model in the provided checkpoint state."):
-        strategy.save_checkpoint(path=tmp_path, state={"model": torch.nn.Linear(3, 3)})
+        strategy.load_checkpoint(path=tmp_path, state={"model": torch.nn.Linear(3, 3)})
 
     # multiple FSDP models
     model1 = Mock(spec=FullyShardedDataParallel)
+    model1.modules.return_value = [model1]
     model2 = Mock(spec=FullyShardedDataParallel)
-    with pytest.raises(ValueError, match="Found multiple FSDP modules in the given state."):
+    model2.modules.return_value = [model2]
+    with pytest.raises(ValueError, match="Found multiple FSDP models in the given state."):
         strategy.save_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
 
 
@@ -280,8 +315,10 @@ def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
 
     # multiple FSDP models
     model1 = Mock(spec=FullyShardedDataParallel)
+    model1.modules.return_value = [model1]
     model2 = Mock(spec=FullyShardedDataParallel)
-    with pytest.raises(ValueError, match="Found multiple FSDP modules in the given state."):
+    model2.modules.return_value = [model2]
+    with pytest.raises(ValueError, match="Found multiple FSDP models in the given state."):
         strategy.load_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
 
 
@@ -290,6 +327,7 @@ def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
 def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
     strategy = FSDPStrategy(state_dict_type="invalid")
     model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
     with pytest.raises(ValueError, match="Unknown state_dict_type"):
         strategy.save_checkpoint(path=tmp_path, state={"model": model})
 
@@ -299,10 +337,34 @@ def test_fsdp_load_unknown_checkpoint_type(tmp_path):
     """Test that the strategy validates the contents at the checkpoint path."""
     strategy = FSDPStrategy()
     model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
     path = tmp_path / "empty_dir"  # neither a single file nor a directory with meta file
     path.mkdir()
     with pytest.raises(ValueError, match="does not point to a valid checkpoint"):
         strategy.load_checkpoint(path=path, state={"model": model})
+
+
+@RunIf(min_torch="2.0.0")
+def test_fsdp_load_raw_checkpoint_validate_single_file(tmp_path):
+    """Test that we validate the given checkpoint is a single file when loading a raw PyTorch state-dict
+    checkpoint."""
+    strategy = FSDPStrategy()
+    model = Mock(spec=nn.Module)
+    path = tmp_path / "folder"
+    path.mkdir()
+    with pytest.raises(ValueError, match="The given path must be a single file containing the full state dict"):
+        strategy.load_checkpoint(path=path, state=model)
+
+
+@RunIf(min_torch="2.0.0")
+def test_fsdp_load_raw_checkpoint_optimizer_unsupported(tmp_path):
+    """Validate that the FSDP strategy does not yet support loading the raw PyTorch state-dict for an optimizer."""
+    strategy = FSDPStrategy()
+    optimizer = Mock(spec=torch.optim.Optimizer)
+    with pytest.raises(
+        NotImplementedError, match="Loading a single optimizer object from a checkpoint is not supported"
+    ):
+        strategy.load_checkpoint(path=tmp_path, state=optimizer)
 
 
 @RunIf(min_torch="1.12")
@@ -402,11 +464,6 @@ class StatusChecker:
     [(Block,), (SubBlock,), (Block, SubBlock, nn.Linear), None],
 )
 def test_apply_optimizer_in_backward(checkpoint):
-    try:
-        from torch.distributed.fsdp.wrap import lambda_auto_wrap_policy
-    except ImportError:
-        pytest.skip("Failed to import `lambda_auto_wrap_policy`")
-
     from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
 
     num_gpus = 2
@@ -431,9 +488,8 @@ def test_apply_optimizer_in_backward(checkpoint):
     upper_savings_bound = 4 * feature_dim**2 * 2 * (num_blocks - 1)
     lower_savings_bound = upper_savings_bound / 3
 
-    auto_wrap_policy = functools.partial(lambda_auto_wrap_policy, lambda_fn=lambda module: isinstance(module, Block))
     strategy = FSDPStrategy(
-        auto_wrap_policy=auto_wrap_policy,
+        auto_wrap_policy={Block},
         activation_checkpointing=checkpoint,
         timeout=datetime.timedelta(seconds=10),
     )
@@ -483,7 +539,10 @@ def test_apply_optimizer_in_backward(checkpoint):
                 # baseline case a bit.
                 param_handles = _get_fsdp_handles(baseline_model._forward_module)
                 for h in param_handles:
-                    h._clear_grads_if_needed()
+                    if _TORCH_GREATER_EQUAL_2_1:
+                        h._reset_flat_param_grad_info_if_needed()
+                    else:
+                        h._clear_grads_if_needed()
 
             baseline_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
 

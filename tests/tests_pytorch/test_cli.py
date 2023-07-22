@@ -16,6 +16,7 @@ import inspect
 import json
 import operator
 import os
+import sys
 from contextlib import contextmanager, ExitStack, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -423,6 +424,11 @@ def any_model_any_data_cli():
 
 
 @pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
+@pytest.mark.xfail(
+    (sys.version_info.major, sys.version_info.minor) == (3, 9),
+    reason="--trainer.precision is not parsed",
+    raises=AssertionError,
+)
 def test_lightning_cli_help():
     cli_args = ["any.py", "fit", "--help"]
     out = StringIO()

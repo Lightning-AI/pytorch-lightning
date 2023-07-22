@@ -4,7 +4,7 @@ from datetime import timedelta
 from functools import partial
 from typing import Any, Callable, Dict, Optional
 from unittest import mock
-from unittest.mock import ANY, Mock
+from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
 import torch
@@ -438,11 +438,13 @@ def test_fsdp_activation_checkpointing():
     if _TORCH_GREATER_EQUAL_2_1:
         from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1}))
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
         assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
 
         strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
         assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
     else:
         strategy = FSDPStrategy(activation_checkpointing=Block1)
         assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
@@ -450,19 +452,21 @@ def test_fsdp_activation_checkpointing():
         strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
         assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
 
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
+        strategy = FSDPStrategy(activation_checkpointing_policy={Block1, Block2})
+        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+
     model = Model()
     strategy._parallel_devices = [torch.device("cuda", 0)]
     strategy._lightning_module = model
     strategy._process_group = Mock()
-    with mock.patch(
-        "torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel"
-    ) as fsdp_mock, mock.patch(
+    with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", new=MagicMock), mock.patch(
         "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
-    ) as ckpt_mock:
-        strategy._setup_model(model)
-        ckpt_mock.assert_called_with(
-            fsdp_mock(), checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs
-        )
+    ) as apply_mock:
+        wrapped = strategy._setup_model(model)
+    apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
 @RunIf(min_torch="1.12")
@@ -476,6 +480,26 @@ def test_fsdp_strategy_cpu_offload():
     config = CPUOffload()
     strategy = FSDPStrategy(cpu_offload=config)
     assert strategy.cpu_offload == config
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_sharding_strategy():
+    """Test the different ways the sharding strategy can be set."""
+    from torch.distributed.fsdp import ShardingStrategy
+
+    # default
+    strategy = FSDPStrategy()
+    assert strategy.sharding_strategy == ShardingStrategy.FULL_SHARD
+
+    # enum
+    strategy = FSDPStrategy(sharding_strategy=ShardingStrategy.SHARD_GRAD_OP)
+    assert strategy.sharding_strategy == ShardingStrategy.SHARD_GRAD_OP
+
+    # string
+    strategy = FSDPStrategy(sharding_strategy="NO_SHARD")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
+    strategy = FSDPStrategy(sharding_strategy="no_shard")
+    assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
 
 
 @RunIf(min_torch="1.12")

@@ -257,6 +257,14 @@ class BaseFinetuning(Callback):
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self.freeze_before_training(pl_module)
 
+        from lightning.pytorch.strategies import DeepSpeedStrategy
+
+        if isinstance(trainer.strategy, DeepSpeedStrategy):
+            raise NotImplementedError(
+                "The Finetuning callback does not support running with the DeepSpeed strategy."
+                " Choose a different strategy or disable the callback."
+            )
+
     @staticmethod
     def _apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
         output = []
