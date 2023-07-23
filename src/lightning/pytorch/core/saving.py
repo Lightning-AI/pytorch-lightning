@@ -22,13 +22,12 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, IO, Optional, Type, Union
+from typing import Any, Callable, Dict, IO, Optional, Type, Union, TYPE_CHECKING
 from warnings import warn
 
 import torch
 import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
-from torch.storage import UntypedStorage
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
@@ -47,6 +46,9 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
     from omegaconf.dictconfig import DictConfig
     from omegaconf.errors import UnsupportedValueType, ValidationError
+
+if TYPE_CHECKING:
+    from torch.storage import UntypedStorage
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
@@ -102,7 +104,7 @@ def _load_from_checkpoint(
     raise NotImplementedError(f"Unsupported {cls}")
 
 
-def _default_map_location(storage: UntypedStorage, location: str) -> Optional[UntypedStorage]:
+def _default_map_location(storage: "UntypedStorage", location: str) -> Optional["UntypedStorage"]:
     if (
         location.startswith("mps")
         and not MPSAccelerator.is_available()
