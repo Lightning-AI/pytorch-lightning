@@ -1048,7 +1048,7 @@ def test_xla_fsdp_automatic_strategy_selection(monkeypatch, tpu_available):
 
     # manually register fsdp for when torch.distributed.is_initialized() != True
     if "fsdp" not in strategies.STRATEGY_REGISTRY.available_strategies():
-        strategies.STRATEGY_REGISTRY.register('fsdp', FSDPStrategy)
+        strategies.STRATEGY_REGISTRY.register("fsdp", FSDPStrategy)
 
     connector = _Connector(accelerator="tpu", strategy="fsdp")
     assert isinstance(connector.strategy, XLAFSDPStrategy)
