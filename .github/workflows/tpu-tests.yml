@@ -35,8 +35,6 @@ jobs:
       CLOUDSDK_CORE_DISABLE_PROMPTS: 1  # default to --quiet
       # recommended zone for v4-8: https://cloud.google.com/tpu/docs/regions-zones
       CLOUDSDK_COMPUTE_ZONE: us-central2-b  # --zone
-      SCOPE: ${{ matrix.pkg-name }}
-      RUNTIME: ${{ matrix.runtime }}
     steps:
     - uses: actions/checkout@v3
       with:
@@ -55,10 +53,10 @@ jobs:
     - name: Time-based job cleanup
       if: always()
       run: |
-        gcloud compute tpus tpu-vm list --format='value(name,createTime)' > data.txt
-        cat data.txt
+        gcloud compute tpus tpu-vm list --format='value(name,createTime)' > creation_times.txt
+        cat creation_times.txt
 
-        if [ ! -s "data.txt" ]; then
+        if [ ! -s "creation_times.txt" ]; then
           echo "No existing jobs"
           exit 0
         fi
@@ -86,7 +84,7 @@ jobs:
           else
             echo "Skipping $job_name, alive for $age seconds"
           fi
-        done < data.txt
+        done < creation_times.txt
 
         if [ "$jobs_deleted" = true ]; then
           sleep 5
@@ -97,13 +95,13 @@ jobs:
     - name: Update script
       run: |
         import os
-        fname = f'tests/tests_{os.getenv("SCOPE")}/run_tpu_tests.sh'
+        fname = f'tests/tests_${{ matrix.pkg-name }}/run_tpu_tests.sh'
         with open(fname) as fo:
             data = fo.read()
         data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
         data = data.replace('{PR_NUMBER}', os.environ["PR_NUMBER"] or "master")
         data = data.replace('{SHA}', os.environ["SHA"])
-        data = data.replace('{RUNTIME}', os.environ["RUNTIME"])
+        data = data.replace('{RUNTIME}', '${{ matrix.runtime }}')
         print(data)
         with open(fname, "w") as fw:
             fw.write(data)
@@ -126,7 +124,7 @@ jobs:
         set -uex
 
         # copy the testing script
-        gcloud compute tpus tpu-vm scp "tests/tests_$SCOPE/run_tpu_tests.sh" "$JOB_NAME":~
+        gcloud compute tpus tpu-vm scp "tests/tests_${{ matrix.pkg-name }}/run_tpu_tests.sh" "$JOB_NAME":~
 
         # run script
         gcloud compute tpus tpu-vm ssh "$JOB_NAME" --command="cd ~; bash run_tpu_tests.sh"
