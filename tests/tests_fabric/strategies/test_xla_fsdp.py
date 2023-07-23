@@ -24,8 +24,8 @@ from torch.utils.data import DataLoader
 
 from lightning.fabric import Fabric
 from lightning.fabric.accelerators import XLAAccelerator
-from lightning.fabric.strategies import XLAFSDPStrategy
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
+from lightning.fabric.strategies import XLAFSDPStrategy
 from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
 from tests_fabric.helpers.models import RandomDataset
 from tests_fabric.helpers.runif import RunIf
