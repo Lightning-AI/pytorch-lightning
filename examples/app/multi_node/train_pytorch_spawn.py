@@ -23,8 +23,6 @@ class PyTorchDistributed(L.LightningWork):
         # 2. Setup distributed training
         if torch.cuda.is_available():
             device = torch.device(f"cuda:{local_rank}")
-        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            device = torch.device("mps")
         else:
             device = torch.device("cpu")
         model = DistributedDataParallel(
