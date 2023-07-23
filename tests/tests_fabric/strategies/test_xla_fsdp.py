@@ -19,18 +19,25 @@ from unittest.mock import MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
-import torch_xla.core.xla_model as xm
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from torch_xla.distributed.fsdp.wrap import always_wrap_policy
-from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
 from lightning.fabric import Fabric
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies import XLAFSDPStrategy
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
 from tests_fabric.helpers.models import RandomDataset
 from tests_fabric.helpers.runif import RunIf
+
+if _XLA_AVAILABLE:
+    import torch_xla.core.xla_model as xm
+    from torch_xla.distributed.fsdp.wrap import always_wrap_policy
+    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
+else:
+    xm = None
+    always_wrap_policy = None
+    XlaFullyShardedDataParallel = None
 
 
 @RunIf(tpu=True)
