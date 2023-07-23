@@ -28,12 +28,13 @@ from warnings import warn
 import torch
 import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
+from torch.storage import UntypedStorage
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
-from lightning.pytorch.accelerators import CUDAAccelerator
+from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
@@ -59,9 +60,9 @@ def _load_from_checkpoint(
     strict: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
+
+    map_location = map_location or _default_map_location
     with pl_legacy_patch():
-        if map_location is None:
-            map_location = "cpu" if not CUDAAccelerator.is_available() else None
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
     # convert legacy checkpoints to the new format
@@ -100,6 +101,16 @@ def _load_from_checkpoint(
         return model.to(device)
 
     raise NotImplementedError(f"Unsupported {cls}")
+
+
+def _default_map_location(storage: UntypedStorage, location: str) -> Optional[UntypedStorage]:
+    if (
+        location.startswith("mps") and not MPSAccelerator.is_available()
+        or location.startswith("cuda") and not CUDAAccelerator.is_available()
+        or location.startswith("xla") and not XLAAccelerator.is_available()
+    ):
+        return storage.cpu()
+    return None
 
 
 def _load_state(
