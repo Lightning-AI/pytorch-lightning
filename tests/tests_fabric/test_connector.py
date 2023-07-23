@@ -1046,9 +1046,11 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
 def test_xla_fsdp_automatic_strategy_selection(monkeypatch, tpu_available):
     import lightning.fabric.strategies as strategies
 
+    added_fsdp = False
     # manually register fsdp for when torch.distributed.is_initialized() != True
     if "fsdp" not in strategies.STRATEGY_REGISTRY.available_strategies():
         strategies.STRATEGY_REGISTRY.register("fsdp", FSDPStrategy)
+        added_fsdp = True
 
     connector = _Connector(accelerator="tpu", strategy="fsdp")
     assert isinstance(connector.strategy, XLAFSDPStrategy)
@@ -1061,6 +1063,9 @@ def test_xla_fsdp_automatic_strategy_selection(monkeypatch, tpu_available):
 
     connector = _Connector(accelerator="auto", strategy="xla_fsdp")
     assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    if added_fsdp:
+        strategies.STRATEGY_REGISTRY.pop("fsdp")
 
 
 def test_connector_transformer_engine(monkeypatch):
