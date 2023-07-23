@@ -14,19 +14,17 @@
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, List, Optional, Union
 from unittest import mock
 from unittest.mock import MagicMock, Mock
-from types import MethodType
-from lightning.fabric.accelerators.accelerator import Accelerator
-from lightning.fabric.connector import _PLUGIN_INPUT, _PRECISION_INPUT
-from lightning.fabric.loggers import Logger
 
 import pytest
 import torch
 import torch.nn as nn
+import torch_xla.core.xla_model as xm
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from torch_xla.distributed.fsdp.wrap import always_wrap_policy
+from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
 from lightning.fabric import Fabric
 from lightning.fabric.accelerators import XLAAccelerator
@@ -34,10 +32,6 @@ from lightning.fabric.strategies import XLAFSDPStrategy
 from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
 from tests_fabric.helpers.models import RandomDataset
 from tests_fabric.helpers.runif import RunIf
-
-import torch_xla.core.xla_model as xm
-from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
-from torch_xla.distributed.fsdp.wrap import always_wrap_policy
 
 
 @RunIf(tpu=True)
@@ -132,7 +126,7 @@ def test_xla_fsdp_grad_clipping_norm_error():
 
 
 def xla_fsdp_train_save_load_sharded(fabric: Fabric, tmp_path):
-    """Fabric launch function for test_xla_fsdp_train_save_load_sharded"""
+    """Fabric launch function for test_xla_fsdp_train_save_load_sharded."""
     device = xm.xla_device()
     model_1 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
     model_1.to(device)
@@ -164,17 +158,18 @@ def xla_fsdp_train_save_load_sharded(fabric: Fabric, tmp_path):
         "model": model_1,
         "shard_metadata": model_1._forward_module.get_shard_metadata(),
         "optimizer": optimizer_1,  # not needed in ckpt consolidation
-        "step_count": 1
+        "step_count": 1,
     }
 
     fabric.save(checkpoint_filename, ckpt)
 
-    assert set(os.listdir(checkpoint_path)) == {f"fsdp-checkpoint_rank-{0:08d}-of-{4:08d}.pth", 
-                                                f"fsdp-checkpoint_rank-{1:08d}-of-{4:08d}.pth",
-                                                f"fsdp-checkpoint_rank-{2:08d}-of-{4:08d}.pth",
-                                                f"fsdp-checkpoint_rank-{3:08d}-of-{4:08d}.pth"}
+    assert set(os.listdir(checkpoint_path)) == {
+        f"fsdp-checkpoint_rank-{0:08d}-of-{4:08d}.pth",
+        f"fsdp-checkpoint_rank-{1:08d}-of-{4:08d}.pth",
+        f"fsdp-checkpoint_rank-{2:08d}-of-{4:08d}.pth",
+        f"fsdp-checkpoint_rank-{3:08d}-of-{4:08d}.pth",
+    }
 
-    
     # define a second set of model and optimizer
     model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
     model_2.to(device)
@@ -188,8 +183,8 @@ def xla_fsdp_train_save_load_sharded(fabric: Fabric, tmp_path):
         "model": model_2,
         "shard_metadata": model_2._forward_module.get_shard_metadata(),
         "optimizer": optimizer_2,
-        "step_count": 0
-        }
+        "step_count": 0,
+    }
     metadata = fabric.load(checkpoint_filename, state)
 
     # check user data in state reloaded
@@ -199,7 +194,7 @@ def xla_fsdp_train_save_load_sharded(fabric: Fabric, tmp_path):
     # check correctness with loaded state
     for p0, p1 in zip(params_before, model_2.parameters()):
         torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
-    
+
     # attempt to load a key not in the metadata checkpoint
     state = {"model": model_2, "coconut": 11}
     with pytest.raises(KeyError, match="The requested state contains a key 'coconut' that does not exist"):
@@ -225,18 +220,12 @@ def test_xla_fsdp_train_save_load_sharded(tmp_path):
 
 @RunIf(tpu=True)
 def test_xla_fsdp_activation_checkpointing_setup():
-    """Test XLA FSDP activation checkpointing setup"""
+    """Test XLA FSDP activation checkpointing setup."""
     from torch_xla.distributed.fsdp import checkpoint_module
 
-    auto_wrapper_callable = lambda m, *args, **kwargs: XlaFullyShardedDataParallel(checkpoint_module(m), *args, **kwargs)
+    auto_wrapper_callable = lambda m, *args, **kwargs: XlaFullyShardedDataParallel(
+        checkpoint_module(m), *args, **kwargs
+    )
     strategy = XLAFSDPStrategy(auto_wrapper_callable=auto_wrapper_callable)
 
     assert auto_wrapper_callable in strategy._fsdp_kwargs.values()
-
-
-
-
-
-
-    
-

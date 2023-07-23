@@ -29,7 +29,7 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate_keys_for_strict_loading
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.types import _PATH, Optimizable
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
@@ -43,10 +43,10 @@ else:
 class XLAFSDPStrategy(XLAStrategy):
     """Strategy for training multiple TPU devices using the
     :func:`torch_xla.distributed.xla_fully_sharded_data_parallel.XlaFullyShardedDataParallel` method.
-    
+
     For more information check out https://github.com/pytorch/xla/blob/master/docs/fsdp.md
     """
-    
+
     def __init__(
         self,
         accelerator: Optional[Accelerator] = None,
@@ -209,8 +209,9 @@ class XLAFSDPStrategy(XLAStrategy):
         )
 
     def save_checkpoint(
-        self, 
-        path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], 
+        self,
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
         storage_options: Optional[Any] = None,
         filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
@@ -223,7 +224,7 @@ class XLAFSDPStrategy(XLAStrategy):
         if "shard_metadata" not in state:
             raise TypeError(
                 "Saving and loading checkpoints with `XLAFSDPStrategy` requires the state to include shard_metadata."
-                "Please add `\"shard_metadata\": model.get_shard_metadata()` to `state`."
+                'Please add `"shard_metadata": model.get_shard_metadata()` to `state`.'
             )
 
         if not _TORCH_GREATER_EQUAL_2_0:
@@ -278,13 +279,11 @@ class XLAFSDPStrategy(XLAStrategy):
 
         if self._state_dict_type == "full":
             from torch_xla.distributed.fsdp import consolidate_sharded_model_checkpoints
-            
+
             xm.rendezvous("ckpt_consolidation")
 
             if xm.is_master_ordinal(local=False):
-                consolidate_sharded_model_checkpoints(
-                    ckpt_prefix=path, ckpt_suffix="_rank-*-of-*.pth"
-                )
+                consolidate_sharded_model_checkpoints(ckpt_prefix=path, ckpt_suffix="_rank-*-of-*.pth")
             xm.rendezvous("ckpt_consolidation")
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
@@ -388,8 +387,8 @@ class XLAFSDPStrategy(XLAStrategy):
         if len(loaded_metadata_keys):
             for key in loaded_metadata_keys:
                 metadata[key] = sharded_ckpt[key]
-        
-        return metadata        
+
+        return metadata
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
