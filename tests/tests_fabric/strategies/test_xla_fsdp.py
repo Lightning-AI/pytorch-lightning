@@ -147,8 +147,9 @@ def xla_fsdp_train_save_load_sharded(fabric: Fabric, tmp_path):
     batch = next(data_iter)
     loss = step(model_1, batch)
     fabric.backward(loss)
-    xm.optimizer_step(optimizer_1, barrier=True)
+    optimizer_1.step()
     optimizer_1.zero_grad()
+    xm.mark_step()
 
     checkpoint_path = Path(fabric.broadcast(str(tmp_path)))
     checkpoint_filename = Path(fabric.broadcast(str(tmp_path / "fsdp-checkpoint")))
