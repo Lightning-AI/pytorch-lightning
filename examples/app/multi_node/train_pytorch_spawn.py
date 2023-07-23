@@ -21,10 +21,7 @@ class PyTorchDistributed(L.LightningWork):
         )
 
         # 2. Setup distributed training
-        if torch.cuda.is_available():
-            device = torch.device(f"cuda:{local_rank}")
-        else:
-            device = torch.device("cpu")
+        device = torch.device(f"cuda:{local_rank}") if torch.cuda.is_available() else torch.device("cpu")
         model = DistributedDataParallel(
             model.to(device), device_ids=[local_rank] if torch.cuda.is_available() else None
         )
