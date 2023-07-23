@@ -653,19 +653,15 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-        # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
-        # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
         with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
-            local_world_size = len(self.parallel_devices)
-            for i in range(local_world_size):
+            for i in range(self.num_processes):
                 if self.local_rank == i:
-                    # Local rank i loads, frees memory when done
+                    # local rank i loads, others wait
+                    # only one checkpoint copy is held in memory at a time
                     state_dict = torch.load(path_or_ckpt, map_location="cpu") if not isinstance(path_or_ckpt, dict) else path_or_ckpt
                     module.load_state_dict(state_dict, strict=strict)
                     del state_dict
-                    self.barrier()
-                else:
-                    self.barrier()
+                self.barrier()
 
 
 def _activation_checkpointing_kwargs(
