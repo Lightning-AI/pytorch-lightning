@@ -36,15 +36,18 @@ def test_default_attributes(monkeypatch):
             monkeypatch.setattr(runtime, "world_size", lambda: 1)
             monkeypatch.setattr(runtime, "global_ordinal", lambda: 0)
             monkeypatch.setattr(runtime, "local_ordinal", lambda: 0)
+            monkeypatch.setattr(runtime, "host_index", lambda: 3)
         else:
             from torch_xla.experimental import pjrt
 
             monkeypatch.setattr(pjrt, "world_size", lambda: 1)
             monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
             monkeypatch.setattr(pjrt, "local_ordinal", lambda: 0)
+            os.environ["XRT_HOST_ORDINAL"] = "3"
     else:
         from torch_xla import _XLAC
 
+        os.environ["XRT_HOST_ORDINAL"] = "3"
         # avoid: "Cannot replicate if number of devices ... is different from ..."
         monkeypatch.setattr(_XLAC, "_xla_get_default_device", lambda: torch.device("xla:0"))
 
@@ -53,7 +56,7 @@ def test_default_attributes(monkeypatch):
     assert env.world_size() == 1
     assert env.global_rank() == 0
     assert env.local_rank() == 0
-    assert env.node_rank() == 0
+    assert env.node_rank() == 3
 
     with pytest.raises(NotImplementedError):
         _ = env.main_address

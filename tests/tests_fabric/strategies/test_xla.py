@@ -20,7 +20,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from lightning.fabric.accelerators import XLAAccelerator
+from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, XLAAccelerator
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
@@ -51,7 +51,7 @@ def xla_launch(fn, strategy=None):
 
 def broadcast_on_tpu_fn(strategy):
     # test broadcasting a tensor
-    obj = torch.tensor(strategy.local_rank)
+    obj = torch.tensor(strategy.global_rank)
     # In PjRT, the local rank and global rank have no solid relation.
     # global rank may not even be contiguous on a host, because it depends on the 3D mesh structure that is formed by
     # the TPUs on all hosts in a pod. So checking a different src is not reliable
@@ -62,7 +62,7 @@ def broadcast_on_tpu_fn(strategy):
     assert result.device.type == "xla"
 
     # test broadcasting an arbitrary object
-    obj = ("ver_0.5", "logger_name", strategy.local_rank)
+    obj = ("ver_0.5", "logger_name", strategy.global_rank)
     result = strategy.broadcast(obj, src=src)
     assert result == ("ver_0.5", "logger_name", src)
 
@@ -130,15 +130,19 @@ def tpu_all_gather_fn(strategy):
     with pytest.raises(NotImplementedError, match="only implemented for tensors"):
         strategy.all_gather([1])
 
-    device_count = strategy.accelerator.auto_device_count()
     for sync_grads in (True, False):
         tensor = torch.tensor(1.0, requires_grad=True)
         result = strategy.all_gather(tensor, sync_grads=sync_grads)
         summed = result.sum()
         assert summed.device.type == "xla"
-        assert torch.equal(summed, torch.tensor(device_count, dtype=torch.float32))
-        summed.backward()
+        assert torch.equal(summed, torch.tensor(strategy.world_size, dtype=torch.float32))
+        if not _XLA_GREATER_EQUAL_2_1:
+            summed.backward()
         if sync_grads:
+            if _XLA_GREATER_EQUAL_2_1:
+                # in 2.1, sync_grads=False makes it so that you cannot call .backward even if it originall had set
+                # requires_grad=True
+                summed.backward()
             assert torch.equal(tensor.grad, torch.tensor(1.0))
         else:
             # As gradients are not synced, the original tensor will not have gradients.
@@ -157,13 +161,11 @@ def tpu_sync_module_states_fn(sync_module_states, strategy):
     model = torch.nn.Linear(1, 1).to(strategy.root_device)
     model = strategy.setup_module(model)
     gathered = strategy.all_gather(model.weight)
-    if sync_module_states:
-        for t in gathered:
-            assert gathered[0] == t
-    else:
-        with pytest.raises(AssertionError):
-            for t in gathered:
-                assert gathered[0] == t
+    for t in gathered[1:]:
+        if sync_module_states:
+            assert torch.equal(gathered[0], t)
+        else:
+            assert not torch.equal(gathered[0], t)
 
 
 @RunIf(tpu=True)
