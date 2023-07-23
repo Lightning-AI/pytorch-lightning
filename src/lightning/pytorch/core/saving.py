@@ -112,7 +112,7 @@ def _default_map_location(storage: UntypedStorage, location: str) -> Optional[Un
         and not XLAAccelerator.is_available()
     ):
         return storage.cpu()
-    return None
+    return None  # default behavior by `torch.load()`
 
 
 def _load_state(
