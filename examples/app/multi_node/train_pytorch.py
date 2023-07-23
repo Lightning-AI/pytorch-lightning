@@ -24,8 +24,6 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
     model = torch.nn.Linear(32, 2)
     if torch.cuda.is_available():
         device = torch.device(f"cuda:{local_rank}")
-    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-        device = torch.device("mps")
     else:
         device = torch.device("cpu")
     model = DistributedDataParallel(model, device_ids=[local_rank] if torch.cuda.is_available() else None).to(device)
