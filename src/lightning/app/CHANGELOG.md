@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed handling a `None` request in the file orchestration queue ([#18111](https://github.com/Lightning-AI/lightning/pull/18111))
 
 
 ## [2.0.5] - 2023-07-07
