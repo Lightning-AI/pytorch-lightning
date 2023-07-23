@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 from copy import deepcopy
-from pathlib import Path
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -214,7 +213,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
             f"fsdp-checkpoint_rank-{1:08d}-of-{4:08d}.pth",
             f"fsdp-checkpoint_rank-{2:08d}-of-{4:08d}.pth",
             f"fsdp-checkpoint_rank-{3:08d}-of-{4:08d}.pth",
-            f"fsdp-checkpoint_consolidated.pth"
+            "fsdp-checkpoint_consolidated.pth",
         }
 
         # define a second set of model and optimizer
@@ -237,8 +236,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
 def test_xla_fsdp_train_save_load(tmp_path, state_dict_type, use_auto_wrap_policy):
     """Test XLAFSDP training, saving and loading checkpoint (both full and sharded)."""
     strategy = XLAFSDPStrategy(
-        auto_wrap_policy=always_wrap_policy if use_auto_wrap_policy else None,
-        state_dict_type=state_dict_type
+        auto_wrap_policy=always_wrap_policy if use_auto_wrap_policy else None, state_dict_type=state_dict_type
     )
     fabric = Fabric(
         accelerator="tpu",
@@ -265,7 +263,9 @@ def test_xla_fsdp_activation_checkpointing_setup():
 def xla_fsdp_rewrap_warning(fabric: Fabric):
     """Fabric launch function for test_xla_fsdp_rewrap_warning."""
     device = xm.xla_device()
-    model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.ReLU(), XlaFullyShardedDataParallel(torch.nn.Linear(1, 1)))
+    model = torch.nn.Sequential(
+        torch.nn.Linear(1, 1), torch.nn.ReLU(), XlaFullyShardedDataParallel(torch.nn.Linear(1, 1))
+    )
     model.to(device)
     if xm.is_master_ordinal(local=False):
         with pytest.warns(match="the model is already wrapped"):
@@ -279,7 +279,7 @@ def xla_fsdp_rewrap_warning(fabric: Fabric):
 
 @RunIf(min_torch="1.12", tpu=True)
 def test_xla_fsdp_rewrap_warning():
-    """Test XLAFSDP rewrap warning"""
+    """Test XLAFSDP rewrap warning."""
     strategy = XLAFSDPStrategy(auto_wrap_policy={torch.nn.Linear})
     fabric = Fabric(devices=4, accelerator="tpu", strategy=strategy)
     fabric.launch(xla_fsdp_rewrap_warning)

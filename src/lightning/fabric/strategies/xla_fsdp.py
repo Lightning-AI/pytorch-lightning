@@ -14,7 +14,7 @@
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, List, Literal, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -209,7 +209,8 @@ class XLAFSDPStrategy(XLAStrategy):
 
     def save_checkpoint(
         self,
-        path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], 
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
         storage_options: Optional[Any] = None,
         filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
@@ -221,7 +222,7 @@ class XLAFSDPStrategy(XLAStrategy):
         if "shard_metadata" not in state:
             raise TypeError(
                 "Saving and loading checkpoints with `XLAFSDPStrategy` requires the state to include shard_metadata."
-                "Please add `\"shard_metadata\": model._forward_module.get_shard_metadata()` to `state`."
+                'Please add `"shard_metadata": model._forward_module.get_shard_metadata()` to `state`.'
             )
 
         if not _TORCH_GREATER_EQUAL_2_0:
@@ -271,9 +272,11 @@ class XLAFSDPStrategy(XLAStrategy):
 
         if self._state_dict_type == "full":
             from torch_xla.distributed.fsdp import consolidate_sharded_model_checkpoints
+
             if xm.is_master_ordinal(local=False):
                 consolidate_sharded_model_checkpoints(
-                    ckpt_prefix=str(path), ckpt_suffix="_rank-*-of-*.pth",
+                    ckpt_prefix=str(path),
+                    ckpt_suffix="_rank-*-of-*.pth",
                 )
             xm.rendezvous("ckpt_consolidation")
 
@@ -378,14 +381,14 @@ class XLAFSDPStrategy(XLAStrategy):
             rank_zero_warn(
                 "Loading a full checkpoint will only load the full model."
                 "Optimizer and any additional metadata are not included."
-                )
+            )
             if len(modules) > 0:
                 raise ValueError(
                     "Found a XLA FSDP model in the provided checkpoint state."
                     "Please provide the model without any FSDP wrapper."
                 )
-            full_ckpt = torch.load(f'{str(path)}_consolidated.pth')
-            state["model"].load_state_dict(full_ckpt['model'], strict=strict)
+            full_ckpt = torch.load(f"{str(path)}_consolidated.pth")
+            state["model"].load_state_dict(full_ckpt["model"], strict=strict)
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
