@@ -4,8 +4,8 @@ import torch
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
+from tests_pytorch.helpers.runif import RunIf
 
 
 def create_boring_checkpoint(tmp_path, model, accelerator="cuda"):
@@ -21,11 +21,14 @@ def create_boring_checkpoint(tmp_path, model, accelerator="cuda"):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize("accelerator", [
-    "cpu",
-    pytest.param("cuda", marks=RunIf(min_cuda_gpus=1)),
-    pytest.param("mps", marks=RunIf(mps=True)),
-])
+@pytest.mark.parametrize(
+    "accelerator",
+    [
+        "cpu",
+        pytest.param("cuda", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=RunIf(mps=True)),
+    ],
+)
 def test_load_from_checkpoint_map_location_automatic(accelerator, tmp_path, monkeypatch):
     """Test that the default `map_location` provided by Lightning moves parameters to CPU if the accelerator is not
     available at the time of loading."""

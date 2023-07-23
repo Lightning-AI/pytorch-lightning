@@ -23,7 +23,9 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH
 
 _PATH = Union[str, Path]
 _DEVICE = Union[torch.device, str, int]
-_MAP_LOCATION_TYPE = Optional[Union[_DEVICE, Callable[[UntypedStorage, str], Optional[UntypedStorage]], Dict[_DEVICE, _DEVICE]]]
+_MAP_LOCATION_TYPE = Optional[
+    Union[_DEVICE, Callable[[UntypedStorage, str], Optional[UntypedStorage]], Dict[_DEVICE, _DEVICE]]
+]
 _PARAMETERS = Iterator[torch.nn.Parameter]
 
 

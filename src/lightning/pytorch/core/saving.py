@@ -60,7 +60,6 @@ def _load_from_checkpoint(
     strict: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
-
     map_location = map_location or _default_map_location
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
@@ -105,9 +104,12 @@ def _load_from_checkpoint(
 
 def _default_map_location(storage: UntypedStorage, location: str) -> Optional[UntypedStorage]:
     if (
-        location.startswith("mps") and not MPSAccelerator.is_available()
-        or location.startswith("cuda") and not CUDAAccelerator.is_available()
-        or location.startswith("xla") and not XLAAccelerator.is_available()
+        location.startswith("mps")
+        and not MPSAccelerator.is_available()
+        or location.startswith("cuda")
+        and not CUDAAccelerator.is_available()
+        or location.startswith("xla")
+        and not XLAAccelerator.is_available()
     ):
         return storage.cpu()
     return None
