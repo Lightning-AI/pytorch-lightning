@@ -68,8 +68,11 @@ Paste the following code block into a notebook cell:
         def configure_optimizers(self):
             return optim.Adam(self.parameters(), lr=1e-3)
 
+        def prepare_data(self):
+            torchvision.datasets.MNIST(".", download=True)
+
         def train_dataloader(self):
-            dataset = torchvision.datasets.MNIST(".", download=True, transform=torchvision.transforms.ToTensor())
+            dataset = torchvision.datasets.MNIST(".", transform=torchvision.transforms.ToTensor())
             return utils.data.DataLoader(dataset, batch_size=64)
 
 
