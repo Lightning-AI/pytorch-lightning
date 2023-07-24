@@ -76,7 +76,7 @@ class _NotYetLoadedTensor:
         dtype = self.metatensor.dtype
 
         uts = (
-            self.archiveinfo.zipfile.get_storage_from_record(
+            self.archiveinfo.file_reader.get_storage_from_record(
                 f"data/{fn}", size * torch._utils._element_size(dtype), UntypedStorage
             )
             ._typed_storage()
@@ -95,16 +95,12 @@ class _NotYetLoadedTensor:
         args: Sequence[Any] = (),
         kwargs: Optional[Dict] = None,
     ) -> Any:
-        if kwargs is None:  # TODO: simplify
-            kwargs = {}
-        loaded_args = [(a._load_tensor() if isinstance(a, _NotYetLoadedTensor) else a) for a in args]
+        kwargs = kwargs or {}
+        loaded_args = [(arg._load_tensor() if isinstance(arg, _NotYetLoadedTensor) else arg) for arg in args]
         return func(*loaded_args, **kwargs)
 
     def __getattr__(self, name: str) -> Any:
-        # properties
-        ## TODO: device, is_...??
-        ## TODO: mH, mT, H, T, data, imag, real
-        ## name ???
+        # These properties don't require materialization and can be accessed through the meta tensor directly
         if name in {
             "dtype",
             "grad",
@@ -115,12 +111,13 @@ class _NotYetLoadedTensor:
             "output_nr",
             "requires_grad",
             "retains_grad",
+            "size",
             "shape",
             "volatile",
         }:
             return getattr(self.metatensor, name)
-        if name in {"size"}:
-            return getattr(self.metatensor, name)
+
+        # TODO: needed for us?
         # materializing with contiguous is needed for quantization
         if name in {"contiguous"}:
             return getattr(self._load_tensor(), name)
@@ -128,23 +125,22 @@ class _NotYetLoadedTensor:
         raise AttributeError(f"{type(self)} does not have {name}")
 
     def __repr__(self) -> str:
-        return f"_NotYetLoadedTensor({repr(self.metatensor)})"
+        return f"{self.__class__.__name__}({repr(self.metatensor)})"
 
 
 class _LazyLoadingUnpickler(pickle.Unpickler):
-    def __init__(self, file: IO, zipfile) -> None:
+    def __init__(self, file: IO, file_reader: torch.PyTorchFileReader) -> None:
         super().__init__(file)
-        self.zipfile = zipfile  # TODO: is this needed?
+        self.file_reader = file_reader
 
     def find_class(self, module: str, name: str) -> Any:
-        res = super().find_class(module, name)  # TODO: move to bottom
         if module == "torch._utils" and name == "_rebuild_tensor_v2":
             return partial(_NotYetLoadedTensor.rebuild_tensor_v2, archiveinfo=self)
         if module == "torch._tensor" and name == "_rebuild_from_type_v2":
             return partial(_NotYetLoadedTensor.rebuild_from_type_v2, archiveinfo=self)
         if module == "torch._utils" and name == "_rebuild_parameter":
             return partial(_NotYetLoadedTensor.rebuild_parameter, archiveinfo=self)
-        return res
+        return super().find_class(module, name)
 
     def persistent_load(self, pid) -> TypedStorage:
         name, cls, fn, device, size = pid
@@ -155,25 +151,9 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
         return storage
 
 
-# TODO: make functional?
-class _LazyLoad:
-    def __init__(self, filename: _PATH) -> None:
-        self.zf = torch._C.PyTorchFileReader(str(filename))
-        with BytesIO(self.zf.get_record("data.pkl")) as pkl:
-            mup = _LazyLoadingUnpickler(pkl, self.zf)
-            self.sd = mup.load()
-
-    def __enter__(self):
-        return self.sd
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        del self.zf  # I don't think there is a way to force closing...
-        self.zf = None
-
-
 @contextmanager
 def _lazy_load(filename: _PATH) -> Any:
-    zf = torch._C.PyTorchFileReader(str(filename))
-    with BytesIO(zf.get_record("data.pkl")) as pkl:
-        mup = _LazyLoadingUnpickler(pkl, zf)
+    file_reader = torch.PyTorchFileReader(str(filename))
+    with BytesIO(file_reader.get_record("data.pkl")) as pkl:
+        mup = _LazyLoadingUnpickler(pkl, file_reader)
         yield mup.load()

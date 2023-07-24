@@ -31,14 +31,25 @@ def test_lazy_load_module(tmp_path):
     assert torch.equal(model0.bias, model1.bias)
 
 
-def test_lazy_load_tensor(tmp_path):
-    data = torch.rand(2, 2)
-    torch.save({"data": data}, tmp_path / "data.pt")
+class ATensor(torch.Tensor):
+    pass
 
-    with _lazy_load(tmp_path / "data.pt") as checkpoint:
-        loaded_data = checkpoint["data"]
-        assert torch.equal(loaded_data, data)
-    assert isinstance(checkpoint["data"], _NotYetLoadedTensor)
+
+def test_lazy_load_tensor(tmp_path):
+    """Test that lazy load can handle different classes of tensors."""
+    expected = {
+        "tensor": torch.rand(2),
+        "parameter": nn.Parameter(torch.rand(3)),
+        "subclass": torch.Tensor._make_subclass(ATensor, torch.rand(4))
+    }
+    torch.save(expected, tmp_path / "data.pt")
+
+    with _lazy_load(tmp_path / "data.pt") as loaded:
+        for t0, t1 in zip(expected.values(), loaded.values()):
+            assert isinstance(t1, _NotYetLoadedTensor)
+            t1_materialized = t1._load_tensor()
+            assert type(t0) == type(t1_materialized)
+            assert torch.equal(t0, t1_materialized)
 
 
 def test_lazy_load_mixed_state(tmp_path):
