@@ -1,25 +1,19 @@
 set -e  # exit on error
 
-echo "--- Cloning lightning repo ---"
-git clone --single-branch --depth 1 https://github.com/Lightning-AI/lightning.git
-cd lightning
-# PR triggered it, check it out
-if [ "{PR_NUMBER}" != "master" ]; then  # if PR number is set
-  echo "--- Fetch the PR changes ---"
-  git fetch origin --depth 1 pull/{PR_NUMBER}/head:test/{PR_NUMBER}
-  echo "--- Checkout PR changes ---"
-  git -c advice.detachedHead=false checkout {SHA}
-fi
-
 echo "--- Install packages ---"
+# show what's already installed
+pip3 list
+# typing-extensions==4.5.0 comes pre-installed in the environment, and pydantic doesnt support that, however,
+# pip cannot upgrade it because it's in the system folder: needs sudo
+sudo pip3 install -U typing-extensions
 # set particular PyTorch version
-pip install -q wget packaging
+pip3 install -q wget packaging
 python3 -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
 for fpath in `ls requirements/**/*.txt`; do
   python3 adjust-torch-versions.py $fpath {PYTORCH_VERSION};
 done
-pip install .[pytorch-extra,pytorch-test] pytest-timeout
-pip list
+pip3 install .[pytorch-extra,pytorch-test] pytest-timeout
+pip3 list
 
 # https://cloud.google.com/tpu/docs/v4-users-guide#train_ml_workloads_with_pytorch_xla
 export ALLOW_MULTIPLE_LIBTPU_LOAD=1
