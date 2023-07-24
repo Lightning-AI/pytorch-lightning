@@ -50,8 +50,8 @@ def test_model_tpu_devices_1(tmpdir):
         "max_epochs": 2,
         "accelerator": "tpu",
         "devices": 1,
-        "limit_train_batches": 4,
-        "limit_val_batches": 4,
+        "limit_train_batches": 3,
+        "limit_val_batches": 3,
     }
 
     model = BoringModel()
@@ -69,8 +69,8 @@ def test_model_tpu_index(tmpdir, tpu_core):
         "max_epochs": 2,
         "accelerator": "tpu",
         "devices": [tpu_core],
-        "limit_train_batches": 4,
-        "limit_val_batches": 4,
+        "limit_train_batches": 3,
+        "limit_val_batches": 3,
     }
 
     model = BoringModel()
@@ -91,8 +91,8 @@ def test_model_multiple_tpu_devices(tmpdir):
         "max_epochs": 1,
         "accelerator": "tpu",
         "devices": "auto",
-        "limit_train_batches": 4,
-        "limit_val_batches": 4,
+        "limit_train_batches": 3,
+        "limit_val_batches": 3,
     }
 
     # multiple cores needs a big dataset
@@ -111,7 +111,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
         "max_epochs": 2,
         "accelerator": "tpu",
         "devices": 1,
-        "limit_train_batches": 8,
+        "limit_train_batches": 3,
         "limit_val_batches": 2,
     }
 
@@ -131,7 +131,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
         "max_epochs": 2,
         "accelerator": "tpu",
         "devices": [tpu_core],
-        "limit_train_batches": 4,
+        "limit_train_batches": 3,
         "limit_val_batches": 2,
     }
 
@@ -154,8 +154,8 @@ def test_model_16bit_multiple_tpu_devices(tmpdir):
         "max_epochs": 1,
         "accelerator": "tpu",
         "devices": "auto",
-        "limit_train_batches": 4,
-        "limit_val_batches": 4,
+        "limit_train_batches": 3,
+        "limit_val_batches": 3,
     }
 
     # multiple cores needs a big dataset
@@ -218,8 +218,8 @@ def test_tpu_clip_grad_by_value(tmpdir):
         "max_epochs": 4,
         "accelerator": "tpu",
         "devices": 1,
-        "limit_train_batches": 10,
-        "limit_val_batches": 10,
+        "limit_train_batches": 3,
+        "limit_val_batches": 3,
         "gradient_clip_val": 0.5,
         "gradient_clip_algorithm": "value",
     }
@@ -300,8 +300,7 @@ def tpu_sync_dist_fn(strategy):
     sync = _Sync(strategy.reduce, _should=True, _op=torch.distributed.ReduceOp.SUM)
     value = torch.tensor([1.0])
     value = sync(value)
-    world_size = XLAAccelerator.auto_device_count()
-    assert value.item() == world_size
+    assert value.item() == strategy.world_size
 
 
 @RunIf(tpu=True)

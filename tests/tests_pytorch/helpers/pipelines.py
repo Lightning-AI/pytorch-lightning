@@ -72,6 +72,10 @@ def run_model_test(
         f" relative to the initial norm, but expected a change by >={min_change_ratio}"
     )
 
+    if trainer.local_rank != trainer.global_rank:
+        # unless the filesystem is shared, only the main node will have access to the checkpoint
+        return
+
     # test model loading
     _ = load_model_from_checkpoint(trainer.checkpoint_callback.best_model_path, type(model))
 
