@@ -8,8 +8,8 @@ TPU training (Basic)
 
 ----
 
-.. video:: ../_static/fetched-s3-assets/tpu_cores.mp4
-    :poster: ../_static/fetched-s3-assets/thumb_tpus.png
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_tpus.png
     :width: 400
     :muted:
 

@@ -11,7 +11,7 @@ PyTorch Lightning is the deep learning framework with "batteries included" for p
 
 Lightning organizes PyTorch code to remove boilerplate and unlock scalability.
 
-.. video:: ../_static/fetched-s3-assets/pl_readme_gif_2_0.mp4
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/pl_readme_gif_2_0.mp4
     :width: 800
     :autoplay:
     :loop:
@@ -30,28 +30,28 @@ By organizing PyTorch code, lightning enables:
    :header: Full flexibility
    :description: Try any ideas using raw PyTorch without the boilerplate.
    :col_css: col-md-3
-   :image_center: ../_static/fetched-s3-assets/card_full_control.png
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
    :height: 290
 
 .. displayitem::
    :description: Decoupled research and engineering code enable reproducibility and better readability.
    :header: Reproducible + Readable
    :col_css: col-md-3
-   :image_center: ../_static/fetched-s3-assets/card_no_boilerplate.png
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_no_boilerplate.png
    :height: 290
 
 .. displayitem::
    :description: Use multiple GPUs/TPUs/HPUs etc... without code changes.
    :header: Simple multi-GPU training
    :col_css: col-md-3
-   :image_center: ../_static/fetched-s3-assets/card_hardware.png
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_hardware.png
    :height: 290
 
 .. displayitem::
    :description: We've done all the testing so you don't have to.
    :header: Built-in testing
    :col_css: col-md-3
-   :image_center: ../_static/fetched-s3-assets/card_testing.png
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_testing.png
    :height: 290
 
 .. raw:: html
@@ -268,7 +268,7 @@ Lightning offers 5 *added* degrees of flexibility depending on your project's co
 Customize training loop
 =======================
 
-.. image:: ../_static/fetched-s3-assets/custom_loop.png
+.. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/custom_loop.png
     :width: 600
     :alt: Injecting custom code in a training loop
 
@@ -285,7 +285,7 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 Extend the Trainer
 ==================
 
-.. video:: ../_static/fetched-s3-assets/cb.mp4
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/cb.mp4
     :width: 600
     :autoplay:
     :loop:
@@ -315,7 +315,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :header: Manual optimization
    :description: Automated training loop, but you own the optimization steps.
    :col_css: col-md-4
-   :image_center: ../_static/fetched-s3-assets/manual_opt.png
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/manual_opt.png
    :button_link: ../model/build_model_advanced.html#manual-optimization
    :image_height: 220px
    :height: 320

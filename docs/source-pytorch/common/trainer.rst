@@ -250,8 +250,8 @@ See also: :ref:`gradient_accumulation` to enable more fine-grained accumulation 
 benchmark
 ^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/benchmark.mp4
-    :poster: ../_static/fetched-s3-assets/benchmark.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/benchmark.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/benchmark.jpg
     :width: 400
     :muted:
 
@@ -277,8 +277,8 @@ Example::
 deterministic
 ^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/deterministic.mp4
-    :poster: ../_static/fetched-s3-assets/deterministic.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/deterministic.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/deterministic.jpg
     :width: 400
     :muted:
 
@@ -329,8 +329,8 @@ the trainer callbacks should there be two or more of the same type.
 check_val_every_n_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/check_val_every_n_epoch.mp4
-    :poster: ../_static/fetched-s3-assets/check_val_every_n_epoch.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/check_val_every_n_epoch.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/check_val_every_n_epoch.jpg
     :width: 400
     :muted:
 
@@ -348,8 +348,8 @@ Example::
 default_root_dir
 ^^^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/default_root_dir.mp4
-    :poster: ../_static/fetched-s3-assets/default%E2%80%A8_root_dir.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/default_root_dir.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/default%E2%80%A8_root_dir.jpg
     :width: 400
     :muted:
 
@@ -450,8 +450,8 @@ See :doc:`Saving and Loading Checkpoints <../common/checkpointing>` for how to c
 fast_dev_run
 ^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/fast_dev_run.mp4
-    :poster: ../_static/fetched-s3-assets/fast_dev_run.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/fast_dev_run.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/fast_dev_run.jpg
     :width: 400
     :muted:
 
@@ -492,8 +492,8 @@ impact to subsequent runs. These are the changes enabled:
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/gradient_clip_val.mp4
-    :poster: ../_static/fetched-s3-assets/gradient+_clip_val.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/gradient_clip_val.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/gradient+_clip_val.jpg
     :width: 400
     :muted:
 
@@ -507,8 +507,8 @@ Gradient clipping value
 limit_train_batches
 ^^^^^^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/limit_batches.mp4
-    :poster: ../_static/fetched-s3-assets/limit_train_batches.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_train_batches.jpg
     :width: 400
     :muted:
 
@@ -534,8 +534,8 @@ Example::
 limit_test_batches
 ^^^^^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/limit_batches.mp4
-    :poster: ../_static/fetched-s3-assets/limit_test_batches.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_test_batches.jpg
     :width: 400
     :muted:
 
@@ -557,8 +557,8 @@ In the case of multiple test dataloaders, the limit applies to each dataloader i
 limit_val_batches
 ^^^^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/limit_batches.mp4
-    :poster: ../_static/fetched-s3-assets/limit_val_batches.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_val_batches.jpg
     :width: 400
     :muted:
 
@@ -584,8 +584,8 @@ In the case of multiple validation dataloaders, the limit applies to each datalo
 log_every_n_steps
 ^^^^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/log_every_n_steps.mp4
-    :poster: ../_static/fetched-s3-assets/log_every_n_steps.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_every_n_steps.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_every_n_steps.jpg
     :width: 400
     :muted:
 
@@ -616,8 +616,8 @@ logger
 max_epochs
 ^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/min_max_epochs.mp4
-    :poster: ../_static/fetched-s3-assets/max_epochs.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_epochs.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/max_epochs.jpg
     :width: 400
     :muted:
 
@@ -634,8 +634,8 @@ To enable infinite training, set ``max_epochs = -1``.
 min_epochs
 ^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/min_max_epochs.mp4
-    :poster: ../_static/fetched-s3-assets/min_epochs.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_epochs.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/min_epochs.jpg
     :width: 400
     :muted:
 
@@ -649,8 +649,8 @@ Force training for at least these many epochs
 max_steps
 ^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/min_max_steps.mp4
-    :poster: ../_static/fetched-s3-assets/max_steps.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_steps.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/max_steps.jpg
     :width: 400
     :muted:
 
@@ -671,8 +671,8 @@ If ``max_steps`` is not specified, ``max_epochs`` will be used instead (and ``ma
 min_steps
 ^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/min_max_steps.mp4
-    :poster: ../_static/fetched-s3-assets/min_steps.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_steps.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/min_steps.jpg
     :width: 400
     :muted:
 
@@ -710,8 +710,8 @@ always has precedence.
 num_nodes
 ^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/num_nodes.mp4
-    :poster: ../_static/fetched-s3-assets/num_nodes.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_nodes.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_nodes.jpg
     :width: 400
     :muted:
 
@@ -729,8 +729,8 @@ Number of GPU nodes for distributed training.
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/num_sanity_val_steps.mp4
-    :poster: ../_static/fetched-s3-assets/num_sanity%E2%80%A8_val_steps.jp
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_sanity_val_steps.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_sanity%E2%80%A8_val_steps.jp
     :width: 400
     :muted:
 
@@ -755,8 +755,8 @@ This option will reset the validation dataloader unless ``num_sanity_val_steps=0
 overfit_batches
 ^^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/overfit_batches.mp4
-    :poster: ../_static/fetched-s3-assets/overfit_batches.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/overfit_batches.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/overfit_batches.jpg
     :width: 400
     :muted:
 
@@ -834,8 +834,8 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 profiler
 ^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/profiler.mp4
-    :poster: ../_static/fetched-s3-assets/profiler.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/profiler.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/profiler.jpg
     :width: 400
     :muted:
 
@@ -872,8 +872,8 @@ Whether to enable or disable the progress bar. Defaults to True.
 reload_dataloaders_every_n_epochs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/reload_dataloaders_every_epoch.mp4
-    :poster: ../_static/fetched-s3-assets/reload_%E2%80%A8dataloaders_%E2%80%A8every_epoch.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/reload_dataloaders_every_epoch.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/reload_%E2%80%A8dataloaders_%E2%80%A8every_epoch.jpg
     :width: 400
     :muted:
 
@@ -955,8 +955,8 @@ See Also:
 sync_batchnorm
 ^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/sync_batchnorm.mp4
-    :poster: ../_static/fetched-s3-assets/sync_batchnorm.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/sync_batchnorm.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/sync_batchnorm.jpg
     :width: 400
     :muted:
 
@@ -970,8 +970,8 @@ Enable synchronization between batchnorm layers across all GPUs.
 val_check_interval
 ^^^^^^^^^^^^^^^^^^
 
-.. video:: ../_static/fetched-s3-assets/val_check_interval.mp4
-    :poster: ../_static/fetched-s3-assets/val_check_interval.jpg
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/val_check_interval.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/val_check_interval.jpg
     :width: 400
     :muted:
 

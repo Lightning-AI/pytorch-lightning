@@ -17,7 +17,7 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 Strategy is a composition of one :doc:`Accelerator <../extensions/accelerator>`, one :ref:`Precision Plugin <extensions/plugins:Precision Plugins>`, a :ref:`CheckpointIO <extensions/plugins:CheckpointIO Plugins>`
 plugin and other optional plugins such as the :ref:`ClusterEnvironment <extensions/plugins:Cluster Environments>`.
 
-.. image:: ../_static/fetched-s3-assets/overview.jpeg
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/overview.jpeg
     :alt: Illustration of the Strategy as a composition of the Accelerator and several plugins
 
 We expose Strategies mainly for expert users that want to extend Lightning for new hardware support or new distributed backends (e.g. a backend not yet supported by `PyTorch <https://pytorch.org/docs/stable/distributed.html#backends>`_ itself).
@@ -133,7 +133,7 @@ Create a Custom Strategy
 
 Every strategy in Lightning is a subclass of one of the main base classes: :class:`~lightning.pytorch.strategies.Strategy`, :class:`~lightning.pytorch.strategies.SingleDeviceStrategy` or :class:`~lightning.pytorch.strategies.ParallelStrategy`.
 
-.. image:: ../_static/fetched-s3-assets/hierarchy.jpeg
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/hierarchy.jpeg
     :alt: Strategy base classes
 
 As an expert user, you may choose to extend either an existing built-in Strategy or create a completely new one by
