@@ -26,11 +26,13 @@ You can use the Lightning Trainer in interactive notebooks just like in a regula
     trainer = L.Trainer(accelerator="auto", devices="auto")
 
 
-You can find many notebook examples on our `tutorials page <../tutorials>` too!
+You can find many notebook examples on our :doc:`tutorials page <../tutorials>` too!
 
 
 ----
 
+
+.. _jupyter_notebook_example:
 
 ************
 Full example
@@ -84,7 +86,7 @@ Multi-GPU Limitations
 The multi-GPU capabilities in Jupyter are enabled by launching processes using the 'fork' start method.
 It is the only supported way of multi-processing in notebooks, but also brings some limitations that you should be aware of.
 
-Avoid initializing CUDA before `.fit`
+Avoid initializing CUDA before .fit()
 =====================================
 
 Don't run torch CUDA functions before calling ``trainer.fit()`` in any of the notebook cells beforehand, otherwise your code may hang or crash.
@@ -114,4 +116,4 @@ If you define/load your data in the main process before calling ``trainer.fit()`
     trainer = L.Trainer(accelerator="cuda", devices=2)
     trainer.fit(model, train_dataloader)
 
-The best practice is to move your data loading code inside the ``*_dataloader()`` hooks in the :class:`~lightning.pytorch.core.module.LightningModule` or :class:`~lightning.pytorch.core.datamodule.LightningDataModule` as shown in the example above.
+The best practice is to move your data loading code inside the ``*_dataloader()`` hooks in the :class:`~lightning.pytorch.core.module.LightningModule` or :class:`~lightning.pytorch.core.datamodule.LightningDataModule` as shown in the :ref:`example above <jupyter_notebook_example>`.
