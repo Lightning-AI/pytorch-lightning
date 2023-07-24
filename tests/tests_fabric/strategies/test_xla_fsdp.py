@@ -174,7 +174,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
     world_size = xm.xrt_world_size()
 
     if state_dict_type == "sharded":
-        expected_files = set([f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)])
+        expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
         assert set(os.listdir(checkpoint_path)) == expected_files
 
         # define a second set of model and optimizer
@@ -213,7 +213,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         assert state["coconut"] == 11
 
     if state_dict_type == "full":
-        expected_files = set([f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)])
+        expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
         expected_files.add("fsdp-checkpoint_consolidated.pth")
         assert set(os.listdir(checkpoint_path)) == expected_files
 
