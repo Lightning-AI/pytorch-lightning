@@ -113,7 +113,7 @@ class pl_legacy_patch:
 
         # Patch Unpickler to redirect `pytorch_lightning` imports
         self._old_unpickler = pickle.Unpickler
-        pickle.Unpickler = _RedirectingUnpickler
+        pickle.Unpickler = _RedirectingUnpickler  # type: ignore
         return self
 
     def __exit__(
@@ -127,7 +127,7 @@ class pl_legacy_patch:
         del sys.modules["lightning.pytorch.utilities.argparse_utils"]
         if hasattr(pl.utilities.enums, "_FaultTolerantMode"):
             delattr(pl.utilities.enums, "_FaultTolerantMode")
-        pickle.Unpickler = self._old_unpickler
+        pickle.Unpickler = self._old_unpickler  # type: ignore
         _lock.release()
 
 
