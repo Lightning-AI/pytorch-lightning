@@ -4,7 +4,6 @@
 
    ios_and_android
    app_tree
-   aws_arn
    build_config/build_config
    command_lines/command_lines
    dag
