@@ -245,11 +245,7 @@ def test_xla_fsdp_train_save_load(tmp_path, state_dict_type, use_auto_wrap_polic
     strategy = XLAFSDPStrategy(
         auto_wrap_policy=always_wrap_policy if use_auto_wrap_policy else None, state_dict_type=state_dict_type
     )
-    fabric = Fabric(
-        accelerator="tpu",
-        strategy=strategy,
-        devices=4,
-    )
+    fabric = Fabric(accelerator="tpu", strategy=strategy)
 
     fabric.launch(xla_fsdp_train_save_load, tmp_path, state_dict_type)
 
@@ -288,5 +284,5 @@ def xla_fsdp_rewrap_warning(fabric: Fabric):
 def test_xla_fsdp_rewrap_warning():
     """Test XLAFSDP rewrap warning."""
     strategy = XLAFSDPStrategy(auto_wrap_policy={torch.nn.Linear})
-    fabric = Fabric(devices=4, accelerator="tpu", strategy=strategy)
+    fabric = Fabric(accelerator="tpu", strategy=strategy)
     fabric.launch(xla_fsdp_rewrap_warning)
