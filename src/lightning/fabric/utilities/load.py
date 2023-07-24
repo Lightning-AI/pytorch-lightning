@@ -10,7 +10,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from contextlib import contextmanager
 from functools import partial
 import pickle
 import warnings
@@ -76,7 +76,7 @@ class _NotYetLoadedTensor:
         dtype = self.metatensor.dtype
 
         uts = (
-            self.archiveinfo.zipfile_context.zf.get_storage_from_record(
+            self.archiveinfo.zipfile.get_storage_from_record(
                 f"data/{fn}", size * torch._utils._element_size(dtype), UntypedStorage
             )
             ._typed_storage()
@@ -132,9 +132,9 @@ class _NotYetLoadedTensor:
 
 
 class _LazyLoadingUnpickler(pickle.Unpickler):
-    def __init__(self, file: IO, zipfile_context) -> None:
+    def __init__(self, file: IO, zipfile) -> None:
         super().__init__(file)
-        self.zipfile_context = zipfile_context  # TODO: is this needed?
+        self.zipfile = zipfile  # TODO: is this needed?
 
     def find_class(self, module: str, name: str) -> Any:
         res = super().find_class(module, name)  # TODO: move to bottom
@@ -160,7 +160,7 @@ class _LazyLoad:
     def __init__(self, filename: _PATH) -> None:
         self.zf = torch._C.PyTorchFileReader(str(filename))
         with BytesIO(self.zf.get_record("data.pkl")) as pkl:
-            mup = _LazyLoadingUnpickler(pkl, self)
+            mup = _LazyLoadingUnpickler(pkl, self.zf)
             self.sd = mup.load()
 
     def __enter__(self):
@@ -171,8 +171,9 @@ class _LazyLoad:
         self.zf = None
 
 
+@contextmanager
 def _lazy_load(filename: _PATH) -> Any:
     zf = torch._C.PyTorchFileReader(str(filename))
     with BytesIO(zf.get_record("data.pkl")) as pkl:
-        mup = _LazyLoadingUnpickler(pkl, None)
-        return mup.load()
+        mup = _LazyLoadingUnpickler(pkl, zf)
+        yield mup.load()
