@@ -85,7 +85,7 @@ Although we've abstracted the infrastructure, you still have full control when y
    :descriptions: Although you can use Python timers, we have a scheduler short-hand; You can also use full cron syntax; Code your own auto-scaling syntax (Lightning plays well with Kubernetes); *Remember* components organize ANY Python code which can even call external non-python scripts such as optimized C++ model servers ;Experts have the option to use terraform to configure Lightning clusters
    :code_files: ./level_2_scripts/hello_app_scheduler.py; ./level_2_scripts/hello_app_cron.py; ./level_2_scripts/hello_app_auto_scale.py; ./level_2_scripts/organized_app_python.py;
    :tab_rows: 4
-   :highlights: 24; 24; 21, 24, 27, 28; 9, 16, 17; 5
+   :highlights: 24; 24; 21, 24, 27, 28; 9, 16, 17
    :height: 700px
 
 ----
