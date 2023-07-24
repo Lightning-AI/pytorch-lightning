@@ -114,4 +114,4 @@ If you define/load your data in the main process before calling ``trainer.fit()`
     trainer = L.Trainer(accelerator="cuda", devices=2)
     trainer.fit(model, train_dataloader)
 
-The best practice is to move your data loading code inside the ``*_dataloader()`` hooks in the LightningModule or LightningDataModule as shown in the example above.
+The best practice is to move your data loading code inside the ``*_dataloader()`` hooks in the :class:`~lightning.pytorch.core.module.LightningModule` or :class:`~lightning.pytorch.core.datamodule.LightningDataModule` as shown in the example above.
