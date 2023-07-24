@@ -11,20 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import glob
 import logging
+import os
 import pickle
 import sys
-import glob
-import os
-from packaging.version import Version
 from unittest.mock import ANY
 
 import pytest
 import torch
-
-import lightning.pytorch as pl
 from lightning_utilities.core.imports import module_available
 from lightning_utilities.test.warning import no_warning_call
+from packaging.version import Version
+
+import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.utilities.migration import migrate_checkpoint, pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint, _RedirectingUnpickler
