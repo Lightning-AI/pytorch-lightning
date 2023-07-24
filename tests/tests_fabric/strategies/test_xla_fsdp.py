@@ -171,13 +171,11 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
 
     fabric.save(checkpoint_filename, state)
 
+    world_size = xm.xrt_world_size()
+
     if state_dict_type == "sharded":
-        assert set(os.listdir(checkpoint_path)) == {
-            f"fsdp-checkpoint_rank-{0:08d}-of-{4:08d}.pth",
-            f"fsdp-checkpoint_rank-{1:08d}-of-{4:08d}.pth",
-            f"fsdp-checkpoint_rank-{2:08d}-of-{4:08d}.pth",
-            f"fsdp-checkpoint_rank-{3:08d}-of-{4:08d}.pth",
-        }
+        expected_files = set([f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)])
+        assert set(os.listdir(checkpoint_path)) == expected_files
 
         # define a second set of model and optimizer
         model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
@@ -215,13 +213,9 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         assert state["coconut"] == 11
 
     if state_dict_type == "full":
-        assert set(os.listdir(checkpoint_path)) == {
-            f"fsdp-checkpoint_rank-{0:08d}-of-{4:08d}.pth",
-            f"fsdp-checkpoint_rank-{1:08d}-of-{4:08d}.pth",
-            f"fsdp-checkpoint_rank-{2:08d}-of-{4:08d}.pth",
-            f"fsdp-checkpoint_rank-{3:08d}-of-{4:08d}.pth",
-            "fsdp-checkpoint_consolidated.pth",
-        }
+        expected_files = set([f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)])
+        expected_files.add("fsdp-checkpoint_consolidated.pth")
+        assert set(os.listdir(checkpoint_path)) == expected_files
 
         # define a second set of model and optimizer
         model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
