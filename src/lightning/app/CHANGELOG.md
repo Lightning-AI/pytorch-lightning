@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
--
+- Remove cluster commands from the CLI ([#18151](https://github.com/Lightning-AI/lightning/pull/18151))
 
 
 ### Fixed
