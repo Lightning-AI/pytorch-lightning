@@ -66,6 +66,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
 )
+from lightning.fabric.utilities.load import _lazy_load
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
@@ -821,11 +822,13 @@ def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Mo
 
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-    # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
-    # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
-    state_dict = torch.load(path_or_ckpt, map_location="cpu") if not isinstance(path_or_ckpt, dict) else path_or_ckpt
-    with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
-        module.load_state_dict(state_dict, strict=strict)
+    if isinstance(path_or_ckpt, Path):
+        with _lazy_load(path_or_ckpt) as state_dict:
+            with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
+                module.load_state_dict(state_dict, strict=strict)
+    else:
+        with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
+            module.load_state_dict(path_or_ckpt, strict=strict)
 
 
 def _no_op() -> None:
