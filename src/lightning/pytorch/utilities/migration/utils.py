@@ -180,9 +180,10 @@ def _should_upgrade(checkpoint: _CHECKPOINT, target: str, max_version: Optional[
 class _RedirectingUnpickler(pickle._Unpickler):
     """Redirects the unpickling of `pytorch_lightning` classes to `lightning.pytorch`.
 
-    In legacy versions of Lightning, callback classes got pickled into the checkpoint. These classes are defined
-    in the `pytorch_lightning` but need to be loaded from `lightning.pytorch`.
+    In legacy versions of Lightning, callback classes got pickled into the checkpoint. These classes are defined in the
+    `pytorch_lightning` but need to be loaded from `lightning.pytorch`.
     """
+
     def find_class(self, module: str, name: str) -> Any:
         new_module = _patch_pl_to_mirror_if_necessary(module)
         # this warning won't trigger for standalone as these imports are identical
