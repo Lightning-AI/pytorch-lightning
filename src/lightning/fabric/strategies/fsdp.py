@@ -66,8 +66,8 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
 )
-from lightning.fabric.utilities.load import _lazy_load
 from lightning.fabric.utilities.init import _EmptyInit
+from lightning.fabric.utilities.load import _lazy_load
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
@@ -823,9 +823,8 @@ def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Mo
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
     if isinstance(path_or_ckpt, Path):
-        with _lazy_load(path_or_ckpt) as state_dict:
-            with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
-                module.load_state_dict(state_dict, strict=strict)
+        with _lazy_load(path_or_ckpt) as state_dict, FSDP.summon_full_params(module, writeback=True, rank0_only=False):
+            module.load_state_dict(state_dict, strict=strict)
     else:
         with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
             module.load_state_dict(path_or_ckpt, strict=strict)

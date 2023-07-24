@@ -13,7 +13,6 @@
 # limitations under the License.
 import torch
 import torch.nn as nn
-
 from fabric.utilities.load import _lazy_load, _NotYetLoadedTensor
 
 
@@ -40,7 +39,7 @@ def test_lazy_load_tensor(tmp_path):
     expected = {
         "tensor": torch.rand(2),
         "parameter": nn.Parameter(torch.rand(3)),
-        "subclass": torch.Tensor._make_subclass(ATensor, torch.rand(4))
+        "subclass": torch.Tensor._make_subclass(ATensor, torch.rand(4)),
     }
     torch.save(expected, tmp_path / "data.pt")
 
@@ -61,7 +60,7 @@ def test_lazy_load_mixed_state(tmp_path):
         "list": [1, 2, 3],
         "pickled_model": model0,
         "model": model0.state_dict(),
-        "optimizer": optim0.state_dict()
+        "optimizer": optim0.state_dict(),
     }
     torch.save(checkpoint, tmp_path / "checkpoint.pt")
 

@@ -10,12 +10,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from functools import partial
 import pickle
 import warnings
+from contextlib import contextmanager
+from functools import partial
 from io import BytesIO
-from typing import IO, Any, Callable, Sequence, Optional, Dict
+from typing import Any, Callable, Dict, IO, Optional, Sequence
 
 import torch
 import torch.utils._device
