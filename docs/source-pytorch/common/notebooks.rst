@@ -49,6 +49,7 @@ Paste the following code block into a notebook cell:
     encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
     decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
 
+
     class LitAutoEncoder(L.LightningModule):
         def __init__(self, encoder, decoder):
             super().__init__()
@@ -70,6 +71,7 @@ Paste the following code block into a notebook cell:
         def train_dataloader(self):
             dataset = torchvision.datasets.MNIST(".", download=True, transform=torchvision.transforms.ToTensor())
             return utils.data.DataLoader(dataset, batch_size=64)
+
 
     autoencoder = LitAutoEncoder(encoder, decoder)
     trainer = L.Trainer(max_epochs=2, devices="auto")
