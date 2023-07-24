@@ -33,30 +33,30 @@ def test_default_attributes(monkeypatch):
         if _XLA_GREATER_EQUAL_2_1:
             from torch_xla import runtime
 
-            monkeypatch.setattr(runtime, "world_size", lambda: 1)
+            monkeypatch.setattr(runtime, "world_size", lambda: 2)
             monkeypatch.setattr(runtime, "global_ordinal", lambda: 0)
             monkeypatch.setattr(runtime, "local_ordinal", lambda: 0)
-            monkeypatch.setattr(runtime, "host_index", lambda: 3)
+            monkeypatch.setattr(runtime, "host_index", lambda: 1)
         else:
             from torch_xla.experimental import pjrt
 
-            monkeypatch.setattr(pjrt, "world_size", lambda: 1)
+            monkeypatch.setattr(pjrt, "world_size", lambda: 2)
             monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
             monkeypatch.setattr(pjrt, "local_ordinal", lambda: 0)
-            os.environ["XRT_HOST_ORDINAL"] = "3"
+            os.environ["XRT_HOST_ORDINAL"] = "1"
     else:
         from torch_xla import _XLAC
 
-        os.environ["XRT_HOST_ORDINAL"] = "3"
+        os.environ["XRT_HOST_ORDINAL"] = "1"
         # avoid: "Cannot replicate if number of devices ... is different from ..."
         monkeypatch.setattr(_XLAC, "_xla_get_default_device", lambda: torch.device("xla:0"))
 
     env = XLAEnvironment()
     assert not env.creates_processes_externally
-    assert env.world_size() == 1
+    assert env.world_size() == 2
     assert env.global_rank() == 0
     assert env.local_rank() == 0
-    assert env.node_rank() == 3
+    assert env.node_rank() == 1
 
     with pytest.raises(NotImplementedError):
         _ = env.main_address
@@ -71,10 +71,10 @@ def test_attributes_from_environment_variables(monkeypatch):
     if not _using_pjrt():
         os.environ.update(
             {
-                "XRT_SHARD_WORLD_SIZE": "1",
+                "XRT_SHARD_WORLD_SIZE": "2",
                 "XRT_SHARD_ORDINAL": "0",
                 "XRT_SHARD_LOCAL_ORDINAL": "2",
-                "XRT_HOST_ORDINAL": "3",
+                "XRT_HOST_ORDINAL": "1",
             }
         )
     else:
@@ -82,31 +82,31 @@ def test_attributes_from_environment_variables(monkeypatch):
         if _XLA_GREATER_EQUAL_2_1:
             from torch_xla import runtime
 
-            monkeypatch.setattr(runtime, "world_size", lambda: 1)
+            monkeypatch.setattr(runtime, "world_size", lambda: 2)
             monkeypatch.setattr(runtime, "global_ordinal", lambda: 0)
             monkeypatch.setattr(runtime, "local_ordinal", lambda: 2)
-            monkeypatch.setattr(runtime, "host_index", lambda: 3)
+            monkeypatch.setattr(runtime, "host_index", lambda: 1)
         else:
             from torch_xla.experimental import pjrt
 
-            monkeypatch.setattr(pjrt, "world_size", lambda: 1)
+            monkeypatch.setattr(pjrt, "world_size", lambda: 2)
             monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
             monkeypatch.setattr(pjrt, "local_ordinal", lambda: 2)
-            os.environ["XRT_HOST_ORDINAL"] = "3"
+            os.environ["XRT_HOST_ORDINAL"] = "1"
 
     env = XLAEnvironment()
     with pytest.raises(NotImplementedError):
         _ = env.main_address
     with pytest.raises(NotImplementedError):
         _ = env.main_port
-    assert env.world_size() == 1
+    assert env.world_size() == 2
     assert env.global_rank() == 0
     assert env.local_rank() == 2
-    assert env.node_rank() == 3
+    assert env.node_rank() == 1
     env.set_global_rank(100)
     assert env.global_rank() == 0
     env.set_world_size(100)
-    assert env.world_size() == 1
+    assert env.world_size() == 2
 
 
 def test_detect(monkeypatch):

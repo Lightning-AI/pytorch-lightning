@@ -140,7 +140,7 @@ def tpu_all_gather_fn(strategy):
             summed.backward()
         if sync_grads:
             if _XLA_GREATER_EQUAL_2_1:
-                # in 2.1, sync_grads=False makes it so that you cannot call .backward even if it originall had set
+                # in 2.1, sync_grads=False makes it so that you cannot call .backward even if it originally had set
                 # requires_grad=True
                 summed.backward()
             assert torch.equal(tensor.grad, torch.tensor(1.0))
