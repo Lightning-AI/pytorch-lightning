@@ -3,7 +3,7 @@ from typing import Callable
 
 import torchmetrics
 from lightning_utilities.core.imports import compare_version as _compare_version
-from pytorch.utilities.migration.utils import _patch_pl_to_mirror_if_necessary
+from lightning.pytorch.utilities.migration.utils import _patch_pl_to_mirror_if_necessary
 
 
 def compare_version(package: str, op: Callable, version: str, use_base_version: bool = False) -> bool:
