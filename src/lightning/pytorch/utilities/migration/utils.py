@@ -13,8 +13,10 @@
 # limitations under the License.
 import logging
 import os
+import pickle
 import sys
 import threading
+import warnings
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
 
@@ -82,6 +84,8 @@ class pl_legacy_patch:
            but still needs to be available for import for legacy checkpoints.
         3. ``lightning.pytorch.utilities.enums._FaultTolerantMode``: This enum was removed in 2.0 but was pickled
            into older checkpoints.
+        4. In legacy versions of Lightning, callback classes got pickled into the checkpoint. These classes have a
+           module import path under ``pytorch_lightning`` and must be redirected to the ``lightning.pytorch``.
 
     Example:
 
@@ -106,6 +110,10 @@ class pl_legacy_patch:
             MANUAL = "manual"
 
         pl.utilities.enums._FaultTolerantMode = _FaultTolerantMode
+
+        # Patch Unpickler to redirect `pytorch_lightning` imports
+        self._old_unpickler = pickle.Unpickler
+        pickle.Unpickler = _RedirectingUnpickler
         return self
 
     def __exit__(
@@ -119,6 +127,7 @@ class pl_legacy_patch:
         del sys.modules["lightning.pytorch.utilities.argparse_utils"]
         if hasattr(pl.utilities.enums, "_FaultTolerantMode"):
             delattr(pl.utilities.enums, "_FaultTolerantMode")
+        pickle.Unpickler = self._old_unpickler
         _lock.release()
 
 
@@ -166,3 +175,26 @@ def _should_upgrade(checkpoint: _CHECKPOINT, target: str, max_version: Optional[
     target_version = Version(target)
     is_lte_max_version = max_version is None or target_version <= Version(max_version)
     return is_lte_max_version and Version(_get_version(checkpoint)) < target_version
+
+
+class _RedirectingUnpickler(pickle._Unpickler):
+    """Redirects the unpickling of `pytorch_lightning` classes to `lightning.pytorch`.
+
+    In legacy versions of Lightning, callback classes got pickled into the checkpoint. These classes are defined
+    in the `pytorch_lightning` but need to be loaded from `lightning.pytorch`.
+    """
+    def find_class(self, module: str, name: str) -> Any:
+        new_module = _patch_pl_to_mirror_if_necessary(module)
+        # this warning won't trigger for standalone as these imports are identical
+        if module != new_module:
+            warnings.warn(f"Redirecting import of {module}.{name} to {new_module}.{name}")
+        return super().find_class(new_module, name)
+
+
+def _patch_pl_to_mirror_if_necessary(module: str) -> str:
+    _pl = "pytorch_" + "lightning"  # avoids replacement during mirror package generation
+    if module.startswith(_pl):
+        # for the standalone package this won't do anything,
+        # for the unified mirror package it will redirect the imports
+        return "lightning.pytorch" + module[len(_pl) :]
+    return module
