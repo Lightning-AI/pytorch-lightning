@@ -8,7 +8,7 @@ Own your loop (advanced)
 Customize training loop
 ***********************
 
-.. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/custom_loop.png
+.. image:: ../_static/fetched-s3-assets/custom_loop.png
     :width: 600
     :alt: Injecting custom code in a training loop
 

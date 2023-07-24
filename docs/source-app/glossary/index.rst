@@ -44,13 +44,6 @@ Glossary
    :height: 100
 
 .. displayitem::
-   :header: AWS ARN
-   :description: Create an AWS ARN
-   :col_css: col-md-12
-   :button_link: aws_arn.html
-   :height: 100
-
-.. displayitem::
    :header: Build Configuration
    :description: Prepare your requirements, add custom build commands or use docker image
    :col_css: col-md-12

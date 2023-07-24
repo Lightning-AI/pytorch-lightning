@@ -3,7 +3,7 @@ Welcome to ⚡ PyTorch Lightning
 
 .. twocolumns::
    :left:
-      .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
+      .. image:: _static/fetched-s3-assets/mov.gif
          :alt: Animation showing how to convert standard training code to Lightning
    :right:
       PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.

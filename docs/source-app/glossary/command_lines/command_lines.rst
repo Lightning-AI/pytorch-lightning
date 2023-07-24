@@ -32,7 +32,7 @@ As an example, Lightning provides a CLI to interact with your Lightning Apps and
     ├── install - Installs a Lightning App and/or Component.
     │   ├── app
     │   └── component
-    ├── list - Lists Lightning AI self-managed resources (clusters, etc…)
+    ├── list - Lists Lightning AI self-managed resources (apps)
     │   └── apps - Lists your Lightning AI Apps.
     ├── login - Logs in to your lightning.ai account.
     ├── logout - Logs out of your lightning.ai account.

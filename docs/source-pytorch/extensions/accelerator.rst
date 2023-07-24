@@ -17,7 +17,7 @@ Currently there are accelerators for:
 The Accelerator is part of the Strategy which manages communication across multiple devices (distributed communication).
 Whenever the Trainer, the loops or any other component in Lightning needs to talk to hardware, it calls into the Strategy and the Strategy calls into the Accelerator.
 
-.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/overview.jpeg
+.. image:: ../_static/fetched-s3-assets/overview.jpeg
     :alt: Illustration of the Strategy as a composition of the Accelerator and several plugins
 
 We expose Accelerators and Strategies mainly for expert users who want to extend Lightning to work with new

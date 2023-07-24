@@ -35,7 +35,7 @@ Enable advanced training features using Trainer arguments. These are SOTA techni
 Extend the Trainer
 ******************
 
-.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/cb.mp4
+.. video:: ../_static/fetched-s3-assets/cb.mp4
     :width: 600
     :autoplay:
     :loop:

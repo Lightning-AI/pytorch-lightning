@@ -17,7 +17,7 @@ These are best practices for structuring your :class:`~lightning.pytorch.core.mo
 Systems vs Models
 =================
 
-.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/model_system.png
+.. figure:: ../_static/fetched-s3-assets/model_system.png
     :width: 400
 
 The main principle behind a LightningModule is that a full system should be self-contained.

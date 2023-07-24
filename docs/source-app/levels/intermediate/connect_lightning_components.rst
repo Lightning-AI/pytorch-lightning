@@ -67,7 +67,7 @@ Without going out of your way, you're now doing the following: (Hint: Click **vi
 .. lit_tabs::
    :titles: Orchestration; Distributed cloud computing; Multi-machine communication; Multi-machine communication; Multi-cloud;
    :descriptions: Define orchestration in Python with full control-flow; The two pieces of independent Python code ran on separate machines 🤯🤯; The text "CPU machine 1" was sent from the flow machine to the machine running the TrainComponent;  The text "GPU machine 2" was sent from the flow machine to the machine running the AnalyzeComponent; The full Lightning app can move across clusters and clouds
-   :code_files: ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/multi_cloud.bash
+   :code_files: ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py;
    :tab_rows: 4
    :highlights: 19-21; 16-17; 20; 21; 2, 6, 10
    :images: <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/orchestration.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/distributed_computing.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_cloud.gif" style="max-height: 430px; width: auto"></img>

@@ -9,8 +9,8 @@
 Early Stopping
 ##############
 
-.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+19-+early+stopping_1.mp4
-    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_earlystop.png
+.. video:: ../_static/fetched-s3-assets/Trainer+flags+19-+early+stopping_1.mp4
+    :poster: ../_static/fetched-s3-assets/thumb_earlystop.png
     :width: 400
     :muted:
 

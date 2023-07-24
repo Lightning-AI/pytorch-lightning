@@ -12,8 +12,8 @@ Distributed Training strategies
 -------------------------------
 Lightning supports multiple ways of doing distributed training.
 
-.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+4-+multi+node+training_3.mp4
-    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_multi_gpus.png
+.. video:: ../_static/fetched-s3-assets/Trainer+flags+4-+multi+node+training_3.mp4
+    :poster: ../_static/fetched-s3-assets/thumb_multi_gpus.png
     :width: 400
 
 - DistributedDataParallel (multiple-gpus across many machines)
