@@ -40,7 +40,7 @@ else:
 
 if True:
     from lightning.app.utilities.app_helpers import convert_print_to_logger_info
-    from lightning.app.utilities.packaging.lightning_utils import enable_debugging, LIGHTNING_VERSION
+    from lightning.app.utilities.packaging.lightning_utils import enable_debugging
 
 if hasattr(constants, "get_cloud_queue_type"):
     CLOUD_QUEUE_TYPE = constants.get_cloud_queue_type() or "redis"
@@ -423,12 +423,6 @@ def wait_for_queues(queue_system: QueuingSystem) -> None:
                 logger.warning("Waiting for http queues to start...")
             time.sleep(1)
     else:
-        if CLOUD_QUEUE_TYPE != "redis":
-            raise ValueError(
-                f"Queue system {queue_system} is not correctly configured. You seem to have requested HTTP queues,"
-                f"but using an old version of lightning framework ({LIGHTNING_VERSION}) that doesn't support "
-                f"HTTP queues. Try upgrading lightning framework to the latest version."
-            )
         while not check_if_redis_running():
             if (int(time.time()) - queue_check_start_time) % 10 == 0:
                 logger.warning("Waiting for redis queues to start...")
