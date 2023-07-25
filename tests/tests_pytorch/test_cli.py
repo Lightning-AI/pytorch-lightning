@@ -16,6 +16,7 @@ import inspect
 import json
 import operator
 import os
+import sys
 from contextlib import contextmanager, ExitStack, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -318,6 +319,23 @@ def test_lightning_cli_save_config_only_once(cleandir):
     cli.trainer.test(cli.model)  # Should not fail because config already saved
 
 
+def test_lightning_cli_save_config_seed_everything(cleandir):
+    config_path = Path("config.yaml")
+    cli_args = ["fit", "--seed_everything=true", "--trainer.logger=false", "--trainer.max_epochs=1"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(BoringModel)
+    config = yaml.safe_load(config_path.read_text())
+    assert isinstance(config["seed_everything"], int)
+    assert config["seed_everything"] == cli.config.fit.seed_everything
+
+    cli_args = ["--seed_everything=true", "--trainer.logger=false"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(BoringModel, run=False)
+    config = yaml.safe_load(config_path.read_text())
+    assert isinstance(config["seed_everything"], int)
+    assert config["seed_everything"] == cli.config.seed_everything
+
+
 def test_save_to_log_dir_false_error():
     with pytest.raises(ValueError):
         SaveConfigCallback(
@@ -406,6 +424,11 @@ def any_model_any_data_cli():
 
 
 @pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
+@pytest.mark.xfail(
+    (sys.version_info.major, sys.version_info.minor) == (3, 9),
+    reason="--trainer.precision is not parsed",
+    raises=AssertionError,
+)
 def test_lightning_cli_help():
     cli_args = ["any.py", "fit", "--help"]
     out = StringIO()

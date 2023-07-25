@@ -20,7 +20,7 @@ from torch import Tensor
 from torch.nn import Module
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
@@ -111,9 +111,12 @@ class XLAStrategy(DDPStrategy):
         self.setup_precision_plugin()
 
         if self._sync_module_states:
-            from torch_xla.experimental import pjrt
+            if _XLA_GREATER_EQUAL_2_1:
+                from torch_xla.core.xla_model import broadcast_master_param
+            else:
+                from torch_xla.experimental.pjrt import broadcast_master_param
 
-            pjrt.broadcast_master_param(self.model)
+            broadcast_master_param(self.model)
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
@@ -211,10 +214,8 @@ class XLAStrategy(DDPStrategy):
         return output
 
     def setup_distributed(self) -> None:
-        from torch_xla.experimental.pjrt import using_pjrt
-
         assert self.parallel_devices is not None
-        if using_pjrt() and len(self.parallel_devices) == 1:
+        if _using_pjrt() and len(self.parallel_devices) == 1:
             # spawning only 1 device with PjRT is not supported:
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
