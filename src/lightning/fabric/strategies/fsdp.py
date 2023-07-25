@@ -305,9 +305,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             " after setting up the model."
         )
 
-    def module_to_device(self, module: Module) -> None:
-        pass
-
     @contextmanager
     def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
         # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465

@@ -326,9 +326,6 @@ class FSDPStrategy(ParallelStrategy):
             )
         return None
 
-    def model_to_device(self) -> None:
-        pass
-
     @contextmanager
     def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
         # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
