@@ -302,7 +302,7 @@ class XLAFSDPStrategy(XLAStrategy):
                 f" loading from a checkpoint(s) in a directory."
             )
 
-        if isinstance(state, Module) or isinstance(state, Optimizer):
+        if isinstance(state, (Module, Optimizer)):
             raise NotImplementedError(
                 "Loading a single module or optimizer object from a checkpoint is not supported yet with the XLAFSDP strategy."
             )
