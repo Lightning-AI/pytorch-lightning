@@ -582,7 +582,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             # Materialize lazy tensors if there are any left in the checkpoint
             # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
-            _materialize_tensors(checkpoint)
+            checkpoint = _materialize_tensors(checkpoint)
 
             # Load optimizer states
             for optim_key, optim in optimizers.items():
