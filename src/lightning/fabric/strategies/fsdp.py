@@ -39,7 +39,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import TypeGuard
 
-from fabric.utilities.load import _lazy_load
+from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, Precision
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
@@ -574,7 +574,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return metadata
 
         if _is_full_checkpoint(path):
-            checkpoint = torch.load(path, map_location="cpu")
+            checkpoint = _lazy_load(path)
             _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
 
             if isinstance(state, Module):
@@ -601,6 +601,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
+
+            # Materialize lazy tensors if there are any left in the checkpoint
+            _materialize_tensors(checkpoint)
 
             # Load metadata (anything not a module or optimizer)
             for key in requested_metadata_keys:

@@ -164,3 +164,9 @@ def _lazy_load(filename: _PATH) -> Any:
     with BytesIO(file_reader.get_record("data.pkl")) as pkl:
         mup = _LazyLoadingUnpickler(pkl, file_reader)
         return mup.load()
+
+
+def _materialize_tensors(checkpoint: Dict[str, Any]) -> None:
+    for k, v in checkpoint.items():
+        if isinstance(v, _NotYetLoadedTensor):
+            checkpoint[k] = v._load_tensor()
