@@ -21,7 +21,6 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
@@ -47,8 +46,6 @@ class XLAFSDPStrategy(XLAStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
-        auto_wrap_policy: Optional[Callable] = None,
-        auto_wrapper_callable: Optional[Callable] = None,
         state_dict_type: Literal["full", "sharded"] = "sharded",
         sync_module_states: bool = True,
         **kwargs: Any,
@@ -60,11 +57,6 @@ class XLAFSDPStrategy(XLAStrategy):
             precision=precision,
         )
         self._backward_sync_control = _XLAFSDPBackwardSyncControl()
-
-        if auto_wrap_policy:
-            kwargs["auto_wrap_policy"] = auto_wrap_policy
-        if auto_wrapper_callable:
-            kwargs["auto_wrapper_callable"] = auto_wrapper_callable
 
         self._fsdp_kwargs = kwargs
         self._state_dict_type = state_dict_type
@@ -157,23 +149,14 @@ class XLAFSDPStrategy(XLAStrategy):
             optimizer: the optimizer performing the step
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        return optimizer.step(**kwargs)
+        loss = optimizer.step(**kwargs)
+        import torch_xla.core.xla_model as xm
+
+        xm.mark_step()
+        return loss
 
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
-
-    def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
-        from torch_xla.distributed.parallel_loader import MpDeviceLoader
-
-        if isinstance(dataloader, MpDeviceLoader):
-            # dataloader is already wrapped by MpDeviceLoader
-            return dataloader
-
-        dataloader = MpDeviceLoader(dataloader, self.root_device)
-        # Mimic interface to torch.utils.data.DataLoader
-        dataloader.dataset = dataloader._loader.dataset
-        dataloader.batch_sampler = getattr(dataloader._loader, "batch_sampler", None)
-        return dataloader
 
     def clip_gradients_norm(
         self,
@@ -217,12 +200,6 @@ class XLAFSDPStrategy(XLAStrategy):
         The directory will contain one file per process, with model- and optimizer shards stored per file. Additionally,
         it creates a a consolidated checkpoint combining all of the sharded checkpoints.
         """
-        if "shard_metadata" not in state:
-            raise TypeError(
-                "Saving and loading checkpoints with `XLAFSDPStrategy` requires the state to include shard_metadata."
-                'Please add `"shard_metadata": model._forward_module.get_shard_metadata()` to `state`.'
-            )
-
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
                 "Saving and loading checkpoints with the `XLAFSDPStrategy` is not supported in PyTorch < 2.0."
@@ -262,6 +239,8 @@ class XLAFSDPStrategy(XLAStrategy):
             # convert the state
             if isinstance(obj, Module) and isinstance(obj, XLAFSDP):
                 converted = obj.state_dict()
+                # add shard_metadata to state
+                converted_state["shard_metadata"] = obj.get_shard_metadata()
             elif isinstance(obj, Optimizer):
                 converted = obj.state_dict()
             else:
@@ -383,6 +362,9 @@ class XLAFSDPStrategy(XLAStrategy):
             if len(loaded_metadata_keys):
                 for key in loaded_metadata_keys:
                     metadata[key] = sharded_ckpt[key]
+
+            # remove "shard_metadata" that is loaded in
+            if "shard_metadata" in metadata: metadata.pop("shard_metadata")
 
             return metadata
         elif self._state_dict_type == "full":

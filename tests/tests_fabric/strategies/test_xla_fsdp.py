@@ -124,102 +124,103 @@ def test_xla_fsdp_grad_clipping_norm_error():
 
 def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
     """Fabric launch function for test_xla_fsdp_train_save_load."""
-    if not fabric.strategy.reduce_boolean_decision(fabric.local_rank != fabric.global_rank, all=False):
-        tmp_path = str(tmp_path)
-        import torch_xla.core.xla_model as xm
+    # check if multihost
+    if fabric.strategy.all_reduce(fabric.node_rank, reduce_op="sum").item() > 0:
+        return  # pytest.skip() is not pickleable
 
-        device = xm.xla_device()
-        model_1 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
-        model_1 = fabric.setup_module(model_1)
+    tmp_path = str(tmp_path)
+    import torch_xla.core.xla_model as xm
 
-        optimizer_1 = torch.optim.Adam(model_1.parameters(), lr=0.1)
-        optimizer_1 = fabric.setup_optimizers(optimizer_1)
+    model_1 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+    model_1 = fabric.setup_module(model_1)
 
-        dataloader = DataLoader(RandomDataset(32, 64))
-        dataloader = fabric.setup_dataloaders(dataloader)
+    optimizer_1 = torch.optim.Adam(model_1.parameters(), lr=0.1)
+    optimizer_1 = fabric.setup_optimizers(optimizer_1)
 
-        def step(model, batch):
-            output = model(batch)
-            return torch.nn.functional.mse_loss(output, torch.ones_like(output))
+    dataloader = DataLoader(RandomDataset(32, 64))
+    dataloader = fabric.setup_dataloaders(dataloader)
 
-        model_1.train()
-        data_iter = iter(dataloader)
-        batch = next(data_iter)
-        loss = step(model_1, batch)
-        fabric.backward(loss)
-        optimizer_1.step()
-        optimizer_1.zero_grad()
+    def step(model, batch):
+        output = model(batch)
+        return torch.nn.functional.mse_loss(output, torch.ones_like(output))
 
-        checkpoint_path = fabric.broadcast(tmp_path)
-        checkpoint_filename = fabric.broadcast(f"{tmp_path}/fsdp-checkpoint")
-        params_before = deepcopy(list(model_1.parameters()))
+    model_1.train()
+    data_iter = iter(dataloader)
+    batch = next(data_iter)
+    loss = step(model_1, batch)
+    fabric.backward(loss)
+    optimizer_1.step()
+    optimizer_1.zero_grad()
 
+    checkpoint_path = fabric.broadcast(tmp_path)
+    checkpoint_filename = fabric.broadcast(f"{tmp_path}/fsdp-checkpoint")
+    params_before = deepcopy(list(model_1.parameters()))
+
+    state = {
+        "model": model_1,
+        "optimizer": optimizer_1,  # not needed in ckpt consolidation
+        "step_count": 1,
+    }
+
+    fabric.save(checkpoint_filename, state)
+
+    world_size = fabric.world_size
+
+    if state_dict_type == "sharded":
+        expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
+        assert set(os.listdir(checkpoint_path)) == expected_files
+
+        # define a second set of model and optimizer
+        model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        model_2 = fabric.setup_module(model_2)
+
+        optimizer_2 = torch.optim.Adam(model_2.parameters(), lr=0.1)
+        optimizer_2 = fabric.setup_optimizers(optimizer_2)
+
+        # load sharded checkpoints into the second set of model and optimizer
         state = {
-            "model": model_1,
-            "shard_metadata": model_1._forward_module.get_shard_metadata(),
-            "optimizer": optimizer_1,  # not needed in ckpt consolidation
-            "step_count": 1,
+            "model": model_2,
+            "optimizer": optimizer_2,
+            "step_count": 0,
         }
+        metadata = fabric.load(checkpoint_filename, state)
 
-        fabric.save(checkpoint_filename, state)
+        # check user data in loaded state
+        assert not metadata
+        assert state["step_count"] == 1
 
-        world_size = fabric.world_size()
+        # check correctness with loaded state
+        for p0, p1 in zip(params_before, model_2.parameters()):
+            torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
 
-        if state_dict_type == "sharded":
-            expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
-            assert set(os.listdir(checkpoint_path)) == expected_files
-
-            # define a second set of model and optimizer
-            model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
-            model_2 = fabric.setup_module(model_2)
-
-            optimizer_2 = torch.optim.Adam(model_2.parameters(), lr=0.1)
-            optimizer_2 = fabric.setup_optimizers(optimizer_2)
-
-            # load sharded checkpoints into the second set of model and optimizer
-            state = {
-                "model": model_2,
-                "shard_metadata": model_2._forward_module.get_shard_metadata(),
-                "optimizer": optimizer_2,
-                "step_count": 0,
-            }
-            metadata = fabric.load(checkpoint_filename, state)
-
-            # check user data in loaded state
-            assert not metadata
-            assert state["step_count"] == 1
-
-            # check correctness with loaded state
-            for p0, p1 in zip(params_before, model_2.parameters()):
-                torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
-
-            # attempt to load a key not in the metadata checkpoint
-            state = {"model": model_2, "coconut": 11}
-            with pytest.raises(KeyError, match="The requested state contains a key 'coconut' that does not exist"):
-                fabric.load(checkpoint_filename, state)
-
-            # `strict=False` ignores the missing key
-            state = {"model": model_2, "coconut": 11}
-            fabric.load(checkpoint_filename, state, strict=False)
-            assert state["coconut"] == 11
-
-        if state_dict_type == "full":
-            expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
-            expected_files.add("fsdp-checkpoint_consolidated.pth")
-            assert set(os.listdir(checkpoint_path)) == expected_files
-
-            # define a second set of model and optimizer
-            model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
-            model_2.to(device)
-
-            # load sharded checkpoints into the second model
-            state = {"model": model_2}
+        # attempt to load a key not in the metadata checkpoint
+        state = {"model": model_2, "coconut": 11}
+        with pytest.raises(KeyError, match="The requested state contains a key 'coconut' that does not exist"):
             fabric.load(checkpoint_filename, state)
 
-            # check that loaded state is different
-            with pytest.raises(AssertionError, match="do not match"):
-                for p0, p1 in zip(model_1.parameters(), model_2.parameters()):
-                    torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
+        # `strict=False` ignores the missing key
+        state = {"model": model_2, "coconut": 11}
+        fabric.load(checkpoint_filename, state, strict=False)
+        assert state["coconut"] == 11
+
+    if state_dict_type == "full":
+        expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
+        expected_files.add("fsdp-checkpoint_consolidated.pth")
+        assert set(os.listdir(checkpoint_path)) == expected_files
+
+        # define a second set of model and optimizer
+        model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        device = xm.xla_device()
+        model_2.to(device)
+
+        # load sharded checkpoints into the second model
+        state = {"model": model_2}
+        fabric.load(checkpoint_filename, state)
+
+        # check that loaded state is different
+        with pytest.raises(AssertionError, match="do not match"):
+            for p0, p1 in zip(model_1.parameters(), model_2.parameters()):
+                torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
 
 
 @RunIf(min_torch="2.0", tpu=True, standalone=True)
