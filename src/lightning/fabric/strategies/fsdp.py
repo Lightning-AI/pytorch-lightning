@@ -822,6 +822,7 @@ def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Mo
 
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
+    # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
     state_dict = _lazy_load(path_or_ckpt) if isinstance(path_or_ckpt, Path) else path_or_ckpt
     with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
         module.load_state_dict(state_dict, strict=strict)
