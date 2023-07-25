@@ -29,7 +29,7 @@ from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.fsdp import _apply_filter
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate_keys_for_strict_loading
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from lightning.fabric.utilities.rank_zero import rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, Optimizable
 
 
@@ -216,7 +216,7 @@ class XLAFSDPStrategy(XLAStrategy):
         rank = self.local_rank
         world_size = self.world_size
         import torch_xla.core.xla_model as xm
-        
+
         # ensure model parameters are updated
         xm.mark_step()
 
@@ -247,7 +247,6 @@ class XLAFSDPStrategy(XLAStrategy):
                 )
             self.barrier("ckpt_consolidation")
             self.checkpoint_io.remove_checkpoint(f"{path}_rank-{rank:08d}-of-{world_size:08d}.pth")
-
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -312,9 +311,9 @@ class XLAFSDPStrategy(XLAStrategy):
             file = f"{path}_rank-{rank:08d}-of-{world_size:08d}.pth"
             if not Path(file).is_file():
                 raise ValueError(
-                f"The path {str(file)!r} does not point to a valid checkpoint. Make sure the path points to a"
-                " directory with XLAFSDP checkpoint shards."
-            )
+                    f"The path {str(file)!r} does not point to a valid checkpoint. Make sure the path points to a"
+                    " directory with XLAFSDP checkpoint shards."
+                )
             if len(modules) == 0:
                 raise ValueError(
                     "Could not find a XLAFSDP model in the provided checkpoint state. Please provide the model as"
@@ -358,9 +357,9 @@ class XLAFSDPStrategy(XLAStrategy):
             file = f"{path}_consolidated.pth"
             if not Path(file).is_file():
                 raise ValueError(
-                f"The path {str(file)!r} does not point to a valid checkpoint. Make sure the path points to a"
-                " directory with a full XLAFSDP checkpoint."
-            )
+                    f"The path {str(file)!r} does not point to a valid checkpoint. Make sure the path points to a"
+                    " directory with a full XLAFSDP checkpoint."
+                )
             rank_zero_warn(
                 "Loading a full checkpoint will only load the full model."
                 " Optimizer and any additional metadata are not included."
