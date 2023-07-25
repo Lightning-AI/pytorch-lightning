@@ -304,8 +304,8 @@ class XLAFSDPStrategy(XLAStrategy):
         path = self.broadcast(path)
         if not os.path.isdir(path):
             raise NotImplementedError(
-                f"The path `{path}` is a file or does not exist, but the `XLAFSDPStrategy` currently only supports loading from a"
-                " checkpoint(s) in a directory."
+                f"The path `{path}` is a file or does not exist, but the `XLAFSDPStrategy` currently only supports"
+                f" loading from a checkpoint(s) in a directory."
             )
         rank = self.local_rank
         world_size = self.world_size
@@ -318,8 +318,8 @@ class XLAFSDPStrategy(XLAStrategy):
             file = os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth")
             if not Path(file).is_file():
                 raise ValueError(
-                    f"The path {str(file)!r} does not point to valid sharded checkpoints. Make sure the path points to a"
-                    " directory with XLAFSDP checkpoint shards."
+                    f"The path {str(file)!r} does not point to valid sharded checkpoints. Make sure the path points to"
+                    " a directory with XLAFSDP checkpoint shards."
                 )
             if len(modules) == 0:
                 raise ValueError(
@@ -360,7 +360,7 @@ class XLAFSDPStrategy(XLAStrategy):
                 metadata.pop("shard_metadata")
 
             return metadata
-        elif self._state_dict_type == "full":
+        if self._state_dict_type == "full":
             file = os.path.join(path, "checkpoint_consolidated.pth")
             if not Path(file).is_file():
                 raise ValueError(

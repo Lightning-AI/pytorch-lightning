@@ -57,7 +57,7 @@ def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
 def test_xla_fsdp_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     XlaFullyShardedDataParallel."""
-    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
+    from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel
 
     strategy = XLAFSDPStrategy()
     assert isinstance(strategy._backward_sync_control, _XLAFSDPBackwardSyncControl)
@@ -66,8 +66,6 @@ def test_xla_fsdp_no_backward_sync():
         TypeError, match="is only possible if the module passed to .* is wrapped in `XlaFullyShardedDataParallel`"
     ), strategy._backward_sync_control.no_backward_sync(object()):
         pass
-
-    from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel
 
     module = MagicMock(spec=XlaFullyShardedDataParallel)
     with strategy._backward_sync_control.no_backward_sync(module):
