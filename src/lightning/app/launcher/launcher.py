@@ -14,7 +14,6 @@ from lightning_utilities.core.imports import module_available
 ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
 
 
-
 from lightning.app import LightningFlow
 from lightning.app.core import constants
 from lightning.app.core.api import start_server

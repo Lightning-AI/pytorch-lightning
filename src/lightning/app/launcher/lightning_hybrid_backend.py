@@ -2,7 +2,6 @@ import os
 from typing import Optional
 
 from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance
-from lightning_utilities.core.imports import module_available
 
 from lightning.app.core import constants
 from lightning.app.core.queues import QueuingSystem

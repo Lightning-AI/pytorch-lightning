@@ -33,16 +33,14 @@ from lightning_cloud.openapi import (
     V1UserRequestedComputeConfig,
 )
 from lightning_cloud.openapi.rest import ApiException
-from lightning_utilities.core.imports import module_available
 
 from lightning.app import LightningApp, LightningWork
 from lightning.app.core.queues import QueuingSystem
 from lightning.app.runners.backends.backend import Backend
 from lightning.app.storage import Drive, Mount
 from lightning.app.utilities.enum import make_status, WorkStageStatus, WorkStopReasons
-from lightning.app.utilities.network import _check_service_url_is_ready, LightningClient
 from lightning.app.utilities.exceptions import LightningPlatformException
-
+from lightning.app.utilities.network import _check_service_url_is_ready, LightningClient
 
 logger = logging.getLogger(__name__)
 
