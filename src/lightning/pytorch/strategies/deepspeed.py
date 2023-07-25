@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
-import contextlib
 import json
 import logging
 import os
 import platform
 from collections import OrderedDict
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
@@ -30,13 +30,18 @@ from torch.optim import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
-from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning.fabric.strategies.deepspeed import (
+    _DEEPSPEED_AVAILABLE,
+    _format_precision_config,
+    _validate_checkpoint_directory,
+    _validate_device_index_selection,
+)
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
+from lightning.pytorch.overrides.base import _LightningPrecisionModuleWrapperBase
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.utils import _fp_to_half
@@ -45,7 +50,7 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn, WarningCache
-from lightning.pytorch.utilities.types import LRSchedulerConfig, STEP_OUTPUT
+from lightning.pytorch.utilities.types import LRSchedulerConfig
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -74,7 +79,7 @@ class DeepSpeedStrategy(DDPStrategy):
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
-        remote_device: str = "cpu",
+        remote_device: Optional[str] = None,
         offload_optimizer: bool = False,
         offload_parameters: bool = False,
         offload_params_device: str = "cpu",
@@ -135,7 +140,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
                 3 is optimizer+gradient_parameter partitioning using the infinity engine.
 
-            remote_device: Device to instantiate the model on initially (``cpu`` or ``nvme``).
+            remote_device: Device to instantiate the model on initially (``cpu`` or ``nvme``). Defaults to GPU.
 
             offload_optimizer: Enable offloading optimizer memory and computation to CPU or NVMe
                 based on ``offload_optimizer_device``.
@@ -325,6 +330,13 @@ class DeepSpeedStrategy(DDPStrategy):
         return config
 
     def setup_distributed(self) -> None:
+        if not isinstance(self.accelerator, CUDAAccelerator):
+            raise RuntimeError(
+                f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
+                " is used."
+            )
+        assert self.parallel_devices is not None
+        _validate_device_index_selection(self.parallel_devices)
         reset_seed()
         self.set_world_ranks()
         self._init_deepspeed_distributed()
@@ -436,18 +448,11 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
-        if not isinstance(self.accelerator, CUDAAccelerator):
-            raise MisconfigurationException(
-                f"DeepSpeed strategy is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
-            )
-
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        model = _LightningModuleWrapperBase(forward_module=self.model)
-
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
-            self._initialize_deepspeed_train(model)
+            self._initialize_deepspeed_train(self.model)
         else:
-            self._initialize_deepspeed_inference(model)
+            self._initialize_deepspeed_inference(self.model)
 
     def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig]]:
         assert self.lightning_module is not None
@@ -498,27 +503,28 @@ class DeepSpeedStrategy(DDPStrategy):
             self.lr_scheduler_configs = [lr_scheduler]
         self.model = model
 
-    @contextlib.contextmanager
+    @contextmanager
+    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+        if self.zero_stage_3:
+            if empty_init is False:
+                raise NotImplementedError(
+                    f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
+                )
+            yield
+            return
+        with super().tensor_init_context(empty_init=empty_init):
+            yield
+
+    @contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
         import deepspeed
 
-        if self.zero_stage_3:
-            assert self._config_initialized
-
-            if self.precision_plugin.precision == "16-mixed":
-                dtype = torch.float16
-            elif self.precision_plugin.precision == "bf16-mixed":
-                dtype = torch.bfloat16
-            else:
-                dtype = torch.float32
-
-            model_parallel_context = deepspeed.zero.Init(
-                remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
-            )
-        else:
-            model_parallel_context = super().model_sharded_context()
-
-        with model_parallel_context:
+        assert self._config_initialized
+        with deepspeed.zero.Init(
+            enabled=self.zero_stage_3,
+            remote_device=self.remote_device,
+            config_dict_or_path=self.config,
+        ):
             yield
 
     def _set_deepspeed_activation_checkpointing(self) -> None:
@@ -597,7 +603,15 @@ class DeepSpeedStrategy(DDPStrategy):
                 " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
             )
         self._format_batch_size_and_grad_accum_config()
-        self._format_precision_config()
+        _format_precision_config(
+            config=self.config,
+            precision=self.precision_plugin.precision,
+            loss_scale=self.loss_scale,
+            loss_scale_window=self.loss_scale_window,
+            min_loss_scale=self.min_loss_scale,
+            initial_scale_power=self.initial_scale_power,
+            hysteresis=self.hysteresis,
+        )
 
     def _format_batch_size_and_grad_accum_config(self) -> None:
         # TODO: Using Fabric, we do not support these variables within the config
@@ -640,24 +654,6 @@ class DeepSpeedStrategy(DDPStrategy):
                         "batch size, `Trainer(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=batch_size))`."
                     )
         return batch_size
-
-    def _format_precision_config(self) -> None:
-        assert isinstance(self.config, dict)
-        if self.precision_plugin.precision == "16-mixed":
-            if "fp16" not in self.config:
-                # FP16 is a DeepSpeed standalone AMP implementation
-                rank_zero_info("Enabling DeepSpeed FP16.")
-                self.config["fp16"] = {
-                    "enabled": True,
-                    "loss_scale": self.loss_scale,
-                    "initial_scale_power": self.initial_scale_power,
-                    "loss_scale_window": self.loss_scale_window,
-                    "hysteresis": self.hysteresis,
-                    "min_loss_scale": self.min_loss_scale,
-                }
-        elif "bf16" not in self.config and self.precision_plugin.precision == "bf16-mixed":
-            rank_zero_info("Enabling DeepSpeed BF16.")
-            self.config["bf16"] = {"enabled": True}
 
     def _create_default_config(
         self,
@@ -778,12 +774,15 @@ class DeepSpeedStrategy(DDPStrategy):
             checkpoint_path = self.broadcast(checkpoint_path)
             return super().load_checkpoint(checkpoint_path)
 
+        _validate_checkpoint_directory(checkpoint_path)
+
         # Rely on deepspeed to load the checkpoint and necessary information
         assert self.lightning_module is not None
 
         from lightning.pytorch.trainer.states import TrainerFn
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+
         _, client_state = self.deepspeed_engine.load_checkpoint(
             checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=False
         )
@@ -898,18 +897,3 @@ class DeepSpeedStrategy(DDPStrategy):
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
         return super().batch_to_device(batch, device, dataloader_idx)
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.val_step_context():
-            return self.model(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.test_step_context():
-            return self.model(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        with self.precision_plugin.predict_step_context():
-            return self.model(*args, **kwargs)

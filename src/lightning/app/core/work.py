@@ -60,6 +60,7 @@ class LightningWork:
         "_url",
         "_restarting",
         "_internal_ip",
+        "_public_ip",
     )
 
     _run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
@@ -138,6 +139,7 @@ class LightningWork:
             "_url",
             "_future_url",
             "_internal_ip",
+            "_public_ip",
             "_restarting",
             "_cloud_compute",
             "_display_name",
@@ -148,6 +150,7 @@ class LightningWork:
         self._url: str = ""
         self._future_url: str = ""  # The cache URL is meant to defer resolving the url values.
         self._internal_ip: str = ""
+        self._public_ip: str = ""
         # setattr_replacement is used by the multiprocessing runtime to send the latest changes to the main coordinator
         self._setattr_replacement: Optional[Callable[[str, Any], None]] = None
         self._name: str = ""
@@ -211,6 +214,15 @@ class LightningWork:
         Locally, the address is 127.0.0.1 and in the cloud it will be determined by the cluster.
         """
         return self._internal_ip
+
+    @property
+    def public_ip(self) -> str:
+        """The public ip address of this LightningWork, reachable from the internet.
+
+        By default, this attribute returns the empty string and the ip address will only be returned once the work runs.
+        Locally, this address is undefined (empty string) and in the cloud it will be determined by the cluster.
+        """
+        return self._public_ip
 
     def _on_init_end(self) -> None:
         self._local_build_config.on_work_init(self)
@@ -438,7 +450,7 @@ class LightningWork:
                     f"such as ``LightningWork`` or ``LightningFlow``. Found {value}."
                 )
 
-            elif isinstance(value, Path):
+            if isinstance(value, Path):
                 value._attach_work(work=self)
                 value._attach_queues(self._request_queue, self._response_queue)  # type: ignore[arg-type]
                 value._name = name

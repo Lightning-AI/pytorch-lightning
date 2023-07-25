@@ -1,44 +1,50 @@
+import os
+import sys
 import tarfile
 import uuid
 from pathlib import Path
+from unittest import mock
+
+import pytest
 
 from lightning.app.source_code import LocalSourceCodeDir
 
 
 def test_repository_checksum(tmp_path):
-    """LocalRepository.checksum() generates a hash of local dir."""
+    """LocalRepository.version() generates a different version each time."""
     repository = LocalSourceCodeDir(path=Path(tmp_path))
+    version_a = repository.version
 
-    test_path = tmp_path / "test.txt"
-    version_a = str(uuid.uuid4())
-    test_path.write_text(version_a)
-    checksum_a = repository.version
-
-    # file contents don't change; checksum is the same
+    # version is different
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    test_path.write_text(version_a)
-    checksum_b = repository.version
-    assert checksum_a == checksum_b
+    version_b = repository.version
 
-    # file contents change; checksum is different
+    assert version_a != version_b
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="this runs only on linux")
+@mock.patch.dict(os.environ, {"LIGHTNING_VSCODE_WORKSPACE": "something"})
+def test_local_cache_path_tmp(tmp_path):
+    """LocalRepository.cache_location is under tmp."""
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    test_path.write_text(str(uuid.uuid4()))
-    checksum_c = repository.version
+    assert str(repository.cache_location).startswith("/tmp")
 
-    assert checksum_a != checksum_c
+
+def test_local_cache_path_home(tmp_path):
+    """LocalRepository.cache_location is under home."""
+    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    assert str(repository.cache_location).startswith(str(Path.home()))
 
 
 def test_repository_package(tmp_path, monkeypatch):
-    """LocalRepository.package() ceates package from local dir."""
+    """LocalRepository.package() creates package from local dir."""
     cache_path = Path(tmp_path)
     source_path = cache_path / "nested"
     source_path.mkdir(parents=True, exist_ok=True)
     (source_path / "test.txt").write_text("test")
 
-    # set cache location to temp dir
-    monkeypatch.setattr(LocalSourceCodeDir, "cache_location", cache_path)
-
     repository = LocalSourceCodeDir(path=source_path)
+    repository.cache_location = cache_path
     repository.package()
 
     # test that package is created
@@ -56,23 +62,19 @@ def test_repository_lightningignore(tmp_path):
 
     """
     (tmp_path / ".lightningignore").write_text(lightningignore)
+    (tmp_path / "test.txt").write_text("test")
 
-    # write some data to file and check version
-    (tmp_path / "test.txt").write_text(str(uuid.uuid4()))
-
-    # create repo object
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_a = repository.version
+
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
     # write file that needs to be ignored
     (tmp_path / "ignore").mkdir()
     (tmp_path / "ignore/test.txt").write_text(str(uuid.uuid4()))
 
-    # check that version remains the same
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_b = repository.version
 
-    assert checksum_a == checksum_b
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
 
 def test_repository_filters_with_absolute_relative_path(tmp_path):
@@ -83,16 +85,11 @@ def test_repository_filters_with_absolute_relative_path(tmp_path):
     /ignore_dir
     """
     (tmp_path / ".lightningignore").write_text(lightningignore)
+    (tmp_path / "test.txt").write_text("test")
 
-    # write some data to file and check version
-    (tmp_path / "test.txt").write_text(str(uuid.uuid4()))
-
-    # create repo object
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_a = repository.version
 
-    # only two files in hash
-    assert len(repository._non_ignored_files) == 2
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
     # write file that needs to be ignored
     (tmp_path / "ignore_file").mkdir()
@@ -100,14 +97,9 @@ def test_repository_filters_with_absolute_relative_path(tmp_path):
     (tmp_path / "ignore_file/test.txt").write_text(str(uuid.uuid4()))
     (tmp_path / "ignore_dir/test.txt").write_text(str(uuid.uuid4()))
 
-    # check that version remains the same
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_b = repository.version
 
-    # still only two files in hash
-    assert len(repository._non_ignored_files) == 2
-
-    assert checksum_a == checksum_b
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
 
 def test_repository_lightningignore_supports_different_patterns(tmp_path):
@@ -252,13 +244,11 @@ def test_repository_lightningignore_supports_different_patterns(tmp_path):
 
     """
     (tmp_path / ".lightningignore").write_text(lightningignore)
+    (tmp_path / "test.txt").write_text("test")
 
-    # write some data to file and check version
-    (tmp_path / "test.txt").write_text(str(uuid.uuid4()))
-
-    # create repo object
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_a = repository.version
+
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
     # write file that needs to be ignored
     (tmp_path / "ignore").mkdir()
@@ -266,9 +256,8 @@ def test_repository_lightningignore_supports_different_patterns(tmp_path):
 
     # check that version remains the same
     repository = LocalSourceCodeDir(path=Path(tmp_path))
-    checksum_b = repository.version
 
-    assert checksum_a == checksum_b
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
 
 def test_repository_lightningignore_unpackage(tmp_path, monkeypatch):
@@ -276,8 +265,6 @@ def test_repository_lightningignore_unpackage(tmp_path, monkeypatch):
     lorem_ipsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 
     cache_path = tmp_path / "cache"
-    monkeypatch.setattr(LocalSourceCodeDir, "cache_location", cache_path)
-
     source_path = tmp_path / "source"
     source_path.mkdir()
 
@@ -345,6 +332,7 @@ def test_repository_lightningignore_unpackage(tmp_path, monkeypatch):
 
     # create repo object
     repository = LocalSourceCodeDir(path=source_path)
+    repository.cache_location = cache_path
     repository.package()
 
     unpackage_path = tmp_path / "unpackage"

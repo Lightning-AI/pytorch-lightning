@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Optional, Tuple
 from urllib.parse import urljoin
 
+import backoff
 import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 
@@ -74,10 +75,9 @@ class QueuingSystem(Enum):
     def get_queue(self, queue_name: str) -> "BaseQueue":
         if self == QueuingSystem.MULTIPROCESS:
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
-        elif self == QueuingSystem.REDIS:
+        if self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
-        else:
-            return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
+        return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
 
     def get_api_response_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{API_RESPONSE_QUEUE_CONSTANT}" if queue_id else API_RESPONSE_QUEUE_CONSTANT
@@ -419,6 +419,7 @@ class HTTPQueue(BaseQueue):
                 # than the default timeout
                 if timeout > self.default_timeout:
                     time.sleep(0.05)
+        return None
 
     def _get(self) -> Any:
         try:
@@ -431,6 +432,7 @@ class HTTPQueue(BaseQueue):
             # we consider the queue is empty to avoid failing the app.
             raise queue.Empty
 
+    @backoff.on_exception(backoff.expo, (RuntimeError, requests.exceptions.HTTPError))
     def put(self, item: Any) -> None:
         if not self.app_id:
             raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")

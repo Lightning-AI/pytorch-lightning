@@ -15,13 +15,14 @@ import logging
 from copy import deepcopy
 from typing import Any, Callable, Dict, Optional, Type, Union
 
-from lightning_utilities.core.imports import module_available
 from packaging.version import Version
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch.callbacks import Checkpoint, EarlyStopping
 from lightning.pytorch.trainer.states import TrainerStatus
 from lightning.pytorch.utilities.exceptions import _TunerExitException
+from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -39,8 +40,7 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
     try:
         if trainer.strategy.launcher is not None:
             return trainer.strategy.launcher.launch(trainer_fn, *args, trainer=trainer, **kwargs)
-        else:
-            return trainer_fn(*args, **kwargs)
+        return trainer_fn(*args, **kwargs)
 
     except _TunerExitException:
         _call_teardown_hook(trainer)
@@ -74,6 +74,17 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
     assert trainer.state.fn is not None
     fn = trainer.state.fn
 
+    # It is too early to move the model to the device, but we fake the `LightningModule.device` property
+    # so the user can access it in the `LightningModule.setup` hook
+    for module in trainer.lightning_module.modules():
+        if isinstance(module, _DeviceDtypeModuleMixin):
+            module._device = trainer.strategy.root_device
+
+    # Trigger lazy creation of experiment in loggers so loggers have their metadata available
+    for logger in trainer.loggers:
+        if hasattr(logger, "experiment"):
+            _ = logger.experiment
+
     trainer.strategy.barrier("pre_setup")
 
     if trainer.datamodule is not None:
@@ -84,15 +95,17 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
     trainer.strategy.barrier("post_setup")
 
 
-def _call_configure_sharded_model(trainer: "pl.Trainer") -> None:
-    with trainer.strategy.model_sharded_context():
-        # experimental support for torchdistx
-        if module_available("torchdistx.deferred_init"):
-            from torchdistx.deferred_init import materialize_module
+def _call_configure_model(trainer: "pl.Trainer") -> None:
+    # legacy hook
+    if is_overridden("configure_sharded_model", trainer.lightning_module):
+        with trainer.strategy.model_sharded_context():
+            _call_lightning_module_hook(trainer, "configure_sharded_model")
 
-            materialize_module(trainer.lightning_module)
-
-        _call_lightning_module_hook(trainer, "configure_sharded_model")
+    # we don't normally check for this before calling the hook. it is done here to avoid instantiating the context
+    # managers
+    if is_overridden("configure_model", trainer.lightning_module):
+        with trainer.strategy.tensor_init_context(), trainer.strategy.model_sharded_context():
+            _call_lightning_module_hook(trainer, "configure_model")
 
 
 def _call_teardown_hook(trainer: "pl.Trainer") -> None:
@@ -125,6 +138,8 @@ def _call_lightning_module_hook(
     pl_module: Optional["pl.LightningModule"] = None,
     **kwargs: Any,
 ) -> Any:
+    log.debug(f"{trainer.__class__.__name__}: calling lightning module hook: {hook_name}")
+
     pl_module = pl_module or trainer.lightning_module
 
     if pl_module is None:
@@ -132,7 +147,7 @@ def _call_lightning_module_hook(
 
     fn = getattr(pl_module, hook_name)
     if not callable(fn):
-        return
+        return None
 
     prev_fx_name = pl_module._current_fx_name
     pl_module._current_fx_name = hook_name
@@ -152,6 +167,8 @@ def _call_lightning_datamodule_hook(
     *args: Any,
     **kwargs: Any,
 ) -> Any:
+    log.debug(f"{trainer.__class__.__name__}: calling lightning datamodule hook: {hook_name}")
+
     if trainer.datamodule is None:
         raise TypeError("No `LightningDataModule` is available to call hooks on.")
 
@@ -159,6 +176,7 @@ def _call_lightning_datamodule_hook(
     if callable(fn):
         with trainer.profiler.profile(f"[LightningDataModule]{trainer.datamodule.__class__.__name__}.{hook_name}"):
             return fn(*args, **kwargs)
+    return None
 
 
 def _call_callback_hooks(
@@ -275,13 +293,15 @@ def _call_strategy_hook(
     *args: Any,
     **kwargs: Any,
 ) -> Any:
+    log.debug(f"{trainer.__class__.__name__}: calling strategy hook: {hook_name}")
+
     pl_module = trainer.lightning_module
     prev_fx_name = pl_module._current_fx_name
     pl_module._current_fx_name = hook_name
 
     fn = getattr(trainer.strategy, hook_name)
     if not callable(fn):
-        return
+        return None
 
     with trainer.profiler.profile(f"[Strategy]{trainer.strategy.__class__.__name__}.{hook_name}"):
         output = fn(*args, **kwargs)

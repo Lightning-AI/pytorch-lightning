@@ -74,7 +74,7 @@ plugin = TestPlugin()
 
 @pytest.mark.skipif(sys.platform == "win32", reason="the plugin server is only intended to run on linux.")
 @pytest.mark.parametrize(
-    "body,message,tar_file_name,content",
+    ("body", "message", "tar_file_name", "content"),
     [
         (
             _Run(
@@ -84,6 +84,7 @@ plugin = TestPlugin()
                 cloudspace_id="any",
                 cluster_id="any",
                 plugin_arguments={},
+                source_app="any",
             ),
             "Error downloading plugin source:",
             None,
@@ -97,6 +98,7 @@ plugin = TestPlugin()
                 cloudspace_id="any",
                 cluster_id="any",
                 plugin_arguments={},
+                source_app="any",
             ),
             "Error extracting plugin source:",
             None,
@@ -110,6 +112,7 @@ plugin = TestPlugin()
                 cloudspace_id="any",
                 cluster_id="any",
                 plugin_arguments={},
+                source_app="any",
             ),
             "Error loading plugin:",
             "plugin.py",
@@ -123,6 +126,7 @@ plugin = TestPlugin()
                 cloudspace_id="any",
                 cluster_id="any",
                 plugin_arguments={},
+                source_app="any",
             ),
             "Error running plugin:",
             "plugin.py",
@@ -181,7 +185,7 @@ plugin = TestPlugin()
 
 @pytest.mark.skipif(sys.platform == "win32", reason="the plugin server is only intended to run on linux.")
 @pytest.mark.parametrize(
-    "plugin_source, actions",
+    ("plugin_source", "actions"),
     [
         (_plugin_with_job_run_no_actions, []),
         (_plugin_with_job_run_toast, [{"content": "info:testing", "type": "TOAST"}]),
@@ -203,6 +207,7 @@ def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server, plugin_s
         cloudspace_id="test_cloudspace_id",
         cluster_id="test_cluster_id",
         plugin_arguments={"name": "test_name", "entrypoint": "test_entrypoint"},
+        source_app="test_source_app",
     )
 
     mock_app = mock.MagicMock()
@@ -230,6 +235,7 @@ def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server, plugin_s
         cloudspace_id=body.cloudspace_id,
         name="test_name",
         cluster_id=body.cluster_id,
+        source_app=body.source_app,
     )
 
 

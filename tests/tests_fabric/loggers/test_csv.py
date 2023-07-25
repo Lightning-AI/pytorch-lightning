@@ -21,12 +21,20 @@ from lightning.fabric.loggers import CSVLogger
 from lightning.fabric.loggers.csv_logs import _ExperimentWriter
 
 
-def test_file_logger_automatic_versioning(tmpdir):
+def test_file_logger_automatic_versioning(tmp_path):
     """Verify that automatic versioning works."""
-    root_dir = tmpdir.mkdir("exp")
-    root_dir.mkdir("version_0")
-    root_dir.mkdir("version_1")
-    logger = CSVLogger(root_dir=root_dir, name="exp")
+    (tmp_path / "exp" / "version_0").mkdir(parents=True)
+    (tmp_path / "exp" / "version_1").mkdir()
+    logger = CSVLogger(root_dir=tmp_path, name="exp")
+    assert logger.version == 2
+
+
+def test_file_logger_automatic_versioning_relative_root_dir(tmp_path, monkeypatch):
+    """Verify that automatic versioning works, when root_dir is given a relative path."""
+    (tmp_path / "exp" / "logs" / "version_0").mkdir(parents=True)
+    (tmp_path / "exp" / "logs" / "version_1").mkdir()
+    monkeypatch.chdir(tmp_path)
+    logger = CSVLogger(root_dir="exp", name="logs")
     assert logger.version == 2
 
 
@@ -60,7 +68,7 @@ def test_file_logger_no_name(tmpdir, name):
     logger = CSVLogger(root_dir=tmpdir, name=name)
     logger.log_metrics({"a": 1})
     logger.save()
-    assert os.path.normpath(logger.root_dir) == tmpdir  # use os.path.normpath to handle trailing /
+    assert os.path.normpath(logger._root_dir) == tmpdir  # use os.path.normpath to handle trailing /
     assert os.listdir(tmpdir / "version_0")
 
 
@@ -93,3 +101,19 @@ def test_flush_n_steps(tmpdir):
     logger.save.assert_not_called()
     logger.log_metrics(metrics, step=1)
     logger.save.assert_called_once()
+
+
+def test_automatic_step_tracking(tmp_path):
+    """Test that the logger keeps track of the step value if it isn't passed in explicitly."""
+    logger = CSVLogger(tmp_path, flush_logs_every_n_steps=3)
+    logger.save = MagicMock()
+    metrics = {"test": 0.1}
+    logger.log_metrics(metrics, step=None)
+    logger.save.assert_not_called()
+    assert logger.experiment.metrics[0]["step"] == 0
+    logger.log_metrics(metrics, step=None)
+    logger.save.assert_not_called()
+    assert logger.experiment.metrics[1]["step"] == 1
+    logger.log_metrics(metrics, step=None)
+    logger.save.assert_called_once()
+    assert logger.experiment.metrics[2]["step"] == 2

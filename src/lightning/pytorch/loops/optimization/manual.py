@@ -14,7 +14,7 @@
 from collections import OrderedDict
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from torch import Tensor
 
@@ -41,7 +41,7 @@ class ManualResult(OutputResult):
     extra: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ManualResult":
+    def from_training_step_output(cls, training_step_output: STEP_OUTPUT) -> "ManualResult":
         extra = {}
         if isinstance(training_step_output, dict):
             extra = training_step_output.copy()
@@ -108,7 +108,7 @@ class _ManualOptimization(_Loop):
         # manually capture logged metrics
         training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
         del kwargs  # release the batch from memory
-        self.trainer.strategy.post_training_step()
+        self.trainer.strategy.post_training_step()  # unused hook - call anyway for backward compatibility
         result = self.output_result_cls.from_training_step_output(training_step_output)
 
         self._output = result.asdict()

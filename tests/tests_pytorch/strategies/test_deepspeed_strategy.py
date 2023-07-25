@@ -15,8 +15,10 @@ import contextlib
 import json
 import logging
 import os
+from re import escape
 from typing import Any, Dict
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 import torch
@@ -26,12 +28,12 @@ from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.accelerators import CUDAAccelerator
 from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
-from lightning.pytorch.strategies import DeepSpeedStrategy
-from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE, DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.datamodules import ClassifDataModule
@@ -48,11 +50,12 @@ class ModelParallelBoringModel(BoringModel):
         super().__init__()
         self.layer = None
 
-    def configure_sharded_model(self) -> None:
-        self.layer = torch.nn.Linear(32, 2)
+    def configure_model(self) -> None:
+        if self.layer is None:
+            self.layer = torch.nn.Linear(32, 2)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        self.configure_sharded_model()
+        self.configure_model()
 
 
 class ModelParallelBoringModelNoSchedulers(ModelParallelBoringModel):
@@ -72,18 +75,19 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         self.manual_backward(loss)
         opt.step()
 
-    def configure_sharded_model(self) -> None:
-        self.layer = torch.nn.Linear(32, 2)
+    def configure_model(self) -> None:
+        if self.layer is None:
+            self.layer = torch.nn.Linear(32, 2)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        self.configure_sharded_model()
+        self.configure_model()
 
     @property
     def automatic_optimization(self) -> bool:
         return False
 
 
-@pytest.fixture
+@pytest.fixture()
 def deepspeed_config():
     return {
         "optimizer": {"type": "SGD", "params": {"lr": 3e-5}},
@@ -94,19 +98,22 @@ def deepspeed_config():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def deepspeed_zero_config(deepspeed_config):
     return {**deepspeed_config, "zero_allow_untested_optimizer": True, "zero_optimization": {"stage": 2}}
 
 
 @RunIf(deepspeed=True)
-@pytest.mark.parametrize("strategy", ("deepspeed", DeepSpeedStrategy))
+@pytest.mark.parametrize("strategy", ["deepspeed", DeepSpeedStrategy])
 def test_deepspeed_strategy_string(tmpdir, strategy):
     """Test to ensure that the strategy can be passed via string or instance, and parallel devices is correctly
     set."""
 
     trainer = Trainer(
-        fast_dev_run=True, default_root_dir=tmpdir, strategy=strategy if isinstance(strategy, str) else strategy()
+        accelerator="cpu",
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+        strategy=strategy if isinstance(strategy, str) else strategy(),
     )
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
@@ -121,7 +128,7 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
         f.write(json.dumps(deepspeed_config))
     monkeypatch.setenv("PL_DEEPSPEED_CONFIG_PATH", config_path)
 
-    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed")
+    trainer = Trainer(accelerator="cpu", fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed")
 
     strategy = trainer.strategy
     assert isinstance(strategy, DeepSpeedStrategy)
@@ -129,7 +136,7 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
     assert strategy.config == deepspeed_config
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, mps=False)
 def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
 
@@ -199,7 +206,7 @@ def test_warn_deepspeed_ignored(tmpdir):
 
 @RunIf(min_cuda_gpus=1, deepspeed=True)
 @pytest.mark.parametrize(
-    ["dataset_cls", "value"],
+    ("dataset_cls", "value"),
     [(RandomDataset, "auto"), (RandomDataset, 10), (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)],
 )
 @mock.patch("deepspeed.init_distributed", autospec=True)
@@ -540,7 +547,7 @@ def test_deepspeed_multigpu_single_file(tmpdir):
     strategy = trainer.strategy
     assert isinstance(strategy, DeepSpeedStrategy)
     assert not strategy.load_full_weights
-    with pytest.raises(MisconfigurationException, match="DeepSpeed was unable to load the checkpoint."):
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
         trainer.test(model, ckpt_path=checkpoint_path)
 
     trainer = Trainer(
@@ -565,24 +572,28 @@ class ModelParallelClassificationModel(LightningModule):
         self.lr = lr
         self.num_blocks = num_blocks
         self.prepare_data_per_node = True
-
-        metric = Accuracy(task="multiclass", num_classes=3) if _TM_GE_0_11 else Accuracy()
-        self.train_acc = metric.clone()
-        self.valid_acc = metric.clone()
-        self.test_acc = metric.clone()
+        self.train_acc = self.valid_acc = self.test_acc = None
+        self.model = None
 
     def make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
 
-    def configure_sharded_model(self) -> None:
-        self.model = nn.Sequential(*(self.make_block() for x in range(self.num_blocks)), nn.Linear(32, 3))
+    def configure_model(self) -> None:
+        # As of deepspeed v0.9.3, in ZeRO stage 3 all submodules need to be created within this hook,
+        # including the metrics. Otherwise, modules that aren't affected by `deepspeed.zero.Init()`
+        # won't be moved to the GPU. See https://github.com/microsoft/DeepSpeed/pull/3611
+        if self.model is None:
+            metric = Accuracy(task="multiclass", num_classes=3) if _TM_GE_0_11 else Accuracy()
+            self.train_acc = metric.clone()
+            self.valid_acc = metric.clone()
+            self.test_acc = metric.clone()
+            self.model = nn.Sequential(*(self.make_block() for x in range(self.num_blocks)), nn.Linear(32, 3))
 
     def forward(self, x):
         x = self.model(x)
         # Ensure output is in float32 for softmax operation
         x = x.float()
-        logits = F.softmax(x, dim=1)
-        return logits
+        return F.softmax(x, dim=1)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -618,7 +629,7 @@ class ModelParallelClassificationModel(LightningModule):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         if not hasattr(self, "model"):
-            self.configure_sharded_model()
+            self.configure_model()
 
         # Lightning saves the lr schedulers, but DeepSpeed saves the optimizer states separately
         assert len(checkpoint["lr_schedulers"]) == 1
@@ -884,7 +895,7 @@ def test_deepspeed_multigpu_test(tmpdir):
 @pytest.mark.skip("Partial parameter partitioning for DeepSpeed is currently broken.")
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
-    """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_sharded_model``
+    """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_model``
     correctly converts all parameters to float16 when ``precision=16`` and runs successfully."""
 
     class TestModel(ModelParallelBoringModel):
@@ -892,8 +903,9 @@ def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
             super().__init__()
             self.layer_2 = torch.nn.Linear(32, 32)
 
-        def configure_sharded_model(self) -> None:
-            self.layer = torch.nn.Linear(32, 2)
+        def configure_model(self) -> None:
+            if self.layer is None:
+                self.layer = torch.nn.Linear(32, 2)
 
         def forward(self, x):
             x = self.layer_2(x)
@@ -943,7 +955,7 @@ def test_deepspeed_multigpu_test_rnn(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, mps=False)
 @mock.patch("deepspeed.init_distributed", autospec=True)
 @pytest.mark.parametrize("platform", ["Linux", "Windows"])
 def test_deepspeed_strategy_env_variables(mock_deepspeed_distributed, tmpdir, platform):
@@ -1149,48 +1161,6 @@ def test_deepspeed_gradient_clip_by_value(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_specific_gpu_device_id(tmpdir):
-    class TestCallback(Callback):
-        def on_train_start(self, *_) -> None:
-            assert model.device.index == 1
-
-        def on_train_batch_start(
-            self,
-            trainer: Trainer,
-            pl_module: LightningModule,
-            batch: Any,
-            *_,
-        ) -> None:
-            assert batch.device.index == 1
-
-        def on_test_start(self, *_) -> None:
-            assert model.device.index == 1
-
-        def on_test_batch_start(
-            self,
-            trainer: Trainer,
-            pl_module: LightningModule,
-            batch: Any,
-            *_,
-        ) -> None:
-            assert batch.device.index == 1
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        accelerator="gpu",
-        devices=[1],
-        strategy="deepspeed",
-        callbacks=TestCallback(),
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
-    trainer.test(model)
-
-
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multi_save_same_filepath(tmpdir):
     """Test that verifies that deepspeed saves only latest checkpoint in the specified path and deletes the old
     sharded checkpoints."""
@@ -1259,7 +1229,7 @@ def test_error_with_invalid_accelerator(tmpdir):
         fast_dev_run=True,
     )
     model = BoringModel()
-    with pytest.raises(MisconfigurationException, match="DeepSpeed strategy is only supported on GPU"):
+    with pytest.raises(RuntimeError, match="DeepSpeed strategy is only supported on CUDA"):
         trainer.fit(model)
 
 
@@ -1300,3 +1270,66 @@ def test_deepspeed_tensors_cast_to_fp16_before_hosted_on_device():
     batch = trainer.strategy.batch_to_device(batch)
     assert batch.is_cuda
     assert batch.dtype is torch.float16
+
+
+@RunIf(deepspeed=True)
+@pytest.mark.parametrize("device_indices", [[1], [1, 0], [0, 2], [3, 2, 1]])
+def test_validate_parallel_devices_indices(device_indices):
+    """Test that the strategy validates that it doesn't support selecting specific devices by index.
+
+    DeepSpeed doesn't support it and needs the index to match to the local rank of the process.
+    """
+    strategy = DeepSpeedStrategy(
+        accelerator=CUDAAccelerator(), parallel_devices=[torch.device("cuda", i) for i in device_indices]
+    )
+    with pytest.raises(
+        RuntimeError, match=escape(f"device indices {device_indices!r} don't match the local rank values of processes")
+    ):
+        strategy.setup_environment()
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
+def test_deepspeed_init_module_with_stage_3():
+    """Tests how `.init_module()` behaves with ZeRO stage 3."""
+    trainer = Trainer(
+        accelerator="cuda", devices=2, strategy="deepspeed_stage_3", precision="bf16-mixed", fast_dev_run=1
+    )
+    model = ModelParallelBoringModel()
+    with mock.patch("deepspeed.zero.Init") as zero_init_mock:
+        trainer.fit(model)
+
+    zero_init_mock.assert_called_once_with(enabled=True, remote_device=None, config_dict_or_path=ANY)
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
+@pytest.mark.parametrize("stage", [1, 2])
+def test_deepspeed_init_module_with_stages_1_2(stage):
+    """Tests how `.init_module()` behaves with ZeRO stages 1 and 2."""
+    strategy = DeepSpeedStrategy(stage=stage)
+    trainer = Trainer(accelerator="cuda", devices=2, strategy=strategy, precision="bf16-mixed", fast_dev_run=1)
+    model = ModelParallelBoringModel()
+    with mock.patch("deepspeed.zero.Init") as zero_init_mock:
+        trainer.fit(model)
+
+    zero_init_mock.assert_called_once_with(enabled=False, remote_device=None, config_dict_or_path=ANY)
+    assert model.layer.weight.dtype == torch.bfloat16
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_load_checkpoint_validate_path(tmp_path):
+    """Test that we validate the checkpoint path for a DeepSpeed checkpoint and give suggestions for user error."""
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
+        strategy.load_checkpoint(checkpoint_path=tmp_path)
+
+    # User tries to pass the subfolder as the path
+    checkpoint_path = tmp_path / "checkpoint"
+    checkpoint_path.mkdir()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(checkpoint_path=checkpoint_path)
+
+    # User tries to pass an individual file inside the checkpoint folder
+    checkpoint_path = checkpoint_path / "zero_pp_rank_0_mp_rank_00_model_states.pt"
+    checkpoint_path.touch()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(checkpoint_path=checkpoint_path)

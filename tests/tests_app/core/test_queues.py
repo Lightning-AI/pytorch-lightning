@@ -103,7 +103,7 @@ def test_redis_queue_read_timeout(redis_mock):
 
 
 @pytest.mark.parametrize(
-    "queue_type, queue_process_mock",
+    ("queue_type", "queue_process_mock"),
     [(QueuingSystem.MULTIPROCESS, multiprocessing)],
 )
 def test_process_queue_read_timeout(queue_type, queue_process_mock, monkeypatch):
@@ -217,13 +217,21 @@ class TestHTTPQueue:
 
 def test_unreachable_queue(monkeypatch):
     monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
+
     test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
 
-    resp = mock.MagicMock()
-    resp.status_code = 204
+    resp1 = mock.MagicMock()
+    resp1.status_code = 204
+
+    resp2 = mock.MagicMock()
+    resp2.status_code = 201
 
     test_queue.client = mock.MagicMock()
-    test_queue.client.post.return_value = resp
+    test_queue.client.post = mock.Mock(side_effect=[resp1, resp1, resp2])
 
     with pytest.raises(queue.Empty):
         test_queue._get()
+
+    # Test backoff on queue.put
+    test_queue.put("foo")
+    assert test_queue.client.post.call_count == 3

@@ -81,6 +81,10 @@ class CloudCompute:
 
         mounts: External data sources which should be mounted into a work as a filesystem at runtime.
 
+        colocation_group_id: Identifier for groups of works to be colocated in the same datacenter.
+            Set this to a string of max. 64 characters and all works with this group id will run in the same datacenter.
+            If not set, the works are not guaranteed to be colocated.
+
         interruptible: Whether to run on a interruptible machine e.g the machine can be stopped
             at any time by the providers. This is also known as spot or preemptible machines.
             Compared to on-demand machines, they tend to be cheaper.
@@ -91,6 +95,7 @@ class CloudCompute:
     idle_timeout: Optional[int] = None
     shm_size: Optional[int] = None
     mounts: Optional[Union[Mount, List[Mount]]] = None
+    colocation_group_id: Optional[str] = None
     interruptible: bool = False
     _internal_id: Optional[str] = None
 
@@ -122,6 +127,12 @@ class CloudCompute:
         # All `default` CloudCompute are identified in the same way.
         if self._internal_id is None:
             self._internal_id = self._generate_id()
+
+        if self.colocation_group_id is not None and (
+            not isinstance(self.colocation_group_id, str)
+            or (isinstance(self.colocation_group_id, str) and len(self.colocation_group_id) > 64)
+        ):
+            raise ValueError("colocation_group_id can only be a string of maximum 64 characters.")
 
     def to_dict(self) -> dict:
         _verify_mount_root_dirs_are_unique(self.mounts)
@@ -172,6 +183,5 @@ def _verify_mount_root_dirs_are_unique(mounts: Union[None, Mount, List[Mount], T
 
 def _maybe_create_cloud_compute(state: Dict) -> Union[CloudCompute, Dict]:
     if state and state.get("type", None) == __CLOUD_COMPUTE_IDENTIFIER__:
-        cloud_compute = CloudCompute.from_dict(state)
-        return cloud_compute
+        return CloudCompute.from_dict(state)
     return state

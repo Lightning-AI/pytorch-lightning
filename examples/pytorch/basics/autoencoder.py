@@ -81,7 +81,7 @@ class ImageSampler(callbacks.Callback):
             nrow=self.nrow,
             padding=self.padding,
             normalize=self.normalize,
-            range=self.norm_range,
+            value_range=self.norm_range,
             scale_each=self.scale_each,
             pad_value=self.pad_value,
         )
@@ -122,8 +122,7 @@ class LitAutoEncoder(LightningModule):
 
     def forward(self, x):
         z = self.encoder(x)
-        x_hat = self.decoder(z)
-        return x_hat
+        return self.decoder(z)
 
     def training_step(self, batch, batch_idx):
         return self._common_step(batch, batch_idx, "train")
@@ -139,8 +138,7 @@ class LitAutoEncoder(LightningModule):
         return self(x)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-        return optimizer
+        return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 
     def _prepare_batch(self, batch):
         x, _ = batch

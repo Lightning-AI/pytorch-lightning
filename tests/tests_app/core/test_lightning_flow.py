@@ -53,15 +53,8 @@ class CustomDataclass:
     y: tuple = (3, 2, 1)
 
 
-@pytest.mark.parametrize(
-    "attribute",
-    (
-        {3, 2, 1},
-        lambda _: 5,
-        CustomDataclass(),
-    ),
-)
-@pytest.mark.parametrize("cls", (LightningWork, LightningFlow))
+@pytest.mark.parametrize("attribute", [{3, 2, 1}, lambda _: 5, CustomDataclass()])
+@pytest.mark.parametrize("cls", [LightningWork, LightningFlow])
 def test_unsupported_attribute_types(cls, attribute):
     class Component(cls):
         def __init__(self):
@@ -76,7 +69,7 @@ def test_unsupported_attribute_types(cls, attribute):
 
 
 @pytest.mark.parametrize(
-    "name,value",
+    ("name", "value"),
     [
         ("x", 1),
         ("f", EmptyFlow()),
@@ -100,7 +93,7 @@ def test_unsupported_attribute_declaration_outside_init_or_run(name, value):
 
 
 @pytest.mark.parametrize(
-    "name,value",
+    ("name", "value"),
     [
         ("x", 1),
         ("f", EmptyFlow()),
@@ -163,7 +156,7 @@ def test_name_gets_removed_from_state_when_defined_as_flow_works(value):
 
 
 @pytest.mark.parametrize(
-    "name,value",
+    ("name", "value"),
     [
         ("_name", "name"),
         ("_changes", {"change": 1}),
@@ -244,8 +237,8 @@ def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
 
 
 @pytest.mark.parametrize(
-    "attribute,update_fn,expected",
-    (
+    ("attribute", "update_fn", "expected"),
+    [
         (1, lambda x: x + 1, 2),
         (0.5, lambda x: x + 0.5, 1.0),
         (True, lambda x: not x, False),
@@ -253,7 +246,7 @@ def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
         ({"a": 1, "b": 2}, lambda x: {"a": 1, "b": 3}, {"a": 1, "b": 3}),
         ([1, 2], lambda x: [1, 2, 3], [1, 2, 3]),
         ((4, 5), lambda x: (4, 5, 6), (4, 5, 6)),
-    ),
+    ],
 )
 def test_attribute_state_change(attribute, update_fn, expected, tmpdir):
     """Test that state changes get recored on all supported data types."""
@@ -331,6 +324,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
@@ -341,6 +335,7 @@ def test_lightning_flow_and_work():
                         "shm_size": 0,
                         "_internal_id": "default",
                         "interruptible": False,
+                        "colocation_group_id": None,
                     },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
@@ -356,6 +351,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
@@ -366,6 +362,7 @@ def test_lightning_flow_and_work():
                         "shm_size": 0,
                         "_internal_id": "default",
                         "interruptible": False,
+                        "colocation_group_id": None,
                     },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
@@ -395,6 +392,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
@@ -405,6 +403,7 @@ def test_lightning_flow_and_work():
                         "shm_size": 0,
                         "_internal_id": "default",
                         "interruptible": False,
+                        "colocation_group_id": None,
                     },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
@@ -420,6 +419,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
@@ -430,6 +430,7 @@ def test_lightning_flow_and_work():
                         "shm_size": 0,
                         "_internal_id": "default",
                         "interruptible": False,
+                        "colocation_group_id": None,
                     },
                 },
                 "calls": {

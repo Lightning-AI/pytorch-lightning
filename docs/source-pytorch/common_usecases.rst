@@ -113,6 +113,13 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :height: 100
 
 .. displayitem::
+   :header: Train in a notebook
+   :description: Train models in interactive notebooks (Jupyter, Colab, Kaggle, etc.)
+   :col_css: col-md-12
+   :button_link: common/notebooks.html
+   :height: 100
+
+.. displayitem::
    :header: Train on single or multiple GPUs
    :description: Train models faster with GPUs.
    :col_css: col-md-12
@@ -123,7 +130,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Train on single or multiple HPUs
    :description: Train models faster with HPUs.
    :col_css: col-md-12
-   :button_link: accelerators/hpu.html
+   :button_link: integrations/hpu/index.html
    :height: 100
 
 .. displayitem::

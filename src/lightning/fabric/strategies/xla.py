@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
@@ -46,6 +46,7 @@ class XLAStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
+        sync_module_states: bool = True,
     ) -> None:
         super().__init__(
             accelerator=accelerator,
@@ -57,6 +58,7 @@ class XLAStrategy(ParallelStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = None  # XLA synchronizes gradients in the optimizer.step() call
         self._launched = False
+        self._sync_module_states = sync_module_states
 
     @property
     def root_device(self) -> torch.device:
@@ -84,10 +86,8 @@ class XLAStrategy(ParallelStrategy):
         self._launcher = _XLALauncher(self)
 
     def setup_environment(self) -> None:
-        from torch_xla.experimental.pjrt import using_pjrt
-
         assert self.parallel_devices is not None
-        if using_pjrt() and len(self.parallel_devices) == 1:
+        if _using_pjrt() and len(self.parallel_devices) == 1:
             # spawning only 1 device with PjRT is not supported:
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
@@ -100,9 +100,14 @@ class XLAStrategy(ParallelStrategy):
         super().setup_environment()
 
     def setup_module(self, module: Module) -> Module:
-        from torch_xla.experimental import pjrt
+        if self._sync_module_states:
+            if _XLA_GREATER_EQUAL_2_1:
+                from torch_xla.core.xla_model import broadcast_master_param
+            else:
+                from torch_xla.experimental.pjrt import broadcast_master_param
 
-        pjrt.broadcast_master_param(module)
+            broadcast_master_param(module)
+
         return module
 
     def module_to_device(self, module: Module) -> None:
@@ -210,7 +215,11 @@ class XLAStrategy(ParallelStrategy):
         return obj
 
     def save_checkpoint(
-        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+        self,
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
+        storage_options: Optional[Any] = None,
+        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state as a checkpoint file.
 
@@ -219,10 +228,15 @@ class XLAStrategy(ParallelStrategy):
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
             storage_options: Additional options for the ``CheckpointIO`` plugin
+            filter: An optional dictionary of the same format as ``state`` mapping keys to callables that return a
+                boolean indicating whether the given parameter should be saved (``True``) or filtered out (``False``).
         """
-        state = self._convert_stateful_objects_in_state(state)
-        # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
-        self.checkpoint_io.save_checkpoint(state, path, storage_options=storage_options)
+        import torch_xla.core.xla_model as xm
+
+        # sync any pending lazy tensors on all ranks before saving to prevent potential collective hangs
+        xm.mark_step()
+        # save on global rank zero only
+        super().save_checkpoint(path, state, storage_options=storage_options, filter=filter)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.

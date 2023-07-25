@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from copy import deepcopy
 from datetime import timedelta
 from unittest import mock
 from unittest.mock import MagicMock, Mock
@@ -30,7 +31,7 @@ from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFab
 
 
 @pytest.mark.parametrize(
-    ["process_group_backend", "device_str", "expected_process_group_backend"],
+    ("process_group_backend", "device_str", "expected_process_group_backend"),
     [
         pytest.param("foo", "cpu", "foo"),
         pytest.param("foo", "cuda:0", "foo"),
@@ -88,7 +89,7 @@ def test_ddp_extra_kwargs(ddp_mock):
 
 
 def test_ddp_module_state_dict():
-    """Test that the module state dict gets retrieved without the prefixed wrapper keys from DDP."""
+    """Test that the module state dict can be retrieved and loaded without the prefixed wrapper keys from DDP."""
 
     class DistributedDataParallelMock(MagicMock):
         def __instancecheck__(self, instance):
@@ -99,16 +100,22 @@ def test_ddp_module_state_dict():
 
     # Without DDP applied (no setup call)
     original_module = torch.nn.Linear(2, 3)
-    assert strategy.get_module_state_dict(original_module).keys() == original_module.state_dict().keys()
+    original_state_dict = deepcopy(original_module.state_dict())
+    retrieved_state_dict = strategy.get_module_state_dict(original_module)
+    assert retrieved_state_dict.keys() == original_state_dict.keys()
+    strategy.load_module_state_dict(original_module, retrieved_state_dict)
 
     # With DDP applied (setup called)
     with mock.patch("lightning.fabric.strategies.ddp.DistributedDataParallel", DistributedDataParallelMock):
         wrapped_module = strategy.setup_module(original_module)
-        assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()
+        retrieved_state_dict = strategy.get_module_state_dict(wrapped_module)
+    assert retrieved_state_dict.keys() == original_state_dict.keys()
+    strategy.load_module_state_dict(wrapped_module, retrieved_state_dict)
+    strategy.load_module_state_dict(wrapped_module, original_state_dict)
 
 
 @pytest.mark.parametrize(
-    "clip_type,accelerator,precision",
+    ("clip_type", "accelerator", "precision"),
     [
         ("norm", "cpu", "32-true"),
         ("val", "cpu", "32-true"),
@@ -131,7 +138,7 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    "precision,expected_dtype",
+    ("precision", "expected_dtype"),
     [
         (Precision(), torch.float32),
         (HalfPrecision("16-true"), torch.float16),

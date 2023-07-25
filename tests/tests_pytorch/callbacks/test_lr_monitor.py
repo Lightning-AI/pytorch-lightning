@@ -16,7 +16,7 @@ import torch
 from torch import optim
 
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import LearningRateMonitor
+from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -118,8 +118,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
 
     class CustomBoringModel(BoringModel):
         def configure_optimizers(self):
-            optimizer = optim.SGD(self.parameters(), lr=0.1)
-            return optimizer
+            return optim.SGD(self.parameters(), lr=0.1)
 
     model = CustomBoringModel()
 
@@ -603,8 +602,7 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
                 {"params": list(self.linear_a.parameters())},
                 {"params": list(self.linear_b.parameters())},
             ]
-            optimizer = torch.optim.Adam(param_groups, lr=self.hparams.lr, betas=self.hparams.momentum)
-            return optimizer
+            return torch.optim.Adam(param_groups, lr=self.hparams.lr, betas=self.hparams.momentum)
 
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
@@ -628,3 +626,40 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
     assert list(lr_monitor.last_momentum_values) == ["lr-Adam/pg1-momentum", "lr-Adam/pg2-momentum"]
     assert all(val == momentum for val in lr_monitor.last_momentum_values.values())
     assert all(all(val == lr for val in lr_monitor.lrs[lr_key]) for lr_key in lr_monitor.lrs)
+
+
+def test_lr_monitor_update_callback_metrics(tmpdir):
+    """Test that the `LearningRateMonitor` callback updates trainer.callback_metrics."""
+
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
+            return [optimizer], [lr_scheduler]
+
+    monitor_key = "lr-SGD"
+    stop_threshold = 0.02
+    expected_stop_epoch = 3
+
+    lr_monitor = LearningRateMonitor()
+    lr_es = EarlyStopping(
+        monitor=monitor_key, mode="min", stopping_threshold=stop_threshold, check_on_train_epoch_end=True
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[lr_monitor, lr_es],
+        max_epochs=5,
+        limit_val_batches=0,
+        limit_train_batches=2,
+        logger=CSVLogger(tmpdir),
+    )
+    model = TestModel()
+    trainer.fit(model)
+
+    assert monitor_key in trainer.callback_metrics
+    assert lr_monitor.lrs[monitor_key] == [0.1, 0.05, 0.025, 0.0125]
+    assert min(lr_monitor.lrs[monitor_key][:expected_stop_epoch]) > stop_threshold
+    assert len(lr_monitor.lrs[monitor_key][expected_stop_epoch:]) == 1
+    assert min(lr_monitor.lrs[monitor_key][expected_stop_epoch:]) < stop_threshold
+    assert trainer.current_epoch - 1 == expected_stop_epoch
+    assert lr_es.stopped_epoch == expected_stop_epoch

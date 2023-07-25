@@ -14,12 +14,14 @@
 import logging
 import os
 import sys
+import threading
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 from packaging.version import Version
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.enums import LightningEnum
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.types import _PATH
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -28,6 +30,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 _log = logging.getLogger(__name__)
 _CHECKPOINT = Dict[str, Any]
+_lock = threading.Lock()
 
 
 def migrate_checkpoint(
@@ -77,6 +80,8 @@ class pl_legacy_patch:
            version 1.2.8. See: https://github.com/Lightning-AI/lightning/pull/6898
         2. ``lightning.pytorch.utilities.argparse_utils``: A module that was deprecated in 1.2 and removed in 1.4,
            but still needs to be available for import for legacy checkpoints.
+        3. ``lightning.pytorch.utilities.enums._FaultTolerantMode``: This enum was removed in 2.0 but was pickled
+           into older checkpoints.
 
     Example:
 
@@ -85,6 +90,7 @@ class pl_legacy_patch:
     """
 
     def __enter__(self) -> "pl_legacy_patch":
+        _lock.acquire()
         # `pl.utilities.argparse_utils` was renamed to `pl.utilities.argparse`
         legacy_argparse_module = ModuleType("lightning.pytorch.utilities.argparse_utils")
         sys.modules["lightning.pytorch.utilities.argparse_utils"] = legacy_argparse_module
@@ -92,6 +98,14 @@ class pl_legacy_patch:
         # `_gpus_arg_default` used to be imported from these locations
         legacy_argparse_module._gpus_arg_default = lambda x: x
         pl.utilities.argparse._gpus_arg_default = lambda x: x
+
+        # `_FaultTolerantMode` was removed from the enums
+        class _FaultTolerantMode(LightningEnum):
+            DISABLED = "disabled"
+            AUTOMATIC = "automatic"
+            MANUAL = "manual"
+
+        pl.utilities.enums._FaultTolerantMode = _FaultTolerantMode
         return self
 
     def __exit__(
@@ -103,6 +117,9 @@ class pl_legacy_patch:
         if hasattr(pl.utilities.argparse, "_gpus_arg_default"):
             delattr(pl.utilities.argparse, "_gpus_arg_default")
         del sys.modules["lightning.pytorch.utilities.argparse_utils"]
+        if hasattr(pl.utilities.enums, "_FaultTolerantMode"):
+            delattr(pl.utilities.enums, "_FaultTolerantMode")
+        _lock.release()
 
 
 def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_PATH] = None) -> _CHECKPOINT:

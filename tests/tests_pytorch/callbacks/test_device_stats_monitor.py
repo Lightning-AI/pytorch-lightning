@@ -21,6 +21,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
+from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators.cpu import _CPU_PERCENT, _CPU_SWAP_PERCENT, _CPU_VM_PERCENT, get_cpu_stats
 from lightning.pytorch.callbacks import DeviceStatsMonitor
@@ -66,7 +67,7 @@ def test_device_stats_gpu_from_torch(tmpdir):
 
 
 @RunIf(psutil=True)
-@pytest.mark.parametrize("cpu_stats", (None, True, False))
+@pytest.mark.parametrize("cpu_stats", [None, True, False])
 @mock.patch("lightning.pytorch.accelerators.cpu.get_cpu_stats", side_effect=get_cpu_stats)
 def test_device_stats_cpu(cpu_stats_mock, tmpdir, cpu_stats):
     """Test CPU stats are logged when no accelerator is used."""
@@ -129,9 +130,7 @@ def test_device_stats_monitor_tpu(tmpdir):
     try:
         trainer.fit(model)
     except RuntimeError as e:
-        from torch_xla.experimental import pjrt
-
-        if pjrt.using_pjrt() and "GetMemoryInfo not implemented" in str(e):
+        if _using_pjrt() and "GetMemoryInfo not implemented" in str(e):
             pytest.xfail("`xm.get_memory_info` is not implemented with PJRT")
         raise e
 

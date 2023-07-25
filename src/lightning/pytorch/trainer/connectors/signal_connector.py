@@ -11,8 +11,7 @@ from lightning_utilities.core.rank_zero import rank_prefixed_message
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.environments import SLURMEnvironment
-from lightning.fabric.utilities.imports import _IS_WINDOWS
-from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _PYTHON_GREATER_EQUAL_3_8_0
 from lightning.pytorch.utilities.rank_zero import rank_zero_info
 
 # copied from signal.pyi
@@ -143,7 +142,7 @@ class _SignalConnector:
         """
         if _PYTHON_GREATER_EQUAL_3_8_0:
             return signal.valid_signals()
-        elif _IS_WINDOWS:
+        if _IS_WINDOWS:
             # supported signals on Windows: https://docs.python.org/3/library/signal.html#signal.signal
             return {
                 signal.SIGABRT,

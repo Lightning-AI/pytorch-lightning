@@ -250,13 +250,10 @@ See also: :ref:`gradient_accumulation` to enable more fine-grained accumulation 
 benchmark
 ^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/benchmark.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/benchmark.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/benchmark.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/benchmark.jpg
+    :width: 400
+    :muted:
 
 The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. The value for
 ``torch.backends.cudnn.benchmark`` set in the current session will be used (``False`` if not manually set).
@@ -280,13 +277,10 @@ Example::
 deterministic
 ^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/deterministic.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/deterministic.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/deterministic.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/deterministic.jpg
+    :width: 400
+    :muted:
 
 This flag sets the ``torch.backends.cudnn.deterministic`` flag.
 Might make your system slower, but ensures reproducibility.
@@ -335,13 +329,10 @@ the trainer callbacks should there be two or more of the same type.
 check_val_every_n_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/check_val_every_n_epoch.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/check_val_every_n_epoch.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/check_val_every_n_epoch.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/check_val_every_n_epoch.jpg
+    :width: 400
+    :muted:
 
 Check val every n train epochs.
 
@@ -357,13 +348,10 @@ Example::
 default_root_dir
 ^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/default%E2%80%A8_root_dir.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/default_root_dir.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/default_root_dir.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/default%E2%80%A8_root_dir.jpg
+    :width: 400
+    :muted:
 
 Default path for logs and weights when no logger or
 :class:`lightning.pytorch.callbacks.ModelCheckpoint` callback passed.  On
@@ -462,13 +450,10 @@ See :doc:`Saving and Loading Checkpoints <../common/checkpointing>` for how to c
 fast_dev_run
 ^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/fast_dev_run.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/fast_dev_run.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/fast_dev_run.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/fast_dev_run.jpg
+    :width: 400
+    :muted:
 
 Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es) to ensure your code will execute without errors. This
 applies to fitting, validating, testing, and predicting. This flag is **only** recommended for debugging purposes and
@@ -507,13 +492,10 @@ impact to subsequent runs. These are the changes enabled:
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/gradient+_clip_val.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/gradient_clip_val.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/gradient_clip_val.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/gradient+_clip_val.jpg
+    :width: 400
+    :muted:
 
 Gradient clipping value
 
@@ -525,13 +507,10 @@ Gradient clipping value
 limit_train_batches
 ^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_train_batches.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_train_batches.jpg
+    :width: 400
+    :muted:
 
 How much of training dataset to check.
 Useful when debugging or testing something that happens at the end of an epoch.
@@ -555,13 +534,10 @@ Example::
 limit_test_batches
 ^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_test_batches.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_test_batches.jpg
+    :width: 400
+    :muted:
 
 How much of test dataset to check.
 
@@ -581,13 +557,10 @@ In the case of multiple test dataloaders, the limit applies to each dataloader i
 limit_val_batches
 ^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_val_batches.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/limit_batches.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/limit_val_batches.jpg
+    :width: 400
+    :muted:
 
 How much of validation dataset to check.
 Useful when debugging or testing something that happens at the end of an epoch.
@@ -611,14 +584,10 @@ In the case of multiple validation dataloaders, the limit applies to each datalo
 log_every_n_steps
 ^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_every_n_steps.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_every_n_steps.mp4"></video>
-
-|
-
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/log_every_n_steps.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/log_every_n_steps.jpg
+    :width: 400
+    :muted:
 
 How often to add logging rows (does not write to disk)
 
@@ -647,13 +616,10 @@ logger
 max_epochs
 ^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/max_epochs.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_epochs.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_epochs.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/max_epochs.jpg
+    :width: 400
+    :muted:
 
 Stop training once this number of epochs is reached
 
@@ -668,13 +634,10 @@ To enable infinite training, set ``max_epochs = -1``.
 min_epochs
 ^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/min_epochs.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_epochs.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_epochs.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/min_epochs.jpg
+    :width: 400
+    :muted:
 
 Force training for at least these many epochs
 
@@ -686,13 +649,10 @@ Force training for at least these many epochs
 max_steps
 ^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/max_steps.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_steps.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_steps.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/max_steps.jpg
+    :width: 400
+    :muted:
 
 Stop training after this number of :ref:`global steps <common/trainer:global_step>`.
 Training will stop if max_steps or max_epochs have reached (earliest).
@@ -711,13 +671,10 @@ If ``max_steps`` is not specified, ``max_epochs`` will be used instead (and ``ma
 min_steps
 ^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/min_steps.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_steps.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/min_max_steps.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/min_steps.jpg
+    :width: 400
+    :muted:
 
 Force training for at least this number of :ref:`global steps <common/trainer:global_step>`.
 Trainer will train model for at least min_steps or min_epochs (latest).
@@ -753,13 +710,10 @@ always has precedence.
 num_nodes
 ^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_nodes.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_nodes.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_nodes.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_nodes.jpg
+    :width: 400
+    :muted:
 
 Number of GPU nodes for distributed training.
 
@@ -775,13 +729,10 @@ Number of GPU nodes for distributed training.
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_sanity%E2%80%A8_val_steps.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_sanity_val_steps.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_sanity_val_steps.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_sanity%E2%80%A8_val_steps.jp
+    :width: 400
+    :muted:
 
 Sanity check runs n batches of val before starting the training routine.
 This catches any bugs in your validation without having to wait for the first validation check.
@@ -804,13 +755,10 @@ This option will reset the validation dataloader unless ``num_sanity_val_steps=0
 overfit_batches
 ^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/overfit_batches.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/overfit_batches.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/overfit_batches.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/overfit_batches.jpg
+    :width: 400
+    :muted:
 
 Uses this much data of the training & validation set.
 If the training & validation dataloaders have ``shuffle=True``, Lightning will automatically disable it.
@@ -886,13 +834,10 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 profiler
 ^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/profiler.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/profiler.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/profiler.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/profiler.jpg
+    :width: 400
+    :muted:
 
 To profile individual steps during training and assist in identifying bottlenecks.
 
@@ -927,13 +872,10 @@ Whether to enable or disable the progress bar. Defaults to True.
 reload_dataloaders_every_n_epochs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/reload_%E2%80%A8dataloaders_%E2%80%A8every_epoch.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/reload_dataloaders_every_epoch.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/reload_dataloaders_every_epoch.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/reload_%E2%80%A8dataloaders_%E2%80%A8every_epoch.jpg
+    :width: 400
+    :muted:
 
 Set to a positive integer to reload dataloaders every n epochs from your currently used data source.
 DataSource can be a ``LightningModule`` or a ``LightningDataModule``.
@@ -1013,13 +955,10 @@ See Also:
 sync_batchnorm
 ^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/sync_batchnorm.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/sync_batchnorm.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/sync_batchnorm.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/sync_batchnorm.jpg
+    :width: 400
+    :muted:
 
 Enable synchronization between batchnorm layers across all GPUs.
 
@@ -1031,13 +970,10 @@ Enable synchronization between batchnorm layers across all GPUs.
 val_check_interval
 ^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/val_check_interval.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/val_check_interval.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/val_check_interval.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/val_check_interval.jpg
+    :width: 400
+    :muted:
 
 How often within one training epoch to check the validation set.
 Can specify as float or int.
@@ -1181,10 +1117,11 @@ The metrics available to callbacks.
 
 This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log`.
 
-..code-block:: python
+.. code-block:: python
 
     def training_step(self, batch, batch_idx):
         self.log("a_val", 2.0)
+
 
     callback_metrics = trainer.callback_metrics
     assert callback_metrics["a_val"] == 2.0
@@ -1239,9 +1176,9 @@ The first :class:`~lightning.pytorch.loggers.logger.Logger` being used.
 loggers
 ********
 
-The list of class:`~lightning.pytorch.loggers.logger.Logger` used.
+The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
 
-..code-block:: python
+.. code-block:: python
 
     for logger in trainer.loggers:
         logger.log_metrics({"foo": 1.0})
@@ -1276,7 +1213,7 @@ The estimated number of batches that will ``optimizer.step()`` during training.
 This accounts for gradient accumulation and the current trainer configuration. This might sets up your training
 dataloader if hadn't been set up already.
 
-..code-block:: python
+.. code-block:: python
 
     def configure_optimizers(self):
         optimizer = ...
@@ -1359,6 +1296,18 @@ both conditions are met. If any of these arguments is not set, it won't be consi
     model = LitModel()
     trainer.fit(model)
 
+sanity_checking
+***************
+
+Indicates if the trainer is currently running sanity checking. This property can be useful to disable some hooks,
+logging or callbacks during the sanity checking.
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        ...
+        if not self.trainer.sanity_checking:
+            self.log("value", value)
 
 num_training_batches
 ********************

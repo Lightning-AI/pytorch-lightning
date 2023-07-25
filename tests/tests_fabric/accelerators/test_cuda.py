@@ -48,7 +48,7 @@ def test_init_device_with_wrong_device_type():
 
 
 @pytest.mark.parametrize(
-    "devices,expected",
+    ("devices", "expected"),
     [
         ([], []),
         ([1], [torch.device("cuda", 1)]),
@@ -100,6 +100,7 @@ def test_tf32_message(_, __, caplog, monkeypatch):
     with caplog.at_level(logging.INFO):
         _check_cuda_matmul_precision(device)
     assert expected in caplog.text
+    _check_cuda_matmul_precision.cache_clear()
 
     caplog.clear()
     torch.backends.cuda.matmul.allow_tf32 = True  # changing this changes the string
@@ -107,6 +108,7 @@ def test_tf32_message(_, __, caplog, monkeypatch):
     with caplog.at_level(logging.INFO):
         _check_cuda_matmul_precision(device)
     assert not caplog.text
+    _check_cuda_matmul_precision.cache_clear()
 
     caplog.clear()
     torch.backends.cuda.matmul.allow_tf32 = False
@@ -115,11 +117,19 @@ def test_tf32_message(_, __, caplog, monkeypatch):
     with caplog.at_level(logging.INFO):
         _check_cuda_matmul_precision(device)
     assert not caplog.text
+    _check_cuda_matmul_precision.cache_clear()
 
     torch.set_float32_matmul_precision("highest")  # can be reverted
     with caplog.at_level(logging.INFO):
         _check_cuda_matmul_precision(device)
     assert expected in caplog.text
+
+    # subsequent calls don't produce more messages
+    caplog.clear()
+    with caplog.at_level(logging.INFO):
+        _check_cuda_matmul_precision(device)
+    assert expected not in caplog.text
+    _check_cuda_matmul_precision.cache_clear()
 
 
 def test_find_usable_cuda_devices_error_handling():

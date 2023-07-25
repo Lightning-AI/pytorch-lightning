@@ -130,8 +130,7 @@ def _update_dataloader(
     dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
 ) -> DataLoader:
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode)
-    dataloader = _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
-    return dataloader
+    return _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
 
 
 def _get_dataloader_init_args_and_kwargs(

@@ -12,9 +12,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Allow customize `gradio` components with lightning colors ([#17054](https://github.com/Lightning-AI/lightning/pull/17054))
 
 
+-
+
+
 ### Changed
 
--
+- Changed `LocalSourceCodeDir` cache_location to not use home in some certain cases ([#17491](https://github.com/Lightning-AI/lightning/pull/17491))
 
 
 ### Deprecated
@@ -29,19 +32,60 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed handling a `None` request in the file orchestration queue ([#18111](https://github.com/Lightning-AI/lightning/pull/18111))
 
 
-## [2.0.1.post0] - 2023-04-11
+## [2.0.5] - 2023-07-07
+
+### Added
+
+- plugin: store source app ([#17892](https://github.com/Lightning-AI/lightning/pull/17892))
+- added colocation identifier ([#16796](https://github.com/Lightning-AI/lightning/pull/16796))
+- Added exponential backoff to HTTPQueue put ([#18013](https://github.com/Lightning-AI/lightning/pull/18013))
+- Content for plugins ([#17243](https://github.com/Lightning-AI/lightning/pull/17243))
+
+### Changed
+
+- Save a reference to created tasks, to avoid tasks disappearing ([#17946](https://github.com/Lightning-AI/lightning/pull/17946))
+
+
+## [2.0.4] - 2023-06-22
+
+### Fixed
+
+- bumped several dependencies to address security vulnerabilities.
+
+
+## [2.0.3] - 2023-06-07
+
+- Added the property `LightningWork.public_ip` that exposes the public IP of the `LightningWork` instance ([#17742](https://github.com/Lightning-AI/lightning/pull/17742))
+- Add missing python-multipart dependency ([#17244](https://github.com/Lightning-AI/lightning/pull/17244))
+
+### Changed
+
+- Made type hints public ([#17100](https://github.com/Lightning-AI/lightning/pull/17100))
+
+### Fixed
+
+- Fixed `LightningWork.internal_ip` that was mistakenly exposing the public IP instead; now exposes the private/internal IP address ([#17742](https://github.com/Lightning-AI/lightning/pull/17742))
+- Fixed resolution of latest version in CLI ([#17351](https://github.com/Lightning-AI/lightning/pull/17351))
+- Fixed property raised instead of returned ([#17595](https://github.com/Lightning-AI/lightning/pull/17595))
+- Fixed get project ([#17617](https://github.com/Lightning-AI/lightning/pull/17617), [#17666](https://github.com/Lightning-AI/lightning/pull/17666))
+
+
+## [2.0.2] - 2023-04-24
+
+### Fixed
+
+- Resolved Lightning App with remote storage ([#17426](https://github.com/Lightning-AI/lightning/pull/17426))
+- Fixed `AppState`, streamlit example ([#17452](https://github.com/Lightning-AI/lightning/pull/17452))
+
+
+## [2.0.1] - 2023-04-11
 
 ### Fixed
 
 - Fix frontend hosts when running with multi-process in the cloud ([#17324](https://github.com/Lightning-AI/lightning/pull/17324))
-
-
-## [2.0.1] - 2023-03-30
-
-No changes
 
 
 ## [2.0.0] - 2023-03-15

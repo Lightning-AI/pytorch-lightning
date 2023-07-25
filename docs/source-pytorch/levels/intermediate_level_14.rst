@@ -1,10 +1,10 @@
 :orphan:
 
 #################################
-Level 14: Run on on-prem clusters
+Level 13: Run on on-prem clusters
 #################################
 
-In this level you'll learn to run on onprem clusters.
+In this level you'll learn to run on on-prem clusters.
 
 ----
 

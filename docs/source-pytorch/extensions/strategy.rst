@@ -83,10 +83,10 @@ The below table lists all relevant strategies available in Lightning with their 
      - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
    * - hpu_parallel
      - ``HPUParallelStrategy``
-     - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../accelerators/hpu>`
+     - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../integrations/hpu/index>`
    * - hpu_single
      - ``SingleHPUStrategy``
-     - Strategy for training on a single HPU device. :doc:`Learn more. <../accelerators/hpu>`
+     - Strategy for training on a single HPU device. :doc:`Learn more. <../integrations/hpu/index>`
    * - ipu_strategy
      - ``IPUStrategy``
      - Plugin for training on IPU devices. :doc:`Learn more. <../accelerators/ipu>`

@@ -1,5 +1,5 @@
-mypy==1.2.0
-torch==2.0.0
+mypy==1.4.1
+torch==2.0.1
 
 types-Markdown
 types-PyYAML
@@ -17,3 +17,4 @@ types-tabulate
 types-toml
 types-tzlocal
 types-ujson
+types-decorator

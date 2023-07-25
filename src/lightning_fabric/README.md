@@ -17,7 +17,7 @@ ______________________________________________________________________
 
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/lightning_fabric)](https://pypi.org/project/lightning_fabric/)
 [![PyPI Status](https://badge.fury.io/py/lightning_fabric.svg)](https://badge.fury.io/py/lightning_fabric)
-[![PyPI Status](https://pepy.tech/badge/lightning_fabric)](https://pepy.tech/project/lightning_fabric)
+[![PyPI Status](https://pepy.tech/badge/lightning-fabric)](https://pepy.tech/project/lightning-fabric)
 [![Conda](https://img.shields.io/conda/v/conda-forge/lightning_fabric?label=conda&color=success)](https://anaconda.org/conda-forge/lightning_fabric)
 
 </div>
@@ -41,6 +41,10 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 + import lightning as L
   import torch; import torchvision as tv
 
+  dataset = tv.datasets.CIFAR10("data", download=True,
+                                train=True,
+                                transform=tv.transforms.ToTensor())
+
 + fabric = L.Fabric()
 + fabric.launch()
 
@@ -50,9 +54,6 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 - model.to(device)
 + model, optimizer = fabric.setup(model, optimizer)
 
-  dataset = tv.datasets.CIFAR10("data", download=True,
-                                train=True,
-                                transform=tv.transforms.ToTensor())
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
 + dataloader = fabric.setup_dataloaders(dataloader)
 
@@ -78,6 +79,10 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 import lightning as L
 import torch; import torchvision as tv
 
+dataset = tv.datasets.CIFAR10("data", download=True,
+                              train=True,
+                              transform=tv.transforms.ToTensor())
+
 fabric = L.Fabric()
 fabric.launch()
 
@@ -85,9 +90,6 @@ model = tv.models.resnet18()
 optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
 model, optimizer = fabric.setup(model, optimizer)
 
-dataset = tv.datasets.CIFAR10("data", download=True,
-                              train=True,
-                              transform=tv.transforms.ToTensor())
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
 dataloader = fabric.setup_dataloaders(dataloader)
 

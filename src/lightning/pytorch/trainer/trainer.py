@@ -23,8 +23,9 @@ import logging
 import math
 import os
 import warnings
+from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Union
 from weakref import proxy
 
 import torch
@@ -33,6 +34,7 @@ from torch.optim import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
@@ -67,7 +69,7 @@ from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
 from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info
+from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.pytorch.utilities.seed import isolate_rng
 from lightning.pytorch.utilities.types import (
     _EVALUATE_OUTPUT,
@@ -76,6 +78,7 @@ from lightning.pytorch.utilities.types import (
     LRSchedulerConfig,
     TRAIN_DATALOADERS,
 )
+from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -513,17 +516,15 @@ class Trainer:
 
             train_dataloaders: An iterable or collection of iterables specifying training samples.
                 Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the `:class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
+                the :class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
 
             val_dataloaders: An iterable or collection of iterables specifying validation samples.
 
+            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
+                the :class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
+
             ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
                 keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
-                If resuming from mid-epoch checkpoint, training will start from the beginning of the next epoch.
-
-            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
-            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the `:class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
 
         Raises:
             TypeError:
@@ -595,7 +596,7 @@ class Trainer:
 
             dataloaders: An iterable or collection of iterables specifying validation samples.
                 Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the `:class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
+                the :class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
 
             ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to validate.
                 If ``None`` and the model instance was passed, use the current weights.
@@ -605,7 +606,7 @@ class Trainer:
             verbose: If True, prints the validation results.
 
             datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the `:class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
+                the :class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
@@ -702,7 +703,7 @@ class Trainer:
 
             dataloaders: An iterable or collection of iterables specifying test samples.
                 Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the `:class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
+                the :class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
 
             ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to test.
                 If ``None`` and the model instance was passed, use the current weights.
@@ -712,7 +713,7 @@ class Trainer:
             verbose: If True, prints the test results.
 
             datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the `:class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
+                the :class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
@@ -809,10 +810,10 @@ class Trainer:
 
             dataloaders: An iterable or collection of iterables specifying predict samples.
                 Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the `:class:`~lightning.pytorch.core.hooks.DataHooks.predict_dataloader` hook.
+                the :class:`~lightning.pytorch.core.hooks.DataHooks.predict_dataloader` hook.
 
             datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the `:class:`~lightning.pytorch.core.hooks.DataHooks.predict_dataloader` hook.
+                the :class:`~lightning.pytorch.core.hooks.DataHooks.predict_dataloader` hook.
 
             return_predictions: Whether to return predictions.
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
@@ -947,8 +948,8 @@ class Trainer:
             log.debug(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
             self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path)
 
-        log.debug(f"{self.__class__.__name__}: configuring sharded model")
-        call._call_configure_sharded_model(self)  # allow user to setup in model sharded environment
+        log.debug(f"{self.__class__.__name__}: configuring model")
+        call._call_configure_model(self)
 
         # reset logger connector
         self._logger_connector.reset_results()
@@ -1069,6 +1070,50 @@ class Trainer:
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn, local_rank=local_rank, log_dir=self.log_dir)
+
+    @contextmanager
+    def init_module(self, empty_init: Optional[bool] = None) -> Generator:
+        """Tensors that you instantiate under this context manager will be created on the device right away and
+        have the right data type depending on the precision setting in the Trainer.
+
+        The parameters and tensors get created on the device and with the right data type right away without wasting
+        memory being allocated unnecessarily. The automatic device placement under this context manager is only
+        supported with PyTorch 2.0 and newer.
+
+        Args:
+            empty_init: Whether to initialize the model with empty weights (uninitialized memory).
+                If ``None``, the strategy will decide. Some strategies may not support all options.
+                Set this to ``True`` if you are loading a checkpoint into a large model. Requires `torch >= 1.13`.
+        """
+        if not _TORCH_GREATER_EQUAL_2_0 and self.strategy.root_device.type != "cpu":
+            rank_zero_warn(
+                "`Trainer.init_module()` can't place tensors on the device directly"
+                " with PyTorch < 2.0. Parameters will remain on CPU until the trainer starts."
+                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
+                category=PossibleUserWarning,
+            )
+        if is_overridden("model_sharded_context", self.strategy, parent=Strategy):
+            # warning instead of error so that code changes are not required when changing strategies
+            # this is a limitation because processes are not expected to have been launched when this is called
+            rank_zero_warn(
+                f"`trainer.init_module` cannot fully support proper instantiation of your model with the"
+                f" `{type(self.strategy).__name__}` strategy. Please instantiate your model inside the"
+                f"`LightningModule.configure_model` hook instead",
+                # ideally we would check if `configure_model` is already overridden, but we don't have a reliable
+                # reference to the model yet
+                category=PossibleUserWarning,
+            )
+        with self.strategy.tensor_init_context(empty_init=empty_init):
+            yield
+
+    def print(self, *args: Any, **kwargs: Any) -> None:
+        """Print something only on the first process. If running on multiple machines, it will print from the first
+        process in each machine.
+
+        Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
+        """
+        if self.local_rank == 0:
+            print(*args, **kwargs)
 
     """
     Accelerator properties
@@ -1207,6 +1252,7 @@ class Trainer:
     def distributed_sampler_kwargs(self) -> Optional[Dict[str, Any]]:
         if isinstance(self.strategy, ParallelStrategy):
             return self.strategy.distributed_sampler_kwargs
+        return None
 
     @property
     def enable_validation(self) -> bool:
@@ -1369,6 +1415,10 @@ class Trainer:
 
     @property
     def sanity_checking(self) -> bool:
+        """Whether sanity checking is running.
+
+        Useful to disable some hooks, logging or callbacks during the sanity checking.
+        """
         return self.state.stage == RunningStage.SANITY_CHECKING
 
     @sanity_checking.setter
@@ -1429,6 +1479,7 @@ class Trainer:
         """The training dataloader(s) used during ``trainer.fit()``."""
         if (combined_loader := self.fit_loop._combined_loader) is not None:
             return combined_loader.iterables
+        return None
 
     @property
     def val_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
@@ -1437,18 +1488,21 @@ class Trainer:
             combined_loader := self.validate_loop._combined_loader
         ) is not None:
             return combined_loader.iterables
+        return None
 
     @property
     def test_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
         """The test dataloader(s) used during ``trainer.test()``."""
         if (combined_loader := self.test_loop._combined_loader) is not None:
             return combined_loader.iterables
+        return None
 
     @property
     def predict_dataloaders(self) -> Optional[EVAL_DATALOADERS]:
         """The prediction dataloader(s) used during ``trainer.predict()``."""
         if (combined_loader := self.predict_loop._combined_loader) is not None:
             return combined_loader.iterables
+        return None
 
     @property
     def num_training_batches(self) -> Union[int, float]:
@@ -1504,6 +1558,7 @@ class Trainer:
             return self._evaluation_loop
         if self.predicting:
             return self.predict_loop
+        return None
 
     """
     Logging properties
@@ -1523,9 +1578,9 @@ class Trainer:
 
     @property
     def loggers(self) -> List[Logger]:
-        """The list of class:`~lightning.pytorch.loggers.logger.Logger` used.
+        """The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
 
-        ..code-block:: python
+        .. code-block:: python
 
             for logger in trainer.loggers:
                 logger.log_metrics({"foo": 1.0})
@@ -1540,12 +1595,11 @@ class Trainer:
     def callback_metrics(self) -> _OUT_DICT:
         """The metrics available to callbacks.
 
-        This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log`.
-
-        ..code-block:: python
+        .. code-block:: python
 
             def training_step(self, batch, batch_idx):
                 self.log("a_val", 2.0)
+
 
             callback_metrics = trainer.callback_metrics
             assert callback_metrics["a_val"] == 2.0
@@ -1575,6 +1629,7 @@ class Trainer:
         active_loop = self._active_loop
         if active_loop is not None:
             return active_loop._results
+        return None
 
     """
     Other
@@ -1588,7 +1643,7 @@ class Trainer:
         This accounts for gradient accumulation and the current trainer configuration. This might sets up your training
         dataloader if hadn't been set up already.
 
-        ..code-block:: python
+        .. code-block:: python
 
             def configure_optimizers(self):
                 optimizer = ...

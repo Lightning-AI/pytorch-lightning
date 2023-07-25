@@ -89,8 +89,7 @@ class Drive:
 
     @property
     def drive_root(self) -> pathlib.Path:
-        drive_root = _shared_storage_path() / "artifacts" / "drive" / self.id
-        return drive_root
+        return _shared_storage_path() / "artifacts" / "drive" / self.id
 
     def put(self, path: str) -> None:
         """This method enables to put a file to the Drive in a blocking fashion.

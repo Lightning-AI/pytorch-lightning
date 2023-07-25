@@ -21,12 +21,12 @@ import pytest
 import torch
 from torch.optim import Optimizer
 
-from lightning.fabric.accelerators import CPUAccelerator
+from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning.fabric.strategies import DeepSpeedStrategy
 from tests_fabric.helpers.runif import RunIf
 
 
-@pytest.fixture
+@pytest.fixture()
 def deepspeed_config():
     return {
         "optimizer": {"type": "SGD", "params": {"lr": 3e-5}},
@@ -37,7 +37,7 @@ def deepspeed_config():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def deepspeed_zero_config(deepspeed_config):
     return {**deepspeed_config, "zero_allow_untested_optimizer": True, "zero_optimization": {"stage": 2}}
 
@@ -220,6 +220,26 @@ def test_deepspeed_save_checkpoint_warn_colliding_keys(tmp_path):
 
 
 @RunIf(deepspeed=True)
+def test_deepspeed_load_checkpoint_validate_path(tmp_path):
+    """Test that we validate the checkpoint path for a DeepSpeed checkpoint and give suggestions for user error."""
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
+        strategy.load_checkpoint(path=tmp_path, state={"model": Mock()})
+
+    # User tries to pass the subfolder as the path
+    checkpoint_path = tmp_path / "checkpoint"
+    checkpoint_path.mkdir()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(path=checkpoint_path, state={"model": Mock()})
+
+    # User tries to pass an individual file inside the checkpoint folder
+    checkpoint_path = checkpoint_path / "zero_pp_rank_0_mp_rank_00_model_states.pt"
+    checkpoint_path.touch()
+    with pytest.raises(FileNotFoundError, match=f"Try to load using this parent directory instead: {tmp_path}"):
+        strategy.load_checkpoint(path=checkpoint_path, state={"model": Mock()})
+
+
+@RunIf(deepspeed=True)
 def test_deepspeed_load_checkpoint_no_state(tmp_path):
     """Test that DeepSpeed can't load the full state without access to a model instance from the user."""
     strategy = DeepSpeedStrategy()
@@ -230,7 +250,8 @@ def test_deepspeed_load_checkpoint_no_state(tmp_path):
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_load_checkpoint_one_deepspeed_engine_required(tmp_path):
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+def test_deepspeed_load_checkpoint_one_deepspeed_engine_required(_, tmp_path):
     """Test that the DeepSpeed strategy can only load one DeepSpeedEngine per checkpoint."""
     from deepspeed import DeepSpeedEngine
 
@@ -266,12 +287,13 @@ def test_deepspeed_load_checkpoint_client_state_missing(tmp_path):
     model.load_checkpoint.return_value = [None, None]
 
     # Check for our custom user error
-    with pytest.raises(RuntimeError, match="DeepSpeed was unable to load the checkpoint"):
+    with pytest.raises(FileNotFoundError, match="The provided path is not a valid DeepSpeed checkpoint"):
         strategy.load_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "test": "data"})
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_load_checkpoint_state_updated_with_client_state(tmp_path):
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+def test_deepspeed_load_checkpoint_state_updated_with_client_state(_, tmp_path):
     """Test that the DeepSpeed strategy properly updates the state variables and returns additional metadata."""
     from deepspeed import DeepSpeedEngine
 
@@ -295,7 +317,8 @@ def test_deepspeed_load_checkpoint_state_updated_with_client_state(tmp_path):
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("optimzer_state_requested", [True, False])
-def test_deepspeed_load_checkpoint_optimzer_state_requested(optimzer_state_requested, tmp_path):
+@mock.patch("lightning.fabric.strategies.deepspeed._is_deepspeed_checkpoint", return_value=True)
+def test_deepspeed_load_checkpoint_optimzer_state_requested(_, optimzer_state_requested, tmp_path):
     """Test that the DeepSpeed strategy loads the optimizer state only when requested."""
     from deepspeed import DeepSpeedEngine
 
@@ -322,6 +345,26 @@ def test_deepspeed_load_checkpoint_optimzer_state_requested(optimzer_state_reque
 
 
 @RunIf(deepspeed=True)
+@pytest.mark.parametrize("stage", [1, 2, 3])
+def test_deepspeed_load_checkpoint_raw_state_dict(stage, tmp_path):
+    """Test that the `load_checkpoint` can load raw state dict checkpoints too."""
+    strategy = DeepSpeedStrategy(stage=stage)
+
+    model = torch.nn.Linear(3, 3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1.0)
+    torch.save(model.state_dict(), tmp_path / "model.ckpt")
+    torch.save(optimizer.state_dict(), tmp_path / "optimizer.ckpt")
+
+    new_model = torch.nn.Linear(3, 3)
+    new_optimizer = torch.optim.Adam(new_model.parameters(), lr=2.0)
+
+    strategy.load_checkpoint(tmp_path / "model.ckpt", state=new_model, strict=False)
+    assert torch.equal(new_model.weight, model.weight)
+    strategy.load_checkpoint(tmp_path / "optimizer.ckpt", state=new_optimizer, strict=False)
+    assert new_optimizer.state_dict()["param_groups"][0]["lr"] == 1.0
+
+
+@RunIf(deepspeed=True)
 def test_errors_grad_clipping():
     strategy = DeepSpeedStrategy()
     with pytest.raises(
@@ -341,3 +384,26 @@ def test_errors_grad_clipping():
         ),
     ):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
+
+
+@RunIf(deepspeed=True, mps=False)
+def test_deepspeed_save_filter(tmp_path):
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(TypeError, match="manages the state serialization internally"):
+        strategy.save_checkpoint(path=tmp_path, state={}, filter={})
+
+
+@RunIf(deepspeed=True)
+@pytest.mark.parametrize("device_indices", [[1], [1, 0], [0, 2], [3, 2, 1]])
+def test_validate_parallel_devices_indices(device_indices):
+    """Test that the strategy validates that it doesn't support selecting specific devices by index.
+
+    DeepSpeed doesn't support it and needs the index to match to the local rank of the process.
+    """
+    strategy = DeepSpeedStrategy(
+        accelerator=CUDAAccelerator(), parallel_devices=[torch.device("cuda", i) for i in device_indices]
+    )
+    with pytest.raises(
+        RuntimeError, match=escape(f"device indices {device_indices!r} don't match the local rank values of processes")
+    ):
+        strategy.setup_environment()

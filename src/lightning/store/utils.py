@@ -70,6 +70,4 @@ def _get_model_data(name: str, version: str):
     version = version or "latest"
     if version not in model_data:
         raise KeyError(f"No data found for the given version: {version}, did you download the model successfully?")
-    model_version_data = model_data[version]
-
-    return model_version_data
+    return model_data[version]

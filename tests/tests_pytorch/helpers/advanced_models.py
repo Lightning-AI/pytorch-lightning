@@ -19,14 +19,8 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from lightning.pytorch.core.module import LightningModule
-from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
-from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from tests_pytorch import _PATH_DATASETS
 from tests_pytorch.helpers.datasets import AverageDataset, MNIST, TrialMNIST
-
-if _TORCHVISION_AVAILABLE:
-    from torchvision import transforms
-    from torchvision.datasets import CIFAR10
 
 
 class Generator(nn.Module):
@@ -71,9 +65,7 @@ class Discriminator(nn.Module):
 
     def forward(self, img):
         img_flat = img.view(img.size(0), -1)
-        validity = self.model(img_flat)
-
-        return validity
+        return self.model(img_flat)
 
 
 class BasicGAN(LightningModule):
@@ -176,6 +168,7 @@ class ParityModuleRNN(LightningModule):
         self.rnn = nn.LSTM(10, 20, batch_first=True)
         self.linear_out = nn.Linear(in_features=20, out_features=5)
         self.example_input_array = torch.rand(2, 3, 10)
+        self._loss = []  # needed for checking if the loss is the same as vanilla torch
 
     def forward(self, x):
         seq, last = self.rnn(x)
@@ -185,6 +178,7 @@ class ParityModuleRNN(LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.mse_loss(y_hat, y)
+        self._loss.append(loss.item())
         return {"loss": loss}
 
     def configure_optimizers(self):
@@ -202,6 +196,7 @@ class ParityModuleMNIST(LightningModule):
         self.c_d1_drop = nn.Dropout(0.3)
         self.c_d2 = nn.Linear(in_features=128, out_features=10)
         self.example_input_array = torch.rand(2, 1, 28, 28)
+        self._loss = []  # needed for checking if the loss is the same as vanilla torch
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
@@ -216,6 +211,7 @@ class ParityModuleMNIST(LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
+        self._loss.append(loss.item())
         return {"loss": loss}
 
     def configure_optimizers(self):
@@ -223,37 +219,3 @@ class ParityModuleMNIST(LightningModule):
 
     def train_dataloader(self):
         return DataLoader(MNIST(root=_PATH_DATASETS, train=True, download=True), batch_size=128, num_workers=1)
-
-
-class ParityModuleCIFAR(LightningModule):
-    def __init__(self, backbone="resnet101", hidden_dim=1024, learning_rate=1e-3, weights="DEFAULT"):
-        super().__init__()
-        self.save_hyperparameters()
-
-        self.learning_rate = learning_rate
-        self.num_classes = 10
-        self.backbone = get_torchvision_model(backbone, weights=weights)
-
-        self.classifier = torch.nn.Sequential(
-            torch.nn.Linear(1000, hidden_dim), torch.nn.Linear(hidden_dim, self.num_classes)
-        )
-        self.transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-        )
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self.backbone(x)
-        y_hat = self.classifier(y_hat)
-        loss = F.cross_entropy(y_hat, y)
-        return {"loss": loss}
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-
-    def train_dataloader(self):
-        return DataLoader(
-            CIFAR10(root=_PATH_DATASETS, train=True, download=True, transform=self.transform),
-            batch_size=32,
-            num_workers=1,
-        )

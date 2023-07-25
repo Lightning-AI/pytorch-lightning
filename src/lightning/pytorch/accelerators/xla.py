@@ -39,11 +39,10 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
         memory_info = xm.get_memory_info(device)
         free_memory = memory_info["kb_free"]
         peak_memory = memory_info["kb_total"] - free_memory
-        device_stats = {
+        return {
             "avg. free memory (MB)": free_memory,
             "avg. peak memory (MB)": peak_memory,
         }
-        return device_stats
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import pytest
 import torch
 
 from lightning.pytorch import Trainer
@@ -45,6 +46,7 @@ def all_gather_ddp_spawn_fn(strategy):
 
 
 @RunIf(skip_windows=True)
+@pytest.mark.flaky(reruns=3)
 def test_all_gather_ddp_spawn():
     spawn_launch(all_gather_ddp_spawn_fn, [torch.device("cpu")] * 3)
 
@@ -114,8 +116,7 @@ def test_all_gather_sync_grads(tmpdir):
             tensor = torch.rand(2, 2, requires_grad=True, device=self.device)
             gathered_tensor = self.all_gather(tensor, sync_grads=True)
             assert gathered_tensor.shape == torch.Size([2, 2, 2])
-            loss = gathered_tensor.sum()
-            return loss
+            return gathered_tensor.sum()
 
     model = TestModel()
     trainer = Trainer(

@@ -28,7 +28,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 def test_single_cpu():
     """Tests if device is set correctly for single CPU strategy."""
-    trainer = Trainer()
+    trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
     assert trainer.strategy.root_device == torch.device("cpu")
 
@@ -101,13 +101,13 @@ _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
 
 @pytest.mark.parametrize(
     ("keyword", "value"),
-    (
+    [
         ("train_dataloaders", _loader_no_len),
         ("val_dataloaders", _loader_no_len),
         ("test_dataloaders", _loader_no_len),
         ("predict_dataloaders", _loader_no_len),
         ("val_dataloaders", [_loader, _loader_no_len]),
-    ),
+    ],
 )
 def test_process_dataloader_gets_called_as_expected(keyword, value, monkeypatch):
     trainer = Trainer()

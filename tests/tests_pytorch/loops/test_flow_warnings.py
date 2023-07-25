@@ -19,8 +19,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 class TestModel(BoringModel):
     def training_step(self, batch, batch_idx):
-        acc = self.step(batch[0])
-        return acc
+        return self.step(batch[0])
 
 
 def test_no_depre_without_epoch_end(tmpdir):

@@ -17,6 +17,7 @@ import shutil
 import sys
 
 import lai_sphinx_theme
+from lightning_utilities.docs import fetch_external_assets
 
 import lightning
 
@@ -46,23 +47,9 @@ github_repo = project
 # -- Project documents -------------------------------------------------------
 
 
-# def _transform_changelog(path_in: str, path_out: str) -> None:
-#     with open(path_in) as fp:
-#         chlog_lines = fp.readlines()
-#     # enrich short subsub-titles to be unique
-#     chlog_ver = ""
-#     for i, ln in enumerate(chlog_lines):
-#         if ln.startswith("## "):
-#             chlog_ver = ln[2:].split("-")[0].strip()
-#         elif ln.startswith("### "):
-#             ln = ln.replace("###", f"### {chlog_ver} -")
-#             chlog_lines[i] = ln
-#     with open(path_out, "w") as fp:
-#         fp.writelines(chlog_lines)
-
-
-# export the READme
-# _convert_markdown(os.path.join(_PATH_ROOT, "README.md"), "readme.md")
+fetch_external_assets(
+    docs_folder=_PATH_HERE, assets_folder="_static/fetched-s3-assets", retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
+)
 
 # -- General configuration ---------------------------------------------------
 
@@ -75,8 +62,6 @@ needs_sphinx = "4.5"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
-    # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx_toolbox.collapse",
@@ -86,6 +71,9 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinx.ext.imgmath",
+    # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
+    # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
+    "sphinxcontrib.video",
     "myst_parser",
     "sphinx.ext.autosectionlabel",
     "nbsphinx",

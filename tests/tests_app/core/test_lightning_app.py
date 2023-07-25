@@ -119,6 +119,7 @@ def test_simple_app(tmpdir):
                     "_url": "",
                     "_future_url": "",
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_paths": {},
                     "_port": None,
                     "_restarting": False,
@@ -136,6 +137,7 @@ def test_simple_app(tmpdir):
                     "_url": "",
                     "_future_url": "",
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_paths": {},
                     "_port": None,
                     "_restarting": False,
@@ -427,7 +429,7 @@ class EmptyFlow(LightningFlow):
 
 
 @pytest.mark.parametrize(
-    "queue_type_cls, default_timeout",
+    ("queue_type_cls", "default_timeout"),
     [
         (MultiProcessQueue, STATE_UPDATE_TIMEOUT),
         pytest.param(
@@ -438,7 +440,7 @@ class EmptyFlow(LightningFlow):
     ],
 )
 @pytest.mark.parametrize(
-    "sleep_time, expect",
+    ("sleep_time", "expect"),
     [
         (1, 0),
         pytest.param(0, 10.0, marks=pytest.mark.xfail(strict=False, reason="failing...")),  # fixme
@@ -485,8 +487,7 @@ def test_lightning_app_aggregation_empty():
 
     class SlowQueue(MultiProcessQueue):
         def get(self, timeout):
-            out = super().get(timeout)
-            return out
+            return super().get(timeout)
 
     app = LightningApp(EmptyFlow())
     app.delta_queue = SlowQueue("api_delta_queue", 0)
@@ -983,7 +984,7 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 7965
+    assert app.root._state_sizes[0] <= 8380
     assert app.root._state_sizes[20] <= 26550
 
 

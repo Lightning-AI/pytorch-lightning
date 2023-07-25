@@ -25,7 +25,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_fabric.helpers.runif import RunIf
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_script(tmp_path):
     script = tmp_path / "script.py"
     script.touch()
@@ -150,7 +150,7 @@ def test_cli_torchrun_defaults(monkeypatch, fake_script):
 
 
 @pytest.mark.parametrize(
-    "devices,expected",
+    ("devices", "expected"),
     [
         ("1", 1),
         ("2", 2),

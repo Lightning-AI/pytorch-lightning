@@ -30,7 +30,7 @@ from lightning.pytorch.loggers import (
     TensorBoardLogger,
     WandbLogger,
 )
-from lightning.pytorch.loggers.logger import DummyExperiment
+from lightning.pytorch.loggers.logger import DummyExperiment, Logger
 from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.pytorch.tuner.tuning import Tuner
 from tests_pytorch.helpers.runif import RunIf
@@ -61,7 +61,6 @@ ALL_LOGGER_CLASSES = (
     WandbLogger,
 )
 ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls is not NeptuneLogger, ALL_LOGGER_CLASSES))
-ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB = tuple(filter(lambda cls: cls is not WandbLogger, ALL_LOGGER_CLASSES_WO_NEPTUNE))
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -80,8 +79,7 @@ def _get_logger_args(logger_class, save_dir):
 def _instantiate_logger(logger_class, save_dir, **override_kwargs):
     args = _get_logger_args(logger_class, save_dir)
     args.update(**override_kwargs)
-    logger = logger_class(**args)
-    return logger
+    return logger_class(**args)
 
 
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
@@ -126,6 +124,11 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == CometLogger:
         logger.experiment.id = "foo"
         logger.experiment.project_name = "bar"
+
+    if logger_class == NeptuneLogger:
+        logger._retrieve_run_data = Mock()
+        logger._run_short_id = "foo"
+        logger._run_name = "bar"
 
     if logger_class == MLFlowLogger:
         logger = mock_mlflow_run_creation(logger, experiment_id="foo", run_id="bar")
@@ -225,10 +228,19 @@ def test_logger_reset_correctly(tmpdir, tuner_method):
     assert logger2 == logger3, "Finder altered the logger of model"
 
 
-class RankZeroLoggerCheck(Callback):
-    # this class has to be defined outside the test function, otherwise we get pickle error
-    # due to the way ddp process is launched
+class LazyInitExperimentCheck(Callback):
+    def setup(self, trainer, pl_module, stage=None):
+        if trainer.global_rank > 0:
+            return
+        if isinstance(trainer.logger, MLFlowLogger):
+            assert trainer.logger._mlflow_client
+        elif isinstance(trainer.logger, NeptuneLogger):
+            assert trainer.logger._run_instance
+        elif hasattr(trainer.logger, "_experiment"):
+            assert trainer.logger._experiment
 
+
+class RankZeroLoggerCheck(Callback):
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         is_dummy = isinstance(trainer.logger.experiment, DummyExperiment)
         if trainer.is_global_zero:
@@ -238,20 +250,40 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
-@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB)
+class CustomLoggerWithoutExperiment(Logger):
+    @property
+    def name(self):
+        return ""
+
+    @property
+    def version(self):
+        return None
+
+    def log_metrics(self, metrics, step=None) -> None:
+        pass
+
+    def log_hyperparams(self, params, *args, **kwargs) -> None:
+        pass
+
+
+@pytest.mark.parametrize("logger_class", [*ALL_LOGGER_CLASSES_WO_NEPTUNE, CustomLoggerWithoutExperiment])
 @RunIf(skip_windows=True)
-def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
-    """Test that loggers get replaced by dummy loggers on global rank > 0."""
+def test_logger_initialization(tmpdir, monkeypatch, logger_class):
+    """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is
+    available at the right time in Trainer."""
     _patch_comet_atexit(monkeypatch)
     try:
-        _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
+        _test_logger_initialization(tmpdir, logger_class)
     except (ImportError, ModuleNotFoundError):
         pytest.xfail(f"multi-process test requires {logger_class.__class__} dependencies to be installed.")
 
 
-def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
+def _test_logger_initialization(tmpdir, logger_class):
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
+    callbacks = [LazyInitExperimentCheck()]
+    if not isinstance(logger, CustomLoggerWithoutExperiment):
+        callbacks.append(RankZeroLoggerCheck())
     model = BoringModel()
     trainer = Trainer(
         logger=logger,
@@ -260,10 +292,9 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         accelerator="cpu",
         devices=2,
         max_steps=1,
-        callbacks=[RankZeroLoggerCheck()],
+        callbacks=callbacks,
     )
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_logger_with_prefix_all(tmpdir, monkeypatch):

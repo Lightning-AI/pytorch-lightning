@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Dict, Generator, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -29,7 +29,8 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.utilities.apply_func import move_data_to_device
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
@@ -114,14 +115,25 @@ class Strategy(ABC):
         return dataloader
 
     @contextmanager
-    def module_init_context(self) -> Generator:
+    def tensor_init_context(self) -> Generator:
+        """Controls how tensors get created (device, dtype)."""
+        device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
+        with device_context, self.precision.init_context():
+            yield
+
+    @contextmanager
+    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator:
         """A context manager wrapping the model instantiation.
 
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
         patches to the model.
+
+        Args:
+            empty_init: Whether to initialize the model with empty weights (uninitialized memory).
+                If ``None``, the strategy will decide. Some strategies may not support all options.
         """
-        device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
-        with device_context, self.precision.module_init_context():
+        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        with empty_init_context, self.tensor_init_context():
             yield
 
     def setup_module_and_optimizers(
@@ -228,7 +240,11 @@ class Strategy(ABC):
         return decision
 
     def save_checkpoint(
-        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+        self,
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
+        storage_options: Optional[Any] = None,
+        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state as a checkpoint file.
 
@@ -237,14 +253,23 @@ class Strategy(ABC):
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
             storage_options: Additional options for the ``CheckpointIO`` plugin
+            filter: An optional dictionary containing filter callables that return a boolean indicating whether the
+                given item should be saved (``True``) or filtered out (``False``). Each filter key should match a
+                state key, where its filter will be applied to the ``state_dict`` generated.
         """
-        state = self._convert_stateful_objects_in_state(state)
+        state = self._convert_stateful_objects_in_state(state, filter=filter or {})
         if self.is_global_zero:
             self.checkpoint_io.save_checkpoint(checkpoint=state, path=path, storage_options=storage_options)
 
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
         return module.state_dict()
+
+    def load_module_state_dict(
+        self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True
+    ) -> None:
+        """Loads the given state into the model."""
+        module.load_state_dict(state_dict, strict=strict)
 
     def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.
@@ -261,14 +286,23 @@ class Strategy(ABC):
         return optimizer.state_dict()
 
     def load_checkpoint(
-        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+        self,
+        path: _PATH,
+        state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
+        strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
         Args:
             path: A path to where the file is located
-            state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
-                If no state is given, then the checkpoint will be returned in full.
+            state: Can be one of:
+
+                - A dictionary of objects whose state will be restored in-place from the checkpoint path.
+                - ``None`` or the empty dict: The loaded checkpoint will be returned in full.
+                - A :class:`~torch.nn.Module` instance, if the checkpoint file contains a raw module state dict.
+                - A :class:`~torch.optim.Optimizer` instance, if the checkpoint file contains a raw optimizer state.
+
+            strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
@@ -279,20 +313,21 @@ class Strategy(ABC):
         if not state:
             return checkpoint
 
-        invalid_keys = [k for k in state if k not in checkpoint]
-        if invalid_keys:
-            # TODO(fabric): Make strict loading configurable to avoid this error if desired.
-            raise KeyError(
-                f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint."
-            )
+        if isinstance(state, Module):
+            self.load_module_state_dict(module=state, state_dict=checkpoint, strict=strict)
+            return {}
 
+        if isinstance(state, Optimizer):
+            state.load_state_dict(checkpoint)
+            return {}
+
+        _validate_keys_for_strict_loading(state.keys(), checkpoint.keys(), strict=strict)
         for name, obj in state.copy().items():
             if name not in checkpoint:
                 continue
-            elif isinstance(obj, _Stateful):
+            if isinstance(obj, _Stateful):
                 if isinstance(obj, Module):
-                    # TODO(fabric): Make strict loading configurable
-                    obj.load_state_dict(checkpoint.pop(name), strict=True)
+                    self.load_module_state_dict(module=obj, state_dict=checkpoint.pop(name), strict=strict)
                 else:
                     obj.load_state_dict(checkpoint.pop(name))
             else:
@@ -349,15 +384,19 @@ class Strategy(ABC):
             " Please call `setup_module_and_optimizers(model, [optimizer, ...])` to jointly set them up."
         )
 
-    def _convert_stateful_objects_in_state(self, state: Dict[str, Union[Module, Optimizer, Any]]) -> Dict[str, Any]:
-        converted_state = {}
+    def _convert_stateful_objects_in_state(
+        self, state: Dict[str, Union[Module, Optimizer, Any]], filter: Dict[str, Callable[[str, Any], bool]]
+    ) -> Dict[str, Any]:
+        converted_state: Dict[str, Any] = {}
         for key, obj in state.items():
+            # convert the state
             if isinstance(obj, Module):
-                converted_state[key] = self.get_module_state_dict(module=obj)
+                converted = self.get_module_state_dict(module=obj)
             elif isinstance(obj, Optimizer):
-                converted_state[key] = self.get_optimizer_state(optimizer=obj)
+                converted = self.get_optimizer_state(optimizer=obj)
             else:
-                converted_state[key] = obj
+                converted = obj
+            _apply_filter(key, filter, converted, converted_state)
         return converted_state
 
 
@@ -391,3 +430,30 @@ class _Sharded(ABC):
         By sharding layers directly on instantiation, one can reduce peak memory usage and initialization time.
         """
         yield
+
+
+def _validate_keys_for_strict_loading(
+    requested_keys: Iterable[str], checkpoint_keys: Iterable[str], strict: bool
+) -> None:
+    invalid_keys = [k for k in requested_keys if k not in checkpoint_keys]
+    if strict and invalid_keys:
+        raise KeyError(
+            f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint."
+            f" To disable strict loading, set `strict=False`."
+        )
+
+
+def _apply_filter(
+    key: str, filter: Dict[str, Callable[[str, Any], bool]], source_dict: object, target_dict: Dict[str, Any]
+) -> None:
+    # filter out if necessary
+    if key in filter and isinstance(source_dict, dict):
+        filter_fn = filter[key]
+        for k, v in source_dict.items():
+            if filter_fn(k, v):
+                # save the state
+                target_dict.setdefault(key, {})
+                target_dict[key][k] = v
+    else:
+        # save the state
+        target_dict[key] = source_dict

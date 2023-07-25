@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -120,21 +120,21 @@ class BoringModel(LightningModule):
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
         return torch.nn.functional.mse_loss(preds, labels)
 
-    def step(self, batch: Tensor) -> Tensor:
+    def step(self, batch: Any) -> Tensor:
         output = self(batch)
         return self.loss(output)
 
-    def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
+    def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         return {"loss": self.step(batch)}
 
-    def validation_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         return {"x": self.step(batch)}
 
-    def test_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
+    def test_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         return {"y": self.step(batch)}
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_TORCH_LRSCHEDULER]]:
-        optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
@@ -195,7 +195,7 @@ class ManualOptimBoringModel(BoringModel):
         super().__init__()
         self.automatic_optimization = False
 
-    def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
+    def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         opt = self.optimizers()
         assert isinstance(opt, (Optimizer, LightningOptimizer))
         loss = self.step(batch)
@@ -218,11 +218,10 @@ class DemoModel(LightningModule):
     def forward(self, x: Tensor) -> Tensor:
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-    def training_step(self, batch: Tensor, batch_nb: int) -> STEP_OUTPUT:
+    def training_step(self, batch: Any, batch_nb: int) -> STEP_OUTPUT:
         x = batch
         x = self(x)
-        loss = x.sum()
-        return loss
+        return x.sum()
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -254,5 +253,4 @@ class Net(nn.Module):
         x = F.relu(x)
         x = self.dropout2(x)
         x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+        return F.log_softmax(x, dim=1)

@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Literal, TYPE_CHECKING
+from contextlib import contextmanager
+from typing import Any, Generator, Literal, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from torch.nn import Module
 from typing_extensions import get_args
 
 from lightning.fabric.plugins.precision.precision import Precision
@@ -28,14 +30,15 @@ if TYPE_CHECKING:
     if _DEEPSPEED_AVAILABLE:  # type: ignore[has-type]
         import deepspeed
 
-_PRECISION_INPUT = Literal["32-true", "16-mixed", "bf16-mixed"]
+_PRECISION_INPUT = Literal["32-true", "16-true", "bf16-true", "16-mixed", "bf16-mixed"]
 
 
 class DeepSpeedPrecision(Precision):
     """Precision plugin for DeepSpeed integration.
 
     Args:
-        precision: Full precision (32-true), half precision (16-mixed) or bfloat16 precision (bf16-mixed).
+        precision: Full precision (32-true), half precision (16-true, bf16-true) or
+            mixed precision (16-mixed, bf16-mixed).
 
     Raises:
         ValueError:
@@ -51,11 +54,29 @@ class DeepSpeedPrecision(Precision):
             )
         self.precision = precision
 
-        precision_to_type = {"bf16-mixed": torch.bfloat16, "16-mixed": torch.float16, "32-true": torch.float32}
-        self._desired_input_dtype = precision_to_type[self.precision]
+        precision_to_type = {
+            "bf16-mixed": torch.bfloat16,
+            "16-mixed": torch.float16,
+            "bf16-true": torch.bfloat16,
+            "16-true": torch.float16,
+            "32-true": torch.float32,
+        }
+        self._desired_dtype = precision_to_type[self.precision]
+
+    def convert_module(self, module: Module) -> Module:
+        if "true" in self.precision:
+            return module.to(dtype=self._desired_dtype)
+        return module
+
+    @contextmanager
+    def init_context(self) -> Generator[None, None, None]:
+        default_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(self._desired_dtype if "true" in self.precision else default_dtype)
+        yield
+        torch.set_default_dtype(default_dtype)
 
     def convert_input(self, data: Any) -> Any:
-        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
 
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
