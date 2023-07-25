@@ -21,10 +21,10 @@ try:
 except (ImportError, ModuleNotFoundError):
     ABLE_TO_RUN_APP_COMMANDS = False
 
+from lightning.app.cli.lightning_cli_launch import run_flow, run_flow_and_servers, run_frontend, run_server
 from lightning.app.launcher import launcher
-from lightning.app.launcher.cli.__main__ import run_flow, run_flow_and_servers, run_frontend, run_server
 
-_FILE_PATH = str(Path(__file__).parent / "data" / "app_metadata.py")
+_FILE_PATH = str(Path(__file__).parent / "launch_data" / "app_metadata.py")
 
 
 def test_run_frontend(monkeypatch):
@@ -43,7 +43,7 @@ def test_run_frontend(monkeypatch):
     result = runner.invoke(
         run_frontend,
         [
-            str(Path(__file__).parent / "data" / "app_v0" / "app.py"),
+            str(Path(__file__).parent / "launch_data" / "app_v0" / "app.py"),
             "--flow-name",
             "root.aas",
             "--host",
@@ -234,7 +234,7 @@ def test_run_flow_and_servers(monkeypatch):
     runner.invoke(
         run_flow_and_servers,
         [
-            str(Path(__file__).parent / "data" / "app_v0" / "app.py"),
+            str(Path(__file__).parent / "launch_data" / "app_v0" / "app.py"),
             "--base-url",
             "https://some.url",
             "--queue-id",
