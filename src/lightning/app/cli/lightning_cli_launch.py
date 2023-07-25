@@ -16,13 +16,8 @@ import logging
 from typing import Tuple
 
 import click
-from lightning_utilities.core.imports import module_available
 
-if module_available("lightning_app"):
-    from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
-else:
-    from lightning.app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
-
+from lightning.app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning.app.launcher.launcher import (
     run_lightning_flow,
     run_lightning_work,
