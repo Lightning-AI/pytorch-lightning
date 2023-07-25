@@ -181,8 +181,9 @@ class XLAFSDPStrategy(XLAStrategy):
     ) -> None:
         """Save model, optimizer, and other state in the provided checkpoint directory.
 
-        If the user specifies sharded checkpointing, the directory will contain one file per process, with model- and optimizer shards stored per file. 
-        If the user specifies full checkpointing, the directory will contain a consolidated checkpoint combining all of the sharded checkpoints.
+        If the user specifies sharded checkpointing, the directory will contain one file per process, with model- and
+        optimizer shards stored per file. If the user specifies full checkpointing, the directory will contain a
+        consolidated checkpoint combining all of the sharded checkpoints.
         """
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
@@ -236,7 +237,7 @@ class XLAFSDPStrategy(XLAStrategy):
         self.checkpoint_io.save_checkpoint(
             converted_state,
             os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth"),
-            storage_options=storage_options
+            storage_options=storage_options,
         )
 
         if self._state_dict_type == "full":
@@ -244,11 +245,13 @@ class XLAFSDPStrategy(XLAStrategy):
 
             if self.is_global_zero:
                 consolidate_sharded_model_checkpoints(
-                    ckpt_prefix=os.path.join(path, 'checkpoint'),
+                    ckpt_prefix=os.path.join(path, "checkpoint"),
                     ckpt_suffix="_rank-*-of-*.pth",
                 )
             self.barrier("ckpt_consolidation")
-            self.checkpoint_io.remove_checkpoint(os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth"))
+            self.checkpoint_io.remove_checkpoint(
+                os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth")
+            )
 
     def remove_checkpoint(self, folderpath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -266,7 +269,9 @@ class XLAFSDPStrategy(XLAStrategy):
                 "The `XLAFSDPStrategy` requires specifying the directory where to remove checkpoints."
             )
         if self._state_dict_type == "sharded":
-            self.checkpoint_io.remove_checkpoint(os.path.join(folderpath, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth"))
+            self.checkpoint_io.remove_checkpoint(
+                os.path.join(folderpath, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth")
+            )
         elif self._state_dict_type == "full":
             self.checkpoint_io.remove_checkpoint(os.path.join(folderpath, "checkpoint_consolidated.pth"))
         else:
