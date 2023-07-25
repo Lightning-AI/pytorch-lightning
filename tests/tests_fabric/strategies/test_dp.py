@@ -84,6 +84,9 @@ def test_dp_module_state_dict():
 @pytest.mark.parametrize("clip_type", ["norm", "val"])
 @RunIf(min_cuda_gpus=2)
 def test_dp_grad_clipping(clip_type, precision):
+    if hasattr(torch.nn.utils.clip_grad_norm_, "_orig"):
+        # hacky workaround to https://github.com/pytorch/xla/issues/2884: undo xla patching on import
+        torch.nn.utils.clip_grad_norm_ = torch.nn.utils.clip_grad_norm_._orig
     clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
     fabric = clipping_test_cls(accelerator="cuda", devices=2, precision=precision, strategy="dp")
     fabric.run()

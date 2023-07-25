@@ -360,7 +360,7 @@ def _check_cuda_matmul_precision(device: torch.device) -> None:
 
 
 def _clear_cuda_memory() -> None:
-    # strangely, the attribute function be undefined when torch.compile is used
+    # strangely, the attribute function can be undefined when torch.compile is used
     if _TORCH_GREATER_EQUAL_2_0 and hasattr(torch._C, "_cuda_clearCublasWorkspaces"):
         # https://github.com/pytorch/pytorch/issues/95668
         torch._C._cuda_clearCublasWorkspaces()

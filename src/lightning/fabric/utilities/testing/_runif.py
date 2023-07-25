@@ -20,9 +20,9 @@ import torch
 from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
-from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.accelerators.mps import MPSAccelerator
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, XLAAccelerator
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
@@ -35,6 +35,7 @@ def _runif_reasons(
     min_python: Optional[str] = None,
     bf16_cuda: bool = False,
     tpu: bool = False,
+    xla: bool = False,
     mps: Optional[bool] = None,
     skip_windows: bool = False,
     standalone: bool = False,
@@ -49,7 +50,8 @@ def _runif_reasons(
         max_torch: Require that PyTorch is less than this version.
         min_python: Require that Python is greater or equal than this version.
         bf16_cuda: Require that CUDA device supports bf16.
-        tpu: Require that TPU is available.
+        tpu: Require that a TPU device is available.
+        xla: Require that torch/XLA is installed.
         mps: If True: Require that MPS (Apple Silicon) is available,
             if False: Explicitly Require that MPS is not available
         skip_windows: Skip for Windows platform.
@@ -96,9 +98,14 @@ def _runif_reasons(
         reasons.append("unimplemented on Windows")
 
     if tpu:
-        if not XLAAccelerator.is_available():
+        if not _XLA_AVAILABLE or XLAAccelerator._device_type() != "TPU":
             reasons.append("TPU")
         kwargs["tpu"] = True
+
+    if xla:
+        if not _XLA_AVAILABLE:
+            reasons.append("XLA")
+        kwargs["xla"] = True
 
     if mps is not None:
         if mps and not MPSAccelerator.is_available():

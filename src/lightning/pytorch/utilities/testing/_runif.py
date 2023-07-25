@@ -33,6 +33,7 @@ def _runif_reasons(
     min_python: Optional[str] = None,
     bf16_cuda: bool = False,
     tpu: bool = False,
+    xla: bool = False,
     mps: Optional[bool] = None,
     skip_windows: bool = False,
     standalone: bool = False,
@@ -52,7 +53,8 @@ def _runif_reasons(
         max_torch: Require that PyTorch is less than this version.
         min_python: Require that Python is greater or equal than this version.
         bf16_cuda: Require that CUDA device supports bf16.
-        tpu: Require that TPU is available.
+        tpu: Require that a TPU device is available.
+        xla: Require that torch/XLA is installed.
         mps: If True: Require that MPS (Apple Silicon) is available,
             if False: Explicitly Require that MPS is not available
         skip_windows: Skip for Windows platform.
@@ -74,6 +76,7 @@ def _runif_reasons(
         min_python=min_python,
         bf16_cuda=bf16_cuda,
         tpu=tpu,
+        xla=xla,
         mps=mps,
         skip_windows=skip_windows,
         standalone=standalone,
