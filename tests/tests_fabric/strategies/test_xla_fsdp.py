@@ -239,7 +239,7 @@ def test_xla_fsdp_train_save_load(tmp_path, state_dict_type, use_auto_wrap_polic
     import torch_xla.runtime as runtime
 
     if runtime.local_device_count() != runtime.global_device_count():
-        pytest.skip("Doesn't support multinode") 
+        pytest.skip("Doesn't support multinode")
 
     strategy = XLAFSDPStrategy(
         auto_wrap_policy=always_wrap_policy if use_auto_wrap_policy else None, state_dict_type=state_dict_type
