@@ -14,7 +14,7 @@
 import torch
 import torch.nn as nn
 
-from lightning.fabric.utilities.load import _lazy_load, _NotYetLoadedTensor, _materialize_tensors
+from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _NotYetLoadedTensor
 
 
 def test_lazy_load_module(tmp_path):
@@ -84,7 +84,7 @@ def test_materialize_tensors(tmp_path):
     # Collection of tensors
     collection = {
         "tensor": torch.tensor([1, 2]),
-        "nested": {"int": 1, "list": [torch.tensor([3.]), torch.tensor([4])]}
+        "nested": {"int": 1, "list": [torch.tensor([3.0]), torch.tensor([4])]},
     }
     torch.save(collection, tmp_path / "collection.pt")
     loaded = _lazy_load(tmp_path / "collection.pt")
