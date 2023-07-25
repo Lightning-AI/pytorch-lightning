@@ -20,7 +20,6 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
@@ -364,7 +363,8 @@ class XLAFSDPStrategy(XLAStrategy):
                     metadata[key] = sharded_ckpt[key]
 
             # remove "shard_metadata" that is loaded in
-            if "shard_metadata" in metadata: metadata.pop("shard_metadata")
+            if "shard_metadata" in metadata:
+                metadata.pop("shard_metadata")
 
             return metadata
         elif self._state_dict_type == "full":
