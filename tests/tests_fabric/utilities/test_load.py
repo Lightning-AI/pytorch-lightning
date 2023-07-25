@@ -22,8 +22,8 @@ def test_lazy_load_module(tmp_path):
     torch.save(model0.state_dict(), tmp_path / "model.pt")
 
     model1 = nn.Linear(2, 2)
-    with _lazy_load(tmp_path / "model.pt") as checkpoint:
-        model1.load_state_dict(checkpoint)
+    checkpoint = _lazy_load(tmp_path / "model.pt")
+    model1.load_state_dict(checkpoint)
 
     assert isinstance(checkpoint["weight"], _NotYetLoadedTensor)
     assert type(model0.weight.data) == torch.Tensor
@@ -44,12 +44,12 @@ def test_lazy_load_tensor(tmp_path):
     }
     torch.save(expected, tmp_path / "data.pt")
 
-    with _lazy_load(tmp_path / "data.pt") as loaded:
-        for t0, t1 in zip(expected.values(), loaded.values()):
-            assert isinstance(t1, _NotYetLoadedTensor)
-            t1_materialized = t1._load_tensor()
-            assert type(t0) == type(t1_materialized)
-            assert torch.equal(t0, t1_materialized)
+    loaded = _lazy_load(tmp_path / "data.pt")
+    for t0, t1 in zip(expected.values(), loaded.values()):
+        assert isinstance(t1, _NotYetLoadedTensor)
+        t1_materialized = t1._load_tensor()
+        assert type(t0) == type(t1_materialized)
+        assert torch.equal(t0, t1_materialized)
 
 
 def test_lazy_load_mixed_state(tmp_path):
@@ -67,6 +67,6 @@ def test_lazy_load_mixed_state(tmp_path):
 
     model1 = nn.Linear(2, 2)
     optim1 = torch.optim.Adam(model0.parameters())
-    with _lazy_load(tmp_path / "checkpoint.pt") as loaded_checkpoint:
-        model1.load_state_dict(loaded_checkpoint["model"])
-        optim1.load_state_dict(loaded_checkpoint["optimizer"])
+    loaded_checkpoint = _lazy_load(tmp_path / "checkpoint.pt")
+    model1.load_state_dict(loaded_checkpoint["model"])
+    optim1.load_state_dict(loaded_checkpoint["optimizer"])

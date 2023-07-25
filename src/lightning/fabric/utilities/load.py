@@ -151,9 +151,16 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
         return storage
 
 
-@contextmanager
+# @contextmanager
+# def _lazy_load(filename: _PATH) -> Any:
+#     file_reader = torch.PyTorchFileReader(str(filename))
+#     with BytesIO(file_reader.get_record("data.pkl")) as pkl:
+#         mup = _LazyLoadingUnpickler(pkl, file_reader)
+#         yield mup.load()
+
+
 def _lazy_load(filename: _PATH) -> Any:
     file_reader = torch.PyTorchFileReader(str(filename))
     with BytesIO(file_reader.get_record("data.pkl")) as pkl:
         mup = _LazyLoadingUnpickler(pkl, file_reader)
-        yield mup.load()
+        return mup.load()
