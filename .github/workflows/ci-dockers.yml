@@ -13,7 +13,6 @@ on:
       - "requirements/*.txt"
       - "requirements/pytorch/**"
       - "requirements/fabric/**"
-      - "environment.yml"
       - "setup.py"
       - "!requirements/*/docs.txt"
       - "!*.md"
@@ -43,10 +42,11 @@ jobs:
         include:
           # We only release one docker image per PyTorch version.
           # The matrix here is the same as the one in release-docker.yml.
-          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
-          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.7.1"}
-          - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.7.1"}
+          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.7.1"}
+          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.8.0"}
+          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "12.0.1"}
+          - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.8.0"}
+          - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "12.0.1"}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -71,10 +71,11 @@ jobs:
         include:
           # These are the base images for PL release docker images,
           # so include at least all of the combinations in release-dockers.yml.
-          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
-          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.7.1"}
-          - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.7.1"}
+          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.7.1"}
+          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.8.0"}
+          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "12.0.1"}
+          - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.8.0"}
+          - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "12.0.1"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2

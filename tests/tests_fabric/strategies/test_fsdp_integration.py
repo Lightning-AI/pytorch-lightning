@@ -36,36 +36,34 @@ if _TORCH_GREATER_EQUAL_1_12:
 
 class _MyFabric(BoringFabric):
     def get_model(self):
-        return torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        model = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        self.num_wrapped = 4
+        return model
 
     def step(self, model, batch):
-        forward_module = model._forward_module
-        original_module = model.module
-        assert isinstance(forward_module, FullyShardedDataParallel)
-        assert isinstance(self._precision, FSDPPrecision)
+        wrapped_layers = [m for m in model.modules() if isinstance(m, FullyShardedDataParallel)]
+        assert len(wrapped_layers) == self.num_wrapped
+        assert (self.num_wrapped == 4) == isinstance(model._forward_module, FullyShardedDataParallel)
 
-        if self._precision.precision == "16-mixed":
+        precision = self._precision
+        assert isinstance(precision, FSDPPrecision)
+        if precision.precision == "16-mixed":
             param_dtype = torch.float32
             reduce_dtype = buffer_dtype = torch.float16
-        elif self._precision.precision == "bf16-mixed":
+        elif precision.precision == "bf16-mixed":
             param_dtype = torch.float32
             reduce_dtype = buffer_dtype = torch.bfloat16
-        elif self._precision.precision == "16-true":
+        elif precision.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
-        elif self._precision.precision == "bf16-true":
+        elif precision.precision == "bf16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         else:
-            raise ValueError(f"Unknown precision {self._precision.precision}")
+            raise ValueError(f"Unknown precision {precision.precision}")
 
-        assert forward_module.mixed_precision.param_dtype == param_dtype
-        assert forward_module.mixed_precision.reduce_dtype == reduce_dtype
-        assert forward_module.mixed_precision.buffer_dtype == buffer_dtype
-
-        for layer_num in [0, 2]:
-            assert isinstance(original_module[layer_num], FullyShardedDataParallel)
-            assert original_module[layer_num].mixed_precision.param_dtype == param_dtype
-            assert original_module[layer_num].mixed_precision.reduce_dtype == reduce_dtype
-            assert original_module[layer_num].mixed_precision.buffer_dtype == buffer_dtype
+        for layer in wrapped_layers:
+            assert layer.mixed_precision.param_dtype == param_dtype
+            assert layer.mixed_precision.reduce_dtype == reduce_dtype
+            assert layer.mixed_precision.buffer_dtype == buffer_dtype
 
         output = model(batch)
         return torch.nn.functional.mse_loss(output, torch.ones_like(output))
@@ -77,6 +75,7 @@ class _MyFabricManualWrapping(_MyFabric):
         for i, layer in enumerate(model):
             if i % 2 == 0:
                 model[i] = wrap(layer)
+        self.num_wrapped = 2
         return model
 
 
@@ -235,13 +234,20 @@ def test_fsdp_save_full_state_dict(tmp_path):
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
 def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
     fabric = BoringFabric(accelerator="cuda", devices=1)
+    fabric.seed_everything(0)
     fabric.run()
 
     # Save a full-state-dict checkpoint
     checkpoint_path = Path(fabric.broadcast(str(tmp_path / "full-checkpoint.pt")))
     state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 1}
     fabric.save(checkpoint_path, state)
+
+    # Gather all weights and store a copy manually
+    with FSDP.summon_full_params(fabric.model, writeback=False, rank0_only=False):
+        params_before = torch.cat([p.cpu().view(-1) for p in fabric.model.parameters()])
 
     # Create a FSDP sharded model
     fabric = BoringFabric(
@@ -254,6 +260,26 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     state = {"model": fabric.model, "optimizer": fabric.optimizer, "steps": 44}
     fabric.load(checkpoint_path, state)
     assert state["steps"] == 1
+
+    # Gather all weights and compare
+    with FSDP.summon_full_params(fabric.model, writeback=False, rank0_only=False):
+        params_after = torch.cat([p.cpu().view(-1) for p in fabric.model.parameters()])
+    assert torch.equal(params_before, params_after)
+
+    # Create a raw state-dict checkpoint to test `Fabric.load_raw` too
+    raw_checkpoint_path = checkpoint_path.with_name("model-state-dict")
+    if fabric.global_rank == 0:
+        checkpoint = torch.load(checkpoint_path)
+        torch.save(checkpoint["model"], raw_checkpoint_path)
+    fabric.barrier()
+
+    fabric.run()
+    fabric.load_raw(raw_checkpoint_path, fabric.model)
+
+    # Gather all weights and compare
+    with FSDP.summon_full_params(fabric.model, writeback=False, rank0_only=False):
+        params_after = torch.cat([p.cpu().view(-1) for p in fabric.model.parameters()])
+    assert torch.equal(params_before, params_after)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
@@ -321,7 +347,14 @@ def test_setup_with_orig_params_and_multiple_param_groups():
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, dynamo=True)
 @mock.patch.dict(os.environ, {})
-@pytest.mark.parametrize("compile_after_setup", [False, True])
+@pytest.mark.parametrize(
+    "compile_after_setup",
+    [
+        False,
+        # https://github.com/pytorch/pytorch/issues/97811
+        pytest.param(True, marks=RunIf(min_python="3.9")),
+    ],
+)
 def test_compile(compile_after_setup):
     """Test that the model can be compiled before and after the model is wrapped in FSDP."""
     model = BoringModel()
@@ -348,7 +381,6 @@ def test_compile(compile_after_setup):
         ("32-true", torch.float32),
         ("16-true", torch.float16),
         pytest.param("bf16-true", torch.bfloat16, marks=RunIf(bf16_cuda=True)),
-        ("64-true", torch.float64),
     ],
 )
 def test_module_init_context(precision, expected_dtype):
@@ -364,7 +396,7 @@ def test_module_init_context(precision, expected_dtype):
     with fabric.init_module():
         model = torch.nn.Linear(100, 100, bias=False)
 
-    # The model is on the CPU until `.setup()``
+    # The model is on the CPU until after `.setup()``
     # TODO: Support initialization on meta device
     expected_device = torch.device("cpu")
     assert model.weight.device == expected_device
@@ -397,7 +429,47 @@ def test_fsdp_save_filter(tmp_path):
 
     fabric.strategy._state_dict_type = "sharded"
     checkpoint_path = tmp_path / "sharded"
-    fabric.save(checkpoint_path, state, filter=filter)
-    data = torch.load(checkpoint_path / "__0_0.distcp")
-    assert isinstance(data, torch.Tensor)
-    assert data.shape == (1,)
+    with pytest.raises(NotImplementedError, match="doesn't support loading sharded filtered"):
+        fabric.save(checkpoint_path, state, filter=filter)
+
+
+@RunIf(min_torch="1.13", min_cuda_gpus=1)
+def test_fsdp_manual_activation_checkpointing():
+    model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.Linear(1, 1))
+    strategy = FSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
+    fabric = Fabric(devices=1, accelerator="cuda", strategy=strategy)
+    fabric.launch()
+
+    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+        apply_activation_checkpointing,
+        CheckpointWrapper,
+    )
+
+    # manually apply activation checkpointing
+    apply_activation_checkpointing(model)
+
+    wrappers = {name for name, mod in model.named_modules() if isinstance(mod, CheckpointWrapper)}
+    assert wrappers == {"0", "1"}
+
+    # let fabric set up the model, it shouldn't apply activation checkpointing again
+    with pytest.warns(match="is configured, but the model already contains checkpointed"):
+        model = fabric.setup(model)
+
+    wrappers = {name for name, mod in model._forward_module.named_modules() if isinstance(mod, CheckpointWrapper)}
+    assert wrappers == {"_fsdp_wrapped_module.0", "_fsdp_wrapped_module.1"}
+
+
+@RunIf(min_torch="1.12", min_cuda_gpus=1)
+def test_rewrap_warning():
+    from torch.distributed.fsdp import FullyShardedDataParallel
+    from torch.distributed.fsdp.wrap import wrap
+
+    strategy = FSDPStrategy(auto_wrap_policy={torch.nn.Linear})
+    fabric = Fabric(devices=1, accelerator="cuda", strategy=strategy)
+    fabric.launch()
+    with fabric.init_module():
+        model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.ReLU(), wrap(torch.nn.Linear(1, 1)))
+    with pytest.warns(match="the model is already wrapped"):
+        model = fabric.setup(model)
+    assert not isinstance(model._forward_module, FullyShardedDataParallel)
+    assert isinstance(model._forward_module[2], FullyShardedDataParallel)

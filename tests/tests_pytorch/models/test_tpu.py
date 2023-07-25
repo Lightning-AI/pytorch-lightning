@@ -20,6 +20,7 @@ import torch
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.pipelines as tpipes
+from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.callbacks import EarlyStopping
@@ -39,18 +40,17 @@ class SerialLoaderBoringModel(BoringModel):
         return DataLoader(RandomDataset(32, 2000), batch_size=32)
 
 
-@RunIf(tpu=True, standalone=True)
+@RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_devices_1(tmpdir):
-    """Make sure model trains on TPU."""
     trainer_options = {
         "default_root_dir": tmpdir,
         "enable_progress_bar": False,
         "max_epochs": 2,
         "accelerator": "tpu",
         "devices": 1,
-        "limit_train_batches": 4,
-        "limit_val_batches": 4,
+        "limit_train_batches": 3,
+        "limit_val_batches": 3,
     }
 
     model = BoringModel()
@@ -58,41 +58,38 @@ def test_model_tpu_devices_1(tmpdir):
 
 
 @pytest.mark.parametrize("tpu_core", [1, 3])
-@RunIf(tpu=True, standalone=True)
+@RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_index(tmpdir, tpu_core):
-    """Make sure model trains on TPU."""
     trainer_options = {
         "default_root_dir": tmpdir,
         "enable_progress_bar": False,
         "max_epochs": 2,
         "accelerator": "tpu",
         "devices": [tpu_core],
-        "limit_train_batches": 4,
-        "limit_val_batches": 4,
+        "limit_train_batches": 3,
+        "limit_val_batches": 3,
     }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
     import torch_xla
-    from torch_xla.experimental import pjrt
 
-    expected = tpu_core if pjrt.using_pjrt() else tpu_core + 1
+    expected = tpu_core if _using_pjrt() else tpu_core + 1
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{expected}"
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_multiple_tpu_devices(tmpdir):
-    """Make sure model trains on TPU."""
     trainer_options = {
         "default_root_dir": tmpdir,
         "enable_progress_bar": False,
         "max_epochs": 1,
         "accelerator": "tpu",
         "devices": "auto",
-        "limit_train_batches": 4,
-        "limit_val_batches": 4,
+        "limit_train_batches": 3,
+        "limit_val_batches": 3,
     }
 
     # multiple cores needs a big dataset
@@ -100,10 +97,9 @@ def test_model_multiple_tpu_devices(tmpdir):
     tpipes.run_model_test(trainer_options, model, with_hpc=False, min_acc=0.05)
 
 
-@RunIf(tpu=True, standalone=True)
+@RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_devices_1(tmpdir):
-    """Make sure model trains on TPU."""
     trainer_options = {
         "default_root_dir": tmpdir,
         "precision": "16-mixed",
@@ -111,7 +107,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
         "max_epochs": 2,
         "accelerator": "tpu",
         "devices": 1,
-        "limit_train_batches": 8,
+        "limit_train_batches": 3,
         "limit_val_batches": 2,
     }
 
@@ -120,10 +116,9 @@ def test_model_16bit_tpu_devices_1(tmpdir):
 
 
 @pytest.mark.parametrize("tpu_core", [1, 3])
-@RunIf(tpu=True, standalone=True)
+@RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
-    """Make sure model trains on TPU."""
     trainer_options = {
         "default_root_dir": tmpdir,
         "precision": "16-mixed",
@@ -131,23 +126,21 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
         "max_epochs": 2,
         "accelerator": "tpu",
         "devices": [tpu_core],
-        "limit_train_batches": 4,
+        "limit_train_batches": 3,
         "limit_val_batches": 2,
     }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
     import torch_xla
-    from torch_xla.experimental import pjrt
 
-    expected = tpu_core if pjrt.using_pjrt() else tpu_core + 1
+    expected = tpu_core if _using_pjrt() else tpu_core + 1
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{expected}"
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_multiple_tpu_devices(tmpdir):
-    """Make sure model trains on TPU."""
     trainer_options = {
         "default_root_dir": tmpdir,
         "precision": "16-mixed",
@@ -155,8 +148,8 @@ def test_model_16bit_multiple_tpu_devices(tmpdir):
         "max_epochs": 1,
         "accelerator": "tpu",
         "devices": "auto",
-        "limit_train_batches": 4,
-        "limit_val_batches": 4,
+        "limit_train_batches": 3,
+        "limit_val_batches": 3,
     }
 
     # multiple cores needs a big dataset
@@ -171,10 +164,9 @@ class CustomBoringModel(BoringModel):
         return out
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_early_stop(tmpdir):
-    """Test if single TPU core training works."""
     model = CustomBoringModel()
     trainer = Trainer(
         callbacks=[EarlyStopping(monitor="val_loss")],
@@ -187,10 +179,10 @@ def test_model_tpu_early_stop(tmpdir):
         devices="auto",
     )
     trainer.fit(model)
-    trainer.test(dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
+    trainer.test(model, dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
 
 
-@RunIf(tpu=True, standalone=True)
+@RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_grad_norm(tmpdir):
     """Test if grad_norm works on TPU."""
@@ -209,7 +201,7 @@ def test_tpu_grad_norm(tmpdir):
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
 
 
-@RunIf(tpu=True, standalone=True)
+@RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_clip_grad_by_value(tmpdir):
     """Test if clip_gradients by value works on TPU."""
@@ -219,8 +211,8 @@ def test_tpu_clip_grad_by_value(tmpdir):
         "max_epochs": 4,
         "accelerator": "tpu",
         "devices": 1,
-        "limit_train_batches": 10,
-        "limit_val_batches": 10,
+        "limit_train_batches": 3,
+        "limit_val_batches": 3,
         "gradient_clip_val": 0.5,
         "gradient_clip_algorithm": "value",
     }
@@ -229,7 +221,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU."""
@@ -253,14 +245,14 @@ def test_exception_when_no_tpu_found(xla_available):
 
 
 @pytest.mark.parametrize("devices", [1, 4, [1]])
-@RunIf(tpu=True, standalone=True)
+@RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_accelerator_set_when_using_tpu(devices):
     """Test if the accelerator is set to `tpu` when devices is not None."""
     assert isinstance(Trainer(accelerator="tpu", devices=devices).accelerator, XLAAccelerator)
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_if_test_works_with_checkpoint_false(tmpdir):
     """Ensure that model trains properly when `enable_checkpointing` is set to False."""
@@ -301,11 +293,10 @@ def tpu_sync_dist_fn(strategy):
     sync = _Sync(strategy.reduce, _should=True, _op=torch.distributed.ReduceOp.SUM)
     value = torch.tensor([1.0])
     value = sync(value)
-    world_size = XLAAccelerator.auto_device_count()
-    assert value.item() == world_size
+    assert value.item() == strategy.world_size
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_sync_dist():
     """Test tpu spawn sync dist operation."""
@@ -320,7 +311,7 @@ class AssertXLADebugModel(BoringModel):
         assert "PT_XLA_DEBUG" not in os.environ
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_debug_mode(tmpdir):
     """Test if debug mode works on TPU."""
@@ -344,13 +335,11 @@ class AssertXLAWorldSizeModel(BoringModel):
         assert os.environ.get("XRT_HOST_WORLD_SIZE") == str(1)
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_host_world_size(tmpdir):
     """Test Host World size env setup on TPU."""
-    from torch_xla.experimental import pjrt
-
-    if pjrt.using_pjrt():
+    if _using_pjrt():
         pytest.skip("PJRT doesn't set 'XRT_HOST_WORLD_SIZE'")
 
     trainer_options = {

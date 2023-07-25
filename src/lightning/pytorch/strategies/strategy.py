@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
 import logging
 from abc import ABC, abstractmethod
+from contextlib import contextmanager, nullcontext
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
@@ -26,6 +26,8 @@ from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.distributed import ReduceOp
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
@@ -370,7 +372,7 @@ class Strategy(ABC):
         """
         pass
 
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual validation step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
@@ -382,7 +384,7 @@ class Strategy(ABC):
                 return self._forward_redirection(self.model, self.lightning_module, "validation_step", *args, **kwargs)
             return self.lightning_module.validation_step(*args, **kwargs)
 
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual test step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
@@ -394,7 +396,7 @@ class Strategy(ABC):
                 return self._forward_redirection(self.model, self.lightning_module, "test_step", *args, **kwargs)
             return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> Any:
         """The actual predict step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
@@ -464,8 +466,21 @@ class Strategy(ABC):
         if self.is_global_zero:
             self.checkpoint_io.remove_checkpoint(filepath)
 
-    @contextlib.contextmanager
-    def model_sharded_context(self) -> Generator:
+    @contextmanager
+    def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+        """Controls how tensors get created (device, dtype).
+
+        Args:
+            empty_init: Whether to initialize the model with empty weights (uninitialized memory).
+                If ``None``, the strategy will decide. Some strategies may not support all options.
+        """
+        device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
+        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        with empty_init_context, device_context, self.precision_plugin.init_context():
+            yield
+
+    @contextmanager
+    def model_sharded_context(self) -> Generator[None, None, None]:
         """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly, which is useful for extremely large models which can save memory and
         initialization time.

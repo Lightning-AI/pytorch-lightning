@@ -17,7 +17,7 @@ from typing import Any, cast, Generator, List, Literal, Tuple
 import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
-from torch import FloatTensor, Tensor
+from torch import Tensor
 from torch.optim import Optimizer
 
 import lightning.pytorch as pl
@@ -88,11 +88,23 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         return super().connect(model, optimizers, lr_schedulers)
 
     @contextmanager
+    def init_context(self) -> Generator[None, None, None]:
+        """A context manager to change the default tensor type when initializing module parameters or tensors.
+
+        See: :meth:`torch.set_default_dtype`
+        """
+        default_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(torch.float64)
+        yield
+        torch.set_default_dtype(default_dtype)
+
+    @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A context manager to change the default tensor type.
 
-        See: :meth:`torch.set_default_tensor_type`
+        See: :meth:`torch.set_default_dtype`
         """
-        torch.set_default_tensor_type(torch.DoubleTensor)
+        default_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(torch.float64)
         yield
-        torch.set_default_tensor_type(FloatTensor)
+        torch.set_default_dtype(default_dtype)
