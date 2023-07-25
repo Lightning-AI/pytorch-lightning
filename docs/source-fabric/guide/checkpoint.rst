@@ -45,6 +45,9 @@ For example, ``strategy="ddp"`` saves a single file on rank 0, while ``strategy=
 Restore from a checkpoint
 *************************
 
+From a checkpoint saved by Fabric
+=================================
+
 You can restore the state by loading a saved checkpoint back with :meth:`~lightning.fabric.fabric.Fabric.load`:
 
 .. code-block:: python
@@ -72,6 +75,28 @@ If you want to be in complete control of how states get restored, you can omit p
     optimizer.load_state_dict(full_checkpoint["optimizer"])
     ...
 
+
+From a raw state-dict file
+==========================
+
+You can load a raw weights file into a model directly using the :meth:`~lightning.fabric.fabric.Fabric.load_raw` method:
+
+.. code-block:: python
+
+    model = MyModel()
+
+    # A model weights file saved by your friend who doesn't use Fabric
+    fabric.load_raw("path/to/model.pt", model)
+
+    # Equivalent to this:
+    # model.load_state_dict(torch.load("path/to/model.pt"))
+
+    # Also supports optimizers
+    optimizer = torch.optim.Adam(model.parameters())
+    fabric.load_raw("path/to/optimizer.pt", optimizer)
+
+The file to load must contain a valid state-dict for the model/optimizer.
+If your checkpoint has a different format, you will have to convert it manually first.
 
 
 ----
@@ -120,6 +145,7 @@ Here is a trivial example to illustrate how it works:
     fabric.load("state.ckpt", state, strict=False)
 
 
+The :meth:`~lightning.fabric.fabric.Fabric.load_raw` method also supports the ``strict`` argument.
 See also: `Saving and loading models in PyTorch <https://pytorch.org/tutorials/beginner/saving_loading_models.html>`_.
 
 

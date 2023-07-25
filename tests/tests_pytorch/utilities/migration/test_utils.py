@@ -42,6 +42,14 @@ def test_patch_legacy_gpus_arg_default():
     assert not hasattr(pl.utilities.argparse, "_gpus_arg_default")
 
 
+def test_patch_legacy_fault_tolerant_mode():
+    with pl_legacy_patch():
+        from lightning.pytorch.utilities.enums import _FaultTolerantMode
+
+        assert _FaultTolerantMode.AUTOMATIC.value == "automatic"
+    assert not hasattr(pl.utilities.enums, "_FaultTolerantMode")
+
+
 def test_migrate_checkpoint(monkeypatch):
     """Test that the correct migration function gets executed given the current version of the checkpoint."""
     # A checkpoint that is older than any migration point in the index

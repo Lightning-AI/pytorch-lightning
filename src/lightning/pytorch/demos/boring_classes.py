@@ -134,7 +134,7 @@ class BoringModel(LightningModule):
         return {"y": self.step(batch)}
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_TORCH_LRSCHEDULER]]:
-        optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
