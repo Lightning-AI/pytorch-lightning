@@ -102,7 +102,7 @@ class XLAStrategy(ParallelStrategy):
     def setup_module(self, module: Module) -> Module:
         if self._sync_module_states:
             if _XLA_GREATER_EQUAL_2_1:
-                from torch_xla.core.model import broadcast_master_param
+                from torch_xla.core.xla_model import broadcast_master_param
             else:
                 from torch_xla.experimental.pjrt import broadcast_master_param
 
