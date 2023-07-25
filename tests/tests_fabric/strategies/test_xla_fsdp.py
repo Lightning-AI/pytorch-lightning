@@ -40,7 +40,7 @@ else:
     XlaFullyShardedDataParallel = None
 
 
-@RunIf(tpu=True)
+@RunIf(min_torch="2.0", tpu=True)
 @mock.patch("lightning.fabric.strategies.xla_fsdp.XLAFSDPStrategy.root_device")
 def test_xla_fsdp_mp_device_dataloader_attribute(_, monkeypatch):
     dataset = RandomDataset(32, 64)
@@ -69,7 +69,7 @@ def test_xla_fsdp_mp_device_dataloader_attribute(_, monkeypatch):
     assert processed_dataloader.batch_sampler == processed_dataloader._loader.batch_sampler
 
 
-@RunIf(tpu=True)
+@RunIf(min_torch="2.0", tpu=True)
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
 def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
@@ -92,7 +92,7 @@ def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
                 strategy.setup_optimizer(bad_optimizer_2)
 
 
-@RunIf(tpu=True)
+@RunIf(min_torch="2.0", tpu=True)
 def test_xla_fsdp_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     XlaFullyShardedDataParallel."""
@@ -114,14 +114,14 @@ def test_xla_fsdp_no_backward_sync():
     module.no_sync.assert_called_once()
 
 
-@RunIf(tpu=True)
+@RunIf(min_torch="2.0", tpu=True)
 def test_xla_fsdp_grad_clipping_value_error():
     strategy = XLAFSDPStrategy()
     with pytest.raises(NotImplementedError, match="does not support to clip gradients by value"):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
 
-@RunIf(tpu=True)
+@RunIf(min_torch="2.0", tpu=True)
 def test_xla_fsdp_grad_clipping_norm_error():
     strategy = XLAFSDPStrategy()
     with pytest.raises(
@@ -231,7 +231,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
                 torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
 
 
-@RunIf(tpu=True, standalone=True)
+@RunIf(min_torch="2.1", tpu=True, standalone=True)
 @pytest.mark.parametrize("state_dict_type", ["sharded", "full"])
 @pytest.mark.parametrize("use_auto_wrap_policy", [True, False])
 def test_xla_fsdp_train_save_load(tmp_path, state_dict_type, use_auto_wrap_policy):
@@ -248,7 +248,7 @@ def test_xla_fsdp_train_save_load(tmp_path, state_dict_type, use_auto_wrap_polic
     fabric.launch(xla_fsdp_train_save_load, tmp_path, state_dict_type)
 
 
-@RunIf(tpu=True)
+@RunIf(min_torch="2.0", tpu=True)
 def test_xla_fsdp_activation_checkpointing_setup():
     """Test XLAFSDP activation checkpointing setup."""
     from torch_xla.distributed.fsdp import checkpoint_module
@@ -278,7 +278,7 @@ def xla_fsdp_rewrap_warning(fabric: Fabric):
     assert isinstance(model._forward_module[2], XlaFullyShardedDataParallel)
 
 
-@RunIf(min_torch="1.12", tpu=True)
+@RunIf(min_torch="2.0", tpu=True)
 def test_xla_fsdp_rewrap_warning():
     """Test XLAFSDP rewrap warning."""
     strategy = XLAFSDPStrategy(auto_wrap_policy={torch.nn.Linear})
