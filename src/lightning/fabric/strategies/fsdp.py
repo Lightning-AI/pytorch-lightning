@@ -34,12 +34,12 @@ from typing import (
 )
 
 import torch
+from fabric.utilities.load import _lazy_load
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import TypeGuard
 
-from fabric.utilities.load import _lazy_load
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, Precision
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout

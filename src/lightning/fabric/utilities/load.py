@@ -12,7 +12,6 @@
 # limitations under the License.
 import pickle
 import warnings
-from contextlib import contextmanager
 from functools import partial
 from io import BytesIO
 from typing import Any, Callable, Dict, IO, Optional, Sequence
