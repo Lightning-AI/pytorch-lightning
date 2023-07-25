@@ -47,6 +47,7 @@ def test_default_attributes(monkeypatch):
     else:
         from torch_xla import _XLAC
 
+        os.environ["XRT_SHARD_WORLD_SIZE"] = "2"
         os.environ["XRT_HOST_ORDINAL"] = "1"
         # avoid: "Cannot replicate if number of devices ... is different from ..."
         monkeypatch.setattr(_XLAC, "_xla_get_default_device", lambda: torch.device("xla:0"))
