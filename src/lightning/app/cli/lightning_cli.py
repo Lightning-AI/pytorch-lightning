@@ -39,6 +39,7 @@ from lightning.app.cli.connect.app import (
 )
 from lightning.app.cli.connect.data import connect_data
 from lightning.app.cli.lightning_cli_delete import delete
+from lightning.app.cli.lightning_cli_launch import launch
 from lightning.app.cli.lightning_cli_list import get_list
 from lightning.app.core.constants import ENABLE_APP_COMMENT_COMMAND_EXECUTION, get_lightning_cloud_url
 from lightning.app.runners.cloud import CloudRuntime
@@ -324,6 +325,7 @@ def open(path: str, name: str) -> None:
 
 _main.add_command(get_list)
 _main.add_command(delete)
+_main.add_command(launch)
 _main.add_command(cmd_install.install)
 
 

@@ -37,7 +37,6 @@ from lightning_cloud.openapi.rest import ApiException
 import lightning
 from lightning.app import LightningApp, LightningWork
 from lightning.app.core.queues import QueuingSystem
-from lightning.app.launcher.utils import cloud_work_stage_to_work_status_stage, LIGHTNING_VERSION
 from lightning.app.runners.backends.backend import Backend
 from lightning.app.storage import Drive, Mount
 from lightning.app.utilities.enum import make_status, WorkStageStatus, WorkStopReasons
@@ -46,25 +45,24 @@ from lightning.app.utilities.network import _check_service_url_is_ready, Lightni
 
 logger = logging.getLogger(__name__)
 
-# TODO: For future travelers: This backward incompatible change is being introduced when lightning app is at 0.6.0
-#  Once we are safe to remove the support for 0.6.0, remove this ugly import
-try:
-    from lightning_cloud.openapi import SpecLightningappInstanceIdWorksBody, WorksIdBody
-except ImportError:
-    logger.warning(
-        f"You are using an old version of lightning ({LIGHTNING_VERSION}). " f"Please upgrade to the latest version."
-    )
-    from lightning_cloud.openapi import Body5 as SpecLightningappInstanceIdWorksBody
-    from lightning_cloud.openapi import Body6 as WorksIdBody
-except Exception as e:
-    logger.warning(
-        f"You are using an old version of lightning ({LIGHTNING_VERSION}). "
-        f"Please upgrade to the latest version. {e}"
-    )
-    from lightning_cloud.openapi import Body5 as SpecLightningappInstanceIdWorksBody
-    from lightning_cloud.openapi import Body6 as WorksIdBody
+from lightning_cloud.openapi import SpecLightningappInstanceIdWorksBody, WorksIdBody  # noqa: E402
 
 LIGHTNING_STOP_TIMEOUT = int(os.getenv("LIGHTNING_STOP_TIMEOUT", 2 * 60))
+
+
+def cloud_work_stage_to_work_status_stage(stage: V1LightningworkState) -> str:
+    """Maps the Work stage names from the cloud backend to the status names in the Lightning framework."""
+    mapping = {
+        V1LightningworkState.STOPPED: WorkStageStatus.STOPPED,
+        V1LightningworkState.PENDING: WorkStageStatus.PENDING,
+        V1LightningworkState.NOT_STARTED: WorkStageStatus.PENDING,
+        V1LightningworkState.IMAGE_BUILDING: WorkStageStatus.PENDING,
+        V1LightningworkState.RUNNING: WorkStageStatus.RUNNING,
+        V1LightningworkState.FAILED: WorkStageStatus.FAILED,
+    }
+    if stage not in mapping:
+        raise ValueError(f"Cannot map the lightning-cloud work state {stage} to the lightning status stage.")
+    return mapping[stage]
 
 
 class CloudBackend(Backend):

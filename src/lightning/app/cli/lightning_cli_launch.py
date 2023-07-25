@@ -1,3 +1,17 @@
+# Copyright The Lightning AI team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 from typing import Tuple
 
@@ -15,17 +29,12 @@ from lightning.app.launcher.launcher import (
 logger = logging.getLogger(__name__)
 
 
-@click.group()
-def main():
-    pass
+@click.group(name="launch", hidden=True)
+def launch():
+    """Launch your application."""
 
 
-@main.group()
-def run():
-    """Run your application."""
-
-
-@run.command("server", hidden=True)
+@launch.command("server", hidden=True)
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--queue-id", help="ID for identifying queue", default="", type=str)
 @click.option("--host", help="Application running host", default=APP_SERVER_HOST, type=str)
@@ -40,7 +49,7 @@ def run_server(file: str, queue_id: str, host: str, port: int):
     start_application_server(file, host, port, queue_id=queue_id)
 
 
-@run.command("flow", hidden=True)
+@launch.command("flow", hidden=True)
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--queue-id", help="ID for identifying queue", default="", type=str)
 @click.option("--base-url", help="Base url at which the app server is hosted", default="")
@@ -54,7 +63,7 @@ def run_flow(file: str, queue_id: str, base_url: str):
     run_lightning_flow(file, queue_id=queue_id, base_url=base_url)
 
 
-@run.command("work", hidden=True)
+@launch.command("work", hidden=True)
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--work-name", type=str)
 @click.option("--queue-id", help="ID for identifying queue", default="", type=str)
@@ -69,7 +78,7 @@ def run_work(file: str, work_name: str, queue_id: str):
     )
 
 
-@run.command("frontend", hidden=True)
+@launch.command("frontend", hidden=True)
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--flow-name")
 @click.option("--host")
@@ -80,7 +89,7 @@ def run_frontend(file: str, flow_name: str, host: str, port: int):
     serve_frontend(file=file, flow_name=flow_name, host=host, port=port)
 
 
-@run.command("flow-and-servers", hidden=True)
+@launch.command("flow-and-servers", hidden=True)
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--queue-id", help="ID for identifying queue", default="", type=str)
 @click.option("--base-url", help="Base url at which the app server is hosted", default="")

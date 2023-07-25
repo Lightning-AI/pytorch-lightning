@@ -39,7 +39,8 @@ else:
     from lightning.app.launcher.lightning_backend import CloudBackend
 
 if True:
-    from lightning.app.launcher.utils import convert_print_to_logger_info, enable_debugging, LIGHTNING_VERSION
+    from lightning.app.utilities.app_helpers import convert_print_to_logger_info
+    from lightning.app.utilities.packaging.lightning_utils import enable_debugging, LIGHTNING_VERSION
 
 if hasattr(constants, "get_cloud_queue_type"):
     CLOUD_QUEUE_TYPE = constants.get_cloud_queue_type() or "redis"
