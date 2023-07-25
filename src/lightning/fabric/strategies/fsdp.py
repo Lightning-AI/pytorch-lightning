@@ -580,6 +580,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             if isinstance(state, Module):
                 return {}
 
+            # Materialize lazy tensors if there are any left in the checkpoint
+            # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
+            _materialize_tensors(checkpoint)
+
             # Load optimizer states
             for optim_key, optim in optimizers.items():
                 # rank0_only should be false because we need to load the optimizer state on all ranks
@@ -601,9 +605,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
-
-            # Materialize lazy tensors if there are any left in the checkpoint
-            _materialize_tensors(checkpoint)
 
             # Load metadata (anything not a module or optimizer)
             for key in requested_metadata_keys:
