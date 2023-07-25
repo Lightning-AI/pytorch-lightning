@@ -302,6 +302,11 @@ class XLAFSDPStrategy(XLAStrategy):
                 f" loading from a checkpoint(s) in a directory."
             )
 
+        if isinstance(state, Module) or isinstance(state, Optimizer):
+            raise NotImplementedError(
+                "Loading a single module or optimizer object from a checkpoint is not supported yet with the XLAFSDP strategy."
+            )
+
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
         modules = {key: module for key, module in state.items() if isinstance(module, XLAFSDP)}
