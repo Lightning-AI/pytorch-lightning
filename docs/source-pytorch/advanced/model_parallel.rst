@@ -187,12 +187,10 @@ Here's an example using that uses ``wrap`` to create your model:
 
 
     class MyModel(pl.LightningModule):
-        def __init__(self):
-            super().__init__()
+        def configure_model(self):
             self.linear_layer = nn.Linear(32, 32)
             self.block = nn.Sequential(nn.Linear(32, 32), nn.Linear(32, 32))
 
-        def configure_model(self):
             # modules are sharded across processes
             # as soon as they are wrapped with `wrap`.
             # During the forward/backward passes, weights get synced across processes
@@ -213,6 +211,8 @@ Here's an example using that uses ``wrap`` to create your model:
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
+
+In this case, Lightning will not re-wrap your model, so you don't need to set ``FSDPStrategy(auto_wrap_policy=...)``.
 
 Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about it.
 

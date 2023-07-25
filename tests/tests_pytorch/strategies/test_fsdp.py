@@ -4,7 +4,7 @@ from datetime import timedelta
 from functools import partial
 from typing import Any, Callable, Dict, Optional
 from unittest import mock
-from unittest.mock import ANY, Mock
+from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
 import torch
@@ -462,15 +462,11 @@ def test_fsdp_activation_checkpointing():
     strategy._parallel_devices = [torch.device("cuda", 0)]
     strategy._lightning_module = model
     strategy._process_group = Mock()
-    with mock.patch(
-        "torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel"
-    ) as fsdp_mock, mock.patch(
+    with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", new=MagicMock), mock.patch(
         "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
-    ) as ckpt_mock:
-        strategy._setup_model(model)
-        ckpt_mock.assert_called_with(
-            fsdp_mock(), checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs
-        )
+    ) as apply_mock:
+        wrapped = strategy._setup_model(model)
+    apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
 @RunIf(min_torch="1.12")

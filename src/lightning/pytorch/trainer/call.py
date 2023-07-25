@@ -82,7 +82,8 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
 
     # Trigger lazy creation of experiment in loggers so loggers have their metadata available
     for logger in trainer.loggers:
-        _ = logger.experiment
+        if hasattr(logger, "experiment"):
+            _ = logger.experiment
 
     trainer.strategy.barrier("pre_setup")
 
@@ -137,6 +138,8 @@ def _call_lightning_module_hook(
     pl_module: Optional["pl.LightningModule"] = None,
     **kwargs: Any,
 ) -> Any:
+    log.debug(f"{trainer.__class__.__name__}: calling lightning module hook: {hook_name}")
+
     pl_module = pl_module or trainer.lightning_module
 
     if pl_module is None:
@@ -164,6 +167,8 @@ def _call_lightning_datamodule_hook(
     *args: Any,
     **kwargs: Any,
 ) -> Any:
+    log.debug(f"{trainer.__class__.__name__}: calling lightning datamodule hook: {hook_name}")
+
     if trainer.datamodule is None:
         raise TypeError("No `LightningDataModule` is available to call hooks on.")
 
@@ -288,6 +293,8 @@ def _call_strategy_hook(
     *args: Any,
     **kwargs: Any,
 ) -> Any:
+    log.debug(f"{trainer.__class__.__name__}: calling strategy hook: {hook_name}")
+
     pl_module = trainer.lightning_module
     prev_fx_name = pl_module._current_fx_name
     pl_module._current_fx_name = hook_name
