@@ -64,6 +64,11 @@ Glossary
     :col_css: col-md-4
 
 .. displayitem::
+    :header: FSDP
+    :button_link: ../advanced/model_parallel/fsdp.html
+    :col_css: col-md-4
+
+.. displayitem::
     :header: Gather
     :button_link: ../advanced/distributed_communication.html
     :col_css: col-md-4
