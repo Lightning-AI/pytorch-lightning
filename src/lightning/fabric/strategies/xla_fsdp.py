@@ -21,9 +21,9 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import XLAStrategy
@@ -32,8 +32,6 @@ from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, Optimizable
-
-from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 
 class XLAFSDPStrategy(XLAStrategy):

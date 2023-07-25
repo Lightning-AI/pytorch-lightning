@@ -227,7 +227,6 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
 @pytest.mark.parametrize("use_auto_wrap_policy", [True, False])
 def test_xla_fsdp_train_save_load(tmp_path, state_dict_type, use_auto_wrap_policy):
     """Test XLAFSDP training, saving and loading checkpoint (both full and sharded)."""
-    import torch_xla.runtime as runtime
     from torch_xla.distributed.fsdp.wrap import always_wrap_policy
 
     strategy = XLAFSDPStrategy(
@@ -240,8 +239,8 @@ def test_xla_fsdp_train_save_load(tmp_path, state_dict_type, use_auto_wrap_polic
 @RunIf(min_torch="2.0", tpu=True)
 def test_xla_fsdp_activation_checkpointing_setup():
     """Test XLAFSDP activation checkpointing setup."""
-    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
     from torch_xla.distributed.fsdp import checkpoint_module
+    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
     auto_wrapper_callable = lambda m, *args, **kwargs: XlaFullyShardedDataParallel(
         checkpoint_module(m), *args, **kwargs
@@ -254,6 +253,7 @@ def test_xla_fsdp_activation_checkpointing_setup():
 def xla_fsdp_rewrap_warning(fabric: Fabric):
     """Fabric launch function for test_xla_fsdp_rewrap_warning."""
     from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
+
     model = torch.nn.Sequential(
         torch.nn.Linear(1, 1), torch.nn.ReLU(), XlaFullyShardedDataParallel(torch.nn.Linear(1, 1))
     )
