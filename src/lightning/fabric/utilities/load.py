@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, IO, Optional, Sequence
 
 import torch
 import torch.utils._device
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.storage import TypedStorage, UntypedStorage
 
@@ -165,7 +166,8 @@ def _lazy_load(filename: _PATH) -> Any:
         return mup.load()
 
 
-def _materialize_tensors(checkpoint: Dict[str, Any]) -> None:
-    for k, v in checkpoint.items():
-        if isinstance(v, _NotYetLoadedTensor):
-            checkpoint[k] = v._load_tensor()
+def _materialize_tensors(collection: Any) -> Any:
+    def _load_tensor(t: _NotYetLoadedTensor) -> Tensor:
+        return t._load_tensor()
+
+    return apply_to_collection(collection, dtype=_NotYetLoadedTensor, function=_load_tensor)

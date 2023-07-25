@@ -14,7 +14,7 @@
 import torch
 import torch.nn as nn
 
-from lightning.fabric.utilities.load import _lazy_load, _NotYetLoadedTensor
+from lightning.fabric.utilities.load import _lazy_load, _NotYetLoadedTensor, _materialize_tensors
 
 
 def test_lazy_load_module(tmp_path):
@@ -47,7 +47,7 @@ def test_lazy_load_tensor(tmp_path):
     loaded = _lazy_load(tmp_path / "data.pt")
     for t0, t1 in zip(expected.values(), loaded.values()):
         assert isinstance(t1, _NotYetLoadedTensor)
-        t1_materialized = t1._load_tensor()
+        t1_materialized = _materialize_tensors(t1)
         assert type(t0) == type(t1_materialized)
         assert torch.equal(t0, t1_materialized)
 
@@ -70,3 +70,26 @@ def test_lazy_load_mixed_state(tmp_path):
     loaded_checkpoint = _lazy_load(tmp_path / "checkpoint.pt")
     model1.load_state_dict(loaded_checkpoint["model"])
     optim1.load_state_dict(loaded_checkpoint["optimizer"])
+
+
+def test_materialize_tensors(tmp_path):
+    # Single tensor
+    tensor = torch.tensor([1, 2])
+    torch.save(tensor, tmp_path / "tensor.pt")
+    loaded = _lazy_load(tmp_path / "tensor.pt")
+    materialized = _materialize_tensors(loaded)
+    assert torch.equal(materialized, tensor)
+    assert type(tensor) == type(materialized)
+
+    # Collection of tensors
+    collection = {
+        "tensor": torch.tensor([1, 2]),
+        "nested": {"int": 1, "list": [torch.tensor([3.]), torch.tensor([4])]}
+    }
+    torch.save(collection, tmp_path / "collection.pt")
+    loaded = _lazy_load(tmp_path / "collection.pt")
+    materialized = _materialize_tensors(loaded)
+    assert torch.equal(materialized["tensor"], collection["tensor"])
+    assert torch.equal(materialized["nested"]["list"][0], collection["nested"]["list"][0])
+    assert torch.equal(materialized["nested"]["list"][1], collection["nested"]["list"][1])
+    assert materialized["nested"]["int"] == 1
