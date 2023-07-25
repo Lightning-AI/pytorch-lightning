@@ -98,9 +98,12 @@ class XLAFSDPStrategy(XLAStrategy):
                 del self._fsdp_kwargs["auto_wrap_policy"]
         else:
             if self._sync_module_states:
-                import torch_xla.core.xla_model as xm
+                if _XLA_GREATER_EQUAL_2_1:
+                    from torch_xla.core.xla_model import broadcast_master_param
+                else:
+                    from torch_xla.experimental.pjrt import broadcast_master_param
 
-                xm.broadcast_master_param(module)
+                broadcast_master_param(module)
 
             module = XLAFSDP(
                 module=module,
