@@ -236,11 +236,15 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
 @pytest.mark.parametrize("use_auto_wrap_policy", [True, False])
 def test_xla_fsdp_train_save_load(tmp_path, state_dict_type, use_auto_wrap_policy):
     """Test XLAFSDP training, saving and loading checkpoint (both full and sharded)."""
+    import torch_xla.runtime as runtime
+
+    if runtime.local_device_count() != runtime.global_device_count():
+        pytest.skip("Doesn't support multinode") 
+
     strategy = XLAFSDPStrategy(
         auto_wrap_policy=always_wrap_policy if use_auto_wrap_policy else None, state_dict_type=state_dict_type
     )
     fabric = Fabric(accelerator="tpu", strategy=strategy)
-
     fabric.launch(xla_fsdp_train_save_load, tmp_path, state_dict_type)
 
 
