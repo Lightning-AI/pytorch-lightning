@@ -49,7 +49,7 @@ class _NotYetLoadedTensor:
         args: tuple,
         state: dict,
         *,
-        archiveinfo: Optional[pickle.Unpickler] = None,
+        archiveinfo: Optional["_LazyLoadingUnpickler"] = None,
     ) -> Any:
         ret = func(*args)
         if isinstance(ret, _NotYetLoadedTensor):
@@ -70,7 +70,7 @@ class _NotYetLoadedTensor:
         requires_grad: bool,
         backward_hooks: OrderedDict,
         *,
-        archiveinfo: Optional[pickle.Unpickler] = None,
+        archiveinfo: Optional["_LazyLoadingUnpickler"] = None,
     ) -> Union[Tensor, "_NotYetLoadedTensor"]:
         if isinstance(data, _NotYetLoadedTensor):
             old_lt = data._load_tensor
