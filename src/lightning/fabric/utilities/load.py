@@ -14,7 +14,7 @@ import pickle
 import warnings
 from functools import partial
 from io import BytesIO
-from typing import Any, Callable, Dict, IO, Optional, Sequence, OrderedDict, Union
+from typing import Any, Callable, Dict, IO, Optional, OrderedDict, Sequence, Union
 
 import torch
 import torch.utils._device
