@@ -25,7 +25,7 @@ from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.precision import Precision
-from lightning.fabric.strategies import XLAStrategy
+from lightning.fabric.strategies import _StrategyRegistry, XLAStrategy
 from lightning.fabric.strategies.fsdp import _apply_filter
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate_keys_for_strict_loading
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
@@ -163,9 +163,7 @@ class XLAFSDPStrategy(XLAStrategy):
         self.precision.unscale_gradients(optimizer)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
-    def clip_gradients_value(  # type: ignore[override]
-        self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]
-    ) -> None:
+    def clip_gradients_value(self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
         """Clip gradients by value."""
         raise NotImplementedError(
             "XLA's FSDP strategy does not support to clip gradients by value."
@@ -259,9 +257,6 @@ class XLAFSDPStrategy(XLAStrategy):
         Args:
             filepath: Path to folder with full/sharded checkpoint(s)
         """
-        rank = self.local_rank
-        world_size = self.world_size
-
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         folderpath = self.broadcast(folderpath)
         if not os.path.isdir(folderpath):
@@ -269,13 +264,12 @@ class XLAFSDPStrategy(XLAStrategy):
                 "The `XLAFSDPStrategy` requires specifying the directory where to remove checkpoints."
             )
         if self._state_dict_type == "sharded":
-            self.checkpoint_io.remove_checkpoint(
-                os.path.join(folderpath, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth")
-            )
+            file = os.path.join(folderpath, f"checkpoint_rank-{self.local_rank:08d}-of-{self.world_size:08d}.pth")
         elif self._state_dict_type == "full":
-            self.checkpoint_io.remove_checkpoint(os.path.join(folderpath, "checkpoint_consolidated.pth"))
+            file = os.path.join(folderpath, "checkpoint_consolidated.pth")
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
+        self.checkpoint_io.remove_checkpoint(file)
 
     def load_checkpoint(
         self,
@@ -307,15 +301,13 @@ class XLAFSDPStrategy(XLAStrategy):
                 f"The path `{path}` is a file or does not exist, but the `XLAFSDPStrategy` currently only supports"
                 f" loading from a checkpoint(s) in a directory."
             )
-        rank = self.local_rank
-        world_size = self.world_size
 
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
         modules = {key: module for key, module in state.items() if isinstance(module, XLAFSDP)}
         optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
         if self._state_dict_type == "sharded":
-            file = os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth")
+            file = os.path.join(path, f"checkpoint_rank-{self.local_rank:08d}-of-{self.world_size:08d}.pth")
             if not Path(file).is_file():
                 raise ValueError(
                     f"The path {str(file)!r} does not point to valid sharded checkpoints. Make sure the path points to"
@@ -382,7 +374,7 @@ class XLAFSDPStrategy(XLAStrategy):
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla_fsdp", cls, description=cls.__class__.__name__)
 
 
