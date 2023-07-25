@@ -27,19 +27,13 @@ from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import XLAStrategy
+from lightning.fabric.strategies.fsdp import _apply_filter
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate_keys_for_strict_loading
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, Optimizable
 
-if _XLA_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-    from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
-    from torch_xla.distributed.parallel_loader import MpDeviceLoader
-else:
-    XLAFSDP = None
-    MpDeviceLoader = None
-    xm = None
+from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 
 class XLAFSDPStrategy(XLAStrategy):
@@ -105,6 +99,8 @@ class XLAFSDPStrategy(XLAStrategy):
         )
 
     def setup_module(self, module: Module) -> Module:
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
         if any(isinstance(mod, XLAFSDP) for mod in module.modules()):
             if "auto_wrap_policy" in self._fsdp_kwargs:
                 rank_zero_warn(
@@ -113,6 +109,8 @@ class XLAFSDPStrategy(XLAStrategy):
                 del self._fsdp_kwargs["auto_wrap_policy"]
         else:
             if self._sync_module_states:
+                import torch_xla.core.xla_model as xm
+
                 xm.broadcast_master_param(module)
 
             module = XLAFSDP(
@@ -188,6 +186,8 @@ class XLAFSDPStrategy(XLAStrategy):
         error_if_nonfinite: bool = True,
     ) -> Tensor:
         """Clip gradients by norm."""
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
         if not isinstance(module, XLAFSDP):
             # the root must be wrapped
             raise TypeError(
@@ -199,7 +199,7 @@ class XLAFSDPStrategy(XLAStrategy):
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
     def clip_gradients_value(  # type: ignore[override]
-        self, module: "XLAFSDP", optimizer: Optimizer, clip_val: Union[float, int]
+        self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]
     ) -> None:
         """Clip gradients by value."""
         raise NotImplementedError(
@@ -239,6 +239,8 @@ class XLAFSDPStrategy(XLAStrategy):
         path = self.broadcast(path)
         if Path(path).is_dir() and os.listdir(path):
             raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
         modules = [module for module in state.values() if isinstance(module, XLAFSDP)]
         if len(modules) == 0:
             raise ValueError(
@@ -252,6 +254,8 @@ class XLAFSDPStrategy(XLAStrategy):
                 " currently limited to a single model per checkpoint. To save multiple models, call the"
                 " save method for each model separately with a different path."
             )
+        import torch_xla.core.xla_model as xm
+
         rank = xm.get_ordinal()
         world_size = xm.xrt_world_size()
 
@@ -286,6 +290,8 @@ class XLAFSDPStrategy(XLAStrategy):
         Args:
             filepath: Path to checkpoint
         """
+        import torch_xla.core.xla_model as xm
+
         rank = xm.get_ordinal()
         world_size = xm.xrt_world_size()
 
@@ -330,6 +336,8 @@ class XLAFSDPStrategy(XLAStrategy):
                 f"The path `{path}` is a file, but the `XLAFSDPStrategy` currently only supports loading from a"
                 " checkpoint with sharded states in a directory."
             )
+        import torch_xla.core.xla_model as xm
+
         rank = xm.get_ordinal()
         world_size = xm.xrt_world_size()
 
@@ -339,6 +347,8 @@ class XLAFSDPStrategy(XLAStrategy):
                 f"The path {str(file)!r} does not point to a valid checkpoint. Make sure the path points to a"
                 " directory with XLA FSDP checkpoint shards."
             )
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
         modules = {key: module for key, module in state.items() if isinstance(module, XLAFSDP)}
         optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
         if self._state_dict_type == "sharded":
@@ -402,6 +412,8 @@ class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
     def no_backward_sync(self, module: Module) -> Generator:
         """Blocks gradient synchronization inside the
         :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel` wrapper."""
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
         if not isinstance(module, XLAFSDP):
             raise TypeError(
                 "Blocking backward sync is only possible if the module passed to"
@@ -410,19 +422,3 @@ class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
             )
         with module.no_sync():
             yield
-
-
-def _apply_filter(
-    key: str, filter: Dict[str, Callable[[str, Any], bool]], source_dict: object, target_dict: Dict[str, Any]
-) -> None:
-    # filter out if necessary
-    if key in filter and isinstance(source_dict, dict):
-        filter_fn = filter[key]
-        for k, v in source_dict.items():
-            if filter_fn(k, v):
-                # save the state
-                target_dict.setdefault(key, {})
-                target_dict[key][k] = v
-    else:
-        # save the state
-        target_dict[key] = source_dict

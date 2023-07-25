@@ -24,20 +24,10 @@ from torch.utils.data import DataLoader
 
 from lightning.fabric import Fabric
 from lightning.fabric.accelerators import XLAAccelerator
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.strategies import XLAFSDPStrategy
 from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
 from tests_fabric.helpers.models import RandomDataset
 from tests_fabric.helpers.runif import RunIf
-
-if _XLA_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-    from torch_xla.distributed.fsdp.wrap import always_wrap_policy
-    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
-else:
-    xm = None
-    always_wrap_policy = None
-    XlaFullyShardedDataParallel = None
 
 
 @RunIf(min_torch="2.0", tpu=True)
@@ -96,6 +86,7 @@ def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
 def test_xla_fsdp_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     XlaFullyShardedDataParallel."""
+    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
     strategy = XLAFSDPStrategy()
     assert isinstance(strategy._backward_sync_control, _XLAFSDPBackwardSyncControl)
@@ -133,113 +124,111 @@ def test_xla_fsdp_grad_clipping_norm_error():
 
 def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
     """Fabric launch function for test_xla_fsdp_train_save_load."""
-    tmp_path = str(tmp_path)
-    device = xm.xla_device()
-    model_1 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
-    model_1.to(device)
-    model_1 = fabric.setup_module(model_1)
+    if not fabric.strategy.reduce_boolean_decision(fabric.local_rank != fabric.global_rank, all=False):
+        tmp_path = str(tmp_path)
+        import torch_xla.core.xla_model as xm
 
-    optimizer_1 = torch.optim.Adam(model_1.parameters(), lr=0.1)
-    optimizer_1 = fabric.setup_optimizers(optimizer_1)
+        device = xm.xla_device()
+        model_1 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        model_1 = fabric.setup_module(model_1)
 
-    dataloader = DataLoader(RandomDataset(32, 64))
-    dataloader = fabric.setup_dataloaders(dataloader)
+        optimizer_1 = torch.optim.Adam(model_1.parameters(), lr=0.1)
+        optimizer_1 = fabric.setup_optimizers(optimizer_1)
 
-    def step(model, batch):
-        output = model(batch)
-        return torch.nn.functional.mse_loss(output, torch.ones_like(output))
+        dataloader = DataLoader(RandomDataset(32, 64))
+        dataloader = fabric.setup_dataloaders(dataloader)
 
-    model_1.train()
-    data_iter = iter(dataloader)
-    batch = next(data_iter)
-    loss = step(model_1, batch)
-    fabric.backward(loss)
-    optimizer_1.step()
-    optimizer_1.zero_grad()
-    xm.mark_step()
+        def step(model, batch):
+            output = model(batch)
+            return torch.nn.functional.mse_loss(output, torch.ones_like(output))
 
-    checkpoint_path = fabric.broadcast(tmp_path)
-    checkpoint_filename = fabric.broadcast(f"{tmp_path}/fsdp-checkpoint")
-    params_before = deepcopy(list(model_1.parameters()))
+        model_1.train()
+        data_iter = iter(dataloader)
+        batch = next(data_iter)
+        loss = step(model_1, batch)
+        fabric.backward(loss)
+        optimizer_1.step()
+        optimizer_1.zero_grad()
 
-    state = {
-        "model": model_1,
-        "shard_metadata": model_1._forward_module.get_shard_metadata(),
-        "optimizer": optimizer_1,  # not needed in ckpt consolidation
-        "step_count": 1,
-    }
+        checkpoint_path = fabric.broadcast(tmp_path)
+        checkpoint_filename = fabric.broadcast(f"{tmp_path}/fsdp-checkpoint")
+        params_before = deepcopy(list(model_1.parameters()))
 
-    fabric.save(checkpoint_filename, state)
-
-    world_size = xm.xrt_world_size()
-
-    if state_dict_type == "sharded":
-        expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
-        assert set(os.listdir(checkpoint_path)) == expected_files
-
-        # define a second set of model and optimizer
-        model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
-        model_2.to(device)
-        model_2 = fabric.setup_module(model_2)
-
-        optimizer_2 = torch.optim.Adam(model_2.parameters(), lr=0.1)
-        optimizer_2 = fabric.setup_optimizers(optimizer_2)
-
-        # load sharded checkpoints into the second set of model and optimizer
         state = {
-            "model": model_2,
-            "shard_metadata": model_2._forward_module.get_shard_metadata(),
-            "optimizer": optimizer_2,
-            "step_count": 0,
+            "model": model_1,
+            "shard_metadata": model_1._forward_module.get_shard_metadata(),
+            "optimizer": optimizer_1,  # not needed in ckpt consolidation
+            "step_count": 1,
         }
-        metadata = fabric.load(checkpoint_filename, state)
 
-        # check user data in loaded state
-        assert not metadata
-        assert state["step_count"] == 1
+        fabric.save(checkpoint_filename, state)
 
-        # check correctness with loaded state
-        for p0, p1 in zip(params_before, model_2.parameters()):
-            torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
+        world_size = fabric.world_size()
 
-        # attempt to load a key not in the metadata checkpoint
-        state = {"model": model_2, "coconut": 11}
-        with pytest.raises(KeyError, match="The requested state contains a key 'coconut' that does not exist"):
-            fabric.load(checkpoint_filename, state)
+        if state_dict_type == "sharded":
+            expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
+            assert set(os.listdir(checkpoint_path)) == expected_files
 
-        # `strict=False` ignores the missing key
-        state = {"model": model_2, "coconut": 11}
-        fabric.load(checkpoint_filename, state, strict=False)
-        assert state["coconut"] == 11
+            # define a second set of model and optimizer
+            model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+            model_2 = fabric.setup_module(model_2)
 
-    if state_dict_type == "full":
-        expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
-        expected_files.add("fsdp-checkpoint_consolidated.pth")
-        assert set(os.listdir(checkpoint_path)) == expected_files
+            optimizer_2 = torch.optim.Adam(model_2.parameters(), lr=0.1)
+            optimizer_2 = fabric.setup_optimizers(optimizer_2)
 
-        # define a second set of model and optimizer
-        model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
-        model_2.to(device)
+            # load sharded checkpoints into the second set of model and optimizer
+            state = {
+                "model": model_2,
+                "shard_metadata": model_2._forward_module.get_shard_metadata(),
+                "optimizer": optimizer_2,
+                "step_count": 0,
+            }
+            metadata = fabric.load(checkpoint_filename, state)
 
-        # load sharded checkpoints into the second model
-        state = {"model": model_2}
-        fabric.load(checkpoint_filename, state)
+            # check user data in loaded state
+            assert not metadata
+            assert state["step_count"] == 1
 
-        # check that loaded state is different
-        with pytest.raises(AssertionError, match="do not match"):
-            for p0, p1 in zip(model_1.parameters(), model_2.parameters()):
+            # check correctness with loaded state
+            for p0, p1 in zip(params_before, model_2.parameters()):
                 torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
 
+            # attempt to load a key not in the metadata checkpoint
+            state = {"model": model_2, "coconut": 11}
+            with pytest.raises(KeyError, match="The requested state contains a key 'coconut' that does not exist"):
+                fabric.load(checkpoint_filename, state)
 
-@RunIf(min_torch="2.1", tpu=True, standalone=True)
+            # `strict=False` ignores the missing key
+            state = {"model": model_2, "coconut": 11}
+            fabric.load(checkpoint_filename, state, strict=False)
+            assert state["coconut"] == 11
+
+        if state_dict_type == "full":
+            expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
+            expected_files.add("fsdp-checkpoint_consolidated.pth")
+            assert set(os.listdir(checkpoint_path)) == expected_files
+
+            # define a second set of model and optimizer
+            model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+            model_2.to(device)
+
+            # load sharded checkpoints into the second model
+            state = {"model": model_2}
+            fabric.load(checkpoint_filename, state)
+
+            # check that loaded state is different
+            with pytest.raises(AssertionError, match="do not match"):
+                for p0, p1 in zip(model_1.parameters(), model_2.parameters()):
+                    torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
+
+
+@RunIf(min_torch="2.0", tpu=True, standalone=True)
 @pytest.mark.parametrize("state_dict_type", ["sharded", "full"])
 @pytest.mark.parametrize("use_auto_wrap_policy", [True, False])
 def test_xla_fsdp_train_save_load(tmp_path, state_dict_type, use_auto_wrap_policy):
     """Test XLAFSDP training, saving and loading checkpoint (both full and sharded)."""
     import torch_xla.runtime as runtime
-
-    if runtime.local_device_count() != runtime.global_device_count():
-        pytest.skip("Doesn't support multinode")
+    from torch_xla.distributed.fsdp.wrap import always_wrap_policy
 
     strategy = XLAFSDPStrategy(
         auto_wrap_policy=always_wrap_policy if use_auto_wrap_policy else None, state_dict_type=state_dict_type
@@ -251,6 +240,7 @@ def test_xla_fsdp_train_save_load(tmp_path, state_dict_type, use_auto_wrap_polic
 @RunIf(min_torch="2.0", tpu=True)
 def test_xla_fsdp_activation_checkpointing_setup():
     """Test XLAFSDP activation checkpointing setup."""
+    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
     from torch_xla.distributed.fsdp import checkpoint_module
 
     auto_wrapper_callable = lambda m, *args, **kwargs: XlaFullyShardedDataParallel(
@@ -263,17 +253,16 @@ def test_xla_fsdp_activation_checkpointing_setup():
 
 def xla_fsdp_rewrap_warning(fabric: Fabric):
     """Fabric launch function for test_xla_fsdp_rewrap_warning."""
-    device = xm.xla_device()
+    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
     model = torch.nn.Sequential(
         torch.nn.Linear(1, 1), torch.nn.ReLU(), XlaFullyShardedDataParallel(torch.nn.Linear(1, 1))
     )
-    model.to(device)
-    if xm.is_master_ordinal(local=False):
+    if fabric.node_rank:
         with pytest.warns(match="the model is already wrapped"):
             model = fabric.setup_module(model)
     else:
         model = fabric.setup_module(model)
-    xm.rendezvous("warning_check")
+    fabric.barrier("warning_check")
     assert not isinstance(model._forward_module, XlaFullyShardedDataParallel)
     assert isinstance(model._forward_module[2], XlaFullyShardedDataParallel)
 
