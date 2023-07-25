@@ -14,12 +14,14 @@ import pickle
 import warnings
 from functools import partial
 from io import BytesIO
-from typing import Any, Callable, Dict, IO, Optional, Sequence
+from typing import Any, Callable, Dict, IO, Optional, Sequence, OrderedDict, Union
 
 import torch
 import torch.utils._device
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from torch._C import _TensorMeta
+from torch.nn import Parameter
 from torch.storage import TypedStorage, UntypedStorage
 
 from lightning.fabric.utilities.types import _PATH
@@ -27,43 +29,73 @@ from lightning.fabric.utilities.types import _PATH
 
 # Modified from https://github.com/lernapparat/torchhacks by Thomas Viehmann
 class _NotYetLoadedTensor:
-    def __init__(self, metatensor, archiveinfo, storageinfo, rebuild_args):
+    def __init__(
+        self,
+        metatensor: Tensor,
+        archiveinfo: "_LazyLoadingUnpickler",
+        storageinfo: tuple,
+        rebuild_args: tuple,
+    ) -> None:
         self.metatensor = metatensor
         self.archiveinfo = archiveinfo
         self.storageinfo = storageinfo
         self.rebuild_args = rebuild_args
 
     @classmethod
-    def rebuild_from_type_v2(cls, func, new_type, args, state, *, archiveinfo=None):
+    def rebuild_from_type_v2(
+        cls,
+        func: Callable,
+        new_type: _TensorMeta,
+        args: tuple,
+        state: dict,
+        *,
+        archiveinfo: Optional[pickle.Unpickler] = None,
+    ) -> Any:
         ret = func(*args)
         if isinstance(ret, _NotYetLoadedTensor):
             old_lt = ret._load_tensor
 
-            def _load_tensor():
+            def _load_tensor() -> Any:
                 t = old_lt()
                 return torch._tensor._rebuild_from_type_v2(lambda: t, new_type, (), state)
 
-            ret._load_tensor = _load_tensor
+            ret._load_tensor = _load_tensor  # type: ignore[assignment]
             return ret
         return torch._tensor._rebuild_from_type_v2(func, new_type, args, state)
 
     @classmethod
-    def rebuild_parameter(cls, data, requires_grad, backward_hooks, *, archiveinfo=None):
+    def rebuild_parameter(
+        cls,
+        data: Any,
+        requires_grad: bool,
+        backward_hooks: OrderedDict,
+        *,
+        archiveinfo: Optional[pickle.Unpickler] = None,
+    ) -> Union[Tensor, "_NotYetLoadedTensor"]:
         if isinstance(data, _NotYetLoadedTensor):
             old_lt = data._load_tensor
 
-            def _load_tensor():
+            def _load_tensor() -> Parameter:
                 t = old_lt()
                 return torch._utils._rebuild_parameter(t, requires_grad, backward_hooks)
 
-            data._load_tensor = _load_tensor
+            data._load_tensor = _load_tensor  # type: ignore[assignment]
             return data
         return torch._utils._rebuild_parameter(data, requires_grad, backward_hooks)
 
     @classmethod
     def rebuild_tensor_v2(
-        cls, storage, storage_offset, size, stride, requires_grad, backward_hooks, metadata=None, *, archiveinfo=None
-    ):
+        cls,
+        storage: TypedStorage,
+        storage_offset: int,
+        size: tuple,
+        stride: tuple,
+        requires_grad: bool,
+        backward_hooks: OrderedDict,
+        metadata: Optional[Any] = None,
+        *,
+        archiveinfo: "_LazyLoadingUnpickler",
+    ) -> "_NotYetLoadedTensor":
         rebuild_args = (storage_offset, size, stride, requires_grad, backward_hooks, metadata)
         metatensor = torch._utils._rebuild_tensor_v2(
             storage, storage_offset, size, stride, requires_grad, backward_hooks, metadata
@@ -75,16 +107,14 @@ class _NotYetLoadedTensor:
         name, storage_cls, fn, device, size = self.storageinfo
         dtype = self.metatensor.dtype
 
-        uts = (
-            self.archiveinfo.file_reader.get_storage_from_record(
-                f"data/{fn}", size * torch._utils._element_size(dtype), UntypedStorage
-            )
-            ._typed_storage()
-            ._untyped_storage
+        storage = self.archiveinfo.file_reader.get_storage_from_record(
+            f"data/{fn}", size * torch._utils._element_size(dtype), UntypedStorage
         )
+        uts = storage._typed_storage()._untyped_storage
+
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            storage = TypedStorage(wrap_storage=uts, dtype=self.metatensor.dtype, _internal=True)
+            storage = TypedStorage(wrap_storage=uts, dtype=dtype, _internal=True)
         return torch._utils._rebuild_tensor_v2(storage, *self.rebuild_args)
 
     @classmethod
@@ -142,21 +172,13 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
             return partial(_NotYetLoadedTensor.rebuild_parameter, archiveinfo=self)
         return super().find_class(module, name)
 
-    def persistent_load(self, pid) -> TypedStorage:
+    def persistent_load(self, pid: tuple) -> TypedStorage:
         name, cls, fn, device, size = pid
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")  # TODO: needed?
             storage = TypedStorage(dtype=cls().dtype, device="meta")
         storage.archiveinfo = pid
         return storage
-
-
-# @contextmanager
-# def _lazy_load(filename: _PATH) -> Any:
-#     file_reader = torch.PyTorchFileReader(str(filename))
-#     with BytesIO(file_reader.get_record("data.pkl")) as pkl:
-#         mup = _LazyLoadingUnpickler(pkl, file_reader)
-#         yield mup.load()
 
 
 def _lazy_load(filename: _PATH) -> Any:
