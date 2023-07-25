@@ -57,6 +57,9 @@ def restore_env_variables():
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # set by tensorboardX
+        # set by XLA FSDP on XRT
+        "XRT_TORCH_DIST_ROOT",
+        "XRT_MESH_SERVICE_ADDRESS",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
