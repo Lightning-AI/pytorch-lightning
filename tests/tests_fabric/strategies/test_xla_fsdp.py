@@ -99,7 +99,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
     if fabric.strategy.all_reduce(fabric.node_rank, reduce_op="sum").item() > 0:
         return  # pytest.skip() is not pickleable
 
-    tmp_path = str(tmp_path)
+    checkpoint_path = fabric.broadcast(str(tmp_path))
 
     model_1 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
     model_1 = fabric.setup_module(model_1)
@@ -122,8 +122,6 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
     optimizer_1.step()
     optimizer_1.zero_grad()
 
-    checkpoint_path = fabric.broadcast(tmp_path)
-    checkpoint_filename = fabric.broadcast(f"{tmp_path}/fsdp-checkpoint")
     params_before = deepcopy(list(model_1.parameters()))
 
     state = {
@@ -132,12 +130,12 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         "step_count": 1,
     }
 
-    fabric.save(checkpoint_filename, state)
+    fabric.save(checkpoint_path, state)
 
     world_size = fabric.world_size
 
     if state_dict_type == "sharded":
-        expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
+        expected_files = {f"checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
         assert set(os.listdir(checkpoint_path)) == expected_files
 
         # define a second set of model and optimizer
@@ -153,7 +151,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
             "optimizer": optimizer_2,
             "step_count": 0,
         }
-        metadata = fabric.load(checkpoint_filename, state)
+        metadata = fabric.load(checkpoint_path, state)
 
         # check user data in loaded state
         assert not metadata
@@ -166,15 +164,15 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         # attempt to load a key not in the metadata checkpoint
         state = {"model": model_2, "coconut": 11}
         with pytest.raises(KeyError, match="The requested state contains a key 'coconut' that does not exist"):
-            fabric.load(checkpoint_filename, state)
+            fabric.load(checkpoint_path, state)
 
         # `strict=False` ignores the missing key
         state = {"model": model_2, "coconut": 11}
-        fabric.load(checkpoint_filename, state, strict=False)
+        fabric.load(checkpoint_path, state, strict=False)
         assert state["coconut"] == 11
 
     if state_dict_type == "full":
-        assert set(os.listdir(checkpoint_path)) == {"fsdp-checkpoint_consolidated.pth"}
+        assert set(os.listdir(checkpoint_path)) == {"checkpoint_consolidated.pth"}
 
         # define a second set of model and optimizer
         model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
@@ -185,7 +183,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
 
         # load sharded checkpoints into the second model
         state = {"model": model_2}
-        fabric.load(checkpoint_filename, state)
+        fabric.load(checkpoint_path, state)
 
         # check that loaded state is different
         with pytest.raises(AssertionError, match="do not match"):

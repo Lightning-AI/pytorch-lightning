@@ -179,10 +179,10 @@ class XLAFSDPStrategy(XLAStrategy):
         storage_options: Optional[Any] = None,
         filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
-        """Save model, optimizer, and other state in a checkpoint directory.
+        """Save model, optimizer, and other state in the provided checkpoint directory.
 
-        The directory will contain one file per process, with model- and optimizer shards stored per file. Additionally,
-        it creates a a consolidated checkpoint combining all of the sharded checkpoints.
+        If the user specifies sharded checkpointing, the directory will contain one file per process, with model- and optimizer shards stored per file. 
+        If the user specifies full checkpointing, the directory will contain a consolidated checkpoint combining all of the sharded checkpoints.
         """
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
@@ -234,7 +234,9 @@ class XLAFSDPStrategy(XLAStrategy):
             _apply_filter(key, filter or {}, converted, converted_state)
 
         self.checkpoint_io.save_checkpoint(
-            converted_state, f"{path}_rank-{rank:08d}-of-{world_size:08d}.pth", storage_options=storage_options
+            converted_state,
+            os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth"),
+            storage_options=storage_options
         )
 
         if self._state_dict_type == "full":
@@ -242,31 +244,31 @@ class XLAFSDPStrategy(XLAStrategy):
 
             if self.is_global_zero:
                 consolidate_sharded_model_checkpoints(
-                    ckpt_prefix=str(path),
+                    ckpt_prefix=os.path.join(path, 'checkpoint'),
                     ckpt_suffix="_rank-*-of-*.pth",
                 )
             self.barrier("ckpt_consolidation")
-            self.checkpoint_io.remove_checkpoint(f"{path}_rank-{rank:08d}-of-{world_size:08d}.pth")
+            self.checkpoint_io.remove_checkpoint(os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth"))
 
-    def remove_checkpoint(self, filepath: _PATH) -> None:
+    def remove_checkpoint(self, folderpath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
 
         Args:
-            filepath: Path to checkpoint
+            filepath: Path to folder with full/sharded checkpoint(s)
         """
         rank = self.local_rank
         world_size = self.world_size
 
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        filepath = self.broadcast(filepath)
-        if filepath.is_file():
+        folderpath = self.broadcast(folderpath)
+        if not os.path.isdir(folderpath):
             raise NotImplementedError(
                 "The `XLAFSDPStrategy` requires specifying the directory where to remove checkpoints."
             )
         if self._state_dict_type == "sharded":
-            self.checkpoint_io.remove_checkpoint(f"{filepath}_rank-{rank:08d}-of-{world_size:08d}.pth")
+            self.checkpoint_io.remove_checkpoint(os.path.join(folderpath, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth"))
         elif self._state_dict_type == "full":
-            self.checkpoint_io.remove_checkpoint(f"{filepath}_consolidated.pth")
+            self.checkpoint_io.remove_checkpoint(os.path.join(folderpath, "checkpoint_consolidated.pth"))
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
@@ -276,7 +278,7 @@ class XLAFSDPStrategy(XLAStrategy):
         state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
     ) -> Dict[str, Any]:
-        """Load the contents from a checkpoint and restore the state of the given objects.
+        """Given a folder, load the contents from a checkpoint and restore the state of the given objects.
 
         The strategy currently only supports saving and loading sharded checkpoints which are stored in form of a
         directory of multiple files rather than a single file.
@@ -295,10 +297,10 @@ class XLAFSDPStrategy(XLAStrategy):
 
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = self.broadcast(path)
-        if Path(path).is_file():
+        if not os.path.isdir(path):
             raise NotImplementedError(
-                f"The path `{path}` is a file, but the `XLAFSDPStrategy` currently only supports loading from a"
-                " checkpoint with sharded states in a directory."
+                f"The path `{path}` is a file or does not exist, but the `XLAFSDPStrategy` currently only supports loading from a"
+                " checkpoint(s) in a directory."
             )
         rank = self.local_rank
         world_size = self.world_size
@@ -308,10 +310,10 @@ class XLAFSDPStrategy(XLAStrategy):
         modules = {key: module for key, module in state.items() if isinstance(module, XLAFSDP)}
         optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
         if self._state_dict_type == "sharded":
-            file = f"{path}_rank-{rank:08d}-of-{world_size:08d}.pth"
+            file = os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth")
             if not Path(file).is_file():
                 raise ValueError(
-                    f"The path {str(file)!r} does not point to a valid checkpoint. Make sure the path points to a"
+                    f"The path {str(file)!r} does not point to valid sharded checkpoints. Make sure the path points to a"
                     " directory with XLAFSDP checkpoint shards."
                 )
             if len(modules) == 0:
@@ -354,10 +356,10 @@ class XLAFSDPStrategy(XLAStrategy):
 
             return metadata
         elif self._state_dict_type == "full":
-            file = f"{path}_consolidated.pth"
+            file = os.path.join(path, "checkpoint_consolidated.pth")
             if not Path(file).is_file():
                 raise ValueError(
-                    f"The path {str(file)!r} does not point to a valid checkpoint. Make sure the path points to a"
+                    f"The path {str(file)!r} does not point to a valid full checkpoint. Make sure the path points to a"
                     " directory with a full XLAFSDP checkpoint."
                 )
             rank_zero_warn(
