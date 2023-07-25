@@ -59,6 +59,11 @@ def test_resume_training_on_cpu(tmpdir):
     trainer = Trainer(max_epochs=1, accelerator="tpu", devices="auto")
     trainer.fit(model)
 
+    if trainer.world_size != trainer.num_devices:
+        # we're in multinode. unless the filesystem is shared, only the main node will have access to the checkpoint
+        # since we cannot know this, the code below needs to be skipped
+        return
+
     model_path = trainer.checkpoint_callback.best_model_path
 
     # Verify saved Tensors are on CPU
