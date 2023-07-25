@@ -31,35 +31,6 @@ from tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(min_torch="2.0", tpu=True)
-@mock.patch("lightning.fabric.strategies.xla_fsdp.XLAFSDPStrategy.root_device")
-def test_xla_fsdp_mp_device_dataloader_attribute(_, monkeypatch):
-    dataset = RandomDataset(32, 64)
-    dataloader = DataLoader(dataset)
-    strategy = XLAFSDPStrategy()
-    isinstance_return = True
-
-    import torch_xla.distributed.parallel_loader as parallel_loader
-
-    class MpDeviceLoaderMock(MagicMock):
-        def __instancecheck__(self, instance):
-            # to make `isinstance(dataloader, MpDeviceLoader)` pass with a mock as class
-            return isinstance_return
-
-    mp_loader_mock = MpDeviceLoaderMock()
-    monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
-
-    processed_dataloader = strategy.process_dataloader(dataloader)
-    assert processed_dataloader is dataloader
-    mp_loader_mock.assert_not_called()  # no-op
-
-    isinstance_return = False
-    processed_dataloader = strategy.process_dataloader(dataloader)
-    mp_loader_mock.assert_called_with(dataloader, strategy.root_device)
-    assert processed_dataloader.dataset == processed_dataloader._loader.dataset
-    assert processed_dataloader.batch_sampler == processed_dataloader._loader.batch_sampler
-
-
-@RunIf(min_torch="2.0", tpu=True)
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
 def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
@@ -78,7 +49,7 @@ def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
         else:
             with pytest.raises(ValueError, match="does not support multiple param groups"):
                 strategy.setup_optimizer(bad_optimizer_1)
-            with pytest.raises(ValueError, match="The optimizer does not seem to reference any XLA FSDP parameter"):
+            with pytest.raises(ValueError, match="The optimizer does not seem to reference any XLAFSDP parameter"):
                 strategy.setup_optimizer(bad_optimizer_2)
 
 
@@ -129,7 +100,6 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         return  # pytest.skip() is not pickleable
 
     tmp_path = str(tmp_path)
-    import torch_xla.core.xla_model as xm
 
     model_1 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
     model_1 = fabric.setup_module(model_1)
@@ -204,12 +174,12 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         assert state["coconut"] == 11
 
     if state_dict_type == "full":
-        expected_files = {f"fsdp-checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
-        expected_files.add("fsdp-checkpoint_consolidated.pth")
-        assert set(os.listdir(checkpoint_path)) == expected_files
+        assert set(os.listdir(checkpoint_path)) == {"fsdp-checkpoint_consolidated.pth"}
 
         # define a second set of model and optimizer
         model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        import torch_xla.core.xla_model as xm
+
         device = xm.xla_device()
         model_2.to(device)
 
@@ -224,9 +194,9 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
 
 
 @RunIf(min_torch="2.0", tpu=True, standalone=True)
+@pytest.mark.parametrize("use_auto_wrap_policy", [False, True])
 @pytest.mark.parametrize("state_dict_type", ["sharded", "full"])
-@pytest.mark.parametrize("use_auto_wrap_policy", [True, False])
-def test_xla_fsdp_train_save_load(tmp_path, state_dict_type, use_auto_wrap_policy):
+def test_xla_fsdp_train_save_load(tmp_path, use_auto_wrap_policy, state_dict_type):
     """Test XLAFSDP training, saving and loading checkpoint (both full and sharded)."""
     from torch_xla.distributed.fsdp.wrap import always_wrap_policy
 
