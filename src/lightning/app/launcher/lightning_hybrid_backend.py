@@ -2,14 +2,23 @@ import os
 from typing import Optional
 
 from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance
+from lightning_utilities.core.imports import module_available
 
-import lightning
-from lightning.app.core import constants
-from lightning.app.core.queues import QueuingSystem
-from lightning.app.launcher.lightning_backend import CloudBackend
-from lightning.app.runners.backends.backend import Backend
-from lightning.app.runners.backends.mp_process import MultiProcessingBackend
-from lightning.app.utilities.network import LightningClient
+if module_available("lightning_app"):
+    from lightning_app.core import constants
+    from lightning_app.core.queues import QueuingSystem
+    from lightning_app.launcher.lightning_backend import CloudBackend
+    from lightning_app.runners.backends.backend import Backend
+    from lightning_app.runners.backends.mp_process import MultiProcessingBackend
+    from lightning_app.utilities.network import LightningClient
+
+else:
+    from lightning.app.core import constants
+    from lightning.app.core.queues import QueuingSystem
+    from lightning.app.launcher.lightning_backend import CloudBackend
+    from lightning.app.runners.backends.backend import Backend
+    from lightning.app.runners.backends.mp_process import MultiProcessingBackend
+    from lightning.app.utilities.network import LightningClient
 
 if hasattr(constants, "get_cloud_queue_type"):
     CLOUD_QUEUE_TYPE = constants.get_cloud_queue_type() or "redis"
@@ -86,7 +95,7 @@ class CloudHybridBackend(Backend):
             backend = self._get_backend(works[0])
             backend.resolve_url(app, base_url)
 
-    def update_lightning_app_frontend(self, app: "lightning.LightningApp"):
+    def update_lightning_app_frontend(self, app: "lightning.LightningApp"):  # noqa: F821
         self.backends["cloud"].update_lightning_app_frontend(app)
 
     def stop_work(self, app, work) -> None:
@@ -151,6 +160,6 @@ class CloudHybridBackend(Backend):
     def _get_project_id() -> str:
         return os.environ["LIGHTNING_CLOUD_PROJECT_ID"]
 
-    def stop_app(self, app: "lightning.LightningApp"):
+    def stop_app(self, app: "lightning.LightningApp"):  # noqa: F821
         """Used to mark the App has stopped if everything has fine."""
         self.backends["cloud"].stop_app(app)
