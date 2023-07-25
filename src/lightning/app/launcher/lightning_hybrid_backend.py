@@ -4,21 +4,12 @@ from typing import Optional
 from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance
 from lightning_utilities.core.imports import module_available
 
-if module_available("lightning_app"):
-    from lightning_app.core import constants
-    from lightning_app.core.queues import QueuingSystem
-    from lightning_app.launcher.lightning_backend import CloudBackend
-    from lightning_app.runners.backends.backend import Backend
-    from lightning_app.runners.backends.mp_process import MultiProcessingBackend
-    from lightning_app.utilities.network import LightningClient
-
-else:
-    from lightning.app.core import constants
-    from lightning.app.core.queues import QueuingSystem
-    from lightning.app.launcher.lightning_backend import CloudBackend
-    from lightning.app.runners.backends.backend import Backend
-    from lightning.app.runners.backends.mp_process import MultiProcessingBackend
-    from lightning.app.utilities.network import LightningClient
+from lightning.app.core import constants
+from lightning.app.core.queues import QueuingSystem
+from lightning.app.launcher.lightning_backend import CloudBackend
+from lightning.app.runners.backends.backend import Backend
+from lightning.app.runners.backends.mp_process import MultiProcessingBackend
+from lightning.app.utilities.network import LightningClient
 
 if hasattr(constants, "get_cloud_queue_type"):
     CLOUD_QUEUE_TYPE = constants.get_cloud_queue_type() or "redis"

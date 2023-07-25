@@ -35,30 +35,13 @@ from lightning_cloud.openapi import (
 from lightning_cloud.openapi.rest import ApiException
 from lightning_utilities.core.imports import module_available
 
-if module_available("lightning_app"):
-    from lightning_app import LightningApp, LightningWork
-    from lightning_app.core.queues import QueuingSystem
-    from lightning_app.runners.backends.backend import Backend
-    from lightning_app.storage import Drive
-    from lightning_app.utilities.enum import make_status, WorkStageStatus, WorkStopReasons
-    from lightning_app.utilities.network import _check_service_url_is_ready, LightningClient
-else:
-    from lightning.app import LightningApp, LightningWork
-    from lightning.app.core.queues import QueuingSystem
-    from lightning.app.runners.backends.backend import Backend
-    from lightning.app.storage import Drive
-    from lightning.app.utilities.enum import make_status, WorkStageStatus, WorkStopReasons
-    from lightning.app.utilities.network import _check_service_url_is_ready, LightningClient
-
-if module_available("lightning_app"):
-    from lightning_app.storage import Mount
-else:
-    from lightning.app.storage import Mount
-
-if module_available("lightning_app"):
-    from lightning_app.utilities.exceptions import LightningPlatformException
-else:
-    from lightning.app.utilities.exceptions import LightningPlatformException
+from lightning.app import LightningApp, LightningWork
+from lightning.app.core.queues import QueuingSystem
+from lightning.app.runners.backends.backend import Backend
+from lightning.app.storage import Drive, Mount
+from lightning.app.utilities.enum import make_status, WorkStageStatus, WorkStopReasons
+from lightning.app.utilities.network import _check_service_url_is_ready, LightningClient
+from lightning.app.utilities.exceptions import LightningPlatformException
 
 
 logger = logging.getLogger(__name__)

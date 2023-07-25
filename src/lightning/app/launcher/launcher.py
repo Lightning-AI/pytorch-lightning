@@ -14,47 +14,26 @@ from lightning_utilities.core.imports import module_available
 ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
 
 
-if module_available("lightning_app"):
-    from lightning_app import LightningFlow
-    from lightning_app.core import constants
-    from lightning_app.core.api import start_server
-    from lightning_app.core.queues import MultiProcessQueue, QueuingSystem
-    from lightning_app.storage.orchestrator import StorageOrchestrator
-    from lightning_app.utilities.cloud import _sigterm_flow_handler
-    from lightning_app.utilities.component import _set_flow_context, _set_frontend_context
-    from lightning_app.utilities.enum import AppStage
-    from lightning_app.utilities.exceptions import ExitAppException
-    from lightning_app.utilities.load_app import extract_metadata_from_app, load_app_from_file
-    from lightning_app.utilities.proxies import WorkRunner
-    from lightning_app.utilities.redis import check_if_redis_running
 
-    try:
-        from lightning_app.utilities.app_commands import run_app_commands
+from lightning.app import LightningFlow
+from lightning.app.core import constants
+from lightning.app.core.api import start_server
+from lightning.app.core.queues import MultiProcessQueue, QueuingSystem
+from lightning.app.storage.orchestrator import StorageOrchestrator
+from lightning.app.utilities.cloud import _sigterm_flow_handler
+from lightning.app.utilities.component import _set_flow_context, _set_frontend_context
+from lightning.app.utilities.enum import AppStage
+from lightning.app.utilities.exceptions import ExitAppException
+from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file
+from lightning.app.utilities.proxies import WorkRunner
+from lightning.app.utilities.redis import check_if_redis_running
 
-        ABLE_TO_RUN_APP_COMMANDS = True
-    except (ImportError, ModuleNotFoundError):
-        ABLE_TO_RUN_APP_COMMANDS = False
+try:
+    from lightning.app.utilities.app_commands import run_app_commands
 
-else:
-    from lightning.app import LightningFlow
-    from lightning.app.core import constants
-    from lightning.app.core.api import start_server
-    from lightning.app.core.queues import MultiProcessQueue, QueuingSystem
-    from lightning.app.storage.orchestrator import StorageOrchestrator
-    from lightning.app.utilities.cloud import _sigterm_flow_handler
-    from lightning.app.utilities.component import _set_flow_context, _set_frontend_context
-    from lightning.app.utilities.enum import AppStage
-    from lightning.app.utilities.exceptions import ExitAppException
-    from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file
-    from lightning.app.utilities.proxies import WorkRunner
-    from lightning.app.utilities.redis import check_if_redis_running
-
-    try:
-        from lightning.app.utilities.app_commands import run_app_commands
-
-        ABLE_TO_RUN_APP_COMMANDS = True
-    except (ImportError, ModuleNotFoundError):
-        ABLE_TO_RUN_APP_COMMANDS = False
+    ABLE_TO_RUN_APP_COMMANDS = True
+except (ImportError, ModuleNotFoundError):
+    ABLE_TO_RUN_APP_COMMANDS = False
 
 
 if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
@@ -106,14 +85,9 @@ def start_application_server(
 
     app = load_app_from_file(entrypoint_file)
 
-    if module_available("lightning_app"):
-        from lightning_app.api.http_methods import _add_tags_to_api, _validate_api
-        from lightning_app.utilities.app_helpers import is_overridden
-        from lightning_app.utilities.commands.base import _commands_to_api, _prepare_commands
-    else:
-        from lightning.app.api.http_methods import _add_tags_to_api, _validate_api
-        from lightning.app.utilities.app_helpers import is_overridden
-        from lightning.app.utilities.commands.base import _commands_to_api, _prepare_commands
+    from lightning.app.api.http_methods import _add_tags_to_api, _validate_api
+    from lightning.app.utilities.app_helpers import is_overridden
+    from lightning.app.utilities.commands.base import _commands_to_api, _prepare_commands
 
     apis = []
     if is_overridden("configure_api", app.root):
