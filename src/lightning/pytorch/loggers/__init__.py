@@ -21,7 +21,7 @@ from lightning.pytorch.loggers.neptune import NeptuneLogger  # noqa: F401
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.loggers.wandb import WandbLogger  # noqa: F401
 
-__all__ = ["CSVLogger", "Logger", "TensorBoardLogger"]
+__all__ = ["CSVLogger", "Logger", "TensorBoardLogger", "WandbLogger", "NeptuneLogger"]
 
 if _COMET_AVAILABLE:
     __all__.append("CometLogger")
