@@ -334,15 +334,6 @@ class Strategy(ABC):
                 state[name] = checkpoint.pop(name)
         return checkpoint
 
-    def remove_checkpoint(self, filepath: _PATH) -> None:
-        """Remove checkpoint filepath from the filesystem.
-
-        Args:
-            filepath: Path to checkpoint
-        """
-        if self.is_global_zero:
-            self.checkpoint_io.remove_checkpoint(filepath)
-
     def teardown(self) -> None:
         """This method is called to teardown the training process.
 
