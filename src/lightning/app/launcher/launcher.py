@@ -13,34 +13,27 @@ from lightning_utilities.core.imports import module_available
 
 ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
 
-
-from lightning.app import LightningFlow
-from lightning.app.core import constants
-from lightning.app.core.api import start_server
-from lightning.app.core.queues import MultiProcessQueue, QueuingSystem
-from lightning.app.storage.orchestrator import StorageOrchestrator
-from lightning.app.utilities.cloud import _sigterm_flow_handler
-from lightning.app.utilities.component import _set_flow_context, _set_frontend_context
-from lightning.app.utilities.enum import AppStage
-from lightning.app.utilities.exceptions import ExitAppException
-from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file
-from lightning.app.utilities.proxies import WorkRunner
-from lightning.app.utilities.redis import check_if_redis_running
-
-try:
+if True:  # Avoid Module level import not at top of file
+    from lightning.app import LightningFlow
+    from lightning.app.core import constants
+    from lightning.app.core.api import start_server
+    from lightning.app.core.queues import MultiProcessQueue, QueuingSystem
+    from lightning.app.storage.orchestrator import StorageOrchestrator
     from lightning.app.utilities.app_commands import run_app_commands
-
-    ABLE_TO_RUN_APP_COMMANDS = True
-except (ImportError, ModuleNotFoundError):
-    ABLE_TO_RUN_APP_COMMANDS = False
-
+    from lightning.app.utilities.cloud import _sigterm_flow_handler
+    from lightning.app.utilities.component import _set_flow_context, _set_frontend_context
+    from lightning.app.utilities.enum import AppStage
+    from lightning.app.utilities.exceptions import ExitAppException
+    from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file
+    from lightning.app.utilities.proxies import WorkRunner
+    from lightning.app.utilities.redis import check_if_redis_running
 
 if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
     from lightning.app.launcher.lightning_hybrid_backend import CloudHybridBackend as CloudBackend
 else:
     from lightning.app.launcher.lightning_backend import CloudBackend
 
-if True:
+if True:  # Avoid Module level import not at top of file
     from lightning.app.utilities.app_helpers import convert_print_to_logger_info
     from lightning.app.utilities.packaging.lightning_utils import enable_debugging
 
@@ -134,8 +127,7 @@ def run_lightning_work(
     copy_request_queues = queues.get_orchestrator_copy_request_queue(work_name=work_name, queue_id=queue_id)
     copy_response_queues = queues.get_orchestrator_copy_response_queue(work_name=work_name, queue_id=queue_id)
 
-    if ABLE_TO_RUN_APP_COMMANDS:
-        run_app_commands(file)
+    run_app_commands(file)
 
     load_app_from_file(file)
 
@@ -397,13 +389,12 @@ def start_flow_and_servers(
         "api_response_queue": queue_system.get_api_response_queue(queue_id=queue_id),
     }
 
-    if ABLE_TO_RUN_APP_COMMANDS:
-        # In order to avoid running this function 3 seperate times while executing the
-        # `run_lightning_flow`, `start_application_server`, & `serve_frontend` functions
-        # in a subprocess we extract this to the top level. If we intend to make changes
-        # to be able to start these components in seperate containers, the implementation
-        # will have to move a call to this function within the initialization process.
-        run_app_commands(entrypoint_file)
+    # In order to avoid running this function 3 seperate times while executing the
+    # `run_lightning_flow`, `start_application_server`, & `serve_frontend` functions
+    # in a subprocess we extract this to the top level. If we intend to make changes
+    # to be able to start these components in seperate containers, the implementation
+    # will have to move a call to this function within the initialization process.
+    run_app_commands(entrypoint_file)
 
     flow_process = start_server_in_process(
         run_lightning_flow,

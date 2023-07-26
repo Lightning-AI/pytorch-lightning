@@ -8,21 +8,14 @@ from unittest.mock import ANY, MagicMock, Mock
 
 from click.testing import CliRunner
 
+from lightning.app.cli.lightning_cli_launch import run_flow, run_flow_and_servers, run_frontend, run_server
 from lightning.app.core.queues import QueuingSystem
 from lightning.app.frontend.web import StaticWebFrontend
+from lightning.app.launcher import launcher
 from lightning.app.runners.runtime import load_app_from_file
 from lightning.app.testing.helpers import _RunIf, EmptyWork
+from lightning.app.utilities.app_commands import run_app_commands
 from lightning.app.utilities.network import find_free_network_port
-
-try:
-    from lightning.app.utilities.app_commands import run_app_commands
-
-    ABLE_TO_RUN_APP_COMMANDS = True
-except (ImportError, ModuleNotFoundError):
-    ABLE_TO_RUN_APP_COMMANDS = False
-
-from lightning.app.cli.lightning_cli_launch import run_flow, run_flow_and_servers, run_frontend, run_server
-from lightning.app.launcher import launcher
 
 _FILE_PATH = str(Path(__file__).parent / "launch_data" / "app_metadata.py")
 
@@ -260,8 +253,7 @@ def test_run_flow_and_servers(monkeypatch):
 @mock.patch("lightning.app.core.queues.RedisQueue", MockRedisQueue)
 @mock.patch("lightning.app.launcher.launcher.WorkRunner")
 def test_run_work(mock_work_runner, monkeypatch):
-    if ABLE_TO_RUN_APP_COMMANDS:
-        run_app_commands(_FILE_PATH)
+    run_app_commands(_FILE_PATH)
     app = load_app_from_file(_FILE_PATH)
     names = [w.name for w in app.works]
 
