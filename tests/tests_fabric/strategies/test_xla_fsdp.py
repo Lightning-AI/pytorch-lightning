@@ -81,16 +81,6 @@ def test_xla_fsdp_grad_clipping_value_error():
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
 
-@RunIf(min_torch="2.0", tpu=True)
-def test_xla_fsdp_grad_clipping_norm_error():
-    strategy = XLAFSDPStrategy()
-    with pytest.raises(
-        TypeError,
-        match="only possible if the module.*is wrapped in `XLAFullyShardedDataParallel`",
-    ):
-        strategy.clip_gradients_norm(Mock(), Mock(), Mock())
-
-
 def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
     """Fabric launch function for test_xla_fsdp_train_save_load."""
     # check if multihost

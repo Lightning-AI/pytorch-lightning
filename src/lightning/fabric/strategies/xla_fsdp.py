@@ -34,8 +34,10 @@ from lightning.fabric.utilities.types import _PATH, Optimizable
 
 
 class XLAFSDPStrategy(XLAStrategy):
-    """Strategy for training multiple TPU devices using the
+    """Strategy for training multiple XLA devices using the
     :func:`torch_xla.distributed.xla_fully_sharded_data_parallel.XlaFullyShardedDataParallel` method.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     For more information check out https://github.com/pytorch/xla/blob/master/docs/fsdp.md
     """
@@ -90,10 +92,8 @@ class XLAFSDPStrategy(XLAStrategy):
 
             broadcast_master_param(module)
 
-        module = XLAFSDP(
-            module=module,
-            **self._fsdp_kwargs,
-        )
+        # XLA FSDP requires that the root is wrapped, even if submodules are already wrapped
+        module = XLAFSDP(module=module, **self._fsdp_kwargs)
 
         return module
 
@@ -124,11 +124,7 @@ class XLAFSDPStrategy(XLAStrategy):
             " after setting up the model."
         )
 
-    def optimizer_step(
-        self,
-        optimizer: Optimizable,
-        **kwargs: Any,
-    ) -> Any:
+    def optimizer_step(self, optimizer: Optimizable, **kwargs: Any) -> Any:
         """Overrides default tpu optimizer_step since FSDP should not call
         `torch_xla.core.xla_model.optimizer_step`. Performs the actual optimizer step.
 
@@ -151,15 +147,6 @@ class XLAFSDPStrategy(XLAStrategy):
         error_if_nonfinite: bool = True,
     ) -> Tensor:
         """Clip gradients by norm."""
-        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
-
-        if not isinstance(module, XLAFSDP):
-            # the root must be wrapped
-            raise TypeError(
-                "Gradient clipping with XLAFSDP is only possible if the module passed to"
-                f" `{self.__class__.__name__}.clip_gradients_norm` is wrapped in `XLAFullyShardedDataParallel`."
-                f" Got: {module.__class__.__name__}."
-            )
         self.precision.unscale_gradients(optimizer)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
@@ -243,8 +230,7 @@ class XLAFSDPStrategy(XLAStrategy):
 
             if self.is_global_zero:
                 consolidate_sharded_model_checkpoints(
-                    ckpt_prefix=os.path.join(path, "checkpoint"),
-                    ckpt_suffix="_rank-*-of-*.pth",
+                    ckpt_prefix=os.path.join(path, "checkpoint"), ckpt_suffix="_rank-*-of-*.pth"
                 )
             self.barrier("ckpt_consolidation")
             self.checkpoint_io.remove_checkpoint(
@@ -289,9 +275,9 @@ class XLAFSDPStrategy(XLAStrategy):
             )
         if not state:
             raise ValueError(
-                f"Got XLAFSDPStrategy.load_checkpoint(..., state={state!r}) but a state with at least "
-                f" a model instance to reload is required. Pass it in like so:"
-                " FSDPStrategy.load_checkpoint(..., state={'model': model, ...})"
+                f"Got `XLAFSDPStrategy.load_checkpoint(..., state={state!r})` but a state with at least "
+                " a model instance to reload is required. Pass it in like so:"
+                " `FSDPStrategy.load_checkpoint(..., state={'model': model, ...})`"
             )
 
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
@@ -299,7 +285,7 @@ class XLAFSDPStrategy(XLAStrategy):
         if not os.path.isdir(path):
             raise NotImplementedError(
                 f"The path `{path}` is a file or does not exist, but the `XLAFSDPStrategy` currently only supports"
-                f" loading from a checkpoint(s) in a directory."
+                " loading from a checkpoint(s) in a directory."
             )
 
         if isinstance(state, (Module, Optimizer)):
