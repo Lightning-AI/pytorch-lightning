@@ -382,11 +382,12 @@ class XLAFSDPStrategy(ParallelStrategy):
         if self._state_dict_type == "full":
             from torch_xla.distributed.fsdp import consolidate_sharded_model_checkpoints
 
+            self.barrier("before_ckpt_consolidation")
             if self.is_global_zero:
                 consolidate_sharded_model_checkpoints(
                     ckpt_prefix=os.path.join(path, "checkpoint"), ckpt_suffix="_rank-*-of-*.pth"
                 )
-            self.barrier("ckpt_consolidation")
+            self.barrier("after_ckpt_consolidation")
             self.checkpoint_io.remove_checkpoint(
                 os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth")
             )
@@ -405,11 +406,13 @@ class XLAFSDPStrategy(ParallelStrategy):
             )
         if self._state_dict_type == "sharded":
             file = os.path.join(folderpath, f"checkpoint_rank-{self.local_rank:08d}-of-{self.world_size:08d}.pth")
+            self.checkpoint_io.remove_checkpoint(file)
         elif self._state_dict_type == "full":
             file = os.path.join(folderpath, "checkpoint_consolidated.pth")
+            if self.local_rank == 0:
+                self.checkpoint_io.remove_checkpoint(file)
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
-        self.checkpoint_io.remove_checkpoint(file)
 
     def load_checkpoint(
         self,

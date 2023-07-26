@@ -99,6 +99,11 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         fabric.load(checkpoint_path, state, strict=False)
         assert state["coconut"] == 11
 
+        # test removing checkpoints
+        fabric._strategy.remove_checkpoint(checkpoint_path)
+        fabric.barrier("rm_ckpt")
+        assert len(set(os.listdir(checkpoint_path))) == 0
+
     if state_dict_type == "full":
         assert set(os.listdir(checkpoint_path)) == {"checkpoint_consolidated.pth"}
 
@@ -117,6 +122,11 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         with pytest.raises(AssertionError, match="do not match"):
             for p0, p1 in zip(model_1.parameters(), model_2.parameters()):
                 torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
+
+        # test removing checkpoints
+        fabric._strategy.remove_checkpoint(checkpoint_path)
+        fabric.barrier("rm_ckpt")
+        assert len(set(os.listdir(checkpoint_path))) == 0
 
 
 @RunIf(min_torch="2.0", tpu=True, standalone=True)
