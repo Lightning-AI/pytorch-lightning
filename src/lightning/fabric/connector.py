@@ -58,6 +58,7 @@ from lightning.fabric.strategies import (
     SingleDeviceXLAStrategy,
     Strategy,
     STRATEGY_REGISTRY,
+    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
@@ -523,7 +524,7 @@ class _Connector:
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
         if isinstance(self.accelerator, XLAAccelerator) and not isinstance(
-            self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)
+            self.strategy, (SingleDeviceXLAStrategy, XLAStrategy, XLAFSDPStrategy)
         ):
             raise ValueError(
                 "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`, `XLAStrategy`, or"
