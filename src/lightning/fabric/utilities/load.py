@@ -17,7 +17,6 @@ from io import BytesIO
 from typing import Any, Callable, Dict, IO, Optional, OrderedDict, Sequence, Union
 
 import torch
-import torch.utils._device
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch._C import _TensorMeta
