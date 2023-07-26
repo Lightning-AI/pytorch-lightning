@@ -13,5 +13,5 @@
 # limitations under the License.
 import lightning.pytorch._graveyard.hpu
 import lightning.pytorch._graveyard.ipu
-import lightning.pytorch._graveyard.torchmetrics_
+import lightning.pytorch._graveyard._torchmetrics
 import lightning.pytorch._graveyard.tpu  # noqa: F401
