@@ -1,12 +1,12 @@
 import os
 import signal
 import time
+from functools import partial
 from multiprocessing import Process
 from pathlib import Path
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
-import partial
 from click.testing import CliRunner
 
 from lightning.app.cli.lightning_cli_launch import run_flow, run_flow_and_servers, run_frontend, run_server
