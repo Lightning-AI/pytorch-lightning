@@ -14,7 +14,7 @@ import pickle
 import warnings
 from functools import partial
 from io import BytesIO
-from typing import Any, Callable, Dict, IO, Optional, OrderedDict, Sequence, Union, TYPE_CHECKING
+from typing import Any, Callable, Dict, IO, Optional, OrderedDict, Sequence, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -22,11 +22,11 @@ from torch import Tensor
 from torch._C import _TensorMeta
 from torch.nn import Parameter
 
-from lightning.fabric.utilities.types import _PATH
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
-    from torch.storage import TypedStorage, UntypedStorage
+    from torch.storage import TypedStorage
 
 
 # Modified from https://github.com/lernapparat/torchhacks by Thomas Viehmann
@@ -189,7 +189,7 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
 
 def _lazy_load(filename: _PATH) -> Any:
     if not _TORCH_GREATER_EQUAL_2_0:
-        raise NotImplementedError(f"Lazy-loading is only supported with PyTorch >= 2.0.")
+        raise NotImplementedError("Lazy-loading is only supported with PyTorch >= 2.0.")
     file_reader = torch.PyTorchFileReader(str(filename))
     with BytesIO(file_reader.get_record("data.pkl")) as pkl:
         mup = _LazyLoadingUnpickler(pkl, file_reader)
