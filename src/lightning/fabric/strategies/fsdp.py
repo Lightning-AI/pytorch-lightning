@@ -574,15 +574,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return metadata
 
         if _is_full_checkpoint(path):
-            checkpoint = _lazy_load(path)
+            checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
             _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
 
             if isinstance(state, Module):
                 return {}
 
-            # Materialize lazy tensors if there are any left in the checkpoint
-            # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
-            checkpoint = _materialize_tensors(checkpoint)
+            if _TORCH_GREATER_EQUAL_2_0:
+                # Materialize lazy tensors if there are any left in the checkpoint
+                # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
+                checkpoint = _materialize_tensors(checkpoint)
 
             # Load optimizer states
             for optim_key, optim in optimizers.items():

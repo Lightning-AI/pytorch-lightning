@@ -14,16 +14,19 @@ import pickle
 import warnings
 from functools import partial
 from io import BytesIO
-from typing import Any, Callable, Dict, IO, Optional, OrderedDict, Sequence, Union
+from typing import Any, Callable, Dict, IO, Optional, OrderedDict, Sequence, Union, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch._C import _TensorMeta
 from torch.nn import Parameter
-from torch.storage import TypedStorage, UntypedStorage
 
 from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+
+if TYPE_CHECKING:
+    from torch.storage import TypedStorage, UntypedStorage
 
 
 # Modified from https://github.com/lernapparat/torchhacks by Thomas Viehmann
@@ -85,7 +88,7 @@ class _NotYetLoadedTensor:
     @classmethod
     def rebuild_tensor_v2(
         cls,
-        storage: TypedStorage,
+        storage: "TypedStorage",
         storage_offset: int,
         size: tuple,
         stride: tuple,
@@ -103,6 +106,8 @@ class _NotYetLoadedTensor:
         return _NotYetLoadedTensor(metatensor, archiveinfo, storageinfo, rebuild_args)
 
     def _load_tensor(self) -> Tensor:
+        from torch.storage import TypedStorage, UntypedStorage
+
         name, storage_cls, fn, device, size = self.storageinfo
         dtype = self.metatensor.dtype
 
@@ -171,7 +176,9 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
             return partial(_NotYetLoadedTensor.rebuild_parameter, archiveinfo=self)
         return super().find_class(module, name)
 
-    def persistent_load(self, pid: tuple) -> TypedStorage:
+    def persistent_load(self, pid: tuple) -> "TypedStorage":
+        from torch.storage import TypedStorage
+
         name, cls, fn, device, size = pid
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")  # TODO: needed?
@@ -181,6 +188,8 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
 
 
 def _lazy_load(filename: _PATH) -> Any:
+    if not _TORCH_GREATER_EQUAL_2_0:
+        raise NotImplementedError(f"Lazy-loading is only supported with PyTorch >= 2.0.")
     file_reader = torch.PyTorchFileReader(str(filename))
     with BytesIO(file_reader.get_record("data.pkl")) as pkl:
         mup = _LazyLoadingUnpickler(pkl, file_reader)
