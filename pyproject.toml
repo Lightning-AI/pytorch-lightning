@@ -141,6 +141,7 @@ exclude = [
     "src/lightning/app/cli/component-template",
     "src/lightning/app/cli/pl-app-template",
     "src/lightning/app/cli/react-ui-template",
+    "src/lightning/app/launcher",
 ]
 install_types = "True"
 non_interactive = "True"
