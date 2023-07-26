@@ -151,12 +151,11 @@ class _NotYetLoadedTensor:
         }:
             return getattr(self.metatensor, name)
 
-        # TODO: needed for us?
-        # materializing with contiguous is needed for quantization
+        # Materialization with contiguous is needed for quantization (see lit-gpt)
         if name in {"contiguous"}:
             return getattr(self._load_tensor(), name)
 
-        raise AttributeError(f"{type(self)} does not have {name}")
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({repr(self.metatensor)})"
