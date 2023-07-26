@@ -817,21 +817,18 @@ def _has_fsdp_modules(module: object) -> TypeGuard[Module]:
 
 
 def _load_raw_module_state_from_path(path: Path, module: Module, strict: bool = True) -> None:
-    """Loads the state dict from a file path into the module by gathering all weights first and then and
-    writing back to each shard."""
+    """Loads the state dict from a file path into the FSDP module."""
     if not _is_full_checkpoint(path):
         raise ValueError(
             "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
             f" full state dict: {path}"
         )
-
     # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
     _load_raw_module_state(state_dict=_lazy_load(path), module=module, strict=strict)
 
 
 def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: bool = True) -> None:
-    """Loads the state dict (given or from a path) into the module by gathering all weights first and then and
-    writing back to each shard."""
+    """Loads the state dict into the module by gathering all weights first and then and writing back to each shard."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
     with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
