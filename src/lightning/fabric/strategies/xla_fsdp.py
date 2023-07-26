@@ -24,7 +24,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
@@ -57,7 +57,6 @@ class XLAFSDPStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
         state_dict_type: Literal["full", "sharded"] = "sharded",
-        sync_module_states: bool = True,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -73,7 +72,6 @@ class XLAFSDPStrategy(ParallelStrategy):
         self._fsdp_kwargs = kwargs
         self._state_dict_type = state_dict_type
         self._launched = False
-        self._sync_module_states = sync_module_states
 
     @property
     def root_device(self) -> torch.device:
@@ -134,21 +132,10 @@ class XLAFSDPStrategy(ParallelStrategy):
             )
             del self._fsdp_kwargs["auto_wrap_policy"]
 
-        if self._sync_module_states:
-            if _XLA_GREATER_EQUAL_2_1:
-                from torch_xla.core.xla_model import broadcast_master_param
-            else:
-                from torch_xla.experimental.pjrt import broadcast_master_param
-
-            broadcast_master_param(module)
-
         # XLA FSDP requires that the root is wrapped, even if submodules are already wrapped
         module = XLAFSDP(module=module, **self._fsdp_kwargs)
 
         return module
-
-    def module_to_device(self, module: Module) -> None:
-        module.to(self.root_device)
 
     def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
