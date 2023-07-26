@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from copy import deepcopy
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -110,8 +109,6 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
     optimizer_1.step()
     optimizer_1.zero_grad()
 
-    params_before = deepcopy(list(model_1.parameters()))
-
     state = {
         "model": model_1,
         "optimizer": optimizer_1,  # not needed in ckpt consolidation
@@ -146,7 +143,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         assert state["step_count"] == 1
 
         # check correctness with loaded state
-        for p0, p1 in zip(params_before, model_2.parameters()):
+        for p0, p1 in zip(model_1._forward_module.parameters(), model_2.parameters()):
             torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
 
         # attempt to load a key not in the metadata checkpoint
