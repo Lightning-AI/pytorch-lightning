@@ -61,7 +61,7 @@ class _NotYetLoadedTensor:
                 t = old_lt()
                 return torch._tensor._rebuild_from_type_v2(lambda: t, new_type, (), state)
 
-            ret._load_tensor = _load_tensor  # type: ignore[assignment]
+            ret._load_tensor = _load_tensor  # type: ignore[method-assign]
             return ret
         return torch._tensor._rebuild_from_type_v2(func, new_type, args, state)
 
@@ -81,7 +81,7 @@ class _NotYetLoadedTensor:
                 t = old_lt()
                 return torch._utils._rebuild_parameter(t, requires_grad, backward_hooks)
 
-            data._load_tensor = _load_tensor  # type: ignore[assignment]
+            data._load_tensor = _load_tensor  # type: ignore[method-assign]
             return data
         return torch._utils._rebuild_parameter(data, requires_grad, backward_hooks)
 
