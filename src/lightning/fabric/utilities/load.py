@@ -117,6 +117,7 @@ class _NotYetLoadedTensor:
         uts = storage._typed_storage()._untyped_storage
 
         with warnings.catch_warnings():
+            # The TypedStorage APIs have heavy deprecations in torch, suppress all these warnings for now
             warnings.simplefilter("ignore")
             storage = TypedStorage(wrap_storage=uts, dtype=dtype, _internal=True)
         return torch._utils._rebuild_tensor_v2(storage, *self.rebuild_args)
@@ -180,7 +181,8 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
 
         name, cls, fn, device, size = pid
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")  # TODO: needed?
+            # The TypedStorage APIs have heavy deprecations in torch, suppress all these warnings for now
+            warnings.simplefilter("ignore")
             storage = TypedStorage(dtype=cls().dtype, device="meta")
         storage.archiveinfo = pid
         return storage
