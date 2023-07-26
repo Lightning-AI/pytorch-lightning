@@ -376,8 +376,10 @@ class XLAFSDPStrategy(XLAStrategy):
                     "Found a XLAFSDP model in the provided checkpoint state."
                     " Please provide the model without any XLAFSDP wrapper."
                 )
+            if "model" not in state or not isinstance(model := state["model"], torch.nn.Module):
+                raise NotImplementedError("XLAFSDP only supports a single model instance with 'model' as the key.")
             full_ckpt = torch.load(str(file))
-            state["model"].load_state_dict(full_ckpt.pop("model"), strict=strict)
+            model.load_state_dict(full_ckpt.pop("model"), strict=strict)
             return full_ckpt
 
         raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
