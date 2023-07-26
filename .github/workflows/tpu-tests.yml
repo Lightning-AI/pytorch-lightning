@@ -115,9 +115,10 @@ jobs:
 
     - name: Create node
       id: tpu-create
+      # TPU capacity is very limited so this workflow's success is optional. continue normally if creation fails
       continue-on-error: true
       env:
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ env.SHA }}
+        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
       run: |
         if [[ "${{ matrix.accelerator_type }}" == v4* ]]; then
           gcloud compute tpus tpu-vm create "$JOB_NAME" \
@@ -126,15 +127,8 @@ jobs:
             --preemptible
         fi
 
-    - name: Cancel job
-      if: steps.tpu-create.outcome != 'success'
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        gh run cancel ${{ github.run_id }}
-        sleep 300
-
     - name: Run tests
+      if: steps.tpu-create.outcome == 'success'
       env:
         JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
       run: |
