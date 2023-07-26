@@ -9,8 +9,6 @@ from functools import partial
 from multiprocessing import Process
 from typing import Callable, Dict, List, Optional, Tuple, TypedDict
 
-from lightning_utilities.core.imports import module_available
-
 ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
 
 if True:  # Avoid Module level import not at top of file
@@ -200,10 +198,7 @@ def run_lightning_flow(entrypoint_file: str, queue_id: str, base_url: str, queue
         signal.signal(signal.SIGTERM, partial(_sigterm_flow_handler, app=app))
 
     if "apis" in inspect.signature(start_server).parameters:
-        if module_available("lightning_app"):
-            from lightning_app.utilities.commands.base import _prepare_commands
-        else:
-            from lightning.app.utilities.commands.base import _prepare_commands
+        from lightning.app.utilities.commands.base import _prepare_commands
 
         _prepare_commands(app)
 
