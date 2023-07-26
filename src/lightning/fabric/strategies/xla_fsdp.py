@@ -395,28 +395,6 @@ class XLAFSDPStrategy(ParallelStrategy):
                 os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth")
             )
 
-    def remove_checkpoint(self, folderpath: _PATH) -> None:
-        """Remove checkpoint filepath from the filesystem.
-
-        Args:
-            filepath: Path to folder with full/sharded checkpoint(s)
-        """
-        # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        folderpath = self.broadcast(folderpath)
-        if not os.path.isdir(folderpath):
-            raise NotImplementedError(
-                "The `XLAFSDPStrategy` requires specifying the directory where to remove checkpoints."
-            )
-        if self._state_dict_type == "sharded":
-            file = os.path.join(folderpath, f"checkpoint_rank-{self.local_rank:08d}-of-{self.world_size:08d}.pth")
-            self.checkpoint_io.remove_checkpoint(file)
-        elif self._state_dict_type == "full":
-            file = os.path.join(folderpath, "checkpoint_consolidated.pth")
-            if self.local_rank == 0:
-                self.checkpoint_io.remove_checkpoint(file)
-        else:
-            raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
-
     def load_checkpoint(
         self,
         path: _PATH,
