@@ -225,18 +225,21 @@ def xla_fsdp_rewrap_warning(fabric: Fabric):
         torch.nn.Linear(1, 1), torch.nn.ReLU(), XlaFullyShardedDataParallel(torch.nn.Linear(1, 1))
     )
     if fabric.node_rank:
-        with pytest.warns(match="the model is already wrapped"):
+        with pytest.warns(match="submodule is already wrapped"):
             model = fabric.setup_module(model)
     else:
         model = fabric.setup_module(model)
     fabric.barrier("warning_check")
-    assert not isinstance(model._forward_module, XlaFullyShardedDataParallel)
+    assert not isinstance(model._forward_module[0], XlaFullyShardedDataParallel)
+    assert not isinstance(model._forward_module[1], XlaFullyShardedDataParallel)
     assert isinstance(model._forward_module[2], XlaFullyShardedDataParallel)
 
 
-@RunIf(min_torch="2.0", tpu=True)
+@RunIf(min_torch="2.0", tpu=True, standalone=True)
 def test_xla_fsdp_rewrap_warning():
     """Test XLAFSDP rewrap warning."""
-    strategy = XLAFSDPStrategy(auto_wrap_policy={torch.nn.Linear})
+    from torch_xla.distributed.fsdp.wrap import always_wrap_policy
+
+    strategy = XLAFSDPStrategy(auto_wrap_policy=always_wrap_policy)
     fabric = Fabric(accelerator="tpu", strategy=strategy)
     fabric.launch(xla_fsdp_rewrap_warning)

@@ -75,25 +75,25 @@ class XLAFSDPStrategy(XLAStrategy):
     def setup_module(self, module: Module) -> Module:
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
-        if any(isinstance(mod, XLAFSDP) for mod in module.modules()):
-            if "auto_wrap_policy" in self._fsdp_kwargs:
-                rank_zero_warn(
-                    "A XLAFSDP `auto_wrap_policy` is set, but the model is already wrapped. The policy will be ignored."
-                )
-                del self._fsdp_kwargs["auto_wrap_policy"]
-        else:
-            if self._sync_module_states:
-                if _XLA_GREATER_EQUAL_2_1:
-                    from torch_xla.core.xla_model import broadcast_master_param
-                else:
-                    from torch_xla.experimental.pjrt import broadcast_master_param
-
-                broadcast_master_param(module)
-
-            module = XLAFSDP(
-                module=module,
-                **self._fsdp_kwargs,
+        if any(isinstance(mod, XLAFSDP) for mod in module.modules()) and "auto_wrap_policy" in self._fsdp_kwargs:
+            rank_zero_warn(
+                "A XLAFSDP `auto_wrap_policy` is set, but at least one submodule is already wrapped."
+                " The policy will be ignored."
             )
+            del self._fsdp_kwargs["auto_wrap_policy"]
+
+        if self._sync_module_states:
+            if _XLA_GREATER_EQUAL_2_1:
+                from torch_xla.core.xla_model import broadcast_master_param
+            else:
+                from torch_xla.experimental.pjrt import broadcast_master_param
+
+            broadcast_master_param(module)
+
+        module = XLAFSDP(
+            module=module,
+            **self._fsdp_kwargs,
+        )
 
         return module
 
@@ -304,7 +304,8 @@ class XLAFSDPStrategy(XLAStrategy):
 
         if isinstance(state, (Module, Optimizer)):
             raise NotImplementedError(
-                "Loading a single module or optimizer object from a checkpoint is not supported yet with the XLAFSDP strategy."
+                "Loading a single module or optimizer object from a checkpoint"
+                " is not supported yet with the XLAFSDP strategy."
             )
 
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
@@ -357,6 +358,7 @@ class XLAFSDPStrategy(XLAStrategy):
                 metadata.pop("shard_metadata")
 
             return metadata
+
         if self._state_dict_type == "full":
             file = os.path.join(path, "checkpoint_consolidated.pth")
             if not Path(file).is_file():
@@ -364,19 +366,21 @@ class XLAFSDPStrategy(XLAStrategy):
                     f"The path {str(file)!r} does not point to a valid full checkpoint. Make sure the path points to a"
                     " directory with a full XLAFSDP checkpoint."
                 )
-            rank_zero_warn(
-                "Loading a full checkpoint will only load the full model."
-                " Optimizer and any additional metadata are not included."
-            )
+            if len(optimizers) > 0 or len(state.keys() - modules.keys() - optimizers.keys()) > 0:
+                rank_zero_warn(
+                    "Loading a full checkpoint will only load the full model."
+                    " The optimizer and any additional metadata are not included."
+                )
             if len(modules) > 0:
                 raise ValueError(
                     "Found a XLAFSDP model in the provided checkpoint state."
                     " Please provide the model without any XLAFSDP wrapper."
                 )
             full_ckpt = torch.load(str(file))
-            state["model"].load_state_dict(full_ckpt["model"], strict=strict)
-        else:
-            raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
+            state["model"].load_state_dict(full_ckpt.pop("model"), strict=strict)
+            return full_ckpt
+
+        raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
