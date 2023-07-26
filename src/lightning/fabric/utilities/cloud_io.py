@@ -21,7 +21,7 @@ import fsspec
 import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
-from lightning_utilities.core.imports import lazy_import
+from lightning_utilities.core.imports import module_available
 
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
@@ -74,19 +74,19 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
 
 
 def _is_object_storage(fs: AbstractFileSystem) -> bool:
-    if importlib.util.find_spec("adlfs") is not None:
-        adlfs = lazy_import("adlfs")
-        if isinstance(fs, adlfs.AzureBlobFileSystem):
+    if module_available("adlfs"):
+        from adlfs import AzureBlobFileSystem
+        if isinstance(fs, AzureBlobFileSystem):
             return True
 
-    if importlib.util.find_spec("gcsfs") is not None:
-        gcsfs = lazy_import("gcsfs")
-        if isinstance(fs, gcsfs.GCSFileSystem):
+    if module_available("gcsfs"):
+        from adlfs import GCSFileSystem
+        if isinstance(fs, GCSFileSystem):
             return True
 
-    if importlib.util.find_spec("s3fs") is not None:
-        s3fs = lazy_import("s3fs")
-        if isinstance(fs, s3fs.S3FileSystem):
+    if module_available("s3fs"):
+        from s3fs import S3FileSystem
+        if isinstance(fs, S3FileSystem):
             return True
 
     return False
