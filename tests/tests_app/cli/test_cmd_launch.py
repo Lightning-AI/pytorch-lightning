@@ -1,11 +1,12 @@
+import os
 import signal
 import time
-from functools import partial
 from multiprocessing import Process
 from pathlib import Path
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
+import partial
 from click.testing import CliRunner
 
 from lightning.app.cli.lightning_cli_launch import run_flow, run_flow_and_servers, run_frontend, run_server
@@ -16,8 +17,9 @@ from lightning.app.runners.runtime import load_app_from_file
 from lightning.app.testing.helpers import _RunIf, EmptyWork
 from lightning.app.utilities.app_commands import run_app_commands
 from lightning.app.utilities.network import find_free_network_port
+from tests_app import _PROJECT_ROOT
 
-_FILE_PATH = str(Path(__file__).parent / "launch_data" / "app_metadata.py")
+_FILE_PATH = os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py")
 
 
 def test_run_frontend(monkeypatch):
