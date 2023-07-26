@@ -43,7 +43,7 @@ def test_trainer_compiled_model(_, tmp_path, monkeypatch):
     assert model._compiler_ctx is compiled_model._compiler_ctx  # shared reference
 
     # can train with compiled model
-    trainer = Trainer(**trainer_kwargs, accelerator="cpu")
+    trainer = Trainer(**trainer_kwargs)
     trainer.fit(compiled_model)
     assert trainer.model._compiler_ctx["compiler"] == "dynamo"
 
@@ -58,7 +58,7 @@ def test_trainer_compiled_model(_, tmp_path, monkeypatch):
         to_uncompiled(to_uncompiled_model)
 
     # the uncompiled model can be fitted
-    trainer = Trainer(**trainer_kwargs, accelerator="cpu")
+    trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
     assert trainer.model._compiler_ctx is None
 
@@ -71,11 +71,11 @@ def test_trainer_compiled_model(_, tmp_path, monkeypatch):
             trainer.fit(compiled_model)
 
     # ddp does
-    trainer = Trainer(strategy="ddp", **trainer_kwargs, accelerator="cpu")
+    trainer = Trainer(strategy="ddp", **trainer_kwargs)
     trainer.fit(compiled_model)
 
     # an exception is raised
-    trainer = Trainer(**trainer_kwargs, accelerator="cpu")
+    trainer = Trainer(**trainer_kwargs)
     with pytest.raises(TypeError, match="must be a `Light"):
         trainer.fit(object())
 
