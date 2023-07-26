@@ -198,7 +198,7 @@ def test_manage_server_processes_one_process_gets_killed(capfd):
     captured = capfd.readouterr()
     assert (
         "Found dead components with non-zero exit codes, exiting execution!!! Components: \n"
-        "| Name   |   Exit Code |\n|--------|-------------|\n| p2     |           1 |\n" in captured.out
+        "| Name   |   Exit Code |\n|--------|-------------|\n| p2     | 1          |\n" in captured.out
     )
 
 
