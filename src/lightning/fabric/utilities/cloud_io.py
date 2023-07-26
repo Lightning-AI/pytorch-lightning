@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities related to data saving/loading."""
-import importlib.util
 import io
 from pathlib import Path
 from typing import Any, Dict, IO, Union
@@ -76,16 +75,19 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
 def _is_object_storage(fs: AbstractFileSystem) -> bool:
     if module_available("adlfs"):
         from adlfs import AzureBlobFileSystem
+
         if isinstance(fs, AzureBlobFileSystem):
             return True
 
     if module_available("gcsfs"):
         from adlfs import GCSFileSystem
+
         if isinstance(fs, GCSFileSystem):
             return True
 
     if module_available("s3fs"):
         from s3fs import S3FileSystem
+
         if isinstance(fs, S3FileSystem):
             return True
 
