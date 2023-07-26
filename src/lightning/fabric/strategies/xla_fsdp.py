@@ -137,6 +137,9 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         return module
 
+    def module_to_device(self, module: Module) -> None:
+        pass
+
     def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
