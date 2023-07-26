@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
+from unittest import mock
 
 import pytest
-from unittest import mock
 import torch
 from lightning_utilities.core import module_available
 

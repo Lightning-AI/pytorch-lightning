@@ -906,7 +906,6 @@ class Trainer:
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[_PATH] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-
         if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
                 self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
