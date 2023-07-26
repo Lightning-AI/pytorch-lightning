@@ -14,6 +14,7 @@
 import sys
 
 import pytest
+from unittest import mock
 import torch
 from lightning_utilities.core import module_available
 
@@ -26,7 +27,8 @@ from tests_pytorch.helpers.runif import RunIf
 
 @RunIf(dynamo=True)
 @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
-def test_trainer_compiled_model(tmp_path, monkeypatch):
+@mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
+def test_trainer_compiled_model(_, tmp_path, monkeypatch):
     trainer_kwargs = {
         "default_root_dir": tmp_path,
         "fast_dev_run": True,
@@ -41,7 +43,7 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
     assert model._compiler_ctx is compiled_model._compiler_ctx  # shared reference
 
     # can train with compiled model
-    trainer = Trainer(**trainer_kwargs)
+    trainer = Trainer(**trainer_kwargs, accelerator="cpu")
     trainer.fit(compiled_model)
     assert trainer.model._compiler_ctx["compiler"] == "dynamo"
 
@@ -56,7 +58,7 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
         to_uncompiled(to_uncompiled_model)
 
     # the uncompiled model can be fitted
-    trainer = Trainer(**trainer_kwargs)
+    trainer = Trainer(**trainer_kwargs, accelerator="cpu")
     trainer.fit(model)
     assert trainer.model._compiler_ctx is None
 
@@ -69,11 +71,11 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
             trainer.fit(compiled_model)
 
     # ddp does
-    trainer = Trainer(strategy="ddp", **trainer_kwargs)
+    trainer = Trainer(strategy="ddp", **trainer_kwargs, accelerator="cpu")
     trainer.fit(compiled_model)
 
     # an exception is raised
-    trainer = Trainer(**trainer_kwargs)
+    trainer = Trainer(**trainer_kwargs, accelerator="cpu")
     with pytest.raises(TypeError, match="must be a `Light"):
         trainer.fit(object())
 
