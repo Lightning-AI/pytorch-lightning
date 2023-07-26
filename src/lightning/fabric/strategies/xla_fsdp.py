@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 import os
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Literal, Optional, Tuple, TYPE_CHECKING, Union
 
@@ -33,7 +33,8 @@ from lightning.fabric.strategies import _StrategyRegistry, ParallelStrategy
 from lightning.fabric.strategies.fsdp import _apply_filter
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate_keys_for_strict_loading, TBroadcast
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
 
@@ -139,6 +140,26 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     def module_to_device(self, module: Module) -> None:
         pass
+
+    @contextmanager
+    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
+        # is resolved. For now, the module will get moved to the device in `setup_module`.
+        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        with empty_init_context, self.precision.init_context(), self.module_sharded_context():
+            yield
+
+    @contextmanager
+    def module_sharded_context(self) -> Generator:
+        from torch.distributed.fsdp.wrap import enable_wrap
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
+        with enable_wrap(
+            wrapper_cls=XLAFSDP,
+            device_id=self.root_device.index,
+            **self._fsdp_kwargs,
+        ):
+            yield
 
     def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader

@@ -95,9 +95,10 @@ def xla_fsdp_rewrap_warning(fabric: Fabric):
     """Fabric launch function for test_xla_fsdp_rewrap_warning."""
     from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
-    model = torch.nn.Sequential(
-        torch.nn.Linear(1, 1), torch.nn.ReLU(), XlaFullyShardedDataParallel(torch.nn.Linear(1, 1))
-    )
+    with fabric.init_module():
+        model = torch.nn.Sequential(
+            torch.nn.Linear(1, 1), torch.nn.ReLU(), XlaFullyShardedDataParallel(torch.nn.Linear(1, 1))
+        )
     if fabric.node_rank:
         with pytest.warns(match="submodule is already wrapped"):
             model = fabric.setup_module(model)

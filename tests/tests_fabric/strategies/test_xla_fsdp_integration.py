@@ -30,8 +30,8 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         return  # pytest.skip() is not pickleable
 
     checkpoint_path = fabric.broadcast(str(tmp_path))
-
-    model_1 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+    with fabric.init_module():
+        model_1 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
     model_1 = fabric.setup_module(model_1)
 
     optimizer_1 = torch.optim.Adam(model_1.parameters(), lr=0.1)
@@ -67,7 +67,8 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         assert set(os.listdir(checkpoint_path)) == expected_files
 
         # define a second set of model and optimizer
-        model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        with fabric.init_module():
+            model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         model_2 = fabric.setup_module(model_2)
 
         optimizer_2 = torch.optim.Adam(model_2.parameters(), lr=0.1)
@@ -108,7 +109,8 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         assert set(os.listdir(checkpoint_path)) == {"checkpoint_consolidated.pth"}
 
         # define a second set of model and optimizer
-        model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        with fabric.init_module():
+            model_2 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         import torch_xla.core.xla_model as xm
 
         device = xm.xla_device()
