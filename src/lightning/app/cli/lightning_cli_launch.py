@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 @click.group(name="launch", hidden=True)
-def launch():
+def launch() -> None:
     """Launch your application."""
 
 
@@ -39,7 +39,7 @@ def launch():
 @click.option("--queue-id", help="ID for identifying queue", default="", type=str)
 @click.option("--host", help="Application running host", default=APP_SERVER_HOST, type=str)
 @click.option("--port", help="Application running port", default=APP_SERVER_PORT, type=int)
-def run_server(file: str, queue_id: str, host: str, port: int):
+def run_server(file: str, queue_id: str, host: str, port: int) -> None:
     """It takes the application file as input, build the application object and then use that to run the
     application server.
 
@@ -53,7 +53,7 @@ def run_server(file: str, queue_id: str, host: str, port: int):
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--queue-id", help="ID for identifying queue", default="", type=str)
 @click.option("--base-url", help="Base url at which the app server is hosted", default="")
-def run_flow(file: str, queue_id: str, base_url: str):
+def run_flow(file: str, queue_id: str, base_url: str) -> None:
     """It takes the application file as input, build the application object, proxy all the work components and then
     run the application flow defined in the root component.
 
@@ -67,7 +67,7 @@ def run_flow(file: str, queue_id: str, base_url: str):
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--work-name", type=str)
 @click.option("--queue-id", help="ID for identifying queue", default="", type=str)
-def run_work(file: str, work_name: str, queue_id: str):
+def run_work(file: str, work_name: str, queue_id: str) -> None:
     """Unlike other entrypoints, this command will take the file path or module details for a work component and
     run that by fetching the states from the queues."""
     logger.debug(f"Run Work: {file} {work_name} {queue_id}")
@@ -83,7 +83,7 @@ def run_work(file: str, work_name: str, queue_id: str):
 @click.option("--flow-name")
 @click.option("--host")
 @click.option("--port", type=int)
-def run_frontend(file: str, flow_name: str, host: str, port: int):
+def run_frontend(file: str, flow_name: str, host: str, port: int) -> None:
     """Serve the frontend specified by the given flow."""
     logger.debug(f"Run Frontend: {file} {flow_name} {host}")
     serve_frontend(file=file, flow_name=flow_name, host=host, port=port)
@@ -108,7 +108,7 @@ def run_flow_and_servers(
     host: str,
     port: int,
     flow_port: Tuple[Tuple[str, int]],
-):
+) -> None:
     """It takes the application file as input, build the application object and then use that to run the
     application flow defined in the root component, the application server and all the flow frontends.
 
