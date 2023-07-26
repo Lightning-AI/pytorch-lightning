@@ -151,15 +151,7 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     @contextmanager
     def module_sharded_context(self) -> Generator:
-        from torch.distributed.fsdp.wrap import enable_wrap
-        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
-
-        with enable_wrap(
-            wrapper_cls=XLAFSDP,
-            device_id=self.root_device.index,
-            **self._fsdp_kwargs,
-        ):
-            yield
+        yield
 
     def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
