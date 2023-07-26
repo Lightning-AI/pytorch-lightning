@@ -18,7 +18,6 @@ from unittest import mock
 import pytest
 from lightning_utilities.test.warning import no_warning_call
 
-import lightning.pytorch
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
