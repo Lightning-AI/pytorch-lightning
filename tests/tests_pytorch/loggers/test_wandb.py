@@ -15,15 +15,14 @@ import os
 import pickle
 from unittest import mock
 
-import pytest
-from lightning_utilities.test.warning import no_warning_call
-
 import lightning.pytorch
+import pytest
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_utilities.test.warning import no_warning_call
 
 
 @mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
@@ -487,6 +486,33 @@ def test_wandb_log_media(wandb, tmpdir):
     # test log_audio with wrong number of captions
     with pytest.raises(ValueError, match="Expected 2 items but only found 1 for caption"):
         logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], caption=["caption 1"])
+
+    # test log_video
+    wandb.init().log.reset_mock()
+    logger.log_video(key="samples", videos=["1.mp4", "2.mp4"])
+    wandb.Video.assert_called_with("2.mp4")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Video(), wandb.Video()]})
+
+    # test log_video with step
+    wandb.init().log.reset_mock()
+    logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], step=5)
+    wandb.Video.assert_called_with("2.mp4")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Video(), wandb.Video()], "trainer/global_step": 5})
+
+    # test log_video with captions
+    wandb.init().log.reset_mock()
+    wandb.Video.reset_mock()
+    logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], caption=["caption 1", "caption 2"])
+    wandb.Video.assert_called_with("2.mp4", caption="caption 2")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Video(), wandb.Video()]})
+
+    # test log_video without a list
+    with pytest.raises(TypeError, match="""Expected a list as "videos", found <class 'str'>"""):
+        logger.log_video(key="samples", videos="1.mp4")
+
+    # test log_video with wrong number of captions
+    with pytest.raises(ValueError, match="Expected 2 items but only found 1 for caption"):
+        logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], caption=["caption 1"])
 
     # test log_table
     wandb.Table.reset_mock()

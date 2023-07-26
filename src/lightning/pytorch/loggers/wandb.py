@@ -494,6 +494,22 @@ class WandbLogger(Logger):
         metrics = {key: [wandb.Audio(audio, **kwarg) for audio, kwarg in zip(audios, kwarg_list)]}
         self.log_metrics(metrics, step)
 
+    @rank_zero_only
+    def log_video(self, key: str, videos: List[Any], step: Optional[int] = None, **kwargs: Any) -> None:
+        """Log videos (numpy arrays, or file paths).
+
+        Optional kwargs are lists passed to each video (ex: caption, fps, format).
+        """
+        if not isinstance(videos, list):
+            raise TypeError(f'Expected a list as "videos", found {type(videos)}')
+        n = len(videos)
+        for k, v in kwargs.items():
+            if len(v) != n:
+                raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
+        kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
+        metrics = {key: [wandb.Video(video, **kwarg) for video, kwarg in zip(videos, kwarg_list)]}
+        self.log_metrics(metrics, step)
+
     @property
     def save_dir(self) -> Optional[str]:
         """Gets the save directory.
