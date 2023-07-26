@@ -12,20 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities related to data saving/loading."""
-import importlib
 import io
-from functools import lru_cache
+import importlib.util
 from pathlib import Path
-from types import ModuleType
-from typing import Any, Dict, IO, Optional, Union
+from typing import Any, Dict, IO, Union
 
 import fsspec
 import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
+from lightning_utilities.core.imports import lazy_import
 
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
-
 
 def _load(
     path_or_url: Union[IO, _PATH],
@@ -74,26 +72,21 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
         f.write(bytesbuffer.getvalue())
 
 
-@lru_cache(maxsize=None)
-def _lazy_import(module_name: str) -> Optional[ModuleType]:
-    try:
-        return importlib.import_module(module_name)
-    except ImportError:
-        return None
-
-
 def _is_object_storage(fs: AbstractFileSystem) -> bool:
-    adlfs = _lazy_import("adlfs")
-    if adlfs is not None and isinstance(fs, adlfs.AzureBlobFileSystem):
-        return True
+    if importlib.util.find_spec("adlfs") is not None:
+        adlfs = lazy_import("adlfs")
+        if isinstance(fs, adlfs.AzureBlobFileSystem):
+            return True
 
-    gcsfs = _lazy_import("gcsfs")
-    if gcsfs is not None and isinstance(fs, gcsfs.GCSFileSystem):
-        return True
+    if importlib.util.find_spec("gcsfs") is not None:
+        gcsfs = lazy_import("gcsfs")
+        if isinstance(fs, gcsfs.GCSFileSystem):
+            return True
 
-    s3fs = _lazy_import("s3fs")
-    if s3fs is not None and isinstance(fs, s3fs.S3FileSystem):
-        return True
+    if importlib.util.find_spec("s3fs") is not None:
+        s3fs = lazy_import("s3fs")
+        if isinstance(fs, s3fs.S3FileSystem):
+            return True
 
     return False
 
