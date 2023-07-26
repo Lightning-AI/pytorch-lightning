@@ -490,7 +490,7 @@ class WandbLogger(Logger):
         for k, v in kwargs.items():
             if len(v) != n:
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
-        kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
+        kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
         metrics = {key: [wandb.Audio(audio, **kwarg) for audio, kwarg in zip(audios, kwarg_list)]}
         self.log_metrics(metrics, step)
 
@@ -506,7 +506,7 @@ class WandbLogger(Logger):
         for k, v in kwargs.items():
             if len(v) != n:
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
-        kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
+        kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
         metrics = {key: [wandb.Video(video, **kwarg) for video, kwarg in zip(videos, kwarg_list)]}
         self.log_metrics(metrics, step)
 
