@@ -57,7 +57,7 @@ class _MultiProcessingLauncher(_Launcher):
         strategy: A reference to the strategy that is used together with this launcher.
         start_method: The method how to start the processes.
             - 'spawn': The default start method. Requires all objects to be pickleable.
-            - 'fork': Preferrable for IPython/Jupyter environments where 'spawn' is not available. Not available on
+            - 'fork': Preferable for IPython/Jupyter environments where 'spawn' is not available. Not available on
               the Windows platform for example.
             - 'forkserver': Alternative implementation to 'fork'.
     """

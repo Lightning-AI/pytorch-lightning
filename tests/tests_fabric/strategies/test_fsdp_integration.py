@@ -347,7 +347,14 @@ def test_setup_with_orig_params_and_multiple_param_groups():
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, dynamo=True)
 @mock.patch.dict(os.environ, {})
-@pytest.mark.parametrize("compile_after_setup", [False, True])
+@pytest.mark.parametrize(
+    "compile_after_setup",
+    [
+        False,
+        # https://github.com/pytorch/pytorch/issues/97811
+        pytest.param(True, marks=RunIf(min_python="3.9")),
+    ],
+)
 def test_compile(compile_after_setup):
     """Test that the model can be compiled before and after the model is wrapped in FSDP."""
     model = BoringModel()
