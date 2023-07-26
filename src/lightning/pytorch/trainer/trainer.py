@@ -535,8 +535,8 @@ class Trainer:
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
         """
         model = _maybe_unwrap_optimized(model)
-        _verify_strategy_supports_compile(model, self.strategy)
         self.strategy._lightning_module = model
+        _verify_strategy_supports_compile(model, self.strategy)
         call._call_and_handle_interrupt(
             self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
