@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities related to data saving/loading."""
-import io
 import importlib.util
+import io
 from pathlib import Path
 from typing import Any, Dict, IO, Union
 
@@ -24,6 +24,7 @@ from fsspec.implementations.local import AbstractFileSystem
 from lightning_utilities.core.imports import lazy_import
 
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
+
 
 def _load(
     path_or_url: Union[IO, _PATH],
