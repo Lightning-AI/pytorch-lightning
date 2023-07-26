@@ -636,7 +636,7 @@ class Trainer:
         else:
             model = _maybe_unwrap_optimized(model)
             self.strategy._lightning_module = model
-        _verify_strategy_supports_compile(self.strategy._lightning_module, self.strategy)
+        _verify_strategy_supports_compile(self.lightning_module, self.strategy)
         return call._call_and_handle_interrupt(
             self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
@@ -744,7 +744,7 @@ class Trainer:
         else:
             model = _maybe_unwrap_optimized(model)
             self.strategy._lightning_module = model
-        _verify_strategy_supports_compile(self.strategy._lightning_module, self.strategy)
+        _verify_strategy_supports_compile(self.lightning_module, self.strategy)
         return call._call_and_handle_interrupt(
             self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
@@ -853,7 +853,7 @@ class Trainer:
         else:
             model = _maybe_unwrap_optimized(model)
             self.strategy._lightning_module = model
-        _verify_strategy_supports_compile(self.strategy._lightning_module, self.strategy)
+        _verify_strategy_supports_compile(self.lightning_module, self.strategy)
         return call._call_and_handle_interrupt(
             self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
         )
