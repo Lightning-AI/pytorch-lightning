@@ -1,5 +1,5 @@
 coverage ==7.2.7
-pytest ==7.3.1
+pytest ==7.4.0
 pytest-timeout ==2.1.0
 pytest-cov ==4.0.0
 pytest-doctestplus >=0.9.0
@@ -12,5 +12,5 @@ httpx ==0.24.1
 trio <0.22.0  # strict https://github.com/python-trio/trio/pull/2213
 pympler
 psutil <=5.9.5
-setuptools <67.7.0
+setuptools <68.1.0
 requests-mock <=1.10.0
