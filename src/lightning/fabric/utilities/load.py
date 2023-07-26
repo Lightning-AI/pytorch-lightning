@@ -162,6 +162,7 @@ class _NotYetLoadedTensor:
         return f"{self.__class__.__name__}({repr(self.metatensor)})"
 
 
+# Modified from https://github.com/lernapparat/torchhacks by Thomas Viehmann
 class _LazyLoadingUnpickler(pickle.Unpickler):
     def __init__(self, file: IO, file_reader: torch.PyTorchFileReader) -> None:
         super().__init__(file)
