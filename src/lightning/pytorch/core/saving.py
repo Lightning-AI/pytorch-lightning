@@ -84,6 +84,11 @@ def _load_from_checkpoint(
     # override the hparams with values that were passed in
     checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
 
+    if (
+        isinstance(cls, pl.LightningModule) or isinstance(cls, pl.LightningDataModule):
+        raise ValueError(
+            f"Calling `.load_from_checkpoint` on a model instance is not supported. Please change it to `{type(cls).__name__}.load_from_checkpoint(...)"
+        )
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
