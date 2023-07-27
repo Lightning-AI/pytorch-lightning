@@ -14,6 +14,7 @@
 import os
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any, Callable, Optional, Sequence, Tuple
 
 from lightning_utilities.core.imports import RequirementCache
@@ -144,6 +145,7 @@ def _basic_subprocess_cmd() -> Sequence[str]:
 def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
     from hydra.core.hydra_config import HydraConfig
+    from hydra.types import RunMode
     from hydra.utils import get_original_cwd, to_absolute_path
 
     # when user is using hydra find the absolute path
@@ -152,10 +154,18 @@ def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     else:
         command = [sys.executable, "-m", __main__.__spec__.name]
 
-    command += sys.argv[1:]
-
     cwd = get_original_cwd()
-    rundir = f'"{HydraConfig.get().run.dir}"'
-    # Set output_subdir null since we don't want different subprocesses trying to write to config.yaml
+    hydra_cfg = HydraConfig.get()
+    rundir = Path(hydra_cfg.runtime.output_dir)
+
+    # For multi-run, hydra_cfg.mode is RunMode.MULTIRUN, else it's RunMode.RUN
+    if hydra_cfg.mode == RunMode.RUN:  # Just run current command again
+        command += sys.argv[1:]
+    elif hydra_cfg.output_subdir is None:
+        raise RuntimeError(f"DDP with multirun requires saved config file")
+    else:  # Used saved config for new run
+        hydra_subdir = rundir / hydra_cfg.output_subdir
+        command += ["-cp", str(hydra_subdir), "-cn", "config.yaml"]
+
     command += [f"hydra.run.dir={rundir}", f"hydra.job.name=train_ddp_process_{local_rank}", "hydra.output_subdir=null"]
     return command, cwd
