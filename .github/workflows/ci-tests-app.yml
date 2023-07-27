@@ -10,7 +10,6 @@ on:
     paths:
       - ".actions/*"
       - ".github/workflows/ci-tests-app.yml"
-      - "src/lightning/app/__init__.py"
       - "src/lightning/app/**"
       - "src/lightning_app/*"
       - "tests/tests_app/**"
