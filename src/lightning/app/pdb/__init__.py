@@ -1,4 +1,4 @@
-from lightning.app.perf.pdb import MPPdb, set_trace
+from lightning.app.pdb.pdb import MPPdb, set_trace
 
 # Enable breakpoint within forked processes.
 __builtins__["breakpoint"] = set_trace

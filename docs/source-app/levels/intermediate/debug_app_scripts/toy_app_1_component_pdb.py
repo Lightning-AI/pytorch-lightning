@@ -1,10 +1,11 @@
 # app.py
 import lightning as L
+from lightning.app.pdb import set_trace
 
 class Component(L.LightningWork):
     def run(self, x):
         print(x)
-        L.pdb.set_trace()
+        set_trace()
 
 class WorkflowOrchestrator(L.LightningFlow):
     def __init__(self) -> None:
