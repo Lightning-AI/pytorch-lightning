@@ -34,7 +34,7 @@ if "__version__" not in locals():
 from lightning.app.core.app import LightningApp  # noqa: E402
 from lightning.app.core.flow import LightningFlow  # noqa: E402
 from lightning.app.core.work import LightningWork  # noqa: E402
-from lightning.app.perf import pdb  # noqa: E402
+# from lightning.app.perf import pdb  # noqa: E402
 from lightning.app.plugin.plugin import LightningPlugin  # noqa: E402
 from lightning.app.utilities.packaging.build_config import BuildConfig  # noqa: E402
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute  # noqa: E402
