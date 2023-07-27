@@ -48,6 +48,7 @@ To use multiple GPUs on notebooks, use the *DDP_NOTEBOOK* mode.
     Trainer(accelerator="gpu", devices=4, strategy="ddp_notebook")
 
 If you want to use other strategies, please launch your training via the command-shell.
+See also: :doc:`../../common/notebooks`
 
 ----
 
