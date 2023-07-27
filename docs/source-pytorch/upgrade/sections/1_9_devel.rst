@@ -242,7 +242,7 @@
      - pass dataloders directly
      - `PR16714`_
 
-   * - used ``pl.callbacks.progress.base.ProgressBarBase ProgressBar ``
+   * - used ``pl.callbacks.progress.base.ProgressBarBase``
      - rename to ``pl.callbacks.progress.ProgressBar``
      - `PR17058`_
 
