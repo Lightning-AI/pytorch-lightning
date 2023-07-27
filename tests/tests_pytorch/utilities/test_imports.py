@@ -152,3 +152,20 @@ def test_import_deepspeed_lazily():
     )
     # run in complete isolation
     assert subprocess.call([sys.executable, "-c", code]) == 0
+
+
+def test_import_lightning_multiprocessing_start_method_not_set():
+    """Regression test for avoiding the lightning import to set the multiprocessing context."""
+    
+    # The following would fail with "context has already been set"
+    code = dedent(
+        """
+        import sys
+        import multiprocessing as mp
+        
+        import lightning
+        mp.set_start_method("spawn")
+        """
+    )
+    # run in complete isolation
+    assert subprocess.call([sys.executable, "-c", code]) == 0
