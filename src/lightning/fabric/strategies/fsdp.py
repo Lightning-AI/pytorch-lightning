@@ -67,6 +67,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_1,
 )
 from lightning.fabric.utilities.init import _EmptyInit
+from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
@@ -573,11 +574,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return metadata
 
         if _is_full_checkpoint(path):
-            checkpoint = torch.load(path, map_location="cpu")
+            checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
             _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
 
             if isinstance(state, Module):
                 return {}
+
+            if _TORCH_GREATER_EQUAL_2_0:
+                # Materialize lazy tensors if there are any left in the checkpoint
+                # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
+                checkpoint = _materialize_tensors(checkpoint)
 
             # Load optimizer states
             for optim_key, optim in optimizers.items():
@@ -821,9 +827,8 @@ def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Mo
 
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-    # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
-    # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
-    state_dict = torch.load(path_or_ckpt, map_location="cpu") if not isinstance(path_or_ckpt, dict) else path_or_ckpt
+    # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
+    state_dict = _lazy_load(path_or_ckpt) if isinstance(path_or_ckpt, Path) else path_or_ckpt
     with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
         module.load_state_dict(state_dict, strict=strict)
 

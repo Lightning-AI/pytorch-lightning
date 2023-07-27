@@ -142,12 +142,10 @@ def test_num_stepping_batches_with_tpu_single():
 
 class MultiprocessModel(BoringModel):
     def on_train_start(self):
-        device_count = self.trainer.accelerator.auto_device_count()
-        assert self.trainer.world_size == device_count
-        assert self.trainer.estimated_stepping_batches == len(self.train_dataloader()) // device_count
+        assert self.trainer.estimated_stepping_batches == len(self.train_dataloader()) // self.trainer.world_size
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_num_stepping_batches_with_tpu_multi():
     """Test stepping batches with the TPU strategy across multiple devices."""

@@ -1,16 +1,5 @@
 set -e  # exit on error
 
-echo "--- Cloning lightning repo ---"
-git clone --single-branch --depth 1 https://github.com/Lightning-AI/lightning.git
-cd lightning
-# PR triggered it, check it out
-if [ "{PR_NUMBER}" != "master" ]; then  # if PR number is set
-  echo "--- Fetch the PR changes ---"
-  git fetch origin --depth 1 pull/{PR_NUMBER}/head:test/{PR_NUMBER}
-  echo "--- Checkout PR changes ---"
-  git -c advice.detachedHead=false checkout {SHA}
-fi
-
 echo "--- Install packages ---"
 # show what's already installed
 pip3 list
