@@ -76,4 +76,5 @@ def test_attributes_from_environment_variables(caplog):
 
 def test_detect_kubeflow():
     """Test that the KubeflowEnvironment does not support auto-detection."""
-    assert not KubeflowEnvironment.detect()
+    with pytest.raises(NotImplementedError, match="can't be detected automatically"):
+        KubeflowEnvironment.detect()

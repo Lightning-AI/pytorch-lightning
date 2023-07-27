@@ -44,8 +44,7 @@ class KubeflowEnvironment(ClusterEnvironment):
 
     @staticmethod
     def detect() -> bool:
-        # The Kubeflow environment can't be detected automatically
-        return False
+        raise NotImplementedError("The Kubeflow environment can't be detected automatically.")
 
     def world_size(self) -> int:
         return int(os.environ["WORLD_SIZE"])
