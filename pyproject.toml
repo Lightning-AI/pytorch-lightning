@@ -222,7 +222,6 @@ module = [
     "lightning.app.utilities.app_logs",
     "lightning.app.utilities.cli_helpers",
     "lightning.app.utilities.cloud",
-    "lightning.app.utilities.cluster_logs",
     "lightning.app.utilities.commands.base",
     "lightning.app.utilities.component",
     "lightning.app.utilities.enum",
