@@ -15,10 +15,7 @@ from lightning.app.components.serve import PythonServer
 class PyTorchServer(PythonServer):
     def setup(self):
         self._model = torchvision.models.resnet18(pretrained=True)
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda:0")
-        else:
-            self.device = torch.device("cpu")
+        self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self._model.to(self._device)
 
     def predict(self, request):
