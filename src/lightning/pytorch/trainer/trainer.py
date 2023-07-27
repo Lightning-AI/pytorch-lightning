@@ -1221,11 +1221,13 @@ class Trainer:
     def log_dir(self) -> Optional[str]:
         """The directory for the current experiment. Use this to save images to, etc...
 
-        .. code-block:: python
+        .. note:: You must call this on all processes. Failing to do so will cause your program to stall forever.
 
-            def training_step(self, batch, batch_idx):
-                img = ...
-                save_img(img, self.trainer.log_dir)
+         .. code-block:: python
+
+             def training_step(self, batch, batch_idx):
+                 img = ...
+                 save_img(img, self.trainer.log_dir)
         """
         if len(self.loggers) > 0:
             if not isinstance(self.loggers[0], TensorBoardLogger):
