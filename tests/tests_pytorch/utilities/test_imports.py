@@ -154,6 +154,7 @@ def test_import_deepspeed_lazily():
     assert subprocess.call([sys.executable, "-c", code]) == 0
 
 
+@RunIf(min_python="3.9")
 def test_import_lightning_multiprocessing_start_method_not_set():
     """Regression test for avoiding the lightning import to set the multiprocessing context."""
 
