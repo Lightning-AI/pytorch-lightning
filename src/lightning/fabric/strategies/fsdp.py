@@ -829,8 +829,14 @@ def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Mo
 
     # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
     state_dict = _lazy_load(path_or_ckpt) if isinstance(path_or_ckpt, Path) else path_or_ckpt
-    with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
-        module.load_state_dict(state_dict, strict=strict)
+    for submodule_name, submodule in module.named_modules():
+        if submodule_name not in state_dict:
+            if strict:
+                continue
+            raise ValueError()  # TODO
+
+        with FSDP.summon_full_params(module, writeback=True, rank0_only=False, recurse=False):
+            submodule.load_state_dict(state_dict[submodule_name], strict=strict)
 
 
 def _no_op() -> None:
