@@ -24,7 +24,7 @@ if not _root_logger.hasHandlers():
 from lightning.app import components  # noqa: E402, F401
 
 if os.path.isfile(os.path.join(os.path.dirname(__file__), "__about__.py")):
-    from lightning.app.__about__ import *  # noqa: F401, F403
+    from lightning.app.__about__ import *  # noqa: F403
 if "__version__" not in locals():
     if os.path.isfile(os.path.join(os.path.dirname(__file__), "__version__.py")):
         from lightning.app.__version__ import version as __version__
@@ -34,7 +34,8 @@ if "__version__" not in locals():
 from lightning.app.core.app import LightningApp  # noqa: E402
 from lightning.app.core.flow import LightningFlow  # noqa: E402
 from lightning.app.core.work import LightningWork  # noqa: E402
-# from lightning.app.perf import pdb  # noqa: E402
+
+# from lightning.app.perf import pdb
 from lightning.app.plugin.plugin import LightningPlugin  # noqa: E402
 from lightning.app.utilities.packaging.build_config import BuildConfig  # noqa: E402
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute  # noqa: E402
