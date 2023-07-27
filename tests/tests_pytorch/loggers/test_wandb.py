@@ -131,6 +131,7 @@ def test_wandb_logger_init(wandb, monkeypatch):
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_logger_init_before_spawn(_, monkeypatch):
     logger = WandbLogger()
+    assert logger._experiment is None
     logger.__getstate__()
     assert logger._experiment is not None
 
