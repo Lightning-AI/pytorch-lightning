@@ -1221,6 +1221,8 @@ class Trainer:
     def log_dir(self) -> Optional[str]:
         """The directory for the current experiment. Use this to save images to, etc...
 
+        Important: You must call this on all processes. Failing to do so will cause your program to stall forever.
+
         .. code-block:: python
 
             def training_step(self, batch, batch_idx):
