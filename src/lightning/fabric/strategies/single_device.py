@@ -16,7 +16,6 @@ from __future__ import annotations
 from typing import Any
 
 import torch
-from torch import Tensor
 from torch.nn import Module
 
 from lightning.fabric.accelerators import Accelerator
@@ -55,7 +54,7 @@ class SingleDeviceStrategy(Strategy):
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
 
-    def all_reduce(self, tensor: Any | Tensor, *args: Any, **kwargs: Any) -> Any | Tensor:
+    def all_reduce(self, tensor: Any | torch.Tensor, *args: Any, **kwargs: Any) -> Any | torch.Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
         operates with a single device, the reduction is simply the identity.
 
@@ -69,8 +68,8 @@ class SingleDeviceStrategy(Strategy):
         """
         return tensor
 
-    def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
-        """Perform a all_gather on all processes."""
+    def all_gather(self, tensor: torch.Tensor, group: Any | None = None, sync_grads: bool = False) -> torch.Tensor:
+        """Perform a ``all_gather`` on all processes."""
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
