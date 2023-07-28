@@ -1,5 +1,6 @@
 import subprocess
 import sys
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -13,6 +14,7 @@ _HYDRA_WITH_RUN_PROCESS = RequirementCache("hydra-core>=1.0.7")
 
 if _HYDRA_WITH_RUN_PROCESS:
     from hydra.test_utils.test_utils import run_process
+    from omegaconf import OmegaConf
 
 
 # Script to run from command line
@@ -48,7 +50,7 @@ if __name__ == "__main__":
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _HYDRA_WITH_RUN_PROCESS, reason=str(_HYDRA_WITH_RUN_PROCESS))
-@pytest.mark.parametrize("subdir", [None, "dksa", ".hello"])
+@pytest.mark.parametrize("subdir", [None, "null", "dksa", ".hello"])
 def test_ddp_with_hydra_runjob(subdir, tmpdir, monkeypatch):
     monkeypatch.chdir(tmpdir)
 
