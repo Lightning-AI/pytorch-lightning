@@ -193,7 +193,10 @@ def test_manage_server_processes_one_process_gets_killed(capfd):
     p = Process(target=start_processes, kwargs=functions)
     p.start()
 
-    time.sleep(12)
+    for _ in range(40):
+        time.sleep(1)
+        if p.exitcode is not None:
+            break
     assert p.exitcode == 1
     captured = capfd.readouterr()
     assert (
@@ -211,7 +214,10 @@ def test_manage_server_processes_all_processes_exits_with_zero_exitcode(capfd):
     p = Process(target=start_processes, kwargs=functions)
     p.start()
 
-    time.sleep(12)
+    for _ in range(40):
+        time.sleep(1)
+        if p.exitcode is not None:
+            break
     assert p.exitcode == 0
     captured = capfd.readouterr()
     assert "All the components are inactive with exitcode 0. Exiting execution!!!" in captured.out
