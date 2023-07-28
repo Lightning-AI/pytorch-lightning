@@ -157,4 +157,6 @@ def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     cwd = get_original_cwd()
     run_dir = f'"{HydraConfig.get().run.dir}"'
     command += [f"hydra.run.dir={run_dir}", f"hydra.job.name=train_ddp_process_{local_rank}"]
+    subdir = "null" if HydraConfig.get().output_subdir is None else f".pl_ddp_hydra_{local_rank}"
+    command += [f"hydra.output_subdir={subdir}"]
     return command, cwd
