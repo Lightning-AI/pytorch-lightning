@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [UnReleased] - 2023-08-DD
 
+### Changed
+
+- Disabled the auto-detection of the Kubeflow environment ([#18137](https://github.com/Lightning-AI/lightning/pull/18137))
+
 ### Fixed
 
 - Fixed a `Missing folder` exception when using a Google Storage URL as a `default_root_dir` ([#18088](https://github.com/Lightning-AI/lightning/pull/18088))
