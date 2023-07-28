@@ -1,6 +1,5 @@
 import subprocess
 import sys
-from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -51,8 +50,8 @@ if __name__ == "__main__":
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _HYDRA_WITH_RUN_PROCESS, reason=str(_HYDRA_WITH_RUN_PROCESS))
 @pytest.mark.parametrize("subdir", [None, "null", "dksa", ".hello"])
-def test_ddp_with_hydra_runjob(subdir, tmpdir, monkeypatch):
-    monkeypatch.chdir(tmpdir)
+def test_ddp_with_hydra_runjob(subdir, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
 
     # Save script locally
     with open("temp.py", "w") as fn:
@@ -60,7 +59,7 @@ def test_ddp_with_hydra_runjob(subdir, tmpdir, monkeypatch):
 
     # Run CLI
     devices = 2
-    run_dir = Path(tmpdir) / "hydra_output"
+    run_dir = tmp_path / "hydra_output"
     cmd = [sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"', f"hydra.run.dir={run_dir}"]
     if subdir is not None:
         cmd += [f"hydra.output_subdir={subdir}"]
