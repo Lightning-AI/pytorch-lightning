@@ -48,8 +48,6 @@ class AppConfig:
         """Load the configuration from the given file."""
         with open(path) as file:
             config = yaml.safe_load(file)
-        # Ignore `cluster_id` without error for backwards compatibility.
-        config.pop("cluster_id", None)
         return cls(**config)
 
     @classmethod
