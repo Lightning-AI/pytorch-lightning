@@ -24,11 +24,6 @@ Here are a few features that will enable you save a lot on your cloud costs:
 
 ----
 
-.. include:: ../../cloud/customize_a_lightning_cluster.rst
-
-
-----
-
 ******************************
 Next: Coordinate 2+ components
 ******************************
