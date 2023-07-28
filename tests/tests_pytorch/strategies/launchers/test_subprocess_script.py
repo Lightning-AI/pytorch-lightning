@@ -58,10 +58,24 @@ def test_ddp_with_hydra_runjob(subdir, tmpdir, monkeypatch):
 
     # Run CLI
     devices = 2
-    cmd = [sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"']
+    run_dir = Path(tmpdir) / "hydra_output"
+    cmd = [sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"', f"hydra.run.dir={run_dir}"]
     if subdir is not None:
         cmd += [f"hydra.output_subdir={subdir}"]
     run_process(cmd)
+
+    if subdir != "null":  # There's no .hydra if subdir on command line is "null"
+        # Make sure config.yaml was created for additional processes.
+        logs = list(run_dir.glob("**/config.yaml"))
+        assert len(logs) == devices
+
+        # Make sure the parameter was set and used
+        cfg = OmegaConf.load(logs[0])
+        assert cfg.devices == devices
+
+        # Make sure PL spawned a job that is logged by Hydra
+        logs = list(run_dir.glob("**/*.log"))
+        assert len(logs) == 1
 
 
 def test_kill():
