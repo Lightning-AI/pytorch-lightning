@@ -70,7 +70,7 @@ def _do_nothing(*_: Any) -> None:
 
 
 class Fabric:
-    """Fabric accelerates your PyTorch training or inference code with minimal changes required.
+    r"""Fabric accelerates your PyTorch training or inference code with minimal changes required.
 
     - Automatic placement of models and data onto the device.
     - Automatic support for mixed and double precision (smaller memory footprint).
@@ -195,7 +195,7 @@ class Fabric:
         *optimizers: Optimizer,
         move_to_device: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
-        """Set up a model and its optimizers for accelerated training.
+        r"""Set up a model and its optimizers for accelerated training.
 
         Args:
             module: A :class:`torch.nn.Module` to set up
@@ -248,7 +248,7 @@ class Fabric:
         return module
 
     def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _FabricModule:
-        """Set up a model for accelerated training or inference.
+        r"""Set up a model for accelerated training or inference.
 
         This is the same as calling ``.setup(model)`` with no optimizers. It is useful for inference or for certain
         strategies like `FSDP` that require setting up the module before the optimizer can be created and set up.
@@ -287,7 +287,7 @@ class Fabric:
         return module
 
     def setup_optimizers(self, *optimizers: Optimizer) -> Union[_FabricOptimizer, Tuple[_FabricOptimizer, ...]]:
-        """Set up one or more optimizers for accelerated training.
+        r"""Set up one or more optimizers for accelerated training.
 
         Some strategies do not allow setting up model and optimizer independently. For them, you should call
         ``.setup(model, optimizer, ...)`` instead to jointly set them up.
@@ -309,7 +309,7 @@ class Fabric:
     def setup_dataloaders(
         self, *dataloaders: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
     ) -> Union[DataLoader, List[DataLoader]]:
-        """Set up one or multiple dataloaders for accelerated training. If you need different settings for each
+        r"""Set up one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
         Args:
@@ -337,7 +337,7 @@ class Fabric:
     def _setup_dataloader(
         self, dataloader: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
     ) -> DataLoader:
-        """Set up a single dataloader for accelerated training.
+        r"""Set up a single dataloader for accelerated training.
 
         Args:
             dataloader: The dataloader to accelerate.
@@ -368,7 +368,7 @@ class Fabric:
         return fabric_dataloader
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_FabricModule] = None, **kwargs: Any) -> None:
-        """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
+        r"""Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
 
         Args:
             tensor: The tensor (loss) to back-propagate gradients from.
@@ -459,7 +459,7 @@ class Fabric:
         ...
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
-        """Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
+        r"""Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
         on that device.
 
         Args:
@@ -476,7 +476,7 @@ class Fabric:
         return move_data_to_device(obj, device=self.device)
 
     def print(self, *args: Any, **kwargs: Any) -> None:
-        """Print something only on the first process.
+        r"""Print something only on the first process.
 
         Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
         """
@@ -494,7 +494,7 @@ class Fabric:
         self._strategy.barrier(name=name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        """Send a tensor from one process to all others.
+        r"""Send a tensor from one process to all others.
 
         This method needs to be called on all processes. Failing to do so will cause your program to stall forever.
 
@@ -520,7 +520,7 @@ class Fabric:
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
             group: the process group to gather results from. Defaults to all processes (world).
-            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
+            sync_grads: flag that allows users to synchronize gradients for the ``all_gather`` operation
 
         Return:
             A tensor of shape (world_size, batch, ...), or if the input was a collection
@@ -559,7 +559,7 @@ class Fabric:
 
     @contextmanager
     def rank_zero_first(self, local: bool = False) -> Generator:
-        """The code block under this context manager gets executed first on the main process (rank 0) and only when
+        r"""The code block under this context manager gets executed first on the main process (rank 0) and only when
         completed, the other processes get to run the code in parallel.
 
         Args:
@@ -581,7 +581,7 @@ class Fabric:
 
     @contextmanager
     def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> Generator:
-        """Skip gradient synchronization during backward to avoid redundant communication overhead.
+        r"""Skip gradient synchronization during backward to avoid redundant communication overhead.
 
         Use this context manager when performing gradient accumulation to speed up training with multiple devices.
 
@@ -595,7 +595,7 @@ class Fabric:
                 ...
 
         For those strategies that don't support it, a warning is emitted. For single-device strategies, it is a no-op.
-        Both the model's `.forward()` and the `self.backward()` call need to run under this context.
+        Both the model's ``.forward()`` and the ``self.backward()`` call need to run under this context.
 
         Args:
             module: The module for which to control the gradient synchronization.
@@ -627,7 +627,7 @@ class Fabric:
 
     @contextmanager
     def sharded_model(self) -> Generator:
-        """Instantiate a model under this context manager to prepare it for model-parallel sharding.
+        r"""Instantiate a model under this context manager to prepare it for model-parallel sharding.
 
         .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
         """
@@ -666,7 +666,7 @@ class Fabric:
         Args:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
-                Set this to ``True`` if you are loading a checkpoint into a large model. Requires `torch >= 1.13`.
+                Set this to ``True`` if you are loading a checkpoint into a large model. Requires ``torch >= 1.13``.
         """
         if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
             rank_zero_warn(
@@ -684,7 +684,7 @@ class Fabric:
         state: Dict[str, Union[nn.Module, Optimizer, Any]],
         filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
-        """Save checkpoint contents to a file.
+        r"""Save checkpoint contents to a file.
 
         How and which processes save gets determined by the `strategy`. For example, the `ddp` strategy
         saves checkpoints only on process 0, while the `fsdp` strategy saves files from every rank.
@@ -762,7 +762,7 @@ class Fabric:
         the code (programmatically). If you are launching with the Lightning CLI, ``lightning run model ...``, remove
         ``launch()`` from your code.
 
-        ``launch()`` is a no-op when called multiple times and no function is passed in.
+        The ``launch()`` is a no-op when called multiple times and no function is passed in.
         """
         if _is_using_cli():
             raise RuntimeError(
@@ -788,7 +788,7 @@ class Fabric:
         return self._wrap_and_launch(function, self, *args, **kwargs)
 
     def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
-        """Trigger the callback methods with the given name and arguments.
+        r"""Trigger the callback methods with the given name and arguments.
 
         Not all objects registered via ``Fabric(callbacks=...)`` must implement a method with the given name. The ones
         that have a matching method name will get called.
@@ -852,7 +852,7 @@ class Fabric:
 
     @staticmethod
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
-        """Helper function to seed everything without explicitly importing Lightning.
+        r"""Helper function to seed everything without explicitly importing Lightning.
 
         See :func:`lightning.fabric.utilities.seed.seed_everything` for more details.
         """
