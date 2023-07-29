@@ -838,8 +838,8 @@ def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Mo
             return default_load_from_state_dict(mod, *args, **kwargs)
 
     Module._load_from_state_dict = new_load_from_state_dict
-    with FSDP.summon_full_params(module, writeback=True, rank0_only=False, recurse=False):
-        module.load_state_dict(state_dict, strict=strict)
+    # with FSDP.summon_full_params(module, writeback=True, rank0_only=False, recurse=False):
+    module.load_state_dict(state_dict, strict=strict)
     Module._load_from_state_dict = default_load_from_state_dict
 
     # for submodule_name, submodule in module.named_modules():
