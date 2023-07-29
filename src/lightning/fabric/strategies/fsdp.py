@@ -829,14 +829,27 @@ def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Mo
 
     # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
     state_dict = _lazy_load(path_or_ckpt) if isinstance(path_or_ckpt, Path) else path_or_ckpt
-    for submodule_name, submodule in module.named_modules():
-        if submodule_name not in state_dict:
-            if strict:
-                continue
-            raise ValueError()  # TODO
 
-        with FSDP.summon_full_params(module, writeback=True, rank0_only=False, recurse=False):
-            submodule.load_state_dict(state_dict[submodule_name], strict=strict)
+    default_load_from_state_dict = Module._load_from_state_dict
+
+    def new_load_from_state_dict(mod, *args, **kwargs):
+        with FSDP.summon_full_params(mod, writeback=True, rank0_only=False, recurse=False):
+            return default_load_from_state_dict(mod, *args, **kwargs)
+
+    Module._load_from_state_dict = new_load_from_state_dict
+    module.load_state_dict(state_dict, strict=strict)
+    Module._load_from_state_dict = default_load_from_state_dict
+
+    # for submodule_name, submodule in module.named_modules():
+    #     if submodule_name not in state_dict:
+    #         if not strict:
+    #             continue
+    #         raise KeyError()
+    #         # raise KeyError(f"The model contains a parameter '{invalid_keys[0]}' that does not exist in the loaded checkpoint."
+    #         # f" To disable strict loading, set `strict=False`."
+    #
+    #     with FSDP.summon_full_params(module, writeback=True, rank0_only=False, recurse=False):
+    #         submodule.load_state_dict(state_dict[submodule_name], strict=strict)
 
 
 def _no_op() -> None:
