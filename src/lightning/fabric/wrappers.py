@@ -47,6 +47,8 @@ class _FabricOptimizer:
         Args:
             optimizer: The optimizer to wrap
             strategy: Reference to the strategy for handling the optimizer step
+
+        :meta public:
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
         # not want to call on destruction of the `_FabricOptimizer
@@ -96,6 +98,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             original_module: The original, unmodified module as passed into the
                 :meth:`lightning.fabric.fabric.Fabric.setup` method. This is needed when attribute lookup
                 on this wrapper should pass through to the original module.
+
+        :meta public:
         """
         super().__init__()
         self._forward_module = forward_module
@@ -225,6 +229,8 @@ class _FabricDataLoader:
             dataloader: The dataloader to wrap
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
+
+        :meta public:
         """
         self.__dict__.update(dataloader.__dict__)
         self._dataloader = dataloader
