@@ -16,12 +16,12 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from lightning.pytorch.plugins import HalfPrecisionPlugin
 from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import HalfPrecisionPlugin
 
 
 @pytest.mark.parametrize(
-    "precision, expected_dtype",
+    ("precision", "expected_dtype"),
     [
         ("bf16-true", torch.bfloat16),
         ("16-true", torch.half),
@@ -34,7 +34,7 @@ def test_selected_dtype(precision, expected_dtype):
 
 
 @pytest.mark.parametrize(
-    "precision, expected_dtype",
+    ("precision", "expected_dtype"),
     [
         ("bf16-true", torch.bfloat16),
         ("16-true", torch.half),
@@ -49,7 +49,7 @@ def test_init_context(precision, expected_dtype):
 
 
 @pytest.mark.parametrize(
-    "precision, expected_dtype",
+    ("precision", "expected_dtype"),
     [
         ("bf16-true", torch.bfloat16),
         ("16-true", torch.half),
@@ -64,7 +64,7 @@ def test_forward_context(precision, expected_dtype):
 
 
 @pytest.mark.parametrize(
-    "precision, expected_dtype",
+    ("precision", "expected_dtype"),
     [
         ("bf16-true", torch.bfloat16),
         ("16-true", torch.half),
@@ -79,7 +79,7 @@ def test_convert_module(precision, expected_dtype):
 
 
 @pytest.mark.parametrize(
-    "precision, expected_dtype",
+    ("precision", "expected_dtype"),
     [
         ("bf16-true", torch.bfloat16),
         ("16-true", torch.half),

@@ -24,7 +24,6 @@ from lightning.pytorch.plugins.precision.double import DoublePrecisionPlugin, Li
 from tests_pytorch.helpers.runif import RunIf
 
 
-
 class RandomFloatIntDataset(Dataset):
     def __init__(self, size, length):
         self.len = length
