@@ -336,7 +336,8 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
 def test_setup_dataloaders_raises_for_unknown_custom_args():
     """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's
     run method."""
-    fabric = Fabric()
+    fabric = Fabric(devices=2, accelerator="cpu")
+    fabric._launched = True
 
     class CustomDataLoader(DataLoader):
         def __init__(self, new_arg, *args, **kwargs):
@@ -351,7 +352,7 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
     ):
         # The dataloader was not created within the run function, and therefore init args were not intercepted
         dataloader = CustomDataLoader(2, batch_size=2)
-        fabric.setup_dataloaders(dataloader)
+        fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
 
 
 def test_setup_dataloaders_twice_fails():
