@@ -511,9 +511,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         path = Path(self.broadcast(path))
 
         if isinstance(state, Module):
-            from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-            assert isinstance(state, FSDP)
-            print("loading raw")
             _load_raw_module_state(path, module=state, strict=strict)
             return {}
 
