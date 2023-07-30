@@ -144,7 +144,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
@@ -164,7 +163,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
-            checkpoint_io=checkpoint_io,
             precision=precision,
         )
         self._num_nodes = 1
@@ -184,6 +182,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        raise NotImplementedError(f"The `{type(self).__name__}` does not use the `CheckpointIO` plugin interface.")
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        raise NotImplementedError(f"The `{type(self).__name__}` does not support setting a `CheckpointIO`.")
 
     @property
     def root_device(self) -> torch.device:
