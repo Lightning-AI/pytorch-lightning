@@ -336,12 +336,20 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
 def test_setup_dataloaders_raises_for_unknown_custom_args():
     """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's
     run method."""
-    fabric = Fabric(devices=2, accelerator="cpu")
-    fabric._launched = True
-
     class CustomDataLoader(DataLoader):
         def __init__(self, new_arg, *args, **kwargs):
             super().__init__(range(5), *args, **kwargs)
+
+    dataloader = CustomDataLoader(2, batch_size=2)
+
+    # If no distributed sampler is required, reinstantiation is not necessary
+    fabric = Fabric(devices=1)
+    fabric_dataloader = fabric.setup_dataloaders(dataloader)
+    assert fabric_dataloader._dataloader is dataloader
+
+    # If a distributed sampler is required, sampler needs to be reinstantiatied
+    fabric = Fabric(devices=2, accelerator="cpu")
+    fabric._launched = True
 
     with pytest.raises(
         MisconfigurationException,
@@ -350,9 +358,8 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
             r"The missing attributes are \['new_arg'\]"
         ),
     ):
-        # The dataloader was not created within the run function, and therefore init args were not intercepted
-        dataloader = CustomDataLoader(2, batch_size=2)
-        fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
+
+        fabric.setup_dataloaders(dataloader)
 
 
 def test_setup_dataloaders_twice_fails():
