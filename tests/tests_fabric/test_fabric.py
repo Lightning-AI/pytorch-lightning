@@ -336,6 +336,7 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
 def test_setup_dataloaders_raises_for_unknown_custom_args():
     """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's
     run method."""
+
     class CustomDataLoader(DataLoader):
         def __init__(self, new_arg, *args, **kwargs):
             super().__init__(range(5), *args, **kwargs)
@@ -358,7 +359,6 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
             r"The missing attributes are \['new_arg'\]"
         ),
     ):
-
         fabric.setup_dataloaders(dataloader)
 
 
