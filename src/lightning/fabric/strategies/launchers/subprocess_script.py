@@ -155,8 +155,7 @@ def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     command += sys.argv[1:]
 
     cwd = get_original_cwd()
-    run_dir = f'"{HydraConfig.get().run.dir}"'
-    command += [f"hydra.run.dir={run_dir}", f"hydra.job.name=train_ddp_process_{local_rank}"]
-    subdir = "null" if HydraConfig.get().output_subdir is None else f".pl_ddp_hydra_{local_rank}"
-    command += [f"hydra.output_subdir={subdir}"]
+    rundir = f'"{HydraConfig.get().run.dir}"'
+    # Set output_subdir null since we don't want different subprocesses trying to write to config.yaml
+    command += [f"hydra.run.dir={rundir}", f"hydra.job.name=train_ddp_process_{local_rank}", "hydra.output_subdir=null"]
     return command, cwd

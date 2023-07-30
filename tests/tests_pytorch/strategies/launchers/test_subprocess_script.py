@@ -8,7 +8,6 @@ from lightning_utilities.core.imports import RequirementCache
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from tests_pytorch.helpers.runif import RunIf
 
-_HYDRA_WITH_RERUN = RequirementCache("hydra-core>=1.2")
 _HYDRA_WITH_RUN_PROCESS = RequirementCache("hydra-core>=1.0.7")
 
 if _HYDRA_WITH_RUN_PROCESS:
@@ -65,9 +64,9 @@ def test_ddp_with_hydra_runjob(subdir, tmp_path, monkeypatch):
         cmd += [f"hydra.output_subdir={subdir}"]
     run_process(cmd)
 
-    # Make sure config.yaml was created for additional processes iff subdir is present.
+    # Make sure no config.yaml was created for additional processes
     saved_confs = list(run_dir.glob("**/config.yaml"))
-    assert len(saved_confs) == (0 if subdir == "null" else devices)
+    assert len(saved_confs) == (0 if subdir == "null" else 1)  # Main process has config.yaml iff subdir!="null"
 
     if saved_confs:  # Make sure the parameter was set and used
         cfg = OmegaConf.load(saved_confs[0])
