@@ -189,7 +189,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
-        raise NotImplementedError(f"The `{type(self).__name__}` does not support setting a `CheckpointIO`.")
+        raise NotImplementedError(f"The `{type(self).__name__}` does not support setting a `CheckpointIO` plugin.")
 
     @property
     def root_device(self) -> torch.device:
