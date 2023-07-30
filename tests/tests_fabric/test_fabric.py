@@ -395,9 +395,10 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     custom_sampler = Mock(spec=Sampler)
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
-    # keep the custom sampler when not needed to replace
+    # if no distributed sampler is required, dataloader reinstantiation is not necessary
     fabric = Fabric(devices=1)
     fabric_dataloader = fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
+    assert fabric_dataloader._dataloader is dataloader
     assert fabric_dataloader.sampler is custom_sampler
 
 
