@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Generator, Literal, List, Tuple, cast
+from typing import Any, cast, Generator, List, Literal, Tuple
 
 import torch
 from torch.nn import Module
@@ -28,6 +28,7 @@ class HalfPrecisionPlugin(PrecisionPlugin):
     Args:
         precision: Whether to use ``torch.float16`` (``'16-true'``) or ``torch.bfloat16`` (``'bf16-true'``).
     """
+
     precision: Literal["bf16-true", "16-true"] = "16-true"
 
     def __init__(self, precision: Literal["bf16-true", "16-true"] = "16-true") -> None:

@@ -22,8 +22,7 @@ __all__ = [
     "XLACheckpointIO",
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
-    "HalfPrecisionPlugin"
-    "MixedPrecisionPlugin",
+    "HalfPrecisionPlugin" "MixedPrecisionPlugin",
     "PrecisionPlugin",
     "FSDPMixedPrecisionPlugin",
     "XLAPrecisionPlugin",
