@@ -25,7 +25,9 @@ from typing import (
     Iterable,
     List,
     Literal,
+    Mapping,
     Optional,
+    OrderedDict,
     Set,
     Tuple,
     Type,
@@ -509,6 +511,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         path = Path(self.broadcast(path))
 
         if isinstance(state, Module):
+            from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+            assert isinstance(state, FSDP)
+            print("loading raw")
             _load_raw_module_state(path, module=state, strict=strict)
             return {}
 
@@ -829,29 +834,8 @@ def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Mo
 
     # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
     state_dict = _lazy_load(path_or_ckpt) if isinstance(path_or_ckpt, Path) else path_or_ckpt
-
-    default_load_from_state_dict = Module._load_from_state_dict
-
-    def new_load_from_state_dict(mod, *args, **kwargs):
-        with FSDP.summon_full_params(mod, writeback=True, rank0_only=False, recurse=False):
-            print("module:", mod)
-            return default_load_from_state_dict(mod, *args, **kwargs)
-
-    Module._load_from_state_dict = new_load_from_state_dict
-    # with FSDP.summon_full_params(module, writeback=True, rank0_only=False, recurse=False):
-    module.load_state_dict(state_dict, strict=strict)
-    Module._load_from_state_dict = default_load_from_state_dict
-
-    # for submodule_name, submodule in module.named_modules():
-    #     if submodule_name not in state_dict:
-    #         if not strict:
-    #             continue
-    #         raise KeyError()
-    #         # raise KeyError(f"The model contains a parameter '{invalid_keys[0]}' that does not exist in the loaded checkpoint."
-    #         # f" To disable strict loading, set `strict=False`."
-    #
-    #     with FSDP.summon_full_params(module, writeback=True, rank0_only=False, recurse=False):
-    #         submodule.load_state_dict(state_dict[submodule_name], strict=strict)
+    with _get_full_state_dict_context(module, rank0_only=False):
+        module.load_state_dict(state_dict, strict=strict)
 
 
 def _no_op() -> None:
