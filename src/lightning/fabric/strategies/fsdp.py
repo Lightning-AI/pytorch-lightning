@@ -825,7 +825,6 @@ def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Mo
             f" full state dict: {path_or_ckpt}"
         )
 
-
     # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
     state_dict = _lazy_load(path_or_ckpt) if isinstance(path_or_ckpt, Path) else path_or_ckpt
     with _get_full_state_dict_context(module, rank0_only=False):
