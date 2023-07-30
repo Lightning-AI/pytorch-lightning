@@ -264,6 +264,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 )
                 del self._fsdp_kwargs["auto_wrap_policy"]
         else:
+            _validate_meta_device_param_init(module)
             module = FullyShardedDataParallel(
                 module=module,
                 cpu_offload=self.cpu_offload,
@@ -841,6 +842,19 @@ def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Mo
     state_dict = _lazy_load(path_or_ckpt) if isinstance(path_or_ckpt, Path) else path_or_ckpt
     with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
         module.load_state_dict(state_dict, strict=strict)
+
+
+def _validate_meta_device_param_init(module: Module) -> None:
+    # TODO: only validate if using FULL_SHARD
+    for module in module.modules():
+        has_params_on_meta_device = any(p.is_meta for p in module.parameters(recurse=False))
+        if has_params_on_meta_device and not callable(getattr(module, "reset_parameters")):
+            # make warning?
+            # what if the parameter is not managed by FSDP?
+            raise ValueError(
+                f"The {type(module).__name__} module contains parameters on the meta device, but does not implement"
+                " a `reset_parameters()` method. To initialize parameters for FSDP set `empty_init=False`."
+            )
 
 
 def _no_op() -> None:
