@@ -196,7 +196,7 @@ module = [
     "lightning.app.frontend.stream_lit",
     "lightning.app.frontend.utils",
     "lightning.app.frontend.web",
-    "lightning.app.perf.pdb",
+    "lightning.app.pdb.pdb",
     "lightning.app.runners.backends.backend",
     "lightning.app.runners.backends.cloud",
     "lightning.app.runners.backends.docker",
