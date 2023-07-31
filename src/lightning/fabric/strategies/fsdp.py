@@ -836,7 +836,6 @@ def _load_raw_module_state_from_path(path: Path, module: Module, strict: bool = 
 def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: bool = True) -> None:
     """Loads the state dict into the module by gathering all weights first and then and writing back to each
     shard."""
-    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
     with _get_full_state_dict_context(module, rank0_only=False):
         module.load_state_dict(state_dict, strict=strict)
