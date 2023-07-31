@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from unittest import mock
+from unittest.mock import Mock
 
 import torch
 
@@ -48,13 +49,22 @@ def test_xla_strategy_debug_state():
     assert "PT_XLA_DEBUG" not in os.environ
 
 
-@RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_rank_properties_in_main_process():
-    """Test that the strategy returns the default values for rank properties in the main process."""
+def test_rank_properties_access(xla_available):
+    """Test that the strategy returns the expected values depending on whether we're in the main process or not."""
     strategy = XLAStrategy()
+    strategy.cluster_environment = Mock()
+
+    # we're in the main process, no processes have been launched yet
     assert not strategy._launched
     assert strategy.global_rank == 0
     assert strategy.local_rank == 0
     assert strategy.node_rank == 0
     assert strategy.world_size == 1
+
+    # simulate we're in a worker process
+    strategy._launched = True
+    assert strategy.global_rank == strategy.cluster_environment.global_rank()
+    assert strategy.local_rank == strategy.cluster_environment.local_rank()
+    assert strategy.node_rank == strategy.cluster_environment.node_rank()
+    assert strategy.world_size == strategy.cluster_environment.world_size()
