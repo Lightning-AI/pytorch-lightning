@@ -122,7 +122,7 @@ jobs:
           push: false
         timeout-minutes: 55
 
-  build-docs:
+  build-docs:  # todo: drop this image or add Python version
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
