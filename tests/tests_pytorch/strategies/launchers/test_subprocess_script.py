@@ -8,11 +8,11 @@ from lightning_utilities.core.imports import RequirementCache
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from tests_pytorch.helpers.runif import RunIf
 
-_HYDRA_WITH_RERUN = RequirementCache("hydra-core>=1.2")
 _HYDRA_WITH_RUN_PROCESS = RequirementCache("hydra-core>=1.0.7")
 
 if _HYDRA_WITH_RUN_PROCESS:
     from hydra.test_utils.test_utils import run_process
+    from omegaconf import OmegaConf
 
 
 # Script to run from command line
@@ -48,9 +48,9 @@ if __name__ == "__main__":
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _HYDRA_WITH_RUN_PROCESS, reason=str(_HYDRA_WITH_RUN_PROCESS))
-@pytest.mark.parametrize("subdir", [None, "dksa", ".hello"])
-def test_ddp_with_hydra_runjob(subdir, tmpdir, monkeypatch):
-    monkeypatch.chdir(tmpdir)
+@pytest.mark.parametrize("subdir", [None, "null", "dksa", ".hello"])
+def test_ddp_with_hydra_runjob(subdir, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
 
     # Save script locally
     with open("temp.py", "w") as fn:
@@ -58,10 +58,23 @@ def test_ddp_with_hydra_runjob(subdir, tmpdir, monkeypatch):
 
     # Run CLI
     devices = 2
-    cmd = [sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"']
+    run_dir = tmp_path / "hydra_output"
+    cmd = [sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"', f"hydra.run.dir={run_dir}"]
     if subdir is not None:
         cmd += [f"hydra.output_subdir={subdir}"]
     run_process(cmd)
+
+    # Make sure no config.yaml was created for additional processes
+    saved_confs = list(run_dir.glob("**/config.yaml"))
+    assert len(saved_confs) == (0 if subdir == "null" else 1)  # Main process has config.yaml iff subdir!="null"
+
+    if saved_confs:  # Make sure the parameter was set and used
+        cfg = OmegaConf.load(saved_confs[0])
+        assert cfg.devices == devices
+
+    # Make sure PL spawned jobs that are logged by Hydra
+    logs = list(run_dir.glob("**/*.log"))
+    assert len(logs) == devices
 
 
 def test_kill():
