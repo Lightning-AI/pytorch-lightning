@@ -72,6 +72,8 @@ jobs:
 
       - name: Install package & dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-extra
           mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit
           ls -lh $PYPI_CACHE_DIR
           mkdir -p pypi_pkgs  # in case template is not pulled
@@ -126,6 +128,8 @@ jobs:
 
       - name: Install package & dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-extra
           mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit
           ls -lh $PYPI_CACHE_DIR
           mkdir -p pypi_pkgs  # in case template is not pulled
