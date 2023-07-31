@@ -46,10 +46,7 @@ def check_lightning_pytorch_and_mps():
     ("accelerator_given", "accelerator_expected"), [("cpu", "cpu"), ("auto", "cpu"), ("gpu", "cpu")]
 )
 def test_trainer_run_executor_mps_forced_cpu(accelerator_given, accelerator_expected):
-    warning_str = (
-        r"Forcing accelerator=cpu as other accelerators \(specifically MPS\) are not supported "
-        + "by PyTorch for distributed training on mps capable devices"
-    )
+    warning_str = r"Forcing `accelerator=cpu` as MPS does not support distributed training."
     if accelerator_expected != accelerator_given:
         warning_context = pytest.warns(UserWarning, match=warning_str)
     else:

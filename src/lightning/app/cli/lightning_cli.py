@@ -13,25 +13,17 @@
 # limitations under the License.
 
 import os
-import shutil
 import sys
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
-import arrow
 import click
-import inquirer
-import rich
-from lightning_cloud.openapi import V1LightningappInstanceState, V1LightningworkState
-from lightning_cloud.openapi.rest import ApiException
 from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
 
 import lightning.app.core.constants as constants
 from lightning.app import __version__ as ver
 from lightning.app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
-from lightning.app.cli.cmd_apps import _AppManager
-from lightning.app.cli.cmd_clusters import AWSClusterManager
 from lightning.app.cli.commands.app_commands import _run_app_command
 from lightning.app.cli.commands.cd import cd
 from lightning.app.cli.commands.cp import cp
@@ -46,27 +38,22 @@ from lightning.app.cli.connect.app import (
     disconnect_app,
 )
 from lightning.app.cli.connect.data import connect_data
-from lightning.app.cli.connect.maverick import connect_maverick, disconnect_maverick
-from lightning.app.cli.lightning_cli_create import create
 from lightning.app.cli.lightning_cli_delete import delete
+from lightning.app.cli.lightning_cli_launch import launch
 from lightning.app.cli.lightning_cli_list import get_list
-from lightning.app.core.constants import DEBUG, ENABLE_APP_COMMENT_COMMAND_EXECUTION, get_lightning_cloud_url
+from lightning.app.core.constants import ENABLE_APP_COMMENT_COMMAND_EXECUTION, get_lightning_cloud_url
 from lightning.app.runners.cloud import CloudRuntime
 from lightning.app.runners.runtime import dispatch
 from lightning.app.runners.runtime_type import RuntimeType
 from lightning.app.utilities.app_commands import run_app_commands
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cli_helpers import (
-    _arrow_time_callback,
     _check_environment_and_redirect,
     _check_version_and_upgrade,
     _format_input_env_variables,
 )
-from lightning.app.utilities.cluster_logs import _cluster_logs_reader
-from lightning.app.utilities.exceptions import _ApiExceptionHandler, LogLinesLimitExceeded
+from lightning.app.utilities.exceptions import _ApiExceptionHandler
 from lightning.app.utilities.login import Auth
-from lightning.app.utilities.logs_socket_api import _ClusterLogsSocketAPI
-from lightning.app.utilities.network import LightningClient
 from lightning.app.utilities.port import _find_lit_app_port
 
 logger = Logger(__name__)
@@ -148,8 +135,6 @@ def disconnect() -> None:
 
 connect.command("app")(connect_app)
 disconnect.command("app")(disconnect_app)
-connect.command("maverick", hidden=True)(connect_maverick)
-disconnect.command("maverick", hidden=True)(disconnect_maverick)
 connect.command("data", hidden=True)(connect_data)
 _main.command(hidden=True)(ls)
 _main.command(hidden=True)(cd)
@@ -157,95 +142,6 @@ _main.command(hidden=True)(cp)
 _main.command(hidden=True)(pwd)
 _main.command(hidden=True)(rm)
 show.command()(logs)
-
-
-@show.group()
-def cluster() -> None:
-    """Groups cluster commands inside show."""
-    pass
-
-
-@cluster.command(name="logs")
-@click.argument("cluster_id", required=True)
-@click.option(
-    "--from",
-    "from_time",
-    default="24 hours ago",
-    help="The starting timestamp to query cluster logs from. Human-readable (e.g. '48 hours ago') or ISO 8601 "
-    "(e.g. '2022-08-23 12:34') formats.",
-    callback=_arrow_time_callback,
-)
-@click.option(
-    "--to",
-    "to_time",
-    default="0 seconds ago",
-    callback=_arrow_time_callback,
-    help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with "
-    "-f/--follow). The same format as --from option has.",
-)
-@click.option("--limit", default=10000, help="The max number of log lines returned.")
-@click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
-def cluster_logs(cluster_id: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
-    """Show cluster logs.
-
-    Example uses:
-
-    Print cluster logs:
-
-    $ lightning show cluster logs my-cluster
-
-    Print cluster logs and wait for new logs:
-
-    $ lightning show cluster logs my-cluster --follow
-
-    Print cluster logs, from 48 hours ago to now:
-
-    $ lightning show cluster logs my-cluster --from "48 hours ago"
-
-    Print cluster logs, 10 most recent lines:
-
-    $ lightning show cluster logs my-cluster --limit 10
-    """
-    client = LightningClient(retry=False)
-    cluster_manager = AWSClusterManager()
-    existing_cluster_list = cluster_manager.get_clusters()
-
-    clusters = {cluster.id: cluster.id for cluster in existing_cluster_list.clusters}
-
-    if not clusters:
-        raise click.ClickException("You don't have any clusters.")
-
-    if not cluster_id:
-        raise click.ClickException(
-            f"You have not specified any clusters. Please select one of available: [{', '.join(clusters.keys())}]"
-        )
-
-    if cluster_id not in clusters:
-        raise click.ClickException(
-            f"The cluster '{cluster_id}' does not exist."
-            f" Please select one of the following: [{', '.join(clusters.keys())}]"
-        )
-
-    try:
-        log_reader = _cluster_logs_reader(
-            logs_api_client=_ClusterLogsSocketAPI(client.api_client),
-            cluster_id=cluster_id,
-            start=from_time.int_timestamp,
-            end=to_time.int_timestamp if not follow else None,
-            limit=limit,
-            follow=follow,
-        )
-
-        colors = {"error": "red", "warn": "yellow", "info": "green"}
-
-        for log_event in log_reader:
-            date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
-            color = colors.get(log_event.labels.level, "green")
-            rich.print(f"[{color}]{log_event.labels.level:5}[/{color}] {date} {log_event.message.rstrip()}")
-    except LogLinesLimitExceeded:
-        raise click.ClickException(f"Read {limit} log lines, but there may be more. Use --limit param to read more")
-    except Exception as ex:
-        logger.error(f"⚡ Error while reading logs ({type(ex)}), {ex}", exc_info=DEBUG)
 
 
 @_main.command()
@@ -271,7 +167,6 @@ def logout() -> None:
 def _run_app(
     file: str,
     cloud: bool,
-    cluster_id: str,
     without_server: bool,
     no_cache: bool,
     name: str,
@@ -289,9 +184,6 @@ def _run_app(
             click.echo(f"The provided entrypoint `{original_file}` doesn't exist.")
             sys.exit(1)
         run_app_comment_commands = True
-
-    if not cloud and cluster_id is not None:
-        raise click.ClickException("Using the flag --cluster-id in local execution is not supported.")
 
     runtime_type = RuntimeType.CLOUD if cloud else RuntimeType.MULTIPROCESS
 
@@ -333,7 +225,6 @@ def _run_app(
         name=name,
         env_vars=env_vars,
         secrets=secrets,
-        cluster_id=cluster_id,
         run_app_comment_commands=run_app_comment_commands,
         enable_basic_auth=enable_basic_auth,
         port=port,
@@ -350,12 +241,6 @@ def run() -> None:
 @run.command("app")
 @click.argument("file", type=str)
 @click.option("--cloud", type=bool, default=False, is_flag=True)
-@click.option(
-    "--cluster-id",
-    type=str,
-    default=None,
-    help="Run Lightning App on a specific Lightning AI BYOC compute cluster",
-)
 @click.option("--name", help="The current application name", default="", type=str)
 @click.option("--without-server", is_flag=True, default=False)
 @click.option(
@@ -391,7 +276,6 @@ def run() -> None:
 def run_app(
     file: str,
     cloud: bool,
-    cluster_id: str,
     without_server: bool,
     no_cache: bool,
     name: str,
@@ -407,7 +291,6 @@ def run_app(
     _run_app(
         file,
         cloud,
-        cluster_id,
         without_server,
         no_cache,
         name,
@@ -429,107 +312,21 @@ if RequirementCache("lightning-fabric>=1.9.0") or RequirementCache("lightning>=1
 
 @_main.command("open", hidden=True)
 @click.argument("path", type=str, default=".")
-@click.option(
-    "--cluster-id",
-    type=str,
-    default=None,
-    help="Open on a specific Lightning AI BYOC compute cluster",
-)
 @click.option("--name", help="The name to use for the CloudSpace", default="", type=str)
-def open(path: str, cluster_id: str, name: str) -> None:
-    """Open files or folders from your machine in a Lightning CloudSpace."""
+def open(path: str, name: str) -> None:
+    """Open files or folders from your machine on the cloud."""
     if not os.path.exists(path):
         click.echo(f"The provided path `{path}` doesn't exist.")
         sys.exit(1)
 
     runtime = CloudRuntime(entrypoint=Path(path))
-    runtime.open(name, cluster_id)
+    runtime.open(name)
 
 
 _main.add_command(get_list)
 _main.add_command(delete)
-_main.add_command(create)
+_main.add_command(launch)
 _main.add_command(cmd_install.install)
-
-
-@_main.command("ssh")
-@click.option(
-    "--app-name",
-    "app_name",
-    type=str,
-    default=None,
-    required=False,
-)
-@click.option(
-    "--component-name",
-    "component_name",
-    type=str,
-    default=None,
-    help="Specify which component to SSH into",
-)
-def ssh(app_name: Optional[str] = None, component_name: Optional[str] = None) -> None:
-    """SSH into a Lightning App."""
-    app_manager = _AppManager()
-    apps = app_manager.list_apps(phase_in=[V1LightningappInstanceState.RUNNING])
-    if len(apps) == 0:
-        raise click.ClickException("No running apps available. Start a Lightning App in the cloud to use this feature.")
-
-    available_app_names = [app.name for app in apps]
-    if app_name is None:
-        available_apps = [
-            inquirer.List(
-                "app_name",
-                message="What app to SSH into?",
-                choices=available_app_names,
-            ),
-        ]
-        app_name = inquirer.prompt(available_apps)["app_name"]
-    app_id = next((app.id for app in apps if app.name == app_name), None)
-    if app_id is None:
-        raise click.ClickException(
-            f"Unable to find a running app with name {app_name} in your account. "
-            + f"Available running apps are: {', '.join(available_app_names)}"
-        )
-    try:
-        instance = app_manager.get_app(app_id=app_id)
-    except ApiException:
-        raise click.ClickException("failed fetching app instance")
-
-    components = app_manager.list_components(app_id=app_id, phase_in=[V1LightningworkState.RUNNING])
-    available_component_names = [work.name for work in components] + ["flow"]
-    if component_name is None:
-        available_components = [
-            inquirer.List(
-                "component_name",
-                message="Which component to SSH into?",
-                choices=available_component_names,
-            )
-        ]
-        component_name = inquirer.prompt(available_components)["component_name"]
-
-    component_id = None
-    if component_name == "flow":
-        component_id = f"lightningapp-{app_id}"
-    elif component_name is not None:
-        work_id = next((work.id for work in components if work.name == component_name), None)
-        if work_id is not None:
-            component_id = f"lightningwork-{work_id}"
-
-    if component_id is None:
-        raise click.ClickException(
-            f"Unable to find an app component with name {component_name}. "
-            f"Available components are: {', '.join(available_component_names)}"
-        )
-
-    app_cluster = app_manager.get_cluster(cluster_id=instance.spec.cluster_id)
-    ssh_endpoint = app_cluster.status.ssh_gateway_endpoint
-
-    ssh_path = shutil.which("ssh")
-    if ssh_path is None:
-        raise click.ClickException(
-            "Unable to find the ssh binary. You must install ssh first to use this functionality."
-        )
-    os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])  # noqa: S606
 
 
 @_main.group()
