@@ -242,6 +242,10 @@
      - pass dataloders directly
      - `PR16714`_
 
+   * - used ``pl.callbacks.progress.base.ProgressBarBase``
+     - rename to ``pl.callbacks.progress.ProgressBar``
+     - `PR17058`_
+
    * - accessed ``ProgressBarBase.train_batch_idx`` property
      - rely on Trainer internal loops’ properties
      - `PR16760`_
@@ -302,6 +306,7 @@
 .. _pr16203: https://github.com/Lightning-AI/lightning/pull/16203
 .. _pr16462: https://github.com/Lightning-AI/lightning/pull/16462
 .. _pr16714: https://github.com/Lightning-AI/lightning/pull/16714
+.. _pr17058: https://github.com/Lightning-AI/lightning/pull/17058
 .. _pr16760: https://github.com/Lightning-AI/lightning/pull/16760
 .. _pr16759: https://github.com/Lightning-AI/lightning/pull/16759
 .. _pr16618: https://github.com/Lightning-AI/lightning/pull/16618
