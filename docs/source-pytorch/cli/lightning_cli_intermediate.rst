@@ -19,7 +19,7 @@ enable, either install all extras:
 
 .. code:: bash
 
-    pip install "lightning[extra]"
+    pip install "lightning[pytorch-extra]"
 
 or if only interested in ``LightningCLI``, just install jsonargparse:
 
