@@ -123,6 +123,7 @@ jobs:
         timeout-minutes: 55
 
   build-docs:
+    # todo: this may not be needed
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
