@@ -515,7 +515,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         path = Path(self.broadcast(path))
 
         if isinstance(state, Module):
-            _load_raw_module_state(path, module=state, strict=strict)
+            _load_raw_module_state_from_path(path, module=state, strict=strict)
             return {}
 
         if isinstance(state, Optimizer):
@@ -822,17 +822,21 @@ def _has_fsdp_modules(module: object) -> TypeGuard[Module]:
     return isinstance(module, Module) and any(isinstance(m, FullyShardedDataParallel) for m in module.modules())
 
 
-def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Module, strict: bool = True) -> None:
-    """Loads the state dict (given or from a path) into the module by gathering all weights first and then and
-    writing back to each shard."""
-    if isinstance(path_or_ckpt, Path) and not _is_full_checkpoint(path_or_ckpt):
+def _load_raw_module_state_from_path(path: Path, module: Module, strict: bool = True) -> None:
+    """Loads the state dict from a file path into the FSDP module."""
+    if not _is_full_checkpoint(path):
         raise ValueError(
             "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
-            f" full state dict: {path_or_ckpt}"
+            f" full state dict: {path}"
         )
-
     # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
-    state_dict = _lazy_load(path_or_ckpt) if isinstance(path_or_ckpt, Path) else path_or_ckpt
+    _load_raw_module_state(state_dict=_lazy_load(path), module=module, strict=strict)
+
+
+def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: bool = True) -> None:
+    """Loads the state dict into the module by gathering all weights first and then and writing back to each
+    shard."""
+
     with _get_full_state_dict_context(module, rank0_only=False):
         module.load_state_dict(state_dict, strict=strict)
 
