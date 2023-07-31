@@ -46,3 +46,15 @@ def test_xla_strategy_debug_state():
     assert isinstance(trainer.strategy, XLAStrategy)
     trainer.fit(model)
     assert "PT_XLA_DEBUG" not in os.environ
+
+
+@RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_rank_properties_in_main_process():
+    """Test that the strategy returns the default values for rank properties in the main process."""
+    strategy = XLAStrategy()
+    assert not strategy._launched
+    assert strategy.global_rank == 0
+    assert strategy.local_rank == 0
+    assert strategy.node_rank == 0
+    assert strategy.world_size == 1
