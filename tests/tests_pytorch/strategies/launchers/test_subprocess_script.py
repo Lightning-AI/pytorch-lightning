@@ -91,7 +91,7 @@ def test_ddp_with_hydra_multirunjob(num_jobs, tmp_path, monkeypatch):
     devices = 2
     sweep_dir = tmp_path / "hydra_output"
     cmd = [sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"', f"hydra.sweep.dir={sweep_dir}"]
-    cmd += ["--multirun", "+foo=" + ",".join(str(i) for i in range(num_jobs))]  # fake multirun params
+    cmd += ["+foo=" + ",".join(str(i) for i in range(num_jobs)), "--multirun"]  # fake multirun params
     run_process(cmd)
 
     # Make sure there's exactly 1 config.yaml for each multirun job
