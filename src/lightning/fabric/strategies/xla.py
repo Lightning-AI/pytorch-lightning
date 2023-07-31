@@ -254,15 +254,6 @@ class XLAStrategy(ParallelStrategy):
         # save on global rank zero only
         super().save_checkpoint(path, state, storage_options=storage_options, filter=filter)
 
-    def remove_checkpoint(self, filepath: _PATH) -> None:
-        """Remove checkpoint filepath from the filesystem.
-
-        Args:
-            filepath: Path to checkpoint
-        """
-        if self.local_rank == 0:
-            self.checkpoint_io.remove_checkpoint(filepath)
-
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla", cls, description=cls.__class__.__name__)
