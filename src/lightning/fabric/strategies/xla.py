@@ -82,6 +82,22 @@ class XLAStrategy(ParallelStrategy):
     def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
 
+    @property
+    def global_rank(self) -> int:
+        return super().global_rank if self._launched else 0
+
+    @property
+    def local_rank(self) -> int:
+        return super().local_rank if self._launched else 0
+
+    @property
+    def node_rank(self) -> int:
+        return super().node_rank if self._launched else 0
+
+    @property
+    def world_size(self) -> int:
+        return super().world_size if self._launched else 1
+
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
