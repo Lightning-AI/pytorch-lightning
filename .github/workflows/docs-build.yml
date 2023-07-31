@@ -35,9 +35,7 @@ env:
 
 jobs:
   make-doctest:
-    runs-on: ubuntu-latest
-    container:
-      image: pytorchlightning/pytorch_lightning:docs
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -47,9 +45,13 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
 
       - name: Install AWS CLI
         if: ${{ matrix.pkg-name != 'pytorch' }}
+        continue-on-error: true
         run: |
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
           unzip -qq awscli.zip
@@ -87,9 +89,7 @@ jobs:
 
 
   make-html:
-    runs-on: ubuntu-latest
-    container:
-      image: pytorchlightning/pytorch_lightning:docs
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -99,9 +99,13 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
 
       - name: Install AWS CLI
         if: ${{ matrix.pkg-name != 'pytorch' }}
+        continue-on-error: true
         run: |
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
           unzip -qq awscli.zip
@@ -163,7 +167,7 @@ jobs:
   deploy-docs:
     needs: [make-doctest, make-html]
     if: github.repository_owner == 'Lightning-AI' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
