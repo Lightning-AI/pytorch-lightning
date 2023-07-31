@@ -162,7 +162,7 @@ def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     if hydra_cfg.mode == RunMode.RUN:  # Just run current command again
         command += sys.argv[1:]
     elif hydra_cfg.output_subdir is None:
-        raise RuntimeError(f"DDP with multirun requires saved config file")
+        raise RuntimeError("DDP with multirun requires saved config file")
     else:  # Used saved config for new run
         hydra_subdir = rundir / hydra_cfg.output_subdir
         command += ["-cp", str(hydra_subdir), "-cn", "config.yaml"]
