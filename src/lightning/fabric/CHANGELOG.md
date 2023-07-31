@@ -117,6 +117,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fabric argument validation now only raises an error if conflicting settings are set through the CLI ([#17679](https://github.com/Lightning-AI/lightning/pull/17679))
 
 
+- Disabled the auto-detection of the Kubeflow environment ([#18137](https://github.com/Lightning-AI/lightning/pull/18137))
+
+
 ### Deprecated
 
 - Deprecated the `DDPStrategy.is_distributed` property. This strategy is distributed by definition ([#17381](https://github.com/Lightning-AI/lightning/pull/17381))
@@ -142,7 +145,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed automatic sharding support with `Fabric.run` or using `fabric.launch(fn)`. This only impacts FSDP and DeepSpeed strategy users. Please instantiate your module under the newly added `fabric.init_module` context manager ([#17832](https://github.com/Lightning-AI/lightning/pull/17832))
 
 
+- Removed the unsupported `checkpoint_io` argument from the `FSDPStrategy` ([#18192](https://github.com/Lightning-AI/lightning/pull/18192))
+
+
 ### Fixed
+
+- Fixed issue where DDP subprocesses that used Hydra would set hydra's working directory to current directory ([#18145](https://github.com/Lightning-AI/lightning/pull/18145))
+
 
 - Fixed issue where running on TPUs would select the wrong device index ([#17227](https://github.com/Lightning-AI/lightning/pull/17227))
 
