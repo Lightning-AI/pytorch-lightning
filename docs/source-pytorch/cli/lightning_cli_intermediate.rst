@@ -66,7 +66,7 @@ which prints out:
     usage: main.py [-h] [-c CONFIG] [--print_config [={comments,skip_null,skip_default}+]]
             {fit,validate,test,predict} ...
 
-    pytorch-lightning trainer command line tool
+    Lightning Trainer command line tool
 
     optional arguments:
     -h, --help            Show this help message and exit.
