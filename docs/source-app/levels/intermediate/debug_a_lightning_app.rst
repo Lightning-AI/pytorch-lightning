@@ -10,7 +10,7 @@ Level 5: Debug A Lightning app
 ******************
 Enable breakpoints
 ******************
-To enable a breakpoint, use `L.pdb.set_trace()` (note direct python pdb support is work in progress and open to contributions).
+To enable a breakpoint, use :func:`~lightning.app.pdb.set_trace()` (note direct python pdb support is work in progress and open to contributions).
 
 .. lit_tabs::
    :descriptions: Toy app; Add a breakpoint. When the program runs, it will stop at this line.
