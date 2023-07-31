@@ -33,9 +33,14 @@ from lightning.fabric.plugins.environments import (
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAccelerator, MPSAccelerator, XLAAccelerator
-from lightning.pytorch.plugins.precision import DoublePrecisionPlugin, PrecisionPlugin, HalfPrecisionPlugin, MixedPrecisionPlugin
-from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.io import TorchCheckpointIO
+from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
+from lightning.pytorch.plugins.precision import (
+    DoublePrecisionPlugin,
+    HalfPrecisionPlugin,
+    MixedPrecisionPlugin,
+    PrecisionPlugin,
+)
 from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
@@ -1010,7 +1015,7 @@ def test_connector_sets_num_nodes(strategy, cuda_count_2):
 
 
 @pytest.mark.parametrize(
-    "precision_str,precision_cls",
+    ("precision_str", "precision_cls"),
     [
         ("64-true", DoublePrecisionPlugin),
         ("32-true", PrecisionPlugin),
