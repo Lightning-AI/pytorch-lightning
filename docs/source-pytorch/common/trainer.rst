@@ -819,11 +819,17 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     # default used by the Trainer
     trainer = Trainer(precision=32)
 
-    # 16-bit precision
-    trainer = Trainer(precision="16-mixed", accelerator="gpu", devices=1)  # works only on CUDA
+    # 16-bit mixed precision
+    trainer = Trainer(precision="16-mixed")
 
-    # bfloat16 precision
+    # bfloat16 mixed precision
     trainer = Trainer(precision="bf16-mixed")
+
+    # 16-bit true precision
+    trainer = Trainer(precision="16-true")
+
+    # bfloat16 true precision
+    trainer = Trainer(precision="bf16-true")
 
     # 64-bit precision
     trainer = Trainer(precision=64)
