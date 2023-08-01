@@ -604,7 +604,7 @@ def test_strategy_choice_ddp_torchelastic(*_):
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp_kubeflow(*_):
-    connector = _Connector(accelerator="gpu", devices=2)
+    connector = _Connector(accelerator="gpu", devices=2, plugins=KubeflowEnvironment())
     assert isinstance(connector.accelerator, CUDAAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, KubeflowEnvironment)
@@ -623,7 +623,7 @@ def test_strategy_choice_ddp_kubeflow(*_):
     },
 )
 def test_strategy_choice_ddp_cpu_kubeflow():
-    connector = _Connector(accelerator="cpu", devices=2)
+    connector = _Connector(accelerator="cpu", devices=2, plugins=KubeflowEnvironment())
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, KubeflowEnvironment)
@@ -795,11 +795,11 @@ def test_ddp_fork_on_unsupported_platform(_, __, strategy):
         pytest.param("bf16-true", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
         pytest.param("16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
         pytest.param("bf16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("32-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True)),
-        pytest.param("16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True)),
-        pytest.param("bf16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True)),
-        pytest.param("16-mixed", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True)),
-        pytest.param("bf16-mixed", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True)),
+        pytest.param("32-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("bf16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("16-mixed", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("bf16-mixed", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
     ],
 )
 def test_precision_selection(precision_str, strategy_str, expected_precision_cls):

@@ -34,7 +34,6 @@ from lightning.fabric.plugins import (
 )
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
-    KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
     MPIEnvironment,
@@ -362,7 +361,6 @@ class _Connector:
         for env_type in (
             SLURMEnvironment,
             TorchElasticEnvironment,
-            KubeflowEnvironment,
             LSFEnvironment,
             MPIEnvironment,
         ):
