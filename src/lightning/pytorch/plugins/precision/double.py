@@ -64,7 +64,7 @@ class LightningDoublePrecisionModule(_DeviceDtypeModuleMixin, nn.Module):
     """LightningModule wrapper which converts incoming floating point data in ``*_step`` and ``forward`` to double
     (``torch.float64``) precision.
 
-    Deprecated. Use :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` instead.
+    .. deprecated:: Use :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` instead.
 
     Args:
         pl_module: the model to wrap
