@@ -76,18 +76,3 @@ def test_convert_module(precision, expected_dtype):
     assert module.weight.dtype == module.bias.dtype == torch.float32
     module = precision.convert_module(module)
     assert module.weight.dtype == module.bias.dtype == expected_dtype
-
-
-@pytest.mark.parametrize(
-    ("precision", "expected_dtype"),
-    [
-        ("bf16-true", torch.bfloat16),
-        ("16-true", torch.half),
-    ],
-)
-def test_connect(precision, expected_dtype):
-    plugin = HalfPrecisionPlugin(precision=precision)
-    model = BoringModel()
-    assert model.layer.weight.dtype == model.layer.bias.dtype == torch.float32
-    model, _, _ = plugin.connect(model, Mock(), Mock())
-    assert model.layer.weight.dtype == model.layer.bias.dtype == expected_dtype
