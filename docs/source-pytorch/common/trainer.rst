@@ -810,7 +810,7 @@ precision
 ^^^^^^^^^
 
 Lightning supports either double (64), float (32), bfloat16 (bf16), or half (16) precision training.
-Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training.
+Half precision is using 16 bit floating point operations while mixed precision is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. Since not all operations (like batchnorm) are numerically stable in lower bit precisions, these operations will still be carried out in fp32 whereas half precision unconditionally performs all operations in 16 bit.
 This can result in improved performance, achieving +3X speedups on modern GPUs.
 
 .. testcode::
