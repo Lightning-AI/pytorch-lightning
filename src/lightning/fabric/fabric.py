@@ -591,14 +591,14 @@ class Fabric:
         Example::
 
             # Accumulate gradient 8 batches at a time
-            with self.no_backward_sync(model, enabled=(batch_idx % 8 != 0)):
+            with fabric.no_backward_sync(model, enabled=(batch_idx % 8 != 0)):
                 output = model(input)
                 loss = ...
-                self.backward(loss)
+                fabric.backward(loss)
                 ...
 
         For those strategies that don't support it, a warning is emitted. For single-device strategies, it is a no-op.
-        Both the model's `.forward()` and the `self.backward()` call need to run under this context.
+        Both the model's `.forward()` and the `fabric.backward()` call need to run under this context.
 
         Args:
             module: The module for which to control the gradient synchronization.
@@ -608,7 +608,7 @@ class Fabric:
         module = _unwrap_compiled(module)
         if not isinstance(module, _FabricModule):
             raise TypeError(
-                "You need to set up the model first before you can call `self.no_backward_sync()`:"
+                "You need to set up the model first before you can call `fabric.no_backward_sync()`:"
                 " `model = fabric.setup(model, ...)`"
             )
         if not enabled or isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
