@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pickle
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.plugins import DoublePrecisionPlugin
+from lightning.pytorch.plugins.precision.double import DoublePrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -164,6 +164,14 @@ def test_double_precision_pickle():
     plugin = DoublePrecisionPlugin()
     model, _, __ = plugin.connect(model, MagicMock(), MagicMock())
     pickle.dumps(model)
+
+
+def test_convert_module():
+    plugin = DoublePrecisionPlugin()
+    model = BoringModel()
+    assert model.layer.weight.dtype == model.layer.bias.dtype == torch.float32
+    model = plugin.convert_module(model)
+    assert model.layer.weight.dtype == model.layer.bias.dtype == torch.float64
 
 
 def test_init_context():
