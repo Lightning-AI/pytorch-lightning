@@ -74,9 +74,6 @@ class DoublePrecisionPlugin(PrecisionPlugin):
 
     precision: Literal["64-true"] = "64-true"
 
-    def convert_module(self, module: nn.Module) -> nn.Module:
-        return module.double()
-
     def connect(
         self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
     ) -> Tuple[nn.Module, List["Optimizer"], List[Any]]:
@@ -85,7 +82,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
 
         Does not alter `optimizers` or `lr_schedulers`.
         """
-        model = cast(pl.LightningModule, self.convert_module(model))
+        model = cast(pl.LightningModule, model.double())
         model = LightningDoublePrecisionModule(model)
 
         return super().connect(model, optimizers, lr_schedulers)
