@@ -4,6 +4,7 @@ import torch
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -18,6 +19,33 @@ def create_boring_checkpoint(tmp_path, model, accelerator="cuda"):
         callbacks=[checkpoint_callback],
     )
     trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    "accelerator",
+    [
+        "cpu",
+        pytest.param("cuda", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=RunIf(mps=True)),
+    ],
+)
+def test_load_from_checkpoint_map_location_automatic(accelerator, tmp_path, monkeypatch):
+    """Test that the default `map_location` provided by Lightning moves parameters to CPU if the accelerator is not
+    available at the time of loading."""
+    create_boring_checkpoint(tmp_path, BoringModel(), accelerator=accelerator)
+
+    # The checkpoint contains tensors with storage tag on the accelerator
+    checkpoint = torch.load(f"{tmp_path}/checkpoint.ckpt")
+    assert checkpoint["state_dict"]["layer.weight"].device.type.startswith(accelerator)
+
+    # Pretend that the accelerator is not available
+    mock_cuda_count(monkeypatch, 0)
+    mock_mps_count(monkeypatch, 0)
+
+    model = BoringModel.load_from_checkpoint(f"{tmp_path}/checkpoint.ckpt")
+    _ = BoringDataModule.load_from_checkpoint(f"{tmp_path}/checkpoint.ckpt")
+    assert model.device.type == "cpu"
+    assert model.layer.weight.device.type == "cpu"
 
 
 @pytest.mark.parametrize(
