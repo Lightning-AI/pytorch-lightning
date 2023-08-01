@@ -265,7 +265,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
             # The user has wrapped their submodules manually, don't apply the auto wrap policy.
-            if not isinstance(module, FullyShardedDataParallel) and _has_meta_device_parameters(module):
+            if _has_meta_device_parameters(module):
                 rank_zero_warn(
                     "The model is already wrapped in `FSDP` but there are still parameters on the meta device."
                 )
