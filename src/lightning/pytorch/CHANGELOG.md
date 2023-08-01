@@ -88,6 +88,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Improved error messages when attempting to load a DeepSpeed checkpoint at an invalid path ([#17795](https://github.com/Lightning-AI/lightning/pull/17795))
 
 
+- Allowed accessing rank information in the main process before processes are launched when using the `XLAStrategy` ([#18194](https://github.com/Lightning-AI/lightning/pull/18194))
+
+
 - Added support for true half-precision training via `Trainer(precision="16-true"|"bf16-true")` ([#18193](https://github.com/Lightning-AI/lightning/pull/18193))
 
 
@@ -182,6 +185,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed an attribute error for `_FaultTolerantMode` when loading an old checkpoint that pickled the enum ([#18094](https://github.com/Lightning-AI/lightning/pull/18094))
+
+
+- Fixed an issue that would prevent the user to set the multiprocessing start method after importing lightning ([#18177](https://github.com/Lightning-AI/lightning/pull/18177))
 
 
 ## [2.0.5] - 2023-07-07
