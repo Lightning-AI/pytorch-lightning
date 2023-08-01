@@ -460,7 +460,11 @@ class _Connector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, and accelerator."""
-        if isinstance(self.accelerator, XLAAccelerator) and self._precision_instance and not isinstance(self._precision_instance, XLAPrecision):
+        if (
+            isinstance(self.accelerator, XLAAccelerator)
+            and self._precision_instance
+            and not isinstance(self._precision_instance, XLAPrecision)
+        ):
             raise ValueError(
                 f"The `XLAAccelerator` can only be used with a `XLAPrecision` plugin,"
                 f" found: {self._precision_instance}."
