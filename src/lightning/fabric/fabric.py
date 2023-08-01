@@ -41,6 +41,7 @@ from lightning.fabric.strategies import (
     Strategy,
     XLAStrategy,
 )
+from lightning.fabric.strategies.fsdp import _has_meta_device_parameters
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning.fabric.utilities import move_data_to_device
@@ -964,13 +965,7 @@ class Fabric:
                     " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
                     " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
                 )
-            if any(
-                t.is_meta
-                for optimizer in optimizers
-                for param_group in optimizer.param_groups
-                for t in param_group
-                if isinstance(t, Tensor)
-            ):
+            if any(_has_meta_device_parameters(optimizer) for optimizer in optimizers):
                 raise RuntimeError(
                     "The optimizer has references to the model's meta-device parameters. Materializing them is"
                     " is currently not supported unless you to set up the model and optimizer(s) separately."

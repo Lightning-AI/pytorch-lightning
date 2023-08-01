@@ -265,7 +265,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
             # The user has wrapped their submodules manually, don't apply the auto wrap policy.
-            if not isinstance(module, FullyShardedDataParallel) and any(p.is_meta for p in module.parameters()):
+            if not isinstance(module, FullyShardedDataParallel) and _has_meta_device_parameters(module):
                 rank_zero_warn(
                     "The model is already wrapped in `FSDP` but there are still parameters on the meta device."
                 )
@@ -850,6 +850,14 @@ def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: b
 
     with _get_full_state_dict_context(module, rank0_only=False):
         module.load_state_dict(state_dict, strict=strict)
+
+
+def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
+    if isinstance(obj, Optimizer):
+        return any(t.is_meta for param_group in obj.param_groups for t in param_group if isinstance(t, Tensor))
+    if isinstance(obj, Module):
+        return any(t.is_meta for t in obj.parameters())
+    raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
 
 
 def _no_op() -> None:
