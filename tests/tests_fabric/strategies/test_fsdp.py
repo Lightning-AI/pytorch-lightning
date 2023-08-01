@@ -86,6 +86,17 @@ def test_fsdp_sharding_strategy():
 
 
 @RunIf(min_torch="1.12")
+def test_fsdp_checkpoint_io_unsupported():
+    """Test that the FSDP strategy does not support the `CheckpointIO` plugin."""
+    strategy = FSDPStrategy()
+    with pytest.raises(NotImplementedError, match="does not use the `CheckpointIO` plugin"):
+        _ = strategy.checkpoint_io
+
+    with pytest.raises(NotImplementedError, match="does not support setting a `CheckpointIO` plugin"):
+        strategy.checkpoint_io = Mock()
+
+
+@RunIf(min_torch="1.12")
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
 def test_fsdp_setup_optimizer_validation(torch_ge_2_0):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
