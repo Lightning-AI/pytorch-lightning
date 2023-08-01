@@ -460,7 +460,7 @@ def test_fsdp_manual_activation_checkpointing():
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
-def test_rewrap_warning():
+def test_rewrap_warnings():
     from torch.distributed.fsdp import FullyShardedDataParallel
     from torch.distributed.fsdp.wrap import wrap
 
@@ -473,3 +473,13 @@ def test_rewrap_warning():
         model = fabric.setup(model)
     assert not isinstance(model._forward_module, FullyShardedDataParallel)
     assert isinstance(model._forward_module[2], FullyShardedDataParallel)
+
+    if not _TORCH_GREATER_EQUAL_2_0:
+        return
+
+    with fabric.init_module(empty_init=True):
+        model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.ReLU(), wrap(torch.nn.Linear(1, 1)))
+    assert model[0].weight.is_meta
+    with pytest.warns(match="there are still parameters on the meta device"):
+        fabric.setup(model)
+    assert model[0].weight.is_meta
