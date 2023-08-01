@@ -273,6 +273,20 @@ def test_setup_optimizers_not_supported(strategy_cls):
         fabric.setup_optimizers(optimizer)
 
 
+@RunIf(min_cuda_gpus=1, min_torch="2.1")
+def test_setup_optimizer_on_meta_device():
+    """Test that the setup-methods validate that the optimizer doesn't have references to meta-device parameters."""
+    fabric = Fabric(strategy="fsdp", devices=1)
+    fabric._launched = True  # pretend we have launched multiple processes
+    with fabric.init_module(empty_init=True):
+        model = nn.Linear(1, 2)
+    optimizer = torch.optim.Adam(model.parameters())  # optimizer references meta device params
+    with pytest.raises(RuntimeError, match="The optimizer has references to the model's meta-device parameters"):
+        fabric.setup(model, optimizer)
+    with pytest.raises(RuntimeError, match="The optimizer has references to the model's meta-device parameters"):
+        fabric.setup_optimizers(optimizer)
+
+
 def test_setup_tracks_num_models():
     """Test that setup() tracks how many times it has setup a model."""
     fabric = Fabric(devices=1)

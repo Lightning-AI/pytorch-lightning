@@ -385,7 +385,7 @@ class Fabric:
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
-                    raise RuntimeError("No models were set up for backward. Did you forget to call `self.setup()`?")
+                    raise RuntimeError("No models were set up for backward. Did you forget to call `fabric.setup()`?")
                 if self._models_setup > 1:
                     raise ValueError(
                         "When using multiple models + deepspeed, please provide the model used to perform"
@@ -608,7 +608,7 @@ class Fabric:
         if not isinstance(module, _FabricModule):
             raise TypeError(
                 "You need to set up the model first before you can call `self.no_backward_sync()`:"
-                " `model = self.setup(model, ...)`"
+                " `model = fabric.setup(model, ...)`"
             )
         if not enabled or isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
             context = nullcontext()
@@ -962,15 +962,15 @@ class Fabric:
             if not _TORCH_GREATER_EQUAL_2_0:
                 raise RuntimeError(
                     f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
-                    " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
-                    " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
+                    " Create and set up the model first through `model = fabric.setup_module(model)`. Then create the"
+                    " optimizer and set it up: `optimizer = fabric.setup_optimizers(optimizer)`."
                 )
             if any(_has_meta_device_parameters(optimizer) for optimizer in optimizers):
                 raise RuntimeError(
                     "The optimizer has references to the model's meta-device parameters. Materializing them is"
                     " is currently not supported unless you to set up the model and optimizer(s) separately."
-                    " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
-                    " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
+                    " Create and set up the model first through `model = fabric.setup_module(model)`. Then create the"
+                    " optimizer and set it up: `optimizer = fabric.setup_optimizers(optimizer)`."
                 )
 
     def _validate_setup_module(self, module: nn.Module) -> None:
@@ -991,6 +991,13 @@ class Fabric:
 
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup_optimizers` method.")
+
+        if any(_has_meta_device_parameters(optimizer) for optimizer in optimizers):
+            raise RuntimeError(
+                "The optimizer has references to the model's meta-device parameters. Materializing them is"
+                " is currently not supported. Create the optimizer after setting up the model, then call"
+                " `fabric.setup_optimizers(optimizer)`."
+            )
 
     def _validate_setup_dataloaders(self, dataloaders: Sequence[DataLoader]) -> None:
         self._validate_launched()
