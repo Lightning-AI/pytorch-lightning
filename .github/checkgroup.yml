@@ -196,14 +196,10 @@ subprojects:
       - "build-cuda (3.9, 1.12, 11.7.1)"
       - "build-cuda (3.9, 1.13, 12.0.1)"
       - "build-cuda (3.10, 2.0, 12.0.1)"
-      - "build-hpu (1.5.0, 1.11.0)"
-      - "build-ipu (3.9, 1.13)"
-      - "build-NGC"
       - "build-pl (3.9, 1.11, 11.3.1)"
       - "build-pl (3.9, 1.12, 11.7.1)"
       - "build-pl (3.9, 1.13, 12.0.1)"
       - "build-pl (3.10, 2.0, 12.0.1)"
-      - "build-xla (3.8, 1.12)"
 
   # SECTION: lightning_fabric
 
