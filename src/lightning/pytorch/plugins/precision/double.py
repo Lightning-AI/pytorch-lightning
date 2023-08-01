@@ -20,10 +20,10 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation
-from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation
 
 
 class DoublePrecisionPlugin(PrecisionPlugin):
@@ -69,6 +69,7 @@ class LightningDoublePrecisionModule(_DeviceDtypeModuleMixin, nn.Module):
     Args:
         pl_module: the model to wrap
     """
+
     def __init__(self, pl_module: "pl.LightningModule") -> None:
         super().__init__()
         rank_zero_deprecation(
