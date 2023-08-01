@@ -22,7 +22,6 @@ import torch
 from lightning.fabric.connector import _convert_precision_to_unified_args, _PRECISION_INPUT, _PRECISION_INPUT_STR
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
-    KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
     MPIEnvironment,
@@ -397,7 +396,6 @@ class _AcceleratorConnector:
         for env_type in (
             SLURMEnvironment,
             TorchElasticEnvironment,
-            KubeflowEnvironment,
             LSFEnvironment,
             MPIEnvironment,
         ):
