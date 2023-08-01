@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union, cast
+from typing import Any, Callable, cast, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
