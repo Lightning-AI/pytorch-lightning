@@ -152,6 +152,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the `LightningModule.configure_sharded_model` hook in favor of `LightningModule.configure_model` ([#18004](https://github.com/Lightning-AI/lightning/pull/18004))
 
 
+- Deprecated the `LightningDoublePrecisionModule` wrapper in favor of calling `Trainer.precision_plugin.convert_input()` ([#18209](https://github.com/Lightning-AI/lightning/pull/18209))
+
+
 ### Removed
 
 - Removed the `XLAStrategy.is_distributed` property. It is always True ([#17381](https://github.com/Lightning-AI/lightning/pull/17381))
