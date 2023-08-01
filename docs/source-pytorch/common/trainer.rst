@@ -810,8 +810,8 @@ precision
 ^^^^^^^^^
 
 Lightning supports either double (64), float (32), bfloat16 (bf16), or half (16) precision training.
-
-Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
+Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training.
+This can result in improved performance, achieving +3X speedups on modern GPUs.
 
 .. testcode::
     :skipif: not torch.cuda.is_available()
@@ -835,7 +835,10 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     trainer = Trainer(precision=64)
 
 
+See the :doc:`N-bit precision guide <../common/precision>` for more details.
+
 .. note:: When running on TPUs, torch.bfloat16 will be used but tensor printing will still show torch.float32.
+
 
 profiler
 ^^^^^^^^
@@ -847,7 +850,7 @@ profiler
 
 To profile individual steps during training and assist in identifying bottlenecks.
 
-See the :doc:`profiler documentation <../tuning/profiler>`. for more details.
+See the :doc:`profiler documentation <../tuning/profiler>` for more details.
 
 .. testcode::
 
