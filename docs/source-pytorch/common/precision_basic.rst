@@ -25,7 +25,7 @@ If your GPUs are [`Tensor Core <https://docs.nvidia.com/deeplearning/performance
 
 .. code-block:: python
 
-    Trainer(precision='16-mixed')
+    Trainer(precision="16-mixed")
 
 
 With true 16-bit precision you can additionally lower your memory consumption by up to half so that you can train and deploy larger models.
@@ -33,7 +33,7 @@ However, this setting can sometimes lead to unstable training.
 
 .. code-block:: python
 
-    Trainer(precision='16-true')
+    Trainer(precision="16-true")
 
 
 ----
