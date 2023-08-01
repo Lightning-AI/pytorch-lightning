@@ -83,7 +83,7 @@ class Strategy(ABC):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
 
     @property
@@ -333,15 +333,6 @@ class Strategy(ABC):
             else:
                 state[name] = checkpoint.pop(name)
         return checkpoint
-
-    def remove_checkpoint(self, filepath: _PATH) -> None:
-        """Remove checkpoint filepath from the filesystem.
-
-        Args:
-            filepath: Path to checkpoint
-        """
-        if self.is_global_zero:
-            self.checkpoint_io.remove_checkpoint(filepath)
 
     def teardown(self) -> None:
         """This method is called to teardown the training process.
