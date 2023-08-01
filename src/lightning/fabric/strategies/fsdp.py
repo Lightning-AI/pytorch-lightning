@@ -35,7 +35,7 @@ from typing import (
 
 import torch
 from torch import Tensor
-from torch.nn import Module
+from torch.nn import Module, Parameter
 from torch.optim import Optimizer
 from typing_extensions import TypeGuard
 
@@ -854,7 +854,12 @@ def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: b
 
 def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
     if isinstance(obj, Optimizer):
-        return any(t.is_meta for param_group in obj.param_groups for t in param_group if isinstance(t, Tensor))
+        return any(
+            t.is_meta
+            for param_group in obj.param_groups
+            for t in param_group["params"]
+            if isinstance(t, Parameter)
+        )
     if isinstance(obj, Module):
         return any(t.is_meta for t in obj.parameters())
     raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
