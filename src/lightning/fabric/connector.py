@@ -29,7 +29,6 @@ from lightning.fabric.plugins import (
     HalfPrecision,
     MixedPrecision,
     Precision,
-    XLABf16Precision,
     XLAPrecision,
 )
 from lightning.fabric.plugins.environments import (

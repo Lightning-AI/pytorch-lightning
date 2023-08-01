@@ -22,7 +22,6 @@ from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.plugins.precision.half import HalfPrecision
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.xla import XLAPrecision
-from lightning.fabric.plugins.precision.xlabf16 import XLABf16Precision
 
 __all__ = [
     "ClusterEnvironment",
@@ -35,6 +34,5 @@ __all__ = [
     "HalfPrecision",
     "MixedPrecision",
     "XLAPrecision",
-    "XLABf16Precision",
     "FSDPPrecision",
 ]

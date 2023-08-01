@@ -13,11 +13,16 @@
 # limitations under the License.
 import os
 
-from lightning.fabric.plugins import XLABf16Precision
+from lightning.fabric.plugins import XLAPrecision
 
 
 def test_teardown(xla_available):
-    plugin = XLABf16Precision()
-    assert os.environ.get("XLA_USE_BF16") == "1"
+    plugin = XLAPrecision(precision="16-true")
+    assert os.environ["XLA_USE_F16"] == "1"
+    plugin.teardown()
+    assert "XLA_USE_B16" not in os.environ
+
+    plugin = XLAPrecision(precision="bf16-true")
+    assert os.environ["XLA_USE_BF16"] == "1"
     plugin.teardown()
     assert "XLA_USE_BF16" not in os.environ
