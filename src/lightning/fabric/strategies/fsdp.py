@@ -322,6 +322,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @contextmanager
     def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+        empty_init_context: Union[torch.device, _EmptyInit, nullcontext]
         if _TORCH_GREATER_EQUAL_2_1 and empty_init:
             # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
