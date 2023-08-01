@@ -15,10 +15,11 @@ from contextlib import contextmanager
 from typing import Any, cast, Generator, List, Literal, Tuple
 
 import torch
+from lightning_utilities import apply_to_collection
+from torch import Tensor
 from torch.nn import Module
-from torch.optim import Optimizer
 
-import lightning.pytorch as pl
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 
 
@@ -37,16 +38,6 @@ class HalfPrecisionPlugin(PrecisionPlugin):
 
     def convert_module(self, module: Module) -> Module:
         return module.to(dtype=self._desired_input_dtype)
-
-    def connect(
-        self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
-    ) -> Tuple[Module, List["Optimizer"], List[Any]]:
-        """Converts the model parameters to half precision.
-
-        Does not alter `optimizers` or `lr_schedulers`.
-        """
-        model = cast(pl.LightningModule, self.convert_module(model))
-        return super().connect(model, optimizers, lr_schedulers)
 
     @contextmanager
     def init_context(self) -> Generator[None, None, None]:
@@ -70,3 +61,6 @@ class HalfPrecisionPlugin(PrecisionPlugin):
         torch.set_default_dtype(self._desired_input_dtype)
         yield
         torch.set_default_dtype(default_dtype)
+
+    def convert_input(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
