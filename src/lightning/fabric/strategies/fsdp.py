@@ -264,13 +264,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
+            if not isinstance(module, FullyShardedDataParallel) and any(p.is_meta for p in module.parameters()):
+                rank_zero_warn(
+                    "The model is already wrapped in `FSDP` but there are still parameters on the meta device."
+                )
             if "auto_wrap_policy" in self._fsdp_kwargs:
                 rank_zero_warn(
                     "A FSDP `auto_wrap_policy` is set, but the model is already wrapped. The policy will be ignored."
                 )
                 del self._fsdp_kwargs["auto_wrap_policy"]
         else:
-            _validate_meta_device_param_init(module)
             module = FullyShardedDataParallel(
                 module=module,
                 cpu_offload=self.cpu_offload,
@@ -323,10 +326,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
             empty_init_context = torch.device("meta")
-            # TODO (in setup):
-            # - check that `reset_parameters` is defined on every module that owns 'meta' device params
-            # - What if root module is not wrapped (manual wrapping)?
-            # - Investigate what happens to modules that aren't wrapped.
+            # TODO What if root module is not wrapped (manual wrapping)?
         elif _TORCH_GREATER_EQUAL_1_13:
             empty_init_context = _EmptyInit(enabled=bool(empty_init))
         else:
@@ -850,19 +850,6 @@ def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: b
 
     with _get_full_state_dict_context(module, rank0_only=False):
         module.load_state_dict(state_dict, strict=strict)
-
-
-def _validate_meta_device_param_init(module: Module) -> None:
-    # TODO: only validate if using FULL_SHARD
-    for module in module.modules():
-        has_params_on_meta_device = any(p.is_meta for p in module.parameters(recurse=False))
-        if has_params_on_meta_device and not callable(getattr(module, "reset_parameters")):
-            # make warning?
-            # what if the parameter is not managed by FSDP?
-            raise ValueError(
-                f"The {type(module).__name__} module contains parameters on the meta device, but does not implement"
-                " a `reset_parameters()` method. To initialize parameters for FSDP set `empty_init=False`."
-            )
 
 
 def _no_op() -> None:
