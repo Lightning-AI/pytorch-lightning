@@ -108,6 +108,7 @@ class Strategy(ABC):
 
     def connect(self, model: "pl.LightningModule") -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
+        model = self.precision_plugin.convert_module(model)
         self._lightning_module = model
         self.model = model
 
@@ -152,7 +153,6 @@ class Strategy(ABC):
         model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
             self.model, self.optimizers, self.lr_scheduler_configs
         )
-        model = self.precision_plugin.convert_module(model)
         self.model = model
         self.optimizers = optimizers
         self.lr_scheduler_configs = lr_scheduler_configs
