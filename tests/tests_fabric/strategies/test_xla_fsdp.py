@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -118,3 +119,24 @@ def test_xla_fsdp_rewrap_warning():
     strategy = XLAFSDPStrategy(auto_wrap_policy=always_wrap_policy)
     fabric = Fabric(accelerator="tpu", strategy=strategy)
     fabric.launch(xla_fsdp_rewrap_warning)
+
+
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_rank_properties_access(xla_available):
+    """Test that the strategy returns the expected values depending on whether we're in the main process or not."""
+    strategy = XLAFSDPStrategy()
+    strategy.cluster_environment = Mock()
+
+    # we're in the main process, no processes have been launched yet
+    assert not strategy._launched
+    assert strategy.global_rank == 0
+    assert strategy.local_rank == 0
+    assert strategy.node_rank == 0
+    assert strategy.world_size == 1
+
+    # simulate we're in a worker process
+    strategy._launched = True
+    assert strategy.global_rank == strategy.cluster_environment.global_rank()
+    assert strategy.local_rank == strategy.cluster_environment.local_rank()
+    assert strategy.node_rank == strategy.cluster_environment.node_rank()
+    assert strategy.world_size == strategy.cluster_environment.world_size()
