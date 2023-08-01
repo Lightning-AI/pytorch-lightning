@@ -485,5 +485,5 @@ def test_rewrap_warnings():
         model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.ReLU(), wrap(torch.nn.Linear(1, 1)))
     assert model[0].weight.is_meta
     with pytest.warns(match="there are still parameters on the meta device"):
-        fabric.setup(model)
-    assert model[0].weight.is_meta
+        fabric_model = fabric.setup(model)
+    assert next(fabric_model.parameters()).is_meta
