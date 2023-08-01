@@ -855,10 +855,7 @@ def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: b
 def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
     if isinstance(obj, Optimizer):
         return any(
-            t.is_meta
-            for param_group in obj.param_groups
-            for t in param_group["params"]
-            if isinstance(t, Parameter)
+            t.is_meta for param_group in obj.param_groups for t in param_group["params"] if isinstance(t, Parameter)
         )
     if isinstance(obj, Module):
         return any(t.is_meta for t in obj.parameters())

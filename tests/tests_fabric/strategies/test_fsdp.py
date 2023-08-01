@@ -31,8 +31,8 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import (
     _FSDPBackwardSyncControl,
-    fsdp_overlap_step_with_backward,
     _has_meta_device_parameters,
+    fsdp_overlap_step_with_backward,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_1
 from tests_fabric.helpers.runif import RunIf
@@ -400,7 +400,8 @@ def test_set_timeout(init_process_group_mock):
 
 
 def test_has_meta_device_parameters():
-    """Test that the `_has_meta_device_parameters` function can find meta-device parameters in models and optimizers."""
+    """Test that the `_has_meta_device_parameters` function can find meta-device parameters in models and
+    optimizers."""
     # nn.Module
     module = nn.Linear(2, 2)
     meta_module = nn.Linear(2, 2, device="meta")
