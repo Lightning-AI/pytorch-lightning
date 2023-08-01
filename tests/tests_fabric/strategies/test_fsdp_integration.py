@@ -23,7 +23,11 @@ from torch.nn import Parameter
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
+)
 from lightning.fabric.wrappers import _FabricOptimizer
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
@@ -474,7 +478,7 @@ def test_rewrap_warnings():
     assert not isinstance(model._forward_module, FullyShardedDataParallel)
     assert isinstance(model._forward_module[2], FullyShardedDataParallel)
 
-    if not _TORCH_GREATER_EQUAL_2_0:
+    if not _TORCH_GREATER_EQUAL_2_1:
         return
 
     with fabric.init_module(empty_init=True):

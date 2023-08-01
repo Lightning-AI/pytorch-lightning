@@ -281,6 +281,7 @@ def test_setup_optimizer_on_meta_device():
     fabric._launched = True  # pretend we have launched multiple processes
     with fabric.init_module(empty_init=True):
         model = nn.Linear(1, 2)
+    assert model.weight.is_meta
     optimizer = torch.optim.Adam(model.parameters())  # optimizer references meta device params
     with pytest.raises(RuntimeError, match="The optimizer has references to the model's meta-device parameters"):
         fabric.setup(model, optimizer)
