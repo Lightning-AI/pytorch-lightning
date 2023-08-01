@@ -1,6 +1,6 @@
 coverage ==7.2.7
 pytest ==7.4.0
-pytest-cov ==4.0.0
+pytest-cov ==4.1.0
 pytest-rerunfailures ==10.3
 click ==8.1.6
 tensorboardX >=2.2, <=2.6.1  # min version is set by torch.onnx missing attribute
