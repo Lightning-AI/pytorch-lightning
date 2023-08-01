@@ -13,15 +13,16 @@
 # limitations under the License.
 import os
 from typing import Any, Literal
+
+import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from torch import Tensor
 from typing_extensions import get_args
 
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.precision.precision import Precision
-from lightning.fabric.utilities.types import Optimizable
-import torch
-from lightning_utilities.core.apply_func import apply_to_collection
-from torch import Tensor
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.utilities.types import Optimizable
 
 _PRECISION_INPUT = Literal["32-true", "16-true", "bf16-true"]
 

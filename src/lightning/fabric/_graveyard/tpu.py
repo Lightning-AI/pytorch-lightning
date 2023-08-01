@@ -78,6 +78,7 @@ class XLABf16Precision(XLAPrecision):
 
     Use :class:`~lightning.fabric.plugins.precision.xla.XLAPrecision` instead.
     """
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
             "The `XLABf16Precision` class is deprecated. Use"
