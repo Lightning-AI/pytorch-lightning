@@ -144,7 +144,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
@@ -164,7 +163,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
-            checkpoint_io=checkpoint_io,
             precision=precision,
         )
         self._num_nodes = 1
@@ -184,6 +182,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        raise NotImplementedError(f"The `{type(self).__name__}` does not use the `CheckpointIO` plugin interface.")
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: CheckpointIO) -> None:
+        raise NotImplementedError(f"The `{type(self).__name__}` does not support setting a `CheckpointIO` plugin.")
 
     @property
     def root_device(self) -> torch.device:
@@ -520,7 +526,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         path = Path(self.broadcast(path))
 
         if isinstance(state, Module):
-            _load_raw_module_state(path, module=state, strict=strict)
+            _load_raw_module_state_from_path(path, module=state, strict=strict)
             return {}
 
         if isinstance(state, Optimizer):
@@ -827,20 +833,22 @@ def _has_fsdp_modules(module: object) -> TypeGuard[Module]:
     return isinstance(module, Module) and any(isinstance(m, FullyShardedDataParallel) for m in module.modules())
 
 
-def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Module, strict: bool = True) -> None:
-    """Loads the state dict (given or from a path) into the module by gathering all weights first and then and
-    writing back to each shard."""
-    if isinstance(path_or_ckpt, Path) and not _is_full_checkpoint(path_or_ckpt):
+def _load_raw_module_state_from_path(path: Path, module: Module, strict: bool = True) -> None:
+    """Loads the state dict from a file path into the FSDP module."""
+    if not _is_full_checkpoint(path):
         raise ValueError(
             "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
-            f" full state dict: {path_or_ckpt}"
+            f" full state dict: {path}"
         )
-
-    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-
     # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
-    state_dict = _lazy_load(path_or_ckpt) if isinstance(path_or_ckpt, Path) else path_or_ckpt
-    with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
+    _load_raw_module_state(state_dict=_lazy_load(path), module=module, strict=strict)
+
+
+def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: bool = True) -> None:
+    """Loads the state dict into the module by gathering all weights first and then and writing back to each
+    shard."""
+
+    with _get_full_state_dict_context(module, rank0_only=False):
         module.load_state_dict(state_dict, strict=strict)
 
 

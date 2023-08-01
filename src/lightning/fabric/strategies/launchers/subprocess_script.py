@@ -143,6 +143,7 @@ def _basic_subprocess_cmd() -> Sequence[str]:
 
 def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
+    from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
 
     # when user is using hydra find the absolute path
@@ -154,6 +155,7 @@ def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     command += sys.argv[1:]
 
     cwd = get_original_cwd()
-    os_cwd = f'"{os.getcwd()}"'
-    command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
+    rundir = f'"{HydraConfig.get().run.dir}"'
+    # Set output_subdir null since we don't want different subprocesses trying to write to config.yaml
+    command += [f"hydra.run.dir={rundir}", f"hydra.job.name=train_ddp_process_{local_rank}", "hydra.output_subdir=null"]
     return command, cwd

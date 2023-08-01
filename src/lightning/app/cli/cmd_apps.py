@@ -19,7 +19,6 @@ from typing import List, Optional
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     Externalv1Lightningwork,
-    V1GetClusterResponse,
     V1LightningappInstanceState,
     V1LightningappInstanceStatus,
 )
@@ -38,18 +37,13 @@ class _AppManager:
     def __init__(self) -> None:
         self.api_client = LightningClient(retry=False)
 
-    def get_cluster(self, cluster_id: str) -> V1GetClusterResponse:
-        return self.api_client.cluster_service_get_cluster(id=cluster_id)
-
     def get_app(self, app_id: str) -> Externalv1LightningappInstance:
         project = _get_project(self.api_client)
         return self.api_client.lightningapp_instance_service_get_lightningapp_instance(
             project_id=project.project_id, id=app_id
         )
 
-    def list_apps(
-        self, cluster_id: Optional[str] = None, limit: int = 100, phase_in: Optional[List[str]] = None
-    ) -> List[Externalv1LightningappInstance]:
+    def list_apps(self, limit: int = 100, phase_in: Optional[List[str]] = None) -> List[Externalv1LightningappInstance]:
         phase_in = phase_in or []
         project = _get_project(self.api_client)
 
@@ -58,8 +52,6 @@ class _AppManager:
             "limit": limit,
             "phase_in": phase_in,
         }
-        if cluster_id is not None:
-            kwargs["cluster_id"] = cluster_id
 
         resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**kwargs)
         apps = resp.lightningapps
@@ -79,9 +71,9 @@ class _AppManager:
         )
         return resp.lightningworks
 
-    def list(self, cluster_id: Optional[str] = None, limit: int = 100) -> None:
+    def list(self, limit: int = 100) -> None:
         console = Console()
-        console.print(_AppList(self.list_apps(cluster_id=cluster_id, limit=limit)).as_table())
+        console.print(_AppList(self.list_apps(limit=limit)).as_table())
 
     def delete(self, app_id: str) -> None:
         project = _get_project(self.api_client)
@@ -134,7 +126,7 @@ class _AppList(Formatable):
         return json.dumps(self.apps)
 
     def as_table(self) -> Table:
-        table = Table("id", "name", "status", "cluster", "created", show_header=True, header_style="bold green")
+        table = Table("id", "name", "status", "created", show_header=True, header_style="bold green")
 
         for app in self.apps:
             status = self._textualize_state_transitions(desired_state=app.spec.desired_state, current_state=app.status)
@@ -149,7 +141,6 @@ class _AppList(Formatable):
                 app.id,
                 app.name,
                 status,
-                app.spec.cluster_id,
                 created_at.strftime("%Y-%m-%d") if created_at else "",
             )
         return table

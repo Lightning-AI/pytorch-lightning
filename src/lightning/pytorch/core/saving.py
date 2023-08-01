@@ -22,7 +22,7 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, IO, Optional, Type, Union
+from typing import Any, Callable, Dict, IO, Optional, Type, TYPE_CHECKING, Union
 from warnings import warn
 
 import torch
@@ -33,6 +33,7 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
+from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
@@ -46,6 +47,9 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf.dictconfig import DictConfig
     from omegaconf.errors import UnsupportedValueType, ValidationError
 
+if TYPE_CHECKING:
+    from torch.storage import UntypedStorage
+
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
@@ -58,6 +62,7 @@ def _load_from_checkpoint(
     strict: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
+    map_location = map_location or _default_map_location
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
@@ -97,6 +102,19 @@ def _load_from_checkpoint(
         return model.to(device)
 
     raise NotImplementedError(f"Unsupported {cls}")
+
+
+def _default_map_location(storage: "UntypedStorage", location: str) -> Optional["UntypedStorage"]:
+    if (
+        location.startswith("mps")
+        and not MPSAccelerator.is_available()
+        or location.startswith("cuda")
+        and not CUDAAccelerator.is_available()
+        or location.startswith("xla")
+        and not XLAAccelerator.is_available()
+    ):
+        return storage.cpu()
+    return None  # default behavior by `torch.load()`
 
 
 def _load_state(
