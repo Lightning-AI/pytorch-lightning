@@ -30,6 +30,8 @@ def test_graveyard_single_tpu(import_path, name):
         ("lightning.fabric.plugins", "TPUBf16Precision"),
         ("lightning.fabric.plugins.precision", "TPUBf16Precision"),
         ("lightning.fabric.plugins.precision.tpu_bf16", "TPUBf16Precision"),
+        ("lightning.fabric.plugins.precision", "XLABf16Precision"),
+        ("lightning.fabric.plugins.precision.xlabf16", "XLABf16Precision"),
     ],
 )
 def test_graveyard_no_device(import_path, name):

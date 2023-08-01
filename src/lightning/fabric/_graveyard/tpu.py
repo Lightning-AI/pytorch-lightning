@@ -70,7 +70,7 @@ class TPUPrecision(XLAPrecision):
         rank_zero_deprecation(
             "The `TPUPrecision` class is deprecated. Use `lightning.fabric.plugins.precision.XLAPrecision`" " instead."
         )
-        super().__init__(*args, **kwargs)
+        super().__init__(precision="32-true")
 
 
 class XLABf16Precision(XLAPrecision):
@@ -84,7 +84,7 @@ class XLABf16Precision(XLAPrecision):
             "The `XLABf16Precision` class is deprecated. Use"
             " `lightning.fabric.plugins.precision.XLAPrecision` instead."
         )
-        super().__init__(*args, **kwargs)
+        super().__init__(precision="bf16-true")
 
 
 class TPUBf16Precision(XLABf16Precision):
