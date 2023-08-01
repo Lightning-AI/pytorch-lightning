@@ -264,6 +264,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
+            # The user has wrapped their submodules manually, don't apply the auto wrap policy.
             if not isinstance(module, FullyShardedDataParallel) and any(p.is_meta for p in module.parameters()):
                 rank_zero_warn(
                     "The model is already wrapped in `FSDP` but there are still parameters on the meta device."
@@ -326,7 +327,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
             empty_init_context = torch.device("meta")
-            # TODO What if root module is not wrapped (manual wrapping)?
         elif _TORCH_GREATER_EQUAL_1_13:
             empty_init_context = _EmptyInit(enabled=bool(empty_init))
         else:
