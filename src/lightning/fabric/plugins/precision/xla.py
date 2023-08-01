@@ -11,20 +11,57 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
+import os
+from typing import Any, Literal
+from typing_extensions import get_args
 
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.utilities.types import Optimizable
+import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from torch import Tensor
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+
+_PRECISION_INPUT = Literal["32-true", "16-true", "bf16-true"]
 
 
 class XLAPrecision(Precision):
-    """Precision plugin with XLA."""
+    """Plugin for training with XLA.
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    Args:
+        precision: Full precision (32-true) or half precision (16-true, bf16-true).
+
+    Raises:
+        ValueError:
+            If unsupported ``precision`` is provided.
+    """
+
+    def __init__(self, precision: _PRECISION_INPUT) -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
-        super().__init__(*args, **kwargs)
+        supported_precision = get_args(_PRECISION_INPUT)
+        if precision not in supported_precision:
+            raise ValueError(
+                f"`precision={precision!r})` is not supported in XLA."
+                f" `precision` must be one of: {supported_precision}."
+            )
+        self.precision = precision
+
+        if precision == "16-true":
+            os.environ["XLA_USE_F16"] = "1"
+            self._desired_dtype = torch.float16
+        elif precision == "bf16-true":
+            os.environ["XLA_USE_BF16"] = "1"
+            self._desired_dtype = torch.bfloat16
+        else:
+            self._desired_dtype = torch.float32
+
+    def convert_input(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
+
+    def convert_output(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     def optimizer_step(
         self,
@@ -35,3 +72,7 @@ class XLAPrecision(Precision):
 
         # you always want to `xm.mark_step()` after `optimizer.step` for better performance, so we set `barrier=True`
         return xm.optimizer_step(optimizer, optimizer_args=kwargs, barrier=True)
+
+    def teardown(self) -> None:
+        os.environ.pop("XLA_USE_BF16", None)
+        os.environ.pop("XLA_USE_F16", None)

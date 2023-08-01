@@ -426,18 +426,8 @@ class _Connector:
         self._validate_precision_choice()
         if isinstance(self._precision_instance, Precision):
             return self._precision_instance
-
-        if isinstance(self.accelerator, XLAAccelerator):
-            if self._precision_input == "32-true":
-                return XLAPrecision()
-            if self._precision_input in ("16-mixed", "bf16-mixed"):
-                if self._precision_input == "16-mixed":
-                    rank_zero_warn(
-                        "You passed `Fabric(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
-                        " is not supported with TPUs. Using `precision='bf16-mixed'` instead."
-                    )
-                return XLABf16Precision()
-
+        if isinstance(self.strategy, XLAStrategy):
+            return XLAPrecision(self._precision_input)
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
         if isinstance(self.strategy, FSDPStrategy):
@@ -471,18 +461,11 @@ class _Connector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, and accelerator."""
-        if isinstance(self.accelerator, XLAAccelerator):
-            if self._precision_input == "64-true":
-                raise NotImplementedError(
-                    "`Fabric(accelerator='tpu', precision='64-true')` is not implemented."
-                    " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
-                    " requesting this feature."
-                )
-            if self._precision_instance and not isinstance(self._precision_instance, (XLAPrecision, XLABf16Precision)):
-                raise ValueError(
-                    f"The `XLAAccelerator` can only be used with a `XLAPrecision` plugin,"
-                    f" found: {self._precision_instance}."
-                )
+        if isinstance(self.accelerator, XLAAccelerator) and self._precision_instance and not isinstance(self._precision_instance, XLAPrecision):
+            raise ValueError(
+                f"The `XLAAccelerator` can only be used with a `XLAPrecision` plugin,"
+                f" found: {self._precision_instance}."
+            )
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""
