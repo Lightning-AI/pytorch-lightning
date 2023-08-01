@@ -7,6 +7,8 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
 from tests_pytorch.helpers.runif import RunIf
 
+from lightning.pytorch.plugins.precision.double import LightningDoublePrecisionModule
+
 
 def test_configure_sharded_model():
     class MyModel(BoringModel):
@@ -43,3 +45,8 @@ def test_fsdp_activation_checkpointing(monkeypatch):
     monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_1", True)
     with pytest.deprecated_call(match=r"use `FSDPStrategy\(activation_checkpointing_policy"):
         FSDPStrategy(activation_checkpointing=torch.nn.Linear)
+
+
+def test_double_precision_wrapper():
+    with pytest.deprecated_call(match=r"The `LightningDoublePrecisionModule` is deprecated and no longer needed"):
+        LightningDoublePrecisionModule(BoringModel())
