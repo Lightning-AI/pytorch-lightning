@@ -387,12 +387,6 @@ You can easily load checkpoints saved by Fabric to resume training:
 
 Fabric will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
 
-.. warning::
-
-    Loading a full-state checkpoint will replicate the file in CPU RAM for every GPU.
-    For very large checkpoints/models, you may run out of memory and your program will crash.
-    If this happens, save using the “sharded” checkpoint format instead (default).
-
 
 ----
 
