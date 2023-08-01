@@ -23,6 +23,7 @@ import torch
 
 from lightning.fabric.loggers import TensorBoardLogger
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from lightning.fabric.wrappers import _FabricModule
 from tests_fabric.test_fabric import BoringModel
 
 
@@ -153,8 +154,18 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
     if example_input_array is not None:
         model.example_input_array = None
 
-    logger = TensorBoardLogger(tmpdir, log_graph=True)
+    logger = TensorBoardLogger(tmpdir)
+    logger._experiment = Mock()
     logger.log_graph(model, example_input_array)
+    if example_input_array is not None:
+        logger.experiment.add_graph.assert_called_with(model, example_input_array)
+    logger._experiment.reset_mock()
+
+    # model wrapped in `FabricModule`
+    wrapped = _FabricModule(model, precision=Mock())
+    logger.log_graph(wrapped, example_input_array)
+    if example_input_array is not None:
+        logger.experiment.add_graph.assert_called_with(model, example_input_array)
 
 
 @pytest.mark.skipif(not _TENSORBOARD_AVAILABLE, reason=str(_TENSORBOARD_AVAILABLE))

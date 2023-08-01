@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
@@ -79,17 +79,31 @@ class XLAStrategy(ParallelStrategy):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
+
+    @property
+    def global_rank(self) -> int:
+        return super().global_rank if self._launched else 0
+
+    @property
+    def local_rank(self) -> int:
+        return super().local_rank if self._launched else 0
+
+    @property
+    def node_rank(self) -> int:
+        return super().node_rank if self._launched else 0
+
+    @property
+    def world_size(self) -> int:
+        return super().world_size if self._launched else 1
 
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
     def setup_environment(self) -> None:
-        from torch_xla.experimental.pjrt import using_pjrt
-
         assert self.parallel_devices is not None
-        if using_pjrt() and len(self.parallel_devices) == 1:
+        if _using_pjrt() and len(self.parallel_devices) == 1:
             # spawning only 1 device with PjRT is not supported:
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
@@ -103,9 +117,12 @@ class XLAStrategy(ParallelStrategy):
 
     def setup_module(self, module: Module) -> Module:
         if self._sync_module_states:
-            from torch_xla.experimental import pjrt
+            if _XLA_GREATER_EQUAL_2_1:
+                from torch_xla.core.xla_model import broadcast_master_param
+            else:
+                from torch_xla.experimental.pjrt import broadcast_master_param
 
-            pjrt.broadcast_master_param(module)
+            broadcast_master_param(module)
 
         return module
 
@@ -236,15 +253,6 @@ class XLAStrategy(ParallelStrategy):
         xm.mark_step()
         # save on global rank zero only
         super().save_checkpoint(path, state, storage_options=storage_options, filter=filter)
-
-    def remove_checkpoint(self, filepath: _PATH) -> None:
-        """Remove checkpoint filepath from the filesystem.
-
-        Args:
-            filepath: Path to checkpoint
-        """
-        if self.local_rank == 0:
-            self.checkpoint_io.remove_checkpoint(filepath)
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:

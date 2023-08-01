@@ -22,6 +22,7 @@ from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixi
 from lightning.pytorch.callbacks import Checkpoint, EarlyStopping
 from lightning.pytorch.trainer.states import TrainerStatus
 from lightning.pytorch.utilities.exceptions import _TunerExitException
+from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -81,7 +82,8 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
 
     # Trigger lazy creation of experiment in loggers so loggers have their metadata available
     for logger in trainer.loggers:
-        _ = logger.experiment
+        if hasattr(logger, "experiment"):
+            _ = logger.experiment
 
     trainer.strategy.barrier("pre_setup")
 
@@ -93,9 +95,17 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
     trainer.strategy.barrier("post_setup")
 
 
-def _call_configure_sharded_model(trainer: "pl.Trainer") -> None:
-    with trainer.strategy.model_sharded_context():
-        _call_lightning_module_hook(trainer, "configure_sharded_model")
+def _call_configure_model(trainer: "pl.Trainer") -> None:
+    # legacy hook
+    if is_overridden("configure_sharded_model", trainer.lightning_module):
+        with trainer.strategy.model_sharded_context():
+            _call_lightning_module_hook(trainer, "configure_sharded_model")
+
+    # we don't normally check for this before calling the hook. it is done here to avoid instantiating the context
+    # managers
+    if is_overridden("configure_model", trainer.lightning_module):
+        with trainer.strategy.tensor_init_context(), trainer.strategy.model_sharded_context():
+            _call_lightning_module_hook(trainer, "configure_model")
 
 
 def _call_teardown_hook(trainer: "pl.Trainer") -> None:
@@ -128,6 +138,8 @@ def _call_lightning_module_hook(
     pl_module: Optional["pl.LightningModule"] = None,
     **kwargs: Any,
 ) -> Any:
+    log.debug(f"{trainer.__class__.__name__}: calling lightning module hook: {hook_name}")
+
     pl_module = pl_module or trainer.lightning_module
 
     if pl_module is None:
@@ -155,6 +167,8 @@ def _call_lightning_datamodule_hook(
     *args: Any,
     **kwargs: Any,
 ) -> Any:
+    log.debug(f"{trainer.__class__.__name__}: calling lightning datamodule hook: {hook_name}")
+
     if trainer.datamodule is None:
         raise TypeError("No `LightningDataModule` is available to call hooks on.")
 
@@ -279,6 +293,8 @@ def _call_strategy_hook(
     *args: Any,
     **kwargs: Any,
 ) -> Any:
+    log.debug(f"{trainer.__class__.__name__}: calling strategy hook: {hook_name}")
+
     pl_module = trainer.lightning_module
     prev_fx_name = pl_module._current_fx_name
     pl_module._current_fx_name = hook_name
