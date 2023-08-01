@@ -275,7 +275,8 @@ def test_setup_optimizers_not_supported(strategy_cls):
 
 @RunIf(min_cuda_gpus=1, min_torch="2.1")
 def test_setup_optimizer_on_meta_device():
-    """Test that the setup-methods validate that the optimizer doesn't have references to meta-device parameters."""
+    """Test that the setup-methods validate that the optimizer doesn't have references to meta-device
+    parameters."""
     fabric = Fabric(strategy="fsdp", devices=1)
     fabric._launched = True  # pretend we have launched multiple processes
     with fabric.init_module(empty_init=True):
