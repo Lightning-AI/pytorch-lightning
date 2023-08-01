@@ -22,14 +22,14 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.8.0
+    rev: v3.10.1
     hooks:
       - id: pyupgrade
         args: [--py37-plus]
         name: Upgrade code
 
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 23.7.0
     hooks:
       - id: black
         name: Black code
@@ -56,7 +56,7 @@ repos:
           - flake8-bugbear
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.276
+    rev: v0.0.281
     hooks:
       - id: ruff
         args: ["--fix"]
