@@ -67,6 +67,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_1,
 )
 from lightning.fabric.utilities.init import _EmptyInit
+from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
@@ -143,7 +144,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
@@ -163,7 +163,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
-            checkpoint_io=checkpoint_io,
             precision=precision,
         )
         self._num_nodes = 1
@@ -183,6 +182,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        raise NotImplementedError(f"The `{type(self).__name__}` does not use the `CheckpointIO` plugin interface.")
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: CheckpointIO) -> None:
+        raise NotImplementedError(f"The `{type(self).__name__}` does not support setting a `CheckpointIO` plugin.")
 
     @property
     def root_device(self) -> torch.device:
@@ -508,7 +515,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         path = Path(self.broadcast(path))
 
         if isinstance(state, Module):
-            _load_raw_module_state(path, module=state, strict=strict)
+            _load_raw_module_state_from_path(path, module=state, strict=strict)
             return {}
 
         if isinstance(state, Optimizer):
@@ -573,11 +580,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return metadata
 
         if _is_full_checkpoint(path):
-            checkpoint = torch.load(path, map_location="cpu")
+            checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
             _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
 
             if isinstance(state, Module):
                 return {}
+
+            if _TORCH_GREATER_EQUAL_2_0:
+                # Materialize lazy tensors if there are any left in the checkpoint
+                # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
+                checkpoint = _materialize_tensors(checkpoint)
 
             # Load optimizer states
             for optim_key, optim in optimizers.items():
@@ -810,21 +822,22 @@ def _has_fsdp_modules(module: object) -> TypeGuard[Module]:
     return isinstance(module, Module) and any(isinstance(m, FullyShardedDataParallel) for m in module.modules())
 
 
-def _load_raw_module_state(path_or_ckpt: Union[Path, Dict[str, Any]], module: Module, strict: bool = True) -> None:
-    """Loads the state dict (given or from a path) into the module by gathering all weights first and then and
-    writing back to each shard."""
-    if isinstance(path_or_ckpt, Path) and not _is_full_checkpoint(path_or_ckpt):
+def _load_raw_module_state_from_path(path: Path, module: Module, strict: bool = True) -> None:
+    """Loads the state dict from a file path into the FSDP module."""
+    if not _is_full_checkpoint(path):
         raise ValueError(
             "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
-            f" full state dict: {path_or_ckpt}"
+            f" full state dict: {path}"
         )
+    # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
+    _load_raw_module_state(state_dict=_lazy_load(path), module=module, strict=strict)
 
-    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-    # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
-    # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
-    state_dict = torch.load(path_or_ckpt, map_location="cpu") if not isinstance(path_or_ckpt, dict) else path_or_ckpt
-    with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
+def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: bool = True) -> None:
+    """Loads the state dict into the module by gathering all weights first and then and writing back to each
+    shard."""
+
+    with _get_full_state_dict_context(module, rank0_only=False):
         module.load_state_dict(state_dict, strict=strict)
 
 
