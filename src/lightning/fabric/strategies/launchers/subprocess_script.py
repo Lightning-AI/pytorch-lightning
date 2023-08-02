@@ -183,7 +183,7 @@ def _launch_process_monitor(child_processes: List[subprocess.Popen]) -> None:
     monitor_thread.start()
 
 
-def _monitor_child_processes(main_pid: int, child_processes: List[subprocess.Popen], sleep_period: int = 3) -> None:
+def _monitor_child_processes(main_pid: int, child_processes: List[subprocess.Popen], sleep_period: int = 5) -> None:
     for proc in itertools.cycle(child_processes):
         time.sleep(sleep_period)
         exit_code = proc.poll()
