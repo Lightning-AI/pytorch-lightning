@@ -13,6 +13,7 @@
 # limitations under the License.
 import importlib
 from inspect import getmembers, isclass
+
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.registry import _is_register_method_overridden
 from lightning.pytorch.strategies.strategy import Strategy

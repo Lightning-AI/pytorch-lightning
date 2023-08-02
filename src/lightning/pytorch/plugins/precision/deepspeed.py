@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, cast, Literal, Optional, TYPE_CHECKING, Union, Generator
+from typing import Any, Callable, Generator, Optional, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -22,9 +22,9 @@ from torch.optim import LBFGS, Optimizer
 from typing_extensions import get_args
 
 import lightning.pytorch as pl
+from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT
 from lightning.fabric.utilities.types import Steppable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities import GradClipAlgorithmType
