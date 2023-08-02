@@ -547,9 +547,6 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(strategy='dp')``.
-
-            MisconfigurationException:
                 If using IPUs, ``Trainer(accelerator='ipu')``.
 
         See Also:
