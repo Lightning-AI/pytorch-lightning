@@ -14,6 +14,7 @@
 import itertools
 import logging
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -189,9 +190,9 @@ def _monitor_child_processes(main_pid: int, child_processes: List[subprocess.Pop
         if exit_code not in (None, 0):
             _logger.info(
                 f"Child process with PID {proc.pid} terminated with code {exit_code}."
-                f" Forcefully terminating all other processes to avoid zombies 🧟."
+                f" Forcefully terminating all other processes to avoid zombies 🧟"
             )
             for p in child_processes:
-                p.kill()
-            os.kill(main_pid, 9)
+                p.send_signal(signal.SIGKILL)
+            os.kill(main_pid, signal.SIGKILL)
             break
