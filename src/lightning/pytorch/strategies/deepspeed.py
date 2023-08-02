@@ -22,8 +22,6 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
-from lightning_utilities.core.apply_func import apply_to_collection
-from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -43,7 +41,6 @@ from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
-from lightning.pytorch.strategies.utils import _fp_to_half
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -893,6 +890,9 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_optimizer_device="nvme",
         )
 
+    # TODO: discuss should we keep overriding this?
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
-        batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
+        # For backward-compatibility, we still need to convert the inputs here for the batch-transfer hooks
+        # In all other strategies, the input gets converted in the `Strategy.*_step` methods
+        batch = self.precision_plugin.convert_input(batch)
         return super().batch_to_device(batch, device, dataloader_idx)

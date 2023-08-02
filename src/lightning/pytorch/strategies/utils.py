@@ -13,12 +13,6 @@
 # limitations under the License.
 import importlib
 from inspect import getmembers, isclass
-from typing import Literal
-
-import torch
-from torch import Tensor
-
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.registry import _is_register_method_overridden
 from lightning.pytorch.strategies.strategy import Strategy
@@ -30,19 +24,3 @@ def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> 
     for _, mod in getmembers(module, isclass):
         if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):
             mod.register_strategies(registry)
-
-
-def _fp_to_half(
-    tensor: Tensor,
-    precision: Literal[
-        "64-true",
-        "32-true",
-        "16-mixed",
-        "bf16-mixed",
-    ],
-) -> Tensor:
-    if str(precision) == "16-mixed":
-        return _convert_fp_tensor(tensor, torch.half)
-    if precision == "bf16-mixed":
-        return _convert_fp_tensor(tensor, torch.bfloat16)
-    return tensor
