@@ -39,6 +39,7 @@ from lightning.pytorch.plugins import (
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
+    HalfPrecisionPlugin,
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
@@ -524,6 +525,8 @@ class _AcceleratorConnector:
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
 
+        if self._precision_flag in ("16-true", "bf16-true"):
+            return HalfPrecisionPlugin(self._precision_flag)  # type: ignore
         if self._precision_flag == "32-true":
             return PrecisionPlugin()
         if self._precision_flag == "64-true":
