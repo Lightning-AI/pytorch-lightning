@@ -20,7 +20,11 @@ from lightning_utilities.core.imports import RequirementCache
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
-from lightning.fabric.strategies.launchers.subprocess_script import _basic_subprocess_cmd, _hydra_subprocess_cmd
+from lightning.fabric.strategies.launchers.subprocess_script import (
+    _basic_subprocess_cmd,
+    _hydra_subprocess_cmd,
+    _launch_process_monitor
+)
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.connectors.signal_connector import _SIGNUM
 
@@ -70,7 +74,7 @@ class _SubprocessScriptLauncher(_Launcher):
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
-        self.procs: List[subprocess.Popen] = []  # launched subprocesses. does not include the launcher
+        self.procs: List[subprocess.Popen] = []  # launched child subprocesses, does not include the launcher
 
     @property
     def is_interactive_compatible(self) -> bool:
@@ -88,6 +92,7 @@ class _SubprocessScriptLauncher(_Launcher):
         """
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
+            _launch_process_monitor(self.procs)
         return function(*args, **kwargs)
 
     def kill(self, signum: _SIGNUM) -> None:

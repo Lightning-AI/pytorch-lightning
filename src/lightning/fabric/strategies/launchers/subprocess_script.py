@@ -11,16 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
+import logging
 import os
 import subprocess
 import sys
-from typing import Any, Callable, Optional, Sequence, Tuple
+import time
+from threading import Thread
+from typing import Any, Callable, Optional, Sequence, Tuple, List
 
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 
+_logger = logging.getLogger(__name__)
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")
 
 
@@ -71,6 +76,7 @@ class _SubprocessScriptLauncher(_Launcher):
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
+        self.procs: List[subprocess.Popen] = []  # launched child subprocesses, does not include the launcher
 
     @property
     def is_interactive_compatible(self) -> bool:
@@ -87,6 +93,7 @@ class _SubprocessScriptLauncher(_Launcher):
         """
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
+            _launch_process_monitor(self.procs)
         return function(*args, **kwargs)
 
     def _call_children_scripts(self) -> None:
@@ -122,9 +129,13 @@ class _SubprocessScriptLauncher(_Launcher):
                 command, cwd = _hydra_subprocess_cmd(local_rank=local_rank)
             else:
                 command = _basic_subprocess_cmd()
-            subprocess.Popen(command, env=env_copy, cwd=cwd)
+
+            proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
+            self.procs.append(proc)
 
     def _check_can_spawn_children(self) -> None:
+        if len(self.procs) > 0:
+            raise RuntimeError(f"The launcher can only create subprocesses once.")
         if self.cluster_environment.local_rank() != 0:
             raise RuntimeError(
                 "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
@@ -159,3 +170,28 @@ def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     # Set output_subdir null since we don't want different subprocesses trying to write to config.yaml
     command += [f"hydra.run.dir={rundir}", f"hydra.job.name=train_ddp_process_{local_rank}", "hydra.output_subdir=null"]
     return command, cwd
+
+
+def _launch_process_monitor(child_processes: List[subprocess.Popen]) -> None:
+    # A thread that runs along the main process and monitors the health of all processes
+    monitor_thread = Thread(
+        target=_monitor_child_processes,
+        kwargs={"child_processes": child_processes, "main_pid": os.getpid()},
+        daemon=True,  # thread stops if the main process exits
+    )
+    monitor_thread.start()
+
+
+def _monitor_child_processes(main_pid: int, child_processes: List[subprocess.Popen], sleep_period: int = 3) -> None:
+    for proc in itertools.cycle(child_processes):
+        time.sleep(sleep_period)
+        exit_code = proc.poll()
+        if exit_code not in (None, 0):
+            _logger.info(
+                f"Child process with PID {proc.pid} terminated with code {exit_code}."
+                f" Forcefully terminating all other processes to avoid zombies 🧟."
+            )
+            for p in child_processes:
+                p.kill()
+            os.kill(main_pid, 9)
+            break
