@@ -153,7 +153,6 @@ class Strategy(ABC):
         model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
             self.model, self.optimizers, self.lr_scheduler_configs
         )
-        model = self.precision_plugin.convert_module(model)
         self.model = model
         self.optimizers = optimizers
         self.lr_scheduler_configs = lr_scheduler_configs
