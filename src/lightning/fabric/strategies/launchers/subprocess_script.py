@@ -93,7 +93,7 @@ class _SubprocessScriptLauncher(_Launcher):
         """
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
-            _launch_process_monitor(self.procs)
+            _launch_process_observer(self.procs)
         return function(*args, **kwargs)
 
     def _call_children_scripts(self) -> None:
@@ -172,20 +172,30 @@ def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     return command, cwd
 
 
-def _launch_process_monitor(child_processes: List[subprocess.Popen]) -> None:
+def _launch_process_observer(child_processes: List[subprocess.Popen]) -> None:
     """Launches a thread that runs along the main process and monitors the health of all processes."""
     monitor_thread = Thread(
-        target=_monitor_child_processes,
-        kwargs={"child_processes": child_processes, "main_pid": os.getpid()},
+        target=_ChildProcessObserver(child_processes=child_processes, main_pid=os.getpid()),
         daemon=True,  # thread stops if the main process exits
     )
     monitor_thread.start()
 
 
-def _monitor_child_processes(main_pid: int, child_processes: List[subprocess.Popen], sleep_period: int = 5) -> None:
-    while True:
-        time.sleep(sleep_period)
-        for proc in child_processes:
+class _ChildProcessObserver(Callable):
+    def __init__(self, main_pid: int, child_processes: List[subprocess.Popen], sleep_period: int = 5) -> None:
+        self.main_pid = main_pid
+        self.child_processes = child_processes
+        self.sleep_period = sleep_period
+        self.finished = True
+
+    def __call__(self):
+        while not self.finished:
+            time.sleep(self.sleep_period)
+            self._run()
+
+    def _run(self):
+        """Runs once over all child processes to check whether they are still running."""
+        for proc in self.child_processes:
             exit_code = proc.poll()
             if not exit_code:
                 continue
@@ -193,7 +203,11 @@ def _monitor_child_processes(main_pid: int, child_processes: List[subprocess.Pop
                 f"Child process with PID {proc.pid} terminated with code {exit_code}."
                 f" Forcefully terminating all other processes to avoid zombies 🧟"
             )
-            for p in child_processes:
-                p.send_signal(signal.SIGKILL)
-            os.kill(main_pid, signal.SIGKILL)
-            break
+            self._terminate_all()
+            self.finished = True
+
+    def _terminate_all(self):
+        """Terminates the main process and all its children."""
+        for p in self.child_processes:
+            p.send_signal(signal.SIGTERM)
+        os.kill(self.main_pid, signal.SIGTERM)
