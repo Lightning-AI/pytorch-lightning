@@ -536,6 +536,7 @@ class Trainer:
         """
         model = _maybe_unwrap_optimized(model)
         self.strategy._lightning_module = model
+        _verify_strategy_supports_compile(model, self.strategy)
         call._call_and_handle_interrupt(
             self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
@@ -635,6 +636,7 @@ class Trainer:
         else:
             model = _maybe_unwrap_optimized(model)
             self.strategy._lightning_module = model
+        _verify_strategy_supports_compile(self.lightning_module, self.strategy)
         return call._call_and_handle_interrupt(
             self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
@@ -742,6 +744,7 @@ class Trainer:
         else:
             model = _maybe_unwrap_optimized(model)
             self.strategy._lightning_module = model
+        _verify_strategy_supports_compile(self.lightning_module, self.strategy)
         return call._call_and_handle_interrupt(
             self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
@@ -850,6 +853,7 @@ class Trainer:
         else:
             model = _maybe_unwrap_optimized(model)
             self.strategy._lightning_module = model
+        _verify_strategy_supports_compile(self.lightning_module, self.strategy)
         return call._call_and_handle_interrupt(
             self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
         )
@@ -902,8 +906,6 @@ class Trainer:
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[_PATH] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-        _verify_strategy_supports_compile(model, self.strategy)
-
         if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
                 self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
@@ -1219,11 +1221,13 @@ class Trainer:
     def log_dir(self) -> Optional[str]:
         """The directory for the current experiment. Use this to save images to, etc...
 
-        .. code-block:: python
+        .. note:: You must call this on all processes. Failing to do so will cause your program to stall forever.
 
-            def training_step(self, batch, batch_idx):
-                img = ...
-                save_img(img, self.trainer.log_dir)
+         .. code-block:: python
+
+             def training_step(self, batch, batch_idx):
+                 img = ...
+                 save_img(img, self.trainer.log_dir)
         """
         if len(self.loggers) > 0:
             if not isinstance(self.loggers[0], TensorBoardLogger):

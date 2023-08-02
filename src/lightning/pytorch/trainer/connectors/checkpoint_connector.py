@@ -23,7 +23,7 @@ from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.environments.slurm import SLURMEnvironment
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.plugins.precision import MixedPrecisionPlugin
@@ -55,7 +55,7 @@ class _CheckpointConnector:
         dir_path_hpc = self.trainer.default_root_dir
         dir_path_hpc = str(dir_path_hpc)
         fs, path = url_to_fs(dir_path_hpc)
-        if not fs.isdir(path):
+        if not _is_dir(fs, path):
             return None
         max_version = self.__max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:

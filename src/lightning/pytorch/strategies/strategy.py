@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -86,7 +86,7 @@ class Strategy(ABC):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
 
     @property
@@ -108,6 +108,7 @@ class Strategy(ABC):
 
     def connect(self, model: "pl.LightningModule") -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
+        model = cast(pl.LightningModule, self.precision_plugin.convert_module(model))
         self._lightning_module = model
         self.model = model
 
@@ -358,6 +359,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.training_step` for more details
         """
+        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.train_step_context():
@@ -377,6 +379,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
         """
+        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.val_step_context():
@@ -389,6 +392,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
         """
+        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.test_step_context():
@@ -401,6 +405,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
         """
+        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.predict_step_context():

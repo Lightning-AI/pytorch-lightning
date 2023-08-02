@@ -82,7 +82,7 @@ class XLAStrategy(DDPStrategy):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
 
     @property
@@ -92,6 +92,22 @@ class XLAStrategy(DDPStrategy):
         import torch_xla.core.xla_model as xm
 
         return xm.xla_device()
+
+    @property
+    def global_rank(self) -> int:
+        return super().global_rank if self._launched else 0
+
+    @property
+    def local_rank(self) -> int:
+        return super().local_rank if self._launched else 0
+
+    @property
+    def node_rank(self) -> int:
+        return super().node_rank if self._launched else 0
+
+    @property
+    def world_size(self) -> int:
+        return super().world_size if self._launched else 1
 
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
@@ -112,7 +128,7 @@ class XLAStrategy(DDPStrategy):
 
         if self._sync_module_states:
             if _XLA_GREATER_EQUAL_2_1:
-                from torch_xla.core.model import broadcast_master_param
+                from torch_xla.core.xla_model import broadcast_master_param
             else:
                 from torch_xla.experimental.pjrt import broadcast_master_param
 
