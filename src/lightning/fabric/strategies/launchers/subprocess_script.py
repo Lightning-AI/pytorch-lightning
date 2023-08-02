@@ -174,7 +174,7 @@ def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
 
 
 def _launch_process_monitor(child_processes: List[subprocess.Popen]) -> None:
-    # A thread that runs along the main process and monitors the health of all processes
+    """Launches a thread that runs along the main process and monitors the health of all processes."""
     monitor_thread = Thread(
         target=_monitor_child_processes,
         kwargs={"child_processes": child_processes, "main_pid": os.getpid()},
@@ -184,10 +184,12 @@ def _launch_process_monitor(child_processes: List[subprocess.Popen]) -> None:
 
 
 def _monitor_child_processes(main_pid: int, child_processes: List[subprocess.Popen], sleep_period: int = 5) -> None:
-    for proc in itertools.cycle(child_processes):
+    while True:
         time.sleep(sleep_period)
-        exit_code = proc.poll()
-        if exit_code not in (None, 0):
+        for proc in child_processes:
+            exit_code = proc.poll()
+            if not exit_code:
+                continue
             _logger.info(
                 f"Child process with PID {proc.pid} terminated with code {exit_code}."
                 f" Forcefully terminating all other processes to avoid zombies 🧟"
