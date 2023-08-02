@@ -181,7 +181,7 @@ def _launch_process_observer(child_processes: List[subprocess.Popen]) -> None:
     monitor_thread.start()
 
 
-class _ChildProcessObserver(Callable):
+class _ChildProcessObserver:
     def __init__(self, main_pid: int, child_processes: List[subprocess.Popen], sleep_period: int = 5) -> None:
         self._main_pid = main_pid
         self._child_processes = child_processes
