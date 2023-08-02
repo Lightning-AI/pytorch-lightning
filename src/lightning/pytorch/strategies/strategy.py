@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -108,6 +108,7 @@ class Strategy(ABC):
 
     def connect(self, model: "pl.LightningModule") -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
+        model = cast(pl.LightningModule, self.precision_plugin.convert_module(model))
         self._lightning_module = model
         self.model = model
 

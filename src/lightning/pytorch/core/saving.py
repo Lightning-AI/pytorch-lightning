@@ -30,6 +30,7 @@ import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.cloud_io import _is_dir
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
@@ -252,7 +253,7 @@ def load_hparams_from_tags_csv(tags_csv: _PATH) -> Dict[str, Any]:
 
 def save_hparams_to_tags_csv(tags_csv: _PATH, hparams: Union[dict, Namespace]) -> None:
     fs = get_filesystem(tags_csv)
-    if not fs.isdir(os.path.dirname(tags_csv)):
+    if not _is_dir(fs, os.path.dirname(tags_csv)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(tags_csv)}.")
 
     if isinstance(hparams, Namespace):
@@ -306,7 +307,7 @@ def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], us
 
     """
     fs = get_filesystem(config_yaml)
-    if not fs.isdir(os.path.dirname(config_yaml)):
+    if not _is_dir(fs, os.path.dirname(config_yaml)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(config_yaml)}.")
 
     # convert Namespace or AD to dict
