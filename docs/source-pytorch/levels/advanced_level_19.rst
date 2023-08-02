@@ -33,7 +33,7 @@ Explore Intelligence Processing Unit (IPU) for model scaling.
 
 .. displayitem::
    :header: Optimize models training on IPUs
-   :description: Tune model performance with mix-precision and the performance analyser.
+   :description: Tune model performance with mixed precision and the performance analyser.
    :col_css: col-md-4
    :button_link: ../accelerators/ipu_intermediate.html
    :height: 150
