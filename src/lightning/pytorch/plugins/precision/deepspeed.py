@@ -41,6 +41,8 @@ warning_cache = WarningCache()
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for DeepSpeed integration.
 
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     Args:
         precision: Full precision (32-true), half precision (16-true, bf16-true) or
             mixed precision (16-mixed, bf16-mixed).
