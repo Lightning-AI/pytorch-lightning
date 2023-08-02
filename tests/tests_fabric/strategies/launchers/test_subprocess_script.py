@@ -33,12 +33,17 @@ def test_subprocess_script_launcher_interactive_compatible():
 
 @mock.patch("lightning.fabric.strategies.launchers.subprocess_script.subprocess.Popen")
 @mock.patch("lightning.fabric.strategies.launchers.subprocess_script.Thread")
-def test_subprocess_script_launcher_error_launching_on_non_zero_rank(*_):
+def test_subprocess_script_launcher_can_launch(*_):
     cluster_env = Mock()
     cluster_env.creates_processes_externally = False
     cluster_env.local_rank.return_value = 1
     launcher = _SubprocessScriptLauncher(cluster_env, num_processes=2, num_nodes=1)
+
     with pytest.raises(RuntimeError, match="attempted to launch new distributed processes with `local_rank > 0`"):
+        launcher.launch(Mock())
+
+    launcher.procs = [Mock()]  # there are already processes running
+    with pytest.raises(RuntimeError, match="The launcher can only create subprocesses once"):
         launcher.launch(Mock())
 
 
