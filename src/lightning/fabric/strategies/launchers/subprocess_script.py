@@ -216,5 +216,6 @@ class _ChildProcessObserver(Callable):
     def _terminate_all(self) -> None:
         """Terminates the main process and all its children."""
         for p in self._child_processes:
-            p.send_signal(signal.SIGTERM)
-        os.kill(self._main_pid, signal.SIGTERM)
+            # Note: SIGTERM is not aggressive enough to terminate processes hanging in collectives
+            p.send_signal(signal.SIGKILL)
+        os.kill(self._main_pid, signal.SIGKILL)
