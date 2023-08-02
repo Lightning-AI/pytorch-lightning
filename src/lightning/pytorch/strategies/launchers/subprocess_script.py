@@ -139,6 +139,8 @@ class _SubprocessScriptLauncher(_Launcher):
             self.procs.append(new_process)
 
     def _check_can_spawn_children(self) -> None:
+        if len(self.procs) > 0:
+            raise RuntimeError("The launcher can only create subprocesses once.")
         if self.cluster_environment.local_rank() != 0:
             raise RuntimeError(
                 "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
