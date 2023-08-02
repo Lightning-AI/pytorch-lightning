@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import signal
+import sys
 from unittest import mock
 from unittest.mock import ANY, Mock
 
@@ -157,9 +158,10 @@ def test_child_process_observer(sleep_mock, os_kill_mock):
     observer = _ChildProcessObserver(main_pid=1234, child_processes=processes)
     finished = observer._run()  # call _run() directly to simulate while loop
     assert finished
-    processes[0].send_signal.assert_called_once_with(signal.SIGKILL)
-    processes[1].send_signal.assert_called_once_with(signal.SIGKILL)
-    os_kill_mock.assert_called_once_with(1234, signal.SIGKILL)
+    expected_signal = signal.SIGTERM if sys.platform == "win32" else signal.SIGKILL
+    processes[0].send_signal.assert_called_once_with(expected_signal)
+    processes[1].send_signal.assert_called_once_with(expected_signal)
+    os_kill_mock.assert_called_once_with(1234, expected_signal)
 
     # The main routine stops
     observer = _ChildProcessObserver(main_pid=1234, child_processes=[Mock(), Mock()])

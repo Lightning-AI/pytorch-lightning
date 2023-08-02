@@ -186,6 +186,8 @@ class _ChildProcessObserver:
         self._main_pid = main_pid
         self._child_processes = child_processes
         self._sleep_period = sleep_period
+        # Note: SIGTERM is not aggressive enough to terminate processes hanging in collectives
+        self._termination_signal = signal.SIGTERM if sys.platform == "win32" else signal.SIGKILL
         self._finished = False
 
     def __call__(self) -> None:
@@ -216,6 +218,5 @@ class _ChildProcessObserver:
     def _terminate_all(self) -> None:
         """Terminates the main process and all its children."""
         for p in self._child_processes:
-            # Note: SIGTERM is not aggressive enough to terminate processes hanging in collectives
-            p.send_signal(signal.SIGKILL)
-        os.kill(self._main_pid, signal.SIGKILL)
+            p.send_signal(self._termination_signal)
+        os.kill(self._main_pid, self._termination_signal)
