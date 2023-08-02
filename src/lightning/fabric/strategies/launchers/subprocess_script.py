@@ -19,7 +19,7 @@ import subprocess
 import sys
 import time
 from threading import Thread
-from typing import Any, Callable, Optional, Sequence, Tuple, List
+from typing import Any, Callable, List, Optional, Sequence, Tuple
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -136,7 +136,7 @@ class _SubprocessScriptLauncher(_Launcher):
 
     def _check_can_spawn_children(self) -> None:
         if len(self.procs) > 0:
-            raise RuntimeError(f"The launcher can only create subprocesses once.")
+            raise RuntimeError("The launcher can only create subprocesses once.")
         if self.cluster_environment.local_rank() != 0:
             raise RuntimeError(
                 "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
