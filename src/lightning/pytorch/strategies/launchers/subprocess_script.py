@@ -23,7 +23,7 @@ from lightning.fabric.plugins import ClusterEnvironment
 from lightning.fabric.strategies.launchers.subprocess_script import (
     _basic_subprocess_cmd,
     _hydra_subprocess_cmd,
-    _launch_process_monitor
+    _launch_process_monitor,
 )
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.connectors.signal_connector import _SIGNUM
