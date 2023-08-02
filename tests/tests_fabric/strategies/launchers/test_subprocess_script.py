@@ -20,9 +20,9 @@ import pytest
 
 import lightning.fabric
 from lightning.fabric.strategies.launchers.subprocess_script import (
+    _ChildProcessObserver,
     _HYDRA_AVAILABLE,
     _SubprocessScriptLauncher,
-    _ChildProcessObserver,
 )
 
 
