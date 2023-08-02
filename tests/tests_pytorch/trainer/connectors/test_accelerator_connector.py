@@ -37,6 +37,7 @@ from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision import (
     DoublePrecisionPlugin,
+    FSDPPrecisionPlugin,
     HalfPrecisionPlugin,
     MixedPrecisionPlugin,
     PrecisionPlugin,
@@ -1015,16 +1016,21 @@ def test_connector_sets_num_nodes(strategy, cuda_count_2):
 
 
 @pytest.mark.parametrize(
-    ("precision_str", "precision_cls"),
+    ("precision_str", "strategy_str", "expected_precision_cls"),
     [
-        ("64-true", DoublePrecisionPlugin),
-        ("32-true", PrecisionPlugin),
-        ("16-true", HalfPrecisionPlugin),
-        ("bf16-true", HalfPrecisionPlugin),
-        ("16-mixed", MixedPrecisionPlugin),
-        ("bf16-mixed", MixedPrecisionPlugin),
+        ("64-true", "auto", DoublePrecisionPlugin),
+        ("32-true", "auto", PrecisionPlugin),
+        ("16-true", "auto", HalfPrecisionPlugin),
+        ("bf16-true", "auto", HalfPrecisionPlugin),
+        ("16-mixed", "auto", MixedPrecisionPlugin),
+        ("bf16-mixed", "auto", MixedPrecisionPlugin),
+        pytest.param("32-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("bf16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("bf16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
     ],
 )
-def test_precision_selection(precision_str, precision_cls):
-    connector = _AcceleratorConnector(precision=precision_str)
-    assert isinstance(connector.precision_plugin, precision_cls)
+def test_precision_selection(precision_str, strategy_str, expected_precision_cls):
+    connector = _AcceleratorConnector(precision=precision_str, strategy=strategy_str)
+    assert isinstance(connector.precision_plugin, expected_precision_cls)
