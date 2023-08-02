@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Generator, Literal, Optional, TYPE_CHECKING, Callable, Dict
+from typing import Any, Callable, Dict, Generator, Literal, Optional, TYPE_CHECKING
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -21,10 +21,10 @@ from typing_extensions import get_args
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
-from lightning.fabric.utilities.types import Optimizable
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.fabric.plugins.precision.fsdp import _PRECISION_INPUT
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
