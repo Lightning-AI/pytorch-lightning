@@ -183,31 +183,38 @@ def _launch_process_observer(child_processes: List[subprocess.Popen]) -> None:
 
 class _ChildProcessObserver(Callable):
     def __init__(self, main_pid: int, child_processes: List[subprocess.Popen], sleep_period: int = 5) -> None:
-        self.main_pid = main_pid
-        self.child_processes = child_processes
-        self.sleep_period = sleep_period
-        self.finished = True
+        self._main_pid = main_pid
+        self._child_processes = child_processes
+        self._sleep_period = sleep_period
+        self._finished = False
 
-    def __call__(self):
-        while not self.finished:
-            time.sleep(self.sleep_period)
-            self._run()
+    def __call__(self) -> None:
+        while not self._finished:
+            time.sleep(self._sleep_period)
+            self._finished = self._run()
 
-    def _run(self):
+    def _run(self) -> bool:
         """Runs once over all child processes to check whether they are still running."""
-        for proc in self.child_processes:
-            exit_code = proc.poll()
-            if not exit_code:
-                continue
-            _logger.info(
-                f"Child process with PID {proc.pid} terminated with code {exit_code}."
-                f" Forcefully terminating all other processes to avoid zombies 🧟"
-            )
-            self._terminate_all()
-            self.finished = True
+        for proc in self._child_processes:
+            proc.poll()
 
-    def _terminate_all(self):
+        return_codes = [proc.returncode for proc in self._child_processes]
+        if all(return_code == 0 for return_code in return_codes):
+            return True
+
+        for proc in self._child_processes:
+            if proc.returncode:
+                _logger.info(
+                    f"Child process with PID {proc.pid} terminated with code {proc.returncode}."
+                    f" Forcefully terminating all other processes to avoid zombies 🧟"
+                )
+                self._terminate_all()
+                return True
+
+        return False
+
+    def _terminate_all(self) -> None:
         """Terminates the main process and all its children."""
-        for p in self.child_processes:
+        for p in self._child_processes:
             p.send_signal(signal.SIGTERM)
-        os.kill(self.main_pid, signal.SIGTERM)
+        os.kill(self._main_pid, signal.SIGTERM)
