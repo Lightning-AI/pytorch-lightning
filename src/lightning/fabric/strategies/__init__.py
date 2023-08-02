@@ -21,6 +21,7 @@ from lightning.fabric.strategies.single_device import SingleDeviceStrategy  # no
 from lightning.fabric.strategies.single_xla import SingleDeviceXLAStrategy  # noqa: F401
 from lightning.fabric.strategies.strategy import Strategy  # noqa: F401
 from lightning.fabric.strategies.xla import XLAStrategy  # noqa: F401
+from lightning.fabric.strategies.xla_fsdp import XLAFSDPStrategy  # noqa: F401
 
 STRATEGY_REGISTRY = _StrategyRegistry()
 _STRATEGIES_BASE_MODULE = "lightning.fabric.strategies"
