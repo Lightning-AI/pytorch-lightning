@@ -965,7 +965,9 @@ class Fabric:
                 " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
                 " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
             )
-        if isinstance(self._strategy, FSDPStrategy) and any(_has_meta_device_parameters(optimizer) for optimizer in optimizers):
+        if isinstance(self._strategy, FSDPStrategy) and any(
+            _has_meta_device_parameters(optimizer) for optimizer in optimizers
+        ):
             raise RuntimeError(
                 "The optimizer has references to the model's meta-device parameters. Materializing them is"
                 " is currently not supported unless you to set up the model and optimizer(s) separately."
