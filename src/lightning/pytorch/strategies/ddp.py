@@ -38,7 +38,6 @@ from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.overrides.base import _LightningPrecisionModuleWrapperBase
 from lightning.pytorch.overrides.distributed import _register_ddp_comm_hook, _sync_module_states, prepare_for_backward
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
@@ -272,7 +271,7 @@ class DDPStrategy(ParallelStrategy):
 
     def configure_ddp(self) -> None:
         log.debug(f"{self.__class__.__name__}: configuring DistributedDataParallel")
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+        assert isinstance(self.model, pl.LightningModule)
         self.model = self._setup_model(self.model)
         self._register_ddp_hooks()
 

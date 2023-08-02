@@ -41,7 +41,6 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
-from lightning.pytorch.overrides.base import _LightningPrecisionModuleWrapperBase
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.utils import _fp_to_half
@@ -448,7 +447,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+        assert isinstance(self.model, pl.LightningModule)
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(self.model)
         else:
