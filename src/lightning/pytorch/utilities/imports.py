@@ -41,5 +41,13 @@ def _try_import_module(module_name: str) -> bool:
         return False
 
 
-_LIGHTNING_GRAPHCORE_AVAILABLE = RequirementCache("lightning-graphcore") and _try_import_module("lightning_graphcore")
-_LIGHTNING_HABANA_AVAILABLE = RequirementCache("lightning-habana") and _try_import_module("lightning_habana")
+def _lightning_graphcore_available() -> bool:
+    # This is defined as a function instead of a constant to avoid circular imports, because `lightning_graphcore`
+    # also imports Lightning
+    return RequirementCache("lightning-graphcore") and _try_import_module("lightning_graphcore")
+
+
+def _lightning_habana_available() -> bool:
+    # This is defined as a function instead of a constant to avoid circular imports, because `lightning_habana`
+    # also imports Lightning
+    return RequirementCache("lightning-habana") and _try_import_module("lightning_habana")
