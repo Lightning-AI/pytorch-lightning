@@ -471,7 +471,7 @@ def test_precision_conversion(patch1, patch2, precision, expected_precision, sho
     with warn_context(
         UserWarning,
         match=(
-            f"{precision} is supported for historical reasons but its usage is discouraged. "
+            f"{precision}` is supported for historical reasons but its usage is discouraged. "
             f"Please set your precision to {expected_precision} instead!"
         ),
     ):

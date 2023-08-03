@@ -557,7 +557,7 @@ def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISIO
     if precision in get_args(_PRECISION_INPUT_STR_ALIAS):
         if str(precision)[:2] not in ("32", "64"):
             rank_zero_warn(
-                f"{precision} is supported for historical reasons but its usage is discouraged. "
+                f"`precision={precision}` is supported for historical reasons but its usage is discouraged. "
                 f"Please set your precision to {_PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]} instead!"
             )
         precision = _PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]
