@@ -41,6 +41,7 @@ from lightning.pytorch.plugins import (
     DoublePrecisionPlugin,
     HalfPrecisionPlugin,
     MixedPrecisionPlugin,
+    FSDPPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
     XLABf16PrecisionPlugin,
