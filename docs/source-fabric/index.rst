@@ -4,15 +4,80 @@
 Welcome to ⚡ Fabric
 ####################
 
-Fabric is the fast and lightweight way to scale PyTorch models without boilerplate code.
+.. twocolumns::
+   :left:
+      .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
+         :alt: Animation showing how to convert standard training code to Lightning
+   :right:
+      Fabric is the fast and lightweight way to scale PyTorch models without boilerplate code.
 
-- Easily switch from running on CPU to GPU (Apple Silicon, CUDA, ...), TPU, multi-GPU or even multi-node training
-- State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
-- Handles all the boilerplate device logic for you
-- Brings useful tools to help you build a trainer (callbacks, logging, checkpoints, ...)
-- Designed with multi-billion parameter models in mind
+        - Easily switch from running on CPU to GPU (Apple Silicon, CUDA, ...), TPU, multi-GPU or even multi-node training
+        - State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
+        - Handles all the boilerplate device logic for you
+        - Brings useful tools to help you build a trainer (callbacks, logging, checkpoints, ...)
+        - Designed with multi-billion parameter models in mind
 
-|
+.. raw:: html
+
+   <div class="row" style='font-size: 14px'>
+      <div class='col-md-6'>
+      </div>
+      <div class='col-md-6'>
+
+.. raw:: html
+
+      </div>
+   </div>
+
+
+.. raw:: html
+
+   <hr class="docutils" style="margin: 50px 0 50px 0">
+
+
+Install Lightning
+-----------------
+
+
+.. raw:: html
+
+   <div class="row" style='font-size: 16px'>
+      <div class='col-md-6'>
+
+Pip users
+
+.. code-block:: bash
+
+    pip install lightning
+
+.. raw:: html
+
+      </div>
+      <div class='col-md-6'>
+
+Conda users
+
+.. code-block:: bash
+
+    conda install lightning -c conda-forge
+
+.. raw:: html
+
+      </div>
+   </div>
+
+Or read the `advanced install guide <starter/installation.html>`_
+
+You can find our the list of supported PyTorch versions in our :ref:`compatibility matrix <versioning:Compatibility matrix>`.
+
+.. raw:: html
+
+   <hr class="docutils" style="margin: 50px 0 50px 0">
+
+----
+
+Get Started
+-----------
 
 .. code-block:: diff
 
@@ -49,9 +114,8 @@ Fabric is the fast and lightweight way to scale PyTorch models without boilerpla
 ----
 
 
-***********
 Why Fabric?
-***********
+-----------
 
 |
 |
@@ -83,22 +147,6 @@ Fabric provides important tools to remove undesired boilerplate code (distribute
 
 
 ----
-
-************
-Installation
-************
-
-Fabric ships directly with Lightning. Install it with
-
-.. code-block:: bash
-
-    pip install lightning
-
-For alternative ways to install, read the :doc:`installation guide <fundamentals/installation>`.
-
-
-
-.. raw:: html
 
     <div style="display:none">
 
