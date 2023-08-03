@@ -41,13 +41,15 @@ def _try_import_module(module_name: str) -> bool:
         return False
 
 
+@functools.lru_cache(maxsize=1)
 def _lightning_graphcore_available() -> bool:
     # This is defined as a function instead of a constant to avoid circular imports, because `lightning_graphcore`
     # also imports Lightning
-    return RequirementCache("lightning-graphcore") and _try_import_module("lightning_graphcore")
+    return bool(RequirementCache("lightning-graphcore")) and _try_import_module("lightning_graphcore")
 
 
+@functools.lru_cache(maxsize=1)
 def _lightning_habana_available() -> bool:
     # This is defined as a function instead of a constant to avoid circular imports, because `lightning_habana`
     # also imports Lightning
-    return RequirementCache("lightning-habana") and _try_import_module("lightning_habana")
+    return bool(RequirementCache("lightning-habana")) and _try_import_module("lightning_habana")
