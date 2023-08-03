@@ -107,7 +107,7 @@ class XLAStrategy(ParallelStrategy):
             # spawning only 1 device with PjRT is not supported:
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
-                "The `XLAStrategy` does not support running on a single device with the PjRT runtime."
+                f"The {type(self).__name__} does not support running on a single device with the PjRT runtime."
                 " Try using all devices or the `SingleDeviceXLAStrategy` strategy"
             )
 

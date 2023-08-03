@@ -88,7 +88,7 @@ class DDPStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-        log.debug(f"{self.__class__.__name__}: initializing DDP plugin")
+        log.debug(f"{self.__class__.__name__}: initializing DDP strategy")
         self._forward_redirection = _DDPForwardRedirection()
         self._num_nodes = 1
         self._ddp_kwargs = kwargs

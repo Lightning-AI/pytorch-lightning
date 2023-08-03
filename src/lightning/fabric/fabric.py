@@ -39,6 +39,7 @@ from lightning.fabric.strategies import (
     FSDPStrategy,
     SingleDeviceStrategy,
     Strategy,
+    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.fabric.strategies.fsdp import _has_meta_device_parameters
@@ -958,20 +959,21 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        if isinstance(self._strategy, FSDPStrategy):
-            if not _TORCH_GREATER_EQUAL_2_0:
-                raise RuntimeError(
-                    f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
-                    " Create and set up the model first through `model = fabric.setup_module(model)`. Then create the"
-                    " optimizer and set it up: `optimizer = fabric.setup_optimizers(optimizer)`."
-                )
-            if any(_has_meta_device_parameters(optimizer) for optimizer in optimizers):
-                raise RuntimeError(
-                    "The optimizer has references to the model's meta-device parameters. Materializing them is"
-                    " is currently not supported unless you to set up the model and optimizer(s) separately."
-                    " Create and set up the model first through `model = fabric.setup_module(model)`. Then create the"
-                    " optimizer and set it up: `optimizer = fabric.setup_optimizers(optimizer)`."
-                )
+        if isinstance(self._strategy, (XLAFSDPStrategy, FSDPStrategy)) and not _TORCH_GREATER_EQUAL_2_0:
+            raise RuntimeError(
+                f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
+                " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
+                " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
+            )
+        if isinstance(self._strategy, FSDPStrategy) and any(
+            _has_meta_device_parameters(optimizer) for optimizer in optimizers
+        ):
+            raise RuntimeError(
+                "The optimizer has references to the model's meta-device parameters. Materializing them is"
+                " is currently not supported unless you to set up the model and optimizer(s) separately."
+                " Create and set up the model first through `model = fabric.setup_module(model)`. Then create the"
+                " optimizer and set it up: `optimizer = fabric.setup_optimizers(optimizer)`."
+            )
 
     def _validate_setup_module(self, module: nn.Module) -> None:
         self._validate_launched()

@@ -26,7 +26,7 @@ class Accelerator(_Accelerator, ABC):
     """
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        """Setup plugins for the trainer fit and creates optimizers.
+        """Called by the Trainer to set up the accelerator before the model starts running on the device.
 
         Args:
             trainer: the trainer instance
