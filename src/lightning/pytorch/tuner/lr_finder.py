@@ -394,7 +394,7 @@ class _LRCallback(Callback):
             return
 
         # _AutomaticOptimization.run turns None STEP_OUTPUT into an empty dict
-        if outputs is None or not outputs:
+        if not outputs:
             # need to add an element, because we also added one element to lrs in on_train_batch_start
             # so add nan, because they are not considered when computing the suggestion
             self.losses.append(float("nan"))
