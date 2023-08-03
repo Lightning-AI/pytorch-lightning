@@ -39,6 +39,7 @@ from lightning.pytorch.plugins import (
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
+    HalfPrecisionPlugin,
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
@@ -524,6 +525,8 @@ class _AcceleratorConnector:
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
 
+        if self._precision_flag in ("16-true", "bf16-true"):
+            return HalfPrecisionPlugin(self._precision_flag)  # type: ignore
         if self._precision_flag == "32-true":
             return PrecisionPlugin()
         if self._precision_flag == "64-true":
@@ -603,8 +606,8 @@ class _AcceleratorConnector:
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self._strategy_flag!r})` is not compatible with an interactive"
-                " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" `Fabric(strategy='dp'|'ddp_notebook')`."
+                " environment. Run your code as a script, or choose a notebook-compatible strategy:"
+                f" `Trainer(strategy='ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )

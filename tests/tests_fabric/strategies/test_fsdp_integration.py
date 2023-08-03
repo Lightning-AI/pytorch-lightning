@@ -23,7 +23,11 @@ from torch.nn import Parameter
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
+)
 from lightning.fabric.wrappers import _FabricOptimizer
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
@@ -393,21 +397,27 @@ def test_module_init_context(precision, expected_dtype):
     )
     fabric.launch()
 
-    with fabric.init_module():
-        model = torch.nn.Linear(100, 100, bias=False)
+    def _run_setup_assertions(empty_init, expected_device):
+        with fabric.init_module(empty_init=empty_init):
+            model = torch.nn.Linear(100, 100, bias=False)
 
-    # The model is on the CPU until after `.setup()``
-    # TODO: Support initialization on meta device
-    expected_device = torch.device("cpu")
-    assert model.weight.device == expected_device
-    assert model.weight.dtype == expected_dtype
+        # The model is on the CPU/meta-device until after `.setup()``
+        assert model.weight.device == expected_device
+        assert model.weight.dtype == expected_dtype
+        model = fabric.setup(model)
+        # Parameters get sharded in `.setup()` and moved to the target device
+        assert model.weight.device == torch.device("cuda", fabric.local_rank)
+        assert model.weight.dtype == expected_dtype
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-    model, optimizer = fabric.setup(model, optimizer)
+    # Case 1: No empty init
+    _run_setup_assertions(empty_init=False, expected_device=torch.device("cpu"))
 
-    # Parameters get sharded in `.setup()` and moved to the target device
-    assert model.weight.device == torch.device("cuda", fabric.local_rank)
-    assert model.weight.dtype == expected_dtype
+    if _TORCH_GREATER_EQUAL_2_1:
+        # Case 2: Empty-init with PyTorch >= 2.1 supports meta device
+        _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
+    else:
+        # Case 2: Empty-init with PyTorch < 2.1 only supports `torch.empty()`-init
+        _run_setup_assertions(empty_init=True, expected_device=torch.device("cpu"))
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
@@ -460,7 +470,7 @@ def test_fsdp_manual_activation_checkpointing():
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
-def test_rewrap_warning():
+def test_rewrap_warnings():
     from torch.distributed.fsdp import FullyShardedDataParallel
     from torch.distributed.fsdp.wrap import wrap
 
@@ -473,3 +483,13 @@ def test_rewrap_warning():
         model = fabric.setup(model)
     assert not isinstance(model._forward_module, FullyShardedDataParallel)
     assert isinstance(model._forward_module[2], FullyShardedDataParallel)
+
+    if not _TORCH_GREATER_EQUAL_2_1:
+        return
+
+    with fabric.init_module(empty_init=True):
+        model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.ReLU(), wrap(torch.nn.Linear(1, 1)))
+    assert model[0].weight.is_meta
+    with pytest.warns(match="there are still parameters on the meta device"):
+        fabric_model = fabric.setup(model)
+    assert next(fabric_model.parameters()).is_meta
