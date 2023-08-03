@@ -25,7 +25,7 @@ from lightning.fabric.plugins.precision.fsdp import _PRECISION_INPUT
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.fabric.utilities.types import Optimizable
-from lightning.pytorch.plugins.precision import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
@@ -50,7 +50,7 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
 
     def __init__(self, precision: _PRECISION_INPUT, scaler: Optional["ShardedGradScaler"] = None) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException("`FSDPMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
+            raise NotImplementedError("`FSDPPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
 
         supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:

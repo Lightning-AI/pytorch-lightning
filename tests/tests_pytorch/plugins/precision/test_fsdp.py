@@ -17,14 +17,14 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from lightning.fabric.plugins import FSDPPrecision
-from tests_fabric.helpers.runif import RunIf
+from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
+from tests_pytorch.helpers.runif import RunIf
 
 
-@mock.patch("lightning.fabric.plugins.precision.fsdp._TORCH_GREATER_EQUAL_1_12", False)
+@mock.patch("lightning.pytorch.plugins.precision.fsdp._TORCH_GREATER_EQUAL_1_12", False)
 def test_fsdp_precision_support(*_):
-    with pytest.raises(NotImplementedError, match="`FSDPPrecision` is supported from PyTorch v1.12.0"):
-        FSDPPrecision(precision="16-mixed")
+    with pytest.raises(NotImplementedError, match="`FSDPPrecisionPlugin` is supported from PyTorch v1.12.0"):
+        FSDPPrecisionPlugin(precision="16-mixed")
 
 
 @RunIf(min_torch="1.12")
@@ -39,7 +39,7 @@ def test_fsdp_precision_support(*_):
     ],
 )
 def test_fsdp_precision_config(precision, expected):
-    plugin = FSDPPrecision(precision=precision)
+    plugin = FSDPPrecisionPlugin(precision=precision)
     config = plugin.mixed_precision_config
 
     assert config.param_dtype == expected[0]
@@ -47,34 +47,35 @@ def test_fsdp_precision_config(precision, expected):
     assert config.reduce_dtype == expected[2]
 
 
+
 @RunIf(min_torch="1.12")
 def test_fsdp_precision_default_scaler():
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-    precision = FSDPPrecision(precision="16-mixed")
+    precision = FSDPPrecisionPlugin(precision="16-mixed")
     assert isinstance(precision.scaler, ShardedGradScaler)
 
 
 @RunIf(min_torch="1.12")
 def test_fsdp_precision_scaler_with_bf16():
     with pytest.raises(ValueError, match="`precision='bf16-mixed'` does not use a scaler"):
-        FSDPPrecision(precision="bf16-mixed", scaler=Mock())
+        FSDPPrecisionPlugin(precision="bf16-mixed", scaler=Mock())
 
-    precision = FSDPPrecision(precision="bf16-mixed")
+    precision = FSDPPrecisionPlugin(precision="bf16-mixed")
     assert precision.scaler is None
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
 def test_fsdp_precision_forward_context():
     """Test to ensure that the context manager correctly is set to bfloat16."""
-    precision = FSDPPrecision(precision="16-mixed")
+    precision = FSDPPrecisionPlugin(precision="16-mixed")
     assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
     assert torch.get_default_dtype() == torch.float32
     with precision.forward_context():
         # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
         assert str(torch.get_autocast_gpu_dtype()) in ("torch.float16", "torch.half")
 
-    precision = FSDPPrecision(precision="bf16-mixed")
+    precision = FSDPPrecisionPlugin(precision="bf16-mixed")
     assert precision.scaler is None
     with precision.forward_context():
         # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
@@ -88,7 +89,7 @@ def test_fsdp_precision_forward_context():
 
 @RunIf(min_torch="1.12")
 def test_fsdp_precision_backward():
-    precision = FSDPPrecision(precision="16-mixed")
+    precision = FSDPPrecisionPlugin(precision="16-mixed")
     precision.scaler = Mock()
     precision.scaler.scale = Mock(side_effect=(lambda x: x))
     tensor = Mock()
@@ -100,7 +101,7 @@ def test_fsdp_precision_backward():
 
 @RunIf(min_torch="1.12")
 def test_fsdp_precision_optimizer_step_with_scaler():
-    precision = FSDPPrecision(precision="16-mixed")
+    precision = FSDPPrecisionPlugin(precision="16-mixed")
     precision.scaler = Mock()
     optimizer = Mock()
 
@@ -111,7 +112,7 @@ def test_fsdp_precision_optimizer_step_with_scaler():
 
 @RunIf(min_torch="1.12")
 def test_fsdp_precision_optimizer_step_without_scaler():
-    precision = FSDPPrecision(precision="bf16-mixed")
+    precision = FSDPPrecisionPlugin(precision="bf16-mixed")
     assert precision.scaler is None
     optimizer = Mock()
 
@@ -121,8 +122,8 @@ def test_fsdp_precision_optimizer_step_without_scaler():
 
 @RunIf(min_torch="1.12")
 def test_invalid_precision_with_fsdp_precision():
-    FSDPPrecision("16-mixed")
-    FSDPPrecision("bf16-mixed")
+    FSDPPrecisionPlugin("16-mixed")
+    FSDPPrecisionPlugin("bf16-mixed")
 
     with pytest.raises(ValueError, match="is not supported in FSDP. `precision` must be one of"):
-        FSDPPrecision(precision="64-true")
+        FSDPPrecisionPlugin(precision="64-true")
