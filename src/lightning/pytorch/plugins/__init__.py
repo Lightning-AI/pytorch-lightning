@@ -10,7 +10,6 @@ from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.plugins.precision.half import HalfPrecisionPlugin
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
-from lightning.pytorch.plugins.precision.xlabf16 import XLABf16PrecisionPlugin
 
 PLUGIN = Union[PrecisionPlugin, ClusterEnvironment, CheckpointIO, LayerSync]
 PLUGIN_INPUT = Union[PLUGIN, str]
@@ -27,7 +26,6 @@ __all__ = [
     "PrecisionPlugin",
     "FSDPMixedPrecisionPlugin",
     "XLAPrecisionPlugin",
-    "XLABf16PrecisionPlugin",
     "LayerSync",
     "TorchSyncBatchNorm",
 ]

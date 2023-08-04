@@ -11,30 +11,61 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from functools import partial
 from typing import Any, Callable
 
+import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from torch import Tensor
+from typing_extensions import get_args
+
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.plugins.precision.xla import _PRECISION_INPUT
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 class XLAPrecisionPlugin(PrecisionPlugin):
-    """Precision plugin with XLA."""
+    """Plugin for training with XLA.
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    Args:
+        precision: Full precision (32-true) or half precision (16-true, bf16-true).
+
+    Raises:
+        ValueError:
+            If unsupported ``precision`` is provided.
+    """
+
+    def __init__(self, precision: _PRECISION_INPUT) -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
-        super().__init__(*args, **kwargs)
 
-    def _tpu_wrap_closure(self, optimizer: Optimizable, closure: Callable[[], Any]) -> Any:
-        import torch_xla.core.xla_model as xm
+        supported_precision = get_args(_PRECISION_INPUT)
+        if precision not in supported_precision:
+            raise ValueError(
+                f"`precision={precision!r})` is not supported in XLA."
+                f" `precision` must be one of: {supported_precision}."
+            )
+        self.precision = precision
 
-        closure_result = closure()
-        xm.reduce_gradients(optimizer)
-        return closure_result
+        if precision == "16-true":
+            os.environ["XLA_USE_F16"] = "1"
+            self._desired_dtype = torch.float16
+        elif precision == "bf16-true":
+            os.environ["XLA_USE_BF16"] = "1"
+            self._desired_dtype = torch.bfloat16
+        else:
+            self._desired_dtype = torch.float32
+
+    def convert_input(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
+
+    def convert_output(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     def optimizer_step(  # type: ignore[override]
         self,
@@ -45,7 +76,7 @@ class XLAPrecisionPlugin(PrecisionPlugin):
     ) -> Any:
         import torch_xla.core.xla_model as xm
 
-        closure = partial(self._tpu_wrap_closure, optimizer, closure)
+        closure = partial(self._xla_wrap_closure, optimizer, closure)
         closure = partial(self._wrap_closure, model, optimizer, closure)
         closure_result = optimizer.step(closure=closure, **kwargs)
         xm.mark_step()
@@ -58,4 +89,15 @@ class XLAPrecisionPlugin(PrecisionPlugin):
                 " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                 " requesting this feature."
             )
+        return closure_result
+
+    def teardown(self) -> None:
+        os.environ.pop("XLA_USE_BF16", None)
+        os.environ.pop("XLA_USE_F16", None)
+
+    def _xla_wrap_closure(self, optimizer: Optimizable, closure: Callable[[], Any]) -> Any:
+        import torch_xla.core.xla_model as xm
+
+        closure_result = closure()
+        xm.reduce_gradients(optimizer)
         return closure_result

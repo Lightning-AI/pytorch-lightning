@@ -43,7 +43,6 @@ from lightning.pytorch.plugins import (
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
-    XLABf16PrecisionPlugin,
     XLAPrecisionPlugin,
 )
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
@@ -505,16 +504,6 @@ class _AcceleratorConnector:
 
             if isinstance(self.accelerator, HPUAccelerator):
                 return HPUPrecisionPlugin(self._precision_flag)
-        if isinstance(self.accelerator, XLAAccelerator):
-            if self._precision_flag == "32-true":
-                return XLAPrecisionPlugin()
-            if self._precision_flag in ("16-mixed", "bf16-mixed"):
-                if self._precision_flag == "16-mixed":
-                    rank_zero_warn(
-                        "You passed `Trainer(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
-                        " is not supported on TPUs. Using `precision='bf16-mixed'` instead."
-                    )
-                return XLABf16PrecisionPlugin()
 
         if _LIGHTNING_COLOSSALAI_AVAILABLE:
             from lightning_colossalai import ColossalAIPrecisionPlugin, ColossalAIStrategy
@@ -522,6 +511,8 @@ class _AcceleratorConnector:
             if isinstance(self.strategy, ColossalAIStrategy):
                 return ColossalAIPrecisionPlugin(self._precision_flag)
 
+        if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)):
+            return XLAPrecisionPlugin(self._precision_input)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
 
@@ -553,20 +544,15 @@ class _AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        if isinstance(self.accelerator, XLAAccelerator):
-            if self._precision_flag == "64-true":
-                raise MisconfigurationException(
-                    "`Trainer(accelerator='tpu', precision='64-true')` is not implemented."
-                    " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
-                    " requesting this feature."
-                )
-            if self._precision_plugin_flag and not isinstance(
-                self._precision_plugin_flag, (XLAPrecisionPlugin, XLABf16PrecisionPlugin)
-            ):
-                raise ValueError(
-                    f"The `XLAAccelerator` can only be used with a `XLAPrecisionPlugin`,"
-                    f" found: {self._precision_plugin_flag}."
-                )
+        if (
+            isinstance(self.accelerator, XLAAccelerator)
+            and self._precision_plugin_flag
+            and not isinstance(self._precision_plugin_flag, XLAPrecisionPlugin)
+        ):
+            raise ValueError(
+                f"The `XLAAccelerator` can only be used with a `XLAPrecisionPlugin`,"
+                f" found: {self._precision_plugin_flag}."
+            )
         if _lightning_habana_available():
             from lightning_habana import HPUAccelerator
 
