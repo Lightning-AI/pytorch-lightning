@@ -40,7 +40,7 @@ class XLAPrecisionPlugin(PrecisionPlugin):
             If unsupported ``precision`` is provided.
     """
 
-    def __init__(self, precision: _PRECISION_INPUT) -> None:
+    def __init__(self, precision: _PRECISION_INPUT = "32-true") -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
 
