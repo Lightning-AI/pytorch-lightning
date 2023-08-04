@@ -56,6 +56,7 @@ from lightning.fabric.strategies import (
     SingleDeviceXLAStrategy,
     Strategy,
     STRATEGY_REGISTRY,
+    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
@@ -394,6 +395,9 @@ class _Connector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
+        # Change fsdp to xla_fsdp if using TPU
+        if strategy_flag == "fsdp" and self._accelerator_flag == "tpu":
+            strategy_flag = "xla_fsdp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
@@ -504,11 +508,11 @@ class _Connector:
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
         if isinstance(self.accelerator, XLAAccelerator) and not isinstance(
-            self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)
+            self.strategy, (SingleDeviceXLAStrategy, XLAStrategy, XLAFSDPStrategy)
         ):
             raise ValueError(
-                "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy`,"
-                f" found {self.strategy.__class__.__name__}."
+                "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`, `XLAStrategy`, or"
+                f" `XLAFSDPStrategy`. Found {self.strategy.__class__.__name__}."
             )
 
     @staticmethod

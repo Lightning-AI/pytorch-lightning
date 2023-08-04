@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -107,7 +107,8 @@ class Strategy(ABC):
         self._lightning_optimizers = [LightningOptimizer._to_lightning_optimizer(opt, self) for opt in optimizers]
 
     def connect(self, model: "pl.LightningModule") -> None:
-        """Called by the accelerator to connect the accelerator and the model with this plugin."""
+        """Called by the Trainer to connect the strategy with the model."""
+        model = cast(pl.LightningModule, self.precision_plugin.convert_module(model))
         self._lightning_module = model
         self.model = model
 
@@ -135,7 +136,7 @@ class Strategy(ABC):
         self.optimizers, self.lr_scheduler_configs = _init_optimizers_and_lr_schedulers(self.lightning_module)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        """Setup plugins for the trainer fit and creates optimizers.
+        """Sets up the accelerator, plugins and initializes the optimizers (if needed).
 
         Args:
             trainer: the trainer instance
@@ -147,7 +148,7 @@ class Strategy(ABC):
         _optimizers_to_device(self.optimizers, self.root_device)
 
     def setup_precision_plugin(self) -> None:
-        """Attaches the precision plugin to the accelerator."""
+        """Attaches the precision plugin to the strategy."""
         assert self.model is not None
         model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
             self.model, self.optimizers, self.lr_scheduler_configs
@@ -159,7 +160,7 @@ class Strategy(ABC):
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.
 
-        Allows for syncing/collating optimizer state from processes in custom plugins.
+        Allows for syncing/collating optimizer state from processes in custom strategies.
         """
         if isinstance(optimizer, LightningOptimizer):
             optimizer = optimizer._optimizer
@@ -358,6 +359,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.training_step` for more details
         """
+        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.train_step_context():
@@ -377,6 +379,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
         """
+        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.val_step_context():
@@ -389,6 +392,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
         """
+        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.test_step_context():
@@ -401,6 +405,7 @@ class Strategy(ABC):
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
         """
+        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.predict_step_context():
@@ -430,13 +435,13 @@ class Strategy(ABC):
     def lightning_restore_optimizer(self) -> bool:
         """Override to disable Lightning restoring optimizers/schedulers.
 
-        This is useful for plugins which manage restoring optimizers/schedulers.
+        This is useful for strategies which manage restoring optimizers/schedulers.
         """
         return True
 
     @property
     def handles_gradient_accumulation(self) -> bool:
-        """Whether the plugin handles gradient accumulation internally."""
+        """Whether the strategy handles gradient accumulation internally."""
         return False
 
     def lightning_module_state_dict(self) -> Dict[str, Any]:
