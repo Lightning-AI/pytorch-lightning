@@ -40,6 +40,7 @@ from lightning.pytorch.plugins.precision import (
     HalfPrecisionPlugin,
     MixedPrecisionPlugin,
     PrecisionPlugin,
+    XLAPrecisionPlugin,
 )
 from lightning.pytorch.strategies import (
     DDPStrategy,
@@ -547,17 +548,11 @@ def test_check_fsdp_strategy_and_fallback():
         Trainer(accelerator="cpu", strategy="fsdp")
 
 
-def test_unsupported_tpu_choice(tpu_available):
-    with pytest.raises(
-        MisconfigurationException, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"
-    ):
-        Trainer(accelerator="tpu", precision="64-true")
-
-    # if user didn't set strategy, AcceleratorConnector will choose "single_xla" or "xla"
-    with pytest.raises(
-        ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"
-    ), pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16-mixed\)` but AMP with fp16 is not supported"):
-        Trainer(accelerator="tpu", precision="16-mixed", strategy="ddp")
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_unsupported_tpu_choice(xla_available, tpu_available):
+    # if user didn't set strategy, _Connector will choose the SingleDeviceXLAStrategy or XLAStrategy
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
+        Trainer(accelerator="tpu", precision="16-true", strategy="ddp")
 
 
 def mock_ipu_available(monkeypatch, value=True):

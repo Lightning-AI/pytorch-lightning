@@ -511,8 +511,8 @@ class _AcceleratorConnector:
             if isinstance(self.strategy, ColossalAIStrategy):
                 return ColossalAIPrecisionPlugin(self._precision_flag)
 
-        if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)):
-            return XLAPrecisionPlugin(self._precision_input)  # type: ignore
+        if isinstance(self.accelerator, XLAAccelerator):
+            return XLAPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
 
