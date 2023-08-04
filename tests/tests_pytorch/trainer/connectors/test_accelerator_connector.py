@@ -40,7 +40,6 @@ from lightning.pytorch.plugins.precision import (
     HalfPrecisionPlugin,
     MixedPrecisionPlugin,
     PrecisionPlugin,
-    XLAPrecisionPlugin,
 )
 from lightning.pytorch.strategies import (
     DDPStrategy,
