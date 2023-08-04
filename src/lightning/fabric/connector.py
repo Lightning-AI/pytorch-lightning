@@ -425,7 +425,7 @@ class _Connector:
         self._validate_precision_choice()
         if isinstance(self._precision_instance, Precision):
             return self._precision_instance
-        if isinstance(self.strategy, XLAStrategy):
+        if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)):
             return XLAPrecision(self._precision_input)
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
