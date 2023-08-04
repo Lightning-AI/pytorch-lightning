@@ -430,7 +430,7 @@ class _Connector:
         if isinstance(self._precision_instance, Precision):
             return self._precision_instance
         if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy, XLAFSDPStrategy)):
-            return XLAPrecision(self._precision_input)
+            return XLAPrecision(self._precision_input)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
         if isinstance(self.strategy, FSDPStrategy):
