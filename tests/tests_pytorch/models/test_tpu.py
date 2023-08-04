@@ -102,7 +102,7 @@ def test_model_multiple_tpu_devices(tmpdir):
 def test_model_16bit_tpu_devices_1(tmpdir):
     trainer_options = {
         "default_root_dir": tmpdir,
-        "precision": "16-mixed",
+        "precision": "16-true",
         "enable_progress_bar": False,
         "max_epochs": 2,
         "accelerator": "tpu",
@@ -121,7 +121,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
     trainer_options = {
         "default_root_dir": tmpdir,
-        "precision": "16-mixed",
+        "precision": "16-true",
         "enable_progress_bar": False,
         "max_epochs": 2,
         "accelerator": "tpu",
@@ -143,7 +143,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 def test_model_16bit_multiple_tpu_devices(tmpdir):
     trainer_options = {
         "default_root_dir": tmpdir,
-        "precision": "16-mixed",
+        "precision": "16-true",
         "enable_progress_bar": False,
         "max_epochs": 1,
         "accelerator": "tpu",
