@@ -99,18 +99,18 @@ def _test_all_reduce(strategy):
 @pytest.mark.parametrize(
     "process",
     [
-        # _test_all_gather_uneven_tensors_multidim,
-        # _test_all_gather_uneven_tensors,
+        _test_all_gather_uneven_tensors_multidim,
+        _test_all_gather_uneven_tensors,
         _test_all_reduce,
     ],
 )
 @pytest.mark.parametrize(
     "devices",
     [
-        # pytest.param([torch.device("cuda:0"), torch.device("cuda:1")], marks=RunIf(min_cuda_gpus=2)),
+        pytest.param([torch.device("cuda:0"), torch.device("cuda:1")], marks=RunIf(min_cuda_gpus=2)),
         [torch.device("cpu")]
         * 2,
     ],
 )
-def test_gather_all_tensors(devices, process):
+def test_collective_operations(devices, process):
     spawn_launch(process, devices)
