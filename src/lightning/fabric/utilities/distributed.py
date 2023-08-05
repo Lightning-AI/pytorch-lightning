@@ -12,7 +12,7 @@ from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from lightning.fabric.utilities.rank_zero import rank_zero_info
+from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.types import ReduceOp
 
 if torch.distributed.is_available():
@@ -107,8 +107,8 @@ def _sync_ddp_if_available(
 def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
     """Reduces a tensor across several distributed processes.
 
-    This operation is performed in-place, meaning the result will be placed back into the input tensor on all
-    processes.
+    This operation is performed in-place if possible, meaning the result will be placed back into the input tensor
+    on all processes, but only if the reduce-operation doesn't require casting of the type.
 
     Args:
         result: The value to sync and reduce (typically tensor or number)
@@ -151,11 +151,13 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     # Sync all processes before reduction
     torch.distributed.barrier(group=group)
     torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
+    world_size = torch.distributed.get_world_size(group)
 
-    if divide_by_world_size:
-        result = result.div_(torch.distributed.get_world_size(group))
-
-    return result
+    if not divide_by_world_size:
+        return result
+    if not torch.is_floating_point(result):
+        return result.float() / world_size
+    return result.div_(world_size)
 
 
 class _AllGather(torch.autograd.Function):
