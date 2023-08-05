@@ -30,9 +30,9 @@ if _TORCH_GREATER_EQUAL_1_12:
 else:
     size_based_auto_wrap_policy = lambda *_, **__: False
 if _TORCH_GREATER_EQUAL_2_0:
-    from torch.distributed.fsdp.wrap import _FSDPPolicy
+    from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 else:
-    _FSDPPolicy = object
+    ModuleWrapPolicy = object
 
 
 class TestFSDPModel(BoringModel):
@@ -260,7 +260,7 @@ def test_fsdp_strategy_checkpoint(tmpdir, precision):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-class CustomWrapPolicy(_FSDPPolicy):
+class CustomWrapPolicy(ModuleWrapPolicy):
     """This is a wrapper around :func:`_module_wrap_policy`."""
 
     def __init__(self, min_num_params: int):
