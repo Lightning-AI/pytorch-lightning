@@ -395,10 +395,10 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
 @pytest.mark.parametrize(
     "kwargs",
     [
-        # {},
-        # pytest.param({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, marks=RunIf(min_cuda_gpus=1)),
+        {},
+        pytest.param({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
-            {"strategy": "ddp", "accelerator": "gpu", "devices": 2},  # marks=RunIf(min_cuda_gpus=2, standalone=True)
+            {"strategy": "ddp", "accelerator": "gpu", "devices": 2}, marks=RunIf(min_cuda_gpus=2, standalone=True)
         ),
     ],
 )
