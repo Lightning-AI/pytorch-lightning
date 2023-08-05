@@ -108,8 +108,7 @@ def _test_all_reduce(strategy):
     "devices",
     [
         pytest.param([torch.device("cuda:0"), torch.device("cuda:1")], marks=RunIf(min_cuda_gpus=2)),
-        [torch.device("cpu")]
-        * 2,
+        [torch.device("cpu")] * 2,
     ],
 )
 def test_collective_operations(devices, process):
