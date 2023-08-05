@@ -92,8 +92,3 @@ print("State dict: ", model.state_dict())
 ```
 
 Loading checkpoint is similar, just do: `load_checkpoint=True`.
-
-## Known limitations
-
-- missing web UI for user to brows his uploads
-- missing CLI/API to list and delete uploaded models
