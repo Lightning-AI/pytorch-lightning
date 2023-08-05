@@ -237,7 +237,7 @@ class _ResultMetric(Metric):
 
     def compute(self) -> Tensor:
         if self.is_tensor:
-            value = self.meta.sync(self.value)
+            value = self.meta.sync(self.value.clone())  # `clone` because `sync` is in-place
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
                 return value / cumulated_batch_size
