@@ -107,8 +107,7 @@ def _sync_ddp_if_available(
 def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
     """Reduces a tensor across several distributed processes.
 
-    This operation is performed in-place if possible, meaning the result will be placed back into the input tensor
-    on all processes, but only if the reduce-operation doesn't require casting of the type.
+    This operation is performed in-place, meaning the result will be placed back into the input tensor on all processes.
 
     Args:
         result: The value to sync and reduce (typically tensor or number)
