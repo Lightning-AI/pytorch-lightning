@@ -67,32 +67,25 @@ def _test_all_reduce(strategy):
     device = strategy.root_device
     world_size = strategy.num_processes
 
-    # sum
-    tensor = torch.tensor(rank + 1, device=device, dtype=torch.float)
-    expected = torch.tensor(sum(range(1, world_size + 1)), device=device)
-    result = _sync_ddp(tensor, reduce_op="sum")
-    assert torch.equal(result, expected)
-    assert result is tensor  # inplace
-
-    # max
-    tensor = torch.tensor(rank + 1, device=device, dtype=torch.float)
-    expected = torch.tensor(2, device=device)
-    result = _sync_ddp(tensor, reduce_op="max")
-    assert torch.equal(result, expected)
-    assert result is tensor  # inplace
-
-    # average on long tensor
-    tensor = torch.tensor(rank + 1, device=device)
-    expected = torch.tensor(sum(range(1, world_size + 1)) / 2, device=device)
-    result = _sync_ddp(tensor, reduce_op="avg")
-    assert torch.equal(result.float(), expected)
-    assert result is not tensor  # not inplace, because input was long
-
-    # average on float tensor (inplace possible)
-    tensor = torch.tensor(rank + 1, device=device, dtype=torch.float)
-    result = _sync_ddp(tensor, reduce_op="mean")
-    assert torch.equal(result, expected)
-    assert result is tensor  # inplace
+    for dtype in (torch.long, torch.int, torch.float, torch.half):
+        # max
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(2, device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="max")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
+        # sum
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(sum(range(1, world_size + 1)), device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="sum")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
+        # average
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(sum(range(1, world_size + 1)) / 2, device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="avg")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
 
 
 @RunIf(skip_windows=True)
