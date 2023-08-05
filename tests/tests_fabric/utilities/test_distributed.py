@@ -67,41 +67,33 @@ def _test_all_reduce(strategy):
     device = strategy.root_device
     world_size = strategy.num_processes
 
-    # sum
-    tensor = torch.tensor(rank + 1, device=device, dtype=torch.float)
-    expected = torch.tensor(sum(range(1, world_size + 1)), device=device)
-    result = _sync_ddp(tensor, reduce_op="sum")
-    assert torch.equal(result, expected)
-    assert result is tensor  # inplace
-
-    # max
-    tensor = torch.tensor(rank + 1, device=device, dtype=torch.float)
-    expected = torch.tensor(2, device=device)
-    result = _sync_ddp(tensor, reduce_op="max")
-    assert torch.equal(result, expected)
-    assert result is tensor  # inplace
-
-    # average on long tensor
-    tensor = torch.tensor(rank + 1, device=device)
-    expected = torch.tensor(int(sum(range(1, world_size + 1)) / 2), device=device)
-    result = _sync_ddp(tensor, reduce_op="avg")
-    assert torch.equal(result, expected)
-    assert result is tensor  # inplace
-
-    # average on float tensor
-    tensor = torch.tensor(rank + 1, device=device, dtype=torch.float)
-    expected = torch.tensor(sum(range(1, world_size + 1)) / 2, device=device)
-    result = _sync_ddp(tensor, reduce_op="mean")
-    assert torch.equal(result, expected)
-    assert result is tensor  # inplace
+    for dtype in (torch.long, torch.int, torch.float, torch.half):
+        # max
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(2, device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="max")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
+        # sum
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(sum(range(1, world_size + 1)), device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="sum")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
+        # average
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(sum(range(1, world_size + 1)) / 2, device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="avg")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
 
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(
     "process",
     [
-        # _test_all_gather_uneven_tensors_multidim,
-        # _test_all_gather_uneven_tensors,
+        _test_all_gather_uneven_tensors_multidim,
+        _test_all_gather_uneven_tensors,
         _test_all_reduce,
     ],
 )
@@ -109,7 +101,7 @@ def _test_all_reduce(strategy):
     "devices",
     [
         pytest.param([torch.device("cuda:0"), torch.device("cuda:1")], marks=RunIf(min_cuda_gpus=2)),
-        # [torch.device("cpu")] * 2,
+        [torch.device("cpu"), torch.device("cpu")],
     ],
 )
 def test_collective_operations(devices, process):
