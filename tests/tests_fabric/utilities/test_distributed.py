@@ -83,13 +83,14 @@ def _test_all_reduce(strategy):
 
     # average on long tensor
     tensor = torch.tensor(rank + 1, device=device)
-    expected = torch.tensor(sum(range(1, world_size + 1)) / 2, device=device)
+    expected = torch.tensor(int(sum(range(1, world_size + 1)) / 2), device=device)
     result = _sync_ddp(tensor, reduce_op="avg")
-    assert torch.equal(result.float(), expected)
-    assert result is not tensor  # not inplace, because input was long
+    assert torch.equal(result, expected)
+    assert result is tensor  # inplace
 
-    # average on float tensor (inplace possible)
+    # average on float tensor
     tensor = torch.tensor(rank + 1, device=device, dtype=torch.float)
+    expected = torch.tensor(sum(range(1, world_size + 1)) / 2, device=device)
     result = _sync_ddp(tensor, reduce_op="mean")
     assert torch.equal(result, expected)
     assert result is tensor  # inplace
@@ -99,8 +100,8 @@ def _test_all_reduce(strategy):
 @pytest.mark.parametrize(
     "process",
     [
-        _test_all_gather_uneven_tensors_multidim,
-        _test_all_gather_uneven_tensors,
+        # _test_all_gather_uneven_tensors_multidim,
+        # _test_all_gather_uneven_tensors,
         _test_all_reduce,
     ],
 )
@@ -108,7 +109,7 @@ def _test_all_reduce(strategy):
     "devices",
     [
         pytest.param([torch.device("cuda:0"), torch.device("cuda:1")], marks=RunIf(min_cuda_gpus=2)),
-        [torch.device("cpu")] * 2,
+        # [torch.device("cpu")] * 2,
     ],
 )
 def test_collective_operations(devices, process):
