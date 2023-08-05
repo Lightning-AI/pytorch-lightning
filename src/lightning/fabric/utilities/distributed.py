@@ -156,7 +156,7 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     if not divide_by_world_size:
         return result
     if not torch.is_floating_point(result):
-        return result.float() / world_size
+        return result.copy_(result / world_size)
     return result.div_(world_size)
 
 
