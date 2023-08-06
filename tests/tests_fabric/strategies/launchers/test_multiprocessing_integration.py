@@ -17,18 +17,17 @@ from lightning.fabric import Fabric
 
 
 def test_memory_sharing_disabled():
-    """Test that the multiprocessing launcher disables memory sharing on tensors to avoid race conditions on
-    model parameter updates."""
-    fabric = Fabric(accelerator="cpu", devices=2, strategy="ddp_spawn")
-
+    """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid
+    race conditions on model updates."""
     tensor = torch.rand(4)
     module = torch.nn.Linear(2, 2)
-
     assert not tensor.is_shared()
     assert not module.weight.is_shared()
+
+    fabric = Fabric(accelerator="cpu", devices=2, strategy="ddp_spawn")
     fabric.launch(_test_memory_sharing_disabled, tensor, module=module)
 
 
 def _test_memory_sharing_disabled(fabric, tensor, module):
-    assert not tensor.is_shared()
+    assert tensor.is_shared()
     assert not module.weight.is_shared()

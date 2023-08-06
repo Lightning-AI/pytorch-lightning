@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
 import os
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
@@ -124,7 +125,7 @@ class _MultiProcessingLauncher(_Launcher):
         if global_states:
             global_states.restore()
         os.environ["LOCAL_RANK"] = str(process_idx)
-        _disable_tensor_memory_sharing((args, kwargs))
+        _disable_module_memory_sharing((args, kwargs))
         results = function(*args, **kwargs)
 
         if process_idx == 0:
@@ -193,19 +194,10 @@ def _check_bad_cuda_fork() -> None:
     raise RuntimeError(message)
 
 
-def _disable_memory_sharing(tensor: Tensor) -> None:
-    tensor.data = tensor.data.clone()
-
-
-def _disable_tensor_memory_sharing(data: Any) -> None:
-    def _disable(obj: Union[Tensor, Module]) -> Union[Tensor, Module]:
-        if isinstance(obj, Tensor):
-            _disable_memory_sharing(obj)
-        if isinstance(obj, Module):
-            for param in obj.parameters():
-                _disable_memory_sharing(param)
-            for buffer in obj.buffers():
-                _disable_memory_sharing(buffer)
+def _disable_module_memory_sharing(data: Any) -> None:
+    def _disable(obj: Module) -> Module:
+        for tensor in itertools.chain(obj.parameters(), obj.buffers()):
+            tensor.data = tensor.data.clone()
         return obj
 
-    apply_to_collection(data, function=_disable, dtype=(Tensor, Module))
+    apply_to_collection(data, function=_disable, dtype=Module)
