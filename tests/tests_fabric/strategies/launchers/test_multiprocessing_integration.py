@@ -20,8 +20,8 @@ from tests_fabric.helpers.runif import RunIf
 
 @pytest.mark.parametrize("strategy", ["ddp_spawn", pytest.param("ddp_fork", marks=RunIf(skip_windows=True))])
 def test_memory_sharing_disabled(strategy):
-    """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid
-    race conditions on model updates."""
+    """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
+    conditions on model updates."""
     tensor = torch.rand(4)
     module = torch.nn.Linear(2, 2)
     assert not tensor.is_shared()
