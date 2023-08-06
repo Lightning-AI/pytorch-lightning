@@ -195,6 +195,7 @@ def _check_bad_cuda_fork() -> None:
 
 
 def _disable_module_memory_sharing(data: Any) -> None:
+    """Disables memory sharing on parameters and buffers of `nn.Module`s contained in the given collection."""
     def _disable(obj: Module) -> Module:
         for tensor in itertools.chain(obj.parameters(), obj.buffers()):
             tensor.data = tensor.data.clone()
