@@ -52,17 +52,7 @@ class TorchCheckpointIO(CheckpointIO):
             )
         fs = get_filesystem(path)
         fs.makedirs(os.path.dirname(path), exist_ok=True)
-        try:
-            # write the checkpoint dictionary on the file
-            _atomic_save(checkpoint, path)
-        except AttributeError as err:
-            # todo: is this try catch necessary still?
-            # https://github.com/Lightning-AI/lightning/pull/431
-            # TODO(fabric): Fabric doesn't support hyperparameters in the checkpoint, so this should be refactored
-            key = "hyper_parameters"
-            checkpoint.pop(key, None)
-            rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")
-            _atomic_save(checkpoint, path)
+        _atomic_save(checkpoint, path)
 
     def load_checkpoint(
         self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
