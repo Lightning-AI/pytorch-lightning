@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch
 
 from lightning.fabric import Fabric
 
 
-def test_memory_sharing_disabled():
+@pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork"])
+def test_memory_sharing_disabled(strategy):
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid
     race conditions on model updates."""
     tensor = torch.rand(4)
@@ -24,10 +26,11 @@ def test_memory_sharing_disabled():
     assert not tensor.is_shared()
     assert not module.weight.is_shared()
 
-    fabric = Fabric(accelerator="cpu", devices=2, strategy="ddp_spawn")
+    fabric = Fabric(accelerator="cpu", devices=2, strategy=strategy)
     fabric.launch(_test_memory_sharing_disabled, tensor, module=module)
 
 
 def _test_memory_sharing_disabled(fabric, tensor, module):
-    assert tensor.is_shared()
+    is_spawn = fabric.strategy.launcher._start_method == "spawn"
+    assert not is_spawn or tensor.is_shared()
     assert not module.weight.is_shared()

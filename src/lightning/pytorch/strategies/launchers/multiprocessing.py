@@ -142,8 +142,9 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
+        if self._start_method == "spawn":
+            _disable_module_memory_sharing((args, kwargs))
         os.environ["LOCAL_RANK"] = str(process_idx)
-        _disable_module_memory_sharing((args, kwargs))
         results = function(*args, **kwargs)
 
         if trainer is not None:
