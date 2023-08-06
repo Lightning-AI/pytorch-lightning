@@ -27,7 +27,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.strategies.launchers.multiprocessing import _check_bad_cuda_fork
+from lightning.fabric.strategies.launchers.multiprocessing import _check_bad_cuda_fork, _disable_tensor_memory_sharing
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning.fabric.utilities.types import _PATH
@@ -143,6 +143,7 @@ class _MultiProcessingLauncher(_Launcher):
         if global_states:
             global_states.restore()
         os.environ["LOCAL_RANK"] = str(process_idx)
+        _disable_tensor_memory_sharing((args, kwargs))
         results = function(*args, **kwargs)
 
         if trainer is not None:

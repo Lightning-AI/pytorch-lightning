@@ -14,11 +14,14 @@
 import os
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, Literal, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, Literal, Optional, TYPE_CHECKING, Union
 
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
+from lightning_utilities import apply_to_collection
+from torch import Tensor
+from torch.nn import Module
 
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
@@ -121,6 +124,7 @@ class _MultiProcessingLauncher(_Launcher):
         if global_states:
             global_states.restore()
         os.environ["LOCAL_RANK"] = str(process_idx)
+        _disable_tensor_memory_sharing((args, kwargs))
         results = function(*args, **kwargs)
 
         if process_idx == 0:
@@ -187,3 +191,19 @@ def _check_bad_cuda_fork() -> None:
     if _IS_INTERACTIVE:
         message += " You will have to restart the Python kernel."
     raise RuntimeError(message)
+
+
+def _disable_tensor_memory_sharing(data: Any) -> None:
+    def _disable(obj: Union[Tensor, Module]):
+        if isinstance(obj, Tensor):
+            obj.data = obj.data.clone()
+        if isinstance(obj, Module):
+            for p in obj.parameters():
+                p.data = p.data.clone()
+                assert not p.is_shared()
+            for b in obj.buffers():
+                b.data = b.data.clone()
+                assert not b.is_shared()
+        return obj
+
+    apply_to_collection(data, function=_disable, dtype=(Tensor, Module))
