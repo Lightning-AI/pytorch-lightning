@@ -193,17 +193,19 @@ def _check_bad_cuda_fork() -> None:
     raise RuntimeError(message)
 
 
+def _disable_memory_sharing(tensor: Tensor) -> None:
+    tensor.data = tensor.data.clone()
+
+
 def _disable_tensor_memory_sharing(data: Any) -> None:
-    def _disable(obj: Union[Tensor, Module]):
+    def _disable(obj: Union[Tensor, Module]) -> Union[Tensor, Module]:
         if isinstance(obj, Tensor):
-            obj.data = obj.data.clone()
+            _disable_memory_sharing(obj)
         if isinstance(obj, Module):
-            for p in obj.parameters():
-                p.data = p.data.clone()
-                assert not p.is_shared()
-            for b in obj.buffers():
-                b.data = b.data.clone()
-                assert not b.is_shared()
+            for param in obj.parameters():
+                _disable_memory_sharing(param)
+            for buffer in obj.buffers():
+                _disable_memory_sharing(buffer)
         return obj
 
     apply_to_collection(data, function=_disable, dtype=(Tensor, Module))
