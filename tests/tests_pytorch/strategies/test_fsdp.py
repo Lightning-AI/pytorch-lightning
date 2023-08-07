@@ -260,19 +260,6 @@ def test_fsdp_strategy_checkpoint(tmpdir, precision):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-class CustomWrapPolicy(ModuleWrapPolicy):
-    """This is a wrapper around :func:`_module_wrap_policy`."""
-
-    def __init__(self, min_num_params: int):
-        self._policy: Callable = partial(size_based_auto_wrap_policy, min_num_params=min_num_params)
-
-    @property
-    def policy(self):
-        return self._policy
-
-
-custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
-
 if _TORCH_GREATER_EQUAL_2_0:
 
     def custom_auto_wrap_policy(
@@ -348,7 +335,7 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
         pytest.param(
             TestFSDPModelAutoWrapped(),
             FSDPStrategy,
-            {"auto_wrap_policy": custom_fsdp_policy, "use_orig_params": True},
+            {"auto_wrap_policy": ModuleWrapPolicy({nn.Linear}), "use_orig_params": True},
             marks=RunIf(min_torch="2.0.0"),
             id="autowrap_use_orig_params",
         ),
