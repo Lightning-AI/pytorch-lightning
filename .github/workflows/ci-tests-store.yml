@@ -37,10 +37,6 @@ jobs:
         pkg-name: ["lightning"]
         python-version: ["3.10"]
         pytorch-version: ["2.0"]
-          # "oldest" versions tests, only on minimum Python
-          # - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
-          # - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
-          # - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
     timeout-minutes: 25  # because of building grpcio on Mac
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
@@ -64,17 +60,6 @@ jobs:
           python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
         done
 
-    # - name: pip wheels cache
-    #   uses: actions/cache/restore@v3
-    #   with:
-    #     path: ${{ env.PYPI_CACHE_DIR }}
-    #     key: pypi_wheels
-    # - run: |
-    #     mkdir -p $PYPI_CACHE_DIR
-    #     ls -lh $PYPI_CACHE_DIR
-
-    # removing torch stable line:
-    # pip install -e ".[${extra}test]" "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
     - name: Install package & dependencies
       run: |
         python -m pip install -q pip -U
