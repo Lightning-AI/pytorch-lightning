@@ -80,7 +80,7 @@ def _is_object_storage(fs: AbstractFileSystem) -> bool:
             return True
 
     if module_available("gcsfs"):
-        from adlfs import GCSFileSystem
+        from gcsfs import GCSFileSystem
 
         if isinstance(fs, GCSFileSystem):
             return True
