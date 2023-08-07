@@ -266,6 +266,7 @@ class ModelCheckpoint(Checkpoint):
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         dirpath = self.__resolve_ckpt_dir(trainer)
         dirpath = trainer.strategy.broadcast(dirpath)
+        self.dirpath = dirpath
         self._fs: AbstractFileSystem = filesystem(self.dirpath)
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
