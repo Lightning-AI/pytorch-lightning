@@ -13,6 +13,7 @@
 # limitations under the License.
 import itertools
 import os
+from collections import defaultdict
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Dict, Literal, Optional, TYPE_CHECKING
@@ -197,8 +198,20 @@ def _check_bad_cuda_fork() -> None:
 def _disable_module_memory_sharing(data: Any) -> None:
     """Disables memory sharing on parameters and buffers of `nn.Module`s contained in the given collection."""
     def _disable(obj: Module) -> Module:
-        for tensor in itertools.chain(obj.parameters(), obj.buffers()):
+
+        # identify tied weights in the module
+        tied_weights_map = defaultdict(set)
+        for name, param in itertools.chain(obj.named_parameters(remove_duplicate=False)):
+            tied_weights_map[param.data].add(name)
+
+        for _, tensor in itertools.chain(obj.named_parameters(), obj.named_buffers()):
             tensor.data = tensor.data.clone()
+
+        # re-tie weights
+        for tensor_data, param_names in tied_weights_map.items():
+            for param_name in param_names:
+                obj.get_parameter(param_name).data = tensor_data
+
         return obj
 
     apply_to_collection(data, function=_disable, dtype=Module)
