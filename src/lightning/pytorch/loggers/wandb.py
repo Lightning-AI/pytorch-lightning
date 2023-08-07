@@ -558,6 +558,27 @@ class WandbLogger(Logger):
         if self._checkpoint_callback and self._experiment is not None:
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
+    def on_log_checkpoint_artifact(
+        self,
+        artifact: "wandb.Artifact",
+        checkpoint_timestamp: float,
+        path: _PATH,
+        score: float,
+        tag: str,
+    ) -> None:
+        """Override this to provide custom artifact logging behavior.
+
+        By default, adds `path` as a file called "model.ckpt" to the artifact.
+
+        Args:
+            artifact (wandb.Artifact): The wandb artifact for this checkpoint
+            checkpoint_timestamp (float): The timestamp the checkpoint was last created or modified.
+            path (_PATH): The absolute path or URI to the checkpoint.
+            score (float): The score associated with the checkpoint.
+            tag (str): The tag associated with the checkpoint.
+        """
+        artifact.add_file(path, name="model.ckpt")
+
     def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
         # get checkpoints to be saved with associated score
         checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
@@ -584,7 +605,13 @@ class WandbLogger(Logger):
             if not self._checkpoint_name:
                 self._checkpoint_name = f"model-{self.experiment.id}"
             artifact = wandb.Artifact(name=self._checkpoint_name, type="model", metadata=metadata)
-            artifact.add_file(p, name="model.ckpt")
+            artifact = self.on_log_checkpoint_artifact(
+                artifact=artifact,
+                checkpoint_timestamp=t,
+                path=p,
+                score=s,
+                tag=tag,
+            )
             aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
             self.experiment.log_artifact(artifact, aliases=aliases)
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
