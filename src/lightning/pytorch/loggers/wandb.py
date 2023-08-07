@@ -568,7 +568,7 @@ class WandbLogger(Logger):
     ) -> None:
         """Override this to provide custom artifact logging behavior.
 
-        By default, adds `path` as a file called "model.ckpt" to the artifact.
+        By default, adds `path` as a file called "model.ckpt" to the `artifact`.
 
         Args:
             artifact (wandb.Artifact): The wandb artifact for this checkpoint
@@ -605,7 +605,7 @@ class WandbLogger(Logger):
             if not self._checkpoint_name:
                 self._checkpoint_name = f"model-{self.experiment.id}"
             artifact = wandb.Artifact(name=self._checkpoint_name, type="model", metadata=metadata)
-            artifact = self.on_log_checkpoint_artifact(
+            self.on_log_checkpoint_artifact(
                 artifact=artifact,
                 checkpoint_timestamp=t,
                 path=p,
