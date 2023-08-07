@@ -1,0 +1,116 @@
+name: Test Data
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
+    paths:
+      - ".actions/*"
+      - "requirements/store/**"
+      - "src/lightning/store/**"
+      - "tests/tests_store/**"
+      - "pyproject.toml"  # includes pytest config
+      - ".github/workflows/ci-tests-store.yml"
+      - "!requirements/*/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  store-cpu:
+    runs-on: ${{ matrix.os }}
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0"}
+          # "oldest" versions tests, only on minimum Python
+          # - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
+          # - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
+          # - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
+    timeout-minutes: 25  # because of building grpcio on Mac
+    env:
+      PACKAGE_NAME: ${{ matrix.pkg-name }}
+      FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+      # PYPI_CACHE_DIR: "_pip-wheels"
+      TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+      TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/torch_test.html"
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: basic setup
+      run: pip install -q -r .actions/requirements.txt
+
+    - name: Set min. dependencies
+      if: ${{ matrix.requires == 'oldest' }}
+      run: |
+        python .actions/assistant.py replace_oldest_ver
+
+    - name: Adjust PyTorch versions in requirements files
+      if: ${{ matrix.requires != 'oldest' && matrix.release != 'pre' }}
+      run: |
+        pip install -q wget packaging
+        python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
+        for fpath in `ls requirements/store/*.txt`; do \
+          python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
+        done
+
+    # - name: pip wheels cache
+    #   uses: actions/cache/restore@v3
+    #   with:
+    #     path: ${{ env.PYPI_CACHE_DIR }}
+    #     key: pypi_wheels
+    # - run: |
+    #     mkdir -p $PYPI_CACHE_DIR
+    #     ls -lh $PYPI_CACHE_DIR
+
+    # removing torch stable line:
+    # pip install -e ".[${extra}test]" "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
+    - name: Install package & dependencies
+      run: |
+        python -m pip install -q pip -U
+        pip install -e ".[store-dev]" "pytest-timeout" -U -f ${TORCH_URL} --prefer-binary
+        pip list
+
+    - name: Testing Store
+      working-directory: tests/tests_store
+      # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
+      run: |
+        python -m coverage run --source lightning \
+          -m pytest -v --timeout=60 --durations=60
+
+    - name: Statistics
+      if: success()
+      working-directory: tests/tests_store
+      run: |
+        coverage report
+        coverage xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      # see: https://github.com/actions/toolkit/issues/399
+      continue-on-error: true
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: tests/tests_store/coverage.xml
+        flags: lightning,cpu,pytest,python${{ matrix.python-version }}
+        name: CPU-coverage
+        fail_ci_if_error: false

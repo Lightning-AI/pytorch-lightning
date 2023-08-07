@@ -300,18 +300,18 @@ subprojects:
 
   - id: "lightning: Store"
     paths:
-      - ".azure/app-cloud-store.yml"
+      - ".github/workflows/ci-tests-store.yml"
       - "src/lightning/__about__.py"
       - "src/lightning/__init__.py"
       - "src/lightning/__main__.py"
       - "src/lightning/__setup__.py"
       - "src/lightning/__version__.py"
       - "src/lightning/store/**"
-      - "tests/tests_cloud/**"
+      - "tests/tests_store/**"
     checks:
-      - "Store.cloud (test_store Linux)"
-      - "Store.cloud (test_store Mac)"
-      - "Store.cloud (test_store Windows)"
+      - "store-cpu (macOS-11, lightning, 3.10, 2.0)"
+      - "store-cpu (ubuntu-20.04, lightning, 3.10, 2.0)"
+      - "store-cpu (windows-2022, lightning, 3.10, 2.0)"
 
   # FixMe: re-enable when BE stabilize
   # - id: "lightning_app: Azure"
