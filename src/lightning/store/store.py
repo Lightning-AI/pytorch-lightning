@@ -25,7 +25,7 @@ def upload_model(
     path: str,
     version: str = "latest",
     progress_bar: bool = True,
-):
+) -> None:
     """Upload a model to the lightning cloud.
 
     Args:
@@ -59,7 +59,7 @@ def download_model(
     path: str,
     version: str = "latest",
     progress_bar: bool = True,
-):
+) -> None:
     """Download a model from the lightning cloud.
 
     Args:
