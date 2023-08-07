@@ -87,7 +87,7 @@ jobs:
     - name: Install package & dependencies
       run: |
         python -m pip install -q pip -U
-        pip install -e ".[store-dev]" "pytest-timeout" -U -f ${TORCH_URL} --prefer-binary
+        pip install -e ".[store-test]" "pytest-timeout" -U -f ${TORCH_URL} --prefer-binary
         pip list
 
     - name: Testing Store
