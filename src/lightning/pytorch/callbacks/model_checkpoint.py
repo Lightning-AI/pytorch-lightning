@@ -24,24 +24,20 @@ import time
 import warnings
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Dict, Optional, Set, TYPE_CHECKING
+from typing import Any, Dict, Optional, Set
 from weakref import proxy
 
 import torch
 import yaml
-from fsspec.core import filesystem
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.cloud_io import _is_dir
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.types import STEP_OUTPUT
-
-if TYPE_CHECKING:
-    from fsspec import AbstractFileSystem
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -267,7 +263,7 @@ class ModelCheckpoint(Checkpoint):
         dirpath = self.__resolve_ckpt_dir(trainer)
         dirpath = trainer.strategy.broadcast(dirpath)
         self.dirpath = dirpath
-        self._fs: AbstractFileSystem = filesystem(self.dirpath)
+        self._fs = get_filesystem(self.dirpath)
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
 
@@ -447,7 +443,7 @@ class ModelCheckpoint(Checkpoint):
                 )
 
     def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
-        self._fs: AbstractFileSystem = filesystem(dirpath if dirpath else "")
+        self._fs = get_filesystem(dirpath if dirpath else "")
 
         if dirpath and self._fs.protocol == "file":
             dirpath = os.path.realpath(dirpath)
