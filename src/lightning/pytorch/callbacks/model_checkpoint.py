@@ -249,8 +249,7 @@ class ModelCheckpoint(Checkpoint):
         self.kth_value: Tensor
         self.dirpath: Optional[_PATH]
         self.__init_monitor_mode(mode)
-        self.dirpath = dirpath
-        self.filename = filename
+        self.__init_ckpt_dir(dirpath, filename)
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval)
         self.__validate_init_configuration()
 
@@ -268,7 +267,6 @@ class ModelCheckpoint(Checkpoint):
         dirpath = self.__resolve_ckpt_dir(trainer)
         dirpath = trainer.strategy.broadcast(dirpath)
         self._fs: AbstractFileSystem = filesystem(self.dirpath)
-        self.dirpath = os.path.realpath(dirpath) if self._fs.protocol == "file" else dirpath
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
 
@@ -446,6 +444,15 @@ class ModelCheckpoint(Checkpoint):
                     "ModelCheckpoint(save_last=True, save_top_k=-1, monitor=None)"
                     " will duplicate the last checkpoint saved."
                 )
+
+    def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
+        self._fs: AbstractFileSystem = filesystem(dirpath if dirpath else "")
+
+        if dirpath and self._fs.protocol == "file":
+            dirpath = os.path.realpath(dirpath)
+
+        self.dirpath = dirpath
+        self.filename = filename
 
     def __init_monitor_mode(self, mode: str) -> None:
         torch_inf = torch.tensor(torch.inf)
