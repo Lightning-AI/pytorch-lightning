@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added support for hydra multi-run with DDP ([#18175](https://github.com/Lightning-AI/lightning/pull/18175))
+
+
 - Added support for the TPU-v4 architecture ([#17227](https://github.com/Lightning-AI/lightning/pull/17227))
 
 

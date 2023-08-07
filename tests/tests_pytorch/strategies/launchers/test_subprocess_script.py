@@ -77,6 +77,38 @@ def test_ddp_with_hydra_runjob(subdir, tmp_path, monkeypatch):
     assert len(logs) == devices
 
 
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@pytest.mark.skipif(not _HYDRA_WITH_RUN_PROCESS, reason=str(_HYDRA_WITH_RUN_PROCESS))
+@pytest.mark.parametrize("num_jobs", [1, 2])
+def test_ddp_with_hydra_multirunjob(num_jobs, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    # Save script locally
+    with open("temp.py", "w") as fn:
+        fn.write(script)
+
+    # Run CLI
+    devices = 2
+    sweep_dir = tmp_path / "hydra_output"
+    cmd = [sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"', f"hydra.sweep.dir={sweep_dir}"]
+    cmd += ["+foo=" + ",".join(str(i) for i in range(num_jobs)), "--multirun"]  # fake multirun params
+    run_process(cmd)
+
+    # Make sure there's exactly 1 config.yaml for each multirun job
+    saved_confs = list(sweep_dir.glob("**/config.yaml"))
+    assert len(saved_confs) == num_jobs
+
+    for config in saved_confs:  # Make sure the parameter was set and used for each job
+        cfg = OmegaConf.load(config)
+        local_rank = int(config.parent.parent.parts[-1])
+        assert cfg.devices == devices
+        assert cfg.foo == local_rank
+
+    # Make sure PL spawned jobs that are logged by Hydra
+    logs = list(sweep_dir.glob("**/*.log"))
+    assert len(logs) == devices * num_jobs
+
+
 def test_kill():
     launcher = _SubprocessScriptLauncher(Mock(), 1, 1)
     proc0 = Mock(autospec=subprocess.Popen)
