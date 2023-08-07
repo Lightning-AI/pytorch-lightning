@@ -336,7 +336,7 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
             TestFSDPModelAutoWrapped(),
             FSDPStrategy,
             {"auto_wrap_policy": ModuleWrapPolicy({nn.Linear}), "use_orig_params": True},
-            marks=RunIf(min_torch="2.0.0"),
+            marks=RunIf(min_torch="2.1.0"),
             id="autowrap_use_orig_params",
         ),
     ],
