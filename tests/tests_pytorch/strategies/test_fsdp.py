@@ -2,7 +2,7 @@ import os
 from contextlib import nullcontext
 from datetime import timedelta
 from functools import partial
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
