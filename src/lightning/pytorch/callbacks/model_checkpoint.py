@@ -267,10 +267,10 @@ class ModelCheckpoint(Checkpoint):
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         dirpath = self.__resolve_ckpt_dir(trainer)
         dirpath = trainer.strategy.broadcast(dirpath)
-        self.dirpath = dirpath
+        self._fs: AbstractFileSystem = filesystem(self.dirpath)
+        self.dirpath = os.path.realpath(dirpath) if self._fs.protocol == "file" else dirpath
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
-        self._fs: AbstractFileSystem = filesystem(self.dirpath)
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
