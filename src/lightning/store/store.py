@@ -14,17 +14,10 @@
 import os
 from typing import List
 
-from lightning_cloud.openapi import AuthServiceApi, ModelsStoreApi, ProjectsServiceApi, V1Model, V1UploadModelRequest
-from lightning_cloud.rest_client import create_swagger_client
+from lightning_cloud.openapi import V1Model, V1UploadModelRequest
 
 from lightning.app.utilities.cloud import _get_project
-from lightning.store.utils import _download_file_from_url, _upload_file_to_url
-
-
-class _Client(AuthServiceApi, ModelsStoreApi, ProjectsServiceApi):
-    def __init__(self):
-        api_client = create_swagger_client()
-        super().__init__(api_client)
+from lightning.store.utils import _Client, _download_file_from_url, _upload_file_to_url
 
 
 def upload_model(
@@ -81,7 +74,7 @@ def download_model(
     """
     client = _Client()
     download_url = client.models_store_download_model(name=name, version=version).download_url
-    _download_file_from_url(download_url, os.path.abspath(path), progress_bar)
+    _download_file_from_url(download_url, os.path.abspath(path), progress_bar=progress_bar)
 
 
 def list_models() -> List[V1Model]:

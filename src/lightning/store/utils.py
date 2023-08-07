@@ -14,6 +14,8 @@
 import os
 
 import requests
+from lightning_cloud.openapi import AuthServiceApi, ModelsStoreApi, ProjectsServiceApi
+from lightning_cloud.rest_client import create_swagger_client
 from tqdm import tqdm
 from tqdm.utils import CallbackIOWrapper
 
@@ -57,3 +59,9 @@ def _download_file_from_url(url: str, path: str, progress_bar: bool) -> None:
                 f.write(chunk)
         if download_progress_bar:
             download_progress_bar.close()
+
+
+class _Client(AuthServiceApi, ModelsStoreApi, ProjectsServiceApi):
+    def __init__(self):
+        api_client = create_swagger_client()
+        super().__init__(api_client)
