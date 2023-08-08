@@ -6,6 +6,7 @@ import pytest
 from lightning_utilities.core.imports import module_available
 
 from lightning.app.testing.helpers import _RunIf
+from lightning.app.utilities.git import check_github_repository, get_dir_name
 from lightning.app.utilities.packaging import lightning_utils
 from lightning.app.utilities.packaging.lightning_utils import (
     _prepare_lightning_wheels_and_requirements,
@@ -20,6 +21,10 @@ def test_prepare_lightning_wheels_and_requirement(tmpdir):
     package_name = "lightning"
     if not get_dist_path_if_editable_install(package_name):
         pytest.skip("Requires --editable install")
+
+    git_dir_name = get_dir_name() if check_github_repository() else None
+    if git_dir_name != package_name:
+        pytest.skip("Needs to be run from within the repo")
 
     cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir, package_name=package_name)
     assert len(os.listdir(tmpdir)) == 1
