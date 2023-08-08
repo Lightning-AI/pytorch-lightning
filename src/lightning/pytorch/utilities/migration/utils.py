@@ -185,6 +185,7 @@ class _RedirectingUnpickler(pickle._Unpickler):
 
     In legacy versions of Lightning, callback classes got pickled into the checkpoint. These classes are defined in the
     `pytorch_lightning` but need to be loaded from `lightning.pytorch`.
+
     """
 
     def find_class(self, module: str, name: str) -> Any:

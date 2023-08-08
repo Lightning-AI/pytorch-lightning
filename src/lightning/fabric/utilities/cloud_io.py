@@ -109,6 +109,7 @@ def _is_dir(fs: AbstractFileSystem, path: Union[str, Path], strict: bool = False
         strict: A flag specific to Object Storage platforms. If set to ``False``, any non-existing path is considered
             as a valid directory-like path. In such cases, the directory (and any non-existing parent directories)
             will be created on the fly. Defaults to False.
+
     """
     # Object storage fsspec's are inconsistent with other file systems because they do not have real directories,
     # see for instance https://gcsfs.readthedocs.io/en/latest/api.html?highlight=makedirs#gcsfs.core.GCSFileSystem.mkdir

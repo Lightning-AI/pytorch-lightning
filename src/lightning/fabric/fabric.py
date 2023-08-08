@@ -783,6 +783,7 @@ class Fabric:
             obj: A :class:`~torch.nn.Module` or :class:`~torch.optim.Optimizer` instance.
             strict: Whether to enforce that the keys in the module's state-dict match the keys in the checkpoint.
                 Does not apply to optimizers.
+
         """
         obj = _unwrap_objects(obj)
         self._strategy.load_checkpoint(path=path, state=obj, strict=strict)

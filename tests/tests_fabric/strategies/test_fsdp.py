@@ -361,8 +361,7 @@ def test_fsdp_load_unknown_checkpoint_type(tmp_path):
 
 @RunIf(min_torch="2.0.0")
 def test_fsdp_load_raw_checkpoint_validate_single_file(tmp_path):
-    """Test that we validate the given checkpoint is a single file when loading a raw PyTorch state-dict
-    checkpoint."""
+    """Test that we validate the given checkpoint is a single file when loading a raw PyTorch state-dict checkpoint."""
     strategy = FSDPStrategy()
     model = Mock(spec=nn.Module)
     path = tmp_path / "folder"
