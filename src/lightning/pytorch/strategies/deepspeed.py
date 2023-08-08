@@ -41,7 +41,6 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
-from lightning.pytorch.overrides.base import _LightningPrecisionModuleWrapperBase
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.utils import _fp_to_half
@@ -212,7 +211,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
             logging_batch_size_per_gpu: Config used in DeepSpeed to calculate verbose timing for logging
                 on a per sample per second basis (only displayed if logging=logging.INFO).
-                If set to "auto", the plugin tries to infer this from
+                If set to "auto", the strategy tries to infer this from
                 the train DataLoader's BatchSampler, else defaults to 1.
                 To obtain accurate logs when using datasets that do not support batch samplers,
                 set this to the actual per gpu batch size (trainer.batch_size).
@@ -448,7 +447,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+        assert isinstance(self.model, pl.LightningModule)
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(self.model)
         else:
@@ -593,7 +592,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def handles_gradient_accumulation(self) -> bool:
-        """Whether the plugin handles gradient accumulation internally."""
+        """Whether the strategy handles gradient accumulation internally."""
         return True
 
     def _format_config(self) -> None:
@@ -650,7 +649,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 if self.global_rank == 0:
                     deepspeed.utils.logging.logger.warning(
                         "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
-                        "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
+                        "To ensure DeepSpeed logging remains correct, please manually pass the strategy with the "
                         "batch size, `Trainer(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=batch_size))`."
                     )
         return batch_size
