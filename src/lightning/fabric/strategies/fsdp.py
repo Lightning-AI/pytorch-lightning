@@ -78,9 +78,9 @@ if TYPE_CHECKING:
     from lightning.fabric.wrappers import _FabricModule
 
     if _TORCH_GREATER_EQUAL_2_0:
-        from torch.distributed.fsdp.wrap import _FSDPPolicy
+        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-        _POLICY = Union[Set, Callable[[Module, bool, int], bool], _FSDPPolicy]
+        _POLICY = Union[Set, Callable[[Module, bool, int], bool], ModuleWrapPolicy]
     else:
         _POLICY = Union[Set, Callable[[Module, bool, int], bool]]  # type: ignore[misc]
 
