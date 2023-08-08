@@ -263,7 +263,6 @@ class ModelCheckpoint(Checkpoint):
         dirpath = self.__resolve_ckpt_dir(trainer)
         dirpath = trainer.strategy.broadcast(dirpath)
         self.dirpath = dirpath
-        self._fs = get_filesystem(self.dirpath)
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
 
@@ -610,11 +609,13 @@ class ModelCheckpoint(Checkpoint):
         return ckpt_path
 
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
-        # find all checkpoints in `self.dirpath`
-        if self._fs.exists(self.dirpath):
+        # find all checkpoints in the folder
+        ckpt_path = self.__resolve_ckpt_dir(trainer)
+        self._fs = get_filesystem(ckpt_path)
+        if self._fs.exists(ckpt_path):
             return {
                 self._fs.unstrip_protocol(os.path.normpath(p))
-                for p in self._fs.ls(self.dirpath, detail=False)
+                for p in self._fs.ls(ckpt_path, detail=False)
                 if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
             }
         return set()
