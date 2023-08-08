@@ -1,5 +1,6 @@
 import subprocess
 import sys
+from unittest import mock
 from unittest.mock import Mock
 
 import pytest
@@ -77,7 +78,8 @@ def test_ddp_with_hydra_runjob(subdir, tmp_path, monkeypatch):
     assert len(logs) == devices
 
 
-def test_kill():
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.Thread")
+def test_kill(_):
     launcher = _SubprocessScriptLauncher(Mock(), 1, 1)
     proc0 = Mock(autospec=subprocess.Popen)
     proc1 = Mock(autospec=subprocess.Popen)
