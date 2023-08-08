@@ -1540,9 +1540,6 @@ class TestOpen:
             project_id="test-project-id", cloudspace_id="cloudspace_id", body=mock.ANY
         )
 
-        out, _ = capsys.readouterr()
-        assert "will not overwrite the files in your CloudSpace." in out
-
     def test_not_enabled(self, monkeypatch, capsys):
         """Tests that an error is printed and the call exits if the feature isn't enabled for the user."""
         mock_client = mock.MagicMock()

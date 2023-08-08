@@ -82,6 +82,7 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
     return logger_class(**args)
 
 
+@mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
 def test_loggers_fit_test_all(tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
@@ -345,7 +346,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     # WandB
     with mock.patch("lightning.pytorch.loggers.wandb.wandb") as wandb, mock.patch(
         "lightning.pytorch.loggers.wandb.Run", new=mock.Mock
-    ):
+    ), mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True):
         logger = _instantiate_logger(WandbLogger, save_dir=tmpdir, prefix=prefix)
         wandb.run = None
         wandb.init().step = 0
