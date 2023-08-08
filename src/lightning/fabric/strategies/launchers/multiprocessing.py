@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
 import itertools
 import os
 from collections import defaultdict
@@ -124,8 +125,10 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
+
         if self._start_method == "spawn":
-            _disable_module_memory_sharing((args, kwargs))
+            args, kwargs = _disable_module_memory_sharing((args, kwargs))
+
         os.environ["LOCAL_RANK"] = str(process_idx)
         results = function(*args, **kwargs)
 
@@ -195,23 +198,9 @@ def _check_bad_cuda_fork() -> None:
     raise RuntimeError(message)
 
 
-def _disable_module_memory_sharing(data: Any) -> None:
+def _disable_module_memory_sharing(data: Any) -> Any:
     """Disables memory sharing on parameters and buffers of `nn.Module`s contained in the given collection."""
-    def _disable(obj: Module) -> Module:
-
-        # identify tied weights in the module
-        tied_weights_map = defaultdict(set)
-        for name, param in itertools.chain(obj.named_parameters(remove_duplicate=False)):
-            tied_weights_map[param.data].add(name)
-
-        for _, tensor in itertools.chain(obj.named_parameters(), obj.named_buffers()):
-            tensor.data = tensor.data.clone()
-
-        # re-tie weights
-        for tensor_data, param_names in tied_weights_map.items():
-            for param_name in param_names:
-                obj.get_parameter(param_name).data = tensor_data
-
-        return obj
-
-    apply_to_collection(data, function=_disable, dtype=Module)
+    # PyTorch enables memory sharing automatically on all tensors that are passed through `mp.spawn`.
+    # For model weights and buffers, this is undesired and can lead to race conditions between processes.
+    # Hence, we deep-copy the entire module to ensure it doesn't share memory with other processes.
+    return apply_to_collection(data, function=copy.deepcopy, dtype=Module)

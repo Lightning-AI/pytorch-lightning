@@ -19,7 +19,7 @@ import torch.multiprocessing as mp
 
 from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.launcher import _Launcher
-from lightning.fabric.strategies.launchers.multiprocessing import _GlobalStateSnapshot
+from lightning.fabric.strategies.launchers.multiprocessing import _disable_module_memory_sharing, _GlobalStateSnapshot
 from lightning.fabric.utilities.apply_func import move_data_to_device
 
 if TYPE_CHECKING:
@@ -98,12 +98,9 @@ class _XLALauncher(_Launcher):
     ) -> None:
         import torch_xla.core.xla_model as xm
 
+        # `get_xla_supported_devices` in the spawned process returns the logical devices (2 for v2/v3 and 1 for v4)
         if _using_pjrt() and len(xm.get_xla_supported_devices()) > 1:
-            # `get_xla_supported_devices` in the spawned process returns the logical devices (2 for v2/v3 and 1 for v4)
-            # so when there's more than one (multithreading), objects need to be deep-copied
-            import copy
-
-            function, args, kwargs = copy.deepcopy((function, args, kwargs))
+            args, kwargs = _disable_module_memory_sharing((args, kwargs))
 
         results = function(*args, **kwargs)
 
