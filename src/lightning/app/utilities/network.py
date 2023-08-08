@@ -141,8 +141,7 @@ def _retry_wrapper(self, func: Callable, max_tries: Optional[int] = None) -> Cal
                 # retry if the backend fails with all errors except 4xx but not 408 - (Request Timeout)
                 if (
                     isinstance(ex, urllib3.exceptions.HTTPError)
-                    or ex.status == 408
-                    or ex.status == 409
+                    or ex.status in (408, 409)
                     or not str(ex.status).startswith("4")
                 ):
                     consecutive_errors += 1
