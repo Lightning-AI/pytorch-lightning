@@ -1266,7 +1266,7 @@ def test_deepspeed_tensors_cast_to_fp16_before_hosted_on_device():
     model = CustomBoringModel()
     trainer = Trainer(strategy="deepspeed", devices=1, accelerator="cuda", precision="16-mixed")
     trainer.strategy.connect(model)
-    batch = torch.zeros((1), dtype=torch.float32)
+    batch = torch.zeros(1, dtype=torch.float32)
     batch = trainer.strategy.batch_to_device(batch)
     assert batch.is_cuda
     assert batch.dtype is torch.float16

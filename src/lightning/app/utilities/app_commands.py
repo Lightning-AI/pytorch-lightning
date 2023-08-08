@@ -80,7 +80,7 @@ def _extract_commands_from_file(file_name: str) -> CommandLines:
 
 
 def _execute_app_commands(cl: CommandLines) -> None:
-    """open a subprocess shell to execute app commands.
+    """Open a subprocess shell to execute app commands.
 
     The calling app environment is used in the current environment the code is running in
     """
