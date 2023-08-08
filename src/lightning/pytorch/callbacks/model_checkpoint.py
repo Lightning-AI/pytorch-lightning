@@ -611,11 +611,11 @@ class ModelCheckpoint(Checkpoint):
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
         # find all checkpoints in the folder
         ckpt_path = self.__resolve_ckpt_dir(trainer)
-        self._fs = get_filesystem(ckpt_path)
-        if self._fs.exists(ckpt_path):
+        _fs = get_filesystem(ckpt_path)
+        if _fs.exists(ckpt_path):
             return {
-                self._fs.unstrip_protocol(os.path.normpath(p))
-                for p in self._fs.ls(ckpt_path, detail=False)
+                os.path.normpath(p) if _fs.protocol == "file" else _fs.unstrip_protocol(os.path.normpath(p))
+                for p in _fs.ls(ckpt_path, detail=False)
                 if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
             }
         return set()
