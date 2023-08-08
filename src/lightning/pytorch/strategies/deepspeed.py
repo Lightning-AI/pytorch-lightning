@@ -32,6 +32,7 @@ from lightning.fabric.plugins import ClusterEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.deepspeed import (
     _DEEPSPEED_AVAILABLE,
+    _format_precision_config,
     _validate_checkpoint_directory,
     _validate_device_index_selection,
 )
@@ -40,7 +41,6 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
-from lightning.pytorch.overrides.base import _LightningPrecisionModuleWrapperBase
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.utils import _fp_to_half
@@ -78,7 +78,7 @@ class DeepSpeedStrategy(DDPStrategy):
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
-        remote_device: str = "cpu",
+        remote_device: Optional[str] = None,
         offload_optimizer: bool = False,
         offload_parameters: bool = False,
         offload_params_device: str = "cpu",
@@ -139,7 +139,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
                 3 is optimizer+gradient_parameter partitioning using the infinity engine.
 
-            remote_device: Device to instantiate the model on initially (``cpu`` or ``nvme``).
+            remote_device: Device to instantiate the model on initially (``cpu`` or ``nvme``). Defaults to GPU.
 
             offload_optimizer: Enable offloading optimizer memory and computation to CPU or NVMe
                 based on ``offload_optimizer_device``.
@@ -211,7 +211,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
             logging_batch_size_per_gpu: Config used in DeepSpeed to calculate verbose timing for logging
                 on a per sample per second basis (only displayed if logging=logging.INFO).
-                If set to "auto", the plugin tries to infer this from
+                If set to "auto", the strategy tries to infer this from
                 the train DataLoader's BatchSampler, else defaults to 1.
                 To obtain accurate logs when using datasets that do not support batch samplers,
                 set this to the actual per gpu batch size (trainer.batch_size).
@@ -447,7 +447,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+        assert isinstance(self.model, pl.LightningModule)
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(self.model)
         else:
@@ -518,23 +518,12 @@ class DeepSpeedStrategy(DDPStrategy):
     def model_sharded_context(self) -> Generator[None, None, None]:
         import deepspeed
 
-        if self.zero_stage_3:
-            assert self._config_initialized
-
-            if self.precision_plugin.precision == "16-mixed":
-                dtype = torch.float16
-            elif self.precision_plugin.precision == "bf16-mixed":
-                dtype = torch.bfloat16
-            else:
-                dtype = torch.float32
-
-            model_parallel_context = deepspeed.zero.Init(
-                remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
-            )
-        else:
-            model_parallel_context = super().model_sharded_context()
-
-        with model_parallel_context:
+        assert self._config_initialized
+        with deepspeed.zero.Init(
+            enabled=self.zero_stage_3,
+            remote_device=self.remote_device,
+            config_dict_or_path=self.config,
+        ):
             yield
 
     def _set_deepspeed_activation_checkpointing(self) -> None:
@@ -603,7 +592,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def handles_gradient_accumulation(self) -> bool:
-        """Whether the plugin handles gradient accumulation internally."""
+        """Whether the strategy handles gradient accumulation internally."""
         return True
 
     def _format_config(self) -> None:
@@ -613,7 +602,15 @@ class DeepSpeedStrategy(DDPStrategy):
                 " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
             )
         self._format_batch_size_and_grad_accum_config()
-        self._format_precision_config()
+        _format_precision_config(
+            config=self.config,
+            precision=self.precision_plugin.precision,
+            loss_scale=self.loss_scale,
+            loss_scale_window=self.loss_scale_window,
+            min_loss_scale=self.min_loss_scale,
+            initial_scale_power=self.initial_scale_power,
+            hysteresis=self.hysteresis,
+        )
 
     def _format_batch_size_and_grad_accum_config(self) -> None:
         # TODO: Using Fabric, we do not support these variables within the config
@@ -652,28 +649,10 @@ class DeepSpeedStrategy(DDPStrategy):
                 if self.global_rank == 0:
                     deepspeed.utils.logging.logger.warning(
                         "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
-                        "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
+                        "To ensure DeepSpeed logging remains correct, please manually pass the strategy with the "
                         "batch size, `Trainer(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=batch_size))`."
                     )
         return batch_size
-
-    def _format_precision_config(self) -> None:
-        assert isinstance(self.config, dict)
-        if self.precision_plugin.precision == "16-mixed":
-            if "fp16" not in self.config:
-                # FP16 is a DeepSpeed standalone AMP implementation
-                rank_zero_info("Enabling DeepSpeed FP16.")
-                self.config["fp16"] = {
-                    "enabled": True,
-                    "loss_scale": self.loss_scale,
-                    "initial_scale_power": self.initial_scale_power,
-                    "loss_scale_window": self.loss_scale_window,
-                    "hysteresis": self.hysteresis,
-                    "min_loss_scale": self.min_loss_scale,
-                }
-        elif "bf16" not in self.config and self.precision_plugin.precision == "bf16-mixed":
-            rank_zero_info("Enabling DeepSpeed BF16.")
-            self.config["bf16"] = {"enabled": True}
 
     def _create_default_config(
         self,

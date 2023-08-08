@@ -108,6 +108,7 @@ jobs:
         retention-days: ${{ env.KEEP_DAYS }}
 
     - name: Install AWS CLI
+      continue-on-error: true
       run: |
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
           unzip -qq awscli.zip

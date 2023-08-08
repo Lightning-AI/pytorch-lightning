@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import datetime
+import os
 from datetime import timedelta
 from re import escape
 from unittest import mock
@@ -26,7 +28,11 @@ import lightning.fabric
 from lightning.fabric import Fabric
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.strategies.fsdp import _FSDPBackwardSyncControl, fsdp_overlap_step_with_backward
+from lightning.fabric.strategies.fsdp import (
+    _FSDPBackwardSyncControl,
+    _has_meta_device_parameters,
+    fsdp_overlap_step_with_backward,
+)
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_1
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
@@ -80,6 +86,17 @@ def test_fsdp_sharding_strategy():
     assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
     strategy = FSDPStrategy(sharding_strategy="no_shard")
     assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_checkpoint_io_unsupported():
+    """Test that the FSDP strategy does not support the `CheckpointIO` plugin."""
+    strategy = FSDPStrategy()
+    with pytest.raises(NotImplementedError, match="does not use the `CheckpointIO` plugin"):
+        _ = strategy.checkpoint_io
+
+    with pytest.raises(NotImplementedError, match="does not support setting a `CheckpointIO` plugin"):
+        strategy.checkpoint_io = Mock()
 
 
 @RunIf(min_torch="1.12")
@@ -381,6 +398,25 @@ def test_set_timeout(init_process_group_mock):
     )
 
 
+def test_has_meta_device_parameters():
+    """Test that the `_has_meta_device_parameters` function can find meta-device parameters in models and
+    optimizers."""
+    # nn.Module
+    module = nn.Linear(2, 2)
+    meta_module = nn.Linear(2, 2, device="meta")
+    assert not _has_meta_device_parameters(module)
+    assert _has_meta_device_parameters(meta_module)
+    assert _has_meta_device_parameters(nn.Sequential(module, meta_module, nn.ReLU()))
+    # optim.Optimizer
+    optimizer = torch.optim.SGD(module.parameters(), lr=0.1)
+    meta_optimizer = torch.optim.SGD(meta_module.parameters(), lr=0.1)
+    assert not _has_meta_device_parameters(optimizer)
+    assert _has_meta_device_parameters(meta_optimizer)
+    # unsupported objects
+    with pytest.raises(TypeError, match="Expected `torch.nn.Module` or `torch.optim.Optimizer`"):
+        _has_meta_device_parameters(None)
+
+
 class SubBlock(nn.Sequential):
     def __init__(self, feature_dim: int) -> None:
         super().__init__(
@@ -400,6 +436,60 @@ class Block(nn.Module):
         return self.left(x) + self.right(x)
 
 
+class StatusChecker:
+    def __init__(self, fabric: Fabric) -> None:
+        self._fabric = fabric
+        self.is_rank_zero = fabric.is_global_zero
+        self.pids = tuple(int(pid) for pid in fabric.all_gather(os.getpid()).cpu().numpy())
+
+    @contextlib.contextmanager
+    def guard_region(self, name: str):
+        """Handle errors and graceful shutdown.
+
+        `pytest` interprets SystemExit as a faiure, so it will interpret shutdown of non-zero ranks as a test failure.
+        This is confusing (since it logs "FAILED"), but more importantly the orphan rank will continue trying to execute
+        the rest of the test suite. So instead we add calls to `os._exit` which actually forces the process to shut
+        down.
+        """
+        success = False
+        try:
+            yield
+            success = True
+
+        except BaseException:
+            if self.is_rank_zero:
+                raise
+
+        finally:
+            # All reduce will wait for all workers to enter. This means that if a
+            # worker dies the status check will deadlock.
+            import psutil
+
+            worker_status = tuple(psutil.Process(pid).status() for pid in self.pids)
+            if any(
+                status in (psutil.STATUS_DEAD, psutil.STATUS_STOPPED, psutil.STATUS_ZOMBIE) for status in worker_status
+            ):
+                if self.is_rank_zero:
+                    raise RuntimeError(f"({name}) Dead workers: [{', '.join(worker_status)}]")
+                else:
+                    os._exit(1)
+
+            rank_success = self._fabric.all_gather(success).cpu()
+            if not rank_success.all():
+                if self.is_rank_zero > 0:
+                    os._exit(1)
+                elif success:
+                    raise RuntimeError(f"({name}) Failure on different rank: {rank_success}")
+
+    def finalize(self) -> None:
+        if not self.is_rank_zero:
+            os._exit(0)
+
+    def __del__(self) -> None:
+        self.finalize()
+
+
+@pytest.mark.skip(reason="Flaky test")  # See also: https://github.com/Lightning-AI/lightning/pull/17774
 @RunIf(min_torch="2.0.0", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _SUPPORTS_OPTIMIZER_IN_FSDP_BACKWARD, reason="Not supported in this version of PyTorch")
 @pytest.mark.parametrize(
@@ -438,6 +528,7 @@ def test_apply_optimizer_in_backward(checkpoint):
     )
     fabric = Fabric(accelerator="cuda", devices=num_gpus, strategy=strategy)
     fabric.launch()
+    status_checker = StatusChecker(fabric)
 
     def make_model_and_optimizers():
         torch.manual_seed(0)
@@ -460,26 +551,30 @@ def test_apply_optimizer_in_backward(checkpoint):
     num_steps = 50
     for step in range(num_steps):
         # Normal pattern: `.backward()` followed by `.step()`
-        x = torch.randn((4, feature_dim), device=fabric.device)
-        y_baseline = baseline_model(x)
+        with status_checker.guard_region(f"({step + 1} / {num_steps}) Baseline"):
+            x = torch.randn((4, feature_dim), device=fabric.device)
+            y_baseline = baseline_model(x)
 
-        torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats(fabric.device)
-        baseline_start_memory = torch.cuda.max_memory_allocated(fabric.device)
-        fabric.backward(y_baseline.mean().abs())
-        del y_baseline
-        for optimizer in baseline_optimizers:
-            optimizer.step()
-            optimizer.zero_grad(set_to_none=True)
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats(fabric.device)
+            baseline_start_memory = torch.cuda.max_memory_allocated(fabric.device)
+            fabric.backward(y_baseline.mean().abs())
+            del y_baseline
+            for optimizer in baseline_optimizers:
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
 
-            # FSDP sometimes holds onto grad memory until the next forward
-            # pass. In order to provide a fair comparison (and thus an
-            # accurate check that moving the step call into backward actually
-            # delivers the expected memory savings) we need to "help" the
-            # baseline case a bit.
-            param_handles = _get_fsdp_handles(baseline_model._forward_module)
-            for h in param_handles:
-                h._clear_grads_if_needed()
+                # FSDP sometimes holds onto grad memory until the next forward
+                # pass. In order to provide a fair comparison (and thus an
+                # accurate check that moving the step call into backward actually
+                # delivers the expected memory savings) we need to "help" the
+                # baseline case a bit.
+                param_handles = _get_fsdp_handles(baseline_model._forward_module)
+                for h in param_handles:
+                    if _TORCH_GREATER_EQUAL_2_1:
+                        h._reset_flat_param_grad_info_if_needed()
+                    else:
+                        h._clear_grads_if_needed()
 
         baseline_peak_memory = torch.cuda.max_memory_allocated(fabric.device)
 

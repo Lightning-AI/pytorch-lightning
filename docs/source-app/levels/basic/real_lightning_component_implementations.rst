@@ -31,12 +31,6 @@ or cloud GPUs without code changes.
    :tab_rows: 5
    :height: 420px
 
-|
-
-Run the component on the cloud:
-
-.. include:: /levels/basic/hero_run.rst
-
 ----
 
 *********************************
@@ -51,12 +45,6 @@ This example shows how to deploy PyTorch and create an API
    :enable_run: true
    :tab_rows: 4
    :height: 620px
-
-|
-
-Run the component on the cloud:
-
-.. include:: /levels/basic/hero_run.rst
 
 ----
 

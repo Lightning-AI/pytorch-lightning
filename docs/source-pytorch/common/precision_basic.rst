@@ -20,13 +20,24 @@ Higher precision, such as the 64-bit floating-point, can be used for highly sens
 16-bit Precision
 ****************
 
-Use 16-bit mixed precision to lower your memory consumption by up to half so that you can train and deploy larger models. If your GPUs are [`Tensor Core <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_] GPUs, you can also get a ~3x speed improvement. Half precision can sometimes lead to unstable training.
+Use 16-bit mixed precision to speed up training and inference.
+If your GPUs are [`Tensor Core <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_] GPUs, you can expect a ~3x speed improvement.
 
-.. code::
+.. code-block:: python
 
-    Trainer(precision='16-mixed')
+    Trainer(precision="16-mixed")
+
+
+With true 16-bit precision you can additionally lower your memory consumption by up to half so that you can train and deploy larger models.
+However, this setting can sometimes lead to unstable training.
+
+.. code-block:: python
+
+    Trainer(precision="16-true")
+
 
 ----
+
 
 ****************
 32-bit Precision

@@ -17,7 +17,7 @@ import torch
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
-from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy
+from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy
 from lightning.pytorch.utilities.model_helpers import _check_mixed_imports
 
 
@@ -134,7 +134,7 @@ def _maybe_unwrap_optimized(model: object) -> "pl.LightningModule":
 def _verify_strategy_supports_compile(model: "pl.LightningModule", strategy: Strategy) -> None:
     if model._compiler_ctx is not None:
         supported_strategies = (SingleDeviceStrategy, DDPStrategy, FSDPStrategy)
-        if not isinstance(strategy, supported_strategies):
+        if not isinstance(strategy, supported_strategies) or isinstance(strategy, DeepSpeedStrategy):
             supported_strategy_names = ", ".join(s.__name__ for s in supported_strategies)
             raise RuntimeError(
                 f"Using a compiled model is incompatible with the current strategy: `{type(strategy).__name__}`."

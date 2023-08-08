@@ -21,9 +21,15 @@ from typing_extensions import TypeAlias
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 
+UntypedStorage: TypeAlias = (
+    torch.UntypedStorage if _TORCH_GREATER_EQUAL_1_13 else torch._UntypedStorage  # type: ignore[valid-type]
+)
+
 _PATH = Union[str, Path]
 _DEVICE = Union[torch.device, str, int]
-_MAP_LOCATION_TYPE = Optional[Union[_DEVICE, Callable[[_DEVICE], _DEVICE], Dict[_DEVICE, _DEVICE]]]
+_MAP_LOCATION_TYPE = Optional[
+    Union[_DEVICE, Callable[[UntypedStorage, str], Optional[UntypedStorage]], Dict[_DEVICE, _DEVICE]]
+]
 _PARAMETERS = Iterator[torch.nn.Parameter]
 
 
