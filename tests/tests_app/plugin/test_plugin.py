@@ -228,6 +228,7 @@ def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server, plugin_s
         env_vars={},
         secrets={},
         run_app_comment_commands=True,
+        backend=mock.ANY,
     )
 
     mock_cloud_runtime().cloudspace_dispatch.assert_called_once_with(
