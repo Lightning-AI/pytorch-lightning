@@ -714,7 +714,7 @@ def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
 
         with ctxt:
             trainer_fn(ckpt_path=ckpt_path)
-        assert trainer.ckpt_path == final_path
+        assert mc._fs._strip_protocol(trainer.ckpt_path) == final_path
 
 
 def test_checkpoint_find_last(tmpdir):
