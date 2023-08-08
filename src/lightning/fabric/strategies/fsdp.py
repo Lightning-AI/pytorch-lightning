@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 import threading
-from contextlib import _GeneratorContextManager, contextmanager, nullcontext
+from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
@@ -35,8 +35,9 @@ from typing import (
 
 import torch
 from torch import Tensor
-from torch.nn import Module
+from torch.nn import Module, Parameter
 from torch.optim import Optimizer
+from typing_extensions import TypeGuard
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, Precision
@@ -66,24 +67,20 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_1,
 )
 from lightning.fabric.utilities.init import _EmptyInit
+from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import (
-        CPUOffload,
-        FullyShardedDataParallel,
-        MixedPrecision,
-        ShardingStrategy,
-    )
+    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
 
     from lightning.fabric.wrappers import _FabricModule
 
     if _TORCH_GREATER_EQUAL_2_0:
-        from torch.distributed.fsdp.wrap import _FSDPPolicy
+        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-        _POLICY = Union[Set, Callable[[Module, bool, int], bool], _FSDPPolicy]
+        _POLICY = Union[Set, Callable[[Module, bool, int], bool], ModuleWrapPolicy]
     else:
         _POLICY = Union[Set, Callable[[Module, bool, int], bool]]  # type: ignore[misc]
 
@@ -148,7 +145,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
@@ -168,7 +164,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
-            checkpoint_io=checkpoint_io,
             precision=precision,
         )
         self._num_nodes = 1
@@ -188,6 +183,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        raise NotImplementedError(f"The `{type(self).__name__}` does not use the `CheckpointIO` plugin interface.")
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: CheckpointIO) -> None:
+        raise NotImplementedError(f"The `{type(self).__name__}` does not support setting a `CheckpointIO` plugin.")
 
     @property
     def root_device(self) -> torch.device:
@@ -256,30 +259,37 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         module = self.setup_module(module)
         return module, optimizers
 
-    def setup_module(self, module: Module) -> "FullyShardedDataParallel":
+    def setup_module(self, module: Module) -> Module:
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
-        from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+        from torch.distributed.fsdp import FullyShardedDataParallel
 
-        if "auto_wrap_policy" in self._fsdp_kwargs and any(
-            isinstance(mod, FullyShardedDataParallel) for mod in module.modules()
-        ):
-            # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
-            del self._fsdp_kwargs["auto_wrap_policy"]
-        wrapped_module = FullyShardedDataParallel(
-            module=module,
-            cpu_offload=self.cpu_offload,
-            mixed_precision=self.mixed_precision_config,
-            sharding_strategy=self.sharding_strategy,
-            device_id=self.root_device.index,
-            **self._fsdp_kwargs,
-        )
+        if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
+            # The user has wrapped their submodules manually, don't apply the auto wrap policy.
+            if _has_meta_device_parameters(module):
+                rank_zero_warn(
+                    "The model is already wrapped in `FSDP` but there are still parameters on the meta device."
+                )
+            if "auto_wrap_policy" in self._fsdp_kwargs:
+                rank_zero_warn(
+                    "A FSDP `auto_wrap_policy` is set, but the model is already wrapped. The policy will be ignored."
+                )
+                del self._fsdp_kwargs["auto_wrap_policy"]
+        else:
+            module = FullyShardedDataParallel(
+                module=module,
+                cpu_offload=self.cpu_offload,
+                mixed_precision=self.mixed_precision_config,
+                sharding_strategy=self.sharding_strategy,
+                device_id=self.root_device.index,
+                **self._fsdp_kwargs,
+            )
 
         # activation checkpointing needs to be set up after wrapping the model
         if _TORCH_GREATER_EQUAL_1_13:
-            _setup_activation_checkpointing(wrapped_module, self._activation_checkpointing_kwargs)
+            _setup_activation_checkpointing(module, self._activation_checkpointing_kwargs)
 
-        return wrapped_module
+        return module
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         """Set up an optimizer for a model wrapped with FSDP.
@@ -314,9 +324,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @contextmanager
     def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
-        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
-        # is resolved. For now, the module will get moved to the device in `setup_module`.
-        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        empty_init_context: Union[torch.device, _EmptyInit, nullcontext]
+        if _TORCH_GREATER_EQUAL_2_1 and empty_init:
+            # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
+            # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
+            # These operations are applied to each submodule 'bottom up' in the module hierarchy.
+            empty_init_context = torch.device("meta")
+        elif _TORCH_GREATER_EQUAL_1_13:
+            empty_init_context = _EmptyInit(enabled=bool(empty_init))
+        else:
+            empty_init_context = nullcontext()
         with empty_init_context, self.precision.init_context(), self.module_sharded_context():
             yield
 
@@ -358,24 +375,29 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
-    def clip_gradients_norm(  # type: ignore[override]
+    def clip_gradients_norm(
         self,
-        module: "FullyShardedDataParallel",
+        module: Module,
         optimizer: Optimizer,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
         error_if_nonfinite: bool = True,
     ) -> Tensor:
         """Clip gradients by norm."""
-        rank_zero_warn("Gradient Clipping by Norm is currently experimental for FSDP. Proceed with Caution!")
+        from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+
+        if not isinstance(module, FullyShardedDataParallel):
+            # the root must be wrapped
+            raise TypeError(
+                "Gradient clipping with FSDP is only possible if the module passed to"
+                f" `{self.__class__.__name__}.clip_gradients_norm` is wrapped in `FullyShardedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
         self.precision.unscale_gradients(optimizer)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
-    def clip_gradients_value(  # type: ignore[override]
-        self, module: "FullyShardedDataParallel", optimizer: Optimizer, clip_val: Union[float, int]
-    ) -> None:
+    def clip_gradients_value(self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
         """Clip gradients by value."""
-
         raise NotImplementedError(
             "FSDP currently does not support to clip gradients by value. "
             "Consider clipping by norm instead or choose another strategy!"
@@ -406,6 +428,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
                 " `FSDPStrategy` does not use the `CheckpointIO`."
             )
+        if filter is not None and self._state_dict_type == "sharded":
+            # https://github.com/pytorch/pytorch/issues/105379
+            raise NotImplementedError(
+                "FSDP doesn't support loading sharded filtered checkpoints, so saving them is disabled."
+            )
+
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
         path = Path(self.broadcast(path))
         if path.is_dir() and os.listdir(path):
@@ -414,7 +442,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-        modules = [module for module in state.values() if isinstance(module, FSDP)]
+        modules = [module for module in state.values() if _has_fsdp_modules(module)]
         if len(modules) == 0:
             raise ValueError(
                 "Could not find a FSDP model in the provided checkpoint state. Please provide the model as"
@@ -423,11 +451,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         if len(modules) > 1:
             raise ValueError(
-                "Found multiple FSDP modules in the given state. Saving checkpoints with FSDP is"
+                "Found multiple FSDP models in the given state. Saving checkpoints with FSDP is"
                 " currently limited to a single model per checkpoint. To save multiple models, call the"
                 " save method for each model separately with a different path."
             )
-
         module = modules[0]
 
         if self._state_dict_type == "sharded":
@@ -441,7 +468,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             with state_dict_ctx:
                 for key, obj in state.items():
                     converted: Any
-                    if isinstance(obj, FSDP):
+                    if isinstance(obj, Module):
                         converted = obj.state_dict()
                         target_dict = converted_state
                     elif isinstance(obj, Optimizer):
@@ -464,7 +491,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             full_state: Dict[str, Any] = {}
             with state_dict_ctx:
                 for key, obj in state.items():
-                    if isinstance(obj, FSDP):
+                    if isinstance(obj, Module):
                         converted = obj.state_dict()
                     elif isinstance(obj, Optimizer):
                         converted = FSDP.optim_state_dict(module, obj)
@@ -480,7 +507,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
+        state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
@@ -503,22 +530,31 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(path))
 
+        if isinstance(state, Module):
+            _load_raw_module_state_from_path(path, module=state, strict=strict)
+            return {}
+
+        if isinstance(state, Optimizer):
+            raise NotImplementedError(
+                "Loading a single optimizer object from a checkpoint is not supported yet with the FSDP strategy."
+            )
+
         from torch.distributed.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
 
-        modules = {key: module for key, module in state.items() if isinstance(module, FSDP)}
-        optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
+        modules = {key: module for key, module in state.items() if _has_fsdp_modules(module)}
         if len(modules) == 0:
             raise ValueError(
                 "Could not find a FSDP model in the provided checkpoint state. Please provide the model as"
                 " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
             )
+        optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
         if len(modules) > 1:
             raise ValueError(
-                "Found multiple FSDP modules in the given state. Loading checkpoints with FSDP is"
+                "Found multiple FSDP models in the given state. Loading checkpoints with FSDP is"
                 " currently limited to a single model per checkpoint. To load multiple models, call the"
                 " load method for each model separately with a different path."
             )
@@ -560,11 +596,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return metadata
 
         if _is_full_checkpoint(path):
-            # This is inefficient, as multiple copies of the checkpoint are held in CPU memory at once.
-            # There is currently no other way because `summon_full_params` does not support write-back from rank 0 only.
-            checkpoint = torch.load(path, map_location="cpu")
-            with FSDP.summon_full_params(module, writeback=True, rank0_only=False):
-                module.load_state_dict(checkpoint.pop(module_key), strict=strict)
+            checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
+            _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
+
+            if isinstance(state, Module):
+                return {}
+
+            if _TORCH_GREATER_EQUAL_2_0:
+                # Materialize lazy tensors if there are any left in the checkpoint
+                # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
+                checkpoint = _materialize_tensors(checkpoint)
 
             # Load optimizer states
             for optim_key, optim in optimizers.items():
@@ -718,6 +759,7 @@ class _FSDPBackwardSyncControl(_BackwardSyncControl):
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
         if not isinstance(module, FullyShardedDataParallel):
+            # the root must be wrapped
             raise TypeError(
                 "Blocking backward sync is only possible if the module passed to"
                 f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `FullyShardedDataParallel`."
@@ -751,7 +793,7 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
     return any(isinstance(param, FlatParameter) for group in optimizer.param_groups for param in group["params"])
 
 
-def _get_sharded_state_dict_context(module: "FullyShardedDataParallel") -> _GeneratorContextManager:
+def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, None]:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
@@ -763,10 +805,10 @@ def _get_sharded_state_dict_context(module: "FullyShardedDataParallel") -> _Gene
         state_dict_config=state_dict_config,
         optim_state_dict_config=optim_state_dict_config,
     )
-    return state_dict_type_context
+    return state_dict_type_context  # type: ignore[return-value]
 
 
-def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> _GeneratorContextManager:
+def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> Generator[None, None, None]:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import FullOptimStateDictConfig, FullStateDictConfig, StateDictType
 
@@ -778,7 +820,7 @@ def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> _Ge
         state_dict_config=state_dict_config,
         optim_state_dict_config=optim_state_dict_config,
     )
-    return state_dict_type_context
+    return state_dict_type_context  # type: ignore[return-value]
 
 
 def _is_sharded_checkpoint(path: Path) -> bool:
@@ -788,6 +830,41 @@ def _is_sharded_checkpoint(path: Path) -> bool:
 
 def _is_full_checkpoint(path: Path) -> bool:
     return path.is_file()
+
+
+def _has_fsdp_modules(module: object) -> TypeGuard[Module]:
+    from torch.distributed.fsdp import FullyShardedDataParallel
+
+    return isinstance(module, Module) and any(isinstance(m, FullyShardedDataParallel) for m in module.modules())
+
+
+def _load_raw_module_state_from_path(path: Path, module: Module, strict: bool = True) -> None:
+    """Loads the state dict from a file path into the FSDP module."""
+    if not _is_full_checkpoint(path):
+        raise ValueError(
+            "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
+            f" full state dict: {path}"
+        )
+    # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
+    _load_raw_module_state(state_dict=_lazy_load(path), module=module, strict=strict)
+
+
+def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: bool = True) -> None:
+    """Loads the state dict into the module by gathering all weights first and then and writing back to each
+    shard."""
+
+    with _get_full_state_dict_context(module, rank0_only=False):
+        module.load_state_dict(state_dict, strict=strict)
+
+
+def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
+    if isinstance(obj, Optimizer):
+        return any(
+            t.is_meta for param_group in obj.param_groups for t in param_group["params"] if isinstance(t, Parameter)
+        )
+    if isinstance(obj, Module):
+        return any(t.is_meta for t in obj.parameters())
+    raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
 
 
 def _no_op() -> None:
@@ -818,7 +895,7 @@ def _apply_optimizers_during_fsdp_backward(
     assert param_handles, f"Module {module} does not appear to contain any FSDP modules."
     fsdp_state = _get_module_fsdp_state(module)
     assert fsdp_state is not None
-    fsdp_stream = fsdp_state._streams["post_backward"]
+    fsdp_stream = fsdp_state._post_backward_stream if _TORCH_GREATER_EQUAL_2_1 else fsdp_state._streams["post_backward"]
 
     if isinstance(optimizers, Optimizer):
         optimizers = [optimizers]
@@ -842,7 +919,7 @@ def _apply_optimizers_during_fsdp_backward(
                 optimizer.step()
                 optimizer.zero_grad()
 
-                # Used to call `_clear_grads_if_needed`. Otherwise FSDP might hold on to the memory.
+                # Used to call `_reset_flat_param_grad_info_if_needed`. Otherwise FSDP might hold on to the memory.
                 post_step()
 
     try:
@@ -866,7 +943,12 @@ def _apply_optimizers_during_fsdp_backward(
                     assert prepare_gradient.__func__ is FlatParamHandle.prepare_gradient_for_optim
                     prepare_gradient()
                     h.prepare_gradient_for_optim = _no_op  # type: ignore[method-assign]
-                    maybe_step(flat_param._params or (), h._clear_grads_if_needed)
+                    post_step = (
+                        h._reset_flat_param_grad_info_if_needed
+                        if _TORCH_GREATER_EQUAL_2_1
+                        else h._clear_grads_if_needed
+                    )
+                    maybe_step(flat_param._params or (), post_step=post_step)
 
             hook = partial(_opt_hook, h, flat_param)
             hook_handles.append(fsdp_acc_grad.register_hook(hook))
@@ -891,7 +973,7 @@ def _apply_optimizers_during_fsdp_backward(
 def fsdp_overlap_step_with_backward(
     optimizers: Union[Optimizer, Iterable[Optimizer]],
     fabric_module: "_FabricModule",
-) -> _GeneratorContextManager:
+) -> Generator[None, None, None]:
     if not _TORCH_GREATER_EQUAL_2_0:
         raise NotImplementedError(
             "`fsdp_overlap_step_with_backward` requires torch >= 2.0.0. HINT: `pip install -U torch`"
@@ -900,4 +982,6 @@ def fsdp_overlap_step_with_backward(
     from lightning.fabric.wrappers import _FabricModule
 
     assert isinstance(fabric_module, _FabricModule)
-    return _apply_optimizers_during_fsdp_backward(optimizers, fabric_module._forward_module)
+    return _apply_optimizers_during_fsdp_backward(  # type: ignore[return-value]
+        optimizers, fabric_module._forward_module
+    )

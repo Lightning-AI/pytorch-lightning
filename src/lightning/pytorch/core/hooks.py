@@ -539,10 +539,6 @@ class DataHooks:
             ``self.trainer.training/testing/validating/predicting`` so that you can
             add different logic as per your requirement.
 
-        Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
-            Data-Parallel support will come in near future.
-
         Args:
             batch: A batch of data that needs to be transferred to a new device.
             device: The target device as defined in PyTorch.
@@ -567,9 +563,6 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(strategy='dp')``.
-
-            MisconfigurationException:
                 If using IPUs, ``Trainer(accelerator='ipu')``.
 
         See Also:
@@ -586,10 +579,6 @@ class DataHooks:
             To check the current state of execution of this hook you can use
             ``self.trainer.training/testing/validating/predicting`` so that you can
             add different logic as per your requirement.
-
-        Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
-            Data-Parallel support will come in near future.
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
@@ -619,10 +608,6 @@ class DataHooks:
             ``self.trainer.training/testing/validating/predicting`` so that you can
             add different logic as per your requirement.
 
-        Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
-            Data-Parallel support will come in near future.
-
         Args:
             batch: A batch of data that needs to be altered or augmented.
             dataloader_idx: The index of the dataloader to which the batch belongs.
@@ -637,9 +622,6 @@ class DataHooks:
                 return batch
 
         Raises:
-            MisconfigurationException:
-                If using data-parallel, ``Trainer(strategy='dp')``.
-
             MisconfigurationException:
                 If using IPUs, ``Trainer(accelerator='ipu')``.
 

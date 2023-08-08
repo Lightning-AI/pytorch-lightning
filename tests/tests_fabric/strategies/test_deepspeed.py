@@ -345,6 +345,26 @@ def test_deepspeed_load_checkpoint_optimzer_state_requested(_, optimzer_state_re
 
 
 @RunIf(deepspeed=True)
+@pytest.mark.parametrize("stage", [1, 2, 3])
+def test_deepspeed_load_checkpoint_raw_state_dict(stage, tmp_path):
+    """Test that the `load_checkpoint` can load raw state dict checkpoints too."""
+    strategy = DeepSpeedStrategy(stage=stage)
+
+    model = torch.nn.Linear(3, 3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1.0)
+    torch.save(model.state_dict(), tmp_path / "model.ckpt")
+    torch.save(optimizer.state_dict(), tmp_path / "optimizer.ckpt")
+
+    new_model = torch.nn.Linear(3, 3)
+    new_optimizer = torch.optim.Adam(new_model.parameters(), lr=2.0)
+
+    strategy.load_checkpoint(tmp_path / "model.ckpt", state=new_model, strict=False)
+    assert torch.equal(new_model.weight, model.weight)
+    strategy.load_checkpoint(tmp_path / "optimizer.ckpt", state=new_optimizer, strict=False)
+    assert new_optimizer.state_dict()["param_groups"][0]["lr"] == 1.0
+
+
+@RunIf(deepspeed=True)
 def test_errors_grad_clipping():
     strategy = DeepSpeedStrategy()
     with pytest.raises(

@@ -29,26 +29,35 @@ from tests_fabric.helpers.runif import RunIf
 def test_default_attributes(monkeypatch):
     """Test the default attributes when no environment variables are set."""
     if _using_pjrt():
-        if _XLA_GREATER_EQUAL_2_1:
-            from torch_xla import runtime as module
-        else:
-            from torch_xla.experimental import pjrt as module
         # calling these creates side effects in other tests
-        monkeypatch.setattr(module, "world_size", lambda: 1)
-        monkeypatch.setattr(module, "global_ordinal", lambda: 0)
-        monkeypatch.setattr(module, "local_ordinal", lambda: 0)
+        if _XLA_GREATER_EQUAL_2_1:
+            from torch_xla import runtime
+
+            monkeypatch.setattr(runtime, "world_size", lambda: 2)
+            monkeypatch.setattr(runtime, "global_ordinal", lambda: 0)
+            monkeypatch.setattr(runtime, "local_ordinal", lambda: 0)
+            monkeypatch.setattr(runtime, "host_index", lambda: 1)
+        else:
+            from torch_xla.experimental import pjrt
+
+            monkeypatch.setattr(pjrt, "world_size", lambda: 2)
+            monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
+            monkeypatch.setattr(pjrt, "local_ordinal", lambda: 0)
+            os.environ["XRT_HOST_ORDINAL"] = "1"
     else:
         from torch_xla import _XLAC
 
+        os.environ["XRT_SHARD_WORLD_SIZE"] = "2"
+        os.environ["XRT_HOST_ORDINAL"] = "1"
         # avoid: "Cannot replicate if number of devices ... is different from ..."
         monkeypatch.setattr(_XLAC, "_xla_get_default_device", lambda: torch.device("xla:0"))
 
     env = XLAEnvironment()
     assert not env.creates_processes_externally
-    assert env.world_size() == 1
+    assert env.world_size() == 2
     assert env.global_rank() == 0
     assert env.local_rank() == 0
-    assert env.node_rank() == 0
+    assert env.node_rank() == 1
 
     with pytest.raises(NotImplementedError):
         _ = env.main_address
@@ -60,40 +69,45 @@ def test_default_attributes(monkeypatch):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_attributes_from_environment_variables(monkeypatch):
     """Test that the default cluster environment takes the attributes from the environment variables."""
-    os.environ["XRT_HOST_ORDINAL"] = "3"
-
     if not _using_pjrt():
         os.environ.update(
             {
-                "XRT_SHARD_WORLD_SIZE": "1",
+                "XRT_SHARD_WORLD_SIZE": "2",
                 "XRT_SHARD_ORDINAL": "0",
                 "XRT_SHARD_LOCAL_ORDINAL": "2",
+                "XRT_HOST_ORDINAL": "1",
             }
         )
     else:
-        if _XLA_GREATER_EQUAL_2_1:
-            from torch_xla import runtime as module
-        else:
-            from torch_xla.experimental import pjrt as module
-
         # PJRT doesn't pull these from envvars
-        monkeypatch.setattr(module, "world_size", lambda: 1)
-        monkeypatch.setattr(module, "global_ordinal", lambda: 0)
-        monkeypatch.setattr(module, "local_ordinal", lambda: 2)
+        if _XLA_GREATER_EQUAL_2_1:
+            from torch_xla import runtime
+
+            monkeypatch.setattr(runtime, "world_size", lambda: 2)
+            monkeypatch.setattr(runtime, "global_ordinal", lambda: 0)
+            monkeypatch.setattr(runtime, "local_ordinal", lambda: 2)
+            monkeypatch.setattr(runtime, "host_index", lambda: 1)
+        else:
+            from torch_xla.experimental import pjrt
+
+            monkeypatch.setattr(pjrt, "world_size", lambda: 2)
+            monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
+            monkeypatch.setattr(pjrt, "local_ordinal", lambda: 2)
+            os.environ["XRT_HOST_ORDINAL"] = "1"
 
     env = XLAEnvironment()
     with pytest.raises(NotImplementedError):
         _ = env.main_address
     with pytest.raises(NotImplementedError):
         _ = env.main_port
-    assert env.world_size() == 1
+    assert env.world_size() == 2
     assert env.global_rank() == 0
     assert env.local_rank() == 2
-    assert env.node_rank() == 3
+    assert env.node_rank() == 1
     env.set_global_rank(100)
     assert env.global_rank() == 0
     env.set_world_size(100)
-    assert env.world_size() == 1
+    assert env.world_size() == 2
 
 
 def test_detect(monkeypatch):

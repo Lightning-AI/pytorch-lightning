@@ -34,7 +34,6 @@ class _LogEventLabels:
     namespace: Optional[str] = None
     node_name: Optional[str] = None
     pod: Optional[str] = None
-    clusterID: Optional[str] = None
     component: Optional[str] = None
     projectID: Optional[str] = None
     stream: Optional[str] = None

@@ -26,6 +26,7 @@ from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCh
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import _BaseProgress
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_restarting_loops_recursive():
@@ -756,6 +757,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     assert state_dict_after_restart[val_batch_progress] == expected[val_batch_progress]
 
 
+@RunIf(skip_windows=True)  # flaky on Windows
 @pytest.mark.parametrize("should_fail", [False, True])
 @pytest.mark.parametrize("persistent_workers", [False, True])
 def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):

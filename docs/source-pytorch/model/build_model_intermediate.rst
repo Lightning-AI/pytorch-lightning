@@ -16,7 +16,7 @@ Enable advanced training features using Trainer arguments. These are SOTA techni
        devices=4,
        accelerator="gpu",
        strategy="deepspeed_stage_2",
-       precision=16
+       precision="16-mixed",
     )
 
    # 20+ helpful arguments for rapid idea iteration

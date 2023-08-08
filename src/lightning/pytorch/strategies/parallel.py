@@ -27,7 +27,7 @@ from lightning.pytorch.strategies.strategy import Strategy
 
 
 class ParallelStrategy(Strategy, ABC):
-    """Plugin for training with multiple processes in parallel."""
+    """Strategy for training with multiple processes in parallel."""
 
     def __init__(
         self,

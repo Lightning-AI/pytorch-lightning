@@ -74,7 +74,7 @@ class LightningArgumentParser(ArgumentParser):
     def __init__(
         self,
         *args: Any,
-        description: str = "pytorch-lightning trainer command line tool",
+        description: str = "Lightning Trainer command line tool",
         env_prefix: str = "PL",
         default_env: bool = False,
         **kwargs: Any,

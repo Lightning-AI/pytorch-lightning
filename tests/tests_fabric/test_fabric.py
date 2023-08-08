@@ -120,8 +120,8 @@ def test_setup_compiled_module(setup_method):
 @pytest.mark.parametrize("move_to_device", [True, False])
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, initial_device, target_device):
-    """Test that `move_to_device` leads to parameters being moved to the correct device and that the device attributes
-    on the wrapper are updated."""
+    """Test that `move_to_device` leads to parameters being moved to the correct device and that the device
+    attributes on the wrapper are updated."""
     initial_device = torch.device(initial_device)
     target_device = torch.device(target_device)
     expected_device = target_device if move_to_device else initial_device
@@ -149,7 +149,8 @@ def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, 
 @pytest.mark.parametrize("move_to_device", [True, False])
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_module_parameters_on_different_devices(setup_method, move_to_device):
-    """Test that a warning is emitted when model parameters are on a different device prior to calling `setup()`."""
+    """Test that a warning is emitted when model parameters are on a different device prior to calling
+    `setup()`."""
     device0 = torch.device("cpu")
     device1 = torch.device("cuda", 0)
 
@@ -261,13 +262,30 @@ def test_setup_optimizers_twice_fails():
 
 @pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, XLAStrategy])
 def test_setup_optimizers_not_supported(strategy_cls):
-    """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers independently."""
+    """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers
+    independently."""
     fabric = Fabric()
     fabric._launched = True  # pretend we have launched multiple processes
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
     fabric._strategy = Mock(spec=strategy_cls)
     with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
+        fabric.setup_optimizers(optimizer)
+
+
+@RunIf(min_cuda_gpus=1, min_torch="2.1")
+def test_setup_optimizer_on_meta_device():
+    """Test that the setup-methods validate that the optimizer doesn't have references to meta-device
+    parameters."""
+    fabric = Fabric(strategy="fsdp", devices=1)
+    fabric._launched = True  # pretend we have launched multiple processes
+    with fabric.init_module(empty_init=True):
+        model = nn.Linear(1, 2)
+    assert model.weight.is_meta
+    optimizer = torch.optim.Adam(model.parameters())  # optimizer references meta device params
+    with pytest.raises(RuntimeError, match="The optimizer has references to the model's meta-device parameters"):
+        fabric.setup(model, optimizer)
+    with pytest.raises(RuntimeError, match="The optimizer has references to the model's meta-device parameters"):
         fabric.setup_optimizers(optimizer)
 
 
@@ -332,13 +350,23 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
 
 
 def test_setup_dataloaders_raises_for_unknown_custom_args():
-    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's run
-    method."""
-    fabric = Fabric()
+    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's
+    run method."""
 
     class CustomDataLoader(DataLoader):
         def __init__(self, new_arg, *args, **kwargs):
             super().__init__(range(5), *args, **kwargs)
+
+    dataloader = CustomDataLoader(2, batch_size=2)
+
+    # If no distributed sampler is required, reinstantiation is not necessary
+    fabric = Fabric(devices=1)
+    fabric_dataloader = fabric.setup_dataloaders(dataloader)
+    assert fabric_dataloader._dataloader is dataloader
+
+    # If a distributed sampler is required, sampler needs to be reinstantiatied
+    fabric = Fabric(devices=2, accelerator="cpu")
+    fabric._launched = True
 
     with pytest.raises(
         MisconfigurationException,
@@ -347,8 +375,6 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
             r"The missing attributes are \['new_arg'\]"
         ),
     ):
-        # The dataloader was not created within the run function, and therefore init args were not intercepted
-        dataloader = CustomDataLoader(2, batch_size=2)
         fabric.setup_dataloaders(dataloader)
 
 
@@ -385,9 +411,10 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     custom_sampler = Mock(spec=Sampler)
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
-    # keep the custom sampler when not needed to replace
+    # if no distributed sampler is required, dataloader reinstantiation is not necessary
     fabric = Fabric(devices=1)
     fabric_dataloader = fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
+    assert fabric_dataloader._dataloader is dataloader
     assert fabric_dataloader.sampler is custom_sampler
 
 
@@ -481,7 +508,8 @@ def test_seed_everything():
     ],
 )
 def test_setup_dataloaders_replace_custom_sampler(strategy):
-    """Test that asking to replace a custom sampler results in an error when a distributed sampler would be needed."""
+    """Test that asking to replace a custom sampler results in an error when a distributed sampler would be
+    needed."""
     custom_sampler = Mock(spec=Sampler)
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
@@ -716,7 +744,8 @@ def test_overridden_run_and_cli_not_allowed():
 
 
 def test_module_sharding_context():
-    """Test that the sharding context manager gets applied when the strategy supports it and is a no-op otherwise."""
+    """Test that the sharding context manager gets applied when the strategy supports it and is a no-op
+    otherwise."""
     fabric = Fabric()
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
     with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
@@ -1009,6 +1038,23 @@ def test_load_wrapped_objects(setup, tmp_path):
     remainder = fabric.load(tmp_path, state)
     assert state == expected
     assert remainder == expected_remainder
+
+
+def test_load_raw():
+    """Test that `Fabric.load_raw()` unwraps the object to load and calls into the strategy."""
+    fabric = Fabric(accelerator="cpu")
+    fabric.strategy.load_checkpoint = Mock()
+
+    model = torch.nn.Linear(2, 2)
+    optimizer = torch.optim.Adam(model.parameters())
+    wrapped_model, wrapped_optimizer = fabric.setup(model, optimizer)
+
+    fabric.load_raw(path="path0", obj=model)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path0", state=model, strict=True)
+    fabric.load_raw(path="path1", obj=wrapped_model, strict=False)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path1", state=model, strict=False)
+    fabric.load_raw(path="path2", obj=wrapped_optimizer)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path2", state=optimizer, strict=True)
 
 
 def test_barrier():

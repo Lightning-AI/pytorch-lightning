@@ -79,8 +79,24 @@ class XLAStrategy(ParallelStrategy):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
+
+    @property
+    def global_rank(self) -> int:
+        return super().global_rank if self._launched else 0
+
+    @property
+    def local_rank(self) -> int:
+        return super().local_rank if self._launched else 0
+
+    @property
+    def node_rank(self) -> int:
+        return super().node_rank if self._launched else 0
+
+    @property
+    def world_size(self) -> int:
+        return super().world_size if self._launched else 1
 
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
@@ -91,7 +107,7 @@ class XLAStrategy(ParallelStrategy):
             # spawning only 1 device with PjRT is not supported:
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
-                "The `XLAStrategy` does not support running on a single device with the PjRT runtime."
+                f"The {type(self).__name__} does not support running on a single device with the PjRT runtime."
                 " Try using all devices or the `SingleDeviceXLAStrategy` strategy"
             )
 
@@ -102,7 +118,7 @@ class XLAStrategy(ParallelStrategy):
     def setup_module(self, module: Module) -> Module:
         if self._sync_module_states:
             if _XLA_GREATER_EQUAL_2_1:
-                from torch_xla.core.model import broadcast_master_param
+                from torch_xla.core.xla_model import broadcast_master_param
             else:
                 from torch_xla.experimental.pjrt import broadcast_master_param
 
@@ -135,7 +151,6 @@ class XLAStrategy(ParallelStrategy):
             sync_grads: flag that allows users to synchronize gradients for the all-gather operation.
         Return:
             A tensor of shape (world_size, ...)
-
         """
         if not self._launched:
             return tensor
@@ -231,7 +246,6 @@ class XLAStrategy(ParallelStrategy):
             storage_options: Additional options for the ``CheckpointIO`` plugin
             filter: An optional dictionary of the same format as ``state`` mapping keys to callables that return a
                 boolean indicating whether the given parameter should be saved (``True``) or filtered out (``False``).
-
         """
         import torch_xla.core.xla_model as xm
 
@@ -239,16 +253,6 @@ class XLAStrategy(ParallelStrategy):
         xm.mark_step()
         # save on global rank zero only
         super().save_checkpoint(path, state, storage_options=storage_options, filter=filter)
-
-    def remove_checkpoint(self, filepath: _PATH) -> None:
-        """Remove checkpoint filepath from the filesystem.
-
-        Args:
-            filepath: Path to checkpoint
-
-        """
-        if self.local_rank == 0:
-            self.checkpoint_io.remove_checkpoint(filepath)
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:

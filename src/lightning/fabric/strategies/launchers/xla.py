@@ -23,7 +23,7 @@ from lightning.fabric.strategies.launchers.multiprocessing import _GlobalStateSn
 from lightning.fabric.utilities.apply_func import move_data_to_device
 
 if TYPE_CHECKING:
-    from lightning.fabric.strategies import XLAStrategy
+    from lightning.fabric.strategies import XLAFSDPStrategy, XLAStrategy
 
 
 class _XLALauncher(_Launcher):
@@ -43,7 +43,7 @@ class _XLALauncher(_Launcher):
 
     """
 
-    def __init__(self, strategy: "XLAStrategy") -> None:
+    def __init__(self, strategy: Union["XLAStrategy", "XLAFSDPStrategy"]) -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         self._strategy = strategy
