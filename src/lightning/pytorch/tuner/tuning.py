@@ -113,7 +113,7 @@ class Tuner:
         max_lr: float = 1,
         num_training: int = 100,
         mode: str = "exponential",
-        early_stop_threshold: float = 4.0,
+        early_stop_threshold: Optional[float] = 4.0,
         update_attr: bool = True,
         attr_name: str = "",
     ) -> Optional["pl.tuner.lr_finder._LRFinder"]:

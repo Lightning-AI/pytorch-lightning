@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import urllib
 from typing import Callable, Optional
 from urllib.parse import urlparse
 
 from websocket import WebSocketApp
 
-from lightning.app.core import constants
 from lightning.app.utilities.auth import _AuthTokenGetter
 
 
@@ -91,91 +89,5 @@ class _LightningLogsSocketAPI(_AuthTokenGetter):
             token=_token,
             component=component,
         )
-
-        return WebSocketApp(socket_url, on_message=on_message_callback, on_error=on_error_callback)
-
-
-class _ClusterLogsSocketAPI(_AuthTokenGetter):
-    @staticmethod
-    def _cluster_logs_socket_url(
-        host: str, cluster_id: str, start: float, end: Optional[float], limit: int, token: str
-    ) -> str:
-        params = {
-            "start": start,
-            "limit": limit,
-            "token": token,
-        }
-
-        if end:
-            params["end"] = end
-        else:
-            params["follow"] = "true"
-
-        return f"wss://{host}/v1/core/clusters/{cluster_id}/logs?{urllib.parse.urlencode(params)}"
-
-    def create_cluster_logs_socket(
-        self,
-        cluster_id: str,
-        start: float,  # unix timestamp
-        end: Optional[float],  # unix timestamp
-        limit: int,
-        on_message_callback: Callable[[WebSocketApp, str], None],
-        on_error_callback: Optional[Callable[[Exception, str], None]] = None,
-    ) -> WebSocketApp:
-        """Creates and returns WebSocketApp to listen to cluster logs.
-
-            .. code-block:: python
-                # Synchronous reading, run_forever() is blocking
-
-
-                def print_log_msg(ws_app, msg):
-                    print(msg)
-
-
-                logs_socket = client.create_cluster_logs_socket("cluster_id", 1661100000, 1661101000, print_log_msg)
-                logs_socket.run_forever()
-
-            .. code-block:: python
-                # Asynchronous reading (with Threads)
-
-
-                def print_log_msg(ws_app, msg):
-                    print(msg)
-
-
-                logs_socket = client.create_cluster_logs_socket("cluster_id", 1661100000, 1661101000, print_log_msg)
-
-                logs_thread = Thread(target=cluster_logs_socket.run_forever)
-
-                logs_thread.start()
-                # .......
-
-
-                logs_socket.close()
-
-        Arguments:
-            cluster_id: Project ID.
-            start: Starting timestamp to query cluster logs from.
-            end: Ending timestamp to query cluster logs to.
-            limit: A maximal number of log lines to get.
-            on_message_callback: Callback object which is called when received data.
-            on_error_callback: Callback object which is called when we get error.
-
-        Returns:
-            WebSocketApp of the wanted socket
-        """
-        _token = self._get_api_token()
-        clean_ws_host = urlparse(self.api_client.configuration.host).netloc
-        socket_url = self._cluster_logs_socket_url(
-            host=clean_ws_host,
-            cluster_id=cluster_id,
-            token=_token,
-            start=start,
-            limit=limit,
-            end=end,
-        )
-
-        if constants.DEBUG:
-            print(f"Connecting to websocket {socket_url}")
 
         return WebSocketApp(socket_url, on_message=on_message_callback, on_error=on_error_callback)
