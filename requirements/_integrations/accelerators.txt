@@ -1,3 +1,3 @@
 # validation HPU connectors
 lightning-habana >=0.1.0
-git+https://github.com/Lightning-AI/lightning-Graphcore.git@remove-protected-import  # TODO: revert
+lightning-graphcore >=0.1.0.rc4
