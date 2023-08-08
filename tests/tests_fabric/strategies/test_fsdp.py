@@ -29,7 +29,11 @@ import lightning.fabric
 from lightning.fabric import Fabric
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.strategies.fsdp import _FSDPBackwardSyncControl, fsdp_overlap_step_with_backward
+from lightning.fabric.strategies.fsdp import (
+    _FSDPBackwardSyncControl,
+    _has_meta_device_parameters,
+    fsdp_overlap_step_with_backward,
+)
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_1
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
@@ -393,6 +397,25 @@ def test_set_timeout(init_process_group_mock):
     init_process_group_mock.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
+
+
+def test_has_meta_device_parameters():
+    """Test that the `_has_meta_device_parameters` function can find meta-device parameters in models and
+    optimizers."""
+    # nn.Module
+    module = nn.Linear(2, 2)
+    meta_module = nn.Linear(2, 2, device="meta")
+    assert not _has_meta_device_parameters(module)
+    assert _has_meta_device_parameters(meta_module)
+    assert _has_meta_device_parameters(nn.Sequential(module, meta_module, nn.ReLU()))
+    # optim.Optimizer
+    optimizer = torch.optim.SGD(module.parameters(), lr=0.1)
+    meta_optimizer = torch.optim.SGD(meta_module.parameters(), lr=0.1)
+    assert not _has_meta_device_parameters(optimizer)
+    assert _has_meta_device_parameters(meta_optimizer)
+    # unsupported objects
+    with pytest.raises(TypeError, match="Expected `torch.nn.Module` or `torch.optim.Optimizer`"):
+        _has_meta_device_parameters(None)
 
 
 class SubBlock(nn.Sequential):

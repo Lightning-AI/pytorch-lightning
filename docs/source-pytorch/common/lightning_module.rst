@@ -940,7 +940,7 @@ The type of precision used:
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        if self.precision == 16:
+        if self.precision == "16-true":
             ...
 
 trainer

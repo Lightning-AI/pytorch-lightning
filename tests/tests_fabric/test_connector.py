@@ -54,8 +54,10 @@ from lightning.fabric.strategies import (
     DataParallelStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
+    FSDPStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
+    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
@@ -1039,6 +1041,31 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
     assert connector.strategy.launcher._start_method == "fork"
     assert connector.strategy.launcher.is_interactive_compatible
+
+
+def test_xla_fsdp_automatic_strategy_selection(monkeypatch, tpu_available):
+    import lightning.fabric.strategies as strategies
+
+    added_fsdp = False
+    # manually register fsdp for when torch.distributed.is_initialized() != True
+    if "fsdp" not in strategies.STRATEGY_REGISTRY.available_strategies():
+        strategies.STRATEGY_REGISTRY.register("fsdp", FSDPStrategy)
+        added_fsdp = True
+
+    connector = _Connector(accelerator="tpu", strategy="fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _Connector(accelerator="tpu", strategy="xla_fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _Connector(accelerator="auto", strategy="fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _Connector(accelerator="auto", strategy="xla_fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    if added_fsdp:
+        strategies.STRATEGY_REGISTRY.pop("fsdp")
 
 
 def test_connector_transformer_engine(monkeypatch):

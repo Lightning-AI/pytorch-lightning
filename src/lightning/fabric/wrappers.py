@@ -40,7 +40,7 @@ _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step
 class _FabricOptimizer:
     def __init__(self, optimizer: Optimizer, strategy: Strategy, callbacks: Optional[List[Callable]] = None) -> None:
         """FabricOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the
-        optimizer step calls to the strategy plugin.
+        optimizer step calls to the strategy.
 
         The underlying wrapped optimizer object can be accessed via the property :attr:`optimizer`.
 

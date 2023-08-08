@@ -53,6 +53,7 @@ delivers all of these benefits while ensuring that no task-specific accuracy is 
 
 ----
 
+
 ********************
 FP16 Mixed Precision
 ********************
@@ -68,7 +69,11 @@ Since computation happens in FP16, there is a chance of numerical instability du
 .. testcode::
     :skipif: not torch.cuda.is_available()
 
-    Trainer(accelerator="gpu", devices=1, precision=16)
+    Trainer(accelerator="gpu", devices=1, precision="16-mixed")
+
+
+----
+
 
 ************************
 BFloat16 Mixed Precision
@@ -86,15 +91,50 @@ Under the hood, we use `torch.autocast <https://pytorch.org/docs/stable/amp.html
 .. testcode::
     :skipif: not torch.cuda.is_available()
 
-    Trainer(accelerator="gpu", devices=1, precision="bf16")
+    Trainer(accelerator="gpu", devices=1, precision="bf16-mixed")
 
 It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDNN under the hood.
 
 .. testcode::
 
-    Trainer(precision="bf16")
+    Trainer(precision="bf16-mixed")
+
 
 ----
+
+
+*******************
+True Half Precision
+*******************
+
+As mentioned before, for numerical stability mixed precision keeps the model weights in full float32 precision while casting only supported operations to lower bit precision.
+However, in some cases it is indeed possible to train completely in half precision. Similarly, for inference the model weights can often be cast to half precision without a loss in accuracy (even when trained with mixed precision).
+
+.. code-block:: python
+
+    # Select FP16 precision
+    trainer = Trainer(precision="16-true")
+    trainer.fit(model)  # model gets cast to torch.float16
+
+    # Select BF16 precision
+    trainer = Trainer(precision="bf16-true")
+    trainer.fit(model)  # model gets cast to torch.bfloat16
+
+Tip: For faster initialization, you can create model parameters with the desired dtype directly on the device:
+
+.. code-block:: python
+
+    trainer = Trainer(precision="bf16-true")
+
+    # init the model directly on the device and with parameters in half-precision
+    with trainer.init_module():
+        model = MyModel()
+
+    trainer.fit(model)
+
+
+----
+
 
 ***************
 8-bit Optimizer
