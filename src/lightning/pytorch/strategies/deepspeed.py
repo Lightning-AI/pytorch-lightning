@@ -889,10 +889,3 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
-
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
-        # The strategy casts the input before moving to the device
-        # In all other strategies, the input gets converted in the `Strategy.*_step` methods
-        # TODO: standardize this for all strategies
-        batch = self.precision_plugin.convert_input(batch)
-        return super().batch_to_device(batch, device, dataloader_idx)
