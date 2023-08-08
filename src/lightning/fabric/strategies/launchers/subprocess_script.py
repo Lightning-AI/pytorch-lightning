@@ -24,6 +24,7 @@ from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.strategies.launchers.launcher import _Launcher
+from lightning.fabric.utilities.rank_zero import rank_prefixed_message
 
 _logger = logging.getLogger(__name__)
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")
@@ -205,13 +206,13 @@ class _ChildProcessObserver:
             return True
 
         for i, proc in enumerate(self._child_processes):
-            local_rank = i + 1
-
             if proc.returncode:
-                _logger.info(
-                    f"Child process for local rank {local_rank} (PID {proc.pid}) terminated with"
-                    f" code {proc.returncode}. Forcefully terminating all other processes to avoid zombies 🧟"
+                message = rank_prefixed_message(
+                    f"Child process with PID {proc.pid} terminated with code {proc.returncode}."
+                    f" Forcefully terminating all other processes to avoid zombies 🧟",
+                    rank=(i + 1),
                 )
+                _logger.info(message)
                 self._terminate_all()
                 return True
 
