@@ -22,11 +22,12 @@ from torch import Tensor
 from torch.nn import Module
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.wrappers import _unwrap_objects
 
 log = logging.getLogger(__name__)
 
@@ -205,7 +206,7 @@ class TensorBoardLogger(Logger):
                     ) from ex
 
     @rank_zero_only
-    def log_hyperparams(
+    def log_hyperparams(  # type: ignore[override]
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
@@ -246,6 +247,7 @@ class TensorBoardLogger(Logger):
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         model_example_input = getattr(model, "example_input_array", None)
         input_array = model_example_input if input_array is None else input_array
+        model = _unwrap_objects(model)
 
         if input_array is None:
             rank_zero_warn(
@@ -262,8 +264,10 @@ class TensorBoardLogger(Logger):
             getattr(model, "_apply_batch_transfer_handler", None)
         ):
             # this is probably is a LightningModule
-            input_array = model._on_before_batch_transfer(input_array)  # type: ignore[operator]
-            input_array = model._apply_batch_transfer_handler(input_array)  # type: ignore[operator]
+            input_array = model._on_before_batch_transfer(input_array)
+            input_array = model._apply_batch_transfer_handler(input_array)
+            self.experiment.add_graph(model, input_array)
+        else:
             self.experiment.add_graph(model, input_array)
 
     @rank_zero_only
@@ -290,7 +294,7 @@ class TensorBoardLogger(Logger):
         for listing in listdir_info:
             d = listing["name"]
             bn = os.path.basename(d)
-            if self._fs.isdir(d) and bn.startswith("version_"):
+            if _is_dir(self._fs, d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace("/", "")
                 existing_versions.append(int(dir_ver))
         if len(existing_versions) == 0:

@@ -940,7 +940,7 @@ The type of precision used:
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        if self.precision == 16:
+        if self.precision == "16-true":
             ...
 
 trainer
@@ -1327,10 +1327,10 @@ on_validation_epoch_end
 .. automethod:: lightning.pytorch.core.module.LightningModule.on_validation_epoch_end
     :noindex:
 
-configure_sharded_model
+configure_model
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: lightning.pytorch.core.module.LightningModule.configure_sharded_model
+.. automethod:: lightning.pytorch.core.module.LightningModule.configure_model
     :noindex:
 
 on_validation_model_eval

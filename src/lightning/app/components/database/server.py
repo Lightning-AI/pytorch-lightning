@@ -231,9 +231,10 @@ class Database(LightningWork):
         use_localhost = "LIGHTNING_APP_STATE_URL" not in os.environ
         if use_localhost:
             return self.url
-        if self.internal_ip != "":
-            return f"http://{self.internal_ip}:{self.port}"
-        return self.internal_ip
+        ip_addr = self.public_ip or self.internal_ip
+        if ip_addr != "":
+            return f"http://{ip_addr}:{self.port}"
+        return ip_addr
 
     def on_exit(self):
         self._exit_event.set()

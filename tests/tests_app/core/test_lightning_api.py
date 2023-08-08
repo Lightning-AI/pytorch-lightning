@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import json
 import logging
 import multiprocessing as mp
 import os
@@ -278,7 +279,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
         assert response.status_code == 200
 
         response = await client.get("/api/v1/layout")
-        assert response.json() == [
+        assert json.loads(response.json()) == [
             {"name": "main_1", "content": "https://te", "target": "https://te"},
             {"name": "main_2", "content": "https://te"},
             {"name": "main_3", "content": "https://te"},
@@ -498,9 +499,8 @@ def target():
 
 
 async def async_request(url: str, data: InputRequestModel):
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=data.dict()) as result:
-            return await result.json()
+    async with aiohttp.ClientSession() as session, session.post(url, json=data.dict()) as result:
+        return await result.json()
 
 
 @pytest.mark.xfail(strict=False, reason="No idea why... need to be fixed")  # fixme

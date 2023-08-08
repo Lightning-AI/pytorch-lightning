@@ -78,12 +78,12 @@ def run(hparams):
     seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
 
     transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
-    # This is meant to ensure the data are download only by 1 process.
-    if fabric.is_global_zero:
-        MNIST(DATASETS_PATH, download=True)
-    fabric.barrier()
-    train_dataset = MNIST(DATASETS_PATH, train=True, transform=transform)
-    test_dataset = MNIST(DATASETS_PATH, train=False, transform=transform)
+
+    # Let rank 0 download the data first, then everyone will load MNIST
+    with fabric.rank_zero_first():
+        train_dataset = MNIST(DATASETS_PATH, download=fabric.is_global_zero, train=True, transform=transform)
+        test_dataset = MNIST(DATASETS_PATH, download=fabric.is_global_zero, train=False, transform=transform)
+
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=hparams.batch_size,

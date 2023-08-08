@@ -46,6 +46,7 @@ def test_dict():
             "_restarting": False,
             "_display_name": "",
             "_internal_ip": "",
+            "_public_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "cpu-small",
@@ -55,6 +56,7 @@ def test_dict():
                 "shm_size": 0,
                 "_internal_id": "default",
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -80,6 +82,7 @@ def test_dict():
             "_restarting": False,
             "_display_name": "",
             "_internal_ip": "",
+            "_public_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "cpu-small",
@@ -89,6 +92,7 @@ def test_dict():
                 "shm_size": 0,
                 "_internal_id": "default",
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -114,6 +118,7 @@ def test_dict():
             "_restarting": False,
             "_display_name": "",
             "_internal_ip": "",
+            "_public_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "cpu-small",
@@ -123,6 +128,7 @@ def test_dict():
                 "shm_size": 0,
                 "_internal_id": "default",
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -199,6 +205,7 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_public_ip": "",
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
@@ -209,6 +216,7 @@ def test_list():
                 "shm_size": 0,
                 "_internal_id": "default",
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         }
         for i in range(4)
@@ -233,6 +241,7 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_public_ip": "",
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
@@ -243,6 +252,7 @@ def test_list():
                 "shm_size": 0,
                 "_internal_id": "default",
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         }
         for i in range(4)
@@ -262,6 +272,7 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_public_ip": "",
             "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
@@ -272,6 +283,7 @@ def test_list():
                 "shm_size": 0,
                 "_internal_id": "default",
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         }
         for i in range(4)

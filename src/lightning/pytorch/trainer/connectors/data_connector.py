@@ -16,7 +16,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional, Tuple, Union
 
-from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import lightning.pytorch as pl
@@ -34,7 +34,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE
+from lightning.pytorch.utilities.imports import _lightning_graphcore_available
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -165,7 +165,7 @@ class _DataConnector:
         datamodule.trainer = trainer
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
-        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+        if _lightning_graphcore_available():
             from lightning_graphcore import IPUAccelerator
 
             # `DistributedSampler` is never used with `poptorch.DataLoader`
@@ -190,7 +190,7 @@ class _DataConnector:
         if not isinstance(dataloader, DataLoader):
             return dataloader
 
-        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+        if _lightning_graphcore_available():
             from lightning_graphcore import IPUAccelerator
 
             # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
@@ -251,8 +251,11 @@ def _get_distributed_sampler(
     """This function is used to created the distributed sampler injected within the user DataLoader."""
     kwargs["shuffle"] = shuffle and not overfit_batches
     kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-    cls = UnrepeatedDistributedSamplerWrapper if mode == RunningStage.PREDICTING else DistributedSamplerWrapper
-    return cls(dataloader.sampler, **kwargs)
+    if mode == RunningStage.PREDICTING:
+        return UnrepeatedDistributedSamplerWrapper(dataloader.sampler, **kwargs)
+    if isinstance(dataloader.sampler, (RandomSampler, SequentialSampler)):
+        return DistributedSampler(dataloader.dataset, **kwargs)
+    return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
 
 def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:

@@ -23,7 +23,7 @@ from lightning.pytorch.profilers import XLAProfiler
 from tests_pytorch.helpers.runif import RunIf
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_xla_profiler_instance(tmpdir):
     model = BoringModel()

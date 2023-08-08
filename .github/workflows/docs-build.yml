@@ -10,7 +10,7 @@ on:
   pull_request_target:
     branches: ["master", "release/*"]
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - ".github/workflows/docs-build.yml"
       - "requirements/**"
       - "docs/**"
@@ -35,9 +35,7 @@ env:
 
 jobs:
   make-doctest:
-    runs-on: ubuntu-latest
-    container:
-      image: pytorchlightning/pytorch_lightning:docs
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -47,15 +45,23 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
-
-      - uses: aws-actions/configure-aws-credentials@v2
-        if: ${{ matrix.pkg-name != 'pytorch' }}
+      - uses: actions/setup-python@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-          aws-region: us-east-1
+          python-version: "3.9"
 
+      - name: Install AWS CLI
+        if: ${{ matrix.pkg-name != 'pytorch' }}
+        continue-on-error: true
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+          unzip -qq awscli.zip
+          bash ./aws/install
+          aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
@@ -64,6 +70,11 @@ jobs:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
 
+      - name: Install pandoc & texlive
+        if: ${{ matrix.pkg-name == 'pytorch' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       - name: Install package & dependencies
         run: |
           mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit
@@ -83,9 +94,7 @@ jobs:
 
 
   make-html:
-    runs-on: ubuntu-latest
-    container:
-      image: pytorchlightning/pytorch_lightning:docs
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -95,15 +104,23 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
-
-      - uses: aws-actions/configure-aws-credentials@v2
-        if: ${{ matrix.pkg-name != 'pytorch' }}
+      - uses: actions/setup-python@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-          aws-region: us-east-1
+          python-version: "3.9"
 
+      - name: Install AWS CLI
+        if: ${{ matrix.pkg-name != 'pytorch' }}
+        continue-on-error: true
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+          unzip -qq awscli.zip
+          bash ./aws/install
+          aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
@@ -112,6 +129,11 @@ jobs:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
 
+      - name: Install pandoc & texlive
+        if: ${{ matrix.pkg-name == 'pytorch' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       - name: Install package & dependencies
         run: |
           mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit
@@ -155,7 +177,7 @@ jobs:
   deploy-docs:
     needs: [make-doctest, make-html]
     if: github.repository_owner == 'Lightning-AI' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:

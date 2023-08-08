@@ -14,7 +14,6 @@
 import glob
 import os
 import sys
-import threading
 from unittest.mock import patch
 
 import pytest
@@ -26,6 +25,7 @@ from tests_pytorch import _PATH_LEGACY
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
+from tests_pytorch.helpers.threading import ThreadExceptionHandler
 
 LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, "checkpoints")
 CHECKPOINT_EXTENSION = ".ckpt"
@@ -68,18 +68,22 @@ class LimitNbEpochs(Callback):
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @RunIf(sklearn=True)
 def test_legacy_ckpt_threading(tmpdir, pl_version: str):
+    PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
+    path_ckpts = sorted(glob.glob(os.path.join(PATH_LEGACY, f"*{CHECKPOINT_EXTENSION}")))
+    assert path_ckpts, f'No checkpoints found in folder "{PATH_LEGACY}"'
+    path_ckpt = path_ckpts[-1]
+
     def load_model():
         import torch
 
         from lightning.pytorch.utilities.migration import pl_legacy_patch
 
         with pl_legacy_patch():
-            _ = torch.load(PATH_LEGACY)
+            _ = torch.load(path_ckpt)
 
-    PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     with patch("sys.path", [PATH_LEGACY] + sys.path):
-        t1 = threading.Thread(target=load_model)
-        t2 = threading.Thread(target=load_model)
+        t1 = ThreadExceptionHandler(target=load_model)
+        t2 = ThreadExceptionHandler(target=load_model)
 
         t1.start()
         t2.start()

@@ -494,7 +494,8 @@ class WorkRunner:
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
         # it back to the flow
         default_internal_ip = "127.0.0.1" if constants.LIGHTNING_CLOUDSPACE_HOST is None else "0.0.0.0"  # noqa: S104
-        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", default_internal_ip)
+        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_PRIVATE_IP", default_internal_ip)
+        self.work._public_ip = os.environ.get("LIGHTNING_NODE_IP", "")
 
         # 8. Patch the setattr method of the work. This needs to be done after step 4, so we don't
         # send delta while calling `set_state`.

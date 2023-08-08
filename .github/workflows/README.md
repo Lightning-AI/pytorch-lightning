@@ -15,7 +15,7 @@
 - \*Accelerators used in CI
 
   - GPU: 2 x NVIDIA RTX 3090
-  - TPU: [Google TPU v4-8](https://cloud.google.com/tpu/docs/v4-users-guide)
+  - TPU: [Google TPU v4-8](https://cloud.google.com/tpu/docs)
   - IPU: [Colossus MK1 IPU](https://www.graphcore.ai/products/ipu)
 
 - To check which versions of Python or PyTorch are used for testing in our CI, see the corresponding workflow files or checkgroup cofig file at [`.github/checkgroup.yml`](../checkgroup.yml).
@@ -37,10 +37,10 @@
 
 ## Others
 
-| workflow file                            | action                                                                                                                                                         |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| .github/workflows/ci-dockers-pytorch.yml | Build docker images used for testing in CI. If run on nightly schedule, push to the [Docker Hub](https://hub.docker.com/r/pytorchlightning/pytorch_lightning). |
-| .github/workflows/ci-pkg-install.yml     | Test if pytorch-lightning is successfully installed using pip.                                                                                                 |
+| workflow file                        | action                                                                                                                                                         |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| .github/workflows/ci-dockers.yml     | Build docker images used for testing in CI. If run on nightly schedule, push to the [Docker Hub](https://hub.docker.com/r/pytorchlightning/pytorch_lightning). |
+| .github/workflows/ci-pkg-install.yml | Test if pytorch-lightning is successfully installed using pip.                                                                                                 |
 
 ## Deployment
 

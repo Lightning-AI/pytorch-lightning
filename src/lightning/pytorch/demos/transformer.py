@@ -66,7 +66,8 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer("pe", pe)
+        # workaround, can't use buffer, see https://github.com/pytorch/pytorch/issues/68407
+        self.register_parameter("pe", nn.Parameter(pe, requires_grad=False))
 
     def forward(self, x: Tensor) -> Tensor:
         x + self.pe[: x.size(0), :]  # type: ignore[index]

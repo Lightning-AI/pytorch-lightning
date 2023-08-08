@@ -155,7 +155,7 @@ def mock_mps_count(monkeypatch, n: int) -> None:
 
         # torch doesn't allow creation of mps devices on older versions
         monkeypatch.setattr("torch.device", MpsDeviceMock)
-    monkeypatch.setattr(lightning.fabric.accelerators.mps, "_get_all_available_mps_gpus", lambda: list(range(n)))
+    monkeypatch.setattr(lightning.fabric.accelerators.mps, "_get_all_available_mps_gpus", lambda: [0] if n > 0 else [])
     monkeypatch.setattr(lightning.fabric.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
 
 
@@ -167,16 +167,6 @@ def mps_count_0(monkeypatch):
 @pytest.fixture()
 def mps_count_1(monkeypatch):
     mock_mps_count(monkeypatch, 1)
-
-
-@pytest.fixture()
-def mps_count_2(monkeypatch):
-    mock_mps_count(monkeypatch, 2)
-
-
-@pytest.fixture()
-def mps_count_4(monkeypatch):
-    mock_mps_count(monkeypatch, 4)
 
 
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:

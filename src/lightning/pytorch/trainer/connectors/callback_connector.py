@@ -18,6 +18,7 @@ from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.pytorch.callbacks import (
     Callback,
     Checkpoint,
@@ -33,7 +34,6 @@ from lightning.pytorch.callbacks.rich_model_summary import RichModelSummary
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info
 
@@ -75,7 +75,7 @@ class _CallbackConnector:
         # configure the ModelSummary callback
         self._configure_model_summary_callback(enable_model_summary)
 
-        self.trainer.callbacks.extend(_configure_external_callbacks())
+        self.trainer.callbacks.extend(_load_external_callbacks("lightning.pytorch.callbacks_factory"))
         _validate_callbacks_list(self.trainer.callbacks)
 
         # push all model checkpoint callbacks to the end
@@ -211,42 +211,6 @@ class _CallbackConnector:
                 other_callbacks.append(cb)
 
         return tuner_callbacks + other_callbacks + checkpoint_callbacks
-
-
-def _configure_external_callbacks() -> List[Callback]:
-    """Collect external callbacks registered through entry points.
-
-    The entry points are expected to be functions returning a list of callbacks.
-
-    Return:
-        A list of all callbacks collected from external factories.
-    """
-    group = "lightning.pytorch.callbacks_factory"
-
-    if _PYTHON_GREATER_EQUAL_3_8_0:
-        from importlib.metadata import entry_points
-
-        factories = (
-            entry_points(group=group)
-            if _PYTHON_GREATER_EQUAL_3_10_0
-            else entry_points().get(group, {})  # type: ignore[arg-type]
-        )
-    else:
-        from pkg_resources import iter_entry_points
-
-        factories = iter_entry_points(group)  # type: ignore[assignment]
-
-    external_callbacks: List[Callback] = []
-    for factory in factories:
-        callback_factory = factory.load()
-        callbacks_list: Union[List[Callback], Callback] = callback_factory()
-        callbacks_list = [callbacks_list] if isinstance(callbacks_list, Callback) else callbacks_list
-        _log.info(
-            f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"
-            f" {', '.join(type(cb).__name__ for cb in callbacks_list)}"
-        )
-        external_callbacks.extend(callbacks_list)
-    return external_callbacks
 
 
 def _validate_callbacks_list(callbacks: List[Callback]) -> None:

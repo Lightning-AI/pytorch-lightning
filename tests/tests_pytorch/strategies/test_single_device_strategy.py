@@ -28,7 +28,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 def test_single_cpu():
     """Tests if device is set correctly for single CPU strategy."""
-    trainer = Trainer()
+    trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
     assert trainer.strategy.root_device == torch.device("cpu")
 

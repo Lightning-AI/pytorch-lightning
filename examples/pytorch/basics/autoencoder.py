@@ -81,7 +81,7 @@ class ImageSampler(callbacks.Callback):
             nrow=self.nrow,
             padding=self.padding,
             normalize=self.normalize,
-            range=self.norm_range,
+            value_range=self.norm_range,
             scale_each=self.scale_each,
             pad_value=self.pad_value,
         )
