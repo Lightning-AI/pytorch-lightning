@@ -614,7 +614,7 @@ class ModelCheckpoint(Checkpoint):
         _fs = get_filesystem(ckpt_path)
         if _fs.exists(ckpt_path):
             return {
-                os.path.normpath(p) if _fs.protocol == "file" else _fs.unstrip_protocol(os.path.normpath(p))
+                _fs.unstrip_protocol(os.path.normpath(p))
                 for p in _fs.ls(ckpt_path, detail=False)
                 if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
             }
