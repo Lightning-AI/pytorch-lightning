@@ -204,11 +204,13 @@ class _ChildProcessObserver:
         if all(return_code == 0 for return_code in return_codes):
             return True
 
-        for proc in self._child_processes:
+        for i, proc in enumerate(self._child_processes):
+            local_rank = i + 1
+
             if proc.returncode:
                 _logger.info(
-                    f"Child process with PID {proc.pid} terminated with code {proc.returncode}."
-                    f" Forcefully terminating all other processes to avoid zombies 🧟"
+                    f"Child process for local rank {local_rank} (PID {proc.pid}) terminated with"
+                    f" code {proc.returncode}. Forcefully terminating all other processes to avoid zombies 🧟"
                 )
                 self._terminate_all()
                 return True
