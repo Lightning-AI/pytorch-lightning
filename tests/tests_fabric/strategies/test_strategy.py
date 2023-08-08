@@ -69,6 +69,35 @@ def test_save_checkpoint_convert_stateful_objects(tmp_path):
     assert save_checkpoint_mock.call_args[1]["checkpoint"]["anything"] == expected["anything"]
 
 
+def test_load_module_state_dict():
+    """Test that `Strategy.load_module_state_dict()` calls `.load_state_dict()` on the module."""
+    strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
+    module = Mock()
+    state_dict = Mock()
+    strategy.load_module_state_dict(module, state_dict)
+    module.load_state_dict.assert_called_with(state_dict, strict=True)
+    strategy.load_module_state_dict(module, state_dict, strict=False)
+    module.load_state_dict.assert_called_with(state_dict, strict=False)
+
+
+def test_load_checkpoint_model_optimizer_from_raw_checkpoint(tmp_path):
+    """Test that the `load_checkpoint` can load raw state dict checkpoints too."""
+    strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
+
+    model = nn.Linear(3, 3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1.0)
+    torch.save(model.state_dict(), tmp_path / "model.ckpt")
+    torch.save(optimizer.state_dict(), tmp_path / "optimizer.ckpt")
+
+    new_model = nn.Linear(3, 3)
+    new_optimizer = torch.optim.Adam(new_model.parameters(), lr=2.0)
+
+    strategy.load_checkpoint(tmp_path / "model.ckpt", state=new_model, strict=False)
+    assert torch.equal(new_model.weight, model.weight)
+    strategy.load_checkpoint(tmp_path / "optimizer.ckpt", state=new_optimizer, strict=False)
+    assert new_optimizer.state_dict()["param_groups"][0]["lr"] == 1.0
+
+
 def test_load_checkpoint_out_of_place(tmp_path):
     """Test that one can load the full checkpoint into memory just like `torch.load()`."""
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class

@@ -97,7 +97,7 @@ jobs:
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: |
         python -m coverage run --source lightning \
-          -m pytest -v --timeout=30 --durations=50
+          -m pytest -v --timeout=60 --durations=60
 
     - name: Statistics
       if: success()

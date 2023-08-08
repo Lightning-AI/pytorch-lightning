@@ -67,6 +67,54 @@ For training on unreliable mixed GPUs across the internet check out the :doc:`Hi
 ----
 
 
+************************
+Efficient initialization
+************************
+
+Instantiating a ``nn.Module`` in PyTorch creates all parameters on CPU in float32 precision by default.
+To speed up initialization, you can force PyTorch to create the model directly on the target device and with the desired precision without changing your model code.
+
+.. code-block:: python
+
+    fabric = Trainer(accelerator="cuda", precision="16-true")
+
+    with trainer.init_module():
+        # models created here will be on GPU and in float16
+        model = MyModel()
+
+    trainer.fit(model)
+
+This eliminates the waiting time to transfer the model parameters from the CPU to the device.
+
+When loading a model from a checkpoint, for example when fine-tuning, set `empty_init=True` to avoid expensive
+and redundant memory initialization:
+
+.. code-block:: python
+
+    with trainer.init_module(empty_init=True):
+        # creation of the model is very fast
+        model = MyModel.load_from_checkpoint("my/checkpoint/path.ckpt")
+
+    trainer.fit(model)
+
+For strategies that handle large sharded models (FSDP, DeepSpeed), the :meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module`
+should not be used, instead override the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook:
+
+.. code-block:: python
+
+    class MyModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            # don't instantiate layers here
+            # move the creation of layers to `configure_model`
+
+        def configure_model(self):
+            # create all your layers here
+            self.layers = nn.Sequential(...)
+
+This makes it possible to work with models that are larger than the memory of a single device.
+
+
 .. _fully-sharded-training:
 
 **********************
@@ -78,7 +126,6 @@ It was introduced in their `v1.11.0 release <https://pytorch.org/blog/introducin
 Lightning supports.
 
 .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
-
 
 Auto Wrapping
 =============
@@ -92,12 +139,27 @@ have to ``wrap`` layers manually as in the case of manual wrapping.
     PyTorch will raise an error. This is required because when you use auto-wrap, the model layers are sharded and your
     ``lightning_module.parameters()`` will return a generator with no params.
 
-
 .. code-block:: python
 
     model = BoringModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
+
+
+You can customize the strategy configuration by adjusting the arguments of :class:`~lightning.pytorch.strategies.FSDPStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
+
+.. code-block:: python
+
+    from lightning.pytorch import Trainer
+    from lightning.pytorch.strategies import FSDPStrategy
+
+    # equivalent to passing `"fsdp_cpu_offload"`
+    fsdp = FSDPStrategy(cpu_offload=True)
+    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
+
+    # configure the wrapping condition
+    fsdp = FSDPStrategy(auto_wrap_policy={MyTransformerBlock})
+    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
 
 
 Read more `here <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/#auto-wrapping>`__.
@@ -107,9 +169,9 @@ Manual Wrapping
 ===============
 
 Manual wrapping can be useful to explore complex sharding strategies by applying ``wrap`` selectively to some parts of the model. To activate
-parameter sharding with manual wrapping, you can wrap your model using the ``wrap`` function. Internally in Lightning, we enable a context manager around the ``configure_sharded_model`` function to make sure the ``wrap`` parameters are passed correctly.
+parameter sharding with manual wrapping, you can wrap your model using the ``wrap`` function. Internally in Lightning, we enable a context manager around the ``configure_model`` hook to make sure the ``wrap`` parameters are passed correctly.
 
-When not using Fully Sharded these wrap functions are a no-op. This means once the changes have been made, there is no need to remove the changes for other strategies.
+When not using Fully Sharded, these ``wrap`` calls are a no-op. This means once the changes have been made, there is no need to remove the changes for other strategies.
 
 ``wrap`` simply wraps the module with a Fully Sharded Parallel class with the correct parameters from the Lightning context manager.
 
@@ -125,12 +187,10 @@ Here's an example using that uses ``wrap`` to create your model:
 
 
     class MyModel(pl.LightningModule):
-        def __init__(self):
-            super().__init__()
+        def configure_model(self):
             self.linear_layer = nn.Linear(32, 32)
             self.block = nn.Sequential(nn.Linear(32, 32), nn.Linear(32, 32))
 
-        def configure_sharded_model(self):
             # modules are sharded across processes
             # as soon as they are wrapped with `wrap`.
             # During the forward/backward passes, weights get synced across processes
@@ -152,19 +212,7 @@ Here's an example using that uses ``wrap`` to create your model:
     trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
 
-
-You can customize the strategy configuration by adjusting the arguments of :class:`~lightning.pytorch.strategies.FSDPStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
-
-.. code-block:: python
-
-    from lightning.pytorch import Trainer
-    from lightning.pytorch.strategies import FSDPStrategy
-
-
-    fsdp = FSDPStrategy(cpu_offload=True)
-    # equivalent to passing `"fsdp_cpu_offload"`
-    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
-
+In this case, Lightning will not re-wrap your model, so you don't need to set ``FSDPStrategy(auto_wrap_policy=...)``.
 
 Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about it.
 
@@ -178,16 +226,32 @@ Activation checkpointing reduces GPU memory usage by avoiding the storage of int
 selected layers. The tradeoff is that computation cost for the backpropagation increases, as the dropped activations
 need to be recomputed.
 
-Enable checkpointing on large layers (like Transformers) by providing the layer class/type to the strategy:
+Enable checkpointing on large layers (like Transformers) by providing a policy:
 
 .. code-block:: python
 
     from lightning.pytorch.strategies import FSDPStrategy
 
-    fsdp = FSDPStrategy(
-        activation_checkpointing=MyTransformerBlock,  # or pass a list with multiple types
-    )
+    fsdp = FSDPStrategy(activation_checkpointing_policy={MyTransformerBlock})
     trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
+
+
+You could also configure activation checkpointing manually inside the ``configure_model`` hook:
+
+.. code-block:: python
+
+    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import apply_activation_checkpointing
+
+
+    class MyModel(pl.LightningModule):
+        ...
+
+        def configure_model(self):
+            # Same code as in the "Manual wrapping" snippet above
+            ...
+            apply_activation_checkpointing(self.model)
+
+In this case, Lightning will not re-configure activation checkpointing, so you don't need to set ``FSDPStrategy(activation_checkpointing=...)``.
 
 
 ----
@@ -424,7 +488,7 @@ This reduces the time taken to initialize very large models, as well as ensure w
     class MyModel(pl.LightningModule):
         ...
 
-        def configure_sharded_model(self):
+        def configure_model(self):
             # Created within sharded model context, modules are instantly sharded across processes
             # as soon as they are made.
             self.block = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
@@ -560,7 +624,7 @@ This saves memory when training larger models, however requires using a checkpoi
     class MyModel(pl.LightningModule):
         ...
 
-        def configure_sharded_model(self):
+        def configure_model(self):
             self.block_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
             self.block_2 = torch.nn.Linear(32, 2)
 

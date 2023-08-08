@@ -118,10 +118,6 @@ jobs:
 
     - name: Tests
       working-directory: ./tests
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: us-east-1
       run: |
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
           -m pytest -m "not cloud" tests_app --timeout=120 -vvvv --durations=50

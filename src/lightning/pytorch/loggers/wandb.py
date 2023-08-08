@@ -40,8 +40,7 @@ except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run, RunDisabled = None, None, None
 
-_WANDB_AVAILABLE = RequirementCache("wandb")
-_WANDB_GREATER_EQUAL_0_12_10 = RequirementCache("wandb>=0.12.10")
+_WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):
@@ -300,11 +299,8 @@ class WandbLogger(Logger):
         checkpoint_name: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
-        if wandb is None:
-            raise ModuleNotFoundError(
-                "You want to use `wandb` logger which is not installed yet,"
-                " install it with `pip install wandb`."  # pragma: no-cover
-            )
+        if wandb is None or not _WANDB_AVAILABLE:
+            raise ModuleNotFoundError(str(_WANDB_AVAILABLE))
 
         if offline and log_model:
             raise MisconfigurationException(
@@ -351,9 +347,8 @@ class WandbLogger(Logger):
         # We create an experiment here in the main process, and attach to it in the worker process.
         # Using wandb-service, we persist the same experiment even if multiple `Trainer.fit/test/validate` calls
         # are made.
-        if _WANDB_GREATER_EQUAL_0_12_10:
-            wandb.require("service")
-            _ = self.experiment
+        wandb.require("service")
+        _ = self.experiment
 
         state = self.__dict__.copy()
         # args needed to reload correct experiment
@@ -414,7 +409,7 @@ class WandbLogger(Logger):
         self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
         self.experiment.config.update(params, allow_val_change=True)
@@ -476,7 +471,7 @@ class WandbLogger(Logger):
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
         kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
-        self.log_metrics(metrics, step)
+        self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
     @property
     def save_dir(self) -> Optional[str]:

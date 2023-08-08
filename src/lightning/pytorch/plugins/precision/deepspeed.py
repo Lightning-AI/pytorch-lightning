@@ -46,7 +46,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             If unsupported ``precision`` is provided.
     """
 
-    def __init__(self, precision: Literal["32-true", "16-mixed", "bf16-mixed"]) -> None:
+    def __init__(self, precision: _PRECISION_INPUT) -> None:
         supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:
             raise ValueError(

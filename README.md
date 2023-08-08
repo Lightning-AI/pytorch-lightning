@@ -12,7 +12,7 @@
 ______________________________________________________________________
 
 <p align="center">
-  <a href="https://www.lightning.ai/">Lightning.ai</a> •
+  <a href="https://lightning.ai/">Lightning.ai</a> •
   <a href="https://lightning.ai/docs/pytorch/stable/">PyTorch Lightning</a> •
   <a href="https://lightning.ai/docs/fabric/stable/">Fabric</a> •
   <a href="https://lightning.ai/docs/app/stable/">Lightning Apps</a> •

@@ -257,7 +257,9 @@ class _LoadBalancer(LightningWork):
             if batch and (is_batch_ready or is_batch_timeout):
                 self._server_status[server_url] = False
                 # find server with capacity
-                asyncio.create_task(self.send_batch(batch, server_url))
+                # Saving a reference to the result of this function, protects the task disappearing mid-execution
+                # https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
+                task = asyncio.create_task(self.send_batch(batch, server_url))  # noqa: F841
                 # resetting the batch array, TODO - not locking the array
                 self._batch = self._batch[len(batch) :]
                 self._last_batch_sent = time.time()

@@ -17,3 +17,4 @@ types-tabulate
 types-toml
 types-tzlocal
 types-ujson
+types-decorator

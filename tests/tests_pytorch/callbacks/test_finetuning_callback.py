@@ -23,6 +23,7 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH
 from lightning.pytorch import LightningModule, seed_everything, Trainer
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from tests_pytorch.helpers.runif import RunIf
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
@@ -388,18 +389,19 @@ def test_callbacks_restore(tmpdir):
     trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
+class BackboneBoringModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.layer = nn.Linear(32, 2)
+        self.backbone = nn.Linear(32, 32)
+
+    def forward(self, x):
+        return self.layer(self.backbone(x))
+
+
 def test_callbacks_restore_backbone(tmpdir):
     """Test callbacks restore is called after optimizers have been re-created but before optimizer states
     reload."""
-
-    class BackboneBoringModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.layer = nn.Linear(32, 2)
-            self.backbone = nn.Linear(32, 32)
-
-        def forward(self, x):
-            return self.layer(self.backbone(x))
 
     ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer = Trainer(
@@ -422,3 +424,12 @@ def test_callbacks_restore_backbone(tmpdir):
         callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=1),
     )
     trainer.fit(BackboneBoringModel(), ckpt_path=ckpt.last_model_path)
+
+
+@RunIf(deepspeed=True)
+def test_unsupported_strategies(tmp_path):
+    model = BackboneBoringModel()
+    callback = BackboneFinetuning()
+    trainer = Trainer(accelerator="cpu", strategy="deepspeed", callbacks=[callback])
+    with pytest.raises(NotImplementedError, match="does not support running with the DeepSpeed strategy"):
+        callback.setup(trainer, model, stage=None)
