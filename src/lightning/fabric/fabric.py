@@ -39,8 +39,10 @@ from lightning.fabric.strategies import (
     FSDPStrategy,
     SingleDeviceStrategy,
     Strategy,
+    XLAFSDPStrategy,
     XLAStrategy,
 )
+from lightning.fabric.strategies.fsdp import _has_meta_device_parameters
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning.fabric.utilities import move_data_to_device
@@ -224,8 +226,9 @@ class Fabric:
 
         module = _FabricModule(module, self._precision, original_module=original_module)
 
-        # Update the _DeviceDtypeModuleMixin's device parameter
-        module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
+        if not _has_meta_device_parameters(module):
+            # Update the _DeviceDtypeModuleMixin's device parameter
+            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
 
         optimizers = [
             _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
@@ -351,12 +354,11 @@ class Fabric:
         Returns:
             The wrapped dataloader.
         """
-        sampler = dataloader.sampler
         if use_distributed_sampler and self._requires_distributed_sampler(dataloader):
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
-        # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
-        dataloader = _update_dataloader(dataloader, sampler)
+            # the dataloader needs to be re-instantiated because we want to update the sampler
+            dataloader = _update_dataloader(dataloader, sampler)
 
         # add worker_init_fn for correct seeding in worker processes
         _auto_add_worker_init_fn(dataloader, self.global_rank)
@@ -384,7 +386,7 @@ class Fabric:
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
-                    raise RuntimeError("No models were set up for backward. Did you forget to call `self.setup()`?")
+                    raise RuntimeError("No models were set up for backward. Did you forget to call `fabric.setup()`?")
                 if self._models_setup > 1:
                     raise ValueError(
                         "When using multiple models + deepspeed, please provide the model used to perform"
@@ -476,7 +478,8 @@ class Fabric:
         return move_data_to_device(obj, device=self.device)
 
     def print(self, *args: Any, **kwargs: Any) -> None:
-        """Print something only on the first process.
+        """Print something only on the first process. If running on multiple machines, it will print from the first
+        process in each machine.
 
         Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
         """
@@ -588,14 +591,14 @@ class Fabric:
         Example::
 
             # Accumulate gradient 8 batches at a time
-            with self.no_backward_sync(model, enabled=(batch_idx % 8 != 0)):
+            with fabric.no_backward_sync(model, enabled=(batch_idx % 8 != 0)):
                 output = model(input)
                 loss = ...
-                self.backward(loss)
+                fabric.backward(loss)
                 ...
 
         For those strategies that don't support it, a warning is emitted. For single-device strategies, it is a no-op.
-        Both the model's `.forward()` and the `self.backward()` call need to run under this context.
+        Both the model's `.forward()` and the `fabric.backward()` call need to run under this context.
 
         Args:
             module: The module for which to control the gradient synchronization.
@@ -605,8 +608,8 @@ class Fabric:
         module = _unwrap_compiled(module)
         if not isinstance(module, _FabricModule):
             raise TypeError(
-                "You need to set up the model first before you can call `self.no_backward_sync()`:"
-                " `model = self.setup(model, ...)`"
+                "You need to set up the model first before you can call `fabric.no_backward_sync()`:"
+                " `model = fabric.setup(model, ...)`"
             )
         if not enabled or isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
             context = nullcontext()
@@ -744,6 +747,22 @@ class Fabric:
                     continue
                 state[k] = unwrapped_state[k]
         return remainder
+
+    def load_raw(self, path: Union[str, Path], obj: Union[nn.Module, Optimizer], strict: bool = True) -> None:
+        """Load the state of a module or optimizer from a single state-dict file.
+
+        Use this for loading a raw PyTorch model checkpoint created without Fabric.
+        This is conceptually equivalent to ``obj.load_state_dict(torch.load(path))``, but is agnostic to the strategy
+        being used.
+
+        Args:
+            path: A path to where the file is located
+            obj: A :class:`~torch.nn.Module` or :class:`~torch.optim.Optimizer` instance.
+            strict: Whether to enforce that the keys in the module's state-dict match the keys in the checkpoint.
+                Does not apply to optimizers.
+        """
+        obj = _unwrap_objects(obj)
+        self._strategy.load_checkpoint(path=path, state=obj, strict=strict)
 
     def launch(self, function: Callable[["Fabric"], Any] = _do_nothing, *args: Any, **kwargs: Any) -> Any:
         """Launch and initialize all the processes needed for distributed execution.
@@ -940,11 +959,20 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        if isinstance(self._strategy, FSDPStrategy) and not _TORCH_GREATER_EQUAL_2_0:
+        if isinstance(self._strategy, (XLAFSDPStrategy, FSDPStrategy)) and not _TORCH_GREATER_EQUAL_2_0:
             raise RuntimeError(
                 f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
                 " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
                 " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
+            )
+        if isinstance(self._strategy, FSDPStrategy) and any(
+            _has_meta_device_parameters(optimizer) for optimizer in optimizers
+        ):
+            raise RuntimeError(
+                "The optimizer has references to the model's meta-device parameters. Materializing them is"
+                " is currently not supported unless you to set up the model and optimizer(s) separately."
+                " Create and set up the model first through `model = fabric.setup_module(model)`. Then create the"
+                " optimizer and set it up: `optimizer = fabric.setup_optimizers(optimizer)`."
             )
 
     def _validate_setup_module(self, module: nn.Module) -> None:
@@ -965,6 +993,13 @@ class Fabric:
 
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup_optimizers` method.")
+
+        if any(_has_meta_device_parameters(optimizer) for optimizer in optimizers):
+            raise RuntimeError(
+                "The optimizer has references to the model's meta-device parameters. Materializing them is"
+                " is currently not supported. Create the optimizer after setting up the model, then call"
+                " `fabric.setup_optimizers(optimizer)`."
+            )
 
     def _validate_setup_dataloaders(self, dataloaders: Sequence[DataLoader]) -> None:
         self._validate_launched()

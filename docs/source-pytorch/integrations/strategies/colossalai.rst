@@ -56,7 +56,7 @@ See a full example of a benchmark with the a `GPT-2 model <https://github.com/hp
         HybridAdam`` now. You can set ``adamw_mode`` to False to use normal Adam. Noticing that ``HybridAdam`` is highly optimized, it uses fused CUDA kernel and parallel CPU kernel.
         It is recomended to use ``HybridAdam``, since it updates parameters in GPU and CPU both.
 
-    *   Your model must be created using the :meth:`~lightning.pytorch.core.module.LightningModule.configure_sharded_model` method.
+    *   Your model must be created using the :meth:`~lightning.pytorch.core.module.LightningModule.configure_model` method.
 
     *   ``ColossalaiStrategy`` doesn't support gradient accumulation as of now.
 
@@ -65,7 +65,7 @@ See a full example of a benchmark with the a `GPT-2 model <https://github.com/hp
 Model Definition
 ================
 
-ColossalAI requires the layers of your model to be created in the special :meth:`~lightning.pytorch.core.module.LightningModule.configure_sharded_model` hook.
+ColossalAI requires the layers of your model to be created in the special :meth:`~lightning.pytorch.core.module.LightningModule.configure_model` hook.
 This allows the strategy to efficiently shard your model before materializing the weight tensors.
 
 .. code-block:: python
@@ -74,9 +74,9 @@ This allows the strategy to efficiently shard your model before materializing th
         def __init__(self):
             super().__init__()
             # don't instantiate layers here
-            # move the creation of layers to `configure_sharded_model`
+            # move the creation of layers to `configure_model`
 
-        def configure_sharded_model(self):
+        def configure_model(self):
             # create all your layers here
             self.layers = nn.Sequential(...)
 

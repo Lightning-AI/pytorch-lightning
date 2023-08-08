@@ -60,26 +60,6 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
     assert bool(int(caplog.messages[0])) is open_ui
 
 
-def test_lightning_run_cluster_without_cloud(monkeypatch):
-    """This test validates that running apps only supports --cluster-id if --cloud argument is passed."""
-    monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
-    with pytest.raises(click.exceptions.ClickException):
-        _run_app(
-            file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
-            cloud=False,
-            cluster_id="test-cluster",
-            without_server=False,
-            name="",
-            blocking=False,
-            open_ui=False,
-            no_cache=True,
-            env=("FOO=bar",),
-            secret=(),
-            run_app_comment_commands=False,
-            enable_basic_auth="",
-        )
-
-
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})
 @mock.patch("lightning.app.cli.lightning_cli.dispatch")
 @pytest.mark.parametrize("open_ui", [True, False])
@@ -95,7 +75,6 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         _run_app(
             file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
             cloud=True,
-            cluster_id="",
             without_server=False,
             name="",
             blocking=False,
@@ -123,7 +102,6 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         no_cache=True,
         env_vars={"FOO": "bar"},
         secrets={"BAR": "my-secret"},
-        cluster_id="",
         run_app_comment_commands=False,
         enable_basic_auth="",
         port=port,
@@ -145,7 +123,6 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
         _run_app(
             file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
             cloud=True,
-            cluster_id="",
             without_server=False,
             name="",
             blocking=False,
@@ -173,7 +150,6 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
         no_cache=True,
         env_vars={"FOO": "bar"},
         secrets={"BAR": "my-secret"},
-        cluster_id="",
         run_app_comment_commands=True,
         enable_basic_auth="",
         port=port,
@@ -188,7 +164,6 @@ def test_lightning_run_app_secrets(monkeypatch):
         _run_app(
             file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
             cloud=False,
-            cluster_id="test-cluster",
             without_server=False,
             name="",
             blocking=False,
@@ -214,7 +189,6 @@ def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMoc
         _run_app(
             file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
             cloud=True,
-            cluster_id="",
             without_server=False,
             name="",
             blocking=False,
@@ -239,7 +213,6 @@ def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMoc
         no_cache=True,
         env_vars={"FOO": "bar"},
         secrets={"BAR": "my-secret"},
-        cluster_id="",
         run_app_comment_commands=False,
         enable_basic_auth="username:password",
         port=port,

@@ -66,7 +66,8 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "pytorch-lightning (GPUs)"
+      - "pytorch-lightning (GPUs) (testing Lightning | latest)"
+      - "pytorch-lightning (GPUs) (testing PyTorch | latest)"
 
   - id: "pytorch_lightning: Benchmarks"
     paths:
@@ -139,14 +140,16 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "build-cuda (3.9, 1.11, 11.3.1)"
       - "build-cuda (3.9, 1.12, 11.7.1)"
+      - "build-cuda (3.9, 1.13, 11.8.0)"
       - "build-cuda (3.9, 1.13, 12.0.1)"
+      - "build-cuda (3.10, 2.0, 11.8.0)"
       - "build-cuda (3.10, 2.0, 12.0.1)"
       #- "build-NGC"
-      - "build-pl (3.9, 1.11, 11.3.1)"
       - "build-pl (3.9, 1.12, 11.7.1)"
+      - "build-pl (3.9, 1.13, 11.8.0)"
       - "build-pl (3.9, 1.13, 12.0.1)"
+      - "build-pl (3.10, 2.0, 11.8.0)"
       - "build-pl (3.10, 2.0, 12.0.1)"
 
   # SECTIONS: lightning_data
@@ -225,7 +228,8 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "lightning-fabric (GPUs)"
+      - "lightning-fabric (GPUs) (testing Fabric | latest)"
+      - "lightning-fabric (GPUs) (testing Lightning | latest)"
 
   - id: "lightning_fabric: TPU workflow"
     paths:
@@ -298,18 +302,18 @@ subprojects:
 
   - id: "lightning: Store"
     paths:
-      - ".azure/app-cloud-store.yml"
+      - ".github/workflows/ci-tests-store.yml"
       - "src/lightning/__about__.py"
       - "src/lightning/__init__.py"
       - "src/lightning/__main__.py"
       - "src/lightning/__setup__.py"
       - "src/lightning/__version__.py"
       - "src/lightning/store/**"
-      - "tests/tests_cloud/**"
+      - "tests/tests_store/**"
     checks:
-      - "Store.cloud (test_store Linux)"
-      - "Store.cloud (test_store Mac)"
-      - "Store.cloud (test_store Windows)"
+      - "store-cpu (macOS-11, lightning, 3.10, 2.0)"
+      - "store-cpu (ubuntu-20.04, lightning, 3.10, 2.0)"
+      - "store-cpu (windows-2022, lightning, 3.10, 2.0)"
 
   # FixMe: re-enable when BE stabilize
   # - id: "lightning_app: Azure"

@@ -83,7 +83,7 @@ class Strategy(ABC):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
 
     @property
@@ -288,15 +288,20 @@ class Strategy(ABC):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None,
+        state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
         Args:
             path: A path to where the file is located
-            state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
-                If no state is given, then the checkpoint will be returned in full.
+            state: Can be one of:
+
+                - A dictionary of objects whose state will be restored in-place from the checkpoint path.
+                - ``None`` or the empty dict: The loaded checkpoint will be returned in full.
+                - A :class:`~torch.nn.Module` instance, if the checkpoint file contains a raw module state dict.
+                - A :class:`~torch.optim.Optimizer` instance, if the checkpoint file contains a raw optimizer state.
+
             strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
@@ -307,6 +312,14 @@ class Strategy(ABC):
         checkpoint = self.checkpoint_io.load_checkpoint(path)
         if not state:
             return checkpoint
+
+        if isinstance(state, Module):
+            self.load_module_state_dict(module=state, state_dict=checkpoint, strict=strict)
+            return {}
+
+        if isinstance(state, Optimizer):
+            state.load_state_dict(checkpoint)
+            return {}
 
         _validate_keys_for_strict_loading(state.keys(), checkpoint.keys(), strict=strict)
         for name, obj in state.copy().items():
@@ -320,15 +333,6 @@ class Strategy(ABC):
             else:
                 state[name] = checkpoint.pop(name)
         return checkpoint
-
-    def remove_checkpoint(self, filepath: _PATH) -> None:
-        """Remove checkpoint filepath from the filesystem.
-
-        Args:
-            filepath: Path to checkpoint
-        """
-        if self.is_global_zero:
-            self.checkpoint_io.remove_checkpoint(filepath)
 
     def teardown(self) -> None:
         """This method is called to teardown the training process.

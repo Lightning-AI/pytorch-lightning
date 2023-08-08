@@ -106,6 +106,11 @@ class StorageOrchestrator(Thread):
             request_queue = self.request_queues[work_name]
             try:
                 request: _PathRequest = request_queue.get(timeout=0)  # this should not block
+                # This should not happen under normal conditions, but it has occurred.
+                # For now we are tolerant with respect to requests being None in the queue
+                # and just move on.
+                if request is None:
+                    raise Empty
             except Empty:
                 pass
             else:

@@ -66,7 +66,7 @@ def test_repository_lightningignore(tmp_path):
 
     repository = LocalSourceCodeDir(path=Path(tmp_path))
 
-    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
     # write file that needs to be ignored
     (tmp_path / "ignore").mkdir()
@@ -74,7 +74,7 @@ def test_repository_lightningignore(tmp_path):
 
     repository = LocalSourceCodeDir(path=Path(tmp_path))
 
-    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
 
 def test_repository_filters_with_absolute_relative_path(tmp_path):
@@ -89,7 +89,7 @@ def test_repository_filters_with_absolute_relative_path(tmp_path):
 
     repository = LocalSourceCodeDir(path=Path(tmp_path))
 
-    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
     # write file that needs to be ignored
     (tmp_path / "ignore_file").mkdir()
@@ -99,7 +99,7 @@ def test_repository_filters_with_absolute_relative_path(tmp_path):
 
     repository = LocalSourceCodeDir(path=Path(tmp_path))
 
-    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
 
 def test_repository_lightningignore_supports_different_patterns(tmp_path):
@@ -248,7 +248,7 @@ def test_repository_lightningignore_supports_different_patterns(tmp_path):
 
     repository = LocalSourceCodeDir(path=Path(tmp_path))
 
-    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
     # write file that needs to be ignored
     (tmp_path / "ignore").mkdir()
@@ -257,7 +257,7 @@ def test_repository_lightningignore_supports_different_patterns(tmp_path):
     # check that version remains the same
     repository = LocalSourceCodeDir(path=Path(tmp_path))
 
-    assert repository.files == [str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")]
+    assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
 
 def test_repository_lightningignore_unpackage(tmp_path, monkeypatch):

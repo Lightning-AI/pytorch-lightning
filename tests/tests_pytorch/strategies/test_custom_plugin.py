@@ -43,6 +43,6 @@ def test_strategy_lightning_restore_optimizer_and_schedulers(tmpdir, restore_opt
 
     model = BoringModel()
     strategy = TestStrategy(torch.device("cpu"))
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=strategy)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=strategy, accelerator="cpu")
     trainer.fit(model, ckpt_path=checkpoint_path)
     assert strategy.load_optimizer_state_dict_called == restore_optimizer_and_schedulers

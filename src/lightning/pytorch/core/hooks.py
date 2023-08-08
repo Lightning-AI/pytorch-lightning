@@ -271,9 +271,18 @@ class ModelHooks:
         """
 
     def configure_sharded_model(self) -> None:
-        """Hook to create modules in a distributed aware context. This is useful for when using sharded plugins,
-        where we'd like to shard the model instantly, which is useful for extremely large models which can save
-        memory and initialization time.
+        """Deprecated.
+
+        Use :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` instead.
+        """
+
+    def configure_model(self) -> None:
+        """Hook to create modules in a strategy and precision aware context.
+
+        This is particularly useful for when using sharded strategies (FSDP and DeepSpeed), where we'd like to shard
+        the model instantly to save memory and initialization time.
+        For non-sharded strategies, you can choose to override this hook or to initialize your model under the
+        :meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module` context manager.
 
         This hook is called during each of fit/val/test/predict stages in the same process, so ensure that
         implementation of this hook is idempotent.
@@ -510,10 +519,6 @@ class DataHooks:
             ``self.trainer.training/testing/validating/predicting`` so that you can
             add different logic as per your requirement.
 
-        Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
-            Data-Parallel support will come in near future.
-
         Args:
             batch: A batch of data that needs to be transferred to a new device.
             device: The target device as defined in PyTorch.
@@ -538,9 +543,6 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(strategy='dp')``.
-
-            MisconfigurationException:
                 If using IPUs, ``Trainer(accelerator='ipu')``.
 
         See Also:
@@ -556,10 +558,6 @@ class DataHooks:
             To check the current state of execution of this hook you can use
             ``self.trainer.training/testing/validating/predicting`` so that you can
             add different logic as per your requirement.
-
-        Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
-            Data-Parallel support will come in near future.
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
@@ -588,10 +586,6 @@ class DataHooks:
             ``self.trainer.training/testing/validating/predicting`` so that you can
             add different logic as per your requirement.
 
-        Note:
-            This hook only runs on single GPU training and DDP (no data-parallel).
-            Data-Parallel support will come in near future.
-
         Args:
             batch: A batch of data that needs to be altered or augmented.
             dataloader_idx: The index of the dataloader to which the batch belongs.
@@ -606,9 +600,6 @@ class DataHooks:
                 return batch
 
         Raises:
-            MisconfigurationException:
-                If using data-parallel, ``Trainer(strategy='dp')``.
-
             MisconfigurationException:
                 If using IPUs, ``Trainer(accelerator='ipu')``.
 

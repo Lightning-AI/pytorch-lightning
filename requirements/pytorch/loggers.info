@@ -2,5 +2,5 @@
 neptune
 comet-ml
 mlflow >=1.0.0
-wandb >=0.12.0
+wandb >=0.12.10
 tensorboard >=2.9.1

@@ -22,7 +22,7 @@ import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 from torch.nn import Sequential
 
-from lightning.pytorch import Trainer
+from lightning.pytorch import seed_everything, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, ModelPruning
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -67,6 +67,7 @@ def train_with_pruning_callback(
     accelerator="cpu",
     devices=1,
 ):
+    seed_everything(1)
     model = TestModel()
 
     # Weights are random. None is 0

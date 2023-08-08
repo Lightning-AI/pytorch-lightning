@@ -22,6 +22,7 @@ import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
+from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import seed_everything, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
@@ -886,3 +887,37 @@ def test_multiple_optimizers_logging(precision, tmpdir):
 
     assert set(trainer.logged_metrics) == {"loss_d", "loss_g"}
     assert set(trainer.progress_bar_metrics) == {"loss_d", "loss_g"}
+
+
+@pytest.mark.parametrize("automatic_optimization", [True, False])
+def test_manual_optimization_with_non_pytorch_scheduler(automatic_optimization):
+    """In manual optimization, the user can provide a custom scheduler that doesn't follow PyTorch's interface."""
+
+    class IncompatibleScheduler:
+        def __init__(self, optimizer):
+            self.optimizer = optimizer
+
+        def state_dict(self):
+            return {}
+
+        def load_state_dict(self, _):
+            pass
+
+    class Model(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = automatic_optimization
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            scheduler = IncompatibleScheduler(optimizer)
+            return [optimizer], [scheduler]
+
+    model = Model()
+    trainer = Trainer(accelerator="cpu", max_epochs=0)
+    if automatic_optimization:
+        with pytest.raises(MisconfigurationException, match="doesn't follow PyTorch's LRScheduler"):
+            trainer.fit(model)
+    else:
+        # No error for manual optimization
+        trainer.fit(model)

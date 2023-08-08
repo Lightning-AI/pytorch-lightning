@@ -24,6 +24,7 @@ from lightning_utilities.test.warning import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
 
+from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
@@ -272,6 +273,22 @@ def test_setup_optimizers_not_supported(strategy_cls):
         fabric.setup_optimizers(optimizer)
 
 
+@RunIf(min_cuda_gpus=1, min_torch="2.1")
+def test_setup_optimizer_on_meta_device():
+    """Test that the setup-methods validate that the optimizer doesn't have references to meta-device
+    parameters."""
+    fabric = Fabric(strategy="fsdp", devices=1)
+    fabric._launched = True  # pretend we have launched multiple processes
+    with fabric.init_module(empty_init=True):
+        model = nn.Linear(1, 2)
+    assert model.weight.is_meta
+    optimizer = torch.optim.Adam(model.parameters())  # optimizer references meta device params
+    with pytest.raises(RuntimeError, match="The optimizer has references to the model's meta-device parameters"):
+        fabric.setup(model, optimizer)
+    with pytest.raises(RuntimeError, match="The optimizer has references to the model's meta-device parameters"):
+        fabric.setup_optimizers(optimizer)
+
+
 def test_setup_tracks_num_models():
     """Test that setup() tracks how many times it has setup a model."""
     fabric = Fabric(devices=1)
@@ -335,11 +352,21 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
 def test_setup_dataloaders_raises_for_unknown_custom_args():
     """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's
     run method."""
-    fabric = Fabric()
 
     class CustomDataLoader(DataLoader):
         def __init__(self, new_arg, *args, **kwargs):
             super().__init__(range(5), *args, **kwargs)
+
+    dataloader = CustomDataLoader(2, batch_size=2)
+
+    # If no distributed sampler is required, reinstantiation is not necessary
+    fabric = Fabric(devices=1)
+    fabric_dataloader = fabric.setup_dataloaders(dataloader)
+    assert fabric_dataloader._dataloader is dataloader
+
+    # If a distributed sampler is required, sampler needs to be reinstantiatied
+    fabric = Fabric(devices=2, accelerator="cpu")
+    fabric._launched = True
 
     with pytest.raises(
         MisconfigurationException,
@@ -348,8 +375,6 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
             r"The missing attributes are \['new_arg'\]"
         ),
     ):
-        # The dataloader was not created within the run function, and therefore init args were not intercepted
-        dataloader = CustomDataLoader(2, batch_size=2)
         fabric.setup_dataloaders(dataloader)
 
 
@@ -386,9 +411,10 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     custom_sampler = Mock(spec=Sampler)
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
-    # keep the custom sampler when not needed to replace
+    # if no distributed sampler is required, dataloader reinstantiation is not necessary
     fabric = Fabric(devices=1)
     fabric_dataloader = fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
+    assert fabric_dataloader._dataloader is dataloader
     assert fabric_dataloader.sampler is custom_sampler
 
 
@@ -533,11 +559,8 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
-    if accelerator == "tpu":
-        from torch_xla.experimental import pjrt
-
-        if not pjrt.using_pjrt():
-            expected = "xla:1"
+    if accelerator == "tpu" and not _using_pjrt():
+        expected = "xla:1"
 
     fabric = Fabric(accelerator=accelerator, devices=1)
     fabric.launch()
@@ -1015,6 +1038,23 @@ def test_load_wrapped_objects(setup, tmp_path):
     remainder = fabric.load(tmp_path, state)
     assert state == expected
     assert remainder == expected_remainder
+
+
+def test_load_raw():
+    """Test that `Fabric.load_raw()` unwraps the object to load and calls into the strategy."""
+    fabric = Fabric(accelerator="cpu")
+    fabric.strategy.load_checkpoint = Mock()
+
+    model = torch.nn.Linear(2, 2)
+    optimizer = torch.optim.Adam(model.parameters())
+    wrapped_model, wrapped_optimizer = fabric.setup(model, optimizer)
+
+    fabric.load_raw(path="path0", obj=model)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path0", state=model, strict=True)
+    fabric.load_raw(path="path1", obj=wrapped_model, strict=False)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path1", state=model, strict=False)
+    fabric.load_raw(path="path2", obj=wrapped_optimizer)
+    fabric.strategy.load_checkpoint.assert_called_with(path="path2", state=optimizer, strict=True)
 
 
 def test_barrier():
