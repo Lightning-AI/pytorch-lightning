@@ -890,9 +890,9 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_optimizer_device="nvme",
         )
 
-    # TODO: discuss should we keep overriding this?
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
-        # For backward-compatibility, we still need to convert the inputs here for the batch-transfer hooks
+        # The strategy casts the input before moving to the device
         # In all other strategies, the input gets converted in the `Strategy.*_step` methods
+        # TODO: standardize this for all strategies
         batch = self.precision_plugin.convert_input(batch)
         return super().batch_to_device(batch, device, dataloader_idx)
