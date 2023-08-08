@@ -11,63 +11,57 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import json
 import os
-from enum import Enum
-from typing import Tuple
 
-from lightning.store.save import _LIGHTNING_STORAGE_FILE
-
-
-class stage(Enum):
-    UPLOAD = 0
-    LOAD = 1
-    DOWNLOAD = 2
+import requests
+from lightning_cloud.openapi import AuthServiceApi, ModelsStoreApi, ProjectsServiceApi
+from lightning_cloud.rest_client import create_swagger_client
+from tqdm import tqdm
+from tqdm.utils import CallbackIOWrapper
 
 
-def _check_version(version: str) -> bool:
-    allowed_chars = "0123456789."
-    if version == "latest":
-        return True
-    return all(version_char in allowed_chars for version_char in version)
-
-
-def _split_name(name: str, version: str, l_stage: stage) -> Tuple[str, str, str]:
-    if l_stage == stage.UPLOAD:
-        username = ""
-        model_name = name
+def _upload_file_to_url(url: str, path: str, progress_bar: bool) -> None:
+    if progress_bar:
+        file_size = os.path.getsize(path)
+        with open(path, "rb") as fd, tqdm(
+            desc="Uploading",
+            total=file_size,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1000,
+        ) as t:
+            reader_wrapper = CallbackIOWrapper(t.update, fd, "read")
+            response = requests.put(url, data=reader_wrapper)
+            response.raise_for_status()
     else:
-        username, model_name = name.split("/")
+        with open(path, "rb") as fo:
+            requests.put(url, data=fo)
 
-    return username, model_name, version
+
+def _download_file_from_url(url: str, path: str, progress_bar: bool) -> None:
+    with requests.get(url, stream=True) as req_stream:
+        total_size_in_bytes = int(req_stream.headers.get("content-length", 0))
+        block_size = 1000 * 1000  # 1 MB
+
+        download_progress_bar = None
+        if progress_bar:
+            download_progress_bar = tqdm(
+                desc="Downloading",
+                total=total_size_in_bytes,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1000,
+            )
+        with open(path, "wb") as f:
+            for chunk in req_stream.iter_content(chunk_size=block_size):
+                if download_progress_bar:
+                    download_progress_bar.update(len(chunk))
+                f.write(chunk)
+        if download_progress_bar:
+            download_progress_bar.close()
 
 
-def _get_model_data(name: str, version: str):
-    username, model_name, version = _split_name(name, version, stage.LOAD)
-
-    if not os.path.exists(_LIGHTNING_STORAGE_FILE):
-        raise NotADirectoryError(
-            f"Could not find {_LIGHTNING_STORAGE_FILE} (to be generated after download_model(...))"
-        )
-
-    with open(_LIGHTNING_STORAGE_FILE) as storage_file:
-        storage_data = json.load(storage_file)
-
-    if username not in storage_data:
-        raise KeyError(
-            f"No data found for the given username {username}. Make sure to call" " `download_model` before loading"
-        )
-    user_data = storage_data[username]
-
-    if model_name not in user_data:
-        raise KeyError(
-            f"No data found for the given model name: {model_name} for the given"
-            f" username: {username}. Make sure to call `download_model` before loading"
-        )
-    model_data = user_data[model_name]
-
-    version = version or "latest"
-    if version not in model_data:
-        raise KeyError(f"No data found for the given version: {version}, did you download the model successfully?")
-    return model_data[version]
+class _Client(AuthServiceApi, ModelsStoreApi, ProjectsServiceApi):
+    def __init__(self):
+        api_client = create_swagger_client()
+        super().__init__(api_client)

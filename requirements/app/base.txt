@@ -17,7 +17,7 @@ backoff >=2.2.1, <2.3.0
 
 fastapi >=0.92.0, <0.100.0
 starlette  # https://fastapi.tiangolo.com/deployment/versions/#about-starlette
-pydantic >=1.7.4, <2.1.0  # strict # https://fastapi.tiangolo.com/deployment/versions/#about-pydantic
+pydantic >=1.7.4, <2.2.0  # strict # https://fastapi.tiangolo.com/deployment/versions/#about-pydantic
 
 dateutils <=0.6.12
 Jinja2 <=3.1.2
@@ -25,6 +25,6 @@ PyYAML <=6.0
 requests <2.31.1
 rich >=12.3.0, <=13.4.2
 urllib3 <=2.0.2
-uvicorn <=0.23.1
+uvicorn <=0.23.2
 websocket-client <1.6.2
 websockets <=11.0.3
