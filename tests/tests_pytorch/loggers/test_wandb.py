@@ -53,6 +53,7 @@ def test_wandb_logger_init(wandb, monkeypatch):
     """Verify that basic functionality of wandb logger works.
 
     Wandb doesn't work well with pytest so we have to mock it out here.
+
     """
     # test wandb.init called when there is no W&B run
     wandb.run = None
@@ -142,6 +143,7 @@ def test_wandb_pickle(wandb, tmpdir):
     """Verify that pickling trainer with wandb logger works.
 
     Wandb doesn't work well with pytest so we have to mock it out here.
+
     """
 
     class Experiment:
@@ -373,8 +375,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
 @mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
 @mock.patch("lightning.pytorch.loggers.wandb.wandb")
 def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
-    """Test to prevent regression on #15543, ensuring the score is logged as a Python number, not a scalar
-    tensor."""
+    """Test to prevent regression on #15543, ensuring the score is logged as a Python number, not a scalar tensor."""
     wandb.run = None
     model = BoringModel()
 

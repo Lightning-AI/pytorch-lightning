@@ -16,6 +16,7 @@
 After a few epochs, launch TensorBoard to see the images being generated at every batch:
 
 tensorboard --logdir default
+
 """
 from argparse import ArgumentParser, Namespace
 

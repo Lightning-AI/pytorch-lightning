@@ -79,6 +79,7 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
     returned by ``from_compiled``.
 
     Note: this method will in-place modify the ``LightningModule`` that is passed in.
+
     """
     if not _TORCH_GREATER_EQUAL_2_0:
         raise ModuleNotFoundError("`to_uncompiled` requires torch>=2.0")

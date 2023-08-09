@@ -105,8 +105,7 @@ def test_model_properties_fit_ckpt_path(tmpdir):
 
 @RunIf(sklearn=True)
 def test_trainer_properties_restore_ckpt_path(tmpdir):
-    """Test that required trainer properties are set correctly when resuming from checkpoint in different
-    phases."""
+    """Test that required trainer properties are set correctly when resuming from checkpoint in different phases."""
 
     class CustomClassifModel(ClassificationModel):
         def configure_optimizers(self):

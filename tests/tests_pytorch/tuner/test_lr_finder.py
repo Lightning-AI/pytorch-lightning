@@ -217,8 +217,7 @@ def test_datamodule_parameter(tmpdir):
 
 
 def test_accumulation_and_early_stopping(tmpdir):
-    """Test that early stopping of learning rate finder works, and that accumulation also works for this
-    feature."""
+    """Test that early stopping of learning rate finder works, and that accumulation also works for this feature."""
     seed_everything(1)
 
     class TestModel(BoringModel):

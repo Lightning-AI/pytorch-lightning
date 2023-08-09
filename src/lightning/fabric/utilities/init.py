@@ -30,6 +30,7 @@ class _EmptyInit(TorchFunctionMode):
         with _EmptyInit():
             model = BigModel()
         model.load_state_dict(torch.load("checkpoint.pt"))
+
     """
 
     def __init__(self, enabled: bool = True) -> None:

@@ -60,6 +60,7 @@ class LightningPlugin:
 
         Returns:
             The relative URL of the created job.
+
         """
         from lightning.app.runners.backends.cloud import CloudBackend
         from lightning.app.runners.cloud import CloudRuntime

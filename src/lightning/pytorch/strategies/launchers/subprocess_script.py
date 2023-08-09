@@ -67,6 +67,7 @@ class _SubprocessScriptLauncher(_Launcher):
         cluster_environment: A cluster environment that provides access to world size, node rank, etc.
         num_processes: The number of processes to launch in the current node.
         num_nodes: The total number of nodes that participate in this process group.
+
     """
 
     def __init__(self, cluster_environment: ClusterEnvironment, num_processes: int, num_nodes: int) -> None:
@@ -89,6 +90,7 @@ class _SubprocessScriptLauncher(_Launcher):
             *args: Optional positional arguments to be passed to the given function.
             trainer: Optional reference to the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
             **kwargs: Optional keyword arguments to be passed to the given function.
+
         """
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()

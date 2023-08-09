@@ -215,6 +215,7 @@ def update_hparams(hparams: dict, updates: dict) -> None:
     Args:
         hparams: the original params and also target object
         updates: new params to be used as update
+
     """
     for k, v in updates.items():
         # if missing, add the key
@@ -240,6 +241,7 @@ def load_hparams_from_tags_csv(tags_csv: _PATH) -> Dict[str, Any]:
     >>> vars(hparams) == hparams_new
     True
     >>> os.remove(path_csv)
+
     """
     fs = get_filesystem(tags_csv)
     if not fs.exists(tags_csv):
@@ -282,6 +284,7 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Di
     >>> vars(hparams) == hparams_new
     True
     >>> os.remove(path_yaml)
+
     """
     fs = get_filesystem(config_yaml)
     if not fs.exists(config_yaml):

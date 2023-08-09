@@ -31,8 +31,8 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_debug
 
 
 class _XLALauncher(_MultiProcessingLauncher):
-    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at
-    the end.
+    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at the
+    end.
 
     The main process in which this launcher is invoked creates N so-called worker processes (using the
     `torch_xla` :func:`xmp.spawn`) that run the given function.
@@ -44,6 +44,7 @@ class _XLALauncher(_MultiProcessingLauncher):
 
     Args:
         strategy: A reference to the strategy that is used together with this launcher
+
     """
 
     def __init__(self, strategy: "pl.strategies.XLAStrategy") -> None:
@@ -67,6 +68,7 @@ class _XLALauncher(_MultiProcessingLauncher):
             trainer: Optional reference to the :class:`~lightning.pytorch.trainer.trainer.Trainer` for which
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
+
         """
         using_pjrt = _using_pjrt()
         # pjrt requires that the queue is serializable
