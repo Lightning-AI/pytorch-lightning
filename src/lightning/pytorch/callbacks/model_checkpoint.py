@@ -621,7 +621,7 @@ class ModelCheckpoint(Checkpoint):
 
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
         # find all checkpoints in the folder
-        self.setup(trainer=trainer, pl_module=None, stage=None)
+        self.dirpath = self.__resolve_ckpt_dir(trainer)
         if self._fs.exists(self.dirpath):
             return {
                 self._fs.unstrip_protocol(os.path.normpath(p))
