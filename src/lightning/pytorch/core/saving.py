@@ -96,7 +96,8 @@ def _load_from_checkpoint(
         model = _load_state(cls, checkpoint, strict=strict, **kwargs)
         state_dict = checkpoint["state_dict"]
         if not state_dict:
-            raise ValueError(f"The state dict in {checkpoint_path!r} contains no parameters.")
+            rank_zero_warn(f"The state dict in {checkpoint_path!r} contains no parameters.")
+            return model
 
         device = next((t for t in state_dict.values() if isinstance(t, torch.Tensor)), torch.tensor(0)).device
         assert isinstance(model, pl.LightningModule)
