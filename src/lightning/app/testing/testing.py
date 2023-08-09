@@ -503,6 +503,7 @@ def delete_cloud_lightning_apps(name=None):
     """Cleanup cloud apps that start with the name test-{PR_NUMBER}-{TEST_APP_NAME}.
 
     PR_NUMBER and TEST_APP_NAME are environment variables.
+
     """
 
     client = LightningClient()

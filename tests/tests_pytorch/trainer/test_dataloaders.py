@@ -675,8 +675,7 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
 
 
 def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
-    """Test that a warning message is shown if the dataloader length is too short for the chosen logging
-    interval."""
+    """Test that a warning message is shown if the dataloader length is too short for the chosen logging interval."""
     model = BoringModel()
     dataloader = DataLoader(RandomDataset(32, length=10))
     model.train_dataloader = lambda: dataloader
@@ -847,8 +846,7 @@ class ModelWithDataLoaderDistributedSampler(BoringModel):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler_already_attached(tmpdir):
-    """Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on
-    dataloader."""
+    """Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader."""
     seed_everything(123)
     model = ModelWithDataLoaderDistributedSampler()
     trainer = Trainer(
@@ -1209,8 +1207,8 @@ def test_dataloaders_load_only_once_passed_loaders(tmp_path, monkeypatch, sanity
 
 
 def test_dataloaders_reset_and_attach(tmpdir):
-    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset dataloaders before attaching
-    the new one."""
+    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset dataloaders before attaching the
+    new one."""
     # the assertions compare the datasets and not dataloaders since we patch and replace the samplers
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))

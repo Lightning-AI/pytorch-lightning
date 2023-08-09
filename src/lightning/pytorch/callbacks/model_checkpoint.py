@@ -576,6 +576,7 @@ class ModelCheckpoint(Checkpoint):
             >>> ckpt = ModelCheckpoint(filename='{step}')
             >>> os.path.basename(ckpt.format_checkpoint_name(dict(step=0)))
             'step=0.ckpt'
+
         """
         filename = filename or self.filename
         filename = self._format_checkpoint_name(filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name)
@@ -595,6 +596,7 @@ class ModelCheckpoint(Checkpoint):
         3.  The ``Trainer``'s ``default_root_dir`` if the trainer has no loggers
 
         The path gets extended with subdirectory "checkpoints".
+
         """
         if self.dirpath is not None:
             # short circuit if dirpath was passed to ModelCheckpoint

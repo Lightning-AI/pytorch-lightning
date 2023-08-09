@@ -67,8 +67,7 @@ if _OMEGACONF_AVAILABLE:
 
 
 def test_trainer_error_when_input_not_lightning_module():
-    """Test that a useful error gets raised when the Trainer methods receive something other than a
-    LightningModule."""
+    """Test that a useful error gets raised when the Trainer methods receive something other than a LightningModule."""
     trainer = Trainer()
 
     for method in ("fit", "validate", "test", "predict"):
@@ -347,8 +346,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
 
 def test_model_checkpoint_only_weights(tmpdir):
-    """Tests use case where ModelCheckpoint is configured to save only model weights, and user tries to load
-    checkpoint to resume training."""
+    """Tests use case where ModelCheckpoint is configured to save only model weights, and user tries to load checkpoint
+    to resume training."""
     model = BoringModel()
 
     trainer = Trainer(
@@ -1450,8 +1449,8 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
 
 @pytest.mark.parametrize(("max_steps", "max_epochs", "global_step"), [(10, 5, 10), (20, None, 20)])
 def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epochs, global_step):
-    """Ensure that the training loop is bound by `max_steps` and `max_epochs` for repeated calls of `trainer.fit`,
-    and disabled if the limit is reached."""
+    """Ensure that the training loop is bound by `max_steps` and `max_epochs` for repeated calls of `trainer.fit`, and
+    disabled if the limit is reached."""
 
     dataset_len = 200
     batch_size = 10

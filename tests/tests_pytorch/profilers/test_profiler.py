@@ -457,6 +457,7 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
     multiple loggers.
 
     See issue #8157.
+
     """
 
     def look_for_trace(trace_dir):

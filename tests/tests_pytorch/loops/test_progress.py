@@ -93,6 +93,7 @@ def test_optimizer_progress_default_factory():
     """Ensure that the defaults are created appropriately.
 
     If `default_factory` was not used, the default would be shared between instances.
+
     """
     p1 = _OptimizerProgress()
     p2 = _OptimizerProgress()

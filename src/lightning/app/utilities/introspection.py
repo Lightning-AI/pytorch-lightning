@@ -22,13 +22,14 @@ if TYPE_CHECKING:
 
 
 class LightningVisitor(ast.NodeVisitor):
-    """Base class for visitor that finds class definitions based on class inheritance. Derived classes are expected
-    to define class_name and implement the analyze_class_def method.
+    """Base class for visitor that finds class definitions based on class inheritance. Derived classes are expected to
+    define class_name and implement the analyze_class_def method.
 
     Attributes
     ----------
     class_name: str
         Name of class to identify, to be defined in subclasses.
+
     """
 
     class_name: Optional[str] = None
@@ -63,6 +64,7 @@ class LightningModuleVisitor(LightningVisitor):
         Names of methods that are part of the LightningModule API.
     hooks: Set[str]
         Names of hooks that are part of the LightningModule API.
+
     """
 
     class_name: Optional[str] = "LightningModule"
@@ -132,6 +134,7 @@ class LightningDataModuleVisitor(LightningVisitor):
         Name of class to identify.
     methods: Set[str]
         Names of methods that are part of the LightningDataModule API.
+
     """
 
     class_name = "LightningDataModule"
@@ -155,6 +158,7 @@ class LightningLoggerVisitor(LightningVisitor):
         Name of class to identify.
     methods: Set[str]
         Names of methods that are part of the Logger API.
+
     """
 
     class_name = "Logger"
@@ -171,6 +175,7 @@ class LightningCallbackVisitor(LightningVisitor):
         Name of class to identify.
     methods: Set[str]
         Names of methods that are part of the Logger API.
+
     """
 
     class_name = "Callback"
@@ -223,6 +228,7 @@ class LightningStrategyVisitor(LightningVisitor):
         Name of class to identify.
     methods: Set[str]
         Names of methods that are part of the Logger API.
+
     """
 
     class_name = "Strategy"
@@ -282,6 +288,7 @@ class Scanner:
     glob_pattern: str
         Glob pattern to use when looking for files in the path,
         applied when path is a directory. Default is "**/*.py".
+
     """
 
     # TODO: Finalize introspecting the methods from all the discovered methods.
@@ -341,6 +348,7 @@ class Scanner:
         List[Dict[str, Any]]
             List of dicts containing all metadata required
             to import modules found.
+
         """
         modules_found: Dict[str, List[Dict[str, Any]]] = {}
 

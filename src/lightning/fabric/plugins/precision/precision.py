@@ -33,6 +33,7 @@ class Precision:
     """Base class for all plugins handling the precision-specific parts of the training.
 
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
+
     """
 
     precision: _PRECISION_INPUT_STR = "32-true"
@@ -41,6 +42,7 @@ class Precision:
         """Convert the module parameters to the precision type this plugin handles.
 
         This is optional and depends on the precision limitations during optimization.
+
         """
         return module
 
@@ -49,6 +51,7 @@ class Precision:
         """Instantiate module parameters or tensors in the precision type this plugin handles.
 
         This is optional and depends on the precision limitations during optimization.
+
         """
         yield
 
@@ -62,6 +65,7 @@ class Precision:
 
         This is a no-op in the base precision plugin, since we assume the data already has the desired type (default is
         torch.float32).
+
         """
         return data
 
@@ -70,6 +74,7 @@ class Precision:
 
         This is a no-op in the base precision plugin, since we assume the data already has the desired type (default is
         torch.float32).
+
         """
         return data
 
@@ -79,6 +84,7 @@ class Precision:
         Args:
             tensor: The tensor that will be used for backpropagation
             module: The module that was involved in producing the tensor and whose parameters need the gradients
+
         """
 
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
@@ -87,6 +93,7 @@ class Precision:
         Args:
             tensor: The tensor that will be used for backpropagation
             model: The module that was involved in producing the tensor and whose parameters need the gradients
+
         """
         tensor.backward(*args, **kwargs)
 
@@ -96,6 +103,7 @@ class Precision:
         Args:
             tensor: The tensor that will be used for backpropagation
             module: The module that was involved in producing the tensor and whose parameters need the gradients
+
         """
 
     def optimizer_step(
@@ -110,6 +118,7 @@ class Precision:
         """The main params of the model.
 
         Returns the plain model params here. Maybe different in other precision plugins.
+
         """
         for group in optimizer.param_groups:
             yield from group["params"]
@@ -122,6 +131,7 @@ class Precision:
 
         Returns:
             A dictionary containing precision plugin state.
+
         """
         return {}
 
@@ -131,6 +141,7 @@ class Precision:
 
         Args:
             state_dict: the precision plugin state returned by ``state_dict``.
+
         """
         pass
 
@@ -138,4 +149,5 @@ class Precision:
         """This method is called to teardown the training process.
 
         It is the right place to release memory and free other resources.
+
         """

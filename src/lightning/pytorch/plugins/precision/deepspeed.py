@@ -50,6 +50,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     Raises:
         ValueError:
             If unsupported ``precision`` is provided.
+
     """
 
     def __init__(self, precision: _PRECISION_INPUT) -> None:
@@ -104,6 +105,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             optimizer: ignored for DeepSpeed
             \*args: additional positional arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
             \**kwargs: additional keyword arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
+
         """
         if is_overridden("backward", model):
             warning_cache.warn(
