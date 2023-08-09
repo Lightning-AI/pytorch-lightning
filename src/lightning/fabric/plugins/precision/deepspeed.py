@@ -71,8 +71,12 @@ class DeepSpeedPrecision(Precision):
 
     @contextmanager
     def init_context(self) -> Generator[None, None, None]:
+        if "true" not in self.precision:
+            yield
+            return
+
         default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self._desired_dtype if "true" in self.precision else default_dtype)
+        torch.set_default_dtype(self._desired_dtype)
         yield
         torch.set_default_dtype(default_dtype)
 

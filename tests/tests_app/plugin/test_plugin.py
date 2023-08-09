@@ -192,10 +192,12 @@ plugin = TestPlugin()
         (_plugin_with_job_run_navigate, [{"content": "/testing", "type": "NAVIGATE_TO"}]),
     ],
 )
+@mock.patch("lightning.app.runners.backends.cloud.CloudBackend")
 @mock.patch("lightning.app.runners.cloud.CloudRuntime")
 @mock.patch("lightning.app.plugin.plugin.requests")
-def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server, plugin_source, actions):
-    """Tests that running a job from a plugin calls the correct `CloudRuntime` methods with the correct arguments."""
+def test_run_job(mock_requests, mock_cloud_runtime, mock_cloud_backend, mock_plugin_server, plugin_source, actions):
+    """Tests that running a job from a plugin calls the correct `CloudRuntime` methods with the correct
+    arguments."""
     content = as_tar_bytes("plugin.py", plugin_source)
     mock_requests.get.side_effect = mock_requests_get("http://test.tar.gz", content)
 
@@ -227,6 +229,7 @@ def test_run_job(mock_requests, mock_cloud_runtime, mock_plugin_server, plugin_s
         env_vars={},
         secrets={},
         run_app_comment_commands=True,
+        backend=mock.ANY,
     )
 
     mock_cloud_runtime().cloudspace_dispatch.assert_called_once_with(
