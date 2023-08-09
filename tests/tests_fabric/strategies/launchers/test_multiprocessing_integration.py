@@ -44,3 +44,4 @@ def _test_memory_sharing_disabled(fabric, tensor, model):
     assert not is_spawn or tensor.is_shared()
     assert not model.layer.weight.is_shared()
     assert not model.buffer.is_shared()
+    fabric.barrier()
