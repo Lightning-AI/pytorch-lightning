@@ -30,7 +30,6 @@ from weakref import proxy
 import torch
 import yaml
 from fsspec import AbstractFileSystem
-from fsspec.asyn import reset_lock
 from fsspec.implementations.local import LocalFileSystem
 from torch import Tensor
 
@@ -276,7 +275,6 @@ class ModelCheckpoint(Checkpoint):
         else:
             self._fs = get_filesystem(value)
             self._dirpath = value
-        reset_lock()  # prevents deadlocking in any downstream use of forked processes, e.g. multiprocessing DataLoaders
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         dirpath = self.__resolve_ckpt_dir(trainer)
