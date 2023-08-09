@@ -27,8 +27,8 @@ from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADER
 
 
 class LightningDataModule(DataHooks, HyperparametersMixin):
-    """A DataModule standardizes the training, val, test splits, data preparation and transforms. The main
-    advantage is consistent data splits, data preparation and transforms across models.
+    """A DataModule standardizes the training, val, test splits, data preparation and transforms. The main advantage is
+    consistent data splits, data preparation and transforms across models.
 
     Example::
 
@@ -53,6 +53,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             def teardown(self):
                 # clean up after fit or test
                 # called on every process in DDP
+
     """
 
     name: Optional[str] = None
@@ -89,6 +90,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
                 data will be loaded in the main process. Number of CPUs available. This parameter gets forwarded to the
                 ``__init__`` if the datamodule has such a name defined in its signature.
             **datamodule_kwargs: Additional parameters that get passed down to the datamodule's ``__init__``.
+
         """
 
         def dataloader(ds: Dataset, shuffle: bool = False) -> DataLoader:
@@ -151,6 +153,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         Returns:
             A dictionary containing datamodule state.
+
         """
         return {}
 
@@ -159,6 +162,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         Args:
             state_dict: the datamodule state returned by ``state_dict``.
+
         """
         pass
 

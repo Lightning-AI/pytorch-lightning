@@ -411,8 +411,8 @@ def test_manual_poptorch_opts(tmpdir):
 
 @RunIf(ipu=True)
 def test_manual_poptorch_opts_custom(tmpdir):
-    """Ensure if the user passes manual poptorch Options with custom parameters set, we respect them in our
-    poptorch options and the dataloaders."""
+    """Ensure if the user passes manual poptorch Options with custom parameters set, we respect them in our poptorch
+    options and the dataloaders."""
 
     model = IPUModel()
     training_opts = poptorch.Options()

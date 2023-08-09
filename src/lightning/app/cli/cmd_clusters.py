@@ -109,8 +109,8 @@ class ClusterList(Formatable):
 
 
 class AWSClusterManager:
-    """AWSClusterManager implements API calls specific to Lightning AI BYOC compute clusters when the AWS provider
-    is selected as the backend compute."""
+    """AWSClusterManager implements API calls specific to Lightning AI BYOC compute clusters when the AWS provider is
+    selected as the backend compute."""
 
     def __init__(self) -> None:
         self.api_client = LightningClient(retry=False)
@@ -135,11 +135,12 @@ class AWSClusterManager:
             external_id: AWS IAM Role external ID
             edit_before_creation: Enables interactive editing of requests before submitting it to Lightning AI.
             do_async: Triggers cluster creation in the background and exits
+
         """
         performance_profile = V1ClusterPerformanceProfile.DEFAULT
         if cost_savings:
-            """In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters
-            with low utilization."""
+            """In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters with
+            low utilization."""
             performance_profile = V1ClusterPerformanceProfile.COST_SAVING
 
         body = V1CreateClusterRequest(
@@ -284,6 +285,7 @@ def _list_apps(
 
     Returns:
         List[Externalv1LightningappInstance]: List of apps matching the filters
+
     """
     project: V1Membership = _get_project(api_client)
     resp: V1ListLightningappInstancesResponse = api_client.lightningapp_instance_service_list_lightningapp_instances(
@@ -312,6 +314,7 @@ def _wait_for_cluster_state(
         target_state: Specifies the desired state the target cluster needs to meet
         timeout_seconds: Maximum duration to wait
         poll_duration_seconds: duration between polling for the cluster state
+
     """
     start = time.time()
     elapsed = 0
@@ -365,6 +368,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
     Args:
         cluster: The cluster object
         elapsed: Seconds since we've started polling
+
     """
     cluster_id = cluster.id
     current_state = cluster.status.phase
@@ -432,6 +436,7 @@ def _format_elapsed_seconds(seconds: Union[float, int]) -> str:
     '05s'
     >>> _format_elapsed_seconds(60)
     '01m00s'
+
     """
     minutes, seconds = divmod(seconds, 60)
     return (f"{minutes:02}m" if minutes else "") + f"{seconds:02}s"

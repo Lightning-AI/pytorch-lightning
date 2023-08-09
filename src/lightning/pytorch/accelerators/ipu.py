@@ -35,6 +35,7 @@ class IPUAccelerator(Accelerator):
     """Accelerator for IPUs.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+
     """
 
     def setup_device(self, device: torch.device) -> None:

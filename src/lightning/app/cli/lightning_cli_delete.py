@@ -56,6 +56,7 @@ def delete_cluster(cluster: str, force: bool = False, do_sync: bool = False) -> 
 
     All object stores, container registries, logs, compute nodes, volumes,
     VPC components, etc. are irreversibly deleted and cannot be recovered!
+
     """
     cluster_manager = AWSClusterManager()
     cluster_manager.delete(cluster_id=cluster, force=force, do_async=not do_sync)
@@ -196,6 +197,7 @@ def delete_app(app_name: str, cluster_id: str, skip_user_confirm_prompt: bool) -
     Deleting an app also deletes all app websites, works, artifacts, and logs. This permanently removes any record of
     the app as well as all any of its associated resources and data. This does not affect any resources and data
     associated with other Lightning apps on your account.
+
     """
     console = Console()
 

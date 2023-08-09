@@ -25,6 +25,7 @@ and replace ``loss.backward()`` with ``self.backward(loss)``.
 Accelerate your training loop by setting the ``--accelerator``, ``--strategy``, ``--devices`` options directly from
 the command line. See ``lightning run model --help`` or learn more from the documentation:
 https://lightning.ai/docs/fabric.
+
 """
 
 import argparse

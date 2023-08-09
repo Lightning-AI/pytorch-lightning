@@ -10,6 +10,7 @@ class SingleDeviceCollective(Collective):
     """Support for collective operations on a single device (no-op).
 
     .. warning:: This is an :ref:`experimental <versioning:Experimental API>` feature which is still in development.
+
     """
 
     @property

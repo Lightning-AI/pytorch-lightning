@@ -107,8 +107,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         return self._original_module or self._forward_module
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
-        """Casts all inputs to the right precision and handles autocast for operations in the module forward
-        method."""
+        """Casts all inputs to the right precision and handles autocast for operations in the module forward method."""
         args, kwargs = self._precision.convert_input((args, kwargs))
 
         with self._precision.forward_context():
@@ -269,6 +268,7 @@ def is_wrapped(obj: object) -> bool:
 
     Args:
         obj: The object to test.
+
     """
     obj = _unwrap_compiled(obj)
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))

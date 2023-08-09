@@ -36,6 +36,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
         bf16_file_path: Path to bf16 ops list in hmp O1 mode.
         fp32_file_path: Path to fp32 ops list in hmp O1 mode.
         verbose: Enable verbose mode for hmp.
+
     """
 
     def __init__(

@@ -93,6 +93,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         >>> tbl.log_metrics({"acc": 0.9})
         >>> tbl.finalize("success")
         >>> shutil.rmtree(tmp)
+
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
 
@@ -130,6 +131,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
         be saved in "save_dir/version"
+
         """
         return os.path.join(super().root_dir, self.name)
 
@@ -139,6 +141,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
         constructor's version parameter instead of ``None`` or an int.
+
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
@@ -155,6 +158,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         Returns:
             The local path to the save directory where the TensorBoard experiments are saved.
+
         """
         return self._root_dir
 
@@ -163,12 +167,13 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
-        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs
-        to display the new ones with hyperparameters.
+        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
+        display the new ones with hyperparameters.
 
         Args:
             params: a dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
+
         """
         params = _convert_params(params)
 
@@ -230,6 +235,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         Args:
             checkpoint_callback: the model checkpoint callback instance
+
         """
         pass
 

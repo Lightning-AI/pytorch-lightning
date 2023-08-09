@@ -298,6 +298,7 @@ class Trainer:
             MisconfigurationException:
                 If ``gradient_clip_algorithm`` is invalid.
                 If ``track_grad_norm`` is not a positive number or inf.
+
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
@@ -523,6 +524,7 @@ class Trainer:
                 :class:`torch._dynamo.OptimizedModule` for torch versions greater than or equal to 2.0.0 .
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
+
         """
         model = _maybe_unwrap_optimized(model)
         self.strategy._lightning_module = model
@@ -616,6 +618,7 @@ class Trainer:
 
             RuntimeError:
                 If a compiled ``model`` is passed and the strategy is not supported.
+
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -687,8 +690,8 @@ class Trainer:
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
-        r"""Perform one evaluation epoch over the test set. It's separated from fit to make sure you never run on
-        your test set until you want to.
+        r"""Perform one evaluation epoch over the test set. It's separated from fit to make sure you never run on your
+        test set until you want to.
 
         Args:
             model: The model to test.
@@ -724,6 +727,7 @@ class Trainer:
 
             RuntimeError:
                 If a compiled ``model`` is passed and the strategy is not supported.
+
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -833,6 +837,7 @@ class Trainer:
                 If a compiled ``model`` is passed and the strategy is not supported.
 
         See :ref:`Lightning inference section<deploy/production_basic:Predict step with your LightningModule>` for more.
+
         """
         if model is None:
             # do we still have a reference from a previous call?
@@ -1156,6 +1161,7 @@ class Trainer:
 
         To access the pure LightningModule, use
         :meth:`~lightning.pytorch.trainer.trainer.Trainer.lightning_module` instead.
+
         """
         return self.strategy.model
 
@@ -1195,6 +1201,7 @@ class Trainer:
             def training_step(self, batch, batch_idx):
                 if self.trainer.is_global_zero:
                     print("in node 0, accelerator 0")
+
         """
         return self.strategy.is_global_zero
 
@@ -1218,6 +1225,7 @@ class Trainer:
         """The default location to save artifacts of loggers, checkpoints etc.
 
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
+
         """
         if get_filesystem(self._default_root_dir).protocol == "file":
             return os.path.normpath(self._default_root_dir)
@@ -1280,6 +1288,7 @@ class Trainer:
             # you will be in charge of resetting this
             trainer.ckpt_path = None
             trainer.test(model)
+
         """
         self._checkpoint_connector._ckpt_path = ckpt_path
         self._checkpoint_connector._user_managed = bool(ckpt_path)
@@ -1297,6 +1306,7 @@ class Trainer:
         Raises:
             AttributeError:
                 If the model is not attached to the Trainer before calling this method.
+
         """
         if self.model is None:
             raise AttributeError(
@@ -1366,6 +1376,7 @@ class Trainer:
         """Whether sanity checking is running.
 
         Useful to disable some hooks, logging or callbacks during the sanity checking.
+
         """
         return self.state.stage == RunningStage.SANITY_CHECKING
 
@@ -1393,6 +1404,7 @@ class Trainer:
         """The number of optimizer steps taken (does not reset each epoch).
 
         This includes multiple optimizers (if enabled).
+
         """
         return self.fit_loop.epoch_loop.global_step
 
@@ -1547,6 +1559,7 @@ class Trainer:
 
             callback_metrics = trainer.callback_metrics
             assert callback_metrics["a_val"] == 2.0
+
         """
         return self._logger_connector.callback_metrics
 
@@ -1556,6 +1569,7 @@ class Trainer:
 
         This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
         :paramref:`~lightning.pytorch.core.module.LightningModule.log.logger` argument set.
+
         """
         return self._logger_connector.logged_metrics
 
@@ -1565,6 +1579,7 @@ class Trainer:
 
         This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
         :paramref:`~lightning.pytorch.core.module.LightningModule.log.prog_bar` argument set.
+
         """
         return self._logger_connector.progress_bar_metrics
 

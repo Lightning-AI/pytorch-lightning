@@ -257,6 +257,7 @@ def test_deepspeed_env_variables_on_platforms(_, deepspeed_dist_mock, platform):
     """Test to ensure that we set up distributed communication correctly.
 
     When using Windows, ranks environment variables should not be set, and DeepSpeed should handle this.
+
     """
     fabric = BoringFabric(strategy=DeepSpeedStrategy(stage=3))
     strategy = fabric._strategy

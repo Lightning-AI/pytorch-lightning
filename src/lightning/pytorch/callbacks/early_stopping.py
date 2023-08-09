@@ -14,6 +14,7 @@
 r"""Early Stopping ^^^^^^^^^^^^^^
 
 Monitor a metric and stop training when it stops improving.
+
 """
 import logging
 from typing import Any, Callable, Dict, Optional, Tuple
@@ -81,6 +82,7 @@ class EarlyStopping(Callback):
         *monitor, mode*
 
         Read more: :ref:`Persisting Callback State <extensions/callbacks_state:save callback state>`
+
     """
     mode_dict = {"min": torch.lt, "max": torch.gt}
 

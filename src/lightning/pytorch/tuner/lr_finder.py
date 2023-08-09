@@ -89,6 +89,7 @@ class _LRFinder:
 
         # Get suggestion
         lr = lr_finder.suggestion()
+
     """
 
     def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int) -> None:
@@ -173,8 +174,8 @@ class _LRFinder:
         return fig
 
     def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> Optional[float]:
-        """This will propose a suggestion for an initial learning rate based on the point with the steepest
-        negative gradient.
+        """This will propose a suggestion for an initial learning rate based on the point with the steepest negative
+        gradient.
 
         Args:
             skip_begin: how many samples to skip in the beginning; helps to avoid too naive estimates
@@ -183,6 +184,7 @@ class _LRFinder:
         Returns:
             The suggested initial learning rate to use, or `None` if a suggestion is not possible due to too few
             loss samples.
+
         """
         losses = np.array(self.results["loss"][skip_begin:-skip_end])
         losses = losses[np.isfinite(losses)]
@@ -213,8 +215,8 @@ def _lr_find(
     update_attr: bool = False,
     attr_name: str = "",
 ) -> Optional[_LRFinder]:
-    """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
-    picking a good starting learning rate.
+    """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in picking
+    a good starting learning rate.
 
     Args:
         trainer: A Trainer instance.
@@ -233,6 +235,7 @@ def _lr_find(
         update_attr: Whether to update the learning rate attribute or not.
         attr_name: Name of the attribute which stores the learning rate. The names 'learning_rate' or 'lr' get
             automatically detected. Otherwise, set the name here.
+
     """
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping learning rate finder since `fast_dev_run` is enabled.")
@@ -340,8 +343,8 @@ def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) ->
 
 
 class _LRCallback(Callback):
-    """Special callback used by the learning rate finder. This callback logs the learning rate before each batch
-    and logs the corresponding loss after each batch.
+    """Special callback used by the learning rate finder. This callback logs the learning rate before each batch and
+    logs the corresponding loss after each batch.
 
     Args:
         num_training: number of iterations done by the learning rate finder
@@ -353,6 +356,7 @@ class _LRCallback(Callback):
         beta: smoothing value, the loss being logged is a running average of
             loss values logged until now. ``beta`` controls the forget rate i.e.
             if ``beta=0`` all past information is ignored.
+
     """
 
     def __init__(
@@ -434,6 +438,7 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         num_iter: the number of iterations over which the test occurs.
 
         last_epoch: the index of last epoch. Default: -1.
+
     """
 
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
@@ -469,6 +474,7 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         num_iter: the number of iterations over which the test occurs.
 
         last_epoch: the index of last epoch. Default: -1.
+
     """
 
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):

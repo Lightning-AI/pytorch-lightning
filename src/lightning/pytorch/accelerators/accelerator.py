@@ -23,6 +23,7 @@ class Accelerator(_Accelerator, ABC):
     """The Accelerator base class for Lightning PyTorch.
 
     .. warning::  Writing your own accelerator is an :ref:`experimental <versioning:Experimental API>` feature.
+
     """
 
     def setup(self, trainer: "pl.Trainer") -> None:
@@ -30,6 +31,7 @@ class Accelerator(_Accelerator, ABC):
 
         Args:
             trainer: the trainer instance
+
         """
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
@@ -40,5 +42,6 @@ class Accelerator(_Accelerator, ABC):
 
         Returns:
             Dictionary of device stats
+
         """
         raise NotImplementedError

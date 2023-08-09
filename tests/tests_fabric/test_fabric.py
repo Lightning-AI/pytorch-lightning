@@ -146,8 +146,7 @@ def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, 
 @pytest.mark.parametrize("move_to_device", [True, False])
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_module_parameters_on_different_devices(setup_method, move_to_device):
-    """Test that a warning is emitted when model parameters are on a different device prior to calling
-    `setup()`."""
+    """Test that a warning is emitted when model parameters are on a different device prior to calling `setup()`."""
     device0 = torch.device("cpu")
     device1 = torch.device("cuda", 0)
 
@@ -317,8 +316,7 @@ def test_setup_dataloaders_return_type():
 
 @mock.patch("lightning.fabric.fabric._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
-    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager in its run
-    method."""
+    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager in its run method."""
 
     class RunFabric(Fabric):
         def run(self):
@@ -330,8 +328,8 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
 
 
 def test_setup_dataloaders_raises_for_unknown_custom_args():
-    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's
-    run method."""
+    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's run
+    method."""
     fabric = Fabric()
 
     class CustomDataLoader(DataLoader):
@@ -477,8 +475,7 @@ def test_seed_everything():
     ],
 )
 def test_setup_dataloaders_replace_custom_sampler(strategy):
-    """Test that asking to replace a custom sampler results in an error when a distributed sampler would be
-    needed."""
+    """Test that asking to replace a custom sampler results in an error when a distributed sampler would be needed."""
     custom_sampler = Mock(spec=Sampler)
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
@@ -693,8 +690,7 @@ def test_overridden_run_and_cli_not_allowed():
 
 
 def test_module_sharding_context():
-    """Test that the sharding context manager gets applied when the strategy supports it and is a no-op
-    otherwise."""
+    """Test that the sharding context manager gets applied when the strategy supports it and is a no-op otherwise."""
     fabric = Fabric()
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
     with fabric.sharded_model():

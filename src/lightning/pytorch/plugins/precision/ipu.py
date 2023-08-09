@@ -38,6 +38,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
     Raises:
         ValueError:
             If the precision is neither 16-mixed nor 32-true.
+
     """
 
     def __init__(self, precision: Literal["32-true", "16-mixed"]) -> None:

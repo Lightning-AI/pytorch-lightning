@@ -103,6 +103,7 @@ def upload_model(
         save_code:
             By default, the API saves the code where the model is defined.
             Set it to `False` if saving code is not desired.
+
     """
     if model is None and checkpoint_path is None:
         raise ValueError(
@@ -241,6 +242,7 @@ def download_model(
             (`version` defaults to `latest`)
         progress_bar:
             Show progress on download.
+
     """
     version = version or "latest"
     username, model_name, version = _split_name(name, version=version, l_stage=stage.DOWNLOAD)
@@ -331,6 +333,7 @@ def load_model(
             Loads checkpoint if this is set to `True`. Only a `LightningModule` model is supported for this feature.
         model:
             Model class to be used.
+
     """
     if load_weights and load_checkpoint:
         raise ValueError(

@@ -72,6 +72,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
+
     """
 
     def __init__(
@@ -195,6 +196,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         This setup method doesn't modify the optimizer or wrap the optimizer. The only thing it currently does is verify
         that the optimizer was created after the model was wrapped with :meth:`setup_module` with a reference to the
         flattened parameters.
+
         """
         from torch.distributed.fsdp import FlatParameter
 

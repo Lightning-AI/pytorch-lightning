@@ -35,6 +35,7 @@ class SingleHPUStrategy(SingleDeviceStrategy):
     """Strategy for training on single HPU device.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     """
 
     strategy_name = "hpu_single"
