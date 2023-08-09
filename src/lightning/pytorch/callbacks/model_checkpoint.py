@@ -275,6 +275,8 @@ class ModelCheckpoint(Checkpoint):
         else:
             self._fs = get_filesystem(value)
             self._dirpath = value
+            if self._fs.protocol == "file":
+                self._dirpath = os.path.realpath(self._dirpath)
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         dirpath = self.__resolve_ckpt_dir(trainer)

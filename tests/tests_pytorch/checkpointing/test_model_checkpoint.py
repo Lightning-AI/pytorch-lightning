@@ -439,8 +439,6 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     # no dirpath set
     ckpt_name = ModelCheckpoint(monitor="early_stop_on", dirpath=None).format_checkpoint_name({"epoch": 3, "step": 2})
     assert ckpt_name == "epoch=3-step=2.ckpt"
-    ckpt_name = ModelCheckpoint(monitor="early_stop_on", dirpath="").format_checkpoint_name({"epoch": 5, "step": 4})
-    assert ckpt_name == "epoch=5-step=4.ckpt"
 
     # CWD
     ckpt_name = ModelCheckpoint(monitor="early_stop_on", dirpath=".").format_checkpoint_name({"epoch": 3, "step": 4})
