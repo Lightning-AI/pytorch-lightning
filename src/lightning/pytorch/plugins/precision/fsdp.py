@@ -17,7 +17,6 @@ from typing import Any, Callable, Dict, Generator, Literal, Optional, TYPE_CHECK
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
-from torch.optim import Optimizer
 from typing_extensions import get_args
 
 import lightning.pytorch as pl
