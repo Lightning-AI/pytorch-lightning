@@ -46,6 +46,7 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
     Raises:
         ValueError:
             If unsupported ``precision`` is provided.
+
     """
 
     def __init__(self, precision: _PRECISION_INPUT, scaler: Optional["ShardedGradScaler"] = None) -> None:
@@ -194,6 +195,7 @@ class FSDPMixedPrecisionPlugin(FSDPPrecisionPlugin):
     .. deprecated:: Use :class:`FSDPPrecisionPlugin` instead.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     """
 
     def __init__(
