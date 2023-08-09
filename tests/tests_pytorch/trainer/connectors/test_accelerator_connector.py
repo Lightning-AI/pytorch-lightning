@@ -36,6 +36,7 @@ from lightning.pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAcce
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision import (
+    DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
     FSDPPrecisionPlugin,
     HalfPrecisionPlugin,
@@ -54,14 +55,14 @@ from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE, _LIGHTNING_HABANA_AVAILABLE
+from lightning.pytorch.utilities.imports import _lightning_graphcore_available, _lightning_habana_available
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 
-if _LIGHTNING_GRAPHCORE_AVAILABLE:
+if _lightning_graphcore_available():
     from lightning_graphcore import IPUAccelerator, IPUStrategy
 
-if _LIGHTNING_HABANA_AVAILABLE:
+if _lightning_habana_available():
     from lightning_habana import HPUAccelerator, SingleHPUStrategy
 
 
@@ -936,7 +937,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert connector.strategy.launcher.is_interactive_compatible
 
     # Single/Multi IPU: strategy is the same
-    if _LIGHTNING_GRAPHCORE_AVAILABLE:
+    if _lightning_graphcore_available():
         with monkeypatch.context():
             mock_cuda_count(monkeypatch, 0)
             mock_mps_count(monkeypatch, 0)
@@ -950,7 +951,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         assert connector.strategy.launcher is None
 
     # Single HPU
-    if _LIGHTNING_HABANA_AVAILABLE:
+    if _lightning_habana_available():
         import lightning_habana
 
         with monkeypatch.context():
@@ -968,7 +969,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     monkeypatch.undo()  # for some reason `.context()` is not working properly
     _mock_interactive()
 
-    if not is_interactive and _LIGHTNING_HABANA_AVAILABLE:  # HPU does not support interactive environments
+    if not is_interactive and _lightning_habana_available():  # HPU does not support interactive environments
         from lightning_habana import HPUParallelStrategy
 
         # Multi HPU
@@ -1029,6 +1030,11 @@ def test_connector_sets_num_nodes(strategy, cuda_count_2):
         pytest.param("bf16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
         pytest.param("16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
         pytest.param("bf16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("32-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("16-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("bf16-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("16-mixed", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("bf16-mixed", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
     ],
 )
 def test_precision_selection(precision_str, strategy_str, expected_precision_cls):

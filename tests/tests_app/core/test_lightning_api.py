@@ -499,9 +499,8 @@ def target():
 
 
 async def async_request(url: str, data: InputRequestModel):
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=data.dict()) as result:
-            return await result.json()
+    async with aiohttp.ClientSession() as session, session.post(url, json=data.dict()) as result:
+        return await result.json()
 
 
 @pytest.mark.xfail(strict=False, reason="No idea why... need to be fixed")  # fixme

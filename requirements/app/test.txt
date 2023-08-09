@@ -7,7 +7,7 @@ pytest-asyncio ==0.21.1
 # pytest-random-order ==1.1.0
 pytest-rerunfailures <=11.1.2
 
-playwright ==1.35.0
+playwright ==1.36.0
 httpx ==0.24.1
 trio <0.22.0  # strict https://github.com/python-trio/trio/pull/2213
 pympler
