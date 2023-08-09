@@ -125,8 +125,7 @@ def _get_next_backoff_time(num_retries: int, backoff_value: float = 0.5) -> floa
 
 
 def _retry_wrapper(self, func: Callable, max_tries: Optional[int] = None) -> Callable:
-    """Returns the function decorated by a wrapper that retries the call several times if a connection error
-    occurs.
+    """Returns the function decorated by a wrapper that retries the call several times if a connection error occurs.
 
     The retries follow an exponential backoff.
 
@@ -177,6 +176,7 @@ class LightningClient(GridRestClient):
     Args:
         retry: Whether API calls should follow a retry mechanism with exponential backoff.
         max_tries: Maximum number of attempts (or -1 to retry forever).
+
     """
 
     def __init__(self, retry: bool = True, max_tries: Optional[int] = None) -> None:
