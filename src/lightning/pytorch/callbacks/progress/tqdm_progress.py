@@ -407,6 +407,7 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
     """The tqdm doesn't support inf/nan values.
 
     We have to convert it to None.
+
     """
     if x is None or math.isinf(x) or math.isnan(x):
         return None

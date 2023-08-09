@@ -31,12 +31,14 @@ class ModelHooks:
         """Called at the very beginning of fit.
 
         If on DDP it is called on every process
+
         """
 
     def on_fit_end(self) -> None:
         """Called at the very end of fit.
 
         If on DDP it is called on every process
+
         """
 
     def on_train_start(self) -> None:
@@ -71,6 +73,7 @@ class ModelHooks:
         Args:
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
+
         """
 
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
@@ -80,6 +83,7 @@ class ModelHooks:
             outputs: The outputs of training_step(x)
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
+
         """
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
@@ -89,6 +93,7 @@ class ModelHooks:
             batch: The batched data as it is returned by the validation DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
+
         """
 
     def on_validation_batch_end(
@@ -101,6 +106,7 @@ class ModelHooks:
             batch: The batched data as it is returned by the validation DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
+
         """
 
     def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
@@ -110,6 +116,7 @@ class ModelHooks:
             batch: The batched data as it is returned by the test DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
+
         """
 
     def on_test_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
@@ -120,6 +127,7 @@ class ModelHooks:
             batch: The batched data as it is returned by the test DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
+
         """
 
     def on_predict_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
@@ -129,6 +137,7 @@ class ModelHooks:
             batch: The batched data as it is returned by the test DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
+
         """
 
     def on_predict_batch_end(self, outputs: Optional[Any], batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
@@ -139,6 +148,7 @@ class ModelHooks:
             batch: The batched data as it is returned by the prediction DataLoader.
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
+
         """
 
     def on_validation_model_eval(self) -> None:
@@ -188,6 +198,7 @@ class ModelHooks:
                     self.log("training_epoch_mean", epoch_mean)
                     # free up the memory
                     self.training_step_outputs.clear()
+
         """
 
     def on_validation_epoch_start(self) -> None:
@@ -274,6 +285,7 @@ class ModelHooks:
         """Deprecated.
 
         Use :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` instead.
+
         """
 
     def configure_model(self) -> None:
@@ -286,6 +298,7 @@ class ModelHooks:
 
         This hook is called during each of fit/val/test/predict stages in the same process, so ensure that
         implementation of this hook is idempotent.
+
         """
 
 
@@ -308,8 +321,8 @@ class DataHooks:
 
     def prepare_data(self) -> None:
         """Use this to download and prepare data. Downloading and saving data with multiple processes (distributed
-        settings) will result in corrupted data. Lightning ensures this method is called only within a single
-        process, so you can safely add your downloading logic within.
+        settings) will result in corrupted data. Lightning ensures this method is called only within a single process,
+        so you can safely add your downloading logic within.
 
         .. warning:: DO NOT set state to the model (use ``setup`` instead)
             since this is NOT called on every device
@@ -359,12 +372,13 @@ class DataHooks:
             model.val_dataloader()
             model.test_dataloader()
             model.predict_dataloader()
+
         """
 
     def setup(self, stage: str) -> None:
-        """Called at the beginning of fit (train + validate), validate, test, or predict. This is a good hook when
-        you need to build models dynamically or adjust something about them. This hook is called on every process
-        when using DDP.
+        """Called at the beginning of fit (train + validate), validate, test, or predict. This is a good hook when you
+        need to build models dynamically or adjust something about them. This hook is called on every process when
+        using DDP.
 
         Args:
             stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
@@ -385,6 +399,7 @@ class DataHooks:
                 def setup(self, stage):
                     data = load_data(...)
                     self.l1 = nn.Linear(28, data.num_classes)
+
         """
 
     def teardown(self, stage: str) -> None:
@@ -392,6 +407,7 @@ class DataHooks:
 
         Args:
             stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
+
         """
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
@@ -419,6 +435,7 @@ class DataHooks:
         Note:
             Lightning tries to add the correct sampler for distributed and arbitrary hardware.
             There is no need to set it yourself.
+
         """
         raise MisconfigurationException("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
@@ -448,6 +465,7 @@ class DataHooks:
         Note:
             If you don't need a test dataset and a :meth:`test_step`, you don't need to implement
             this method.
+
         """
         raise MisconfigurationException("`test_dataloader` must be implemented to be used with the Lightning Trainer")
 
@@ -474,6 +492,7 @@ class DataHooks:
         Note:
             If you don't need a validation dataset and a :meth:`validation_step`, you don't need to
             implement this method.
+
         """
         raise MisconfigurationException("`val_dataloader` must be implemented to be used with the Lightning Trainer")
 
@@ -494,14 +513,15 @@ class DataHooks:
 
         Return:
             A :class:`torch.utils.data.DataLoader` or a sequence of them specifying prediction samples.
+
         """
         raise MisconfigurationException(
             "`predict_dataloader` must be implemented to be used with the Lightning Trainer"
         )
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:
-        """Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors wrapped in a custom
-        data structure.
+        """Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors wrapped in a custom data
+        structure.
 
         The data types listed below (and any arbitrary nesting of them) are supported out of the box:
 
@@ -548,6 +568,7 @@ class DataHooks:
         See Also:
             - :meth:`move_data_to_device`
             - :meth:`apply_to_collection`
+
         """
         return move_data_to_device(batch, device)
 
@@ -575,6 +596,7 @@ class DataHooks:
         See Also:
             - :meth:`on_after_batch_transfer`
             - :meth:`transfer_batch_to_device`
+
         """
         return batch
 
@@ -606,6 +628,7 @@ class DataHooks:
         See Also:
             - :meth:`on_before_batch_transfer`
             - :meth:`transfer_batch_to_device`
+
         """
         return batch
 
@@ -614,8 +637,8 @@ class CheckpointHooks:
     """Hooks to be used with Checkpointing."""
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""Called by Lightning to restore your model. If you saved something with :meth:`on_save_checkpoint` this
-        is your chance to restore this.
+        r"""Called by Lightning to restore your model. If you saved something with :meth:`on_save_checkpoint` this is
+        your chance to restore this.
 
         Args:
             checkpoint: Loaded checkpoint
@@ -629,11 +652,12 @@ class CheckpointHooks:
         Note:
             Lightning auto-restores global step, epoch, and train state including amp scaling.
             There is no need for you to restore anything regarding training.
+
         """
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        r"""Called by Lightning when saving a checkpoint to give you a chance to store anything else you might want
-        to save.
+        r"""Called by Lightning when saving a checkpoint to give you a chance to store anything else you might want to
+        save.
 
         Args:
             checkpoint: The full checkpoint dictionary before it gets dumped to a file.
@@ -649,4 +673,5 @@ class CheckpointHooks:
             Lightning saves all aspects of training (epoch, global step, etc...)
             including amp scaling.
             There is no need for you to store anything about training.
+
         """

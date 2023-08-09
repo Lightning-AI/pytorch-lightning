@@ -266,6 +266,7 @@ class XLAStrategy(DDPStrategy):
 
         Args:
             filepath: Path to checkpoint
+
         """
         if self.local_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)
@@ -279,6 +280,7 @@ class XLAStrategy(DDPStrategy):
             sync_grads: flag that allows users to synchronize gradients for the all-gather operation.
         Return:
             A tensor of shape (world_size, ...)
+
         """
         if not self._launched:
             return tensor

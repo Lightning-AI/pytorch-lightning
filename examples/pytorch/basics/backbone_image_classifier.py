@@ -14,6 +14,7 @@
 """MNIST backbone image classifier example.
 
 To run: python backbone_image_classifier.py --trainer.max_epochs=50
+
 """
 from os import path
 from typing import Optional
@@ -50,8 +51,7 @@ class Backbone(torch.nn.Module):
     def forward(self, x):
         x = x.view(x.size(0), -1)
         x = torch.relu(self.l1(x))
-        x = torch.relu(self.l2(x))
-        return x
+        return torch.relu(self.l2(x))
 
 
 class LitClassifier(LightningModule):

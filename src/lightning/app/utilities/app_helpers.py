@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class StateEntry:
-    """dataclass used to keep track the latest state shared through the app REST API."""
+    """Dataclass used to keep track the latest state shared through the app REST API."""
 
     app_state: Mapping = field(default_factory=dict)
     served_state: Mapping = field(default_factory=dict)
@@ -57,8 +57,7 @@ class StateEntry:
 
 
 class StateStore(ABC):
-    """Base class of State store that provides simple key, value store to keep track of app state, served app
-    state."""
+    """Base class of State store that provides simple key, value store to keep track of app state, served app state."""
 
     @abstractmethod
     def __init__(self):
@@ -76,32 +75,32 @@ class StateStore(ABC):
 
     @abstractmethod
     def get_app_state(self, k: str) -> Mapping:
-        """returns a stored appstate for an input key 'k'."""
+        """Returns a stored appstate for an input key 'k'."""
         pass
 
     @abstractmethod
     def get_served_state(self, k: str) -> Mapping:
-        """returns a last served app state for an input key 'k'."""
+        """Returns a last served app state for an input key 'k'."""
         pass
 
     @abstractmethod
     def get_served_session_id(self, k: str) -> str:
-        """returns session id for state of a key 'k'."""
+        """Returns session id for state of a key 'k'."""
         pass
 
     @abstractmethod
     def set_app_state(self, k: str, v: Mapping):
-        """sets the app state for state of a key 'k'."""
+        """Sets the app state for state of a key 'k'."""
         pass
 
     @abstractmethod
     def set_served_state(self, k: str, v: Mapping):
-        """sets the served state for state of a key 'k'."""
+        """Sets the served state for state of a key 'k'."""
         pass
 
     @abstractmethod
     def set_served_session_id(self, k: str, v: str):
-        """sets the session id for state of a key 'k'."""
+        """Sets the session id for state of a key 'k'."""
         pass
 
 
@@ -352,6 +351,7 @@ def _walk_to_component(
     """Returns a generator that runs through the tree starting from the root down to the given component.
 
     At each node, yields parent and child as a tuple.
+
     """
     from lightning.app.structures import Dict, List
 
@@ -469,6 +469,7 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
         root_flow: The flow at the top of the component tree.
         state: The collected state dict.
         strict: Whether to validate all components have been re-created.
+
     """
     # 1: Reload the state of the existing works
     for w in root_flow.works():

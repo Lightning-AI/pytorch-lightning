@@ -89,6 +89,7 @@ class _EvaluationLoop(_Loop):
         """In "sequential" mode, the max number of batches to run per dataloader.
 
         Otherwise, the max batches to run.
+
         """
         max_batches = self._max_batches
         if not self.trainer.sanity_checking:
@@ -377,9 +378,11 @@ class _EvaluationLoop(_Loop):
             batch: The current batch to run through the step.
             batch_idx: The index of the current batch
             dataloader_idx: the index of the dataloader producing the current batch
+
         """
         trainer = self.trainer
 
+        batch = trainer.precision_plugin.convert_input(batch)
         batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
         batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)
 
@@ -431,6 +434,7 @@ class _EvaluationLoop(_Loop):
 
         Returns:
             the dictionary containing all the keyboard arguments for the step
+
         """
         step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
         if dataloader_idx is not None:

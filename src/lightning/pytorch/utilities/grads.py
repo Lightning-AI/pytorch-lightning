@@ -35,6 +35,7 @@ def grad_norm(module: Module, norm_type: Union[float, int, str], group_separator
         norms: The dictionary of p-norms of each parameter's gradient and
             a special entry for the total p-norm of the gradients viewed
             as a single vector.
+
     """
     norm_type = float(norm_type)
     if norm_type <= 0:

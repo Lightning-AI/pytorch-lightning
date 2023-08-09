@@ -42,6 +42,7 @@ class FileSystem:
             src_path: The path to your files locally
             dst_path: The path to your files transfered in the shared storage.
             put_fn: The method to use to put files in the shared storage.
+
         """
         if not os.path.exists(Path(src_path).resolve()):
             raise FileExistsError(f"The provided path {src_path} doesn't exist")
@@ -66,6 +67,7 @@ class FileSystem:
             src_path: The path to your files in the shared storage
             dst_path: The path to your files transfered locally
             get_fn: The method to use to put files in the shared storage.
+
         """
         if not src_path.startswith("/"):
             raise Exception(f"The provided destination {src_path} needs to start with `/`.")
@@ -80,6 +82,7 @@ class FileSystem:
 
         Arguments:
             path: The path to files to list.
+
         """
         if not path.startswith("/"):
             raise Exception(f"The provided destination {path} needs to start with `/`.")
@@ -104,6 +107,7 @@ class FileSystem:
 
         Arguments:
             path: The path to files to list.
+
         """
         if not path.startswith("/"):
             raise Exception(f"The provided destination {path} needs to start with `/`.")
