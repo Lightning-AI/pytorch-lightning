@@ -247,6 +247,7 @@ class ModelCheckpoint(Checkpoint):
 
         self.kth_value: Tensor
         self._fs: AbstractFileSystem
+        self._dirpath: Optional[_PATH]
         self.dirpath = dirpath
         self.filename = filename
         self.__init_monitor_mode(mode)
@@ -264,11 +265,11 @@ class ModelCheckpoint(Checkpoint):
         )
 
     @property
-    def dirpath(self) -> str:
+    def dirpath(self) -> Optional[_PATH]:
         return self._dirpath
 
     @dirpath.setter
-    def dirpath(self, value: _PATH) -> None:
+    def dirpath(self, value: Optional[_PATH]) -> None:
         if value is None:
             self._fs = LocalFileSystem()
             self._dirpath = None
