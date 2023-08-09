@@ -585,6 +585,7 @@ class WandbLogger(Logger):
             path (_PATH): The absolute path or URI to the checkpoint.
             score (float): The score associated with the checkpoint.
             tag (str): The tag associated with the checkpoint.
+
         """
         artifact.add_file(path, name="model.ckpt")
 
