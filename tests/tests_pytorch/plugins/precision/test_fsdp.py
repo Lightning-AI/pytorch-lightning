@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock, ANY
 
 import pytest
 import torch
@@ -92,19 +92,22 @@ def test_fsdp_precision_backward():
     precision.scaler = Mock()
     precision.scaler.scale = Mock(side_effect=(lambda x: x))
     tensor = Mock()
-    model = Mock()
-    precision.backward(tensor, model, "positional-arg", keyword="arg")
+    model = Mock(trainer=Mock(callbacks=[], profiler=MagicMock()))
+    precision.pre_backward(tensor, model)
+    precision.backward(tensor, model, None, "positional-arg", keyword="arg")
     precision.scaler.scale.assert_called_once_with(tensor)
-    tensor.backward.assert_called_once_with("positional-arg", keyword="arg")
+    model.backward.assert_called_once_with(tensor, "positional-arg", keyword="arg")
 
 
 @RunIf(min_torch="1.12")
 def test_fsdp_precision_optimizer_step_with_scaler():
     precision = FSDPPrecisionPlugin(precision="16-mixed")
     precision.scaler = Mock()
+    model = Mock(trainer=Mock(callbacks=[], profiler=MagicMock()))
     optimizer = Mock()
+    closure = Mock()
 
-    precision.optimizer_step(optimizer, keyword="arg")
+    precision.optimizer_step(optimizer, model, closure, keyword="arg")
     precision.scaler.step.assert_called_once_with(optimizer, keyword="arg")
     precision.scaler.update.assert_called_once()
 
@@ -113,10 +116,12 @@ def test_fsdp_precision_optimizer_step_with_scaler():
 def test_fsdp_precision_optimizer_step_without_scaler():
     precision = FSDPPrecisionPlugin(precision="bf16-mixed")
     assert precision.scaler is None
+    model = Mock(trainer=Mock(callbacks=[], profiler=MagicMock()))
     optimizer = Mock()
+    closure = Mock()
 
-    precision.optimizer_step(optimizer, keyword="arg")
-    optimizer.step.assert_called_once_with(keyword="arg")
+    precision.optimizer_step(optimizer, model, closure, keyword="arg")
+    optimizer.step.assert_called_once_with(closure=ANY, keyword="arg")
 
 
 @RunIf(min_torch="1.12")
