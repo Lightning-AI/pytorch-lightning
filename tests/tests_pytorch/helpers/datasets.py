@@ -46,6 +46,7 @@ class MNIST(Dataset):
         60000
         >>> torch.bincount(dataset.targets)
         tensor([5923, 6742, 5958, 6131, 5842, 5421, 5918, 6265, 5851, 5949])
+
     """
 
     RESOURCES = (
@@ -148,6 +149,7 @@ class TrialMNIST(MNIST):
         [0, 1, 2]
         >>> torch.bincount(dataset.targets)
         tensor([100, 100, 100])
+
     """
 
     def __init__(self, root: str, num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2), **kwargs):

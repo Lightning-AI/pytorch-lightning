@@ -98,6 +98,7 @@ def delete_app(app_name: str, skip_user_confirm_prompt: bool) -> None:
     Deleting an app also deletes all app websites, works, artifacts, and logs. This permanently removes any record of
     the app as well as all any of its associated resources and data. This does not affect any resources and data
     associated with other Lightning apps on your account.
+
     """
     console = Console()
 

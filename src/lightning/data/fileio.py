@@ -21,6 +21,7 @@ def path_to_url(path: str, bucket_name: str, bucket_root_path: str = "/") -> str
 
     Returns:
         Full S3 url path
+
     """
     if not path.startswith(bucket_root_path):
         raise ValueError(f"Cannot create a path from {path} relative to {bucket_root_path}")
@@ -36,6 +37,7 @@ def open_single_file(
 
     Returns:
         The opened file stream.
+
     """
     from torchdata.datapipes.iter import FSSpecFileOpener, IterableWrapper
 
@@ -54,6 +56,7 @@ def open_single_file_with_retry(
 
     Returns:
         The opened file stream.
+
     """
     from torchdata.datapipes.iter import FSSpecFileOpener, IterableWrapper
 
@@ -83,6 +86,7 @@ class OpenCloudFileObj:
         mode: An optional string that specifies the mode in which the file is opened (``"r"`` by default).
 
         kwargs_for_open: Optional Dict to specify kwargs for opening files (``fs.open()``).
+
     """
 
     def __init__(

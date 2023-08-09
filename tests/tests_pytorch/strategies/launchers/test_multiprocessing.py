@@ -90,8 +90,7 @@ def test_global_state_snapshot():
 @pytest.mark.parametrize("fake_node_rank", [0, 1])
 @pytest.mark.parametrize("fake_local_rank", [0, 1])
 def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, tmpdir):
-    """Tests that the spawn strategy transfers the new weights to the main process and deletes the temporary
-    file."""
+    """Tests that the spawn strategy transfers the new weights to the main process and deletes the temporary file."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
     fake_global_rank = 2 * fake_node_rank + fake_local_rank
 
@@ -130,8 +129,8 @@ def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, 
 
 @pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
 def test_transfer_weights(tmpdir, trainer_fn):
-    """Tests that the multiprocessing launcher transfers the new weights to the main process and deletes the
-    temporary file."""
+    """Tests that the multiprocessing launcher transfers the new weights to the main process and deletes the temporary
+    file."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
     strategy = DDPStrategy(start_method="spawn")
     trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, strategy=strategy)

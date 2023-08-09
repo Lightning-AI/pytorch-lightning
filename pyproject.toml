@@ -50,6 +50,13 @@ skip = ["_notebooks"]
 line-length = 120
 exclude = '(_notebooks/.*)'
 
+[tool.docformatter]
+recursive = true
+# this need to be shorter as some docstings are r"""...
+wrap-summaries = 119
+wrap-descriptions = 120
+blank = true
+
 
 [tool.ruff]
 line-length = 120

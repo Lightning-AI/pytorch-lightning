@@ -48,13 +48,13 @@ def test_has_len():
 def test_replace_dunder_methods_multiple_loaders_without_init():
     """In case of a class, that inherits from a class that we are patching, but doesn't define its own `__init__`
     method (the one we are wrapping), it can happen, that `hasattr(cls, "__old__init__")` is True because of parent
-    class, but it is impossible to delete, because that method is owned by parent class. Furthermore, the error
-    occured only sometimes because it depends on the order in which we are iterating over a set of classes we are
-    patching.
+    class, but it is impossible to delete, because that method is owned by parent class. Furthermore, the error occured
+    only sometimes because it depends on the order in which we are iterating over a set of classes we are patching.
 
     This test simulates the behavior by generating sufficient number of dummy classes, which do not define `__init__`
     and are children of `DataLoader`. We are testing that a) context manager `_replace_dunder_method` exits cleanly, and
     b) the mechanism checking for presence of `__old__init__` works as expected.
+
     """
     classes = [DataLoader]
     for i in range(100):
@@ -253,10 +253,11 @@ def test_replace_dunder_methods_extra_kwargs():
 
 
 def test_replace_dunder_methods_attrs():
-    """This test checks, that all the calls from setting and deleting attributes within `_replace_dunder_methods`
-    are correctly preserved even after reinstantiation.
+    """This test checks, that all the calls from setting and deleting attributes within `_replace_dunder_methods` are
+    correctly preserved even after reinstantiation.
 
     It also includes a custom `__setattr__`
+
     """
 
     class Loader(DataLoader):
@@ -413,11 +414,12 @@ def test_update_dataloader_typerror_custom_exception():
 
 
 def test_custom_batch_sampler():
-    """This test asserts, that custom `BatchSampler`, with all the arguments, that are required in order to
-    properly reinstantiate the class, is invoked properly.
+    """This test asserts, that custom `BatchSampler`, with all the arguments, that are required in order to properly
+    reinstantiate the class, is invoked properly.
 
     It also asserts, that during the reinstantiation, the wrapper of `__init__` method is not present anymore, therefore
     not setting `__pl_saved_{args,arg_names,kwargs}` attributes.
+
     """
 
     class MyBatchSampler(BatchSampler):
@@ -456,8 +458,7 @@ def test_custom_batch_sampler():
 
 
 def test_custom_batch_sampler_no_sampler():
-    """Tests whether appropriate error is raised when the custom `BatchSampler` does not support sampler
-    argument."""
+    """Tests whether appropriate error is raised when the custom `BatchSampler` does not support sampler argument."""
 
     class MyBatchSampler(BatchSampler):
         # Custom batch sampler, without sampler argument.
@@ -511,10 +512,10 @@ def test_dataloader_kwargs_replacement_with_iterable_dataset():
 
 
 def test_dataloader_kwargs_replacement_with_array_default_comparison():
-    """Test that the comparison of attributes and default argument values works with arrays (truth value
-    ambiguous).
+    """Test that the comparison of attributes and default argument values works with arrays (truth value ambiguous).
 
     Regression test for issue #15408.
+
     """
     dataset = RandomDataset(5, 100)
 

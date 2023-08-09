@@ -53,6 +53,7 @@ class TransformerEnginePrecision(Precision):
         Support for FP8 in the linear layers with `precision='transformer-engine'` is currently limited to tensors with
         shapes where the dimensions are divisible by 8 and 16 respectively. You might want to add padding to your inputs
         to conform to this restriction.
+
     """
 
     precision: Literal["transformer-engine"] = "transformer-engine"

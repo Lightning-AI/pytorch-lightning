@@ -48,6 +48,7 @@ def migrate_checkpoint(
     Note:
         The migration happens in-place. We specifically avoid copying the dict to avoid memory spikes for large
         checkpoints and objects that do not support being deep-copied.
+
     """
     ckpt_version = _get_version(checkpoint)
     if Version(ckpt_version) > Version(pl.__version__):
@@ -91,6 +92,7 @@ class pl_legacy_patch:
 
         with pl_legacy_patch():
             torch.load("path/to/legacy/checkpoint.ckpt")
+
     """
 
     def __enter__(self) -> "pl_legacy_patch":
@@ -135,6 +137,7 @@ def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_P
     """Applies Lightning version migrations to a checkpoint dictionary and prints infos for the user.
 
     This function is used by the Lightning Trainer when resuming from a checkpoint.
+
     """
     old_version = _get_version(checkpoint)
     checkpoint, migrations = migrate_checkpoint(checkpoint)
@@ -182,6 +185,7 @@ class _RedirectingUnpickler(pickle._Unpickler):
 
     In legacy versions of Lightning, callback classes got pickled into the checkpoint. These classes are defined in the
     `pytorch_lightning` but need to be loaded from `lightning.pytorch`.
+
     """
 
     def find_class(self, module: str, name: str) -> Any:

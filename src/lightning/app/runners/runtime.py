@@ -66,6 +66,7 @@ def dispatch(
         run_app_comment_commands: whether to parse commands from the entrypoint file and execute them before app startup
         enable_basic_auth: whether to enable basic authentication for the app
                            (use credentials in the format username:password as an argument)
+
     """
     from lightning.app.runners.runtime_type import RuntimeType
     from lightning.app.utilities.component import _set_flow_context

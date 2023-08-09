@@ -403,8 +403,7 @@ def test_combined_loader_sequence_with_map_and_iterable(lengths):
 
 @pytest.mark.parametrize("use_distributed_sampler", [False, True])
 def test_combined_data_loader_validation_test(use_distributed_sampler):
-    """This test makes sure distributed sampler has been properly injected in dataloaders when using
-    CombinedLoader."""
+    """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader."""
 
     class CustomDataset(Dataset):
         def __init__(self, data):

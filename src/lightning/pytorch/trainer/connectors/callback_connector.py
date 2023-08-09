@@ -161,6 +161,7 @@ class _CallbackConnector:
         callbacks already present in the trainer callbacks list, it will replace them.
         In addition, all :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks
         will be pushed to the end of the list, ensuring they run last.
+
         """
         trainer = self.trainer
 
@@ -187,9 +188,9 @@ class _CallbackConnector:
 
     @staticmethod
     def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
-        """Moves all the tuner specific callbacks at the beginning of the list and all the `ModelCheckpoint`
-        callbacks to the end of the list. The sequential order within the group of checkpoint callbacks is
-        preserved, as well as the order of all other callbacks.
+        """Moves all the tuner specific callbacks at the beginning of the list and all the `ModelCheckpoint` callbacks
+        to the end of the list. The sequential order within the group of checkpoint callbacks is preserved, as well as
+        the order of all other callbacks.
 
         Args:
             callbacks: A list of callbacks.
@@ -197,6 +198,7 @@ class _CallbackConnector:
         Return:
             A new list in which the first elements are tuner specific callbacks and last elements are ModelCheckpoints
             if there were any present in the input.
+
         """
         tuner_callbacks: List[Callback] = []
         other_callbacks: List[Callback] = []

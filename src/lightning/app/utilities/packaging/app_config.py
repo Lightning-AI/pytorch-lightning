@@ -29,6 +29,7 @@ class AppConfig:
 
     Args:
         name: Optional name of the application. If not provided, auto-generates a new name.
+
     """
 
     name: str = field(default_factory=get_unique_name)
@@ -56,6 +57,7 @@ class AppConfig:
 
         Args:
             directory: Path to a folder which contains the '.lightning' config file to load.
+
         """
         return cls.load_from_file(pathlib.Path(directory, _APP_CONFIG_FILENAME))
 
@@ -65,6 +67,7 @@ def _get_config_file(source_path: Union[str, pathlib.Path]) -> pathlib.Path:
 
     Args:
         source_path: A path to a folder or a file.
+
     """
     source_path = pathlib.Path(source_path).absolute()
     if source_path.is_file():

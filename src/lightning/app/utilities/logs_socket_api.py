@@ -79,6 +79,7 @@ class _LightningLogsSocketAPI(_AuthTokenGetter):
 
         Returns:
             WebSocketApp of the wanted socket
+
         """
         _token = self._get_api_token()
         clean_ws_host = urlparse(self.api_client.configuration.host).netloc

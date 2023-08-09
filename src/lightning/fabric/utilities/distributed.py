@@ -39,6 +39,7 @@ def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Ten
     Return:
         gathered_result: List with size equal to the process group where
             gathered_result[i] corresponds to result tensor from process i
+
     """
     if group is None:
         group = torch.distributed.group.WORLD
@@ -98,6 +99,7 @@ def _sync_ddp_if_available(
 
     Return:
         reduced value
+
     """
     if torch.distributed.is_initialized():
         return _sync_ddp(result, group=group, reduce_op=reduce_op)
@@ -115,6 +117,7 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
 
     Return:
         reduced value
+
     """
     divide_by_world_size = False
 
@@ -197,6 +200,7 @@ def _all_gather_ddp_if_available(
 
     Return:
         A tensor of shape (world_size, batch, ...)
+
     """
     if not torch.distributed.is_initialized():
         return tensor
@@ -213,8 +217,8 @@ def _init_dist_connection(
     world_size: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    """Utility function to initialize distributed connection by setting env variables and initializing the
-    distributed process group.
+    """Utility function to initialize distributed connection by setting env variables and initializing the distributed
+    process group.
 
     Args:
         cluster_environment: ``ClusterEnvironment`` instance
@@ -226,6 +230,7 @@ def _init_dist_connection(
     Raises:
         RuntimeError:
             If ``torch.distributed`` is not available
+
     """
     if not torch.distributed.is_available():
         raise RuntimeError("torch.distributed is not available. Cannot initialize distributed process group")

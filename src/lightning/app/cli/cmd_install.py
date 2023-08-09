@@ -566,6 +566,7 @@ def _install_app_from_source(
             If true, overwrite the app directory without asking if it already exists
         git_sha:
             The git_sha for checking out the git repo of the app.
+
     """
 
     if not cwd:
