@@ -25,6 +25,7 @@ from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.fsdp import _PRECISION_INPUT
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -191,7 +192,6 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
         return torch.autocast("cuda", dtype=self._desired_input_dtype)
 
 
-# TODO: Deprecate?
 class FSDPMixedPrecisionPlugin(FSDPPrecisionPlugin):
     """AMP for Fully Sharded Data Parallel (FSDP) Training.
 
@@ -204,6 +204,10 @@ class FSDPMixedPrecisionPlugin(FSDPPrecisionPlugin):
     def __init__(
         self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional["ShardedGradScaler"] = None
     ) -> None:
+        rank_zero_deprecation(
+            f"The `{type(self).__name__}` is deprecated."
+            " Use `lightning.pytorch.plugins.precision.FSDPPrecisionPlugin` instead."
+        )
         if not _TORCH_GREATER_EQUAL_1_12:
             raise MisconfigurationException("`FSDPMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
         super().__init__(precision=precision, scaler=scaler)
