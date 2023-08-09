@@ -1256,22 +1256,6 @@ def test_deepspeed_configure_optimizer_device_set(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, deepspeed=True)
-def test_deepspeed_tensors_cast_to_fp16_before_hosted_on_device():
-    class CustomBoringModel(BoringModel):
-        def transfer_batch_to_device(self, batch, *args, **kwargs):
-            assert batch.dtype is torch.float16
-            return super().transfer_batch_to_device(batch, *args, **kwargs)
-
-    model = CustomBoringModel()
-    trainer = Trainer(strategy="deepspeed", devices=1, accelerator="cuda", precision="16-mixed")
-    trainer.strategy.connect(model)
-    batch = torch.zeros(1, dtype=torch.float32)
-    batch = trainer.strategy.batch_to_device(batch)
-    assert batch.is_cuda
-    assert batch.dtype is torch.float16
-
-
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("device_indices", [[1], [1, 0], [0, 2], [3, 2, 1]])
 def test_validate_parallel_devices_indices(device_indices):

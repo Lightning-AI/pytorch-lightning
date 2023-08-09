@@ -194,6 +194,7 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress.is_last_batch = data_fetcher.done
 
         trainer = self.trainer
+        batch = trainer.precision_plugin.convert_input(batch)
         batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
         batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=0)
 

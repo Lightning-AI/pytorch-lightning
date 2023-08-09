@@ -372,7 +372,6 @@ class Strategy(ABC):
         See :meth:`~lightning.pytorch.core.module.LightningModule.training_step` for more details
 
         """
-        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.train_step_context():
@@ -394,7 +393,6 @@ class Strategy(ABC):
         See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
 
         """
-        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.val_step_context():
@@ -408,7 +406,6 @@ class Strategy(ABC):
         See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
 
         """
-        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.test_step_context():
@@ -422,7 +419,6 @@ class Strategy(ABC):
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
 
         """
-        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.predict_step_context():
