@@ -29,6 +29,8 @@ from weakref import proxy
 
 import torch
 import yaml
+from fsspec.asyn import reset_lock
+from fsspec.implementations.local import LocalFileSystem
 from torch import Tensor
 
 import lightning.pytorch as pl
@@ -243,9 +245,9 @@ class ModelCheckpoint(Checkpoint):
         self.last_model_path = ""
 
         self.kth_value: Tensor
-        self.dirpath: Optional[_PATH]
+        self.dirpath = dirpath
+        self.filename = filename
         self.__init_monitor_mode(mode)
-        self.__init_ckpt_dir(dirpath, filename)
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval)
         self.__validate_init_configuration()
 
@@ -258,6 +260,20 @@ class ModelCheckpoint(Checkpoint):
             every_n_epochs=self._every_n_epochs,
             train_time_interval=self._train_time_interval,
         )
+
+    @property
+    def dirpath(self) -> str:
+        return self._dirpath
+
+    @dirpath.setter
+    def dirpath(self, value: _PATH) -> None:
+        if value is None:
+            self._fs = LocalFileSystem()
+            self._dirpath = None
+        else:
+            self._fs = get_filesystem(value)
+            self._dirpath = value
+        reset_lock()  # prevents deadlocking in any downstream use of forked processes, e.g. multiprocessing DataLoaders
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         dirpath = self.__resolve_ckpt_dir(trainer)
@@ -441,15 +457,6 @@ class ModelCheckpoint(Checkpoint):
                     " will duplicate the last checkpoint saved."
                 )
 
-    def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
-        self._fs = get_filesystem(dirpath if dirpath else "")
-
-        if dirpath and self._fs.protocol == "file":
-            dirpath = os.path.realpath(dirpath)
-
-        self.dirpath = dirpath
-        self.filename = filename
-
     def __init_monitor_mode(self, mode: str) -> None:
         torch_inf = torch.tensor(torch.inf)
         mode_dict = {"min": (torch_inf, "min"), "max": (-torch_inf, "max")}
@@ -610,15 +617,12 @@ class ModelCheckpoint(Checkpoint):
 
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
         # find all checkpoints in the folder
-        ckpt_path = self.__resolve_ckpt_dir(trainer)
-        _fs = get_filesystem(ckpt_path)
-        if _fs.exists(ckpt_path):
-            return {
-                _fs.unstrip_protocol(os.path.normpath(p))
-                for p in _fs.ls(ckpt_path, detail=False)
-                if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
-            }
-        return set()
+        self.setup(trainer=trainer, pl_module=None, stage=None)
+        return {
+            self._fs.unstrip_protocol(os.path.normpath(p))
+            for p in self._fs.ls(self.dirpath, detail=False)
+            if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
+        }
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if self.save_top_k != 0 and _is_dir(self._fs, dirpath, strict=True) and len(self._fs.ls(dirpath)) > 0:

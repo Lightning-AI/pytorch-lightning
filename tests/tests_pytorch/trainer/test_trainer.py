@@ -717,7 +717,7 @@ def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
         if final_path is None:
             assert trainer.ckpt_path == final_path
         else:
-            assert mc._fs._strip_protocol(trainer.ckpt_path) == Path(final_path).as_posix()
+            assert Path(mc._fs._strip_protocol(trainer.ckpt_path)) == Path(final_path)
 
 
 def test_checkpoint_find_last(tmpdir):
@@ -751,7 +751,7 @@ def test_checkpoint_find_last(tmpdir):
     )
     assert trainer.ckpt_path is None
     trainer.fit(model, ckpt_path="last")
-    assert mc._fs._strip_protocol(trainer.ckpt_path) == (tmpdir / "checkpoints" / "last.ckpt").as_posix()
+    assert Path(mc._fs._strip_protocol(trainer.ckpt_path)) == tmpdir / "checkpoints" / "last.ckpt"
 
 
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
