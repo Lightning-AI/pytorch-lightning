@@ -22,8 +22,8 @@ from tests_pytorch.helpers.runif import RunIf
 
 @RunIf(min_cuda_gpus=2, deepspeed=True, standalone=True)
 def test_deepspeed_summary(tmpdir):
-    """Test to ensure that the summary contains the correct values when stage 3 is enabled and that the trainer
-    enables the `DeepSpeedSummary` when DeepSpeed is used."""
+    """Test to ensure that the summary contains the correct values when stage 3 is enabled and that the trainer enables
+    the `DeepSpeedSummary` when DeepSpeed is used."""
 
     model = BoringModel()
     total_parameters = sum(x.numel() for x in model.parameters())

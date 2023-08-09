@@ -16,6 +16,7 @@
 After a few epochs, launch TensorBoard to see the images being generated at every batch:
 
 tensorboard --logdir default
+
 """
 from argparse import ArgumentParser, Namespace
 
@@ -64,8 +65,7 @@ class Generator(nn.Module):
 
     def forward(self, z):
         img = self.model(z)
-        img = img.view(img.size(0), *self.img_shape)
-        return img
+        return img.view(img.size(0), *self.img_shape)
 
 
 class Discriminator(nn.Module):

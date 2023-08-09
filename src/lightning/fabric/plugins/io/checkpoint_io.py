@@ -42,6 +42,7 @@ class CheckpointIO(ABC):
             checkpoint: dict containing model and trainer state
             path: write-target path
             storage_options: Optional parameters when saving the model/training states.
+
         """
 
     @abstractmethod
@@ -54,6 +55,7 @@ class CheckpointIO(ABC):
                 locations.
 
         Returns: The loaded checkpoint.
+
         """
 
     @abstractmethod
@@ -62,6 +64,7 @@ class CheckpointIO(ABC):
 
         Args:
             path: Path to checkpoint
+
         """
 
     def teardown(self) -> None:

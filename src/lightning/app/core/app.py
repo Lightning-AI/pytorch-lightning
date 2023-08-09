@@ -383,8 +383,7 @@ class LightningApp:
         return deltas
 
     def maybe_apply_changes(self) -> Optional[bool]:
-        """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
-        state."""
+        """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the state."""
         self._send_flow_to_work_deltas(self.state)
 
         if not self.collect_changes:
@@ -503,6 +502,7 @@ class LightningApp:
         """Entry point of the LightningApp.
 
         This would be dispatched by the Runtime objects.
+
         """
         self._original_state = deepcopy(self.state)
         done = False

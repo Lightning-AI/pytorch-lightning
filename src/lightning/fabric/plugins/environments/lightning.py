@@ -32,6 +32,7 @@ class LightningEnvironment(ClusterEnvironment):
     If the main address and port are not provided, the default environment will choose them
     automatically. It is recommended to use this default environment for single-node distributed
     training as it provides a convenient way to launch the training script.
+
     """
 
     def __init__(self) -> None:
@@ -46,6 +47,7 @@ class LightningEnvironment(ClusterEnvironment):
 
         If at least :code:`LOCAL_RANK` is available as environment variable, Lightning assumes the user acts as the
         process launcher/job scheduler and Lightning will not launch new processes.
+
         """
         return "LOCAL_RANK" in os.environ
 
@@ -93,6 +95,7 @@ def find_free_network_port() -> int:
 
     It is useful in single-node training when we don't want to connect to a real main node but have to set the
     `MASTER_PORT` environment variable.
+
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("", 0))

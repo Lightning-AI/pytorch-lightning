@@ -36,6 +36,7 @@ def _get_dir_size_and_count(source_dir: str, prefix: Optional[str] = None) -> Tu
     -------
     Tuple[int, int]
         Size in megabytes and file count
+
     """
     size = 0
     count = 0
@@ -61,6 +62,7 @@ class _TarResults:
         The total size of the original directory files in bytes
     after_size: int
         The total size of the compressed and tarred split files in bytes
+
     """
 
     before_size: int
@@ -70,13 +72,12 @@ class _TarResults:
 def _get_split_size(
     total_size: int, minimum_split_size: int = 1024 * 1000 * 20, max_split_count: int = MAX_SPLIT_COUNT
 ) -> int:
-    """Calculate the split size we should use to split the multipart upload of an object to a bucket.  We are
-    limited to 1000 max parts as the way we are using ListMultipartUploads. More info
-    https://github.com/gridai/grid/pull/5267
+    """Calculate the split size we should use to split the multipart upload of an object to a bucket.  We are limited
+    to 1000 max parts as the way we are using ListMultipartUploads. More info https://github.com/gridai/grid/pull/5267
     https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html#mpu-process
     https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListMultipartUploads.html
-    https://github.com/psf/requests/issues/2717#issuecomment-724725392 Python or requests has a limit of 2**31
-    bytes for a single file upload.
+    https://github.com/psf/requests/issues/2717#issuecomment-724725392 Python or requests has a limit of 2**31 bytes
+    for a single file upload.
 
     Parameters
     ----------
@@ -91,6 +92,7 @@ def _get_split_size(
     -------
     int
         Split size
+
     """
     max_size = max_split_count * (1 << 31)  # max size per part limited by Requests or urllib as shown in ref above
     if total_size > max_size:
@@ -123,6 +125,7 @@ def _tar_path(source_path: str, target_file: str, compression: bool = False) -> 
     -------
     TarResults
         Results that holds file counts and sizes
+
     """
     if os.path.isdir(source_path):
         before_size, _ = _get_dir_size_and_count(source_path)
@@ -149,6 +152,7 @@ def _tar_path_python(source_path: str, target_file: str, compression: bool = Fal
         Target tar file
     compression: bool, default False
         Enable compression, which is disabled by default.
+
     """
     file_mode = "w:gz" if compression else "w:"
 
@@ -172,6 +176,7 @@ def _tar_path_subprocess(source_path: str, target_file: str, compression: bool =
         Target tar file
     compression: bool, default False
         Enable compression, which is disabled by default.
+
     """
     # Only add compression when users explicitly request it.
     # We do this because it takes too long to compress

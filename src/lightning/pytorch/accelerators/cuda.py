@@ -69,6 +69,7 @@ class CUDAAccelerator(Accelerator):
         Raises:
             FileNotFoundError:
                 If nvidia-smi installation not found
+
         """
         return torch.cuda.memory_stats(device)
 
@@ -115,6 +116,7 @@ def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cov
     Raises:
         FileNotFoundError:
             If nvidia-smi installation not found
+
     """
     nvidia_smi_path = shutil.which("nvidia-smi")
     if nvidia_smi_path is None:

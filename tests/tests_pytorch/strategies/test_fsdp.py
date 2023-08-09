@@ -2,7 +2,7 @@ import os
 from contextlib import nullcontext
 from datetime import timedelta
 from functools import partial
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
@@ -30,9 +30,9 @@ if _TORCH_GREATER_EQUAL_1_12:
 else:
     size_based_auto_wrap_policy = lambda *_, **__: False
 if _TORCH_GREATER_EQUAL_2_0:
-    from torch.distributed.fsdp.wrap import _FSDPPolicy
+    from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 else:
-    _FSDPPolicy = object
+    ModuleWrapPolicy = object
 
 
 class TestFSDPModel(BoringModel):
@@ -260,19 +260,6 @@ def test_fsdp_strategy_checkpoint(tmpdir, precision):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-class CustomWrapPolicy(_FSDPPolicy):
-    """This is a wrapper around :func:`_module_wrap_policy`."""
-
-    def __init__(self, min_num_params: int):
-        self._policy: Callable = partial(size_based_auto_wrap_policy, min_num_params=min_num_params)
-
-    @property
-    def policy(self):
-        return self._policy
-
-
-custom_fsdp_policy = CustomWrapPolicy(min_num_params=2)
-
 if _TORCH_GREATER_EQUAL_2_0:
 
     def custom_auto_wrap_policy(
@@ -298,6 +285,7 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
     """Test to ensure that the full state dict is extracted when using FSDP strategy.
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
+
     """
     model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
     correct_state_dict = model.state_dict()  # State dict before wrapping
@@ -348,8 +336,11 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
         pytest.param(
             TestFSDPModelAutoWrapped(),
             FSDPStrategy,
-            {"auto_wrap_policy": custom_fsdp_policy, "use_orig_params": True},
-            marks=RunIf(min_torch="2.0.0"),
+            {
+                "auto_wrap_policy": ModuleWrapPolicy({nn.Linear}) if _TORCH_GREATER_EQUAL_2_1 else None,
+                "use_orig_params": True,
+            },
+            marks=RunIf(min_torch="2.1.0"),
             id="autowrap_use_orig_params",
         ),
     ],
@@ -557,6 +548,7 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the model can
     be restored to DDP, it means that the optimizer states were saved correctly.
+
     """
     model = TestFSDPModelAutoWrapped(wrap_min_params=wrap_min_params)
 
@@ -614,6 +606,7 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the DDP model
     can be restored to FSDP, it means that the optimizer states were restored correctly.
+
     """
 
     # restore model to ddp

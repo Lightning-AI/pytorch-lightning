@@ -27,8 +27,8 @@ if TYPE_CHECKING:
 
 
 class _XLALauncher(_Launcher):
-    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at
-    the end.
+    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at the
+    end.
 
     The main process in which this launcher is invoked creates N so-called worker processes (using the
     `torch_xla` :func:`xmp.spawn`) that run the given function.
@@ -40,6 +40,7 @@ class _XLALauncher(_Launcher):
 
     Args:
         strategy: A reference to the strategy that is used together with this launcher
+
     """
 
     def __init__(self, strategy: Union["XLAStrategy", "XLAFSDPStrategy"]) -> None:
@@ -62,6 +63,7 @@ class _XLALauncher(_Launcher):
             function: The entry point for all launched processes.
             *args: Optional positional arguments to be passed to the given function.
             **kwargs: Optional keyword arguments to be passed to the given function.
+
         """
         using_pjrt = _using_pjrt()
         return_queue: Union[queue.Queue, mp.SimpleQueue]

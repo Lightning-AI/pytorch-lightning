@@ -39,8 +39,8 @@ class Logger(ABC):
 
     @property
     def root_dir(self) -> Optional[str]:
-        """Return the root directory where all versions of an experiment get saved, or `None` if the logger does
-        not save data locally."""
+        """Return the root directory where all versions of an experiment get saved, or `None` if the logger does not
+        save data locally."""
         return None
 
     @property
@@ -61,6 +61,7 @@ class Logger(ABC):
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
+
         """
         pass
 
@@ -72,6 +73,7 @@ class Logger(ABC):
             params: :class:`~argparse.Namespace` or `Dict` containing the hyperparameters
             args: Optional positional arguments, depends on the specific logger being used
             kwargs: Optional keyword arguments, depends on the specific logger being used
+
         """
 
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
@@ -80,6 +82,7 @@ class Logger(ABC):
         Args:
             model: the model with an implementation of ``forward``.
             input_array: input passes to `model.forward`
+
         """
         pass
 
@@ -91,6 +94,7 @@ class Logger(ABC):
 
         Args:
             status: Status that the experiment finished with (e.g. success, failed, aborted)
+
         """
         self.save()
 

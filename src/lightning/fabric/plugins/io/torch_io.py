@@ -19,17 +19,17 @@ from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.utilities.cloud_io import _atomic_save
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.cloud_io import get_filesystem
-from lightning.fabric.utilities.rank_zero import rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
 
 log = logging.getLogger(__name__)
 
 
 class TorchCheckpointIO(CheckpointIO):
-    """CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
-    respectively, common for most use cases.
+    """CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints respectively,
+    common for most use cases.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     """
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
@@ -43,6 +43,7 @@ class TorchCheckpointIO(CheckpointIO):
         Raises:
             TypeError:
                 If ``storage_options`` arg is passed in
+
         """
         if storage_options is not None:
             raise TypeError(
@@ -52,17 +53,7 @@ class TorchCheckpointIO(CheckpointIO):
             )
         fs = get_filesystem(path)
         fs.makedirs(os.path.dirname(path), exist_ok=True)
-        try:
-            # write the checkpoint dictionary on the file
-            _atomic_save(checkpoint, path)
-        except AttributeError as err:
-            # todo: is this try catch necessary still?
-            # https://github.com/Lightning-AI/lightning/pull/431
-            # TODO(fabric): Fabric doesn't support hyperparameters in the checkpoint, so this should be refactored
-            key = "hyper_parameters"
-            checkpoint.pop(key, None)
-            rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")
-            _atomic_save(checkpoint, path)
+        _atomic_save(checkpoint, path)
 
     def load_checkpoint(
         self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
@@ -93,6 +84,7 @@ class TorchCheckpointIO(CheckpointIO):
 
         Args:
             path: Path to checkpoint
+
         """
         fs = get_filesystem(path)
         if fs.exists(path):

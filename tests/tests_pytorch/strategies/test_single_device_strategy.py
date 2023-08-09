@@ -45,6 +45,7 @@ def test_single_gpu():
     """Tests if device is set correctly when training and after teardown for single GPU strategy.
 
     Cannot run this test on MPS due to shared memory not allowing dedicated measurements of GPU memory utilization.
+
     """
     trainer = Trainer(accelerator="gpu", devices=1, fast_dev_run=True)
     # assert training strategy attributes for device setting
