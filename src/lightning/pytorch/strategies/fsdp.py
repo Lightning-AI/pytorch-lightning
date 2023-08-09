@@ -51,7 +51,7 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ProcessGroup, ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.plugins.precision import PrecisionPlugin
-from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
+from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
@@ -212,7 +212,7 @@ class FSDPStrategy(ParallelStrategy):
         if self.mixed_precision:
             return self.mixed_precision
         plugin = self.precision_plugin
-        if isinstance(plugin, FSDPMixedPrecisionPlugin):
+        if isinstance(plugin, FSDPPrecisionPlugin):
             return plugin.mixed_precision_config
         return None
 
