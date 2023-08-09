@@ -41,6 +41,6 @@ def test_memory_sharing_disabled(strategy):
 
 def _test_memory_sharing_disabled(fabric, tensor, model):
     is_spawn = fabric.strategy.launcher._start_method == "spawn"
-    assert not is_spawn or not tensor.is_shared()
+    assert not is_spawn or tensor.is_shared()
     assert not model.layer.weight.is_shared()
     assert not model.buffer.is_shared()
