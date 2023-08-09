@@ -80,6 +80,7 @@ class XLABf16Precision(XLAPrecision):
     """Legacy class.
 
     Use :class:`~lightning.fabric.plugins.precision.xla.XLAPrecision` instead.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

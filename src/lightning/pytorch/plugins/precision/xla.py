@@ -38,6 +38,7 @@ class XLAPrecisionPlugin(PrecisionPlugin):
     Raises:
         ValueError:
             If unsupported ``precision`` is provided.
+
     """
 
     def __init__(self, precision: _PRECISION_INPUT = "32-true") -> None:

@@ -97,6 +97,7 @@ class XLABf16PrecisionPlugin(XLAPrecisionPlugin):
     """Legacy class.
 
     Use :class:`~lightning.pytorch.plugins.precision.xlabf16.XLAPrecisionPlugin` instead.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
