@@ -182,6 +182,7 @@ class BaseQueue(ABC):
         timeout:
             Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
             A timeout of None can be used to block indefinitely.
+
         """
         pass
 
@@ -190,6 +191,7 @@ class BaseQueue(ABC):
         """Returns True if the queue is running, False otherwise.
 
         Child classes should override this property and implement custom logic as required
+
         """
         return True
 
@@ -286,6 +288,7 @@ class RedisQueue(BaseQueue):
         timeout:
             Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
             A timeout of None can be used to block indefinitely.
+
         """
         if timeout is None:
             # this means it's blocking in redis
@@ -464,6 +467,7 @@ class HTTPQueue(BaseQueue):
 
         This can be brittle, as if the queue name creation logic changes, the response values from here wouldn't be
         accurate. Remove this eventually and let the Queue class take app id and name of the queue as arguments
+
         """
         if "_" not in queue_name:
             return "", queue_name

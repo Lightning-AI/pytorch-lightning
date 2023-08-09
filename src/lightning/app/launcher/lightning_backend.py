@@ -252,6 +252,7 @@ class CloudBackend(Backend):
         Normally, the Lightning frameworks communicates statuses through the queues, but while the Work instance is
         being provisionied, the queues don't exist yet and hence we need to make API calls directly to the backend to
         fetch the status and update it in the states.
+
         """
         if not works:
             return
@@ -305,6 +306,7 @@ class CloudBackend(Backend):
         """Stop resources for all LightningWorks in this app.
 
         The Works are stopped rather than deleted so that they can be inspected for debugging.
+
         """
         cloud_works = self._get_cloud_work_specs(self.client)
 

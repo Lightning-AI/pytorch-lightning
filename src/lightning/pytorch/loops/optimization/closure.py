@@ -35,6 +35,7 @@ class AbstractClosure(ABC, Generic[T]):
 
     This class provides a simple abstraction making the instance of this class callable like a function while capturing
     the closure result and caching it.
+
     """
 
     def __init__(self) -> None:
@@ -46,6 +47,7 @@ class AbstractClosure(ABC, Generic[T]):
 
         Once accessed, the internal reference gets reset and the consumer will have to hold on to the reference as long
         as necessary.
+
         """
         if self._result is None:
             raise MisconfigurationException(

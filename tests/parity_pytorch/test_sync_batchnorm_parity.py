@@ -52,8 +52,8 @@ class SyncBNModule(LightningModule):
 
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_sync_batchnorm_parity(tmpdir):
-    """Test parity between 1) Training a synced batch-norm layer on 2 GPUs with batch size B per device 2) Training
-    a batch-norm layer on CPU with twice the batch size."""
+    """Test parity between 1) Training a synced batch-norm layer on 2 GPUs with batch size B per device 2) Training a
+    batch-norm layer on CPU with twice the batch size."""
     seed_everything(3)
     # 2 GPUS, batch size = 4 per GPU => total batch size = 8
     model = SyncBNModule(batch_size=4)

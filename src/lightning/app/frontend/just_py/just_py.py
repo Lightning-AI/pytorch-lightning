@@ -81,6 +81,7 @@ class JustPyFrontend(Frontend):
 
 
             app = LightningApp(Flow())
+
     """
 
     def __init__(self, render_fn: Callable) -> None:

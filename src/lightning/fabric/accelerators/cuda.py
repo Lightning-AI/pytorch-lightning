@@ -88,6 +88,7 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
     Warning:
         If multiple processes call this function at the same time, there can be race conditions in the case where
         both processes determine that the device is unoccupied, leading into one of them crashing later on.
+
     """
     visible_devices = _get_all_visible_cuda_devices()
     if not visible_devices:
@@ -128,6 +129,7 @@ def _get_all_visible_cuda_devices() -> List[int]:
     Devices masked by the environment variabale ``CUDA_VISIBLE_DEVICES`` won't be returned here. For example, assume you
     have 8 physical GPUs. If ``CUDA_VISIBLE_DEVICES="1,3,6"``, then this function will return the list ``[0, 1, 2]``
     because these are the three visible GPUs after applying the mask ``CUDA_VISIBLE_DEVICES``.
+
     """
     return list(range(num_cuda_devices()))
 
@@ -135,8 +137,7 @@ def _get_all_visible_cuda_devices() -> List[int]:
 # TODO: Remove once minimum supported PyTorch version is 2.0
 @contextmanager
 def _patch_cuda_is_available() -> Generator:
-    """Context manager that safely patches :func:`torch.cuda.is_available` with its NVML-based version if
-    possible."""
+    """Context manager that safely patches :func:`torch.cuda.is_available` with its NVML-based version if possible."""
     if hasattr(torch._C, "_cuda_getDeviceCount") and _device_count_nvml() >= 0 and not _TORCH_GREATER_EQUAL_2_0:
         # we can safely patch is_available if both torch has CUDA compiled and the NVML count is succeeding
         # otherwise, patching is_available could lead to attribute errors or infinite recursion
@@ -156,6 +157,7 @@ def num_cuda_devices() -> int:
 
     Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
     if the platform allows it.
+
     """
     if _TORCH_GREATER_EQUAL_2_0:
         return torch.cuda.device_count()
@@ -171,6 +173,7 @@ def is_cuda_available() -> bool:
 
     Unlike :func:`torch.cuda.is_available`, this function does its best not to create a CUDA context for fork support,
     if the platform allows it.
+
     """
     # We set `PYTORCH_NVML_BASED_CUDA_CHECK=1` in lightning.fabric.__init__.py
     return torch.cuda.is_available() if _TORCH_GREATER_EQUAL_2_0 else num_cuda_devices() > 0
@@ -311,6 +314,7 @@ def _device_count_nvml() -> int:
     """Return number of devices as reported by NVML taking CUDA_VISIBLE_DEVICES into account.
 
     Negative value is returned if NVML discovery or initialization has failed.
+
     """
     visible_devices = _parse_visible_devices()
     if not visible_devices:

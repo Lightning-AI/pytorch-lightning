@@ -39,14 +39,15 @@ _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step
 
 class _FabricOptimizer:
     def __init__(self, optimizer: Optimizer, strategy: Strategy, callbacks: Optional[List[Callable]] = None) -> None:
-        """FabricOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the
-        optimizer step calls to the strategy.
+        """FabricOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the optimizer
+        step calls to the strategy.
 
         The underlying wrapped optimizer object can be accessed via the property :attr:`optimizer`.
 
         Args:
             optimizer: The optimizer to wrap
             strategy: Reference to the strategy for handling the optimizer step
+
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
         # not want to call on destruction of the `_FabricOptimizer
@@ -96,6 +97,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             original_module: The original, unmodified module as passed into the
                 :meth:`lightning.fabric.fabric.Fabric.setup` method. This is needed when attribute lookup
                 on this wrapper should pass through to the original module.
+
         """
         super().__init__()
         self._forward_module = forward_module
@@ -108,8 +110,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         return self._original_module or self._forward_module
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
-        """Casts all inputs to the right precision and handles autocast for operations in the module forward
-        method."""
+        """Casts all inputs to the right precision and handles autocast for operations in the module forward method."""
         args, kwargs = self._precision.convert_input((args, kwargs))
 
         with self._precision.forward_context():
@@ -218,13 +219,14 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
 class _FabricDataLoader:
     def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
-        """The FabricDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to
-        the device automatically if the device is specified.
+        """The FabricDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to the
+        device automatically if the device is specified.
 
         Args:
             dataloader: The dataloader to wrap
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
+
         """
         self.__dict__.update(dataloader.__dict__)
         self._dataloader = dataloader
@@ -277,6 +279,7 @@ def _unwrap_compiled(obj: Any) -> Any:
     """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
 
     Use this function before instance checks against e.g. :class:`_FabricModule`.
+
     """
     if not _TORCH_GREATER_EQUAL_2_0:
         return obj
@@ -296,6 +299,7 @@ def is_wrapped(obj: object) -> bool:
 
     Args:
         obj: The object to test.
+
     """
     obj = _unwrap_compiled(obj)
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))

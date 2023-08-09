@@ -25,10 +25,11 @@ log = logging.getLogger(__name__)
 
 
 class TorchCheckpointIO(CheckpointIO):
-    """CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
-    respectively, common for most use cases.
+    """CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints respectively,
+    common for most use cases.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     """
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
@@ -42,6 +43,7 @@ class TorchCheckpointIO(CheckpointIO):
         Raises:
             TypeError:
                 If ``storage_options`` arg is passed in
+
         """
         if storage_options is not None:
             raise TypeError(
@@ -82,6 +84,7 @@ class TorchCheckpointIO(CheckpointIO):
 
         Args:
             path: Path to checkpoint
+
         """
         fs = get_filesystem(path)
         if fs.exists(path):

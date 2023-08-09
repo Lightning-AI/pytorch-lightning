@@ -399,6 +399,7 @@ def test_validate_parallel_devices_indices(device_indices):
     """Test that the strategy validates that it doesn't support selecting specific devices by index.
 
     DeepSpeed doesn't support it and needs the index to match to the local rank of the process.
+
     """
     strategy = DeepSpeedStrategy(
         accelerator=CUDAAccelerator(), parallel_devices=[torch.device("cuda", i) for i in device_indices]
