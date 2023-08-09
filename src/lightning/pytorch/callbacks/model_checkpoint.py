@@ -29,6 +29,7 @@ from weakref import proxy
 
 import torch
 import yaml
+from fsspec import AbstractFileSystem
 from fsspec.asyn import reset_lock
 from fsspec.implementations.local import LocalFileSystem
 from torch import Tensor
@@ -245,6 +246,7 @@ class ModelCheckpoint(Checkpoint):
         self.last_model_path = ""
 
         self.kth_value: Tensor
+        self._fs: AbstractFileSystem
         self.dirpath = dirpath
         self.filename = filename
         self.__init_monitor_mode(mode)
@@ -620,11 +622,13 @@ class ModelCheckpoint(Checkpoint):
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
         # find all checkpoints in the folder
         self.setup(trainer=trainer, pl_module=None, stage=None)
-        return {
-            self._fs.unstrip_protocol(os.path.normpath(p))
-            for p in self._fs.ls(self.dirpath, detail=False)
-            if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
-        }
+        if self._fs.exists(self.dirpath):
+            return {
+                self._fs.unstrip_protocol(os.path.normpath(p))
+                for p in self._fs.ls(self.dirpath, detail=False)
+                if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
+            }
+        return set()
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if self.save_top_k != 0 and _is_dir(self._fs, dirpath, strict=True) and len(self._fs.ls(dirpath)) > 0:
