@@ -107,7 +107,9 @@ def _sync_ddp_if_available(
 
 
 def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
-    """Function to reduce the tensors from several DDP processes to one main process.
+    """Reduces a tensor across several distributed processes.
+
+    This operation is performed in-place, meaning the result will be placed back into the input tensor on all processes.
 
     Args:
         result: The value to sync and reduce (typically tensor or number)
@@ -116,17 +118,17 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
 
     Return:
-        reduced value
+        The reduced value.
 
     """
     divide_by_world_size = False
-
-    if group is None:
-        group = torch.distributed.group.WORLD
+    group = torch.distributed.group.WORLD if group is None else group
 
     op: Optional[ReduceOp]
     if isinstance(reduce_op, str):
-        if reduce_op.lower() in ("avg", "mean"):
+        reduce_op = "avg" if reduce_op == "mean" else reduce_op
+        if reduce_op.lower() == "avg" and torch.distributed.get_backend(group) == "gloo":
+            # The GLOO backend does not support the `ReduceOp.AVG` operation
             op = ReduceOp.SUM  # type: ignore[assignment]
             divide_by_world_size = True
         else:
@@ -134,7 +136,8 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     else:
         op = reduce_op
 
-    # WA for HPU. HPU doesn't support Long types, forcefully set it to float
+    # HPU doesn't support Long types, forcefully set it to float
+    # TODO: move this to the `lightning_habana` package
     if (
         package_available("habana_frameworks")
         and os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
@@ -150,11 +153,15 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     # Sync all processes before reduction
     torch.distributed.barrier(group=group)
     torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
+    world_size = torch.distributed.get_world_size(group)
 
-    if divide_by_world_size:
-        result = result / torch.distributed.get_world_size(group)
-
-    return result
+    if not divide_by_world_size:
+        return result
+    # `torch.distributed.all_reduce` is in-place, so we should do the division in-place to leave the modified tensors
+    # with the expected value
+    if not torch.is_floating_point(result):
+        return result.copy_(result / world_size)
+    return result.div_(world_size)
 
 
 class _AllGather(torch.autograd.Function):

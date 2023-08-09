@@ -557,11 +557,13 @@ class Fabric:
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Reduce tensors or collections of tensors from multiple processes.
 
+        The reduction on tensors is applied in-place, meaning the result will be placed back into the input tensor.
         This method needs to be called on all processes and the tensors need to have the same shape across all
         processes, otherwise your program will stall forever.
 
         Args:
-            data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
+            data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof. Tensor will be
+                modified in-place.
             group: the process group to reduce results across. Defaults to all processes (world).
             reduce_op: the reduction operation. Defaults to 'mean'. Can also be a string 'sum' or ReduceOp.
                 Some strategies may limit the choices here.
