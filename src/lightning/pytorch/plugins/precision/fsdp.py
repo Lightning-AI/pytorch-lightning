@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, Generator, Literal, Optional, TYPE_CHECK
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
+from torch.optim import Optimizer
 from typing_extensions import get_args
 
 import lightning.pytorch as pl
@@ -142,7 +143,7 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
 
     def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         if self.scaler is not None:
-            tensor = self.scaler.scale(tensor)
+            tensor = self.scaler.scale(tensor)  # type: ignore[assignment]
         return super().pre_backward(tensor, module)
 
     def optimizer_step(  # type: ignore[override]
@@ -161,12 +162,14 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
             # Unscaling needs to be performed here in case we are going to apply gradient clipping.
             # Optimizers that perform unscaling in their `.step()` method are not supported (e.g., fused Adam).
             # Note: `unscale` happens after the closure is executed, but before the `on_before_optimizer_step` hook.
+            assert isinstance(optimizer, Optimizer)
             self.scaler.unscale_(optimizer)
 
         self._after_closure(model, optimizer)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not model.automatic_optimization or not skipped_backward:
+            assert isinstance(optimizer, Optimizer)
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
             step_output = self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
