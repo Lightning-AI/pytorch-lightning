@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import math
 import os
 from copy import deepcopy
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -26,6 +28,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.tuner.lr_finder import _LRFinder
 from lightning.pytorch.tuner.tuning import Tuner
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -229,7 +232,7 @@ def test_accumulation_and_early_stopping(tmpdir):
     lr_finder = tuner.lr_find(model, early_stop_threshold=None)
 
     assert lr_finder.suggestion() != 1e-3
-    assert len(lr_finder.results["lr"]) == 100
+    assert len(lr_finder.results["lr"]) == len(lr_finder.results["loss"]) == 100
     assert lr_finder._total_batch_idx == 199
 
 
@@ -503,3 +506,35 @@ def test_lr_finder_callback_val_batches(tmpdir):
 
     assert trainer.num_val_batches[0] == len(trainer.val_dataloaders)
     assert trainer.num_val_batches[0] != num_lr_tuner_training_steps
+
+
+def test_lr_finder_training_step_none_output(tmpdir):
+    # add some nans into the skipped steps (first 10) but also into the steps used to compute the lr
+    none_steps = [5, 12, 17]
+
+    class CustomBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.lr = 0.123
+
+        def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
+            if self.trainer.global_step in none_steps:
+                return None
+
+            return super().training_step(batch, batch_idx)
+
+    seed_everything(1)
+    model = CustomBoringModel()
+
+    trainer = Trainer(default_root_dir=tmpdir)
+
+    tuner = Tuner(trainer)
+    # restrict number of steps for faster test execution
+    # and disable early stopping to easily check expected number of lrs and losses
+    lr_finder = tuner.lr_find(model=model, update_attr=True, num_training=20, early_stop_threshold=None)
+    assert len(lr_finder.results["lr"]) == len(lr_finder.results["loss"]) == 20
+    assert torch.isnan(torch.tensor(lr_finder.results["loss"])[none_steps]).all()
+
+    suggested_lr = lr_finder.suggestion()
+    assert math.isfinite(suggested_lr)
+    assert math.isclose(model.lr, suggested_lr)

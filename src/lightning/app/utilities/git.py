@@ -48,9 +48,9 @@ def check_github_repository(cwd=None) -> bool:
 
 
 def get_git_relative_path(file: Union[str, Path]) -> str:
+    """Finds the relative path of the file to the git root."""
     if not check_github_repository():
         raise ValueError("Not a GitHub repository.")
-    """  Finds the relative path of the file to the git root. """
     abs_path = Path(file).absolute()
     repository_path = execute_git_command(["rev-parse", "--show-toplevel"])
     return str(abs_path.relative_to(repository_path))
@@ -71,11 +71,7 @@ def check_if_remote_head_is_different() -> Union[bool, None]:
     if any("fatal" in f for f in (local_sha, remote_sha, base_sha)):
         return None
 
-    is_different = True
-    if local_sha in (remote_sha, base_sha):
-        is_different = False
-
-    return is_different
+    return local_sha not in (remote_sha, base_sha)
 
 
 def has_uncommitted_files() -> bool:
