@@ -164,7 +164,7 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
             # Optimizers that perform unscaling in their `.step()` method are not supported (e.g., fused Adam).
             # Note: `unscale` happens after the closure is executed, but before the `on_before_optimizer_step` hook.
             assert isinstance(optimizer, Optimizer)
-            self.scaler.unscale_(optimizer)
+            self.scaler.unscale_(optimizer)  # type: ignore[arg-type]
 
         self._after_closure(model, optimizer)
         skipped_backward = closure_result is None
@@ -172,7 +172,7 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
         if not model.automatic_optimization or not skipped_backward:
             assert isinstance(optimizer, Optimizer)
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-            step_output = self.scaler.step(optimizer, **kwargs)
+            step_output = self.scaler.step(optimizer, **kwargs)  # type: ignore[arg-type]
             self.scaler.update()
             return step_output
         return closure_result
