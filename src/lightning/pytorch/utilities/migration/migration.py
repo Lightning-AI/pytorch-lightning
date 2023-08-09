@@ -27,6 +27,7 @@ For the Lightning developer: How to add a new migration?
 
    cp model.ckpt model.ckpt.backup
    python -m lightning.pytorch.utilities.upgrade_checkpoint --file model.ckpt
+
 """
 import re
 from typing import Any, Callable, Dict, List
@@ -60,6 +61,7 @@ def _migrate_model_checkpoint_early_stopping(checkpoint: _CHECKPOINT) -> _CHECKP
 
     Version: 0.10.0
     Commit: a5d1176
+
     """
     keys_mapping = {
         "checkpoint_callback_best_model_score": (ModelCheckpoint, "best_model_score"),
@@ -218,6 +220,7 @@ def _drop_apex_amp_state(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
     Version: 2.0.0
     Commit: e544676ff434ed96c6dd3b4e73a708bcb27ebcf1
     PR: #16149
+
     """
     key = "amp_scaling_state"
     if key in checkpoint:
@@ -234,6 +237,7 @@ def _migrate_loop_structure_after_tbptt_removal(checkpoint: _CHECKPOINT) -> _CHE
     Version: 2.0.0
     Commit: 7807454
     PR: #16337, #16172
+
     """
     if "loops" not in checkpoint:
         return checkpoint
@@ -265,13 +269,13 @@ def _migrate_loop_structure_after_tbptt_removal(checkpoint: _CHECKPOINT) -> _CHE
 
 
 def _migrate_loop_structure_after_optimizer_loop_removal(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Adjusts the loop structure since it changed when the support for multiple optimizers in automatic
-    optimization mode was removed. There is no longer a loop over optimizer, and hence no position to store for
-    resuming the loop.
+    """Adjusts the loop structure since it changed when the support for multiple optimizers in automatic optimization
+    mode was removed. There is no longer a loop over optimizer, and hence no position to store for resuming the loop.
 
     Version: 2.0.0
     Commit: 6a56586
     PR: #16539, #16598
+
     """
     if "loops" not in checkpoint:
         return checkpoint

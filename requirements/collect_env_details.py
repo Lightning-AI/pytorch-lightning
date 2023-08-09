@@ -14,6 +14,7 @@
 """Diagnose your system and show basic information.
 
 This server mainly to get detail info for better bug reporting.
+
 """
 
 import os

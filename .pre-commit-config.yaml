@@ -60,7 +60,8 @@ repos:
     rev: v1.7.3
     hooks:
       - id: docformatter
-        args: [--in-place, --wrap-summaries=115, --wrap-descriptions=120]
+        additional_dependencies: [tomli]
+        args: ["--in-place"]
 
   - repo: https://github.com/asottile/yesqa
     rev: v1.5.0

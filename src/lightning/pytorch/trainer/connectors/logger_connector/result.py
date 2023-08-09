@@ -410,6 +410,7 @@ class _ResultCollection(dict):
         """Create one _ResultMetric object per value.
 
         Value can be provided as a nested collection
+
         """
         metric = _ResultMetric(meta, isinstance(value, Tensor)).to(self.device)
         self[key] = metric
@@ -500,6 +501,7 @@ class _ResultCollection(dict):
                 if False, only ``torch.Tensors`` are reset,
                 if ``None``, both are.
             fx: Function to reset
+
         """
         for item in self.values():
             requested_type = metrics is None or metrics ^ item.is_tensor

@@ -35,6 +35,7 @@ class FileUploader:
         Size of all files to upload
     name: str
         Name of this upload to display progress
+
     """
 
     workers: int = 8
@@ -72,6 +73,7 @@ class FileUploader:
         -------
         str
             ETag from response
+
         """
         disconnect_retries = retries
         while disconnect_retries > 0:

@@ -353,6 +353,7 @@ def test_train_progress_bar_update_amount(
 
     At the end of the epoch, the progress must not overshoot if the number of steps is not divisible by the refresh
     rate.
+
     """
     model = BoringModel()
     progress_bar = TQDMProgressBar(refresh_rate=refresh_rate)

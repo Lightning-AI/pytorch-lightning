@@ -127,6 +127,7 @@ class XLAStrategy(ParallelStrategy):
             sync_grads: flag that allows users to synchronize gradients for the all_gather operation
         Return:
             A tensor of shape (world_size, batch, ...)
+
         """
         if isinstance(tensor, Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
@@ -187,6 +188,7 @@ class XLAStrategy(ParallelStrategy):
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
             storage_options: Additional options for the ``CheckpointIO`` plugin
+
         """
         state = self._convert_stateful_objects_in_state(state)
         # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
@@ -197,6 +199,7 @@ class XLAStrategy(ParallelStrategy):
 
         Args:
             filepath: Path to checkpoint
+
         """
         if self.local_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)

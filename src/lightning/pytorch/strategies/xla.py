@@ -247,6 +247,7 @@ class XLAStrategy(DDPStrategy):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
+
         """
         # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
         self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
@@ -256,6 +257,7 @@ class XLAStrategy(DDPStrategy):
 
         Args:
             filepath: Path to checkpoint
+
         """
         if self.local_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)
@@ -269,6 +271,7 @@ class XLAStrategy(DDPStrategy):
             sync_grads: flag that allows users to synchronize gradients for the all_gather operation
         Return:
             A tensor of shape (world_size, batch, ...)
+
         """
         if isinstance(tensor, Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)

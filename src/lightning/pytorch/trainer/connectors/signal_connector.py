@@ -139,6 +139,7 @@ class _SignalConnector:
 
         Behaves identically to :func:`signals.valid_signals` in Python 3.8+ and implements the equivalent behavior for
         older Python versions.
+
         """
         if _PYTHON_GREATER_EQUAL_3_8_0:
             return signal.valid_signals()

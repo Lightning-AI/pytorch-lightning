@@ -25,6 +25,7 @@ class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -43,6 +44,7 @@ class TPUAccelerator(Accelerator):
 
         Returns:
             A dictionary mapping the metrics (free memory and peak memory) to their values.
+
         """
         import torch_xla.core.xla_model as xm
 

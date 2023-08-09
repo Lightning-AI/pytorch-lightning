@@ -31,6 +31,7 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
     """AMP for Fully Sharded Data Parallel (FSDP) Training.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     """
 
     def __init__(

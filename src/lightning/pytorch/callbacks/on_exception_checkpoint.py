@@ -41,6 +41,7 @@ class OnExceptionCheckpoint(Checkpoint):
         >>> from lightning.pytorch import Trainer
         >>> from lightning.pytorch.callbacks import OnExceptionCheckpoint
         >>> trainer = Trainer(callbacks=[OnExceptionCheckpoint(".")])
+
     """
 
     FILE_EXTENSION = ".ckpt"

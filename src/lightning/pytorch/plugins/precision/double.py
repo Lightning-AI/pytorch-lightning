@@ -92,6 +92,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         """A context manager to change the default tensor type.
 
         See: :meth:`torch.set_default_tensor_type`
+
         """
         torch.set_default_tensor_type(torch.DoubleTensor)
         yield

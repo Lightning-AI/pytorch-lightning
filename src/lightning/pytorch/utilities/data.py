@@ -234,14 +234,15 @@ def _dataloader_init_kwargs_resolve_sampler(
     mode: Optional[RunningStage] = None,
     disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:
-    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
-    re-instantiation.
+    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its re-
+    instantiation.
 
     If the dataloader is being used for prediction, the sampler will be wrapped into an `_IndexBatchSamplerWrapper`, so
     Lightning can keep track of its indices.
 
     If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
     automatically, since `poptorch.DataLoader` will try to increase the batch_size
+
     """
     is_predicting = mode == RunningStage.PREDICTING
     batch_sampler = getattr(dataloader, "batch_sampler")

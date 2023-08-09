@@ -47,6 +47,7 @@ class IPUStrategy(ParallelStrategy):
     """Plugin for training on IPU devices.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     """
 
     strategy_name = "ipu_strategy"
@@ -311,6 +312,7 @@ class IPUStrategy(ParallelStrategy):
 
         Args:
             stage: The stage to load
+
         """
         self._detach_models()
         model = self.poptorch_models[stage]

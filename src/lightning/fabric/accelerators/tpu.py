@@ -28,6 +28,7 @@ class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -107,6 +108,7 @@ def _is_device_tpu() -> bool:
 
     Return:
         A boolean value indicating if TPU devices are available
+
     """
     if not _XLA_AVAILABLE:
         return False

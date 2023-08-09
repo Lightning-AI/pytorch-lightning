@@ -169,6 +169,7 @@ def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
     """Test that the logger objects can be pickled.
 
     This test only makes sense if the packages are installed.
+
     """
     _patch_comet_atexit(monkeypatch)
     try:
@@ -253,8 +254,8 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE)
 @RunIf(skip_windows=True)
 def test_logger_initialization(tmpdir, monkeypatch, logger_class):
-    """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is
-    available at the right time in Trainer."""
+    """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is available
+    at the right time in Trainer."""
     _patch_comet_atexit(monkeypatch)
     try:
         _test_logger_initialization(tmpdir, logger_class)

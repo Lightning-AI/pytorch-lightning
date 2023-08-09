@@ -90,6 +90,7 @@ class FSDPStrategy(ParallelStrategy):
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
+
     """
 
     strategy_name = "fsdp"
@@ -313,6 +314,7 @@ class FSDPStrategy(ParallelStrategy):
 
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
+
         """
         if isinstance(tensor, Tensor):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)

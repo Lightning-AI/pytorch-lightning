@@ -123,6 +123,7 @@ class Strategy(ABC):
 
         This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
         environment before setup is complete.
+
         """
         assert self.accelerator is not None
         self.accelerator.setup_device(self.root_device)
@@ -132,6 +133,7 @@ class Strategy(ABC):
 
         Args:
             trainer: the Trainer, these optimizers should be connected to
+
         """
         if trainer.state.fn != TrainerFn.FITTING:
             return
@@ -143,6 +145,7 @@ class Strategy(ABC):
 
         Args:
             trainer: the trainer instance
+
         """
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
@@ -164,6 +167,7 @@ class Strategy(ABC):
         """Returns state of an optimizer.
 
         Allows for syncing/collating optimizer state from processes in custom plugins.
+
         """
         if isinstance(optimizer, LightningOptimizer):
             optimizer = optimizer._optimizer
@@ -192,6 +196,7 @@ class Strategy(ABC):
             \*args: Positional arguments that get passed down to the precision plugin's backward, intended as arguments
                 for the actual function that performs the backward, like :meth:`~torch.Tensor.backward`.
             \**kwargs: Keyword arguments for the same purpose as ``*args``.
+
         """
         self.pre_backward(closure_loss)
         assert self.lightning_module is not None
@@ -218,6 +223,7 @@ class Strategy(ABC):
             closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
             \**kwargs: Keyword arguments to ``optimizer.step``
+
         """
         model = model or self.lightning_module
         # TODO(fabric): remove assertion once strategy's optimizer_step typing is fixed
@@ -229,6 +235,7 @@ class Strategy(ABC):
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
         call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
+
         """
         # TODO: standardize this across all plugins in Lightning and Fabric. Related refactor: #7324
         model = self._setup_model(model)
@@ -255,6 +262,7 @@ class Strategy(ABC):
             batch: The batch of samples to move to the correct device
             device: The target device
             dataloader_idx: The index of the dataloader to which the batch belongs.
+
         """
         model = self.lightning_module
         device = device or self.root_device
@@ -290,6 +298,7 @@ class Strategy(ABC):
             group: the process group to reduce
             reduce_op: the reduction operation. Defaults to 'mean'.
                 Can also be a string 'sum' or ReduceOp.
+
         """
 
     @abstractmethod
@@ -298,6 +307,7 @@ class Strategy(ABC):
 
         Args:
             name: an optional name to pass into barrier.
+
         """
 
     @abstractmethod
@@ -307,6 +317,7 @@ class Strategy(ABC):
         Args:
             obj: the object to broadcast
             src: source rank
+
         """
 
     @abstractmethod
@@ -317,6 +328,7 @@ class Strategy(ABC):
             tensor: the tensor to all_gather
             group: the process group to gather results from
             sync_grads: flag that allows users to synchronize gradients for all_gather op
+
         """
 
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
@@ -361,6 +373,7 @@ class Strategy(ABC):
         """The actual training step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.training_step` for more details
+
         """
         with self.precision_plugin.train_step_context():
             assert isinstance(self.model, TrainingStep)
@@ -373,6 +386,7 @@ class Strategy(ABC):
         """The actual validation step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
+
         """
         with self.precision_plugin.val_step_context():
             assert isinstance(self.model, ValidationStep)
@@ -382,6 +396,7 @@ class Strategy(ABC):
         """The actual test step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
+
         """
         with self.precision_plugin.test_step_context():
             assert isinstance(self.model, TestStep)
@@ -391,6 +406,7 @@ class Strategy(ABC):
         """The actual predict step.
 
         See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
+
         """
         with self.precision_plugin.predict_step_context():
             assert isinstance(self.model, PredictStep)
@@ -401,16 +417,18 @@ class Strategy(ABC):
 
         Args:
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
+
         """
         return dataloader
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:
-        """Override to delay restoring from checkpoint till after the setup phase has completed. This is useful
-        when the strategy requires all the setup hooks to run before loading checkpoint.
+        """Override to delay restoring from checkpoint till after the setup phase has completed. This is useful when
+        the strategy requires all the setup hooks to run before loading checkpoint.
 
         Returns:
             If ``True``, restore checkpoint after strategy setup.
+
         """
         return False
 
@@ -419,6 +437,7 @@ class Strategy(ABC):
         """Override to disable Lightning restoring optimizers/schedulers.
 
         This is useful for plugins which manage restoring optimizers/schedulers.
+
         """
         return True
 
@@ -441,6 +460,7 @@ class Strategy(ABC):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
+
         """
         if self.is_global_zero:
             self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
@@ -450,17 +470,18 @@ class Strategy(ABC):
 
         Args:
             filepath: Path to checkpoint
+
         """
         if self.is_global_zero:
             self.checkpoint_io.remove_checkpoint(filepath)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
-        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
-        shard the model instantly, which is useful for extremely large models which can save memory and
-        initialization time.
+        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to shard
+        the model instantly, which is useful for extremely large models which can save memory and initialization time.
 
         Returns: Model parallel context.
+
         """
         yield
 
@@ -468,6 +489,7 @@ class Strategy(ABC):
         """This method is called to teardown the training process.
 
         It is the right place to release memory and free other resources.
+
         """
         _optimizers_to_device(self.optimizers, torch.device("cpu"))
 

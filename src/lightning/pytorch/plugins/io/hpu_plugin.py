@@ -27,6 +27,7 @@ class HPUCheckpointIO(TorchCheckpointIO):
     """CheckpointIO to save checkpoints for HPU training strategies.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
     """
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
@@ -40,6 +41,7 @@ class HPUCheckpointIO(TorchCheckpointIO):
         Raises:
             TypeError:
                 If ``storage_options`` arg is passed in
+
         """
         if storage_options is not None:
             raise TypeError(

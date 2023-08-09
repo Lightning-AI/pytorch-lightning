@@ -32,8 +32,8 @@ _TABLE_DATA = List[_TABLE_ROW]
 
 
 class SimpleProfiler(Profiler):
-    """This profiler simply records the duration of actions (in seconds) and reports the mean duration of each
-    action and the total time spent over the entire training run."""
+    """This profiler simply records the duration of actions (in seconds) and reports the mean duration of each action
+    and the total time spent over the entire training run."""
 
     def __init__(
         self,

@@ -153,6 +153,7 @@ class LightningModule(
 
         Returns:
             A single optimizer, or a list of optimizers in case multiple ones are present.
+
         """
         if self._fabric:
             opts: MODULE_OPTIMIZERS = self._fabric_optimizers
@@ -172,12 +173,12 @@ class LightningModule(
         return opts
 
     def lr_schedulers(self) -> Union[None, List[LRSchedulerPLType], LRSchedulerPLType]:
-        """Returns the learning rate scheduler(s) that are being used during training. Useful for manual
-        optimization.
+        """Returns the learning rate scheduler(s) that are being used during training. Useful for manual optimization.
 
         Returns:
             A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
             schedulers were returned in :meth:`configure_optimizers`.
+
         """
         if not self.trainer.lr_scheduler_configs:
             return None
@@ -251,6 +252,7 @@ class LightningModule(
         """Total training batches seen across all epochs.
 
         If no Trainer is attached, this propery is 0.
+
         """
         return self.trainer.global_step if self._trainer else 0
 
@@ -334,6 +336,7 @@ class LightningModule(
 
             def forward(self, x):
                 self.print(x, 'in forward')
+
         """
         if self.trainer.is_global_zero:
             progress_bar = self.trainer.progress_bar_callback
@@ -390,6 +393,7 @@ class LightningModule(
                 :class:`torchmetrics.Metric` in your model. This is found automatically if it is a model attribute.
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
+
         """
         if self._fabric is not None:
             self._log_dict_through_fabric(dictionary={name: value}, logger=logger)
@@ -552,6 +556,7 @@ class LightningModule(
                 but some data structures might need to explicitly provide it.
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
+
         """
         if self._fabric is not None:
             return self._log_dict_through_fabric(dictionary=dictionary, logger=logger)
@@ -634,6 +639,7 @@ class LightningModule(
         Return:
             A tensor of shape (world_size, batch, ...), or if the input was a collection
             the output will also be a collection with tensors of this shape.
+
         """
         group = group if group is not None else torch.distributed.group.WORLD
         all_gather = self.trainer.strategy.all_gather
@@ -703,12 +709,13 @@ class LightningModule(
         Note:
             When ``accumulate_grad_batches`` > 1, the loss returned here will be automatically
             normalized by ``accumulate_grad_batches`` internally.
+
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        r"""Operates on a single batch of data from the validation set. In this step you'd might generate examples
-        or calculate anything of interest like accuracy.
+        r"""Operates on a single batch of data from the validation set. In this step you'd might generate examples or
+        calculate anything of interest like accuracy.
 
         Args:
             batch: The output of your :class:`~torch.utils.data.DataLoader`.
@@ -771,6 +778,7 @@ class LightningModule(
             When the :meth:`validation_step` is called, the model has been put in eval mode
             and PyTorch gradients have been disabled. At the end of validation,
             the model goes back to training mode and gradients are enabled.
+
         """
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -840,6 +848,7 @@ class LightningModule(
             When the :meth:`test_step` is called, the model has been put in eval mode and
             PyTorch gradients have been disabled. At the end of the test epoch, the model goes back
             to training mode and gradients are enabled.
+
         """
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
@@ -900,9 +909,9 @@ class LightningModule(
         return []
 
     def configure_optimizers(self) -> Any:
-        r"""Choose what optimizers and learning-rate schedulers to use in your optimization. Normally you'd need
-        one. But in the case of GANs or similar you might have multiple. Optimization with multiple optimizers only
-        works in the manual optimization mode.
+        r"""Choose what optimizers and learning-rate schedulers to use in your optimization. Normally you'd need one.
+        But in the case of GANs or similar you might have multiple. Optimization with multiple optimizers only works in
+        the manual optimization mode.
 
         Return:
             Any of these 6 options.
@@ -997,6 +1006,7 @@ class LightningModule(
             - If you use multiple optimizers, you will have to switch to 'manual optimization' mode and step them
               yourself.
             - If you need to control how often the optimizer steps, override the :meth:`optimizer_step` hook.
+
         """
         rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
@@ -1046,13 +1056,14 @@ class LightningModule(
             loss.backward(*args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
-        """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step
-        to prevent dangling gradients in multiple-optimizer setup.
+        """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step to
+        prevent dangling gradients in multiple-optimizer setup.
 
         It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
 
         Args:
             optimizer: The optimizer to toggle.
+
         """
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
@@ -1109,6 +1120,7 @@ class LightningModule(
             gradient_clip_val: The value at which to clip gradients.
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
                 to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm.
+
         """
 
         if self.fabric is not None:
@@ -1284,6 +1296,7 @@ class LightningModule(
 
             model = MyLightningModule(...)
             model.freeze()
+
         """
         for param in self.parameters():
             param.requires_grad = False
@@ -1297,6 +1310,7 @@ class LightningModule(
 
             model = MyLightningModule(...)
             model.unfreeze()
+
         """
         for param in self.parameters():
             param.requires_grad = True
@@ -1332,6 +1346,7 @@ class LightningModule(
             model = SimpleModel()
             input_sample = torch.randn(1, 64)
             model.to_onnx("export.onnx", input_sample, export_params=True)
+
         """
         if _TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(
@@ -1536,6 +1551,7 @@ class LightningModule(
         """Adds ShardedTensor state dict hooks if ShardedTensors are supported.
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
+
         """
         if _TORCH_GREATER_EQUAL_2_1:
             # ShardedTensor is deprecated in favor of DistributedTensor

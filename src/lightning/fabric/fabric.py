@@ -81,6 +81,7 @@ class Fabric:
             can be invoked through :meth:`~lightning.fabric.fabric.Fabric.call` by the user.
         loggers: A single logger or a list of loggers. See :meth:`~lightning.fabric.fabric.Fabric.log` for more
             information.
+
     """
 
     def __init__(
@@ -130,6 +131,7 @@ class Fabric:
         """The current device this process runs on.
 
         Use this to create tensors directly on the device if needed.
+
         """
         return self._strategy.root_device
 
@@ -172,6 +174,7 @@ class Fabric:
         """All the code inside this run method gets accelerated by Fabric.
 
         You can pass arbitrary arguments to this function when overriding it.
+
         """
 
     def setup(
@@ -190,6 +193,7 @@ class Fabric:
 
         Returns:
             The tuple containing wrapped module and the optimizers, in the same order they were passed in.
+
         """
         self._validate_setup(module, optimizers)
         original_module = module
@@ -244,6 +248,7 @@ class Fabric:
 
         Returns:
             The wrapped model.
+
         """
         self._validate_setup_module(module)
         original_module = module
@@ -278,6 +283,7 @@ class Fabric:
 
         Returns:
             The wrapped optimizer(s).
+
         """
         self._validate_setup_optimizers(optimizers)
         optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]
@@ -304,6 +310,7 @@ class Fabric:
 
         Returns:
             The wrapped dataloaders, in the same order they were passed in.
+
         """
         self._validate_setup_dataloaders(dataloaders)
         dataloaders = [
@@ -331,6 +338,7 @@ class Fabric:
 
         Returns:
             The wrapped dataloader.
+
         """
         sampler = dataloader.sampler
         if use_distributed_sampler and self._requires_distributed_sampler(dataloader):
@@ -399,6 +407,7 @@ class Fabric:
             norm_type: The type of norm if `max_norm` was passed. Can be ``'inf'`` for infinity norm.
                 Default is the 2-norm.
             error_if_nonfinite: An error is raised if the total norm of the gradients is NaN or infinite.
+
         """
         if clip_val is not None and max_norm is not None:
             raise ValueError(
@@ -424,6 +433,7 @@ class Fabric:
 
         Use this only if the `forward` method of your model does not cover all operations you wish to run with the
         chosen precision setting.
+
         """
         with self._precision.forward_context():
             yield
@@ -461,6 +471,7 @@ class Fabric:
         """Print something only on the first process.
 
         Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
+
         """
         if self.local_rank == 0:
             print(*args, **kwargs)
@@ -471,6 +482,7 @@ class Fabric:
         Use this to synchronize all parallel processes, but only if necessary, otherwise the overhead of synchronization
         will cause your program to slow down. This method needs to be called on all processes. Failing to do so will
         cause your program to stall forever.
+
         """
         self._strategy.barrier(name=name)
 
@@ -486,6 +498,7 @@ class Fabric:
 
         Return:
             The transferred data, the same value on every rank.
+
         """
         return self._strategy.broadcast(obj, src=src)
 
@@ -504,6 +517,7 @@ class Fabric:
         Return:
             A tensor of shape (world_size, batch, ...), or if the input was a collection
             the output will also be a collection with tensors of this shape.
+
         """
         group = group if group is not None else torch.distributed.group.WORLD
         data = convert_to_tensors(data, device=self.device)
@@ -528,6 +542,7 @@ class Fabric:
         Return:
             A tensor of the same shape as the input with values reduced pointwise across processes. The same is
             applied to tensors in a collection if a collection is given as input.
+
         """
         group = group if group is not None else torch.distributed.group.WORLD
         data = convert_to_tensors(data, device=self.device)
@@ -555,6 +570,7 @@ class Fabric:
             module: The module for which to control the gradient synchronization.
             enabled: Whether the context manager is enabled or not. ``True`` means skip the sync, ``False`` means do not
                 skip.
+
         """
         module = _unwrap_compiled(module)
         if not isinstance(module, _FabricModule):
@@ -591,6 +607,7 @@ class Fabric:
                 model = MyModel()
 
         The context manager is strategy-agnostic and for the ones that don't do sharding, it is a no-op.
+
         """
         if isinstance(self._strategy, _Sharded):
             with self._strategy.module_sharded_context():
@@ -608,6 +625,7 @@ class Fabric:
             path: A path to where the file(s) should be saved
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
+
         """
         return self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state))
 
@@ -626,6 +644,7 @@ class Fabric:
         Returns:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
             given, the full checkpoint will be returned.
+
         """
         return self._strategy.load_checkpoint(path=path, state=state)
 
@@ -647,6 +666,7 @@ class Fabric:
         ``launch()`` from your code.
 
         ``launch()`` is a no-op when called multiple times and no function is passed in.
+
         """
         if _is_using_cli():
             raise RuntimeError(
@@ -683,6 +703,7 @@ class Fabric:
 
             fabric = Fabric(callbacks=[MyCallback()])
             fabric.call("on_train_epoch_end", results={...})
+
         """
         for callback in self._callbacks:
             method = getattr(callback, hook_name, None)
@@ -711,6 +732,7 @@ class Fabric:
                 graph automatically.
             step: Optional step number. Most Logger implementations auto-increment the step value by one with every
                 log call. You can specify your own value here.
+
         """
         self.log_dict(metrics={name: value}, step=step)
 
@@ -722,6 +744,7 @@ class Fabric:
                 Any :class:`torch.Tensor` in the dictionary get detached from the graph automatically.
             step: Optional step number. Most Logger implementations auto-increment this value by one with every
                 log call. You can specify your own value here.
+
         """
         metrics = convert_tensors_to_scalars(metrics)
         for logger in self._loggers:
@@ -732,6 +755,7 @@ class Fabric:
         """Helper function to seed everything without explicitly importing Lightning.
 
         See :func:`lightning.fabric.utilities.seed.seed_everything` for more details.
+
         """
         if workers is None:
             # Lightning sets `workers=False` by default to avoid breaking reproducibility, but since this is a new

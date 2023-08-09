@@ -281,6 +281,7 @@ class WandbLogger(Logger):
             If required WandB package is not installed on the device.
         MisconfigurationException:
             If both ``log_model`` and ``offline`` is set to ``True``.
+
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -446,6 +447,7 @@ class WandbLogger(Logger):
         """Log a Table containing any object type (text, image, audio, video, molecule, html, etc).
 
         Can be defined either with `columns` and `data` or with `dataframe`.
+
         """
 
         metrics = {key: wandb.Table(columns=columns, data=data, dataframe=dataframe)}
@@ -463,6 +465,7 @@ class WandbLogger(Logger):
         """Log text as a Table.
 
         Can be defined either with `columns` and `data` or with `dataframe`.
+
         """
 
         self.log_table(key, columns, data, dataframe, step)
@@ -472,6 +475,7 @@ class WandbLogger(Logger):
         """Log images (tensors, numpy arrays, PIL Images or file paths).
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
+
         """
         if not isinstance(images, list):
             raise TypeError(f'Expected a list as "images", found {type(images)}')
@@ -489,6 +493,7 @@ class WandbLogger(Logger):
 
         Returns:
             The path to the save directory.
+
         """
         return self._save_dir
 
@@ -499,6 +504,7 @@ class WandbLogger(Logger):
         Returns:
             The name of the project the current experiment belongs to. This name is not the same as `wandb.Run`'s
             name. To access wandb's internal experiment name, use ``logger.experiment.name`` instead.
+
         """
         return self._project
 
@@ -508,6 +514,7 @@ class WandbLogger(Logger):
 
         Returns:
             The id of the experiment if the experiment exists else the id given to the constructor.
+
         """
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
@@ -537,6 +544,7 @@ class WandbLogger(Logger):
 
         Returns:
             The path to the downloaded artifact.
+
         """
         if wandb.run is not None and use_artifact:
             artifact = wandb.run.use_artifact(artifact)
@@ -556,6 +564,7 @@ class WandbLogger(Logger):
 
         Returns:
             wandb Artifact object for the artifact.
+
         """
         return self.experiment.use_artifact(artifact, type=artifact_type)
 

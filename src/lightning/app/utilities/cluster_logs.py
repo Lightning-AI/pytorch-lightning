@@ -45,6 +45,7 @@ def _push_log_events_to_read_queue_callback(read_queue: queue.Queue):
     """Pushes _LogEvents from websocket to read_queue.
 
     Returns callback function used with `on_message_callback` of websocket.WebSocketApp.
+
     """
 
     def callback(_: WebSocketApp, msg: str):
