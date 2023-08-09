@@ -1,6 +1,7 @@
+import warnings
+
 import pytest
 import torch
-import warnings
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -107,7 +108,7 @@ def test_load_from_checkpoint_device_placement_with_extra_state(tmp_path):
 
 
 def test_load_from_checkpoint_warn_on_empty_state_dict(tmp_path):
-    """Test that checkpoints can be loaded with an empty state dict and that the appropriate warning is raised"""
+    """Test that checkpoints can be loaded with an empty state dict and that the appropriate warning is raised."""
     create_boring_checkpoint(tmp_path, BoringModel(), accelerator="cpu")
     # Now edit so the state_dict is empty
     checkpoint = torch.load(f"{tmp_path}/checkpoint.ckpt")
