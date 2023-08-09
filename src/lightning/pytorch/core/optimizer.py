@@ -34,8 +34,8 @@ def do_nothing_closure() -> None:
 
 
 class LightningOptimizer:
-    """This class is used to wrap the user optimizers and handle properly the backward and optimizer_step logic
-    across accelerators, AMP, accumulate_grad_batches."""
+    """This class is used to wrap the user optimizers and handle properly the backward and optimizer_step logic across
+    accelerators, AMP, accumulate_grad_batches."""
 
     def __init__(self, optimizer: Optimizer):
         # copy most of the `Optimizer` methods into this instance. `__del__` is skipped in case the optimizer has
@@ -73,6 +73,7 @@ class LightningOptimizer:
         When performing gradient accumulation, there is no need to perform grad synchronization
         during the accumulation phase.
         Setting `sync_grad` to False will block this synchronization and improve performance.
+
         """
         # local import here to avoid circular import
         from lightning.pytorch.loops.utilities import _block_parallel_sync_behavior
@@ -144,6 +145,7 @@ class LightningOptimizer:
 
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
                     opt_dis.step(closure=closure_dis)
+
         """
         self._on_before_step()
 
@@ -237,8 +239,7 @@ def _configure_optimizers(
 
 
 def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[LRSchedulerConfig]:
-    """Convert each scheduler into `LRSchedulerConfig` with relevant information, when using automatic
-    optimization."""
+    """Convert each scheduler into `LRSchedulerConfig` with relevant information, when using automatic optimization."""
     lr_scheduler_configs = []
     for scheduler in schedulers:
         if isinstance(scheduler, dict):

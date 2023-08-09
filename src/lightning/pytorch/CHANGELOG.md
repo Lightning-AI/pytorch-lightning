@@ -138,6 +138,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Increased the minimum supported `wandb` version for `WandbLogger` from 0.12.0 to 0.12.10 ([#18171](https://github.com/Lightning-AI/lightning/pull/18171))
 
 
+- The input tensors now get cast to the right precision type before transfer to the device ([#18264](https://github.com/Lightning-AI/lightning/pull/18264))
+
+
 ### Deprecated
 
 - Deprecated the `SingleTPUStrategy` (`strategy="single_tpu"`) in favor of `SingleDeviceXLAStrategy` (`strategy="single_xla"`) ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))

@@ -37,6 +37,7 @@ def _get_flow_state(flow: str) -> AppState:
 
     Returns:
         AppState: An AppState scoped to the current Flow.
+
     """
     app_state = AppState()
     app_state._request_state()  # pylint: disable=protected-access
@@ -54,6 +55,7 @@ def _get_frontend_environment(flow: str, render_fn_or_file: Callable | str, port
 
     Returns:
         os._Environ: An environment
+
     """
     env = os.environ.copy()
     env["LIGHTNING_FLOW_NAME"] = flow

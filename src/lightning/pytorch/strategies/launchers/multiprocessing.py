@@ -60,6 +60,7 @@ class _MultiProcessingLauncher(_Launcher):
             - 'fork': Preferable for IPython/Jupyter environments where 'spawn' is not available. Not available on
               the Windows platform for example.
             - 'forkserver': Alternative implementation to 'fork'.
+
     """
 
     def __init__(
@@ -93,6 +94,7 @@ class _MultiProcessingLauncher(_Launcher):
             trainer: Optional reference to the :class:`~lightning.pytorch.trainer.trainer.Trainer` for which
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
+
         """
         if self._start_method in ("fork", "forkserver"):
             _check_bad_cuda_fork()
@@ -198,8 +200,8 @@ class _MultiProcessingLauncher(_Launcher):
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
 
     def get_extra_results(self, trainer: "pl.Trainer") -> Dict[str, Any]:
-        """Gather extra state from the Trainer and return it as a dictionary for sending back to the main process.
-        To avoid issues with memory sharing, we cast the data to numpy.
+        """Gather extra state from the Trainer and return it as a dictionary for sending back to the main process. To
+        avoid issues with memory sharing, we cast the data to numpy.
 
         Args:
             trainer: reference to the Trainer.
@@ -207,6 +209,7 @@ class _MultiProcessingLauncher(_Launcher):
         Returns:
             A dictionary with items to send back to the main process where :meth:`update_main_process_results` will
             process this output.
+
         """
         callback_metrics: dict = apply_to_collection(
             trainer.callback_metrics, Tensor, lambda x: x.cpu().numpy()
@@ -263,6 +266,7 @@ class _GlobalStateSnapshot:
 
             # in worker process
             snapshot.restore()
+
     """
 
     use_deterministic_algorithms: bool
@@ -272,8 +276,7 @@ class _GlobalStateSnapshot:
 
     @classmethod
     def capture(cls) -> "_GlobalStateSnapshot":
-        """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker
-        process."""
+        """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker process."""
         return cls(
             use_deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
             use_deterministic_algorithms_warn_only=torch.is_deterministic_algorithms_warn_only_enabled(),

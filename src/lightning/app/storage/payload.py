@@ -61,6 +61,7 @@ class _BasePayload(ABC):
         """The hash of this Payload uniquely identifies the payload and the associated origin Work.
 
         Returns ``None`` if the origin is not defined, i.e., this Path did not yet get attached to a LightningWork.
+
         """
         if self._origin is None:
             return None
@@ -72,6 +73,7 @@ class _BasePayload(ABC):
         """The name of the LightningWork where this payload was first created.
 
         Attaching a Payload to a LightningWork will automatically make it the `origin`.
+
         """
         from lightning.app.core.work import LightningWork
 
@@ -82,6 +84,7 @@ class _BasePayload(ABC):
         """The name of the LightningWork where this payload is being accessed.
 
         By default, this is the same as the :attr:`origin_name`.
+
         """
         from lightning.app.core.work import LightningWork
 
@@ -107,6 +110,7 @@ class _BasePayload(ABC):
 
         Args:
             work: LightningWork to be attached to this Payload.
+
         """
         if self._origin is None:
             # Can become an owner only if there is not already one
@@ -130,6 +134,7 @@ class _BasePayload(ABC):
 
         Raises:
             RuntimeError: If the payload is not attached to any Work (origin undefined).
+
         """
         # Fail early if we need to check the remote but an origin is not defined
         if not self._origin or self._request_queue is None or self._response_queue is None:

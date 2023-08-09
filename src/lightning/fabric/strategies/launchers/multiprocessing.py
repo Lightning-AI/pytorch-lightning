@@ -50,6 +50,7 @@ class _MultiProcessingLauncher(_Launcher):
             - 'fork': Preferable for IPython/Jupyter environments where 'spawn' is not available. Not available on
               the Windows platform for example.
             - 'forkserver': Alternative implementation to 'fork'.
+
     """
 
     def __init__(
@@ -82,6 +83,7 @@ class _MultiProcessingLauncher(_Launcher):
             function: The entry point for all launched processes.
             *args: Optional positional arguments to be passed to the given function.
             **kwargs: Optional keyword arguments to be passed to the given function.
+
         """
         if self._start_method in ("fork", "forkserver"):
             _check_bad_cuda_fork()
@@ -143,6 +145,7 @@ class _GlobalStateSnapshot:
 
             # in worker process
             snapshot.restore()
+
     """
 
     use_deterministic_algorithms: bool
@@ -152,8 +155,7 @@ class _GlobalStateSnapshot:
 
     @classmethod
     def capture(cls) -> "_GlobalStateSnapshot":
-        """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker
-        process."""
+        """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker process."""
         return cls(
             use_deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
             use_deterministic_algorithms_warn_only=torch.is_deterministic_algorithms_warn_only_enabled(),
@@ -175,6 +177,7 @@ def _check_bad_cuda_fork() -> None:
 
     The error message replaces PyTorch's 'Cannot re-initialize CUDA in forked subprocess' with helpful advice for
     Lightning users.
+
     """
     if not torch.cuda.is_initialized():
         return

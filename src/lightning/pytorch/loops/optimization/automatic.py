@@ -40,6 +40,7 @@ class ClosureResult(OutputResult):
         closure_loss: The loss with a graph attached.
         loss: A detached copy of the closure loss.
         extra: Any keys other than the loss returned.
+
     """
 
     closure_loss: Optional[Tensor]
@@ -158,6 +159,7 @@ class _AutomaticOptimization(_Loop):
         Args:
             kwargs: the kwargs passed down to the hooks
             optimizer: the optimizer
+
         """
         closure = self._make_closure(kwargs, optimizer)
 
@@ -203,6 +205,7 @@ class _AutomaticOptimization(_Loop):
         """Build a `zero_grad` function that zeroes the gradients before back-propagation.
 
         Returns ``None`` in the case backward needs to be skipped.
+
         """
         if self._skip_backward:
             return None
@@ -218,10 +221,11 @@ class _AutomaticOptimization(_Loop):
         return zero_grad_fn
 
     def _make_backward_fn(self, optimizer: Optimizer) -> Optional[Callable[[Tensor], None]]:
-        """Build a `backward` function that handles back-propagation through the output produced by the
-        `training_step` function.
+        """Build a `backward` function that handles back-propagation through the output produced by the `training_step`
+        function.
 
         Returns ``None`` in the case backward needs to be skipped.
+
         """
         if self._skip_backward:
             return None
@@ -242,6 +246,7 @@ class _AutomaticOptimization(_Loop):
             batch_idx: the index of the current batch
             train_step_and_backward_closure: the closure function performing the train step and computing the
                 gradients. By default, called by the optimizer (if possible)
+
         """
         trainer = self.trainer
 
@@ -285,6 +290,7 @@ class _AutomaticOptimization(_Loop):
         Args:
             batch_idx: the index of the current batch
             optimizer: the current optimizer
+
         """
         trainer = self.trainer
         call._call_lightning_module_hook(trainer, "optimizer_zero_grad", trainer.current_epoch, batch_idx, optimizer)
@@ -298,6 +304,7 @@ class _AutomaticOptimization(_Loop):
 
         Returns:
             A ``ClosureResult`` containing the training step output.
+
         """
         trainer = self.trainer
 

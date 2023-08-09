@@ -88,6 +88,7 @@ class CloudCompute:
         interruptible: Whether to run on a interruptible machine e.g the machine can be stopped
             at any time by the providers. This is also known as spot or preemptible machines.
             Compared to on-demand machines, they tend to be cheaper.
+
     """
 
     name: str = "default"
