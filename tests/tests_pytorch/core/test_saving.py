@@ -1,5 +1,3 @@
-import warnings
-
 import pytest
 import torch
 
@@ -115,7 +113,6 @@ def test_load_from_checkpoint_warn_on_empty_state_dict(tmp_path):
     checkpoint["state_dict"] = {}
     torch.save(checkpoint, tmp_path / "checkpoint.ckpt")
 
-    with warnings.catch_warnings(record=True) as w:
-        model = BoringModel.load_from_checkpoint(f"{tmp_path}/checkpoint.ckpt", strict=False)
-        assert "contains no parameters" in str(w[-1].message)
-        assert model.device.type == "cpu"
+    with pytest.warns(UserWarning, match="contains no parameters"):
+        model = BoringModel.load_from_checkpoint(tmp_path / "checkpoint.ckpt", strict=False)
+    assert model.device.type == "cpu"
