@@ -934,8 +934,8 @@ class Fabric:
             for name, param in model.named_parameters():
                 if param.device != initial_device:
                     rank_zero_warn(
-                        f"The model passed to `Fabric.setup()` has parameters on different devices ({name!r} at"
-                        f" {param.device} and {initial_name!r} at {initial_device}). Since `move_to_device=True`,"
+                        f"The model passed to `Fabric.setup()` has parameters on different devices ({name!r} on"
+                        f" {param.device} and {initial_name!r} on {initial_device}). Since `move_to_device=True`,"
                         " all parameters will be moved to the new device. If this is not desired, set "
                         " `Fabric.setup(..., move_to_device=False)`.",
                         category=PossibleUserWarning,
