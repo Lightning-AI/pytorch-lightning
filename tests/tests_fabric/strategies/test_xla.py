@@ -14,7 +14,7 @@
 import os
 from functools import partial
 from unittest import mock
-from unittest.mock import MagicMock, Mock
+from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
 import torch
@@ -52,6 +52,7 @@ def xla_launch(fn, strategy=None):
 def broadcast_on_tpu_fn(strategy):
     # test broadcasting a tensor
     obj = torch.tensor(strategy.global_rank)
+    assert obj.device.type == "cpu"
     # In PjRT, the local rank and global rank have no solid relation.
     # global rank may not even be contiguous on a host, because it depends on the 3D mesh structure that is formed by
     # the TPUs on all hosts in a pod. So checking a different src is not reliable
@@ -59,12 +60,15 @@ def broadcast_on_tpu_fn(strategy):
     src = 0
     result = strategy.broadcast(obj, src)
     assert result.item() == src
-    assert result.device.type == "xla"
+    assert result.device.type == "cpu"  # the original device is preserved
 
     # test broadcasting an arbitrary object
-    obj = ("ver_0.5", "logger_name", strategy.global_rank)
+    tensor = torch.tensor(strategy.global_rank, device=strategy.root_device, dtype=torch.bfloat16)
+    obj = ("ver_0.5", "logger_name", strategy.global_rank, tensor)
     result = strategy.broadcast(obj, src=src)
-    assert result == ("ver_0.5", "logger_name", src)
+    assert result == ("ver_0.5", "logger_name", src, ANY)
+    assert result[3].device.type == "cpu"  # the original device is not preserved with objects
+    assert result[3].dtype == torch.bfloat16
 
 
 @RunIf(tpu=True)

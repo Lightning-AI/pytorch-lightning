@@ -263,13 +263,19 @@ class XLAFSDPStrategy(ParallelStrategy):
             )
         if tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
-        if tensor.device.type != "xla":
+        original_device = tensor.device
+        if original_device.type != "xla":
             tensor = tensor.to(self.root_device)
 
         import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
 
-        return xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
+        tensor = xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
+
+        if original_device.type != "xla":
+            tensor = tensor.to(original_device)
+
+        return tensor
 
     def all_reduce(
         self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
@@ -313,7 +319,12 @@ class XLAFSDPStrategy(ParallelStrategy):
         if is_tensor:
             if obj.dim() == 0:
                 obj = obj.unsqueeze(0)
-            if obj.device.type != "xla":
+            original_device = obj.device
+            if original_device.type != "xla":
+                # XLA distributed requires that the data is on the XLA device
+                # TODO: this might OOM if a CPU object is broadcast that wouldn't fit on XLA's memory. a workaround
+                # for that would be to use regular torch distributed for CPU objects with gloo. however, that would
+                # have other challenges such as having to initialize it and the lack of bfloat16 support for gloo
                 obj = obj.to(self.root_device)
         else:
             # support for arbitrary pickle-ables
@@ -329,7 +340,11 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         if not is_tensor:
             buffer = io.BytesIO(obj.cpu().byte().numpy())
-            obj = torch.load(buffer)
+            # when an arbitrary pickle-able is broadcast, load back to CPU since we cannot set custom map
+            # locations for each component in the buffer
+            obj = torch.load(buffer, map_location="cpu")
+        elif original_device.type != "xla":
+            obj = obj.to(original_device)
 
         return obj
 
