@@ -632,6 +632,7 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
         else:
             trainer.fit(model, ckpt_path=model_path)
     else:
+        trainer.fit(model, ckpt_path=model_path)
         restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
         restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
 
@@ -676,6 +677,10 @@ def test_configure_model(precision, expected_dtype):
             expected_device = torch.device("cpu")
             assert self.layer.weight.device == expected_device
             assert self.layer.weight.dtype == expected_dtype
+
+        def configure_optimizers(self):
+            # There is some issue with SGD optimizer state in FSDP
+            return torch.optim.AdamW(self.layer.parameters(), lr=0.1)
 
         def on_fit_start(self):
             # Parameters get sharded in `.setup()` and moved to the target device
