@@ -52,7 +52,7 @@ if __name__ == "__main__":
     ]
 
     for ln in expected_lines:
-        assert ln in output, f"Missing line `{ln}` in: \n{output}"
+        assert ln in output, f"Missing line {ln!r} in:\n{output}"
 
     # check that logging is properly configured
     import logging
