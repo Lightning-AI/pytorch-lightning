@@ -23,6 +23,8 @@ class SimpleModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.layer = nn.Linear(2, 2)
+        self.shared_layer = nn.Linear(2, 2)
+        self.shared_layer.weight = self.layer.weight
         self.register_buffer("buffer", torch.ones(3))
 
 
@@ -34,6 +36,7 @@ def test_memory_sharing_disabled(strategy):
     model = SimpleModel()
     assert not tensor.is_shared()
     assert not model.layer.weight.is_shared()
+    assert model.layer.weight is model.shared_layer.weight
 
     fabric = Fabric(accelerator="cpu", devices=2, strategy=strategy)
     fabric.launch(_test_memory_sharing_disabled, tensor, model)
@@ -43,5 +46,8 @@ def _test_memory_sharing_disabled(fabric, tensor, model):
     is_spawn = fabric.strategy.launcher._start_method == "spawn"
     assert not is_spawn or tensor.is_shared()
     assert not model.layer.weight.is_shared()
+    assert not model.shared_layer.weight.is_shared()
     assert not model.buffer.is_shared()
+    assert model.layer.weight is model.shared_layer.weight  # weights remain tied
+    assert model.layer.bias is not model.shared_layer.bias
     fabric.barrier()

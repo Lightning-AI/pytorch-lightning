@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+import itertools
 import os
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
@@ -204,4 +205,11 @@ def _disable_module_memory_sharing(data: Any) -> Any:
     # PyTorch enables memory sharing automatically on all tensors that are passed through `mp.spawn`.
     # For model weights and buffers, this is undesired and can lead to race conditions between processes.
     # Hence, we deep-copy the entire module to ensure it doesn't share memory with other processes.
-    return apply_to_collection(data, function=copy.deepcopy, dtype=Module)
+
+    def _unshare(module: Module) -> Module:
+        for tensor in itertools.chain(module.parameters(), module.buffers()):
+            with torch.no_grad():
+                tensor.data = tensor.data.clone()
+        return module
+
+    return apply_to_collection(data, function=_unshare, dtype=Module)
