@@ -75,6 +75,11 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+_LOAD_SAVE_OPTIM_STATE_WARN_1X = (
+    "Note that saving/restoring optimizer state using `FSDPStrategy` with PyTorch < 2.0"
+    " is not supported by Lightning."
+)
+
 
 class FSDPStrategy(ParallelStrategy):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
@@ -176,7 +181,11 @@ class FSDPStrategy(ParallelStrategy):
 
         """
         from torch.distributed.fsdp import FullyShardedDataParallel
-        from torch.distributed.fsdp.api import FullStateDictConfig, StateDictType
+
+        if _TORCH_GREATER_EQUAL_2_0:
+            from torch.distributed.fsdp.api import FullStateDictConfig, StateDictType
+        else:
+            from torch.distributed.fsdp import FullStateDictConfig, StateDictType
 
         assert self.model is not None
 
@@ -442,6 +451,11 @@ class FSDPStrategy(ParallelStrategy):
         cls._registered_strategies.append("fsdp_cpu_offload")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        if not _TORCH_GREATER_EQUAL_2_0:
+            rank_zero_warn(
+                f"{_LOAD_SAVE_OPTIM_STATE_WARN_1X} Bypassing restoration of optimizer state.", category=UserWarning
+            )
+            return
         from torch.distributed.fsdp import FullyShardedDataParallel, OptimStateKeyType
 
         optimizer_states = checkpoint.get("optimizer_states")
@@ -476,6 +490,11 @@ class FSDPStrategy(ParallelStrategy):
                 optimizer.load_state_dict(opt_state)
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+        if not _TORCH_GREATER_EQUAL_2_0:
+            rank_zero_warn(
+                f"{_LOAD_SAVE_OPTIM_STATE_WARN_1X} Bypassing saving of optimizer state.", category=UserWarning
+            )
+            return {}
         from torch.distributed.fsdp import FullyShardedDataParallel, OptimStateKeyType
 
         if isinstance(optimizer, LightningOptimizer):
