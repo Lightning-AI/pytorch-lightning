@@ -36,7 +36,7 @@ def test_memory_sharing_disabled(strategy):
     model = SimpleModel()
     assert not tensor.is_shared()
     assert not model.layer.weight.is_shared()
-    assert model.layer.weight is model.shared_layer.weight
+    assert model.layer.weight.data is model.shared_layer.weight.data
 
     fabric = Fabric(accelerator="cpu", devices=2, strategy=strategy)
     fabric.launch(_test_memory_sharing_disabled, tensor, model)
@@ -48,6 +48,6 @@ def _test_memory_sharing_disabled(fabric, tensor, model):
     assert not model.layer.weight.is_shared()
     assert not model.shared_layer.weight.is_shared()
     assert not model.buffer.is_shared()
-    assert model.layer.weight is model.shared_layer.weight  # weights remain tied
-    assert model.layer.bias is not model.shared_layer.bias
+    assert model.layer.weight.data is model.shared_layer.weight.data  # weights remain tied
+    assert model.layer.bias.data is not model.shared_layer.bias.data
     fabric.barrier()
