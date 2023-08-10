@@ -204,9 +204,9 @@ Tip: For faster initialization, you can create model parameters with the desired
 ----
 
 
-*******************
+*********************
 True Double Precision
-*******************
+*********************
 
 For certain scientific computations, 64-bit precision enables more accurate models. However, doubling the precision from 32 to 64 bit also doubles the memory requirements.
 
