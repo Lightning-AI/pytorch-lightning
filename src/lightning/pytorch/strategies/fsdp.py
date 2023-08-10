@@ -117,6 +117,7 @@ class FSDPStrategy(ParallelStrategy):
             Also accepts a :class:`torch.distributed.fsdp.ShardingStrategy` enum value.
 
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
+
     """
 
     strategy_name = "fsdp"
@@ -172,6 +173,7 @@ class FSDPStrategy(ParallelStrategy):
 
         To avoid OOM, the returned parameters will only be returned on rank 0 and on CPU. All other ranks get an empty
         dict.
+
         """
         from torch.distributed.fsdp import FullyShardedDataParallel
         from torch.distributed.fsdp.api import FullStateDictConfig, StateDictType
@@ -386,6 +388,7 @@ class FSDPStrategy(ParallelStrategy):
 
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
+
         """
         if isinstance(tensor, Tensor):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)

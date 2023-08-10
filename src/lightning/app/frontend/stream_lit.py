@@ -61,6 +61,7 @@ class StreamlitFrontend(Frontend):
 
                 st.write("Hello from streamlit!")
                 st.write(state.counter)
+
     """
 
     @requires("streamlit")

@@ -40,6 +40,7 @@ def check_finite_loss(loss: Optional[Tensor]) -> None:
 
     Args:
         loss: the loss value to check to be finite
+
     """
     if loss is not None and not torch.isfinite(loss).all():
         raise ValueError(f"The loss returned in `training_step` is {loss}.")
@@ -52,8 +53,8 @@ def _parse_loop_limits(
     max_epochs: Optional[int],
     trainer: "pl.Trainer",
 ) -> Tuple[int, int]:
-    """This utility computes the default values for the minimum and maximum number of steps and epochs given the
-    values the user has selected.
+    """This utility computes the default values for the minimum and maximum number of steps and epochs given the values
+    the user has selected.
 
     Args:
         min_steps: Minimum number of steps.
@@ -64,6 +65,7 @@ def _parse_loop_limits(
 
     Returns:
         The parsed limits, with default values being set for the ones that the user did not specify.
+
     """
     if max_epochs is None:
         if max_steps == -1 and not any(isinstance(cb, Timer) for cb in trainer.callbacks):
@@ -89,8 +91,8 @@ def _parse_loop_limits(
 
 @contextmanager
 def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Generator[None, None, None]:
-    """Blocks synchronization in :class:`~lightning.pytorch.strategies.parallel.ParallelStrategy`. This is useful
-    for example when accumulating gradients to reduce communication when it is not needed.
+    """Blocks synchronization in :class:`~lightning.pytorch.strategies.parallel.ParallelStrategy`. This is useful for
+    example when accumulating gradients to reduce communication when it is not needed.
 
     Args:
         strategy: the strategy instance to use.
@@ -98,6 +100,7 @@ def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Gen
 
     Returns:
         context manager with sync behaviour off
+
     """
     if isinstance(strategy, ParallelStrategy) and block:
         with strategy.block_backward_sync():
@@ -115,6 +118,7 @@ def _is_max_limit_reached(current: int, maximum: int = -1) -> bool:
 
     Returns:
         bool: whether the limit has been reached
+
     """
     return maximum != -1 and current >= maximum
 

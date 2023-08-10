@@ -44,6 +44,7 @@ def _extract_commands_from_file(file_name: str) -> CommandLines:
     """Extract all lines at the top of the file which contain commands to execute.
 
     The return struct contains a list of commands to execute with the corresponding line number the command executed on.
+
     """
     cl = CommandLines(
         file=file_name,
@@ -83,6 +84,7 @@ def _execute_app_commands(cl: CommandLines) -> None:
     """Open a subprocess shell to execute app commands.
 
     The calling app environment is used in the current environment the code is running in
+
     """
     for command, line_number in zip(cl.commands, cl.line_numbers):
         logger.info(f"Running app setup command: {command}")
@@ -116,6 +118,7 @@ def run_app_commands(file: str) -> None:
     foo! bar            <--- not a command import lightning      <--- not a command, end parsing.
 
     where `echo "hello world" && pip install foo` would be executed in the current running environment.
+
     """
     cl = _extract_commands_from_file(file_name=file)
     if len(cl.commands) == 0:

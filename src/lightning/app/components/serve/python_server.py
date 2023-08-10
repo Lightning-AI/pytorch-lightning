@@ -211,6 +211,7 @@ class PythonServer(LightningWork, abc.ABC):
             ...         return {"prediction": self._model(request.image)}
             ...
             >>> app = LightningApp(SimpleServer())
+
         """
         super().__init__(parallel=True, **kwargs)
         if not issubclass(input_type, BaseModel):
@@ -228,6 +229,7 @@ class PythonServer(LightningWork, abc.ABC):
 
         Note that this will be called exactly once on every work machines. So if you have multiple machines for serving,
         this will be called on each of them.
+
         """
         return
 
@@ -243,6 +245,7 @@ class PythonServer(LightningWork, abc.ABC):
 
         This method must be overriden by the user with the prediction logic. The pre/post processing, actual prediction
         using the model(s) etc goes here
+
         """
         pass
 
@@ -325,6 +328,7 @@ class PythonServer(LightningWork, abc.ABC):
         """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
 
         Normally, you don't need to override this method.
+
         """
         self.setup(*args, **kwargs)
 

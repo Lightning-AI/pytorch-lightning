@@ -88,6 +88,7 @@ class LightningArgumentParser(ArgumentParser):
             description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables. Set ``default_env=True`` to enable env parsing.
             default_env: Whether to parse environment variables.
+
         """
         if not _JSONARGPARSE_SIGNATURES_AVAILABLE:
             raise ModuleNotFoundError(f"{_JSONARGPARSE_SIGNATURES_AVAILABLE}")
@@ -120,6 +121,7 @@ class LightningArgumentParser(ArgumentParser):
 
         Returns:
             A list with the names of the class arguments added.
+
         """
         if callable(lightning_class) and not isinstance(lightning_class, type):
             lightning_class = class_from_function(lightning_class)
@@ -155,6 +157,7 @@ class LightningArgumentParser(ArgumentParser):
             optimizer_class: Any subclass of :class:`torch.optim.Optimizer`. Use tuple to allow subclasses.
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
+
         """
         if isinstance(optimizer_class, tuple):
             assert all(issubclass(o, Optimizer) for o in optimizer_class)
@@ -180,6 +183,7 @@ class LightningArgumentParser(ArgumentParser):
                 tuple to allow subclasses.
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
+
         """
         if isinstance(lr_scheduler_class, tuple):
             assert all(issubclass(o, LRSchedulerTypeTuple) for o in lr_scheduler_class)
@@ -206,6 +210,7 @@ class SaveConfigCallback(Callback):
 
     Raises:
         RuntimeError: If the config file already exists in the directory to avoid overwriting a previous run
+
     """
 
     def __init__(
@@ -284,6 +289,7 @@ class SaveConfigCallback(Callback):
             worry about ranks or race conditions. Since it only runs on rank zero, any collective call will make the
             process hang waiting for a broadcast. If you need to make collective calls, implement the setup method
             instead.
+
         """
 
 
@@ -306,8 +312,8 @@ class LightningCLI:
         run: bool = True,
         auto_configure_optimizers: bool = True,
     ) -> None:
-        """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which
-        are called / instantiated using a parsed configuration file and / or command line args.
+        """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which are
+        called / instantiated using a parsed configuration file and / or command line args.
 
         Parsing of configuration from environment variables can be enabled by setting ``parser_kwargs={"default_env":
         True}``. A full configuration yaml would be parsed from ``PL_CONFIG`` if set. Individual settings are so parsed
@@ -345,6 +351,7 @@ class LightningCLI:
                 ``dict`` or ``jsonargparse.Namespace``.
             run: Whether subcommands should be added to run a :class:`~lightning.pytorch.trainer.trainer.Trainer`
                 method. If set to ``False``, the trainer and model classes will be instantiated only.
+
         """
         self.save_config_callback = save_config_callback
         self.save_config_kwargs = save_config_kwargs or {}
@@ -450,6 +457,7 @@ class LightningCLI:
 
         Args:
             parser: The parser object to which arguments can be added
+
         """
 
     @staticmethod
@@ -533,6 +541,7 @@ class LightningCLI:
 
         Args:
             kwargs: Any custom trainer arguments.
+
         """
         extra_callbacks = [self._get(self.config_init, c) for c in self._parser(self.subcommand).callback_keys]
         trainer_config = {**self._get(self.config_init, "trainer", default={}), **kwargs}
@@ -580,6 +589,7 @@ class LightningCLI:
             lightning_module: A reference to the model.
             optimizer: The optimizer.
             lr_scheduler: The learning rate scheduler (if used).
+
         """
         if lr_scheduler is None:
             return optimizer
@@ -591,8 +601,8 @@ class LightningCLI:
         return [optimizer], [lr_scheduler]
 
     def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
-        """Overrides the model's :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers` method
-        if a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
+        """Overrides the model's :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers` method if
+        a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
         if not self.auto_configure_optimizers:
             return
 
@@ -725,6 +735,7 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
 
     Returns:
         The instantiated class object.
+
     """
     kwargs = init.get("init_args", {})
     if not isinstance(args, tuple):

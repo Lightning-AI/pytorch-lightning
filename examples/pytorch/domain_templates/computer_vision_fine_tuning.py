@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Computer vision example on Transfer Learning. This computer vision example illustrates how one could fine-tune a
-pre-trained network (by default, a ResNet50 is used) using pytorch-lightning. For the sake of this example, the
-'cats and dogs dataset' (~60MB, see `DATA_URL` below) and the proposed network (denoted by `TransferLearningModel`,
-see below) is trained for 15 epochs.
+pre-trained network (by default, a ResNet50 is used) using pytorch-lightning. For the sake of this example, the 'cats
+and dogs dataset' (~60MB, see `DATA_URL` below) and the proposed network (denoted by `TransferLearningModel`, see
+below) is trained for 15 epochs.
 
 The training consists of three stages.
 
@@ -37,6 +37,7 @@ Note:
 
 To run:
     python computer_vision_fine_tuning.py fit
+
 """
 
 import logging
@@ -97,6 +98,7 @@ class CatDogImageDataModule(LightningDataModule):
             dl_path: root directory where to download the data
             num_workers: number of CPU workers
             batch_size: number of sample in a batch
+
         """
         super().__init__()
 
@@ -174,6 +176,7 @@ class TransferLearningModel(LightningModule):
             milestones: List of two epochs milestones
             lr: Initial learning rate
             lr_scheduler_gamma: Factor by which the learning rate is reduced at each milestone
+
         """
         super().__init__()
         self.backbone = backbone
@@ -209,6 +212,7 @@ class TransferLearningModel(LightningModule):
         """Forward pass.
 
         Returns logits.
+
         """
         # 1. Feature extraction:
         x = self.feature_extractor(x)

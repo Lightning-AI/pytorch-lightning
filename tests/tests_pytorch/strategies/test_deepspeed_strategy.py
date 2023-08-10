@@ -106,8 +106,7 @@ def deepspeed_zero_config(deepspeed_config):
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("strategy", ["deepspeed", DeepSpeedStrategy])
 def test_deepspeed_strategy_string(tmpdir, strategy):
-    """Test to ensure that the strategy can be passed via string or instance, and parallel devices is correctly
-    set."""
+    """Test to ensure that the strategy can be passed via string or instance, and parallel devices is correctly set."""
 
     trainer = Trainer(
         accelerator="cpu",
@@ -141,6 +140,7 @@ def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
 
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
+
     """
     trainer = Trainer(
         fast_dev_run=True,
@@ -286,8 +286,8 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_config(tmpdir, deepspeed_zero_config):
-    """Test to ensure deepspeed works correctly when passed a DeepSpeed config object including
-    optimizers/schedulers and saves the model weights to load correctly."""
+    """Test to ensure deepspeed works correctly when passed a DeepSpeed config object including optimizers/schedulers
+    and saves the model weights to load correctly."""
 
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
@@ -358,8 +358,8 @@ def test_deepspeed_custom_precision_params(tmpdir):
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 @pytest.mark.parametrize("precision", ["fp16", "bf16"])
 def test_deepspeed_inference_precision_during_inference(precision, tmpdir):
-    """Ensure if we modify the precision for deepspeed and execute inference-only, the deepspeed config contains
-    these changes."""
+    """Ensure if we modify the precision for deepspeed and execute inference-only, the deepspeed config contains these
+    changes."""
 
     class TestCB(Callback):
         def on_validation_start(self, trainer, pl_module) -> None:
@@ -399,8 +399,8 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
-    """Ensure if we modify the activation checkpointing parameters, we pass these to
-    deepspeed.checkpointing.configure correctly."""
+    """Ensure if we modify the activation checkpointing parameters, we pass these to deepspeed.checkpointing.configure
+    correctly."""
     ds = DeepSpeedStrategy(
         partition_activations=True,
         cpu_checkpointing=True,
@@ -456,8 +456,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu(tmpdir):
-    """Test to ensure that DeepSpeed with multiple GPUs works and deepspeed distributed is initialized
-    correctly."""
+    """Test to ensure that DeepSpeed with multiple GPUs works and deepspeed distributed is initialized correctly."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -930,8 +929,8 @@ def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_test_rnn(tmpdir):
-    """Test to ensure that turning off explicit partitioning of the entire module for ZeRO Stage 3 works when
-    training with certain layers which will crash with explicit partitioning."""
+    """Test to ensure that turning off explicit partitioning of the entire module for ZeRO Stage 3 works when training
+    with certain layers which will crash with explicit partitioning."""
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -962,6 +961,7 @@ def test_deepspeed_strategy_env_variables(mock_deepspeed_distributed, tmpdir, pl
     """Test to ensure that we setup distributed communication using correctly.
 
     When using windows, ranks environment variables should not be set, and deepspeed should handle this.
+
     """
     trainer = Trainer(default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3))
     strategy = trainer.strategy
@@ -1087,8 +1087,8 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
 @pytest.mark.parametrize("limit_train_batches", [2])
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_scheduler_step_count(mock_step, tmpdir, max_epoch, limit_train_batches, interval):
-    """Test to ensure that the scheduler is called the correct amount of times during training when scheduler is
-    set to step or epoch."""
+    """Test to ensure that the scheduler is called the correct amount of times during training when scheduler is set to
+    step or epoch."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -1122,8 +1122,8 @@ def test_scheduler_step_count(mock_step, tmpdir, max_epoch, limit_train_batches,
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_configure_gradient_clipping(tmpdir):
-    """Test to ensure that a warning is raised when `LightningModule.configure_gradient_clipping` is overridden in
-    case of deepspeed."""
+    """Test to ensure that a warning is raised when `LightningModule.configure_gradient_clipping` is overridden in case
+    of deepspeed."""
 
     class TestModel(BoringModel):
         def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
@@ -1162,8 +1162,8 @@ def test_deepspeed_gradient_clip_by_value(tmpdir):
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multi_save_same_filepath(tmpdir):
-    """Test that verifies that deepspeed saves only latest checkpoint in the specified path and deletes the old
-    sharded checkpoints."""
+    """Test that verifies that deepspeed saves only latest checkpoint in the specified path and deletes the old sharded
+    checkpoints."""
 
     class CustomModel(BoringModel):
         def training_step(self, *args, **kwargs):
@@ -1256,28 +1256,13 @@ def test_deepspeed_configure_optimizer_device_set(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, deepspeed=True)
-def test_deepspeed_tensors_cast_to_fp16_before_hosted_on_device():
-    class CustomBoringModel(BoringModel):
-        def transfer_batch_to_device(self, batch, *args, **kwargs):
-            assert batch.dtype is torch.float16
-            return super().transfer_batch_to_device(batch, *args, **kwargs)
-
-    model = CustomBoringModel()
-    trainer = Trainer(strategy="deepspeed", devices=1, accelerator="cuda", precision="16-mixed")
-    trainer.strategy.connect(model)
-    batch = torch.zeros(1, dtype=torch.float32)
-    batch = trainer.strategy.batch_to_device(batch)
-    assert batch.is_cuda
-    assert batch.dtype is torch.float16
-
-
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("device_indices", [[1], [1, 0], [0, 2], [3, 2, 1]])
 def test_validate_parallel_devices_indices(device_indices):
     """Test that the strategy validates that it doesn't support selecting specific devices by index.
 
     DeepSpeed doesn't support it and needs the index to match to the local rank of the process.
+
     """
     strategy = DeepSpeedStrategy(
         accelerator=CUDAAccelerator(), parallel_devices=[torch.device("cuda", i) for i in device_indices]

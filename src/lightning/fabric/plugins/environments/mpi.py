@@ -31,6 +31,7 @@ class MPIEnvironment(ClusterEnvironment):
     """An environment for running on clusters with processes created through MPI.
 
     Requires the installation of the `mpi4py` package. See also: https://github.com/mpi4py/mpi4py
+
     """
 
     def __init__(self) -> None:

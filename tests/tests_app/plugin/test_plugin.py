@@ -38,8 +38,8 @@ class _MockResponse:
 
 
 def mock_requests_get(valid_url, return_value):
-    """Used to replace `requests.get` with a function that returns the given value for the given valid URL and
-    raises otherwise."""
+    """Used to replace `requests.get` with a function that returns the given value for the given valid URL and raises
+    otherwise."""
 
     def inner(url):
         if url == valid_url:

@@ -210,3 +210,23 @@ def test_non_blocking():
     with patch.object(batch, "to", wraps=batch.to) as mocked:
         batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
         mocked.assert_called_with(torch.device("cuda", 0))
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize(
+    ("strategy", "precision", "expected_dtype"),
+    [
+        ("auto", "16-mixed", torch.float32),
+        ("auto", "16-true", torch.float16),
+        pytest.param("deepspeed", "bf16-true", torch.bfloat16, marks=RunIf(deepspeed=True, bf16_cuda=True)),
+    ],
+)
+def test_input_tensors_cast_before_transfer_to_device(strategy, precision, expected_dtype):
+    class CustomBoringModel(BoringModel):
+        def transfer_batch_to_device(self, batch, *args, **kwargs):
+            assert batch.dtype == expected_dtype
+            return super().transfer_batch_to_device(batch, *args, **kwargs)
+
+    model = CustomBoringModel()
+    trainer = Trainer(strategy=strategy, devices=1, precision=precision, barebones=True, max_steps=2)
+    trainer.fit(model)

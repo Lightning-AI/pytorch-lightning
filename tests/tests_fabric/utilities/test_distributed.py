@@ -7,7 +7,7 @@ from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAc
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning.fabric.utilities.distributed import _gather_all_tensors
+from lightning.fabric.utilities.distributed import _gather_all_tensors, _sync_ddp
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -62,20 +62,47 @@ def _test_all_gather_uneven_tensors_multidim(strategy):
         assert (val == torch.ones_like(val)).all()
 
 
+def _test_all_reduce(strategy):
+    rank = strategy.local_rank
+    device = strategy.root_device
+    world_size = strategy.num_processes
+
+    for dtype in (torch.long, torch.int, torch.float, torch.half):
+        # max
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(2, device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="max")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
+        # sum
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(sum(range(1, world_size + 1)), device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="sum")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
+        # average
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(sum(range(1, world_size + 1)) / 2, device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="avg")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
+
+
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(
     "process",
     [
         _test_all_gather_uneven_tensors_multidim,
         _test_all_gather_uneven_tensors,
+        _test_all_reduce,
     ],
 )
 @pytest.mark.parametrize(
     "devices",
     [
         pytest.param([torch.device("cuda:0"), torch.device("cuda:1")], marks=RunIf(min_cuda_gpus=2)),
-        [torch.device("cpu")] * 2,
+        [torch.device("cpu"), torch.device("cpu")],
     ],
 )
-def test_gather_all_tensors(devices, process):
+def test_collective_operations(devices, process):
     spawn_launch(process, devices)

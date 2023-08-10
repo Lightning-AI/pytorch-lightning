@@ -38,6 +38,7 @@ def isolate_rng(include_cuda: bool = True) -> Generator[None, None, None]:
         [tensor([0.7576]), tensor([0.2793]), tensor([0.4031])]
         >>> torch.rand(1)
         tensor([0.7576])
+
     """
     states = _collect_rng_states(include_cuda)
     yield
