@@ -237,10 +237,9 @@ class XLAStrategy(ParallelStrategy):
         obj = obj[0]
 
         if not is_tensor:
+            # this will preserve the dtype and device of any tensors
             buffer = io.BytesIO(obj.cpu().byte().numpy())
-            # when an arbitrary pickle-able is broadcast, load back to CPU since we cannot set custom map
-            # locations for each component in the buffer
-            obj = torch.load(buffer, map_location="cpu")
+            obj = torch.load(buffer)
         elif original_device.type != "xla":
             obj = obj.to(original_device)
 

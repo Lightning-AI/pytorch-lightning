@@ -67,7 +67,7 @@ def broadcast_on_tpu_fn(strategy):
     obj = ("ver_0.5", "logger_name", strategy.global_rank, tensor)
     result = strategy.broadcast(obj, src=src)
     assert result == ("ver_0.5", "logger_name", src, ANY)
-    assert result[3].device.type == "cpu"  # the original device is not preserved with objects
+    assert result[3].device.type == "xla"  # the original device is preserved
     assert result[3].dtype == torch.bfloat16
 
 
@@ -138,7 +138,7 @@ def tpu_all_gather_fn(strategy):
         tensor = torch.tensor(1.0, requires_grad=True)
         result = strategy.all_gather(tensor, sync_grads=sync_grads)
         summed = result.sum()
-        assert summed.device.type == "xla"
+        assert summed.device.type == "cpu"  # the original device is preserved
         assert torch.equal(summed, torch.tensor(strategy.world_size, dtype=torch.float32))
         if not _XLA_GREATER_EQUAL_2_1:
             summed.backward()
