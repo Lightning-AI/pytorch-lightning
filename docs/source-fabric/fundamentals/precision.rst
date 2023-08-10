@@ -204,6 +204,40 @@ Tip: For faster initialization, you can create model parameters with the desired
 ----
 
 
+*********************
+True Double Precision
+*********************
+
+For certain scientific computations, 64-bit precision enables more accurate models. However, doubling the precision from 32 to 64 bit also doubles the memory requirements.
+
+.. code-block:: python
+
+    # Select FP64 precision
+    fabric = Fabric(precision="64-true")
+    model = MyModel()
+    model = fabric.setup(model)  # model gets cast to torch.float64
+
+Since in deep learning, memory is always a bottleneck, especially when dealing with a large volume of data and with limited resources.
+It is recommended using single precision for better speed. Although you can still use it if you want for your particular use-case.
+
+When working with complex numbers, instantiation of complex tensors should be done under the
+:meth:`~lightning.fabric.fabric.Fabric.init_module` context manager so that the `complex128` dtype
+is properly selected.
+
+.. code-block:: python
+
+    fabric = Fabric(precision="64-true")
+
+    # init the model directly on the device and with parameters in full-precision
+    with fabric.init_module():
+        model = MyModel()
+
+    model = fabric.setup(model)
+
+
+----
+
+
 ************************************
 Control where precision gets applied
 ************************************
