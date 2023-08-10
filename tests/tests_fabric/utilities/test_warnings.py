@@ -41,7 +41,15 @@ if __name__ == "__main__":
 
     output = stderr.getvalue()
     base_line = 30
-    expected_lines = [f"test_warnings.py:{base_line}: UserWarning: test1", f"test_warnings.py:{base_line+1}: DeprecationWarning: test2", f"test_warnings.py:{base_line+3}: UserWarning: test3", f"test_warnings.py:{base_line+4}: DeprecationWarning: test4", f"test_warnings.py:{base_line+6}: LightningDeprecationWarning: test5", f"test_warnings.py:{base_line+9}: UserWarning: test6", f"test_warnings.py:{base_line+10}: LightningDeprecationWarning: test7"]
+    expected_lines = [
+        f"test_warnings.py:{base_line}: UserWarning: test1",
+        f"test_warnings.py:{base_line+1}: DeprecationWarning: test2",
+        f"test_warnings.py:{base_line+3}: UserWarning: test3",
+        f"test_warnings.py:{base_line+4}: DeprecationWarning: test4",
+        f"test_warnings.py:{base_line+6}: LightningDeprecationWarning: test5",
+        f"test_warnings.py:{base_line+9}: UserWarning: test6",
+        f"test_warnings.py:{base_line+10}: LightningDeprecationWarning: test7",
+    ]
 
     for ln in expected_lines:
         assert ln in output, f"Missing line `{ln}` in: \n{output}"
