@@ -58,6 +58,7 @@ def test_amp_fused_optimizer_parity(tmpdir):
         torch.testing.assert_close(p, q)
 
 
+@RunIf(min_cuda_gpus=1)
 def test_skip_training_step_with_grad_scaler():
     """Test that the grad scaler gets skipped when skipping a training step."""
 
