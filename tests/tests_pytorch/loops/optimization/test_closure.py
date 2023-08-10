@@ -64,6 +64,10 @@ def test_closure_with_no_grad_optimizer(tmpdir):
             return super().step(*args, **kwargs)
 
     class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            assert torch.is_grad_enabled()
+            return super().training_step(batch, batch_idx)
+
         def configure_optimizers(self):
             return NoGradAdamW(self.parameters(), lr=0.1)
 
