@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from unittest.mock import Mock
 
 from lightning.fabric import seed_everything
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
+from lightning.pytorch.plugins.precision import MixedPrecisionPlugin
 
 
 class FusedOptimizerParityModel(BoringModel):
@@ -54,3 +56,30 @@ def test_amp_fused_optimizer_parity(tmpdir):
     # Both the regular and the fused version of Adam produce the same losses and model weights
     for p, q in zip(params, params_fused):
         torch.testing.assert_close(p, q)
+
+
+def test_skip_training_step_with_grad_scaler():
+    """Test that the grad scaler gets skipped when skipping a training step."""
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            if batch_idx % 2:
+                return None  # skipping the backward should skip the grad scaler too
+            return super().training_step(batch, batch_idx)
+
+    trainer = Trainer(
+        accelerator="cuda",
+        devices=1,
+        precision="16-mixed",
+        barebones=True,
+        max_steps=5,
+        gradient_clip_val=0.5,
+    )
+    assert isinstance(trainer.precision_plugin, MixedPrecisionPlugin)
+    assert trainer.precision_plugin.scaler is not None
+    trainer.precision_plugin.scaler = Mock(wraps=trainer.precision_plugin.scaler)
+    model = TestModel()
+    trainer.fit(model)
+    assert trainer.precision_plugin.scaler.unscale_.call_count == 3
+    assert trainer.precision_plugin.scaler.step.call_count == 3
+    assert trainer.precision_plugin.scaler.update.call_count == 3

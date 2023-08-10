@@ -76,7 +76,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         closure_result = closure()
         skipped_backward = closure_result is None
 
-        if not _optimizer_handles_unscaling(optimizer) or not skipped_backward:
+        if not _optimizer_handles_unscaling(optimizer) and not skipped_backward:
             # Unscaling needs to be performed here in case we are going to apply gradient clipping.
             # Optimizers that perform unscaling in their `.step()` method are not supported (e.g., fused Adam).
             # If backward was skipped, unscaling is not needed.
