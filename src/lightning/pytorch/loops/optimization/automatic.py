@@ -120,6 +120,7 @@ class Closure(AbstractClosure[ClosureResult]):
         self._backward_fn = backward_fn
         self._zero_grad_fn = zero_grad_fn
 
+    @torch.enable_grad()
     def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
         step_output = self._step_fn()
 
