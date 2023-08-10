@@ -11,14 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 from unittest.mock import Mock
+
+import torch
 
 from lightning.fabric import seed_everything
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from tests_pytorch.helpers.runif import RunIf
 from lightning.pytorch.plugins.precision import MixedPrecisionPlugin
+from tests_pytorch.helpers.runif import RunIf
 
 
 class FusedOptimizerParityModel(BoringModel):
