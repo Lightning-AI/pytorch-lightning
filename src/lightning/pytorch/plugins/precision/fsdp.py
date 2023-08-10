@@ -12,12 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Generator, Literal, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, Generator, Literal, Optional, TYPE_CHECKING
 
 import torch
+from lightning_utilities import apply_to_collection
+from torch import Tensor
+from typing_extensions import get_args
 
+import lightning.pytorch as pl
+from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
+from lightning.fabric.plugins.precision.fsdp import _PRECISION_INPUT
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from lightning.pytorch.plugins.precision.amp import MixedPrecisionPlugin
+from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
+from lightning.fabric.utilities.types import Optimizable
+from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
@@ -25,23 +34,49 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
 
-class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """AMP for Fully Sharded Data Parallel (FSDP) Training.
+class FSDPPrecisionPlugin(PrecisionPlugin):
+    """Precision plugin for training with Fully Sharded Data Parallel (FSDP).
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
+    Args:
+        precision: Full precision (32-true), half precision (16-true, bf16-true) or
+            mixed precision (16-mixed, bf16-mixed).
+        scaler: An optional :class:`torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler` to use.
+
+    Raises:
+        ValueError:
+            If unsupported ``precision`` is provided.
+
     """
 
-    def __init__(
-        self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional["ShardedGradScaler"] = None
-    ) -> None:
+    def __init__(self, precision: _PRECISION_INPUT, scaler: Optional["ShardedGradScaler"] = None) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException("`FSDPMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
+            raise NotImplementedError("`FSDPPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
+
+        supported_precision = get_args(_PRECISION_INPUT)
+        if precision not in supported_precision:
+            raise ValueError(
+                f"`precision={precision!r})` is not supported in FSDP."
+                f" `precision` must be one of: {supported_precision}."
+            )
+
         from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-        super().__init__(
-            precision, device, scaler=(ShardedGradScaler() if scaler is None and str(precision) == "16-mixed" else None)
-        )
+        if scaler is not None and self.precision != "16-mixed":
+            raise ValueError(f"`precision={precision!r}` does not use a scaler, found {scaler}.")
+
+        self.scaler = ShardedGradScaler() if scaler is None and precision == "16-mixed" else None
+        self.precision = precision
+
+        precision_to_type = {
+            "bf16-mixed": torch.bfloat16,
+            "16-mixed": torch.float16,
+            "bf16-true": torch.bfloat16,
+            "16-true": torch.float16,
+            "32-true": torch.float32,
+        }
+        self._desired_input_dtype = precision_to_type[self.precision]
 
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
         # see https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.clip_grad_norm_
@@ -66,6 +101,8 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self.precision == "32-true":
+            param_dtype = reduce_dtype = buffer_dtype = torch.float32
         else:
             raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision!r}.")
 
@@ -88,10 +125,86 @@ class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
         torch.set_default_dtype(default_dtype)
 
     @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        """For FSDP, this context manager is a no-op since conversion is already handled internally.
+    def forward_context(self) -> Generator:
+        if "mixed" in self.precision:
+            with self._autocast_context_manager():
+                yield
+        else:
+            default_dtype = torch.get_default_dtype()
+            torch.set_default_dtype(self._desired_input_dtype)
+            yield
+            torch.set_default_dtype(default_dtype)
 
-        See: https://pytorch.org/docs/stable/fsdp.html for more details on mixed precision.
+    def convert_input(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
 
-        """
-        yield
+    def convert_output(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
+
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
+        if self.scaler is not None:
+            tensor = self.scaler.scale(tensor)  # type: ignore[assignment]
+        return super().pre_backward(tensor, module)
+
+    def optimizer_step(  # type: ignore[override]
+        self,
+        optimizer: Optimizable,
+        model: "pl.LightningModule",
+        closure: Callable[[], Any],
+        **kwargs: Any,
+    ) -> Any:
+        if self.scaler is None:
+            # skip scaler logic, as bfloat16 does not require scaler
+            return super().optimizer_step(optimizer, model=model, closure=closure, **kwargs)
+        closure_result = closure()
+
+        if not _optimizer_handles_unscaling(optimizer):
+            # Unscaling needs to be performed here in case we are going to apply gradient clipping.
+            # Optimizers that perform unscaling in their `.step()` method are not supported (e.g., fused Adam).
+            # Note: `unscale` happens after the closure is executed, but before the `on_before_optimizer_step` hook.
+            self.scaler.unscale_(optimizer)  # type: ignore[arg-type]
+
+        self._after_closure(model, optimizer)
+        skipped_backward = closure_result is None
+        # in manual optimization, the closure does not return a value
+        if not model.automatic_optimization or not skipped_backward:
+            # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
+            step_output = self.scaler.step(optimizer, **kwargs)  # type: ignore[arg-type]
+            self.scaler.update()
+            return step_output
+        return closure_result
+
+    def state_dict(self) -> Dict[str, Any]:
+        if self.scaler is not None:
+            return self.scaler.state_dict()
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        if self.scaler is not None:
+            self.scaler.load_state_dict(state_dict)
+
+    def _autocast_context_manager(self) -> torch.autocast:
+        # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
+        # https://github.com/pytorch/pytorch/issues/67233
+        return torch.autocast("cuda", dtype=self._desired_input_dtype)
+
+
+class FSDPMixedPrecisionPlugin(FSDPPrecisionPlugin):
+    """AMP for Fully Sharded Data Parallel (FSDP) Training.
+
+    .. deprecated:: Use :class:`FSDPPrecisionPlugin` instead.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
+    """
+
+    def __init__(
+        self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional["ShardedGradScaler"] = None
+    ) -> None:
+        rank_zero_deprecation(
+            f"The `{type(self).__name__}` is deprecated."
+            " Use `lightning.pytorch.plugins.precision.FSDPPrecisionPlugin` instead."
+        )
+        if not _TORCH_GREATER_EQUAL_1_12:
+            raise MisconfigurationException("`FSDPMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
+        super().__init__(precision=precision, scaler=scaler)

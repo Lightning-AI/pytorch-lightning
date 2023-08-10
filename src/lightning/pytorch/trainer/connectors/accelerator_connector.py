@@ -39,6 +39,7 @@ from lightning.pytorch.plugins import (
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
+    FSDPPrecisionPlugin,
     HalfPrecisionPlugin,
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
@@ -47,7 +48,6 @@ from lightning.pytorch.plugins import (
     XLAPrecisionPlugin,
 )
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
-from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
@@ -526,7 +526,8 @@ class _AcceleratorConnector:
 
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
-
+        if isinstance(self.strategy, FSDPStrategy):
+            return FSDPPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
         if self._precision_flag in ("16-true", "bf16-true"):
             return HalfPrecisionPlugin(self._precision_flag)  # type: ignore
         if self._precision_flag == "32-true":
@@ -546,9 +547,6 @@ class _AcceleratorConnector:
                 f"Using {'16bit' if self._precision_flag == '16-mixed' else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-
-            if isinstance(self.strategy, FSDPStrategy):
-                return FSDPMixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
             return MixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
