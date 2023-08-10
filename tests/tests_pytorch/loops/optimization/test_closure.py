@@ -60,8 +60,10 @@ def test_closure_with_no_grad_optimizer(tmpdir):
 
     class NoGradAdamW(torch.optim.AdamW):
         @torch.no_grad()
-        def step(self, *args, **kwargs):
-            return super().step(*args, **kwargs)
+        def step(self, closure):
+            if closure is not None:
+                closure()
+            return super().step()
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
