@@ -86,6 +86,7 @@ class _RequirementWithComment(Requirement):
         'arrow>=1.2.0'
         >>> _RequirementWithComment("arrow").adjust("major")
         'arrow'
+
         """
         out = str(self)
         if self.strict:
@@ -115,6 +116,7 @@ def _parse_requirements(strs: Union[str, Iterable[str]]) -> Iterator[_Requiremen
     >>> txt = '\\n'.join(txt)
     >>> [r.adjust('none') for r in _parse_requirements(txt)]
     ['this', 'example', 'foo  # strict', 'thing']
+
     """
     lines = yield_lines(strs)
     pip_argument = None
@@ -149,6 +151,7 @@ def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str 
     >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
     >>> load_requirements(path_req, "docs.txt", unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ['sphinx<...]
+
     """
     assert unfreeze in {"none", "major", "all"}
     path = Path(path_dir) / file_name
@@ -165,6 +168,7 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
 
     >>> load_readme_description(_PROJECT_ROOT, "", "")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     '...PyTorch Lightning is just organized PyTorch...'
+
     """
     path_readme = os.path.join(path_dir, "README.md")
     with open(path_readme, encoding="utf-8") as fo:
@@ -244,6 +248,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     """Load all base requirements from all particular packages and prune duplicates.
 
     >>> _load_aggregate_requirements(os.path.join(_PROJECT_ROOT, "requirements"))
+
     """
     requires = [
         load_requirements(d, unfreeze="none" if freeze_requirements else "major")
@@ -300,6 +305,7 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning
      'http://pytorch_lightning.ai', \
      'from lightning_fabric import __version__', \
      '@lightning.ai']
+
     """
     out = lines[:]
     for source_import, target_import in mapping:

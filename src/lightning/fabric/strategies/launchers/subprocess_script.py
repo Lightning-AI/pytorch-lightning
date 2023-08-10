@@ -65,6 +65,7 @@ class _SubprocessScriptLauncher(_Launcher):
         cluster_environment: A cluster environment that provides access to world size, node rank, etc.
         num_processes: The number of processes to launch in the current node.
         num_nodes: The total number of nodes that participate in this process group.
+
     """
 
     def __init__(
@@ -91,6 +92,7 @@ class _SubprocessScriptLauncher(_Launcher):
                 It is up to the implementation of this function to synchronize the processes, e.g., with barriers.
             *args: Optional positional arguments to be passed to the given function.
             **kwargs: Optional keyword arguments to be passed to the given function.
+
         """
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()

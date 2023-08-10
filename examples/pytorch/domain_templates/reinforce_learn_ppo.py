@@ -26,6 +26,7 @@ References
 [1] https://github.com/openai/baselines/blob/master/baselines/ppo2/ppo2.py
 [2] https://github.com/openai/spinningup
 [3] https://github.com/sid-sundrani/ppo_lightning
+
 """
 import argparse
 from typing import Callable, Iterator, List, Tuple
@@ -52,8 +53,7 @@ def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
 
 
 class ActorCategorical(nn.Module):
-    """Policy network, for discrete action spaces, which returns a distribution and an action given an
-    observation."""
+    """Policy network, for discrete action spaces, which returns a distribution and an action given an observation."""
 
     def __init__(self, actor_net):
         """
@@ -81,6 +81,7 @@ class ActorCategorical(nn.Module):
 
         Returns:
             log probability of the action under pi
+
         """
         return pi.log_prob(actions)
 
@@ -117,6 +118,7 @@ class ActorContinuous(nn.Module):
 
         Returns:
             log probability of the action under pi
+
         """
         return pi.log_prob(actions).sum(axis=-1)
 
@@ -127,6 +129,7 @@ class ExperienceSourceDataset(IterableDataset):
 
     Basic experience source dataset. Takes a generate_batch function that returns an iterator. The logic for the
     experience source and how the batch is generated is defined the Lightning model itself
+
     """
 
     def __init__(self, generate_batch: Callable):
@@ -144,6 +147,7 @@ class PPOLightning(LightningModule):
     Train:
         trainer = Trainer()
         trainer.fit(model)
+
     """
 
     def __init__(
@@ -231,6 +235,7 @@ class PPOLightning(LightningModule):
 
         Returns:
             Tuple of policy and action
+
         """
         pi, action = self.actor(x)
         value = self.critic(x)
@@ -245,6 +250,7 @@ class PPOLightning(LightningModule):
 
         Returns:
             list of discounted rewards/advantages
+
         """
         assert isinstance(rewards[0], float)
 
@@ -267,6 +273,7 @@ class PPOLightning(LightningModule):
 
         Returns:
             list of advantages
+
         """
         rews = rewards + [last_value]
         vals = values + [last_value]
@@ -373,6 +380,7 @@ class PPOLightning(LightningModule):
 
         Args:
             batch: batch of replay buffer/trajectory data
+
         """
         state, action, old_logp, qval, adv = batch
 
@@ -405,8 +413,7 @@ class PPOLightning(LightningModule):
         return optimizer_actor, optimizer_critic
 
     def optimizer_step(self, *args, **kwargs):
-        """Run 'nb_optim_iters' number of iterations of gradient descent on actor and critic for each data
-        sample."""
+        """Run 'nb_optim_iters' number of iterations of gradient descent on actor and critic for each data sample."""
         for _ in range(self.nb_optim_iters):
             super().optimizer_step(*args, **kwargs)
 

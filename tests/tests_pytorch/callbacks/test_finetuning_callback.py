@@ -209,8 +209,7 @@ class OnEpochLayerFinetuning(BaseFinetuning):
 
 
 def test_base_finetuning_internal_optimizer_metadata(tmpdir):
-    """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning
-    Callbacks."""
+    """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning Callbacks."""
 
     seed_everything(42)
 
@@ -325,8 +324,7 @@ class FinetuningBoringModel(BoringModel):
 
 
 def test_callbacks_restore(tmpdir):
-    """Test callbacks restore is called after optimizers have been re-created but before optimizer states
-    reload."""
+    """Test callbacks restore is called after optimizers have been re-created but before optimizer states reload."""
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
     model = FinetuningBoringModel()
@@ -400,8 +398,7 @@ class BackboneBoringModel(BoringModel):
 
 
 def test_callbacks_restore_backbone(tmpdir):
-    """Test callbacks restore is called after optimizers have been re-created but before optimizer states
-    reload."""
+    """Test callbacks restore is called after optimizers have been re-created but before optimizer states reload."""
 
     ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer = Trainer(

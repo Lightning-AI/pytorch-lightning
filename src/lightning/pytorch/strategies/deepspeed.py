@@ -246,6 +246,7 @@ class DeepSpeedStrategy(DDPStrategy):
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -389,6 +390,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Return:
             The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
             deepspeed optimizer.
+
         """
         if len(optimizers) != 1:
             raise ValueError(
@@ -414,6 +416,7 @@ class DeepSpeedStrategy(DDPStrategy):
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
         This calls :func:`deepspeed.initialize` internally.
+
         """
         import deepspeed
 
@@ -577,6 +580,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         Args:
             trainer: the Trainer, these optimizers should be connected to
+
         """
         if trainer.state.fn != TrainerFn.FITTING:
             return
@@ -739,6 +743,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Raises:
             TypeError:
                 If ``storage_options`` arg is passed in
+
         """
         # broadcast the filepath from rank 0 to ensure all the states are saved in a common filepath
         filepath = self.broadcast(filepath)
@@ -808,12 +813,13 @@ class DeepSpeedStrategy(DDPStrategy):
             self._restore_zero_state(checkpoint)
 
     def _restore_zero_state(self, ckpt: Mapping[str, Any]) -> None:
-        """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be
-        sharded across processes before loading the state dictionary when using ZeRO stage 3. This is then
-        automatically synced across processes.
+        """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be sharded
+        across processes before loading the state dictionary when using ZeRO stage 3. This is then automatically synced
+        across processes.
 
         Args:
             ckpt: The ckpt file.
+
         """
         import deepspeed
 
@@ -889,10 +895,3 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
-
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
-        # The strategy casts the input before moving to the device
-        # In all other strategies, the input gets converted in the `Strategy.*_step` methods
-        # TODO: standardize this for all strategies
-        batch = self.precision_plugin.convert_input(batch)
-        return super().batch_to_device(batch, device, dataloader_idx)

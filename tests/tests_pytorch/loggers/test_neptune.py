@@ -41,11 +41,12 @@ def create_run_mock(mode="async", **kwargs):
 
 
 def create_neptune_mock():
-    """Mock with provides nice `logger.name` and `logger.version` values. Additionally, it allows `mode` as an
-    argument to test different Neptune modes.
+    """Mock with provides nice `logger.name` and `logger.version` values. Additionally, it allows `mode` as an argument
+    to test different Neptune modes.
 
     Mostly due to fact, that windows tests were failing with MagicMock based strings, which were used to create local
     directories in FS.
+
     """
     return MagicMock(init_run=MagicMock(side_effect=create_run_mock))
 
@@ -88,6 +89,7 @@ def tmpdir_unittest_fixture(request, tmpdir):
     Resources:
      * https://docs.pytest.org/en/6.2.x/tmpdir.html#the-tmpdir-fixture
      * https://towardsdatascience.com/mixing-pytest-fixture-and-unittest-testcase-for-selenium-test-9162218e8c8e
+
     """
     request.cls.tmpdir = tmpdir
 
@@ -152,8 +154,8 @@ class TestNeptuneLogger(unittest.TestCase):
     @patch("lightning.pytorch.loggers.neptune.Run", Run)
     @patch("lightning.pytorch.loggers.neptune.Handler", Run)
     def test_online_with_wrong_kwargs(self, neptune):
-        """Tests combinations of kwargs together with `run` kwarg which makes some of other parameters unavailable
-        in init."""
+        """Tests combinations of kwargs together with `run` kwarg which makes some of other parameters unavailable in
+        init."""
         with self.assertRaises(ValueError):
             NeptuneLogger(run="some string")
 

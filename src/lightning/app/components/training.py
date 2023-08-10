@@ -159,6 +159,7 @@ class LightningTrainerScript(LightningFlow):
             cloud_compute: The cloud compute object used in the cloud.
             sanity_serving: Whether to validate that the model correctly implements
                 the ServableModule API
+
         """
         super().__init__()
         self.script_path = script_path

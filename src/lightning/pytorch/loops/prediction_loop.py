@@ -208,8 +208,10 @@ class _PredictionLoop(_Loop):
             batch: the current batch to run the prediction on
             batch_idx: the index of the current batch
             dataloader_idx: the index of the dataloader producing the current batch
+
         """
         trainer = self.trainer
+        batch = trainer.precision_plugin.convert_input(batch)
         batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
         batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)
 

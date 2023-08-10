@@ -101,6 +101,7 @@ class Tracer:
 
         Optionally provide two functions that will execute prior to and after the method. The functions also have a
         chance to modify the input arguments and the return values of the methods.
+
         """
         self.methods.append((cls, method_name, stack_level, pre_fn, post_fn))
 
@@ -108,6 +109,7 @@ class Tracer:
         """Modify classes by wrapping methods that need to be traced.
 
         Initialize the output trace dict.
+
         """
         self.res = {}
         for cls, method, stack_level, pre_fn, post_fn in self.methods:
@@ -163,6 +165,7 @@ class Tracer:
         """Execute the command-line arguments in args after instrumenting for tracing.
 
         Restore the classes to their initial state after tracing.
+
         """
         args = list(args)
         script = args[0]

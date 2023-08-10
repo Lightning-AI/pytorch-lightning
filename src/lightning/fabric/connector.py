@@ -98,6 +98,7 @@ class _Connector:
     priorities which to take when:
         A. Class > str
         B. Strategy > Accelerator/precision/plugins
+
     """
 
     def __init__(
@@ -182,6 +183,7 @@ class _Connector:
         4. plugins: The list of plugins may contain a Precision plugin, CheckpointIO, ClusterEnvironment and others.
             Additionally, other flags such as `precision` can populate the list with the
             corresponding plugin instances.
+
         """
         if plugins is not None:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
@@ -390,8 +392,8 @@ class _Connector:
         return "ddp"
 
     def _check_strategy_and_fallback(self) -> None:
-        """Checks edge cases when the strategy selection was a string input, and we need to fall back to a
-        different choice depending on other parameters or the environment."""
+        """Checks edge cases when the strategy selection was a string input, and we need to fall back to a different
+        choice depending on other parameters or the environment."""
         # current fallback and check logic only apply to user pass in str config and object config
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag

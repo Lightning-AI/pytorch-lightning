@@ -94,6 +94,7 @@ def restore_signal_handlers():
     """Ensures that signal handlers get restored before the next test runs.
 
     This is a safety net for tests that don't run Trainer's teardown.
+
     """
     valid_signals = _SignalConnector._valid_signals()
     if not _IS_WINDOWS:
@@ -207,6 +208,7 @@ def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
     Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+
     """
     import logging
 
@@ -248,6 +250,7 @@ def single_process_pg():
     """Initialize the default process group with only the current process for testing purposes.
 
     The process group is destroyed when the with block is exited.
+
     """
     if torch.distributed.is_initialized():
         raise RuntimeError("Can't use `single_process_pg` when the default process group is already initialized.")

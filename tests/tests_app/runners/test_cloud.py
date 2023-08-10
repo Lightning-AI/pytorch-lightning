@@ -254,6 +254,7 @@ class TestAppCreationClient:
         """Deleted apps show up in list apps but not in list instances.
 
         This tests that we don't try to reacreate a previously deleted app.
+
         """
         entrypoint = Path(tmpdir) / "entrypoint.py"
         entrypoint.touch()
@@ -1881,10 +1882,11 @@ def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
 
 
 def test_incompatible_cloud_compute_and_build_config(monkeypatch):
-    """Test that an exception is raised when a build config has a custom image defined, but the cloud compute is
-    the default.
+    """Test that an exception is raised when a build config has a custom image defined, but the cloud compute is the
+    default.
 
     This combination is not supported by the platform.
+
     """
     mock_client = mock.MagicMock()
     cloud_backend = mock.MagicMock(client=mock_client)

@@ -29,6 +29,7 @@ class _ApiExceptionHandler(Group):
 
     However, if the ApiException cannot be decoded, or is not
     a 4xx error, the original ApiException will be re-raised.
+
     """
 
     def invoke(self, ctx: Context) -> Any:
@@ -81,6 +82,7 @@ class LightningPlatformException(Exception):  # pragma: no cover
 
     It gets raised by the Lightning Launcher on the platform side when the app is running in the cloud, and is useful
     when framework or user code needs to catch exceptions specific to the platform, e.g., when resources exceed quotas.
+
     """
 
 

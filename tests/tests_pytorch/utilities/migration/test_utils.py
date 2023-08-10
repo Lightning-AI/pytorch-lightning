@@ -178,8 +178,8 @@ def _run_simple_migration(monkeypatch, old_checkpoint):
 
 
 def test_migrate_checkpoint_too_new():
-    """Test checkpoint migration is a no-op with a warning when attempting to migrate a checkpoint from newer
-    version of Lightning than installed."""
+    """Test checkpoint migration is a no-op with a warning when attempting to migrate a checkpoint from newer version
+    of Lightning than installed."""
     super_new_checkpoint = {"pytorch-lightning_version": "99.0.0", "content": 123}
     with pytest.warns(
         PossibleUserWarning, match=f"v99.0.0, which is newer than your current Lightning version: v{pl.__version__}"

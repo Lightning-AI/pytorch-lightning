@@ -37,6 +37,7 @@ def upload_model(
             The version of the model to be uploaded. If not provided, default will be latest (not overridden).
         progress_bar:
             A progress bar to show the uploading status. Disable this if not needed, by setting to `False`.
+
     """
     client = _Client()
     user = client.auth_service_get_user()
@@ -71,6 +72,7 @@ def download_model(
             The version of the model to be uploaded. If not provided, default will be latest (not overridden).
         progress_bar:
             Show progress on download.
+
     """
     client = _Client()
     download_url = client.models_store_download_model(name=name, version=version).download_url
@@ -82,6 +84,7 @@ def list_models() -> List[V1Model]:
 
     Returns:
         A list of model objects.
+
     """
     client = _Client()
     # TODO: Allow passing this

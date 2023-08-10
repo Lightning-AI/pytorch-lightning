@@ -237,7 +237,7 @@ class _ResultMetric(Metric):
 
     def compute(self) -> Tensor:
         if self.is_tensor:
-            value = self.meta.sync(self.value)
+            value = self.meta.sync(self.value.clone())  # `clone` because `sync` is in-place
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
                 return value / cumulated_batch_size
@@ -403,6 +403,7 @@ class _ResultCollection(dict):
         """Create one _ResultMetric object per value.
 
         Value can be provided as a nested collection
+
         """
         metric = _ResultMetric(meta, isinstance(value, Tensor)).to(value.device)
         self[key] = metric
@@ -493,6 +494,7 @@ class _ResultCollection(dict):
                 if False, only ``torch.Tensors`` are reset,
                 if ``None``, both are.
             fx: Function to reset
+
         """
         for item in self.values():
             requested_type = metrics is None or metrics ^ item.is_tensor

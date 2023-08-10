@@ -39,6 +39,7 @@ class MultiProcessRuntime(Runtime):
 
     The MultiProcessRuntime will generate 1 process for each :class:`~lightning.app.core.work.LightningWork` and attach
     queues to enable communication between the different processes.
+
     """
 
     backend: Union[str, Backend] = "multiprocessing"

@@ -155,8 +155,7 @@ def test_load_checkpoint_strict_loading(tmp_path):
 
 
 def test_load_checkpoint_non_strict_loading(tmp_path):
-    """Test that no error is raised if `strict=False` and state is requested that does not exist in the
-    checkpoint."""
+    """Test that no error is raised if `strict=False` and state is requested that does not exist in the checkpoint."""
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
 
     # objects with initial state
