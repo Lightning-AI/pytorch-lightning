@@ -74,10 +74,9 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException("AMP and the LBFGS optimizer are not compatible.")
         closure_result = closure()
-        skipped_backward = closure_result is None
 
         # If backward was skipped in automatic optimization (return None), unscaling is not needed
-        skip_unscaling = skipped_backward and model.automatic_optimization
+        skip_unscaling = closure_result is None and model.automatic_optimization
 
         if not _optimizer_handles_unscaling(optimizer) and not skip_unscaling:
             # Unscaling needs to be performed here in case we are going to apply gradient clipping.
@@ -88,7 +87,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         self._after_closure(model, optimizer)
 
         # in manual optimization, the closure does not return a value
-        if not model.automatic_optimization or not skipped_backward:
+        if not skip_unscaling:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
             step_output = self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
