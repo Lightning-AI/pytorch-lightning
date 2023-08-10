@@ -34,9 +34,9 @@ def _copytree(
     dirs_exist_ok=False,
     dry_run=False,
 ) -> List[str]:
-    """Vendor in from `shutil.copytree` to support ignoring files recursively based on `.lightningignore`, like
-    `git` does with `.gitignore`. Also removed a few checks from the original copytree related to symlink checks.
-    Differences between original and this function are.
+    """Vendor in from `shutil.copytree` to support ignoring files recursively based on `.lightningignore`, like `git`
+    does with `.gitignore`. Also removed a few checks from the original copytree related to symlink checks. Differences
+    between original and this function are.
 
     1. It supports a list of ignore function instead of a single one in the
         original. We can use this for filtering out files based on nested
@@ -66,6 +66,7 @@ def _copytree(
 
 
     If exception(s) occur, an Error is raised with a list of reasons.
+
     """
     files_copied = []
 
@@ -146,8 +147,8 @@ def _parse_lightningignore(lines: Tuple[str]) -> Set[str]:
 
 
 def _read_lightningignore(path: Path) -> Set[str]:
-    """Reads ignore file and filter and empty lines. This will also remove patterns that start with a `/`. That's
-    done to allow `glob` to simulate the behavior done by `git` where it interprets that as a root path.
+    """Reads ignore file and filter and empty lines. This will also remove patterns that start with a `/`. That's done
+    to allow `glob` to simulate the behavior done by `git` where it interprets that as a root path.
 
     Parameters
     ----------
@@ -158,6 +159,7 @@ def _read_lightningignore(path: Path) -> Set[str]:
     -------
     Set[str]
         Set of unique lines.
+
     """
     raw_lines = path.open().readlines()
     return _parse_lightningignore(raw_lines)

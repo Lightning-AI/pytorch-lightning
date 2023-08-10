@@ -34,6 +34,7 @@ class SingleTPUStrategy(SingleDeviceXLAStrategy):
     """Legacy class.
 
     Use :class:`~lightning.fabric.strategies.single_xla.SingleDeviceXLAStrategy` instead.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -50,6 +51,7 @@ class TPUAccelerator(XLAAccelerator):
     """Legacy class.
 
     Use :class:`~lightning.fabric.accelerators.xla.XLAAccelerator` instead.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -63,6 +65,7 @@ class TPUPrecision(XLAPrecision):
     """Legacy class.
 
     Use :class:`~lightning.fabric.plugins.precision.xla.XLAPrecision` instead.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -76,6 +79,7 @@ class TPUBf16Precision(XLABf16Precision):
     """Legacy class.
 
     Use :class:`~lightning.fabric.plugins.precision.xlabf16.XLABf16Precision` instead.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

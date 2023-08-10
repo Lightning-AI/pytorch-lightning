@@ -137,6 +137,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
               a folder with as many files as the world size.
 
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
+
     """
 
     def __init__(
@@ -296,6 +297,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         This setup method doesn't modify the optimizer or wrap the optimizer. The only thing it currently does is verify
         that the optimizer was created after the model was wrapped with :meth:`setup_module` with a reference to the
         flattened parameters.
+
         """
         if _TORCH_GREATER_EQUAL_2_0:
             return optimizer
@@ -414,6 +416,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         optimizer state and other metadata. If the state-dict-type is ``'sharded'``, the checkpoint gets saved as a
         directory containing one file per process, with model- and optimizer shards stored per file. Additionally, it
         creates a metadata file `meta.pt` with the rest of the user's state (only saved from rank 0).
+
         """
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
@@ -511,6 +514,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         The strategy currently only supports saving and loading sharded checkpoints which are stored in form of a
         directory of multiple files rather than a single file.
+
         """
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
@@ -846,8 +850,7 @@ def _load_raw_module_state_from_path(path: Path, module: Module, strict: bool = 
 
 
 def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: bool = True) -> None:
-    """Loads the state dict into the module by gathering all weights first and then and writing back to each
-    shard."""
+    """Loads the state dict into the module by gathering all weights first and then and writing back to each shard."""
 
     with _get_full_state_dict_context(module, rank0_only=False):
         module.load_state_dict(state_dict, strict=strict)
@@ -879,6 +882,7 @@ def _apply_optimizers_during_fsdp_backward(
 
     By moving optimizer step invocation into the backward call we can free
     gradients earlier and reduce peak memory.
+
     """
     from torch.distributed.fsdp._common_utils import _get_module_fsdp_state
     from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles

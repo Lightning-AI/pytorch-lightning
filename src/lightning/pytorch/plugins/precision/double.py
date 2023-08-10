@@ -39,6 +39,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         """A context manager to change the default tensor type when initializing module parameters or tensors.
 
         See: :meth:`torch.set_default_dtype`
+
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(torch.float64)
@@ -50,6 +51,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         """A context manager to change the default tensor type.
 
         See: :meth:`torch.set_default_dtype`
+
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(torch.float64)

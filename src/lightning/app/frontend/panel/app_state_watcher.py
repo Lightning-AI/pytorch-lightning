@@ -72,6 +72,7 @@ class AppStateWatcher(Parameterized):
     Pydantic which additionally provides powerful and unique features for building reactive apps.
 
     Please note the ``AppStateWatcher`` is a singleton, i.e., only one instance is instantiated
+
     """
 
     state: AppState = ClassSelector(

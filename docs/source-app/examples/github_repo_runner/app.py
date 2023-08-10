@@ -36,6 +36,7 @@ class GithubRepoRunner(TracerPythonScript):
             script_args: The arguments to be provided to the script.
             requirements: The python requirements tp run the script.
             cloud_compute: The object to select the cloud instance.
+
         """
         super().__init__(
             script_path=script_path,

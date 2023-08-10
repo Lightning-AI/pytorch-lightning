@@ -149,6 +149,7 @@ class MNISTDataModule(LightningDataModule):
 
     >>> MNISTDataModule()  # doctest: +ELLIPSIS
     <...mnist_datamodule.MNISTDataModule object at ...>
+
     """
 
     name = "mnist"

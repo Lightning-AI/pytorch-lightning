@@ -35,6 +35,7 @@ class SingleTPUStrategy(SingleDeviceXLAStrategy):
     """Legacy class.
 
     Use :class:`~lightning.pytorch.strategies.single_xla.SingleDeviceXLAStrategy` instead.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -51,6 +52,7 @@ class TPUAccelerator(XLAAccelerator):
     """Legacy class.
 
     Use :class:`~lightning.pytorch.accelerators.xla.XLAAccelerator` instead.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -64,6 +66,7 @@ class TPUPrecisionPlugin(XLAPrecisionPlugin):
     """Legacy class.
 
     Use :class:`~lightning.pytorch.plugins.precision.xla.XLAPrecisionPlugin` instead.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -78,6 +81,7 @@ class TPUBf16PrecisionPlugin(XLABf16PrecisionPlugin):
     """Legacy class.
 
     Use :class:`~lightning.pytorch.plugins.precision.xlabf16.XLABf16PrecisionPlugin` instead.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

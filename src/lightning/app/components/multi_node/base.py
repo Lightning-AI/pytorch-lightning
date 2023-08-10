@@ -67,6 +67,7 @@ class MultiNode(LightningFlow):
                 running locally.
             work_args: Arguments to be provided to the work on instantiation.
             work_kwargs: Keywords arguments to be provided to the work on instantiation.
+
         """
         super().__init__()
         if num_nodes > 1 and not is_running_in_cloud():

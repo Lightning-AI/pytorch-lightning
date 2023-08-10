@@ -133,6 +133,7 @@ class LocalSourceCodeDir:
         packaged repository files which have a size > 2GB.
 
         This limitation should be removed during the datastore upload redesign
+
         """
         if self.package_path.stat().st_size > 2e9:
             raise OSError(

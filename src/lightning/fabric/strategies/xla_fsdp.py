@@ -188,6 +188,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         This setup method doesn't modify the optimizer or wrap the optimizer. The only thing it currently does is verify
         that the optimizer was created after the model was wrapped with :meth:`setup_module` with a reference to the
         flattened parameters.
+
         """
         if _TORCH_GREATER_EQUAL_2_0:
             return optimizer
@@ -210,12 +211,13 @@ class XLAFSDPStrategy(ParallelStrategy):
         )
 
     def optimizer_step(self, optimizer: Optimizable, **kwargs: Any) -> Any:
-        """Overrides default tpu optimizer_step since FSDP should not call
-        `torch_xla.core.xla_model.optimizer_step`. Performs the actual optimizer step.
+        """Overrides default tpu optimizer_step since FSDP should not call `torch_xla.core.xla_model.optimizer_step`.
+        Performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step
             **kwargs: Any extra arguments to ``optimizer.step``
+
         """
         loss = optimizer.step(**kwargs)
         import torch_xla.core.xla_model as xm
@@ -251,6 +253,7 @@ class XLAFSDPStrategy(ParallelStrategy):
             sync_grads: flag that allows users to synchronize gradients for the all-gather operation.
         Return:
             A tensor of shape (world_size, ...)
+
         """
         if not self._launched:
             return tensor
@@ -342,6 +345,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         If the user specifies sharded checkpointing, the directory will contain one file per process, with model- and
         optimizer shards stored per file. If the user specifies full checkpointing, the directory will contain a
         consolidated checkpoint combining all of the sharded checkpoints.
+
         """
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
@@ -421,6 +425,7 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         The strategy currently only supports saving and loading sharded checkpoints which are stored in form of a
         directory of multiple files rather than a single file.
+
         """
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(

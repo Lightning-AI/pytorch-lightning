@@ -238,6 +238,7 @@ class CombinedLoader(Iterable):
         tensor([0, 1, 2, 3, 4]) batch_idx=0 dataloader_idx=1
         tensor([5, 6, 7, 8, 9]) batch_idx=1 dataloader_idx=1
         tensor([10, 11, 12, 13, 14]) batch_idx=2 dataloader_idx=1
+
     """
 
     def __init__(self, iterables: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size") -> None:
