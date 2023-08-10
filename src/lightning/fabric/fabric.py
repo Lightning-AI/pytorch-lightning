@@ -282,7 +282,7 @@ class Fabric:
         module = self._strategy.setup_module(module)
         module = _FabricModule(module, self._precision, original_module=original_module)
 
-        if not isinstance(self._strategy, FSDPStrategy):
+        if not isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)):
             # Update the _DeviceDtypeModuleMixin's device parameter
             module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
 
@@ -990,7 +990,7 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        if isinstance(self._strategy, (XLAFSDPStrategy, FSDPStrategy)) and not _TORCH_GREATER_EQUAL_2_0:
+        if isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)) and not _TORCH_GREATER_EQUAL_2_0:
             raise RuntimeError(
                 f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
                 " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
