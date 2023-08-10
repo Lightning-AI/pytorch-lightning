@@ -20,7 +20,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, XLAAccelerator
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_GREATER_EQUAL_2_1, XLAAccelerator
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
@@ -63,12 +63,19 @@ def broadcast_on_tpu_fn(strategy):
     assert result.device.type == "cpu"  # the original device is preserved
 
     # test broadcasting an arbitrary object
-    tensor = torch.tensor(strategy.global_rank, device=strategy.root_device, dtype=torch.bfloat16)
-    obj = ("ver_0.5", "logger_name", strategy.global_rank, tensor)
-    result = strategy.broadcast(obj, src=src)
-    assert result == ("ver_0.5", "logger_name", src, ANY)
-    assert result[3].device.type == "xla"  # the original device is preserved
-    assert result[3].dtype == torch.bfloat16
+    if _using_pjrt():
+        tensor = torch.tensor(strategy.global_rank, device=strategy.root_device, dtype=torch.bfloat16)
+        obj = ("ver_0.5", "logger_name", strategy.global_rank, tensor)
+        result = strategy.broadcast(obj, src=src)
+        assert result == ("ver_0.5", "logger_name", src, ANY)
+        assert result[3].device.type == "xla"  # the original device is preserved
+        assert result[3].dtype == torch.bfloat16
+    else:
+        # XRT fails to unpickle tensors, segfaults with
+        # RuntimeError: vector::_M_range_check: __n (which is 1) >= this->size() (which is 1)
+        obj = ("ver_0.5", "logger_name", strategy.global_rank)
+        result = strategy.broadcast(obj, src=src)
+        assert result == ("ver_0.5", "logger_name", src)
 
 
 @RunIf(tpu=True)
