@@ -73,10 +73,24 @@ For certain scientific computations, 64-bit precision enables more accurate mode
     # or
     Trainer(precision=64)
 
-.. note::
+Since in deep learning, memory is always a bottleneck, especially when dealing with a large volume of data and with limited resources.
+It is recommended using single precision for better speed. Although you can still use it if you want for your particular use-case.
 
-    Since in deep learning, memory is always a bottleneck, especially when dealing with a large volume of data and with limited resources.
-    It is recommended using single precision for better speed. Although you can still use it if you want for your particular use-case.
+When working with complex numbers, instantiation of complex tensors should be done in the
+:meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook or under the
+:meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module` context manager so that the `complex128` dtype
+is properly selected.
+
+.. code-block:: python
+
+    fabric = Trainer(precision="64-true")
+
+    # init the model directly on the device and with parameters in full-precision
+    with trainer.init_module():
+        model = MyModel()
+
+    trainer.fit(model)
+
 
 ----
 
