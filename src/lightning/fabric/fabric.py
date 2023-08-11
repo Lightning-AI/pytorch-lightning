@@ -931,16 +931,22 @@ class Fabric:
             pass
         else:
             initial_device = initial_param.device
+            count = 0
+            first_name, first_device = None, None
             for name, param in model.named_parameters():
                 if param.device != initial_device:
-                    rank_zero_warn(
-                        f"The model passed to `Fabric.setup()` has parameters on different devices ({name!r} on"
-                        f" {param.device} and {initial_name!r} on {initial_device}). Since `move_to_device=True`,"
-                        " all parameters will be moved to the new device. If this is not desired, set "
-                        " `Fabric.setup(..., move_to_device=False)`.",
-                        category=PossibleUserWarning,
-                    )
-                    break
+                    count += 1
+                    if first_name is None:
+                        first_name = name
+                        first_device = param.device
+            if count > 0:
+                rank_zero_warn(
+                    f"The model passed to `Fabric.setup()` has {count} parameters on different devices (for example"
+                    f" {first_name!r} on {first_device} and {initial_name!r} on {initial_device}). Since"
+                    " `move_to_device=True`, all parameters will be moved to the new device. If this is not"
+                    " desired, set `Fabric.setup(..., move_to_device=False)`.",
+                    category=PossibleUserWarning,
+                )
 
         if isinstance(self._strategy, XLAStrategy):
             # When the user creates the optimizer, they reference the parameters on the CPU.
