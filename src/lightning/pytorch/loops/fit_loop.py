@@ -399,6 +399,11 @@ class _FitLoop(_Loop):
         if self._data_fetcher is not None:
             self._data_fetcher.teardown()
             self._data_fetcher = None
+
+        if self._data_source is not None:
+            self._data_source.instance = None
+        self._combined_loader = None
+
         self.epoch_loop.teardown()
 
     def _should_accumulate(self) -> bool:

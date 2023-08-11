@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from pickle import dumps
 from unittest.mock import Mock
 
 import pytest
 import torch
 
 from lightning.pytorch import seed_everything, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _FitLoop
 
 
@@ -206,3 +207,20 @@ def test_should_stop_early_stopping_conditions_met(
 
     assert (message in caplog.text) is raise_debug_msg
     assert trainer.fit_loop._can_stop_early is early_stop
+
+
+def test_should_clear_references_to_dataloader():
+    """Test that `Trainer` clears references to any dataloader passed as arguments after training."""
+    model = BoringModel()
+
+    dataset = RandomDataset(32, 8192)
+
+    trainer = Trainer(fast_dev_run=True)
+    prev_size = len(dumps(trainer))
+
+    trainer.fit(model, train_dataloaders=torch.utils.data.DataLoader(dataset))
+    new_size = len(dumps(trainer))
+
+    size_diff_mb = (new_size - prev_size) // (1024**2)
+
+    assert size_diff_mb == 0
