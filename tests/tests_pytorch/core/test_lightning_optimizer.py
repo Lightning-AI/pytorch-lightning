@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
 from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
@@ -158,6 +159,32 @@ def test_state():
     assert lightning_dict == optimizer.__dict__
     assert optimizer.state_dict() == lightning_optimizer.state_dict()
     assert optimizer.state == lightning_optimizer.state
+
+
+def test_state_mutation():
+    model = torch.nn.Linear(3, 4)
+    optimizer0 = torch.optim.Adam(model.parameters(), lr=0.1)
+    lightning_optimizer0 = LightningOptimizer(optimizer0)
+
+    optimizer0.param_groups[0]["lr"] = 1.0
+    assert lightning_optimizer0.param_groups[0]["lr"] == 1.0
+
+    # Load state into the unwrapped optimizer
+    state_dict0 = deepcopy(optimizer0.state_dict())
+    optimizer1 = torch.optim.Adam(model.parameters(), lr=100)
+    lightning_optimizer1 = LightningOptimizer(optimizer1)
+    optimizer1.load_state_dict(state_dict0)
+
+    # LightningOptimizer needs to be refreshed to see the new state
+    assert lightning_optimizer1.param_groups[0]["lr"] != 1.0
+    lightning_optimizer1.refresh()
+    assert lightning_optimizer1.param_groups[0]["lr"] == 1.0
+
+    # Load state into wrapped optimizer
+    optimizer2 = torch.optim.Adam(model.parameters(), lr=100)
+    lightning_optimizer2 = LightningOptimizer(optimizer2)
+    lightning_optimizer2.load_state_dict(state_dict0)
+    assert lightning_optimizer2.param_groups[0]["lr"] == 1.0
 
 
 def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
