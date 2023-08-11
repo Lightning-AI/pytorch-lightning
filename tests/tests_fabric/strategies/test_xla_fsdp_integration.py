@@ -145,7 +145,7 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     from torch_xla.distributed.fsdp.wrap import always_wrap_policy
 
     strategy = XLAFSDPStrategy(auto_wrap_policy=always_wrap_policy)
-    fabric = Fabric(accelerator="tpu", devices=2, strategy=strategy)
+    fabric = Fabric(accelerator="tpu", strategy=strategy)
     fabric.launch()
 
     model = torch.nn.Linear(10, 10, bias=False)
