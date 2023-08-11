@@ -264,17 +264,13 @@ class XLAFSDPStrategy(ParallelStrategy):
         if tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
         original_device = tensor.device
-        if original_device.type != "xla":
-            tensor = tensor.to(self.root_device)
+        tensor = tensor.to(self.root_device)
 
         import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
 
         tensor = xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
-
-        if original_device.type != "xla":
-            tensor = tensor.to(original_device)
-
+        tensor = tensor.to(original_device)
         return tensor
 
     def all_reduce(
@@ -320,9 +316,8 @@ class XLAFSDPStrategy(ParallelStrategy):
             if obj.dim() == 0:
                 obj = obj.unsqueeze(0)
             original_device = obj.device
-            if original_device.type != "xla":
-                # XLA distributed requires that the data is on the XLA device
-                obj = obj.to(self.root_device)
+            # XLA distributed requires that the data is on the XLA device
+            obj = obj.to(self.root_device)
         else:
             # support for arbitrary pickle-ables
             buffer = io.BytesIO()
@@ -339,7 +334,7 @@ class XLAFSDPStrategy(ParallelStrategy):
             # this will preserve the dtype and device of any tensors
             buffer = io.BytesIO(obj.cpu().byte().numpy())
             obj = torch.load(buffer)
-        elif original_device.type != "xla":
+        else:
             obj = obj.to(original_device)
 
         return obj
