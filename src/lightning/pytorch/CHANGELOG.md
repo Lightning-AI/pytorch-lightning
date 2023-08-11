@@ -203,6 +203,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue that would prevent the user to set the multiprocessing start method after importing lightning ([#18177](https://github.com/Lightning-AI/lightning/pull/18177))
 
 
+- Fixed the gradient unscaling logic if the training step skipped backward (by returning `None`) ([#18267](https://github.com/Lightning-AI/lightning/pull/18267))
+
+
 - Ensure that the closure running inside the optimizer step has gradients enabled, even if the optimizer step has it disabled ([#18268](https://github.com/Lightning-AI/lightning/pull/18268))
 
 
