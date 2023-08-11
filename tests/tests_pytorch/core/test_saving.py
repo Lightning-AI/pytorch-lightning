@@ -103,3 +103,16 @@ def test_load_from_checkpoint_device_placement_with_extra_state(tmp_path):
     create_boring_checkpoint(tmp_path, ExtraStateModel(), accelerator="cuda")
     model = ExtraStateModel.load_from_checkpoint(f"{tmp_path}/checkpoint.ckpt", map_location=None)
     assert model.device.type == "cuda"
+
+
+def test_load_from_checkpoint_warn_on_empty_state_dict(tmp_path):
+    """Test that checkpoints can be loaded with an empty state dict and that the appropriate warning is raised."""
+    create_boring_checkpoint(tmp_path, BoringModel(), accelerator="cpu")
+    # Now edit so the state_dict is empty
+    checkpoint = torch.load(tmp_path / "checkpoint.ckpt")
+    checkpoint["state_dict"] = {}
+    torch.save(checkpoint, tmp_path / "checkpoint.ckpt")
+
+    with pytest.warns(UserWarning, match="contains no parameters"):
+        model = BoringModel.load_from_checkpoint(tmp_path / "checkpoint.ckpt", strict=False)
+    assert model.device.type == "cpu"
