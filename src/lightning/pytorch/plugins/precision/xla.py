@@ -16,13 +16,10 @@ from functools import partial
 from typing import Any, Callable
 
 import torch
-from lightning_utilities.core.apply_func import apply_to_collection
-from torch import Tensor
 from typing_extensions import get_args
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.plugins.precision.xla import _PRECISION_INPUT
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
