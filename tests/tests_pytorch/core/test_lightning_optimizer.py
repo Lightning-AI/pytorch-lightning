@@ -323,7 +323,15 @@ def test_lightning_optimizer_keeps_hooks():
 
 def test_params_groups_and_state_are_accessible(tmpdir):
     class TestModel(BoringModel):
+        def on_train_start(self):
+            # Update the learning rate manually on the unwrapped optimizer
+            assert not isinstance(self.trainer.optimizers[0], LightningOptimizer)
+            self.trainer.optimizers[0].param_groups[0]['lr'] = 2.0
+
         def training_step(self, batch, batch_idx):
+            opt = self.optimizers()
+            assert opt.param_groups[0]['lr'] == 2.0
+
             loss = self.step(batch)
             self.__loss = loss
             return loss
