@@ -136,28 +136,24 @@ def test_xla_fsdp_train_save_load(tmp_path, use_auto_wrap_policy, state_dict_typ
     fabric.launch(xla_fsdp_train_save_load, tmp_path, state_dict_type)
 
 
-def _test_setup_module_move_to_device(fabric, fabric_module_mock, move_to_device):
+def _test_setup_module_move_to_device(fabric, move_to_device):
     model = torch.nn.Linear(10, 10, bias=False)
-    fabric_model = fabric.setup_module(model, move_to_device=move_to_device)
+    with mock.patch("lightning.fabric.wrappers._FabricModule") as fabric_module_mock:
+        fabric_model = fabric.setup_module(model, move_to_device=move_to_device)
     fabric_module_mock.assert_not_called()
 
     # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
     assert fabric_model.device == torch.device("cpu")
-    assert fabric.device == torch.device("cuda", fabric.local_rank)
+    assert fabric.device.type == "xla"
 
 
 @RunIf(min_torch="2.0", tpu=True, standalone=True)
 @pytest.mark.parametrize("move_to_device", [True, False])
-@mock.patch("lightning.fabric.wrappers._FabricModule")
-def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
+def test_setup_module_move_to_device(move_to_device):
     """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device
     (sharding)."""
     from torch_xla.distributed.fsdp.wrap import always_wrap_policy
 
     strategy = XLAFSDPStrategy(auto_wrap_policy=always_wrap_policy)
     fabric = Fabric(accelerator="tpu", strategy=strategy)
-    fabric.launch(
-        _test_setup_module_move_to_device,
-        fabric_module_mock=fabric_module_mock,
-        move_to_device=move_to_device,
-    )
+    fabric.launch(_test_setup_module_move_to_device, move_to_device=move_to_device)
