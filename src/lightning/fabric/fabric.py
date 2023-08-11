@@ -230,7 +230,7 @@ class Fabric:
 
         module = _FabricModule(module, self._precision, original_module=original_module)
 
-        if not _has_meta_device_parameters(module):
+        if not isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)):
             # Update the _DeviceDtypeModuleMixin's device parameter
             module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
 
