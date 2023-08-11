@@ -40,6 +40,7 @@ class LightningOptimizer:
     Note: The purpose of this wrapper is only to define new methods and redirect the `.step()` call. The internal
     state ``__dict__`` is not kept in sync with the internal state of the original optimizer, but the Trainer never
     relies on the internal state of the wrapper.
+
     """
 
     def __init__(self, optimizer: Optimizer):
