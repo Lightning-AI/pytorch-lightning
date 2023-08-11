@@ -53,7 +53,7 @@ def _run_xla_precision(fabric, expected_dtype):
     optimizer.zero_grad()
 
 
-@pytest.mark.parametrize("precision, expected_dtype", [("16-true", torch.float16), ("bf16-true", torch.bfloat16)])
+@pytest.mark.parametrize(("precision", "expected_dtype"), [("16-true", torch.float16), ("bf16-true", torch.bfloat16)])
 @RunIf(tpu=True, standalone=True)
 def test_xla_precision(precision, expected_dtype):
     fabric = Fabric(devices=1, precision=precision)
