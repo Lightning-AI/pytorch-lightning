@@ -189,9 +189,6 @@ class XLAStrategy(DDPStrategy):
             original_device = obj.device
             if original_device.type != "xla":
                 # XLA distributed requires that the data is on the XLA device
-                # TODO: this might OOM if a CPU object is broadcast that wouldn't fit on XLA's memory. a workaround
-                # for that would be to use regular torch distributed for CPU objects with gloo. however, that would
-                # have other challenges such as having to initialize it and the lack of bfloat16 support for gloo
                 obj = obj.to(self.root_device)
         else:
             # support for arbitrary pickle-ables
