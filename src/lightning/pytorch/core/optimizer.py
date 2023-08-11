@@ -81,6 +81,10 @@ class LightningOptimizer:
             lightning_module.untoggle_optimizer(self)
 
     def refresh(self) -> None:
+        """Refreshes the ``__dict__`` so that it matches the internal states in the wrapped optimizer.
+
+        This is only needed to present the user with an updated view in case they inspect the state of this wrapper.
+        """
         # copy most of the `Optimizer` methods into this instance. `__del__` is skipped in case the optimizer has
         # implemented custom logic which we would not want to call on destruction of the `LightningOptimizer`
         self.__dict__.update({k: v for k, v in self.optimizer.__dict__.items() if k not in ("step", "__del__")})
