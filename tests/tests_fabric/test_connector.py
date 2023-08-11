@@ -957,6 +957,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     def _mock_interactive():
         monkeypatch.setattr(lightning.fabric.utilities.imports, "_IS_INTERACTIVE", is_interactive)
         monkeypatch.setattr(lightning.fabric.connector, "_IS_INTERACTIVE", is_interactive)
+        monkeypatch.setattr(lightning.fabric.accelerators.cuda, "_IS_INTERACTIVE", is_interactive)
         if _IS_WINDOWS:
             # simulate fork support on windows
             monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
@@ -984,11 +985,12 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_tpu_available(monkeypatch, False)
         connector = _Connector()
     assert isinstance(connector.accelerator, CUDAAccelerator)
-    assert isinstance(connector.strategy, DDPStrategy)
-    assert connector._devices_flag == list(range(4))
-    assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
-    assert connector.strategy._start_method == "fork" if is_interactive else "popen"
-    assert connector.strategy.launcher.is_interactive_compatible == is_interactive
+    assert isinstance(connector.strategy, (SingleDeviceStrategy if is_interactive else DDPStrategy))
+    assert connector._devices_flag == [0] if is_interactive else list(range(4))
+    if not is_interactive:
+        assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
+        assert connector.strategy._start_method == "fork" if is_interactive else "popen"
+        assert connector.strategy.launcher.is_interactive_compatible == is_interactive
 
     # MPS (there's no distributed)
     with no_cuda, single_mps, monkeypatch.context():

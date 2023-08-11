@@ -24,6 +24,7 @@ from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.cuda import _check_cuda_matmul_precision, _clear_cuda_memory, num_cuda_devices
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.types import _DEVICE
+from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
@@ -89,7 +90,7 @@ class CUDAAccelerator(Accelerator):
     @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        return num_cuda_devices()
+        return num_cuda_devices() if not _IS_INTERACTIVE else 1
 
     @staticmethod
     def is_available() -> bool:

@@ -22,7 +22,7 @@ from lightning_utilities.core.rank_zero import rank_zero_info
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0, _IS_INTERACTIVE
 
 
 class CUDAAccelerator(Accelerator):
@@ -57,7 +57,7 @@ class CUDAAccelerator(Accelerator):
     @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        return num_cuda_devices()
+        return num_cuda_devices() if not _IS_INTERACTIVE else 1
 
     @staticmethod
     def is_available() -> bool:
