@@ -59,12 +59,6 @@ class XLAPrecisionPlugin(PrecisionPlugin):
         else:
             self._desired_dtype = torch.float32
 
-    # def convert_input(self, data: Any) -> Any:
-    #     return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
-    #
-    # def convert_output(self, data: Any) -> Any:
-    #     return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
-
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
