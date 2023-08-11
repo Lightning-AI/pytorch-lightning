@@ -52,8 +52,7 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     Args:
         sequential_save: With this enabled, individual ranks consecutively save their state dictionary shards, reducing
-            peak system RAM usage, although it elongates the saving process. The shards will be later consolidated into
-            a single "full" checkpoint on the main process.
+            peak system RAM usage, although it elongates the saving process.
     """
 
     def __init__(
