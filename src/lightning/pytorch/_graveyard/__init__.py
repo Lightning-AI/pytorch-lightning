@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lightning.pytorch._graveyard._torchmetrics
+import lightning.pytorch._graveyard._torchmetrics  # noqa: F401
