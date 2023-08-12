@@ -142,6 +142,8 @@ class SLURMEnvironment(ClusterEnvironment):
         return int(os.environ["SLURM_NODEID"])
 
     def validate_settings(self, num_devices: int, num_nodes: int) -> None:
+        if _is_slurm_interactive_mode():
+            return
         ntasks_per_node = os.environ.get("SLURM_NTASKS_PER_NODE")
         if ntasks_per_node is not None and int(ntasks_per_node) != num_devices:
             raise ValueError(
@@ -151,7 +153,7 @@ class SLURMEnvironment(ClusterEnvironment):
         nnodes = os.environ.get("SLURM_NNODES")
         if nnodes is not None and int(nnodes) != num_nodes:
             raise ValueError(
-                f"You set `num_nodes={num_nodes}` in Lightning, but the number nodes configured in SLURM"
+                f"You set `num_nodes={num_nodes}` in Lightning, but the number of nodes configured in SLURM"
                 f" `--nodes={nnodes}` does not match. HINT: Set `num_nodes={nnodes}`."
             )
 
