@@ -16,7 +16,6 @@ import os
 import shutil
 import sys
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 from lightning_utilities.test.warning import no_warning_call
