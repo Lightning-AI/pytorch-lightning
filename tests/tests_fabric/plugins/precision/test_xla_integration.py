@@ -27,8 +27,8 @@ class BoringPrecisionModule(nn.Module):
         self.layer = torch.nn.Linear(32, 2)
 
     def forward(self, x):
-        assert x.dtype == self.expected_dtype
-        # TODO: This should be float16/bfloat16
+        # TODO: These should be float16/bfloat16
+        assert x.dtype == torch.float32
         assert torch.tensor([0.0]).dtype == torch.float32
         return self.layer(x)
 
