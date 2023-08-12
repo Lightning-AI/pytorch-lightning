@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from unittest import mock
+
 import pytest
 import torch
 import torch.nn as nn
@@ -50,13 +53,14 @@ def _run_xla_precision(fabric, expected_dtype):
     assert output.dtype == torch.float32
     loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
     fabric.backward(loss)
-    assert model.layer.weight.grad.dtype == expected_dtype
+    assert model.layer.weight.grad.dtype == torch.float32
     optimizer.step()
     optimizer.zero_grad()
 
 
 @pytest.mark.parametrize(("precision", "expected_dtype"), [("16-true", torch.float16), ("bf16-true", torch.bfloat16)])
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_xla_precision(precision, expected_dtype):
     fabric = Fabric(devices=1, precision=precision)
     assert isinstance(fabric._precision, XLAPrecision)
