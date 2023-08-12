@@ -305,6 +305,40 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
     assert idx == expected - 1
 
 
+@pytest.mark.parametrize("mode", ["min_size", "max_size_cycle", "max_size", "sequential"])
+def test_combined_loader_simultaneous_workers(mode):
+    """Test `CombinedLoader` to check how it initializes dataloader workers."""
+
+    class TestDataLoader(DataLoader):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.workers_active = False
+
+        def _get_iterator(self):
+            self.workers_active = True
+            return super()._get_iterator()
+
+        def _shutdown_workers(self):
+            self.workers_active = False
+            super()._shutdown_workers()
+
+    loaders = [
+        TestDataLoader(range(10), batch_size=2, num_workers=0),
+        TestDataLoader(range(20), batch_size=2, num_workers=0),
+    ]
+    combined_loader = CombinedLoader(loaders, mode)
+    # Start the dataloader
+    _ = iter(combined_loader)
+
+    workers_active = []
+    for loader in loaders:
+        workers_active.append(loader.workers_active)
+
+    # Sequential only starts the first dataloader, other modes start both
+    expected = [True, False] if mode == "sequential" else [True, True]
+    assert workers_active == expected
+
+
 @pytest.mark.parametrize(
     ("limits", "expected"),
     [
@@ -369,8 +403,7 @@ def test_combined_loader_sequence_with_map_and_iterable(lengths):
 
 @pytest.mark.parametrize("use_distributed_sampler", [False, True])
 def test_combined_data_loader_validation_test(use_distributed_sampler):
-    """This test makes sure distributed sampler has been properly injected in dataloaders when using
-    CombinedLoader."""
+    """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader."""
 
     class CustomDataset(Dataset):
         def __init__(self, data):

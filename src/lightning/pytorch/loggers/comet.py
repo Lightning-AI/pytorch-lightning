@@ -204,6 +204,7 @@ class CometLogger(Logger):
             If required Comet package is not installed on the device.
         MisconfigurationException:
             If neither ``api_key`` nor ``save_dir`` are passed as arguments.
+
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -312,7 +313,7 @@ class CometLogger(Logger):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         params = _convert_params(params)
         params = _flatten_dict(params)
         self.experiment.log_parameters(params)
@@ -357,6 +358,7 @@ class CometLogger(Logger):
 
         Returns:
             The path to the save directory.
+
         """
         return self._save_dir
 
@@ -366,6 +368,7 @@ class CometLogger(Logger):
 
         Returns:
             The project name if it is specified, else "comet-default".
+
         """
         # Don't create an experiment if we don't have one
         if self._experiment is not None and self._experiment.project_name is not None:
@@ -389,6 +392,7 @@ class CometLogger(Logger):
             4. future experiment key.
 
             If none are present generates a new guid.
+
         """
         # Don't create an experiment if we don't have one
         if self._experiment is not None:

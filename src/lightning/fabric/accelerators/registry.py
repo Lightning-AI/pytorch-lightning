@@ -41,6 +41,7 @@ class _AcceleratorRegistry(dict):
         or
 
         AcceleratorRegistry.register("sota", SOTAAccelerator, description="Custom sota accelerator", a=1, b=True)
+
     """
 
     def register(
@@ -59,6 +60,7 @@ class _AcceleratorRegistry(dict):
             description : accelerator description
             override : overrides the registered accelerator, if True
             init_params: parameters to initialize the accelerator
+
         """
         if not (name is None or isinstance(name, str)):
             raise TypeError(f"`name` must be a str, found {name}")
@@ -87,6 +89,7 @@ class _AcceleratorRegistry(dict):
 
         Args:
             name (str): the name that identifies a accelerator, e.g. "gpu"
+
         """
         if name in self:
             data = self[name]

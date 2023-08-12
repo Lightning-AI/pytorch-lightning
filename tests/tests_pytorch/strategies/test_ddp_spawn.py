@@ -17,7 +17,7 @@ from torch.multiprocessing import ProcessRaisedException
 import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer import Trainer
+from lightning.pytorch.trainer import seed_everything, Trainer
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -26,6 +26,8 @@ from tests_pytorch.strategies.test_ddp_strategy import UnusedParametersModel
 
 @RunIf(min_cuda_gpus=2, sklearn=True)
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
+    seed_everything(42)
+
     trainer_options = {
         "default_root_dir": tmpdir,
         "callbacks": [EarlyStopping(monitor="train_acc")],
@@ -44,6 +46,8 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
 
 @RunIf(min_cuda_gpus=2)
 def test_multi_gpu_model_ddp_spawn(tmpdir):
+    seed_everything(42)
+
     trainer_options = {
         "default_root_dir": tmpdir,
         "max_epochs": 1,
@@ -80,8 +84,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
 
 
 def test_ddp_spawn_find_unused_parameters_exception():
-    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning
-    users."""
+    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning users."""
     trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp_spawn", max_steps=2)
     with pytest.raises(
         ProcessRaisedException, match="It looks like your LightningModule has parameters that were not used in"

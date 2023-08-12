@@ -223,6 +223,7 @@ class NeptuneLogger(Logger):
             If the required Neptune package is not installed.
         ValueError:
             If an argument passed to the logger's constructor is incorrect.
+
     """
 
     LOGGER_JOIN_CHAR = "/"
@@ -240,7 +241,7 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
-        if not _NEPTUNE_AVAILABLE:
+        if not _NEPTUNE_AVAILABLE and not _NEPTUNE_CLIENT_AVAILABLE:
             raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
@@ -380,7 +381,7 @@ class NeptuneLogger(Logger):
         return self._run_instance
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # skipcq: PYL-W0221
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         r"""Log hyperparameters to the run.
 
         Hyperparameters will be logged under the "<prefix>/hyperparams" namespace.
@@ -413,6 +414,7 @@ class NeptuneLogger(Logger):
             )
 
             neptune_logger.log_hyperparams(PARAMS)
+
         """
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
@@ -423,12 +425,15 @@ class NeptuneLogger(Logger):
         self.run[parameters_key] = stringify_unsupported(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(  # type: ignore[override]
+        self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
+    ) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values.
             step: Step number at which the metrics should be recorded, currently ignored.
+
         """
         if rank_zero_only.rank != 0:
             raise ValueError("run tried to log from global_rank != 0")
@@ -474,6 +479,7 @@ class NeptuneLogger(Logger):
 
         Args:
             checkpoint_callback: the model checkpoint callback instance
+
         """
         if not self._log_model_checkpoints:
             return
@@ -558,5 +564,6 @@ class NeptuneLogger(Logger):
         """Return the experiment version.
 
         It's Neptune Run's short_id
+
         """
         return self._run_short_id

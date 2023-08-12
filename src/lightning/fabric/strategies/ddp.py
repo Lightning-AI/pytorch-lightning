@@ -136,6 +136,7 @@ class DDPStrategy(ParallelStrategy):
 
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
+
         """
         if isinstance(tensor, Tensor):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
@@ -161,6 +162,13 @@ class DDPStrategy(ParallelStrategy):
         if isinstance(module, DistributedDataParallel):
             module = module.module
         return super().get_module_state_dict(module)
+
+    def load_module_state_dict(
+        self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True
+    ) -> None:
+        if isinstance(module, DistributedDataParallel):
+            module = module.module
+        super().load_module_state_dict(module=module, state_dict=state_dict, strict=strict)
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:

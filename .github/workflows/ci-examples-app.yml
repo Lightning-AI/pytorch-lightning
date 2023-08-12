@@ -8,7 +8,7 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
-      - ".actions/**"
+      - ".actions/*"
       - ".github/workflows/ci-examples-app.yml"
       - "src/lightning/app/**"
       - "src/lightning_app/*"
@@ -111,14 +111,10 @@ jobs:
 
     - name: Tests
       working-directory: ./tests
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: us-east-1
       run: |
         python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
           -m pytest -m "not cloud" integrations_app \
-          --timeout=300 --durations=0 -vvvv
+          --timeout=120 --durations=0 -vvvv
 
     - name: Statistics
       if: success()

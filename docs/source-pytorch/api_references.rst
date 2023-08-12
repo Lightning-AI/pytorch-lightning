@@ -114,7 +114,8 @@ precision
 
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
-    FSDPMixedPrecisionPlugin
+    FSDPPrecisionPlugin
+    HalfPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
     XLABf16PrecisionPlugin

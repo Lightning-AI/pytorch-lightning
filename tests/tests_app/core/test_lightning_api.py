@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import json
 import logging
 import multiprocessing as mp
 import os
@@ -180,8 +181,8 @@ class AppStageTestingApp(LightningApp):
 # FIXME: This test doesn't assert anything
 @pytest.mark.skip(reason="TODO: Resolve flaky test.")
 def test_app_stage_from_frontend():
-    """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would
-    start and stop the app."""
+    """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would start
+    and stop the app."""
     app = AppStageTestingApp(FlowA(), log_level="debug")
     app.stage = AppStage.BLOCKING
     MultiProcessRuntime(app, start_server=True).dispatch()
@@ -192,6 +193,7 @@ def test_update_publish_state_and_maybe_refresh_ui():
 
     - receives the state from the `publish_state_queue` and populates the app_state_store
     - receives a notification to refresh the UI and makes a GET Request (streamlit).
+
     """
     app = AppStageTestingApp(FlowA(), log_level="debug")
     publish_state_queue = _MockQueue("publish_state_queue")
@@ -214,6 +216,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
 
     - the state on GET /api/v1/state
     - push a delta when making a POST request to /api/v1/state
+
     """
 
     class InfiniteQueue(_MockQueue):
@@ -278,7 +281,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
         assert response.status_code == 200
 
         response = await client.get("/api/v1/layout")
-        assert response.json() == [
+        assert json.loads(response.json()) == [
             {"name": "main_1", "content": "https://te", "target": "https://te"},
             {"name": "main_2", "content": "https://te"},
             {"name": "main_3", "content": "https://te"},
@@ -498,9 +501,8 @@ def target():
 
 
 async def async_request(url: str, data: InputRequestModel):
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=data.dict()) as result:
-            return await result.json()
+    async with aiohttp.ClientSession() as session, session.post(url, json=data.dict()) as result:
+        return await result.json()
 
 
 @pytest.mark.xfail(strict=False, reason="No idea why... need to be fixed")  # fixme

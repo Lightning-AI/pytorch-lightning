@@ -26,6 +26,7 @@ from torch import Tensor
 import lightning.pytorch as pl
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from lightning.fabric.loggers.tensorboard import TensorBoardLogger as FabricTensorBoardLogger
+from lightning.fabric.utilities.cloud_io import _is_dir
 from lightning.fabric.utilities.logger import _convert_params
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -95,6 +96,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         >>> tbl.log_metrics({"acc": 0.9})
         >>> tbl.finalize("success")
         >>> shutil.rmtree(tmp)
+
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
 
@@ -132,6 +134,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
         be saved in "save_dir/version"
+
         """
         return os.path.join(super().root_dir, self.name)
 
@@ -141,6 +144,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
         constructor's version parameter instead of ``None`` or an int.
+
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
@@ -157,20 +161,22 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         Returns:
             The local path to the save directory where the TensorBoard experiments are saved.
+
         """
         return self._root_dir
 
     @rank_zero_only
-    def log_hyperparams(
+    def log_hyperparams(  # type: ignore[override]
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
-        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs
-        to display the new ones with hyperparameters.
+        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
+        display the new ones with hyperparameters.
 
         Args:
             params: a dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
+
         """
         params = _convert_params(params)
 
@@ -183,7 +189,9 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         return super().log_hyperparams(params=params, metrics=metrics)
 
     @rank_zero_only
-    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
+    def log_graph(  # type: ignore[override]
+        self, model: "pl.LightningModule", input_array: Optional[Tensor] = None
+    ) -> None:
         if not self._log_graph:
             return
 
@@ -215,7 +223,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file if it doesn't exist and the log directory exists
-        if self._fs.isdir(dir_path) and not self._fs.isfile(hparams_file):
+        if _is_dir(self._fs, dir_path) and not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only
@@ -230,6 +238,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         Args:
             checkpoint_callback: the model checkpoint callback instance
+
         """
         pass
 
@@ -246,7 +255,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         for listing in listdir_info:
             d = listing["name"]
             bn = os.path.basename(d)
-            if self._fs.isdir(d) and bn.startswith("version_"):
+            if _is_dir(self._fs, d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace("/", "")
                 existing_versions.append(int(dir_ver))
         if len(existing_versions) == 0:

@@ -191,6 +191,7 @@ class RichProgressBarTheme:
         metrics: Style for the metrics
 
     https://rich.readthedocs.io/en/stable/style.html
+
     """
 
     description: Union[str, Style] = "white"
@@ -234,6 +235,7 @@ class RichProgressBar(ProgressBar):
         PyCharm users will need to enable “emulate terminal” in output console option in
         run/debug configuration to see styled output.
         Reference: https://rich.readthedocs.io/en/latest/introduction.html#requirements
+
     """
 
     def __init__(
@@ -495,7 +497,7 @@ class RichProgressBar(ProgressBar):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -512,7 +514,7 @@ class RichProgressBar(ProgressBar):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,

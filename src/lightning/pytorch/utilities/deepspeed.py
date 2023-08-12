@@ -96,12 +96,16 @@ def convert_zero_checkpoint_to_fp32_state_dict(
     model_file = get_model_state_file(checkpoint_dir, zero_stage)
     client_state = torch.load(model_file, map_location=CPU_DEVICE)
     client_state = {key: value for key, value in client_state.items() if key not in deepspeed_states}
-    # State dict keys will include reference to wrapper _LightningModuleWrapperBase
-    # Delete `module` prefix before saving.
-    state_dict = {k.partition("module.")[2]: state_dict[k] for k in state_dict}
+    # State dict keys will include reference to wrapper _LightningModuleWrapperBase in old checkpoints created in
+    # Lightning version < 2.1. Delete the `_forward_module` prefix before saving.
+    state_dict = {_remove_prefix(k, "_forward_module."): state_dict[k] for k in state_dict}
     client_state["state_dict"] = state_dict
 
     print(f"Saving fp32 state dict to {output_file}")
     torch.save(client_state, output_file)
 
     return client_state
+
+
+def _remove_prefix(key: str, prefix: str) -> str:
+    return key[len(prefix) :] if key.startswith(prefix) else key

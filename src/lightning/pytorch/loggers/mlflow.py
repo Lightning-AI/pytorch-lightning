@@ -130,6 +130,7 @@ class MLFlowLogger(Logger):
     Raises:
         ModuleNotFoundError:
             If required MLFlow package is not installed on the device.
+
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -218,6 +219,7 @@ class MLFlowLogger(Logger):
 
         Returns:
             The run id.
+
         """
         _ = self.experiment
         return self._run_id
@@ -228,12 +230,13 @@ class MLFlowLogger(Logger):
 
         Returns:
             The experiment id.
+
         """
         _ = self.experiment
         return self._experiment_id
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         params = _convert_params(params)
         params = _flatten_dict(params)
 
@@ -295,6 +298,7 @@ class MLFlowLogger(Logger):
         Return:
             Local path to the root experiment directory if the tracking uri is local.
             Otherwise returns `None`.
+
         """
         if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
             return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
@@ -306,6 +310,7 @@ class MLFlowLogger(Logger):
 
         Returns:
             The experiment id.
+
         """
         return self.experiment_id
 
@@ -315,6 +320,7 @@ class MLFlowLogger(Logger):
 
         Returns:
             The run id.
+
         """
         return self.run_id
 

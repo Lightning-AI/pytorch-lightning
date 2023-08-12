@@ -11,13 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, cast, Literal, Optional, TYPE_CHECKING, Union
+from contextlib import contextmanager
+from typing import Any, Callable, Generator, Optional, TYPE_CHECKING, Union
 
+import torch
+from lightning_utilities import apply_to_collection
 from torch import Tensor
+from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 from typing_extensions import get_args
 
 import lightning.pytorch as pl
+from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.fabric.utilities.types import Steppable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
@@ -31,8 +37,6 @@ if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
 
 warning_cache = WarningCache()
 
-_PRECISION_INPUT = Literal["32-true", "16-mixed", "bf16-mixed"]
-
 
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for DeepSpeed integration.
@@ -40,20 +44,50 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Args:
-        precision: Full precision (32), half precision (16) or bfloat16 precision (bf16).
+        precision: Full precision (32-true), half precision (16-true, bf16-true) or
+            mixed precision (16-mixed, bf16-mixed).
+
     Raises:
         ValueError:
             If unsupported ``precision`` is provided.
+
     """
 
-    def __init__(self, precision: Literal["32-true", "16-mixed", "bf16-mixed"]) -> None:
+    def __init__(self, precision: _PRECISION_INPUT) -> None:
         supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.precision = cast(_PRECISION_INPUT, str(precision))
+        self.precision = precision
+        precision_to_type = {
+            "bf16-mixed": torch.bfloat16,
+            "16-mixed": torch.float16,
+            "bf16-true": torch.bfloat16,
+            "16-true": torch.float16,
+            "32-true": torch.float32,
+        }
+        self._desired_dtype = precision_to_type[self.precision]
+
+    def convert_module(self, module: Module) -> Module:
+        if "true" in self.precision:
+            return module.to(dtype=self._desired_dtype)
+        return module
+
+    def convert_input(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
+
+    @contextmanager
+    def init_context(self) -> Generator[None, None, None]:
+        if "true" not in self.precision:
+            yield
+            return
+
+        default_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(self._desired_dtype)
+        yield
+        torch.set_default_dtype(default_dtype)
 
     def backward(  # type: ignore[override]
         self,
@@ -71,6 +105,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             optimizer: ignored for DeepSpeed
             \*args: additional positional arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
             \**kwargs: additional keyword arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
+
         """
         if is_overridden("backward", model):
             warning_cache.warn(

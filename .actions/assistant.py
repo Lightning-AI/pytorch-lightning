@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import glob
+import logging
 import os
 import pathlib
 import re
@@ -42,6 +43,11 @@ REQUIREMENT_FILES = {
     "fabric": (
         "requirements/fabric/base.txt",
         "requirements/fabric/strategies.txt",
+    ),
+    "data": (
+        "requirements/data/data.txt",
+        "requirements/data/cloud.txt",
+        "requirements/data/examples.txt",
     ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
@@ -80,6 +86,7 @@ class _RequirementWithComment(Requirement):
         'arrow>=1.2.0'
         >>> _RequirementWithComment("arrow").adjust("major")
         'arrow'
+
         """
         out = str(self)
         if self.strict:
@@ -109,6 +116,7 @@ def _parse_requirements(strs: Union[str, Iterable[str]]) -> Iterator[_Requiremen
     >>> txt = '\\n'.join(txt)
     >>> [r.adjust('none') for r in _parse_requirements(txt)]
     ['this', 'example', 'foo  # strict', 'thing']
+
     """
     lines = yield_lines(strs)
     pip_argument = None
@@ -142,10 +150,14 @@ def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str 
 
     >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
     >>> load_requirements(path_req, "docs.txt", unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    ['sphinx<6.0,>=4.0', ...]
+    ['sphinx<...]
+
     """
     assert unfreeze in {"none", "major", "all"}
     path = Path(path_dir) / file_name
+    if not path.exists():
+        logging.warning(f"Folder {path_dir} does not have any base requirements.")
+        return []
     assert path.exists(), (path_dir, file_name, path)
     text = path.read_text()
     return [req.adjust(unfreeze) for req in _parse_requirements(text)]
@@ -156,6 +168,7 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
 
     >>> load_readme_description(_PROJECT_ROOT, "", "")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     '...PyTorch Lightning is just organized PyTorch...'
+
     """
     path_readme = os.path.join(path_dir, "README.md")
     with open(path_readme, encoding="utf-8") as fo:
@@ -187,13 +200,12 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     skip_begin = r"<!-- following section will be skipped from PyPI description -->"
     skip_end = r"<!-- end skipping PyPI description -->"
     # todo: wrap content as commented description
-    text = re.sub(rf"{skip_begin}.+?{skip_end}", "<!--  -->", text, flags=re.IGNORECASE + re.DOTALL)
+    return re.sub(rf"{skip_begin}.+?{skip_end}", "<!--  -->", text, flags=re.IGNORECASE + re.DOTALL)
 
     # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
     # github_release_url = os.path.join(homepage, "releases", "download", version)
     # # download badge and replace url with local file
     # text = _parse_for_badge(text, github_release_url)
-    return text
 
 
 def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
@@ -236,11 +248,12 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     """Load all base requirements from all particular packages and prune duplicates.
 
     >>> _load_aggregate_requirements(os.path.join(_PROJECT_ROOT, "requirements"))
+
     """
     requires = [
         load_requirements(d, unfreeze="none" if freeze_requirements else "major")
         for d in glob.glob(os.path.join(req_dir, "*"))
-        # skip empty folder as git artefacts, and resolving Will's special issue
+        # skip empty folder (git artifacts), and resolving Will's special issue
         if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and not os.path.basename(d).startswith("_")
     ]
     if not requires:
@@ -292,6 +305,7 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning
      'http://pytorch_lightning.ai', \
      'from lightning_fabric import __version__', \
      '@lightning.ai']
+
     """
     out = lines[:]
     for source_import, target_import in mapping:
@@ -404,6 +418,7 @@ class AssistantCLI:
     def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
         """Replace the min package version by fixed one."""
         for fname in requirement_fnames:
+            print(fname)
             AssistantCLI._replace_min(fname)
 
     @staticmethod
@@ -420,6 +435,42 @@ class AssistantCLI:
         copy_replace_imports(
             source_dir, source_imports, target_imports, target_dir=target_dir, lightning_by=lightning_by
         )
+
+    @staticmethod
+    def pull_docs_files(
+        gh_user_repo: str,
+        target_dir: str = "docs/source-pytorch/XXX",
+        checkout: str = "tags/1.0.0",
+        source_dir: str = "docs/source",
+    ) -> None:
+        """Pull docs pages from external source and append to local docs."""
+        import zipfile
+
+        zip_url = f"https://github.com/{gh_user_repo}/archive/refs/{checkout}.zip"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            zip_file = os.path.join(tmp, "repo.zip")
+            urllib.request.urlretrieve(zip_url, zip_file)
+
+            with zipfile.ZipFile(zip_file, "r") as zip_ref:
+                zip_ref.extractall(tmp)
+
+            zip_dirs = [d for d in glob.glob(os.path.join(tmp, "*")) if os.path.isdir(d)]
+            # check that the extracted archive has only repo folder
+            assert len(zip_dirs) == 1
+            repo_dir = zip_dirs[0]
+
+            ls_pages = glob.glob(os.path.join(repo_dir, source_dir, "*.rst"))
+            ls_pages += glob.glob(os.path.join(repo_dir, source_dir, "**", "*.rst"))
+            for rst in ls_pages:
+                rel_rst = rst.replace(os.path.join(repo_dir, source_dir) + os.path.sep, "")
+                rel_dir = os.path.dirname(rel_rst)
+                os.makedirs(os.path.join(_PROJECT_ROOT, target_dir, rel_dir), exist_ok=True)
+                new_rst = os.path.join(_PROJECT_ROOT, target_dir, rel_rst)
+                if os.path.isfile(new_rst):
+                    logging.warning(f"Page {new_rst} already exists in the local tree so it will be skipped.")
+                    continue
+                shutil.copy(rst, new_rst)
 
 
 if __name__ == "__main__":

@@ -22,16 +22,19 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, IO, Optional, Type, Union
+from typing import Any, Callable, Dict, IO, Optional, Type, TYPE_CHECKING, Union
 from warnings import warn
 
+import torch
 import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.cloud_io import _is_dir
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
+from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
@@ -45,6 +48,9 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf.dictconfig import DictConfig
     from omegaconf.errors import UnsupportedValueType, ValidationError
 
+if TYPE_CHECKING:
+    from torch.storage import UntypedStorage
+
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
@@ -57,6 +63,7 @@ def _load_from_checkpoint(
     strict: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
+    map_location = map_location or _default_map_location
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
@@ -86,15 +93,30 @@ def _load_from_checkpoint(
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
-        storage = _load_state(cls, checkpoint, strict=strict, **kwargs)
+        model = _load_state(cls, checkpoint, strict=strict, **kwargs)
         state_dict = checkpoint["state_dict"]
         if not state_dict:
-            raise ValueError(f"The state dict in {checkpoint_path!r} contains no parameters.")
-        map_location = list(state_dict.values())[0].device
-        assert isinstance(storage, pl.LightningModule)
-        return storage.to(map_location)
+            rank_zero_warn(f"The state dict in {checkpoint_path!r} contains no parameters.")
+            return model
+
+        device = next((t for t in state_dict.values() if isinstance(t, torch.Tensor)), torch.tensor(0)).device
+        assert isinstance(model, pl.LightningModule)
+        return model.to(device)
 
     raise NotImplementedError(f"Unsupported {cls}")
+
+
+def _default_map_location(storage: "UntypedStorage", location: str) -> Optional["UntypedStorage"]:
+    if (
+        location.startswith("mps")
+        and not MPSAccelerator.is_available()
+        or location.startswith("cuda")
+        and not CUDAAccelerator.is_available()
+        or location.startswith("xla")
+        and not XLAAccelerator.is_available()
+    ):
+        return storage.cpu()
+    return None  # default behavior by `torch.load()`
 
 
 def _load_state(
@@ -194,6 +216,7 @@ def update_hparams(hparams: dict, updates: dict) -> None:
     Args:
         hparams: the original params and also target object
         updates: new params to be used as update
+
     """
     for k, v in updates.items():
         # if missing, add the key
@@ -219,6 +242,7 @@ def load_hparams_from_tags_csv(tags_csv: _PATH) -> Dict[str, Any]:
     >>> vars(hparams) == hparams_new
     True
     >>> os.remove(path_csv)
+
     """
     fs = get_filesystem(tags_csv)
     if not fs.exists(tags_csv):
@@ -232,7 +256,7 @@ def load_hparams_from_tags_csv(tags_csv: _PATH) -> Dict[str, Any]:
 
 def save_hparams_to_tags_csv(tags_csv: _PATH, hparams: Union[dict, Namespace]) -> None:
     fs = get_filesystem(tags_csv)
-    if not fs.isdir(os.path.dirname(tags_csv)):
+    if not _is_dir(fs, os.path.dirname(tags_csv)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(tags_csv)}.")
 
     if isinstance(hparams, Namespace):
@@ -261,6 +285,7 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Di
     >>> vars(hparams) == hparams_new
     True
     >>> os.remove(path_yaml)
+
     """
     fs = get_filesystem(config_yaml)
     if not fs.exists(config_yaml):
@@ -286,7 +311,7 @@ def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], us
 
     """
     fs = get_filesystem(config_yaml)
-    if not fs.isdir(os.path.dirname(config_yaml)):
+    if not _is_dir(fs, os.path.dirname(config_yaml)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(config_yaml)}.")
 
     # convert Namespace or AD to dict

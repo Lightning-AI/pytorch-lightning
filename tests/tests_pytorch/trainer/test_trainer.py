@@ -32,6 +32,8 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
+import lightning.fabric
+import lightning.pytorch
 import tests_pytorch.helpers.utils as tutils
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.seed import seed_everything
@@ -54,6 +56,7 @@ from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning.pytorch.utilities.warnings import PossibleUserWarning
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -64,8 +67,7 @@ if _OMEGACONF_AVAILABLE:
 
 
 def test_trainer_error_when_input_not_lightning_module():
-    """Test that a useful error gets raised when the Trainer methods receive something other than a
-    LightningModule."""
+    """Test that a useful error gets raised when the Trainer methods receive something other than a LightningModule."""
     trainer = Trainer()
 
     for method in ("fit", "validate", "test", "predict"):
@@ -242,7 +244,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
 
 
 def test_loading_meta_tags(tmpdir):
-    """test for backward compatibility to meta_tags.csv."""
+    """Test for backward compatibility to meta_tags.csv."""
     hparams = {
         "batch_size": 32,
         "learning_rate": 0.001 * 8,
@@ -344,8 +346,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
 
 def test_model_checkpoint_only_weights(tmpdir):
-    """Tests use case where ModelCheckpoint is configured to save only model weights, and user tries to load
-    checkpoint to resume training."""
+    """Tests use case where ModelCheckpoint is configured to save only model weights, and user tries to load checkpoint
+    to resume training."""
     model = BoringModel()
 
     trainer = Trainer(
@@ -1444,8 +1446,8 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
 
 @pytest.mark.parametrize(("max_steps", "max_epochs", "global_step"), [(10, 5, 10), (20, None, 20)])
 def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epochs, global_step):
-    """Ensure that the training loop is bound by `max_steps` and `max_epochs` for repeated calls of `trainer.fit`,
-    and disabled if the limit is reached."""
+    """Ensure that the training loop is bound by `max_steps` and `max_epochs` for repeated calls of `trainer.fit`, and
+    disabled if the limit is reached."""
 
     dataset_len = 200
     batch_size = 10
@@ -1478,16 +1480,23 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
 @pytest.mark.parametrize(
     "accelerator",
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("mps", marks=RunIf(mps=True)),
     ],
 )
-def test_setup_hook_move_to_device_correctly(tmpdir, accelerator):
-    """Verify that if a user defines a layer in the setup hook function, this is moved to the correct device."""
+def test_setup_hook_device_and_layers(tmpdir, accelerator):
+    """Test `LightningModule.device` access and creation of layers in `LightningModule.setup` hook."""
+    expected_device = torch.device(accelerator, 0)
 
     class TestModel(BoringModel):
         def setup(self, stage: str) -> None:
+            # The `self.device` attribute already points to what device the model will land on
+            assert self.device == expected_device
+            # However, the model parameters have not yet been moved to that device
+            assert self.layer.weight.device == torch.device("cpu")
+            # Can create new layers in this hook (on CPU)
             self.new_layer = torch.nn.Linear(2, 2)
+            assert self.new_layer.weight.device == torch.device("cpu")
 
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -2037,3 +2046,21 @@ def test_trainer_calls_strategy_on_exception(exception_type):
     ):
         trainer.fit(ExceptionModel())
     on_exception_mock.assert_called_once_with(exception)
+
+
+def test_init_module_context(monkeypatch):
+    """Test that the strategy returns the context manager for initializing the module."""
+    trainer = Trainer(accelerator="cpu", devices=1)
+    strategy = SingleDeviceStrategy(device=torch.device("cuda"))
+    strategy.tensor_init_context = Mock(wraps=strategy.tensor_init_context)
+    trainer._accelerator_connector.strategy = strategy
+    with trainer.init_module():
+        pass
+    strategy.tensor_init_context.assert_called_once_with(empty_init=None)
+    strategy.tensor_init_context.reset_mock()
+
+    # Pretend we are using PyTorch < 2.0
+    monkeypatch.setattr(lightning.pytorch.trainer.trainer, "_TORCH_GREATER_EQUAL_2_0", False)
+    with pytest.warns(PossibleUserWarning, match="can't place .* on the device"), trainer.init_module():
+        pass
+    strategy.tensor_init_context.assert_called_once()

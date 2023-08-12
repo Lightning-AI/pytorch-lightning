@@ -296,9 +296,6 @@ def run_app_in_cloud(
 
         cmd_extra_args = []
 
-        if "staging.gridai.dev" in os.getenv("LIGHTNING_CLOUD_URL", ""):
-            cmd_extra_args = ["--cluster-id", "staging"]
-
         with open(stdout_path, "w") as stdout:
             cmd = [
                 sys.executable,
@@ -506,6 +503,7 @@ def delete_cloud_lightning_apps(name=None):
     """Cleanup cloud apps that start with the name test-{PR_NUMBER}-{TEST_APP_NAME}.
 
     PR_NUMBER and TEST_APP_NAME are environment variables.
+
     """
 
     client = LightningClient()

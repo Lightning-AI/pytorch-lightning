@@ -290,7 +290,7 @@ class TQDMProgressBar(ProgressBar):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -327,7 +327,7 @@ class TQDMProgressBar(ProgressBar):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -407,6 +407,7 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
     """The tqdm doesn't support inf/nan values.
 
     We have to convert it to None.
+
     """
     if x is None or math.isinf(x) or math.isnan(x):
         return None

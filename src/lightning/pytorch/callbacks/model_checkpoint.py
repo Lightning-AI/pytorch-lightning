@@ -32,7 +32,7 @@ import yaml
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -46,9 +46,9 @@ warning_cache = WarningCache()
 class ModelCheckpoint(Checkpoint):
     r"""
     Save the model periodically by monitoring a quantity. Every metric logged with
-    :meth:`~lightning.pytorch.core.module.log` or :meth:`~lightning.pytorch.core.module.log_dict` in
-    LightningModule is a candidate for the monitor key. For more information, see
-    :ref:`checkpointing`.
+    :meth:`~lightning.pytorch.core.module.LightningModule.log` or
+    :meth:`~lightning.pytorch.core.module.LightningModule.log_dict` is a candidate for the monitor key.
+    For more information, see :ref:`checkpointing`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
@@ -137,6 +137,7 @@ class ModelCheckpoint(Checkpoint):
         For extra customization, ModelCheckpoint includes the following attributes:
 
         - ``CHECKPOINT_JOIN_CHAR = "-"``
+        - ``CHECKPOINT_EQUALS_CHAR = "="``
         - ``CHECKPOINT_NAME_LAST = "last"``
         - ``FILE_EXTENSION = ".ckpt"``
         - ``STARTING_VERSION = 1``
@@ -201,6 +202,7 @@ class ModelCheckpoint(Checkpoint):
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
+    CHECKPOINT_EQUALS_CHAR = "="
     CHECKPOINT_NAME_LAST = "last"
     FILE_EXTENSION = ".ckpt"
     STARTING_VERSION = 1
@@ -523,7 +525,7 @@ class ModelCheckpoint(Checkpoint):
             name = group[1:]
 
             if auto_insert_metric_name:
-                filename = filename.replace(group, name + "={" + name)
+                filename = filename.replace(group, name + cls.CHECKPOINT_EQUALS_CHAR + "{" + name)
 
             # support for dots: https://stackoverflow.com/a/7934969
             filename = filename.replace(group, f"{{0[{name}]")
@@ -567,6 +569,7 @@ class ModelCheckpoint(Checkpoint):
             >>> ckpt = ModelCheckpoint(filename='{step}')
             >>> os.path.basename(ckpt.format_checkpoint_name(dict(step=0)))
             'step=0.ckpt'
+
         """
         filename = filename or self.filename
         filename = self._format_checkpoint_name(filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name)
@@ -586,6 +589,7 @@ class ModelCheckpoint(Checkpoint):
         3.  The ``Trainer``'s ``default_root_dir`` if the trainer has no loggers
 
         The path gets extended with subdirectory "checkpoints".
+
         """
         if self.dirpath is not None:
             # short circuit if dirpath was passed to ModelCheckpoint
@@ -618,7 +622,7 @@ class ModelCheckpoint(Checkpoint):
         return set()
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
-        if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
+        if self.save_top_k != 0 and _is_dir(self._fs, dirpath, strict=True) and len(self._fs.ls(dirpath)) > 0:
             rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
 
     def _get_metric_interpolated_filepath_name(

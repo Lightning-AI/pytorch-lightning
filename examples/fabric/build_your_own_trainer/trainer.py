@@ -137,6 +137,7 @@ class MyCustomTrainer:
                 If not specified, no validation will run.
             ckpt_path: Path to previous checkpoints to resume training from.
                 If specified, will always look for the latest checkpoint within the given directory.
+
         """
         self.fabric.launch()
 
@@ -207,6 +208,7 @@ class MyCustomTrainer:
                 If greater then the number of batches in the ``train_loader``, this has no effect.
             scheduler_cfg: The learning rate scheduler configuration.
                 Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
+
         """
         self.fabric.call("on_train_epoch_start")
         iterable = self.progbar_wrapper(
@@ -216,8 +218,7 @@ class MyCustomTrainer:
         for batch_idx, batch in enumerate(iterable):
             # end epoch if stopping training completely or max batches for this epoch reached
             if self.should_stop or batch_idx >= limit_batches:
-                self.fabric.call("on_train_epoch_end")
-                return
+                break
 
             self.fabric.call("on_train_batch_start", batch, batch_idx)
 
@@ -269,6 +270,7 @@ class MyCustomTrainer:
             val_loader: The dataloader yielding the validation batches.
             limit_batches: Limits the batches during this validation epoch.
                 If greater then the number of batches in the ``val_loader``, this has no effect.
+
         """
         # no validation if val_loader wasn't passed
         if val_loader is None:
@@ -293,8 +295,7 @@ class MyCustomTrainer:
         for batch_idx, batch in enumerate(iterable):
             # end epoch if stopping training completely or max batches for this epoch reached
             if self.should_stop or batch_idx >= limit_batches:
-                self.fabric.call("on_validation_epoch_end")
-                return
+                break
 
             self.fabric.call("on_validation_batch_start", batch, batch_idx)
 
@@ -313,13 +314,14 @@ class MyCustomTrainer:
         torch.set_grad_enabled(True)
 
     def training_step(self, model: L.LightningModule, batch: Any, batch_idx: int) -> torch.Tensor:
-        """A single training step, running forward and backward. The optimizer step is called separately, as this
-        is given as a closure to the optimizer step.
+        """A single training step, running forward and backward. The optimizer step is called separately, as this is
+        given as a closure to the optimizer step.
 
         Args:
             model: the lightning module to train
             batch: the batch to run the forward on
             batch_idx: index of the current batch w.r.t the current epoch
+
         """
         outputs: Union[torch.Tensor, Mapping[str, Any]] = model.training_step(batch, batch_idx=batch_idx)
 
@@ -346,9 +348,10 @@ class MyCustomTrainer:
         Args:
             model: The LightningModule to train
             scheduler_cfg: The learning rate scheduler configuration.
-                Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
+                Have a look at :meth:`lightning.pytorch.LightningModule.configure_optimizers` for supported values.
             level: whether we are trying to step on epoch- or step-level
             current_value: Holds the current_epoch if ``level==epoch``, else holds the ``global_step``
+
         """
 
         # no scheduler
@@ -397,6 +400,7 @@ class MyCustomTrainer:
         Args:
             iterable: the iterable to wrap with tqdm
             total: the total length of the iterable, necessary in case the number of batches was limited.
+
         """
         if self.fabric.is_global_zero:
             return tqdm(iterable, total=total, **kwargs)
@@ -408,6 +412,7 @@ class MyCustomTrainer:
         Args:
             state: a mapping contaning model, optimizer and lr scheduler
             path: the path to load the checkpoint from
+
         """
         if state is None:
             state = {}
@@ -460,6 +465,7 @@ class MyCustomTrainer:
         Args:
             configure_optim_output: The output of ``configure_optimizers``.
                 For supported values, please refer to :meth:`lightning.pytorch.LightningModule.configure_optimizers`.
+
         """
         _lr_sched_defaults = {"interval": "epoch", "frequency": 1, "monitor": "val_loss"}
 
@@ -513,6 +519,7 @@ class MyCustomTrainer:
             prog_bar: a progressbar (on global rank zero) or an iterable (every other rank).
             candidates: the values to add as postfix strings to the progressbar.
             prefix: the prefix to add to each of these values.
+
         """
         if isinstance(prog_bar, tqdm) and candidates is not None:
             postfix_str = ""

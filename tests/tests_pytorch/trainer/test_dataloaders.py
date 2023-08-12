@@ -675,8 +675,7 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
 
 
 def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
-    """Test that a warning message is shown if the dataloader length is too short for the chosen logging
-    interval."""
+    """Test that a warning message is shown if the dataloader length is too short for the chosen logging interval."""
     model = BoringModel()
     dataloader = DataLoader(RandomDataset(32, length=10))
     model.train_dataloader = lambda: dataloader
@@ -804,6 +803,40 @@ def test_dataloader_distributed_sampler(tmpdir):
     trainer.test(model)
 
 
+class TestModelUniqueDDPSampling(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.seen_samples = []
+
+    def training_step(self, batch):
+        self.seen_samples.extend(batch.tolist())
+
+    def on_train_end(self):
+        seen_samples = self.all_gather(self.seen_samples)
+        # The samples should be unique across all processes
+        assert set(torch.cat(seen_samples).view(-1).tolist()) == set(range(32))
+
+
+@RunIf(standalone=True)
+def test_distributed_sampler_without_global_seed(tmpdir):
+    """Test that the samples are non-overlapping in DDP when shuffling is enabled and no global seed is set."""
+    # This test must run without a global seed set (e.g. through `seed_everything`), to ensure that each process
+    # starts with a different initial state.
+    assert "PL_GLOBAL_SEED" not in os.environ
+    train_dataloader = DataLoader(range(32), shuffle=True, batch_size=4)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=False,
+        logger=False,
+        enable_progress_bar=False,
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp",
+        max_epochs=1,
+    )
+    trainer.fit(TestModelUniqueDDPSampling(), train_dataloader)
+
+
 class ModelWithDataLoaderDistributedSampler(BoringModel):
     def train_dataloader(self):
         dataloader = super().train_dataloader()
@@ -813,8 +846,7 @@ class ModelWithDataLoaderDistributedSampler(BoringModel):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler_already_attached(tmpdir):
-    """Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on
-    dataloader."""
+    """Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader."""
     seed_everything(123)
     model = ModelWithDataLoaderDistributedSampler()
     trainer = Trainer(
@@ -1175,8 +1207,8 @@ def test_dataloaders_load_only_once_passed_loaders(tmp_path, monkeypatch, sanity
 
 
 def test_dataloaders_reset_and_attach(tmpdir):
-    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset dataloaders before attaching
-    the new one."""
+    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset dataloaders before attaching the
+    new one."""
     # the assertions compare the datasets and not dataloaders since we patch and replace the samplers
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))

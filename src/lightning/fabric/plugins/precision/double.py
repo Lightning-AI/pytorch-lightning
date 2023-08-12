@@ -36,6 +36,7 @@ class DoublePrecision(Precision):
         """Instantiate module parameters or tensors in the precision type this plugin handles.
 
         This is optional and depends on the precision limitations during optimization.
+
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(torch.float64)
@@ -46,7 +47,8 @@ class DoublePrecision(Precision):
     def forward_context(self) -> Generator[None, None, None]:
         """A context manager to change the default tensor type.
 
-        See: :meth:`torch.set_default_tensor_type`
+        See: :meth:`torch.set_default_dtype`
+
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(torch.float64)

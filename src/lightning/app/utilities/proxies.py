@@ -152,6 +152,7 @@ class ProxyWorkRun:
 
         Currently, this performs a check against strings that look like filesystem paths and may need to be wrapped with
         a Lightning Path by the user.
+
         """
 
         def warn_if_pathlike(obj: Union[os.PathLike, str]):
@@ -172,8 +173,8 @@ class ProxyWorkRun:
 
     @staticmethod
     def _process_call_args(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
-        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to
-        the LightningWork.
+        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to the
+        LightningWork.
 
         Currently, this method only applies sanitization to Lightning Path objects.
 
@@ -183,6 +184,7 @@ class ProxyWorkRun:
 
         Returns:
             The positional and keyword arguments in the same order they were passed in.
+
         """
 
         def sanitize(obj: Union[Path, Drive]) -> Union[Path, Dict]:
@@ -200,8 +202,8 @@ class ProxyWorkRun:
 
     @staticmethod
     def _convert_hashable(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
-        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to
-        the LightningWork.
+        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to the
+        LightningWork.
 
         Currently, this method only applies sanitization to Hashable Objects.
 
@@ -211,6 +213,7 @@ class ProxyWorkRun:
 
         Returns:
             The positional and keyword arguments in the same order they were passed in.
+
         """
         from lightning.app.utilities.types import Hashable
 
@@ -221,9 +224,9 @@ class ProxyWorkRun:
 
 
 class WorkStateObserver(Thread):
-    """This thread runs alongside LightningWork and periodically checks for state changes. If the state changed
-    from one interval to the next, it will compute the delta and add it to the queue which is connected to the
-    Flow. This enables state changes to be captured that are not triggered through a setattr call.
+    """This thread runs alongside LightningWork and periodically checks for state changes. If the state changed from
+    one interval to the next, it will compute the delta and add it to the queue which is connected to the Flow. This
+    enables state changes to be captured that are not triggered through a setattr call.
 
     Args:
         work: The LightningWork for which the state should be monitored
@@ -238,6 +241,7 @@ class WorkStateObserver(Thread):
             def run(self):
                 # This update gets sent to the Flow once the thread compares the new state with the previous one
                 self.list.append(1)
+
     """
 
     def __init__(
@@ -494,7 +498,8 @@ class WorkRunner:
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
         # it back to the flow
         default_internal_ip = "127.0.0.1" if constants.LIGHTNING_CLOUDSPACE_HOST is None else "0.0.0.0"  # noqa: S104
-        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", default_internal_ip)
+        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_PRIVATE_IP", default_internal_ip)
+        self.work._public_ip = os.environ.get("LIGHTNING_NODE_IP", "")
 
         # 8. Patch the setattr method of the work. This needs to be done after step 4, so we don't
         # send delta while calling `set_state`.
@@ -689,6 +694,7 @@ def persist_artifacts(work: "LightningWork") -> None:
     storage.
 
     Files that don't exist or do not originate from the given Work will be skipped.
+
     """
     artifact_paths = [getattr(work, name) for name in work._paths]
     # only copy files that belong to this Work, i.e., when the path's origin refers to the current Work

@@ -6,7 +6,7 @@ from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from lightning_utilities.core.imports import module_available
+from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
@@ -39,6 +39,7 @@ def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Ten
     Return:
         gathered_result: List with size equal to the process group where
             gathered_result[i] corresponds to result tensor from process i
+
     """
     if group is None:
         group = torch.distributed.group.WORLD
@@ -98,6 +99,7 @@ def _sync_ddp_if_available(
 
     Return:
         reduced value
+
     """
     if torch.distributed.is_initialized():
         return _sync_ddp(result, group=group, reduce_op=reduce_op)
@@ -105,7 +107,9 @@ def _sync_ddp_if_available(
 
 
 def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
-    """Function to reduce the tensors from several DDP processes to one main process.
+    """Reduces a tensor across several distributed processes.
+
+    This operation is performed in-place, meaning the result will be placed back into the input tensor on all processes.
 
     Args:
         result: The value to sync and reduce (typically tensor or number)
@@ -114,16 +118,17 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
 
     Return:
-        reduced value
+        The reduced value.
+
     """
     divide_by_world_size = False
-
-    if group is None:
-        group = torch.distributed.group.WORLD
+    group = torch.distributed.group.WORLD if group is None else group
 
     op: Optional[ReduceOp]
     if isinstance(reduce_op, str):
-        if reduce_op.lower() in ("avg", "mean"):
+        reduce_op = "avg" if reduce_op == "mean" else reduce_op
+        if reduce_op.lower() == "avg" and torch.distributed.get_backend(group) == "gloo":
+            # The GLOO backend does not support the `ReduceOp.AVG` operation
             op = ReduceOp.SUM  # type: ignore[assignment]
             divide_by_world_size = True
         else:
@@ -131,26 +136,32 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     else:
         op = reduce_op
 
-    # WA for HPU. HPU doesn't support Long types, forcefully set it to float
-    if module_available("habana_frameworks.torch.utils.library_loader"):
-        from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
-
-        if (
-            is_habana_avaialble()
-            and os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
-            and result.type() in ("torch.LongTensor", "torch.hpu.LongTensor")
-        ):
-            rank_zero_info("Long tensor unsupported on HPU, casting to float")
-            result = result.float()
+    # HPU doesn't support Long types, forcefully set it to float
+    # TODO: move this to the `lightning_habana` package
+    if (
+        package_available("habana_frameworks")
+        and os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
+        and result.type()
+        in (
+            "torch.LongTensor",
+            "torch.hpu.LongTensor",
+        )
+    ):
+        rank_zero_info("Long tensor unsupported on HPU, casting to float")
+        result = result.float()
 
     # Sync all processes before reduction
     torch.distributed.barrier(group=group)
     torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
+    world_size = torch.distributed.get_world_size(group)
 
-    if divide_by_world_size:
-        result = result / torch.distributed.get_world_size(group)
-
-    return result
+    if not divide_by_world_size:
+        return result
+    # `torch.distributed.all_reduce` is in-place, so we should do the division in-place to leave the modified tensors
+    # with the expected value
+    if not torch.is_floating_point(result):
+        return result.copy_(result / world_size)
+    return result.div_(world_size)
 
 
 class _AllGather(torch.autograd.Function):
@@ -196,6 +207,7 @@ def _all_gather_ddp_if_available(
 
     Return:
         A tensor of shape (world_size, batch, ...)
+
     """
     if not torch.distributed.is_initialized():
         return tensor
@@ -212,8 +224,8 @@ def _init_dist_connection(
     world_size: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    """Utility function to initialize distributed connection by setting env variables and initializing the
-    distributed process group.
+    """Utility function to initialize distributed connection by setting env variables and initializing the distributed
+    process group.
 
     Args:
         cluster_environment: ``ClusterEnvironment`` instance
@@ -225,6 +237,7 @@ def _init_dist_connection(
     Raises:
         RuntimeError:
             If ``torch.distributed`` is not available
+
     """
     if not torch.distributed.is_available():
         raise RuntimeError("torch.distributed is not available. Cannot initialize distributed process group")

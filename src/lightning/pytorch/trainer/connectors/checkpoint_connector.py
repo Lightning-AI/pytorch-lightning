@@ -23,7 +23,7 @@ from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.environments.slurm import SLURMEnvironment
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.plugins.precision import MixedPrecisionPlugin
@@ -55,7 +55,7 @@ class _CheckpointConnector:
         dir_path_hpc = self.trainer.default_root_dir
         dir_path_hpc = str(dir_path_hpc)
         fs, path = url_to_fs(dir_path_hpc)
-        if not fs.isdir(path):
+        if not _is_dir(fs, path):
             return None
         max_version = self.__max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
@@ -71,6 +71,7 @@ class _CheckpointConnector:
         2. from fault-tolerant auto-saved checkpoint if found
         3. from `checkpoint_path` file if provided
         4. don't restore
+
         """
         self._ckpt_path = checkpoint_path
         if not checkpoint_path:
@@ -209,8 +210,7 @@ class _CheckpointConnector:
         return ckpt_path
 
     def resume_end(self) -> None:
-        """Signal the connector that all states have resumed and memory for the checkpoint object can be
-        released."""
+        """Signal the connector that all states have resumed and memory for the checkpoint object can be released."""
         assert self.trainer.state.fn is not None
         if self._ckpt_path:
             message = "Restored all states" if self.trainer.state.fn == TrainerFn.FITTING else "Loaded model weights"
@@ -235,6 +235,7 @@ class _CheckpointConnector:
 
         Args:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
+
         """
         self.resume_start(checkpoint_path)
 
@@ -266,6 +267,7 @@ class _CheckpointConnector:
 
         Hooks are called first to give the LightningModule a chance to modify the contents, then finally the model gets
         updated with the loaded weights.
+
         """
         if not self._loaded_checkpoint:
             return
@@ -281,6 +283,7 @@ class _CheckpointConnector:
         """Restore the trainer state from the pre-loaded checkpoint.
 
         This includes the precision settings, loop progress, optimizer states and learning rate scheduler states.
+
         """
         if not self._loaded_checkpoint:
             return
@@ -320,6 +323,7 @@ class _CheckpointConnector:
         """Restores the loop progress from the pre-loaded checkpoint.
 
         Calls hooks on the loops to give it a chance to restore its state from the checkpoint.
+
         """
         if not self._loaded_checkpoint:
             return
@@ -420,6 +424,7 @@ class _CheckpointConnector:
                 something_cool_i_want_to_save: anything you define through model.on_save_checkpoint
                 LightningDataModule.__class__.__qualname__: pl DataModule's state
             }
+
         """
         trainer = self.trainer
         model = trainer.lightning_module
@@ -507,6 +512,7 @@ class _CheckpointConnector:
             name_key: file name prefix
         Returns:
             None if no-corresponding-file else maximum suffix number
+
         """
         # check directory existence
         fs, uri = url_to_fs(str(dir_path))

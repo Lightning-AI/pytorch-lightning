@@ -117,6 +117,7 @@ class TracerPythonScript(LightningWork):
 
         .. literalinclude:: ../../../../examples/app/components/python/app.py
             :language: python
+
         """
         super().__init__(**kwargs)
         self.script_path = str(script_path)

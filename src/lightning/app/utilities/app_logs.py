@@ -34,7 +34,6 @@ class _LogEventLabels:
     namespace: Optional[str] = None
     node_name: Optional[str] = None
     pod: Optional[str] = None
-    clusterID: Optional[str] = None
     component: Optional[str] = None
     projectID: Optional[str] = None
     stream: Optional[str] = None
@@ -50,6 +49,7 @@ def _push_log_events_to_read_queue_callback(component_name: str, read_queue: que
     """Pushes _LogEvents from websocket to read_queue.
 
     Returns callback function used with `on_message_callback` of websocket.WebSocketApp.
+
     """
 
     def callback(ws_app: WebSocketApp, msg: str):

@@ -19,6 +19,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
+from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 from lightning.pytorch import Callback, LightningModule, Trainer
 from lightning.pytorch.callbacks import (
     EarlyStopping,
@@ -32,7 +33,6 @@ from lightning.pytorch.callbacks import (
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
-from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):

@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Union
 from torch import Tensor
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.logger import _add_prefix
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
@@ -49,6 +49,7 @@ class CSVLogger(Logger):
         logger = CSVLogger("path/to/logs/root", name="my_model")
         logger.log_metrics({"loss": 0.235, "acc": 0.75})
         logger.finalize("success")
+
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -77,6 +78,7 @@ class CSVLogger(Logger):
 
         Returns:
             The name of the experiment.
+
         """
         return self._name
 
@@ -86,6 +88,7 @@ class CSVLogger(Logger):
 
         Returns:
             The version of the experiment if it is specified, else the next version.
+
         """
         if self._version is None:
             self._version = self._get_next_version()
@@ -102,37 +105,42 @@ class CSVLogger(Logger):
 
         By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
         constructor's version parameter instead of ``None`` or an int.
+
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        return os.path.join(self.root_dir, self.name, version)
+        return os.path.join(self._root_dir, self.name, version)
 
     @property
     @rank_zero_experiment
     def experiment(self) -> "_ExperimentWriter":
-        """Actual ExperimentWriter object. To use ExperimentWriter features anywhere in your code, do the
-        following.
+        """Actual ExperimentWriter object. To use ExperimentWriter features anywhere in your code, do the following.
 
         Example::
 
             self.logger.experiment.some_experiment_writer_function()
+
         """
         if self._experiment is not None:
             return self._experiment
 
-        os.makedirs(self.root_dir, exist_ok=True)
+        os.makedirs(self._root_dir, exist_ok=True)
         self._experiment = _ExperimentWriter(log_dir=self.log_dir)
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         raise NotImplementedError("The `CSVLogger` does not yet support logging hyperparameters.")
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(  # type: ignore[override]
+        self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
+    ) -> None:
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+        if step is None:
+            step = len(self.experiment.metrics)
         self.experiment.log_metrics(metrics, step)
-        if step is not None and (step + 1) % self._flush_logs_every_n_steps == 0:
+        if (step + 1) % self._flush_logs_every_n_steps == 0:
             self.save()
 
     @rank_zero_only
@@ -149,17 +157,17 @@ class CSVLogger(Logger):
         self.save()
 
     def _get_next_version(self) -> int:
-        root_dir = self.root_dir
+        versions_root = os.path.join(self._root_dir, self.name)
 
-        if not self._fs.isdir(root_dir):
-            log.warning("Missing logger folder: %s", root_dir)
+        if not _is_dir(self._fs, versions_root, strict=True):
+            log.warning("Missing logger folder: %s", versions_root)
             return 0
 
         existing_versions = []
-        for d in self._fs.listdir(root_dir):
+        for d in self._fs.listdir(versions_root):
             full_path = d["name"]
             name = os.path.basename(full_path)
-            if self._fs.isdir(full_path) and name.startswith("version_"):
+            if _is_dir(self._fs, full_path) and name.startswith("version_"):
                 existing_versions.append(int(name.split("_")[1]))
 
         if len(existing_versions) == 0:
@@ -173,6 +181,7 @@ class _ExperimentWriter:
 
     Args:
         log_dir: Directory for the experiment logs
+
     """
 
     NAME_METRICS_FILE = "metrics.csv"

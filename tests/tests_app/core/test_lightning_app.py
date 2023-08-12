@@ -119,6 +119,7 @@ def test_simple_app(tmpdir):
                     "_url": "",
                     "_future_url": "",
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_paths": {},
                     "_port": None,
                     "_restarting": False,
@@ -136,6 +137,7 @@ def test_simple_app(tmpdir):
                     "_url": "",
                     "_future_url": "",
                     "_internal_ip": "",
+                    "_public_ip": "",
                     "_paths": {},
                     "_port": None,
                     "_restarting": False,
@@ -982,8 +984,8 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 7965
-    assert app.root._state_sizes[20] <= 26550
+    assert app.root._state_sizes[0] <= 8380
+    assert app.root._state_sizes[20] <= 26999
 
 
 class FlowUpdated(LightningFlow):
@@ -1018,8 +1020,8 @@ def test_non_updated_flow(caplog):
 
 
 def test_debug_mode_logging():
-    """This test validates the DEBUG messages are collected when activated by the LightningApp(debug=True) and
-    cleanup once finished."""
+    """This test validates the DEBUG messages are collected when activated by the LightningApp(debug=True) and cleanup
+    once finished."""
 
     from lightning.app.core.app import _console
 

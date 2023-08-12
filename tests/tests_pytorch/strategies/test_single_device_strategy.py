@@ -28,7 +28,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 def test_single_cpu():
     """Tests if device is set correctly for single CPU strategy."""
-    trainer = Trainer()
+    trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
     assert trainer.strategy.root_device == torch.device("cpu")
 
@@ -45,6 +45,7 @@ def test_single_gpu():
     """Tests if device is set correctly when training and after teardown for single GPU strategy.
 
     Cannot run this test on MPS due to shared memory not allowing dedicated measurements of GPU memory utilization.
+
     """
     trainer = Trainer(accelerator="gpu", devices=1, fast_dev_run=True)
     # assert training strategy attributes for device setting

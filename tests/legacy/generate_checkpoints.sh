@@ -29,7 +29,7 @@ function create_and_save_checkpoint {
 # iterate over all arguments assuming that each argument is version
 for pl_ver in "$@"
 do
-  printf "processing version: $pl_ver"
+  printf "\n\n processing version: $pl_ver\n"
 
   # Don't install/update anything before activating venv to avoid breaking any existing environment.
   python -m venv $ENV_PATH
@@ -46,7 +46,7 @@ done
 
 # use the PL installed in the environment if no PL version is specified
 if [[ -z "$@" ]]; then
-  printf "processing local version"
+  printf "\n\n processing local version\n"
 
   python -m pip install -r $LEGACY_PATH/requirements.txt
   pl_ver="local"

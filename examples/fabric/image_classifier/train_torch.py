@@ -56,7 +56,13 @@ def run(hparams):
     torch.manual_seed(hparams.seed)
 
     use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
+    use_mps = torch.backends.mps.is_available()
+    if use_cuda:
+        device = torch.device("cuda")
+    elif use_mps:
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
 
     transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
     train_dataset = MNIST(DATASETS_PATH, train=True, download=True, transform=transform)

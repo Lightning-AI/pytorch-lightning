@@ -16,7 +16,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional, Tuple, Union
 
-from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import lightning.pytorch as pl
@@ -34,7 +34,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_GRAPHCORE_AVAILABLE
+from lightning.pytorch.utilities.imports import _lightning_graphcore_available
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -165,7 +165,7 @@ class _DataConnector:
         datamodule.trainer = trainer
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
-        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+        if _lightning_graphcore_available():
             from lightning_graphcore import IPUAccelerator
 
             # `DistributedSampler` is never used with `poptorch.DataLoader`
@@ -185,12 +185,13 @@ class _DataConnector:
 
         - Injecting a `DistributedDataSamplerWrapper` into the `DataLoader` if on a distributed environment
         - Wrapping the dataloader based on strategy-specific logic
+
         """
         # don't do anything if it's not a dataloader
         if not isinstance(dataloader, DataLoader):
             return dataloader
 
-        if _LIGHTNING_GRAPHCORE_AVAILABLE:
+        if _lightning_graphcore_available():
             from lightning_graphcore import IPUAccelerator
 
             # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
@@ -251,8 +252,11 @@ def _get_distributed_sampler(
     """This function is used to created the distributed sampler injected within the user DataLoader."""
     kwargs["shuffle"] = shuffle and not overfit_batches
     kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-    cls = UnrepeatedDistributedSamplerWrapper if mode == RunningStage.PREDICTING else DistributedSamplerWrapper
-    return cls(dataloader.sampler, **kwargs)
+    if mode == RunningStage.PREDICTING:
+        return UnrepeatedDistributedSamplerWrapper(dataloader.sampler, **kwargs)
+    if isinstance(dataloader.sampler, (RandomSampler, SequentialSampler)):
+        return DistributedSampler(dataloader.dataset, **kwargs)
+    return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
 
 def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:
@@ -286,6 +290,7 @@ class _DataLoaderSource:
         instance: A LightningModule, LightningDataModule, or (a collection of) iterable(s).
         name: A name for this dataloader source. If the instance is a module, the name corresponds to the hook
             that returns the desired dataloader(s).
+
     """
 
     instance: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
@@ -295,6 +300,7 @@ class _DataLoaderSource:
         """Returns the dataloader from the source.
 
         If the source is a module, the method with the corresponding :attr:`name` gets called.
+
         """
         if isinstance(self.instance, pl.LightningModule):
             return call._call_lightning_module_hook(self.instance.trainer, self.name, pl_module=self.instance)
@@ -308,6 +314,7 @@ class _DataLoaderSource:
         """Returns whether the source dataloader can be retrieved or not.
 
         If the source is a module it checks that the method with given :attr:`name` is overridden.
+
         """
         return not self.is_module() or is_overridden(self.name, self.instance)
 
@@ -315,6 +322,7 @@ class _DataLoaderSource:
         """Returns whether the DataLoader source is a LightningModule or a LightningDataModule.
 
         It does not check whether ``*_dataloader`` methods are actually overridden.
+
         """
         return isinstance(self.instance, (pl.LightningModule, pl.LightningDataModule))
 
@@ -324,6 +332,7 @@ def _request_dataloader(data_source: _DataLoaderSource) -> Union[TRAIN_DATALOADE
 
     Returns:
         The requested dataloader
+
     """
     with _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(BatchSampler):
         # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as

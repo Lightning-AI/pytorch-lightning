@@ -44,8 +44,7 @@ _PROFILER = Union[torch.profiler.profile, torch.autograd.profiler.profile, torch
 
 
 class RegisterRecordFunction:
-    """While profiling autograd operations, this class will add labels for module names around the forward
-    function.
+    """While profiling autograd operations, this class will add labels for module names around the forward function.
 
     The Lightning PyTorch Profiler will activate this feature automatically. It can be deactivated as follows:
 
@@ -60,6 +59,7 @@ class RegisterRecordFunction:
         from lightning.pytorch import Trainer, seed_everything
         with RegisterRecordFunction(model):
             out = model(batch)
+
     """
 
     def __init__(self, model: nn.Module) -> None:
@@ -288,6 +288,7 @@ class PyTorchProfiler(Profiler):
                 If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``.
                 If arg ``schedule`` is not a ``Callable``.
                 If arg ``schedule`` does not return a ``torch.profiler.ProfilerAction``.
+
         """
         super().__init__(dirpath=dirpath, filename=filename)
 

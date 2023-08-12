@@ -16,7 +16,7 @@
    Save memory with half-precision <precision>
    ../advanced/model_parallel
    Train on single or multiple GPUs <../accelerators/gpu>
-   Train on single or multiple HPUs <../accelerators/hpu>
+   Train on single or multiple HPUs <../integrations/hpu/index>
    Train on single or multiple IPUs <../accelerators/ipu>
    Train on single or multiple TPUs <../accelerators/tpu>
    Train on MPS <../accelerators/mps>
@@ -139,6 +139,13 @@ How-to Guides
     :height: 180
 
 .. displayitem::
+   :header: Train in a notebook
+   :description: Train models in interactive notebooks (Jupyter, Colab, Kaggle, etc.)
+   :col_css: col-md-4
+   :button_link: ../common/notebooks.html
+   :height: 180
+
+.. displayitem::
     :header: Train on single or multiple GPUs
     :description: Train models faster with GPU accelerators
     :button_link: ../accelerators/gpu.html
@@ -148,7 +155,7 @@ How-to Guides
 .. displayitem::
     :header: Train on single or multiple HPUs
     :description: Train models faster with HPU accelerators
-    :button_link: ../accelerators/hpu.html
+    :button_link: ../integrations/hpu/index.html
     :col_css: col-md-4
     :height: 180
 
