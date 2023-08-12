@@ -88,3 +88,15 @@ def test_kill(_):
     launcher.kill(15)
     proc0.send_signal.assert_called_once_with(15)
     proc1.send_signal.assert_called_once_with(15)
+
+
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.subprocess.Popen")
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.Thread")
+def test_validate_cluster_environment_user_settings(*_):
+    """Test that the launcher calls into the cluster environment to validate the user settings."""
+    cluster_env = Mock(validate_settings=Mock(side_effect=RuntimeError("test")))
+    cluster_env.creates_processes_externally = True
+    launcher = _SubprocessScriptLauncher(cluster_env, num_processes=2, num_nodes=1)
+
+    with pytest.raises(RuntimeError, match="test"):
+        launcher.launch(Mock())
