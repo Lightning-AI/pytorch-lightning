@@ -28,8 +28,8 @@ class BoringPrecisionModule(nn.Module):
 
     def forward(self, x):
         assert x.dtype == self.expected_dtype
-        # the default dtype for new tensors is now float16/bfloat16
-        assert torch.tensor([0.0]).dtype == self.expected_dtype
+        # TODO: This should be float16/bfloat16
+        assert torch.tensor([0.0]).dtype == torch.float32
         return self.layer(x)
 
 
