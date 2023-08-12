@@ -113,7 +113,7 @@ class _Connector:
         accelerator = self._argument_from_env("accelerator", accelerator, default="auto")
         strategy = self._argument_from_env("strategy", strategy, default="auto")
         devices = self._argument_from_env("devices", devices, default="auto")
-        num_nodes = self._argument_from_env("num_nodes", num_nodes, default=1)
+        num_nodes = int(self._argument_from_env("num_nodes", num_nodes, default=1))
         precision = self._argument_from_env("precision", precision, default="32-true")
 
         # 1. Parsing flags
