@@ -326,6 +326,9 @@ class _DataLoaderSource:
         """
         return isinstance(self.instance, (pl.LightningModule, pl.LightningDataModule))
 
+    def teardown(self) -> None:
+        self.instance = None
+
 
 def _request_dataloader(data_source: _DataLoaderSource) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
     """Requests a dataloader by calling dataloader hooks corresponding to the given stage.

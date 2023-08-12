@@ -212,7 +212,6 @@ def test_should_stop_early_stopping_conditions_met(
 def test_should_clear_references_to_dataloader():
     """Test that `Trainer` clears references to any dataloader passed as arguments after training."""
     model = BoringModel()
-
     dataset = RandomDataset(32, 8192)
 
     trainer = Trainer(fast_dev_run=True)
@@ -222,5 +221,4 @@ def test_should_clear_references_to_dataloader():
     new_size = len(dumps(trainer))
 
     size_diff_mb = (new_size - prev_size) // (1024**2)
-
     assert size_diff_mb == 0
