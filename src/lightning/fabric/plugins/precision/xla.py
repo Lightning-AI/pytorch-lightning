@@ -15,13 +15,10 @@ import os
 from typing import Any, Literal
 
 import torch
-from lightning_utilities.core.apply_func import apply_to_collection
-from torch import Tensor
 from typing_extensions import get_args
 
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.precision.precision import Precision
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.types import Optimizable
 
 _PRECISION_INPUT = Literal["32-true", "16-true", "bf16-true"]
@@ -58,12 +55,6 @@ class XLAPrecision(Precision):
             self._desired_dtype = torch.bfloat16
         else:
             self._desired_dtype = torch.float32
-
-    def convert_input(self, data: Any) -> Any:
-        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
-
-    def convert_output(self, data: Any) -> Any:
-        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
     def optimizer_step(
         self,
