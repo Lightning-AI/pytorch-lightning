@@ -29,7 +29,6 @@ from lightning.fabric.plugins import (
     HalfPrecision,
     MixedPrecision,
     Precision,
-    XLABf16Precision,
     XLAPrecision,
 )
 from lightning.fabric.plugins.environments import (
@@ -114,7 +113,7 @@ class _Connector:
         accelerator = self._argument_from_env("accelerator", accelerator, default="auto")
         strategy = self._argument_from_env("strategy", strategy, default="auto")
         devices = self._argument_from_env("devices", devices, default="auto")
-        num_nodes = self._argument_from_env("num_nodes", num_nodes, default=1)
+        num_nodes = int(self._argument_from_env("num_nodes", num_nodes, default=1))
         precision = self._argument_from_env("precision", precision, default="32-true")
 
         # 1. Parsing flags
@@ -294,7 +293,7 @@ class _Connector:
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
-        self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
+        self._num_nodes_flag = num_nodes
         self._devices_flag = devices
 
         if self._devices_flag in ([], 0, "0"):
@@ -432,18 +431,8 @@ class _Connector:
         self._validate_precision_choice()
         if isinstance(self._precision_instance, Precision):
             return self._precision_instance
-
         if isinstance(self.accelerator, XLAAccelerator):
-            if self._precision_input == "32-true":
-                return XLAPrecision()
-            if self._precision_input in ("16-mixed", "bf16-mixed"):
-                if self._precision_input == "16-mixed":
-                    rank_zero_warn(
-                        "You passed `Fabric(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
-                        " is not supported with TPUs. Using `precision='bf16-mixed'` instead."
-                    )
-                return XLABf16Precision()
-
+            return XLAPrecision(self._precision_input)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
         if isinstance(self.strategy, FSDPStrategy):
@@ -477,18 +466,15 @@ class _Connector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, and accelerator."""
-        if isinstance(self.accelerator, XLAAccelerator):
-            if self._precision_input == "64-true":
-                raise NotImplementedError(
-                    "`Fabric(accelerator='tpu', precision='64-true')` is not implemented."
-                    " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
-                    " requesting this feature."
-                )
-            if self._precision_instance and not isinstance(self._precision_instance, (XLAPrecision, XLABf16Precision)):
-                raise ValueError(
-                    f"The `XLAAccelerator` can only be used with a `XLAPrecision` plugin,"
-                    f" found: {self._precision_instance}."
-                )
+        if (
+            isinstance(self.accelerator, XLAAccelerator)
+            and self._precision_instance
+            and not isinstance(self._precision_instance, XLAPrecision)
+        ):
+            raise ValueError(
+                f"The `XLAAccelerator` can only be used with a `XLAPrecision` plugin,"
+                f" found: {self._precision_instance}."
+            )
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""
@@ -559,7 +545,7 @@ def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISIO
     if precision in get_args(_PRECISION_INPUT_STR_ALIAS):
         if str(precision)[:2] not in ("32", "64"):
             rank_zero_warn(
-                f"{precision} is supported for historical reasons but its usage is discouraged. "
+                f"`precision={precision}` is supported for historical reasons but its usage is discouraged. "
                 f"Please set your precision to {_PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]} instead!"
             )
         precision = _PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]

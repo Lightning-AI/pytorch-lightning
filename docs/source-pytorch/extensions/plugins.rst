@@ -54,7 +54,7 @@ The full list of built-in precision plugins is listed below.
 
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
-    FSDPMixedPrecisionPlugin
+    FSDPPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
     XLABf16PrecisionPlugin

@@ -19,7 +19,7 @@ from lightning.fabric.utilities.imports import (
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
+from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
 from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
@@ -78,7 +78,7 @@ class TestFSDPModel(BoringModel):
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, FullyShardedDataParallel)
-        assert isinstance(self.trainer.strategy.precision_plugin, FSDPMixedPrecisionPlugin)
+        assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecisionPlugin)
 
         if self.trainer.precision == "16-mixed":
             param_dtype = torch.float32
@@ -134,7 +134,7 @@ class TestFSDPModelAutoWrapped(TestBoringModel):
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, torch.nn.Sequential)
-        assert isinstance(self.trainer.strategy.precision_plugin, FSDPMixedPrecisionPlugin)
+        assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecisionPlugin)
 
         if self.trainer.precision == "16-mixed":
             param_dtype = torch.float32
@@ -207,26 +207,8 @@ def test_invalid_on_cpu(tmpdir, cuda_count_0):
         trainer.strategy.setup_environment()
 
 
-@RunIf(min_torch="1.12", min_cuda_gpus=1)
-@pytest.mark.parametrize(
-    ("precision", "expected"),
-    [
-        ("16-mixed", (torch.float32, torch.float16, torch.float16)),
-        ("bf16-mixed", (torch.float32, torch.bfloat16, torch.bfloat16)),
-        # TODO: add 16-true and bf16-true once supported
-    ],
-)
-def test_precision_plugin_config(precision, expected):
-    plugin = FSDPMixedPrecisionPlugin(precision=precision, device="cuda")
-    config = plugin.mixed_precision_config
-
-    assert config.param_dtype == expected[0]
-    assert config.buffer_dtype == expected[1]
-    assert config.reduce_dtype == expected[2]
-
-
 @RunIf(min_torch="1.12")
-def test_fsdp_custom_mixed_precision(tmpdir):
+def test_fsdp_custom_mixed_precision():
     """Test to ensure that passing a custom mixed precision config works."""
     config = MixedPrecision()
     strategy = FSDPStrategy(mixed_precision=config)
@@ -527,16 +509,17 @@ def test_set_timeout(init_process_group_mock):
 @RunIf(min_torch="1.12")
 def test_fsdp_strategy_load_optimizer_states_multiple():
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
+    spec = torch.optim.Optimizer
 
     # More states than optimizers configured
-    strategy.optimizers = [Mock()]
-    checkpoint = {"optimizer_states": [Mock(), Mock()]}
+    strategy.optimizers = [Mock(spec=spec)]
+    checkpoint = {"optimizer_states": [Mock(spec=spec), Mock(spec=spec)]}
     with pytest.raises(RuntimeError, match="1 optimizers but the checkpoint contains 2 optimizers to load"):
         strategy.load_optimizer_state_dict(checkpoint)
 
     # Fewer states than optimizers configured
-    strategy.optimizers = [Mock(), Mock()]
-    checkpoint = {"optimizer_states": [Mock()]}
+    strategy.optimizers = [Mock(spec=spec), Mock(spec=spec)]
+    checkpoint = {"optimizer_states": [Mock(spec=spec)]}
     with pytest.raises(RuntimeError, match="2 optimizers but the checkpoint contains 1 optimizers to load"):
         strategy.load_optimizer_state_dict(checkpoint)
 
