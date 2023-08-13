@@ -551,38 +551,32 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
     trainer.save_checkpoint(model_path)
 
     model_state_dict = trainer.strategy.lightning_module_state_dict()
-    if not _TORCH_GREATER_EQUAL_2_0:
-        if trainer.global_rank == 0:
-            with pytest.warns(UserWarning, match="Bypassing saving of optimizer state"):
-                optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
-        else:
-            optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
-    else:
-        optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
-        if trainer.global_rank != 0:
-            assert len(model_state_dict) == 0
+    optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
 
-            if _TORCH_GREATER_EQUAL_2_1:
-                assert len(optimizer_state_dict) == 0
+    if trainer.global_rank != 0:
+        assert len(model_state_dict) == 0
 
-        # restore model to ddp
-        model = TestBoringModel()
-        trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
+        if _TORCH_GREATER_EQUAL_2_1:
+            assert len(optimizer_state_dict) == 0
 
-        # This step will restore the model and optimizer states
-        trainer.fit(model, ckpt_path=model_path)
+    # restore model to ddp
+    model = TestBoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
 
-        # Get the model and optimizer states from the restored ddp model
-        restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
-        restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+    # This step will restore the model and optimizer states
+    trainer.fit(model, ckpt_path=model_path)
 
-        if trainer.global_rank == 0:
-            # assert everything is the same
-            assert len(model_state_dict) == len(restored_model_state_dict)
-            assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
+    # Get the model and optimizer states from the restored ddp model
+    restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
+    restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
 
-            torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
-            torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
+    if trainer.global_rank == 0:
+        # assert everything is the same
+        assert len(model_state_dict) == len(restored_model_state_dict)
+        assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
+
+        torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
+        torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
 
     trainer.strategy.barrier()
 
@@ -625,29 +619,23 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
         barebones=True,
     )
 
-    if not _TORCH_GREATER_EQUAL_2_0:
-        if trainer.global_rank == 0:
-            with pytest.warns(UserWarning, match="Bypassing restoration of optimizer state"):
-                trainer.fit(model, ckpt_path=model_path)
-        else:
-            trainer.fit(model, ckpt_path=model_path)
-    else:
-        trainer.fit(model, ckpt_path=model_path)
-        restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
-        restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+    trainer.fit(model, ckpt_path=model_path)
 
-        if trainer.global_rank != 0:
-            assert len(restored_model_state_dict) == 0
+    restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
+    restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
 
-            if _TORCH_GREATER_EQUAL_2_1:
-                assert len(restored_optimizer_state_dict) == 0
+    if trainer.global_rank != 0:
+        assert len(restored_model_state_dict) == 0
 
-        if trainer.global_rank == 0:
-            # assert everything is the same
-            assert len(model_state_dict) == len(restored_model_state_dict)
-            assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
-            torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
-            torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
+        if _TORCH_GREATER_EQUAL_2_1:
+            assert len(restored_optimizer_state_dict) == 0
+
+    if trainer.global_rank == 0:
+        # assert everything is the same
+        assert len(model_state_dict) == len(restored_model_state_dict)
+        assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
+        torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
+        torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
 
     trainer.strategy.barrier()
 
