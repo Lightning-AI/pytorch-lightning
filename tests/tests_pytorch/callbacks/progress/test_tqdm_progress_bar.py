@@ -649,7 +649,7 @@ def test_get_progress_bar_metrics(tmpdir: str):
     model = BoringModel()
     trainer.fit(model)
     standard_metrics = progress_bar.get_metrics(trainer, model)
-    assert "v_num" not in standard_metrics.keys()
+    assert "v_num" not in standard_metrics
 
 
 def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
