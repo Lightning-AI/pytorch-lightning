@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import gc
 import os
 from unittest.mock import call, Mock, patch
 
@@ -1402,3 +1403,18 @@ def test_multiple_dataloaders_with_random_sampler_overfit_batches(num_loaders, t
 
     trainer = Trainer(default_root_dir=tmpdir, overfit_batches=1.0, max_epochs=1)
     trainer.fit(TestModel())
+
+
+def test_should_clear_references_to_dataloader():
+    """Test that `Trainer` clears references to any dataloader passed as arguments after fitting."""
+    model = BoringModel()
+    dataloader = torch.utils.data.DataLoader(RandomDataset(32, 64))
+    prev_refs = gc.get_referrers(dataloader)
+
+    trainer = Trainer(max_epochs=1)
+    trainer.fit(model, train_dataloaders=dataloader)
+    trainer.teardown()
+    curr_refs = gc.get_referrers(dataloader)
+
+    added_refs = [a for a in curr_refs if a not in prev_refs]
+    assert not added_refs

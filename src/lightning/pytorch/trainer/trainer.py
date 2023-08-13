@@ -1018,6 +1018,19 @@ class Trainer:
         self._logger_connector.teardown()
         self._signal_connector.teardown()
 
+    def teardown(self) -> None:
+        """Tear down all references to any training dataloaders passed to the `Trainer`."""
+        for loop in [
+            self.fit_loop,
+            self.fit_loop.epoch_loop.val_loop,
+            self.validate_loop,
+            self.test_loop,
+            self.predict_loop,
+        ]:
+            if loop._data_source is not None:
+                loop._data_source.teardown()
+            loop._combined_loader = None
+
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         # wait for all to join if on distributed
         self.strategy.barrier("run-stage")

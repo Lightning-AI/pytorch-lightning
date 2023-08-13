@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import gc
 import logging
 from unittest.mock import Mock
 
@@ -19,7 +18,7 @@ import pytest
 import torch
 
 from lightning.pytorch import seed_everything, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops import _FitLoop
 
 
@@ -207,17 +206,3 @@ def test_should_stop_early_stopping_conditions_met(
 
     assert (message in caplog.text) is raise_debug_msg
     assert trainer.fit_loop._can_stop_early is early_stop
-
-
-def test_should_clear_references_to_dataloader():
-    """Test that `Trainer` clears references to any dataloader passed as arguments after training."""
-    model = BoringModel()
-    dataloader = torch.utils.data.DataLoader(RandomDataset(32, 64))
-    prev_refs = gc.get_referrers(dataloader)
-
-    trainer = Trainer(max_epochs=1)
-    trainer.fit(model, train_dataloaders=dataloader)
-    curr_refs = gc.get_referrers(dataloader)
-
-    added_refs = [a for a in curr_refs if a not in prev_refs]
-    assert not added_refs
