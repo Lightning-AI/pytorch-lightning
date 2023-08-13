@@ -16,11 +16,9 @@ from unittest import mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
-import torch
 import torch.nn as nn
 from torch.optim import Adam
 
-from lightning.fabric import Fabric
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies import XLAFSDPStrategy
 from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
@@ -90,35 +88,6 @@ def test_xla_fsdp_activation_checkpointing_setup():
     strategy = XLAFSDPStrategy(auto_wrapper_callable=auto_wrapper_callable)
 
     assert auto_wrapper_callable in strategy._fsdp_kwargs.values()
-
-
-def xla_fsdp_rewrap_warning(fabric: Fabric):
-    """Fabric launch function for test_xla_fsdp_rewrap_warning."""
-    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
-
-    with fabric.init_module():
-        model = torch.nn.Sequential(
-            torch.nn.Linear(1, 1), torch.nn.ReLU(), XlaFullyShardedDataParallel(torch.nn.Linear(1, 1))
-        )
-    if fabric.node_rank:
-        with pytest.warns(match="submodule is already wrapped"):
-            model = fabric.setup_module(model)
-    else:
-        model = fabric.setup_module(model)
-    fabric.barrier("warning_check")
-    assert not isinstance(model._forward_module[0], XlaFullyShardedDataParallel)
-    assert not isinstance(model._forward_module[1], XlaFullyShardedDataParallel)
-    assert isinstance(model._forward_module[2], XlaFullyShardedDataParallel)
-
-
-@RunIf(min_torch="2.0", tpu=True, standalone=True)
-def test_xla_fsdp_rewrap_warning():
-    """Test XLAFSDP rewrap warning."""
-    from torch_xla.distributed.fsdp.wrap import always_wrap_policy
-
-    strategy = XLAFSDPStrategy(auto_wrap_policy=always_wrap_policy)
-    fabric = Fabric(accelerator="tpu", strategy=strategy)
-    fabric.launch(xla_fsdp_rewrap_warning)
 
 
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)

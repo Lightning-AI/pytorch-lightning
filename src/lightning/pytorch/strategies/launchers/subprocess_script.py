@@ -92,6 +92,7 @@ class _SubprocessScriptLauncher(_Launcher):
             **kwargs: Optional keyword arguments to be passed to the given function.
 
         """
+        self.cluster_environment.validate_settings(num_devices=self.num_processes, num_nodes=self.num_nodes)
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
             _launch_process_observer(self.procs)
