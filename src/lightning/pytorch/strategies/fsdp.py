@@ -442,6 +442,10 @@ class FSDPStrategy(ParallelStrategy):
         cls._registered_strategies.append("fsdp_cpu_offload")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        if not _TORCH_GREATER_EQUAL_2_0:
+            rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support loading the optimizer state.")
+            return
+
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, OptimStateKeyType
 
         optimizer_states = checkpoint.get("optimizer_states")

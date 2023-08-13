@@ -556,8 +556,11 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
     if trainer.global_rank != 0:
         assert len(model_state_dict) == 0
 
-        if _TORCH_GREATER_EQUAL_2_1:
-            assert len(optimizer_state_dict) == 0
+    if trainer.global_rank != 0 and _TORCH_GREATER_EQUAL_2_1 or not _TORCH_GREATER_EQUAL_2_0:
+        assert len(optimizer_state_dict) == 0
+
+    if not _TORCH_GREATER_EQUAL_2_0:
+        return
 
     # restore model to ddp
     model = TestBoringModel()
@@ -627,10 +630,10 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
     if trainer.global_rank != 0:
         assert len(restored_model_state_dict) == 0
 
-        if _TORCH_GREATER_EQUAL_2_1:
-            assert len(restored_optimizer_state_dict) == 0
+    if trainer.global_rank != 0 and _TORCH_GREATER_EQUAL_2_1 or not _TORCH_GREATER_EQUAL_2_0:
+        assert len(restored_optimizer_state_dict) == 0
 
-    if trainer.global_rank == 0:
+    if trainer.global_rank == 0 and _TORCH_GREATER_EQUAL_2_0:
         # assert everything is the same
         assert len(model_state_dict) == len(restored_model_state_dict)
         assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
