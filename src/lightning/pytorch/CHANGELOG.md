@@ -200,6 +200,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue that would prevent the user to set the multiprocessing start method after importing lightning ([#18177](https://github.com/Lightning-AI/lightning/pull/18177))
 
 
+- Fixed model parameters getting shared between processes when running with `strategy="ddp_spawn` and `accelerator="cpu"` ([#18238](https://github.com/Lightning-AI/lightning/pull/18238))
+
+
 ## [2.0.5] - 2023-07-07
 
 ### Fixed
