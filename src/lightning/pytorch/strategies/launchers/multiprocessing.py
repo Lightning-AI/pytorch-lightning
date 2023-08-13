@@ -31,11 +31,11 @@ from lightning.fabric.strategies.launchers.multiprocessing import _check_bad_cud
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning.fabric.utilities.types import _PATH
+from lightning.pytorch.accelerators import CPUAccelerator
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.connectors.signal_connector import _SIGNUM
 from lightning.pytorch.trainer.states import TrainerFn, TrainerState
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug
-from lightning.pytorch.accelerators import CPUAccelerator
 
 log = logging.getLogger(__name__)
 
