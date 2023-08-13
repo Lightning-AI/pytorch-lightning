@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import gc
 import logging
-from pickle import dumps
 from unittest.mock import Mock
 
 import pytest
@@ -212,13 +212,12 @@ def test_should_stop_early_stopping_conditions_met(
 def test_should_clear_references_to_dataloader():
     """Test that `Trainer` clears references to any dataloader passed as arguments after training."""
     model = BoringModel()
-    dataset = RandomDataset(32, 8192)
+    dataloader = torch.utils.data.DataLoader(RandomDataset(32, 64))
+    prev_refs = gc.get_referrers(dataloader)
 
-    trainer = Trainer(fast_dev_run=True)
-    prev_size = len(dumps(trainer))
+    trainer = Trainer(max_epochs=1)
+    trainer.fit(model, train_dataloaders=dataloader)
+    curr_refs = gc.get_referrers(dataloader)
 
-    trainer.fit(model, train_dataloaders=torch.utils.data.DataLoader(dataset))
-    new_size = len(dumps(trainer))
-
-    size_diff_mb = (new_size - prev_size) // (1024**2)
-    assert size_diff_mb == 0
+    added_refs = [a for a in curr_refs if a not in prev_refs]
+    assert not added_refs
