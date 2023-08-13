@@ -195,7 +195,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with `Fabric.all_reduce()` not performing an inplace operation for all backends consistently ([#18235](https://github.com/Lightning-AI/lightning/pull/18235))
 
 
-- Fixed model parameters getting shared between processes when running with `strategy="ddp_spawn` and `accelerator="cpu"` ([#18238](https://github.com/Lightning-AI/lightning/pull/18238))
+- Fixed model parameters getting shared between processes when running with `strategy="ddp_spawn"` and `accelerator="cpu"` ([#18238](https://github.com/Lightning-AI/lightning/pull/18238))
 
 
 ## [2.0.5] - 2023-07-07
