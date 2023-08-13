@@ -5,7 +5,7 @@ from torch.utils._pytree import _get_node_type, LeafSpec, PyTree, SUPPORTED_NODE
 
 def _is_leaf_or_primitive_container(pytree: PyTree) -> bool:
     """Customized :func:`torch.utils._pytree._is_leaf` to avoid flattening containers of primitives."""
-    is_leaf = _get_node_type(pytree) not in SUPPORTED_NODES.keys()
+    is_leaf = _get_node_type(pytree) not in SUPPORTED_NODES
     if is_leaf:
         return True
 
