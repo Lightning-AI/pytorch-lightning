@@ -321,7 +321,7 @@ class _AcceleratorConnector:
         devices: Union[List[int], str, int],
         num_nodes: int,
     ) -> None:
-        self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
+        self._num_nodes_flag = num_nodes
         self._devices_flag = devices
 
         if self._devices_flag in ([], 0, "0"):
