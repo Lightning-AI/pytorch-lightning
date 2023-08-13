@@ -35,6 +35,7 @@ from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.connectors.signal_connector import _SIGNUM
 from lightning.pytorch.trainer.states import TrainerFn, TrainerState
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug
+from lightning.pytorch.accelerators import CPUAccelerator
 
 log = logging.getLogger(__name__)
 
@@ -144,8 +145,9 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
-        if self._start_method == "spawn":
-            _disable_module_memory_sharing((args, kwargs))
+        if self._start_method == "spawn" and isinstance(self._strategy.accelerator, CPUAccelerator):
+            args, kwargs = _disable_module_memory_sharing((args, kwargs))
+
         os.environ["LOCAL_RANK"] = str(process_idx)
         results = function(*args, **kwargs)
 

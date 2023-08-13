@@ -23,6 +23,7 @@ import torch.multiprocessing as mp
 from lightning_utilities import apply_to_collection
 from torch.nn import Module
 
+from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
@@ -126,7 +127,7 @@ class _MultiProcessingLauncher(_Launcher):
         if global_states:
             global_states.restore()
 
-        if self._start_method == "spawn":
+        if self._start_method == "spawn" and isinstance(self._strategy.accelerator, CPUAccelerator):
             args, kwargs = _disable_module_memory_sharing((args, kwargs))
 
         os.environ["LOCAL_RANK"] = str(process_idx)
@@ -200,10 +201,13 @@ def _check_bad_cuda_fork() -> None:
 
 
 def _disable_module_memory_sharing(data: Any) -> Any:
-    """Disables memory sharing on parameters and buffers of `nn.Module`s contained in the given collection."""
+    """Disables memory sharing on parameters and buffers of `nn.Module`s contained in the given collection.
+
+    Note: This is only required when running on CPU.
+    """
     # PyTorch enables memory sharing automatically on all tensors that are passed through `mp.spawn`.
     # For model weights and buffers, this is undesired and can lead to race conditions between processes.
-    # Hence, we deep-copy the entire module to ensure it doesn't share memory with other processes.
+    # Hence, we copy the tensors in the entire module to ensure it doesn't share memory with other processes.
 
     def _unshare(module: Module) -> Module:
         for tensor in itertools.chain(module.parameters(), module.buffers()):
