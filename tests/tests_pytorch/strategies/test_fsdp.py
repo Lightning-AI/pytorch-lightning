@@ -683,6 +683,7 @@ def test_configure_model(precision, expected_dtype):
     trainer.fit(model)
 
 
+@RunIf(max_torch="1.13")
 def test_load_save_optimizer_torch_lt_2_0():
     strategy = FSDPStrategy()
     with pytest.warns(UserWarning, match="does not support saving the optimizer state"):
