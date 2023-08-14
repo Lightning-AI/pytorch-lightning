@@ -425,8 +425,9 @@ def any_model_any_data_cli():
 
 @pytest.mark.skipif(compare_version("jsonargparse", operator.lt, "4.21.3"), reason="vulnerability with failing imports")
 @pytest.mark.skipif(
-    (sys.version_info.major, sys.version_info.minor) == (3, 9) and compare_version("jsonargparse", operator.lt, "4.24.0"),
-    reason="--trainer.precision is not parsed"
+    (sys.version_info.major, sys.version_info.minor) == (3, 9)
+    and compare_version("jsonargparse", operator.lt, "4.24.0"),
+    reason="--trainer.precision is not parsed",
 )
 def test_lightning_cli_help():
     cli_args = ["any.py", "fit", "--help"]
