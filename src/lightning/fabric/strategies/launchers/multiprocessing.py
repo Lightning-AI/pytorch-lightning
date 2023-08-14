@@ -19,7 +19,6 @@ from typing import Any, Callable, Dict, Literal, Optional, TYPE_CHECKING
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
-from torch.multiprocessing import current_process
 
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
@@ -197,7 +196,7 @@ def _check_bad_cuda_fork() -> None:
 
 def _check_missing_main_guard() -> None:
     """Raises an exception if the ``__name__ == "__main__"`` guard is missing."""
-    if not getattr(current_process(), "_inheriting", False):
+    if not getattr(mp.current_process(), "_inheriting", False):
         return
     message = """
     Launching multiple processes with the 'spawn' start method requires that your script guards the main

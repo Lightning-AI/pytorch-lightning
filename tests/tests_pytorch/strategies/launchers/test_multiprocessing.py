@@ -175,3 +175,12 @@ def test_kill():
     with patch("os.kill") as kill_patch:
         launcher.kill(15)
     assert kill_patch.mock_calls == [call(proc0.pid, 15), call(proc1.pid, 15)]
+
+
+def test_check_for_missing_main_guard():
+    launcher = _MultiProcessingLauncher(strategy=Mock(), start_method="spawn")
+    with mock.patch(
+        "lightning.pytorch.strategies.launchers.multiprocessing.mp.current_process",
+        return_value=Mock(_inheriting=True),  # pretend that main is importing itself
+    ), pytest.raises(RuntimeError, match="requires that your script guards the main"):
+        launcher.launch(function=Mock())

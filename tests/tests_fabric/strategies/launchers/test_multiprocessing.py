@@ -94,3 +94,12 @@ def test_multiprocessing_launcher_check_for_bad_cuda_fork(mp_mock, _, start_meth
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
     with pytest.raises(RuntimeError, match="Lightning can't create new processes if CUDA is already initialized"):
         launcher.launch(function=Mock())
+
+
+def test_check_for_missing_main_guard():
+    launcher = _MultiProcessingLauncher(strategy=Mock(), start_method="spawn")
+    with mock.patch(
+        "lightning.fabric.strategies.launchers.multiprocessing.mp.current_process",
+        return_value=Mock(_inheriting=True),  # pretend that main is importing itself
+    ), pytest.raises(RuntimeError, match="requires that your script guards the main"):
+        launcher.launch(function=Mock())
