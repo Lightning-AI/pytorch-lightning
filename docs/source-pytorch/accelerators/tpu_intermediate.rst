@@ -116,7 +116,7 @@ By default, TPU training will use 32-bit precision. To enable it, do
     import lightning.pytorch as pl
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(accelerator="tpu", precision="16-mixed")
+    trainer = pl.Trainer(accelerator="tpu", precision="16-true")
     trainer.fit(my_model)
 
 Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.

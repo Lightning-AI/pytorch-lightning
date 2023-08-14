@@ -30,6 +30,8 @@ def test_graveyard_single_tpu(import_path, name):
         ("lightning.pytorch.plugins", "TPUBf16PrecisionPlugin"),
         ("lightning.pytorch.plugins.precision", "TPUBf16PrecisionPlugin"),
         ("lightning.pytorch.plugins.precision.tpu_bf16", "TPUBf16PrecisionPlugin"),
+        ("lightning.pytorch.plugins.precision", "XLABf16PrecisionPlugin"),
+        ("lightning.pytorch.plugins.precision.xlabf16", "XLABf16PrecisionPlugin"),
     ],
 )
 def test_graveyard_no_device(import_path, name):

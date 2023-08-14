@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 
 import pytest
 import torch
@@ -21,6 +22,35 @@ from lightning.fabric import Fabric
 from lightning.fabric.strategies import XLAFSDPStrategy
 from tests_fabric.helpers.models import RandomDataset
 from tests_fabric.helpers.runif import RunIf
+
+
+def _xla_fsdp_rewrap_warning(fabric: Fabric):
+    """Fabric launch function for test_xla_fsdp_rewrap_warning."""
+    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
+
+    with fabric.init_module():
+        model = torch.nn.Sequential(
+            torch.nn.Linear(1, 1), torch.nn.ReLU(), XlaFullyShardedDataParallel(torch.nn.Linear(1, 1))
+        )
+    if fabric.node_rank:
+        with pytest.warns(match="submodule is already wrapped"):
+            model = fabric.setup_module(model)
+    else:
+        model = fabric.setup_module(model)
+    fabric.barrier("warning_check")
+    assert not isinstance(model._forward_module[0], XlaFullyShardedDataParallel)
+    assert not isinstance(model._forward_module[1], XlaFullyShardedDataParallel)
+    assert isinstance(model._forward_module[2], XlaFullyShardedDataParallel)
+
+
+@RunIf(min_torch="2.0", tpu=True, standalone=True)
+def test_xla_fsdp_rewrap_warning():
+    """Test that XLAFSDP warns about rewrapping the modules."""
+    from torch_xla.distributed.fsdp.wrap import always_wrap_policy
+
+    strategy = XLAFSDPStrategy(auto_wrap_policy=always_wrap_policy)
+    fabric = Fabric(accelerator="tpu", strategy=strategy)
+    fabric.launch(_xla_fsdp_rewrap_warning)
 
 
 def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
@@ -133,3 +163,26 @@ def test_xla_fsdp_train_save_load(tmp_path, use_auto_wrap_policy, state_dict_typ
     )
     fabric = Fabric(accelerator="tpu", strategy=strategy)
     fabric.launch(xla_fsdp_train_save_load, tmp_path, state_dict_type)
+
+
+def _test_setup_module_move_to_device(fabric, move_to_device):
+    model = torch.nn.Linear(10, 10, bias=False)
+    with mock.patch("lightning.fabric.wrappers._FabricModule") as fabric_module_mock:
+        fabric_model = fabric.setup_module(model, move_to_device=move_to_device)
+    fabric_module_mock.assert_not_called()
+
+    # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
+    assert fabric_model.device == torch.device("cpu")
+    assert fabric.device.type == "xla"
+
+
+@RunIf(min_torch="2.0", tpu=True, standalone=True)
+@pytest.mark.parametrize("move_to_device", [True, False])
+def test_setup_module_move_to_device(move_to_device):
+    """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device
+    (sharding)."""
+    from torch_xla.distributed.fsdp.wrap import always_wrap_policy
+
+    strategy = XLAFSDPStrategy(auto_wrap_policy=always_wrap_policy)
+    fabric = Fabric(accelerator="tpu", strategy=strategy)
+    fabric.launch(_test_setup_module_move_to_device, move_to_device=move_to_device)
