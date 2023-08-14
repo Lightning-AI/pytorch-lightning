@@ -57,7 +57,7 @@ class CUDAAccelerator(Accelerator):
     @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        return num_cuda_devices() if not _IS_INTERACTIVE else 1
+        return num_cuda_devices()
 
     @staticmethod
     def is_available() -> bool:
