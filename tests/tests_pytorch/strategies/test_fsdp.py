@@ -681,3 +681,11 @@ def test_configure_model(precision, expected_dtype):
 
     model = MyModel()
     trainer.fit(model)
+
+
+def test_load_save_optimizer_torch_lt_2_0():
+    strategy = FSDPStrategy()
+    with pytest.warns(UserWarning, match="does not support saving the optimizer state"):
+        strategy.optimizer_state(Mock())
+    with pytest.warns(UserWarning, match="does not support loading the optimizer state"):
+        strategy.load_optimizer_state_dict(Mock())
