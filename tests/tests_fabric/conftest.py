@@ -16,10 +16,9 @@ import sys
 from typing import List
 from unittest.mock import Mock
 
+import lightning.fabric
 import pytest
 import torch.distributed
-
-import lightning.fabric
 
 
 @pytest.fixture(autouse=True)

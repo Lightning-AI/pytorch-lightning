@@ -15,7 +15,7 @@ import io
 import os
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Optional, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Literal, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -24,15 +24,15 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.plugins.precision import Precision
-from lightning.fabric.strategies import _StrategyRegistry, ParallelStrategy
+from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
 from lightning.fabric.strategies.fsdp import _apply_filter
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
-from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate_keys_for_strict_loading, TBroadcast
+from lightning.fabric.strategies.strategy import TBroadcast, _BackwardSyncControl, _validate_keys_for_strict_loading
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn

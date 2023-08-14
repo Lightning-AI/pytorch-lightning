@@ -2,14 +2,13 @@
 import base64
 import io
 
+import lightning as L
 import torch
 import torchvision
-from PIL import Image
-from pydantic import BaseModel
-
-import lightning as L
 from lightning.app.components.serve import Image as InputImage
 from lightning.app.components.serve import PythonServer
+from PIL import Image
+from pydantic import BaseModel
 
 
 class PyTorchServer(PythonServer):

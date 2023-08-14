@@ -16,8 +16,8 @@ from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
 import torch
-
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
+
 from tests_pytorch.helpers.runif import RunIf
 
 

@@ -13,10 +13,10 @@
 # limitations under the License.
 r"""Stochastic Weight Averaging Callback ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"""
 from copy import deepcopy
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.optim.swa_utils import SWALR
 
 import lightning.pytorch as pl

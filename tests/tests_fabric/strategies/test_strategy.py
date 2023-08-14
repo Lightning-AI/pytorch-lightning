@@ -16,11 +16,11 @@ from unittest.mock import Mock, PropertyMock
 
 import pytest
 import torch
-from torch import nn
-
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.strategies import SingleDeviceStrategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from torch import nn
+
 from tests_fabric.helpers.runif import RunIf
 
 

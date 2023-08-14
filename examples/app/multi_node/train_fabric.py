@@ -1,6 +1,5 @@
-import torch
-
 import lightning as L
+import torch
 from lightning.app.components import FabricMultiNode
 from lightning.fabric import Fabric
 

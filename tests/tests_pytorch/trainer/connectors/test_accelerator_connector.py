@@ -17,12 +17,10 @@ from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.pytorch
 import pytest
 import torch
 import torch.distributed
-from lightning_utilities.core.imports import package_available
-
-import lightning.pytorch
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -56,6 +54,8 @@ from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _lightning_graphcore_available, _lightning_habana_available
+from lightning_utilities.core.imports import package_available
+
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 

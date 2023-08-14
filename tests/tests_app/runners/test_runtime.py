@@ -3,10 +3,10 @@ import signal
 from unittest import mock
 
 import pytest
-
 from lightning.app.runners import cloud
 from lightning.app.runners.runtime import dispatch
 from lightning.app.runners.runtime_type import RuntimeType
+
 from tests_app import _PROJECT_ROOT
 
 

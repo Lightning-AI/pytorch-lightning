@@ -17,7 +17,7 @@ import json
 import operator
 import os
 import sys
-from contextlib import contextmanager, ExitStack, redirect_stdout
+from contextlib import ExitStack, contextmanager, redirect_stdout
 from io import StringIO
 from pathlib import Path
 from typing import Callable, List, Optional, Union
@@ -27,25 +27,18 @@ from unittest.mock import ANY
 import pytest
 import torch
 import yaml
-from lightning_utilities import compare_version
-from lightning_utilities.test.warning import no_warning_call
-from tensorboard.backend.event_processing import event_accumulator
-from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
-from torch.optim import SGD
-from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
-
 from lightning.fabric.plugins.environments import SLURMEnvironment
-from lightning.pytorch import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
+from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__, seed_everything
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.cli import (
     _JSONARGPARSE_SIGNATURES_AVAILABLE,
-    instantiate_class,
     LightningArgumentParser,
     LightningCLI,
     LRSchedulerCallable,
     LRSchedulerTypeTuple,
     OptimizerCallable,
     SaveConfigCallback,
+    instantiate_class,
 )
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.loggers import _COMET_AVAILABLE, TensorBoardLogger
@@ -56,10 +49,17 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning_utilities import compare_version
+from lightning_utilities.test.warning import no_warning_call
+from tensorboard.backend.event_processing import event_accumulator
+from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
+from torch.optim import SGD
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
-    from jsonargparse import lazy_instance, Namespace
+    from jsonargparse import Namespace, lazy_instance
 else:
     from argparse import Namespace
 

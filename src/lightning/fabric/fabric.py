@@ -16,7 +16,7 @@ import os
 from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union, cast, overload
 
 import torch
 import torch.nn as nn
@@ -27,12 +27,10 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
-from lightning.fabric.loggers import Logger
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-
-from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
-from lightning.fabric.connector import _Connector, _is_using_cli, _PLUGIN_INPUT, _PRECISION_INPUT
+from lightning.fabric.connector import _PLUGIN_INPUT, _PRECISION_INPUT, _Connector, _is_using_cli
+from lightning.fabric.loggers import Logger
+from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.strategies import (
     DataParallelStrategy,
     DeepSpeedStrategy,
@@ -44,7 +42,7 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.fsdp import _has_meta_device_parameters
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
-from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
+from lightning.fabric.strategies.strategy import TBroadcast, _Sharded
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, convert_to_tensors
 from lightning.fabric.utilities.data import (
@@ -54,6 +52,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.utilities.types import ReduceOp

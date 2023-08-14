@@ -39,7 +39,7 @@ LOCAL_FILE_URI_PREFIX = "file:"
 _MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0", "mlflow")
 if _MLFLOW_AVAILABLE:
     from mlflow.entities import Metric, Param
-    from mlflow.tracking import context, MlflowClient
+    from mlflow.tracking import MlflowClient, context
     from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 else:
     MlflowClient, context = None, None

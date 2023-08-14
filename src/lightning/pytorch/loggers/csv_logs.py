@@ -23,8 +23,8 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-from lightning.fabric.loggers.csv_logs import _ExperimentWriter as _FabricExperimentWriter
 from lightning.fabric.loggers.csv_logs import CSVLogger as FabricCSVLogger
+from lightning.fabric.loggers.csv_logs import _ExperimentWriter as _FabricExperimentWriter
 from lightning.fabric.loggers.logger import rank_zero_experiment
 from lightning.fabric.utilities.logger import _convert_params
 from lightning.fabric.utilities.types import _PATH

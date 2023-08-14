@@ -14,7 +14,7 @@
 import os
 import shutil
 import sys
-from collections import ChainMap, defaultdict, OrderedDict
+from collections import ChainMap, OrderedDict, defaultdict
 from typing import Any, DefaultDict, Iterable, List, Optional, Tuple, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -38,7 +38,7 @@ from lightning.pytorch.trainer.connectors.data_connector import (
 )
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
+from lightning.pytorch.utilities.combined_loader import CombinedLoader, _Sequential
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden

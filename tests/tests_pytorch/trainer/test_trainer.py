@@ -21,20 +21,14 @@ from contextlib import nullcontext, suppress
 from copy import deepcopy
 from pathlib import Path
 from unittest import mock
-from unittest.mock import ANY, call, Mock, patch
+from unittest.mock import ANY, Mock, call, patch
 
 import cloudpickle
+import lightning.fabric
+import lightning.pytorch
 import pytest
 import torch
 import torch.nn as nn
-from torch.multiprocessing import ProcessRaisedException
-from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.optim import SGD
-from torch.utils.data import DataLoader, IterableDataset
-
-import lightning.fabric
-import lightning.pytorch
-import tests_pytorch.helpers.utils as tutils
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer
@@ -50,13 +44,19 @@ from lightning.pytorch.demos.boring_classes import (
     RandomIterableDatasetWithLen,
 )
 from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
 from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
+from torch.multiprocessing import ProcessRaisedException
+from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.optim import SGD
+from torch.utils.data import DataLoader, IterableDataset
+
+import tests_pytorch.helpers.utils as tutils
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf

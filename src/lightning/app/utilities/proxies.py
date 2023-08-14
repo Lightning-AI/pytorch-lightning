@@ -26,7 +26,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -35,17 +35,17 @@ from lightning.app.core import constants
 from lightning.app.core.queues import MultiProcessQueue
 from lightning.app.storage import Path
 from lightning.app.storage.copier import _Copier, _copy_files
-from lightning.app.storage.drive import _maybe_create_drive, Drive
+from lightning.app.storage.drive import Drive, _maybe_create_drive
 from lightning.app.storage.path import _path_to_work_artifact
 from lightning.app.storage.payload import Payload
 from lightning.app.utilities.app_helpers import affiliation
 from lightning.app.utilities.component import _set_work_context
 from lightning.app.utilities.enum import (
     CacheCallsKeys,
-    make_status,
     WorkFailureReasons,
     WorkStageStatus,
     WorkStopReasons,
+    make_status,
 )
 from lightning.app.utilities.exceptions import CacheMissException, LightningSigtermStateException
 

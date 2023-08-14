@@ -14,7 +14,7 @@
 import os
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, Literal, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, Literal, Optional
 
 import torch
 import torch.backends.cudnn

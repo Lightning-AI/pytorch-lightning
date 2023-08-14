@@ -20,7 +20,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch.nn.utils.prune as pytorch_prune
 from lightning_utilities.core.apply_func import apply_to_collection
-from torch import nn, Tensor
+from torch import Tensor, nn
 from typing_extensions import TypedDict
 
 import lightning.pytorch as pl

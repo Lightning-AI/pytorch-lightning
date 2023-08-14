@@ -16,13 +16,12 @@ import pickle
 from unittest import mock
 
 import pytest
-from lightning_utilities.test.warning import no_warning_call
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_utilities.test.warning import no_warning_call
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)

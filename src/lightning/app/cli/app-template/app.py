@@ -1,6 +1,5 @@
-from placeholdername import ComponentA, ComponentB
-
 import lightning as L
+from placeholdername import ComponentA, ComponentB
 
 
 class LitApp(L.LightningFlow):

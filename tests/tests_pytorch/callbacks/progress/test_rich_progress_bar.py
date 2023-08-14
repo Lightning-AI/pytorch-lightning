@@ -17,14 +17,13 @@ from unittest import mock
 from unittest.mock import DEFAULT, Mock
 
 import pytest
-from torch.utils.data import DataLoader
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ProgressBar, RichProgressBar
 from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
 from tests_pytorch.helpers.runif import RunIf
+from torch.utils.data import DataLoader
 
 
 @RunIf(rich=True)

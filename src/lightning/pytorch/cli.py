@@ -25,7 +25,7 @@ from torch.optim import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
-from lightning.pytorch import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
+from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, seed_everything
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
@@ -37,8 +37,8 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     from jsonargparse import (
         ActionConfigFile,
         ArgumentParser,
-        class_from_function,
         Namespace,
+        class_from_function,
         register_unresolvable_import_paths,
         set_config_read_mode,
     )

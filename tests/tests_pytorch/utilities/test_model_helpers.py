@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-from lightning_utilities import module_available
-
 from lightning.pytorch import LightningDataModule
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning_utilities import module_available
 
 
 def test_is_overridden():

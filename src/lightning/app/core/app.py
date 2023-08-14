@@ -20,7 +20,7 @@ import threading
 import warnings
 from copy import deepcopy
 from time import time
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -42,12 +42,12 @@ from lightning.app.storage import Drive, Path, Payload
 from lightning.app.storage.path import _storage_root_dir
 from lightning.app.utilities import frontend
 from lightning.app.utilities.app_helpers import (
+    Logger,
     _delta_to_app_state_delta,
     _handle_is_headless,
     _is_headless,
     _LightningAppRef,
     _should_dispatch_app,
-    Logger,
 )
 from lightning.app.utilities.app_status import AppStatus
 from lightning.app.utilities.commands.base import _process_requests

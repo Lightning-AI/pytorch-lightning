@@ -1,15 +1,14 @@
 import os
 from importlib import import_module
 
+import lightning as L
 import numpy as np
 import pandas as pd
-from sklearn import datasets
-from sklearn.metrics import mean_squared_error
-
-import lightning as L
 from lightning.app.components import TracerPythonScript
 from lightning.app.storage import Payload
 from lightning.app.structures import Dict, List
+from sklearn import datasets
+from sklearn.metrics import mean_squared_error
 
 
 def get_path(path):

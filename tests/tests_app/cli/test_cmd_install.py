@@ -5,7 +5,6 @@ from unittest import mock
 
 import pytest
 from click.testing import CliRunner
-
 from lightning.app.cli import cmd_install, lightning_cli
 from lightning.app.testing.helpers import _RunIf
 

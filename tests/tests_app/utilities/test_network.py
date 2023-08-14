@@ -2,10 +2,9 @@ import re
 from unittest import mock
 
 import pytest
-from urllib3.exceptions import HTTPError
-
 from lightning.app.core import constants
-from lightning.app.utilities.network import _retry_wrapper, find_free_network_port, LightningClient
+from lightning.app.utilities.network import LightningClient, _retry_wrapper, find_free_network_port
+from urllib3.exceptions import HTTPError
 
 
 def test_find_free_network_port():

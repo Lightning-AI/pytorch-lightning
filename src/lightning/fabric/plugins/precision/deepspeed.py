@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Generator, Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Generator, Literal
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection

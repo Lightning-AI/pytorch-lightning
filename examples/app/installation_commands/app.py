@@ -2,9 +2,8 @@
 # app.py
 # !echo "I am installing a dependency not declared in a requirements file"
 # !pip install lmdb
-import lmdb
-
 import lightning as L
+import lmdb
 
 
 class YourComponent(L.LightningWork):

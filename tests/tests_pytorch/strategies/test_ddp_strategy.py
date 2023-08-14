@@ -18,15 +18,15 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from torch.distributed.optim import ZeroRedundancyOptimizer
-from torch.nn.parallel import DistributedDataParallel
-
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.states import TrainerFn
+from torch.distributed.optim import ZeroRedundancyOptimizer
+from torch.nn.parallel import DistributedDataParallel
+
 from tests_pytorch.helpers.runif import RunIf
 
 

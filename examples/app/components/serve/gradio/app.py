@@ -1,12 +1,11 @@
 from functools import partial
 
 import gradio as gr
+import lightning as L
 import requests
 import torch
-from PIL import Image
-
-import lightning as L
 from lightning.app.components import ServeGradio
+from PIL import Image
 
 
 # Credit to @akhaliq for his inspiring work.

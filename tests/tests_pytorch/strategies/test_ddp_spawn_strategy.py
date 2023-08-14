@@ -16,13 +16,13 @@ from unittest import mock
 
 import pytest
 import torch
-from torch.nn.parallel.distributed import DistributedDataParallel
-
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
+from torch.nn.parallel.distributed import DistributedDataParallel
+
 from tests_pytorch.helpers.runif import RunIf
 
 

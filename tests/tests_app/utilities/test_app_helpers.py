@@ -3,28 +3,27 @@ from functools import partial
 from unittest import mock
 
 import pytest
+from lightning.app import LightningApp, LightningFlow, LightningWork
+from lightning.app.core.flow import _RootFlow
+from lightning.app.frontend import StaticWebFrontend
+from lightning.app.utilities.app_helpers import (
+    AppStatePlugin,
+    BaseStatePlugin,
+    InMemoryStateStore,
+    StateStore,
+    _handle_is_headless,
+    _is_headless,
+    _MagicMockJsonSerializable,
+    is_overridden,
+    is_static_method,
+)
+from lightning.app.utilities.exceptions import LightningAppStateException
 from lightning_cloud.openapi import (
     AppinstancesIdBody,
     V1LightningappInstanceSpec,
     V1LightningappInstanceState,
     V1ListLightningappInstancesResponse,
 )
-
-from lightning.app import LightningApp, LightningFlow, LightningWork
-from lightning.app.core.flow import _RootFlow
-from lightning.app.frontend import StaticWebFrontend
-from lightning.app.utilities.app_helpers import (
-    _handle_is_headless,
-    _is_headless,
-    _MagicMockJsonSerializable,
-    AppStatePlugin,
-    BaseStatePlugin,
-    InMemoryStateStore,
-    is_overridden,
-    is_static_method,
-    StateStore,
-)
-from lightning.app.utilities.exceptions import LightningAppStateException
 
 
 class Work(LightningWork):

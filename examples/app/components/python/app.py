@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import lightning as L
+
 from examples.components.python.component_tracer import PLTracerPythonScript
 
 

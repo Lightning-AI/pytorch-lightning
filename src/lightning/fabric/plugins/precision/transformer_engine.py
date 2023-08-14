@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 from contextlib import contextmanager
-from typing import Any, Generator, Literal, Mapping, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Generator, Literal, Mapping, Optional, Union
 
 import torch
 from lightning_utilities import apply_to_collection

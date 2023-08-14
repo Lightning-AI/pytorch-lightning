@@ -18,6 +18,7 @@ from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -29,7 +30,6 @@ from typing import (
     Set,
     Tuple,
     Type,
-    TYPE_CHECKING,
     Union,
 )
 
@@ -47,19 +47,19 @@ from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessS
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import (
+    TBroadcast,
     _apply_filter,
     _BackwardSyncControl,
     _Sharded,
     _validate_keys_for_strict_loading,
-    TBroadcast,
 )
 from lightning.fabric.utilities.distributed import (
+    ReduceOp,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_12,
     _TORCH_GREATER_EQUAL_1_13,
@@ -742,9 +742,9 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
         return
 
     from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+        CheckpointImpl,
         apply_activation_checkpointing,
         checkpoint_wrapper,
-        CheckpointImpl,
     )
 
     wrapper = partial(checkpoint_wrapper, checkpoint_impl=CheckpointImpl.NO_REENTRANT)

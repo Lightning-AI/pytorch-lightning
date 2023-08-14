@@ -5,9 +5,6 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 import torch
-from torch import Tensor
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
-
 from lightning.fabric.utilities.data import (
     _dataloader_init_kwargs_resolve_sampler,
     _get_dataloader_init_args_and_kwargs,
@@ -20,6 +17,9 @@ from lightning.fabric.utilities.data import (
     has_len,
 )
 from lightning.fabric.utilities.exceptions import MisconfigurationException
+from torch import Tensor
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
+
 from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
 
 

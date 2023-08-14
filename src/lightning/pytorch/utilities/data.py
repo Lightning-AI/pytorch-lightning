@@ -31,7 +31,7 @@ from lightning.fabric.utilities.data import (
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 

@@ -23,7 +23,7 @@ from typing import Optional
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.tuner.batch_size_scaling import _scale_batch_size
-from lightning.pytorch.utilities.exceptions import _TunerExitException, MisconfigurationException
+from lightning.pytorch.utilities.exceptions import MisconfigurationException, _TunerExitException
 from lightning.pytorch.utilities.parsing import lightning_hasattr
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 

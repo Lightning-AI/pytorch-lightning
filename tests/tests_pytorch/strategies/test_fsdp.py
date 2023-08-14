@@ -9,7 +9,6 @@ from unittest.mock import ANY, MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
-
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_12,
@@ -22,6 +21,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
 from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:

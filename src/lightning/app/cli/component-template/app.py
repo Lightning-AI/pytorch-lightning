@@ -1,6 +1,5 @@
-from placeholdername import TemplateComponent
-
 import lightning as L
+from placeholdername import TemplateComponent
 
 
 class LitApp(L.LightningFlow):

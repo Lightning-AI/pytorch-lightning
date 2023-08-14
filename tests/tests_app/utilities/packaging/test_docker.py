@@ -2,7 +2,6 @@ import os
 from time import sleep, time
 
 import pytest
-
 from lightning.app import LightningWork
 from lightning.app.core.queues import QueuingSystem
 from lightning.app.testing.helpers import _RunIf

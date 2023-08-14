@@ -2,12 +2,12 @@ from functools import partial
 
 import pytest
 import torch
-
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.distributed import _gather_all_tensors, _sync_ddp
+
 from tests_fabric.helpers.runif import RunIf
 
 

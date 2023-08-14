@@ -52,10 +52,10 @@ from lightning.pytorch.strategies import ParallelStrategy, Strategy
 from lightning.pytorch.trainer import call, setup
 from lightning.pytorch.trainer.configuration_validator import _verify_loop_configurations
 from lightning.pytorch.trainer.connectors.accelerator_connector import (
-    _AcceleratorConnector,
     _LITERAL_WARN,
     _PRECISION_INPUT,
     _PRECISION_INPUT_STR,
+    _AcceleratorConnector,
 )
 from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
 from lightning.pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
@@ -75,8 +75,8 @@ from lightning.pytorch.utilities.types import (
     _EVALUATE_OUTPUT,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
-    LRSchedulerConfig,
     TRAIN_DATALOADERS,
+    LRSchedulerConfig,
 )
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
 

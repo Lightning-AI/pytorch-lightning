@@ -19,9 +19,8 @@ Needs to be run outside of `pytest` as it captures all the warnings.
 from contextlib import redirect_stderr
 from io import StringIO
 
-from lightning_utilities.core.rank_zero import _warn, WarningCache
-
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from lightning_utilities.core.rank_zero import WarningCache, _warn
 
 if __name__ == "__main__":
     stderr = StringIO()

@@ -17,11 +17,11 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch.nn as nn
-from torch.optim import Adam
-
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies import XLAFSDPStrategy
 from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
+from torch.optim import Adam
+
 from tests_fabric.helpers.runif import RunIf
 
 

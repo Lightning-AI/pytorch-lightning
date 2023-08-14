@@ -14,7 +14,7 @@
 import logging
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
-from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, Union
 
 import torch
 from torch import Tensor

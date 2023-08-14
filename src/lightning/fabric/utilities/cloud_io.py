@@ -14,7 +14,7 @@
 """Utilities related to data saving/loading."""
 import io
 from pathlib import Path
-from typing import Any, Dict, IO, Union
+from typing import IO, Any, Dict, Union
 
 import fsspec
 import torch

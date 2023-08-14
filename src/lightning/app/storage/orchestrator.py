@@ -17,7 +17,7 @@ import threading
 import traceback
 from queue import Empty
 from threading import Thread
-from typing import Dict, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Dict, Optional, Union
 
 from lightning.app.core.queues import BaseQueue
 from lightning.app.storage.path import _filesystem, _path_to_work_artifact

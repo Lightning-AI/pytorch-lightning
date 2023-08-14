@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import call, Mock
+from unittest.mock import Mock, call
 
 import pytest
 import torch
-from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.sampler import BatchSampler, RandomSampler
-
 from lightning.fabric.accelerators.cuda import _clear_cuda_memory
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.utilities import CombinedLoader
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.sampler import BatchSampler, RandomSampler
+
 from tests_pytorch.helpers.runif import RunIf
 
 

@@ -2,9 +2,9 @@ import os
 
 import pytest
 from click.testing import CliRunner
+from lightning.app.cli.lightning_cli import run_app
 
 from integrations_app.public import _PATH_EXAMPLES
-from lightning.app.cli.lightning_cli import run_app
 
 
 # TODO: Investigate why it doesn't work

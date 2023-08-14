@@ -21,7 +21,7 @@ from urllib.parse import urljoin
 import lightning_cloud
 import requests
 import urllib3
-from lightning_cloud.rest_client import create_swagger_client, GridRestClient
+from lightning_cloud.rest_client import GridRestClient, create_swagger_client
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout

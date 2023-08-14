@@ -16,12 +16,11 @@ import pickle
 import unittest
 from collections import namedtuple
 from unittest import mock
-from unittest.mock import call, MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 import torch
-
-from lightning.pytorch import __version__, Trainer
+from lightning.pytorch import Trainer, __version__
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import NeptuneLogger
 

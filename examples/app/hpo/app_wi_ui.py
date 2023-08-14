@@ -1,11 +1,10 @@
 from pathlib import Path
 
+import lightning as L
 import optuna
 from hyperplot import HiPlotFlow
-from objective import ObjectiveWork
-
-import lightning as L
 from lightning.app.structures import Dict
+from objective import ObjectiveWork
 
 
 class RootHPOFlow(L.LightningFlow):

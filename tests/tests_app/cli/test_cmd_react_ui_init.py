@@ -1,8 +1,7 @@
 import os
 
-import pytest
-
 import lightning.app as la
+import pytest
 from lightning.app.cli import cmd_init, cmd_react_ui_init
 from lightning.app.testing.helpers import _RunIf
 

@@ -3,13 +3,12 @@ import tempfile
 from datetime import datetime
 from typing import Optional
 
+import lightning as L
 import pandas as pd
 import torch
+from lightning.app.components import TracerPythonScript
 from optuna.distributions import CategoricalDistribution, LogUniformDistribution
 from torchmetrics import Accuracy
-
-import lightning as L
-from lightning.app.components import TracerPythonScript
 
 
 class ObjectiveWork(TracerPythonScript):

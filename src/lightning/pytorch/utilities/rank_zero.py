@@ -15,8 +15,9 @@
 import logging
 
 # note: we want to keep these indirections so the `rank_zero_module.log` is set (on import) for PL users
-from lightning.fabric.utilities.rank_zero import LightningDeprecationWarning  # noqa: F401
 from lightning.fabric.utilities.rank_zero import (  # noqa: F401
+    LightningDeprecationWarning,  # noqa: F401
+    WarningCache,
     rank_prefixed_message,
     rank_zero_debug,
     rank_zero_deprecation,
@@ -24,7 +25,6 @@ from lightning.fabric.utilities.rank_zero import (  # noqa: F401
     rank_zero_module,
     rank_zero_only,
     rank_zero_warn,
-    WarningCache,
 )
 
 rank_zero_module.log = logging.getLogger(__name__)

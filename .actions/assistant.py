@@ -26,7 +26,7 @@ from os.path import dirname, isfile
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
-from pkg_resources import parse_requirements, Requirement, yield_lines
+from pkg_resources import Requirement, parse_requirements, yield_lines
 
 REQUIREMENT_FILES = {
     "pytorch": (

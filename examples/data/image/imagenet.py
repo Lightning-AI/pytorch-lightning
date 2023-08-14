@@ -3,12 +3,11 @@ import traceback
 from argparse import ArgumentParser
 from typing import Callable, Literal, Optional
 
+import lightning as L
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-
-import lightning as L
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 
 parser = ArgumentParser()

@@ -4,23 +4,22 @@ import pathlib
 import pickle
 from re import escape
 from time import sleep
-from unittest import mock, TestCase
+from unittest import TestCase, mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
-
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.runners import MultiProcessRuntime
 from lightning.app.storage.path import (
+    Path,
     _artifacts_path,
     _filesystem,
     _is_lit_path,
     _shared_storage_path,
     _storage_root_dir,
-    Path,
 )
 from lightning.app.storage.requests import _ExistsResponse, _GetResponse
-from lightning.app.testing.helpers import _MockQueue, _RunIf, EmptyWork
+from lightning.app.testing.helpers import EmptyWork, _MockQueue, _RunIf
 from lightning.app.utilities.app_helpers import LightningJSONEncoder
 from lightning.app.utilities.component import _context
 from lightning.app.utilities.imports import _is_s3fs_available

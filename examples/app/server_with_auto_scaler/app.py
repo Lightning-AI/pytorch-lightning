@@ -1,11 +1,10 @@
 # ! pip install torch torchvision
 from typing import List
 
+import lightning as L
 import torch
 import torchvision
 from pydantic import BaseModel
-
-import lightning as L
 
 
 class BatchRequestModel(BaseModel):

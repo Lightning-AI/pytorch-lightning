@@ -5,7 +5,6 @@ import shutil
 import subprocess
 
 import pytest
-
 from lightning.app.cli import cmd_init
 
 

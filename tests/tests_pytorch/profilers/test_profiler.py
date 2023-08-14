@@ -21,7 +21,6 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
-
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
@@ -30,6 +29,7 @@ from lightning.pytorch.profilers import AdvancedProfiler, PassThroughProfiler, P
 from lightning.pytorch.profilers.pytorch import RegisterRecordFunction, warning_cache
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
+
 from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005

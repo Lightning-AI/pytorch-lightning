@@ -18,7 +18,7 @@ Convention:
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Generator, List, Mapping, Optional, Protocol, runtime_checkable, Type, Union
+from typing import Any, Generator, List, Mapping, Optional, Protocol, Type, Union, runtime_checkable
 
 import torch
 from torch import Tensor

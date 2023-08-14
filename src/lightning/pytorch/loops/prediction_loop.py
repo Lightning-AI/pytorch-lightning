@@ -35,7 +35,7 @@ from lightning.pytorch.trainer.connectors.data_connector import (
     _request_dataloader,
 )
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
+from lightning.pytorch.utilities.combined_loader import CombinedLoader, _Sequential
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT

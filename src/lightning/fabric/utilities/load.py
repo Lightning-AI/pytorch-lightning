@@ -14,7 +14,7 @@ import pickle
 import warnings
 from functools import partial
 from io import BytesIO
-from typing import Any, Callable, Dict, IO, Optional, OrderedDict, Sequence, TYPE_CHECKING, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, OrderedDict, Sequence, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection

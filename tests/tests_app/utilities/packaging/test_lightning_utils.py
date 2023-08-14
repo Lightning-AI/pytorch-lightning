@@ -3,8 +3,6 @@ import os
 from unittest import mock
 
 import pytest
-from lightning_utilities.core.imports import module_available
-
 from lightning.app.testing.helpers import _RunIf
 from lightning.app.utilities.git import check_github_repository, get_dir_name
 from lightning.app.utilities.packaging import lightning_utils
@@ -13,6 +11,7 @@ from lightning.app.utilities.packaging.lightning_utils import (
     _verify_lightning_version,
     get_dist_path_if_editable_install,
 )
+from lightning_utilities.core.imports import module_available
 
 
 @pytest.mark.skipif(not module_available("lightning"), reason="TODO: should work for lightning.app too")
