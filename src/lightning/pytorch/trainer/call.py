@@ -81,12 +81,12 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
         if isinstance(module, _DeviceDtypeModuleMixin):
             module._device = trainer.strategy.root_device
 
+    trainer.strategy.barrier("pre_setup")
+
     # Trigger lazy creation of experiment in loggers so loggers have their metadata available
     for logger in trainer.loggers:
         if hasattr(logger, "experiment"):
             _ = logger.experiment
-
-    trainer.strategy.barrier("pre_setup")
 
     if trainer.datamodule is not None:
         _call_lightning_datamodule_hook(trainer, "setup", stage=fn)
