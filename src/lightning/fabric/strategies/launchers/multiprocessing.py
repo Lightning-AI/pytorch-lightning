@@ -210,9 +210,9 @@ def _disable_module_memory_sharing(data: Any) -> Any:
     # Hence, we copy the tensors in the entire module to ensure it doesn't share memory with other processes.
 
     @torch.no_grad()
-    def _unshare(module: Module) -> Module:
+    def unshare(module: Module) -> Module:
         for tensor in itertools.chain(module.parameters(), module.buffers()):
             tensor.data = tensor.data.clone()
         return module
 
-    return apply_to_collection(data, function=_unshare, dtype=Module)
+    return apply_to_collection(data, function=unshare, dtype=Module)
