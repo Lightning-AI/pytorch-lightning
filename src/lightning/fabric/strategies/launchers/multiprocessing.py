@@ -19,6 +19,7 @@ from typing import Any, Callable, Dict, Literal, Optional, TYPE_CHECKING
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
+from torch.multiprocessing import current_process
 
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
@@ -87,6 +88,8 @@ class _MultiProcessingLauncher(_Launcher):
         """
         if self._start_method in ("fork", "forkserver"):
             _check_bad_cuda_fork()
+        if self._start_method == "spawn":
+            _check_missing_main_guard()
 
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
@@ -189,4 +192,24 @@ def _check_bad_cuda_fork() -> None:
     )
     if _IS_INTERACTIVE:
         message += " You will have to restart the Python kernel."
+    raise RuntimeError(message)
+
+
+def _check_missing_main_guard() -> None:
+    """Raises an exception if the ``__name__ == "__main__"`` guard is missing."""
+    if not getattr(current_process(), "_inheriting", False):
+        return
+    message = """
+    Launching multiple processes with the 'spawn' start method requires that your script guards the main
+    function with an `if __name__ == \"__main__\"` clause. For example:
+
+    def main():
+        # Put your code here
+        ...
+
+    if __name__ == "__main__":
+        main()
+
+    Alternatively, you can run with `strategy="ddp"` to avoid this error.
+    """
     raise RuntimeError(message)
