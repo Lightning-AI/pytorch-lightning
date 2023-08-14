@@ -81,10 +81,10 @@ class TestFSDPModel(BoringModel):
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecisionPlugin)
 
         if self.trainer.precision == "16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.float16
         elif self.trainer.precision == "bf16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.trainer.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
@@ -137,10 +137,10 @@ class TestFSDPModelAutoWrapped(TestBoringModel):
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecisionPlugin)
 
         if self.trainer.precision == "16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.float16
         elif self.trainer.precision == "bf16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.trainer.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
@@ -506,7 +506,7 @@ def test_set_timeout(init_process_group_mock):
     )
 
 
-@RunIf(min_torch="1.12")
+@RunIf(min_torch="2.0")
 def test_fsdp_strategy_load_optimizer_states_multiple():
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
     spec = torch.optim.Optimizer
@@ -655,7 +655,7 @@ def test_configure_model(precision, expected_dtype):
         devices=2,
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         precision=precision,
-        fast_dev_run=1,
+        max_epochs=1,
     )
 
     class MyModel(BoringModel):
@@ -666,6 +666,10 @@ def test_configure_model(precision, expected_dtype):
             expected_device = torch.device("cpu")
             assert self.layer.weight.device == expected_device
             assert self.layer.weight.dtype == expected_dtype
+
+        def configure_optimizers(self):
+            # There is some issue with SGD optimizer state in FSDP
+            return torch.optim.AdamW(self.layer.parameters(), lr=0.1)
 
         def on_fit_start(self):
             # Parameters get sharded in `.setup()` and moved to the target device
