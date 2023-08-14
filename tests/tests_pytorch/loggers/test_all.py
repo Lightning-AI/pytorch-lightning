@@ -382,3 +382,31 @@ def test_logger_default_name(tmpdir, monkeypatch):
         logger._mlflow_client.create_experiment.assert_called_with(name="lightning_logs", artifact_location=ANY)
         # on MLFLowLogger `name` refers to the experiment id
         # assert logger.experiment.get_experiment(logger.name).name == "lightning_logs"
+
+
+class CheckVersion(BoringModel):
+    def __init__(self, expected_version):
+        super().__init__()
+        self.expected_version = expected_version
+
+    def on_train_start(self):
+        assert self.logger.version == self.expected_version, f"{self.logger.version}"
+
+
+@pytest.mark.parametrize("logger_class", [TensorBoardLogger, CSVLogger])
+def test_logger_same_version_across_ranks(logger_class, tmp_path):
+    trainer_kwargs = dict(
+        logger=logger_class(tmp_path),
+        default_root_dir=tmp_path,
+        devices=2,
+        accelerator="cpu",
+        strategy="ddp_spawn",
+        max_steps=1,
+    )
+    model = CheckVersion(expected_version=0)
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
+
+    model = CheckVersion(expected_version=1)
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model)
