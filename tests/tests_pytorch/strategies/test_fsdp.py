@@ -644,7 +644,7 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
     trainer.strategy.barrier()
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
     [
@@ -683,7 +683,7 @@ def test_configure_model(precision, expected_dtype):
     trainer.fit(model)
 
 
-@RunIf(max_torch="2.0")
+@RunIf(min_torch="1.12", max_torch="2.0")
 def test_load_save_optimizer_torch_lt_2_0():
     strategy = FSDPStrategy()
     with pytest.warns(UserWarning, match="does not support saving the optimizer state"):
