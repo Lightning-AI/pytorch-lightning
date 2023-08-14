@@ -215,6 +215,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issue that could cause the `LightningOptimizer` wrapper returned by `LightningModule.optimizers()` have different internal state than the optimizer it wraps ([#18280](https://github.com/Lightning-AI/lightning/pull/18280))
 
+- Fixed a race condition when determining logger experiment version (TensorBoardLogger and CSVLogger) ([#18309](https://github.com/Lightning-AI/lightning/pull/18309))
 
 
 ## [2.0.5] - 2023-07-07
