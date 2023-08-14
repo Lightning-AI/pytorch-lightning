@@ -395,14 +395,14 @@ class CheckVersion(BoringModel):
 
 @pytest.mark.parametrize("logger_class", [TensorBoardLogger, CSVLogger])
 def test_logger_same_version_across_ranks(logger_class, tmp_path):
-    trainer_kwargs = dict(
-        logger=logger_class(tmp_path),
-        default_root_dir=tmp_path,
-        devices=2,
-        accelerator="cpu",
-        strategy="ddp_spawn",
-        max_steps=1,
-    )
+    trainer_kwargs = {
+        "logger": logger_class(tmp_path),
+        "default_root_dir": tmp_path,
+        "devices": 2,
+        "accelerator": "cpu",
+        "strategy": "ddp_spawn",
+        "max_steps": 1,
+    }
     model = CheckVersion(expected_version=0)
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
