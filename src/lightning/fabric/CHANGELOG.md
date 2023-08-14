@@ -5,16 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2023-08-DD
+## [2.0.7] - 2023-08-14
 
 ### Changed
 
 - Disabled the auto-detection of the Kubeflow environment ([#18137](https://github.com/Lightning-AI/lightning/pull/18137))
 
-
 ### Fixed
 
 - Fixed issue where DDP subprocesses that used Hydra would set hydra's working directory to current directory ([#18145](https://github.com/Lightning-AI/lightning/pull/18145))
+- Fixed an issue that would prevent the user to set the multiprocessing start method after importing lightning ([#18177](https://github.com/Lightning-AI/lightning/pull/18177))
+- Fixed an issue with `Fabric.all_reduce()` not performing an inplace operation for all backends consistently ([#18235](https://github.com/Lightning-AI/lightning/pull/18235))
 
 
 ## [2.0.6] - 2023-07-20
@@ -22,12 +23,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed `TensorBoardLogger.log_graph` not unwrapping the `_FabricModule` ([#17844](https://github.com/Lightning-AI/lightning/pull/17844))
-
-
-- Fixed an issue that would prevent the user to set the multiprocessing start method after importing lightning ([#18177](https://github.com/Lightning-AI/lightning/pull/18177))
-
-
-- Fixed an issue with `Fabric.all_reduce()` not performing an inplace operation for all backends consistently ([#18235](https://github.com/Lightning-AI/lightning/pull/18235))
 
 
 ## [2.0.5] - 2023-07-07
