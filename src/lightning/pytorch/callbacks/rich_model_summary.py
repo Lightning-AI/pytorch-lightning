@@ -23,8 +23,8 @@ if _RICH_AVAILABLE:  # type: ignore[has-type]
 
 
 class RichModelSummary(ModelSummary):
-    r"""Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule` with `rich
-    text formatting <https://github.com/Textualize/rich>`_.
+    r"""Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule` with `rich text
+    formatting <https://github.com/Textualize/rich>`_.
 
     Install it with pip:
 
@@ -56,6 +56,7 @@ class RichModelSummary(ModelSummary):
     Raises:
         ModuleNotFoundError:
             If required `rich` package is not installed on the device.
+
     """
 
     def __init__(self, max_depth: int = 1, **summarize_kwargs: Any) -> None:

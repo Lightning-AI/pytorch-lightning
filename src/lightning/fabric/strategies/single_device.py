@@ -65,6 +65,7 @@ class SingleDeviceStrategy(Strategy):
 
         Return:
             the unmodified input as reduction is not needed for single process operation
+
         """
         return tensor
 

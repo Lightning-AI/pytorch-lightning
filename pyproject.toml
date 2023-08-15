@@ -35,7 +35,7 @@ known_first_party = [
     "parity_pytorch",
     "integrations_app",
     "tests_app",
-    "tests_cloud",
+    "tests_store",
     "tests_fabric",
     "tests_pytorch",
 ]
@@ -49,6 +49,13 @@ skip = ["_notebooks"]
 [tool.black]
 line-length = 120
 exclude = '(_notebooks/.*)'
+
+[tool.docformatter]
+recursive = true
+# this need to be shorter as some docstings are r"""...
+wrap-summaries = 119
+wrap-descriptions = 120
+blank = true
 
 
 [tool.ruff]
@@ -196,7 +203,7 @@ module = [
     "lightning.app.frontend.stream_lit",
     "lightning.app.frontend.utils",
     "lightning.app.frontend.web",
-    "lightning.app.perf.pdb",
+    "lightning.app.pdb.pdb",
     "lightning.app.runners.backends.backend",
     "lightning.app.runners.backends.cloud",
     "lightning.app.runners.backends.docker",

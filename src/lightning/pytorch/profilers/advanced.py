@@ -25,10 +25,11 @@ log = logging.getLogger(__name__)
 
 
 class AdvancedProfiler(Profiler):
-    """This profiler uses Python's cProfiler to record more detailed information about time spent in each function
-    call recorded during a given action.
+    """This profiler uses Python's cProfiler to record more detailed information about time spent in each function call
+    recorded during a given action.
 
     The output is quite verbose and you should only use this if you want very detailed reports.
+
     """
 
     def __init__(

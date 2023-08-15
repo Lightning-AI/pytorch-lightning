@@ -105,6 +105,7 @@ class BoringModel(LightningModule):
         class TestModel(BoringModel):
             def training_step(self, ...):
                 ...  # do your own thing
+
     """
 
     def __init__(self) -> None:

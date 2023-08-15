@@ -26,6 +26,7 @@ def breadth_first(root: "Component", types: Type["ComponentTuple"] = None):
     Arguments:
         root: The root component of the tree
         types: If provided, only the component types in this list will be visited.
+
     """
     yield from _BreadthFirstVisitor(root, types)
 

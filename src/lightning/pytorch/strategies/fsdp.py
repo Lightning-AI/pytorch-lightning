@@ -51,7 +51,7 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ProcessGroup, ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.plugins.precision import PrecisionPlugin
-from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
+from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
@@ -64,9 +64,9 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
 
     if _TORCH_GREATER_EQUAL_2_0:
-        from torch.distributed.fsdp.wrap import _FSDPPolicy
+        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-        _POLICY = Union[Set, Callable[[Module, bool, int], bool], _FSDPPolicy]
+        _POLICY = Union[Set, Callable[[Module, bool, int], bool], ModuleWrapPolicy]
     else:
         _POLICY = Union[Set, Callable[[Module, bool, int], bool]]  # type: ignore[misc]
 
@@ -117,6 +117,7 @@ class FSDPStrategy(ParallelStrategy):
             Also accepts a :class:`torch.distributed.fsdp.ShardingStrategy` enum value.
 
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
+
     """
 
     strategy_name = "fsdp"
@@ -172,9 +173,9 @@ class FSDPStrategy(ParallelStrategy):
 
         To avoid OOM, the returned parameters will only be returned on rank 0 and on CPU. All other ranks get an empty
         dict.
+
         """
-        from torch.distributed.fsdp import FullyShardedDataParallel
-        from torch.distributed.fsdp.api import FullStateDictConfig, StateDictType
+        from torch.distributed.fsdp import FullStateDictConfig, FullyShardedDataParallel, StateDictType
 
         assert self.model is not None
 
@@ -212,7 +213,7 @@ class FSDPStrategy(ParallelStrategy):
         if self.mixed_precision:
             return self.mixed_precision
         plugin = self.precision_plugin
-        if isinstance(plugin, FSDPMixedPrecisionPlugin):
+        if isinstance(plugin, FSDPPrecisionPlugin):
             return plugin.mixed_precision_config
         return None
 
@@ -386,6 +387,7 @@ class FSDPStrategy(ParallelStrategy):
 
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
+
         """
         if isinstance(tensor, Tensor):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
@@ -439,7 +441,12 @@ class FSDPStrategy(ParallelStrategy):
         cls._registered_strategies.append("fsdp_cpu_offload")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        from torch.distributed.fsdp import FullyShardedDataParallel, OptimStateKeyType
+        if not _TORCH_GREATER_EQUAL_2_0:
+            rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support loading the optimizer state.")
+            return
+
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp import OptimStateKeyType
 
         optimizer_states = checkpoint.get("optimizer_states")
 
@@ -460,20 +467,22 @@ class FSDPStrategy(ParallelStrategy):
         with _get_full_state_dict_context(self.model, rank0_only=False):
             for optimizer, opt_state in zip(self.optimizers, optimizer_states):
                 # convert the optimizer state to the format expected by FSDP
-                opt_state = FullyShardedDataParallel.rekey_optim_state_dict(
-                    opt_state, OptimStateKeyType.PARAM_NAME, self.model
-                )
+                opt_state = FSDP.rekey_optim_state_dict(opt_state, OptimStateKeyType.PARAM_NAME, self.model)
 
-                opt_state = FullyShardedDataParallel.optim_state_dict_to_load(
+                opt_state = FSDP.optim_state_dict_to_load(
                     optim_state_dict=opt_state,
                     model=self.model,
                     optim=optimizer,
                 )
-
                 optimizer.load_state_dict(opt_state)
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
-        from torch.distributed.fsdp import FullyShardedDataParallel, OptimStateKeyType
+        if not _TORCH_GREATER_EQUAL_2_0:
+            rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support saving the optimizer state.")
+            return {}
+
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp import OptimStateKeyType
 
         if isinstance(optimizer, LightningOptimizer):
             optimizer = optimizer._optimizer
@@ -481,12 +490,10 @@ class FSDPStrategy(ParallelStrategy):
         assert self.model is not None
 
         with _get_full_state_dict_context(self.model, rank0_only=True):
-            state_dict = FullyShardedDataParallel.optim_state_dict(self.model, optimizer)
+            state_dict = FSDP.optim_state_dict(self.model, optimizer)
 
         # Store the optimizer state dict in standard format
         if self.global_rank == 0:
-            state_dict = FullyShardedDataParallel.rekey_optim_state_dict(
-                state_dict, OptimStateKeyType.PARAM_ID, self.model
-            )
+            state_dict = FSDP.rekey_optim_state_dict(state_dict, OptimStateKeyType.PARAM_ID, self.model)
 
         return state_dict

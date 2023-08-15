@@ -68,6 +68,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
 
     It tests it by checking if the click.launch is called with the right url if --open-ui was true and also checks the
     call to `dispatch` for the right arguments.
+
     """
     monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
 
@@ -116,6 +117,7 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
 
     It tests it by checking if the click.launch is called with the right url if --open-ui was true and also checks the
     call to `dispatch` for the right arguments.
+
     """
     monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
 
@@ -182,6 +184,7 @@ def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMoc
     """This test just validates the command has ran properly when --enable-basic-auth argument is passed.
 
     It checks the call to `dispatch` for the right arguments.
+
     """
     monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
 

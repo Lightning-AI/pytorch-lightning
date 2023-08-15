@@ -47,7 +47,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
       - name: Install AWS CLI
         if: ${{ matrix.pkg-name != 'pytorch' }}
@@ -70,6 +70,11 @@ jobs:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
 
+      - name: Install pandoc & texlive
+        if: ${{ matrix.pkg-name == 'pytorch' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       - name: Install package & dependencies
         run: |
           mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit
@@ -101,7 +106,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
       - name: Install AWS CLI
         if: ${{ matrix.pkg-name != 'pytorch' }}
@@ -124,6 +129,11 @@ jobs:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
 
+      - name: Install pandoc & texlive
+        if: ${{ matrix.pkg-name == 'pytorch' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       - name: Install package & dependencies
         run: |
           mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit

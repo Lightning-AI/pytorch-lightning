@@ -32,7 +32,7 @@ import yaml
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -569,6 +569,7 @@ class ModelCheckpoint(Checkpoint):
             >>> ckpt = ModelCheckpoint(filename='{step}')
             >>> os.path.basename(ckpt.format_checkpoint_name(dict(step=0)))
             'step=0.ckpt'
+
         """
         filename = filename or self.filename
         filename = self._format_checkpoint_name(filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name)
@@ -588,6 +589,7 @@ class ModelCheckpoint(Checkpoint):
         3.  The ``Trainer``'s ``default_root_dir`` if the trainer has no loggers
 
         The path gets extended with subdirectory "checkpoints".
+
         """
         if self.dirpath is not None:
             # short circuit if dirpath was passed to ModelCheckpoint
@@ -620,7 +622,7 @@ class ModelCheckpoint(Checkpoint):
         return set()
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
-        if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
+        if self.save_top_k != 0 and _is_dir(self._fs, dirpath, strict=True) and len(self._fs.ls(dirpath)) > 0:
             rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
 
     def _get_metric_interpolated_filepath_name(

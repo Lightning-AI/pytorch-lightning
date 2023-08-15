@@ -70,8 +70,7 @@ def test_default_attributes(monkeypatch):
 
 
 def test_init_local_comm(monkeypatch):
-    """Test that it can determine the node rank and local rank based on the hostnames of all participating
-    nodes."""
+    """Test that it can determine the node rank and local rank based on the hostnames of all participating nodes."""
     # pretend mpi4py is available
     monkeypatch.setattr(lightning.fabric.plugins.environments.mpi, "_MPI4PY_AVAILABLE", True)
     mpi4py_mock = MagicMock()

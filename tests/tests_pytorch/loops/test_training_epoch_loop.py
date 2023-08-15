@@ -63,8 +63,7 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
 def test_should_stop_early_stopping_conditions_not_met(
     caplog, min_epochs, min_steps, current_epoch, global_step, early_stop, epoch_loop_done, raise_info_msg
 ):
-    """Test that checks that info message is logged when users sets `should_stop` but min conditions are not
-    met."""
+    """Test that checks that info message is logged when users sets `should_stop` but min conditions are not met."""
     trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
     trainer.fit_loop.max_batches = 10
     trainer.should_stop = True
@@ -86,6 +85,7 @@ def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, 
 
     Test that the request for `should_stop=True` only triggers validation when Trainer is allowed to stop
     (min_epochs/steps is satisfied).
+
     """
     model = BoringModel()
     trainer = Trainer(

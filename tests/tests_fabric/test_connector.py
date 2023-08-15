@@ -54,8 +54,10 @@ from lightning.fabric.strategies import (
     DataParallelStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
+    FSDPStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
+    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
@@ -469,7 +471,7 @@ def test_precision_conversion(patch1, patch2, precision, expected_precision, sho
     with warn_context(
         UserWarning,
         match=(
-            f"{precision} is supported for historical reasons but its usage is discouraged. "
+            f"{precision}` is supported for historical reasons but its usage is discouraged. "
             f"Please set your precision to {expected_precision} instead!"
         ),
     ):
@@ -653,16 +655,9 @@ def test_strategy_choice_ddp_cpu_slurm(strategy):
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_unsupported_tpu_choice(_, tpu_available):
-    with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"):
-        _Connector(accelerator="tpu", precision="64-true")
-
-    # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or XLAStrategy
-    with pytest.raises(
-        ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"
-    ), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision='16-mixed'\)` but AMP with fp16 is not supported"
-    ):
-        _Connector(accelerator="tpu", precision="16-mixed", strategy="ddp")
+    # if user didn't set strategy, _Connector will choose the SingleDeviceXLAStrategy or XLAStrategy
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
+        _Connector(accelerator="tpu", precision="16-true", strategy="ddp")
 
     # wrong precision plugin type
     strategy = XLAStrategy(accelerator=XLAAccelerator(), precision=Precision())
@@ -670,7 +665,7 @@ def test_unsupported_tpu_choice(_, tpu_available):
         _Connector(strategy=strategy)
 
     # wrong strategy type
-    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision=XLAPrecision())
+    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision=XLAPrecision(precision="16-true"))
     with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         _Connector(strategy=strategy)
 
@@ -1039,6 +1034,32 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert isinstance(connector.strategy.cluster_environment, XLAEnvironment)
     assert connector.strategy.launcher._start_method == "fork"
     assert connector.strategy.launcher.is_interactive_compatible
+
+
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_xla_fsdp_automatic_strategy_selection(monkeypatch, tpu_available):
+    import lightning.fabric.strategies as strategies
+
+    added_fsdp = False
+    # manually register fsdp for when torch.distributed.is_initialized() != True
+    if "fsdp" not in strategies.STRATEGY_REGISTRY.available_strategies():
+        strategies.STRATEGY_REGISTRY.register("fsdp", FSDPStrategy)
+        added_fsdp = True
+
+    connector = _Connector(accelerator="tpu", strategy="fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _Connector(accelerator="tpu", strategy="xla_fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _Connector(accelerator="auto", strategy="fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _Connector(accelerator="auto", strategy="xla_fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    if added_fsdp:
+        strategies.STRATEGY_REGISTRY.pop("fsdp")
 
 
 def test_connector_transformer_engine(monkeypatch):

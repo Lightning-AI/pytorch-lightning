@@ -282,12 +282,9 @@ The most drastic GPU memory savings can be achieved by offloading parameters to 
 
 .. code-block:: python
 
-    # 1. Set `cpu_offload=True`
+    # Set `cpu_offload=True`
     strategy = FSDPStrategy(..., cpu_offload=True)
     fabric = L.Fabric(..., strategy=strategy)
-
-    # 2. Set `move_to_device=False` (won't be required in future versions)
-    model, optimizer = setup(model, optimizer, move_to_device=False)
 
 The drawback is a much slower training speed due to the added communication between CPU and GPU for transferring parameters in every forward pass.
 You should use this only if you have enough CPU memory and other scaling methods don’t give you enough memory savings.
@@ -386,12 +383,6 @@ You can easily load checkpoints saved by Fabric to resume training:
     # model.load_state_dict(torch.load("path/to/checkpoint/file"))
 
 Fabric will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
-
-.. warning::
-
-    Loading a full-state checkpoint will replicate the file in CPU RAM for every GPU.
-    For very large checkpoints/models, you may run out of memory and your program will crash.
-    If this happens, save using the “sharded” checkpoint format instead (default).
 
 
 ----

@@ -22,6 +22,7 @@ def _names_to_ids(secret_names: Iterable[str]) -> Dict[str, str]:
     """Returns the name/ID pair for each given Secret name.
 
     Raises a `ValueError` if any of the given Secret names do not exist.
+
     """
     lightning_client = LightningClient()
 

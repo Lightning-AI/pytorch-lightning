@@ -61,6 +61,11 @@ class ClusterEnvironment(ABC):
     def node_rank(self) -> int:
         """The rank (index) of the node on which the current process runs."""
 
+    def validate_settings(self, num_devices: int, num_nodes: int) -> None:
+        """Validates settings configured in the script against the environment, and raises an exception if there is an
+        inconsistency."""
+        pass
+
     def teardown(self) -> None:
         """Clean up any state set after execution finishes."""
         pass

@@ -86,6 +86,7 @@ class _LoggerConnector:
             metrics: Metric values
             step: Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
+
         """
         if not self.trainer.loggers or not metrics:
             return

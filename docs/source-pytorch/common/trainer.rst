@@ -810,8 +810,8 @@ precision
 ^^^^^^^^^
 
 Lightning supports either double (64), float (32), bfloat16 (bf16), or half (16) precision training.
-
-Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. This can result in improved performance, achieving +3X speedups on modern GPUs.
+Half precision is using 16 bit floating point operations while mixed precision is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. Since not all operations (like batchnorm) are numerically stable in lower bit precisions, these operations will still be carried out in fp32 whereas half precision unconditionally performs all operations in 16 bit.
+This can result in improved performance, achieving +3X speedups on modern GPUs.
 
 .. testcode::
     :skipif: not torch.cuda.is_available()
@@ -819,17 +819,26 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     # default used by the Trainer
     trainer = Trainer(precision=32)
 
-    # 16-bit precision
-    trainer = Trainer(precision="16-mixed", accelerator="gpu", devices=1)  # works only on CUDA
+    # 16-bit mixed precision
+    trainer = Trainer(precision="16-mixed")
 
-    # bfloat16 precision
+    # bfloat16 mixed precision
     trainer = Trainer(precision="bf16-mixed")
+
+    # 16-bit true precision
+    trainer = Trainer(precision="16-true")
+
+    # bfloat16 true precision
+    trainer = Trainer(precision="bf16-true")
 
     # 64-bit precision
     trainer = Trainer(precision=64)
 
 
+See the :doc:`N-bit precision guide <../common/precision>` for more details.
+
 .. note:: When running on TPUs, torch.bfloat16 will be used but tensor printing will still show torch.float32.
+
 
 profiler
 ^^^^^^^^
@@ -841,7 +850,7 @@ profiler
 
 To profile individual steps during training and assist in identifying bottlenecks.
 
-See the :doc:`profiler documentation <../tuning/profiler>`. for more details.
+See the :doc:`profiler documentation <../tuning/profiler>` for more details.
 
 .. testcode::
 

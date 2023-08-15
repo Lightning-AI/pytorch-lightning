@@ -44,6 +44,7 @@ class StaticWebFrontend(Frontend):
 
             def configure_layout(self):
                 return StaticWebFrontend("path/to/folder/to/serve")
+
     """
 
     def __init__(self, serve_dir: str) -> None:
@@ -102,8 +103,7 @@ def _start_server(
 
 
 def _get_log_config(log_file: str) -> dict:
-    """Returns a logger configuration in the format expected by uvicorn that sends all logs to the given
-    logfile."""
+    """Returns a logger configuration in the format expected by uvicorn that sends all logs to the given logfile."""
     # Modified from the default config found in uvicorn.config.LOGGING_CONFIG
     return {
         "version": 1,

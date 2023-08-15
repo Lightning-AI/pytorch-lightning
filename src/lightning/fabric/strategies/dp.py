@@ -28,8 +28,8 @@ from lightning.fabric.utilities.distributed import ReduceOp
 
 
 class DataParallelStrategy(ParallelStrategy):
-    """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and
-    each gets a split of the data."""
+    """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and each
+    gets a split of the data."""
 
     def __init__(
         self,
