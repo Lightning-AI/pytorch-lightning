@@ -1,14 +1,15 @@
 .. _model-parallel:
 
-##################################
-Train 1 trillion+ parameter models
-##################################
+###########################################
+Training models with billions of parameters
+###########################################
 
 When training large models, fitting larger batch sizes, or trying to increase throughput using multi-GPU compute, Lightning provides advanced optimized distributed training strategies to support these cases and offer substantial improvements in memory usage.
+Note that some of the extreme memory saving configurations will affect the speed of training.
+This speed/memory trade-off in most cases can be adjusted.
 
-Note that some of the extreme memory saving configurations will affect the speed of training. This Speed/Memory trade-off in most cases can be adjusted.
-
-Some of these memory-efficient strategies rely on offloading onto other forms of memory, such as CPU RAM or NVMe. This means you can even see memory benefits on a **single GPU**, using a strategy such as :ref:`deepspeed-zero-stage-3-offload`.
+Some of these memory-efficient strategies rely on offloading onto other forms of memory, such as CPU RAM or NVMe.
+This means you can even see memory benefits on a **single GPU**, using a strategy such as :ref:`deepspeed-zero-stage-3-offload`.
 
 Check out this amazing video explaining model parallelism and how it works behind the scenes:
 
@@ -18,9 +19,66 @@ Check out this amazing video explaining model parallelism and how it works behin
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 
+*****************************************
+When NOT to use model-parallel strategies
+*****************************************
+
+
+
 *********************************************
-Choosing an Advanced Distributed GPU Strategy
+Choosing the right strategy for your use case
 *********************************************
+
+If you've determined that your model is large enough that you need to leverage model parallelism, you have two training strategies to choose from: FSDP, the native solution that comes built-in with PyTorch, or the popular 3rd party `DeepSpeed <https://github.com/microsoft/DeepSpeed>`__ library.
+Both have a very similar feature set and have been used to train the largest SOTA models in the world.
+Our recommendation is
+
+- **Use FSDP** if you are new to model-parallel training, or if you are migrating from PyTorch FSDP to Lightning.
+- **Use DeepSpeed** if you know you will need cutting edge features not present in FSDP, or you are already familiar with DeepSpeed and are migrating to Lightning.
+
+The table below points out a few important differences between the two.
+
+.. list-table:: Differences between FSDP and DeepSpeed
+   :header-rows: 1
+
+   * -
+     - FSDP
+     - DeepSpeed
+   * - Dependencies
+     - None
+     - Requires the ``deepspeed`` package
+   * - Configuration options
+     - Simple and intuitive
+     - Extensive and complex
+   * - Configuration
+     - Via Trainer
+     - Via Trainer or configuration file
+   * - Activation checkpointing
+     - Yes
+     - Yes, but requires changing the model code
+   * - Offload parameters
+     - CPU
+     - CPU or disk
+   * - Distributed checkpoints
+     - Coming soon
+     - Yes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 If you would like to stick with PyTorch DDP, see :ref:`ddp-optimizations`.
 
