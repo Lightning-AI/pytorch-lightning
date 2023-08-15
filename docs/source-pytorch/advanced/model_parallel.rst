@@ -1,1 +1,0 @@
-TODO: Redirect to model_paralle/index.rst

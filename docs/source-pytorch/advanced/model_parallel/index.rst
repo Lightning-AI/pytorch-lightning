@@ -63,19 +63,3 @@ If you want to try some of the latest and greatest features for model-parallel t
 Another integration is :doc:`Bagua Strategy <../../integrations/strategies/bagua>`, deep learning training acceleration framework for PyTorch, with advanced distributed training algorithms and system optimizations.
 
 For training on unreliable mixed GPUs across the internet check out the :doc:`Hivemind Strategy <../../integrations/strategies/hivemind>` integration.
-
-----
-
-
-.. include:: ../model_init.rst
-
-
-----
-
-
-.. include:: fsdp.rst
-
-
-----
-
-.. include:: deepspeed.rst
