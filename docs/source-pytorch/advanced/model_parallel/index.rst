@@ -63,3 +63,40 @@ If you want to try some of the latest and greatest features for model-parallel t
 Another integration is :doc:`Bagua Strategy <../../integrations/strategies/bagua>`, deep learning training acceleration framework for PyTorch, with advanced distributed training algorithms and system optimizations.
 
 For training on unreliable mixed GPUs across the internet check out the :doc:`Hivemind Strategy <../../integrations/strategies/hivemind>` integration.
+
+
+----
+
+
+******
+Guides
+******
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. displayitem::
+   :header: FSDP
+   :description: Distribute models with billions of parameters across hundreds GPUs with FSDP
+   :col_css: col-md-4
+   :button_link: fsdp.html
+   :height: 160
+   :tag: advanced
+
+.. displayitem::
+   :header: DeepSpeed
+   :description: Distribute models with billions of parameters across hundreds GPUs with DeepSpeed
+   :col_css: col-md-4
+   :button_link: deepspeed.html
+   :height: 160
+   :tag: advanced
+
+
+.. raw:: html
+
+        </div>
+    </div>
