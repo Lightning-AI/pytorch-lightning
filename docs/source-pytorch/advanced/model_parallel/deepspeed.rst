@@ -497,4 +497,3 @@ You can use also use an environment variable via your PyTorch Lightning script:
 .. code-block:: bash
 
     PL_DEEPSPEED_CONFIG_PATH=/path/to/deepspeed_config.json python train.py --strategy deepspeed
-

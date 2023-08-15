@@ -137,4 +137,3 @@ You could also configure activation checkpointing manually inside the ``configur
             apply_activation_checkpointing(self.model)
 
 In this case, Lightning will not re-configure activation checkpointing, so you don't need to set ``FSDPStrategy(activation_checkpointing=...)``.
-
