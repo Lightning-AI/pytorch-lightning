@@ -54,6 +54,11 @@ class XLAEnvironment(ClusterEnvironment):
 
     @functools.lru_cache(maxsize=1)
     def world_size(self) -> int:
+        """The number of processes across all devices and hosts.
+
+        The output is cached for performance.
+
+        """
         import torch_xla.core.xla_model as xm
 
         return xm.xrt_world_size()
@@ -63,6 +68,11 @@ class XLAEnvironment(ClusterEnvironment):
 
     @functools.lru_cache(maxsize=1)
     def global_rank(self) -> int:
+        """The rank (index) of the currently running process across all host and devices.
+
+        The output is cached for performance.
+
+        """
         import torch_xla.core.xla_model as xm
 
         return xm.get_ordinal()
@@ -72,12 +82,22 @@ class XLAEnvironment(ClusterEnvironment):
 
     @functools.lru_cache(maxsize=1)
     def local_rank(self) -> int:
+        """The rank (index) of the currently running process inside of the current host.
+
+        The output is cached for performance.
+
+        """
         import torch_xla.core.xla_model as xm
 
         return xm.get_local_ordinal()
 
     @functools.lru_cache(maxsize=1)
     def node_rank(self) -> int:
+        """The rank (index) of the host on which the current process runs.
+
+        The output is cached for performance.
+
+        """
         if _using_pjrt() and _XLA_GREATER_EQUAL_2_1:
             from torch_xla import runtime as xr
 
