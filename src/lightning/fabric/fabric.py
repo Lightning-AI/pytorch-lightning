@@ -692,6 +692,7 @@ class Fabric:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
                 Set this to ``True`` if you are loading a checkpoint into a large model. Requires ``torch >= 1.13``.
+
         """
         if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
             rank_zero_warn(

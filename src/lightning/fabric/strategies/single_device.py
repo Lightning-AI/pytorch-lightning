@@ -55,8 +55,8 @@ class SingleDeviceStrategy(Strategy):
         module.to(self.root_device)
 
     def all_reduce(self, tensor: Any | torch.Tensor, *args: Any, **kwargs: Any) -> Any | torch.Tensor:
-        """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
-        operates with a single device, the reduction is simply the identity.
+        """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only operates
+        with a single device, the reduction is simply the identity.
 
         Args:
             tensor: the tensor to sync and reduce
