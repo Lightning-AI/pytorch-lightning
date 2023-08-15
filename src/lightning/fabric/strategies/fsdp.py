@@ -809,17 +809,28 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
 
 
 def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> Generator[None, None, None]:
+    from torch.distributed.fsdp import FullStateDictConfig
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-    from torch.distributed.fsdp.api import FullOptimStateDictConfig, FullStateDictConfig, StateDictType
+    from torch.distributed.fsdp import StateDictType
 
     state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
-    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
-    state_dict_type_context = FSDP.state_dict_type(
-        module=module,
-        state_dict_type=StateDictType.FULL_STATE_DICT,
-        state_dict_config=state_dict_config,
-        optim_state_dict_config=optim_state_dict_config,
-    )
+
+    if _TORCH_GREATER_EQUAL_2_0:
+        from torch.distributed.fsdp.api import FullOptimStateDictConfig
+
+        optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
+        state_dict_type_context = FSDP.state_dict_type(
+            module=module,
+            state_dict_type=StateDictType.FULL_STATE_DICT,
+            state_dict_config=state_dict_config,
+            optim_state_dict_config=optim_state_dict_config,
+        )
+    else:
+        state_dict_type_context = FSDP.state_dict_type(
+            module=module,
+            state_dict_type=StateDictType.FULL_STATE_DICT,
+            state_dict_config=state_dict_config,
+        )
     return state_dict_type_context  # type: ignore[return-value]
 
 
