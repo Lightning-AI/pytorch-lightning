@@ -14,7 +14,7 @@
    ../clouds/cluster
    Save and load model progress <checkpointing>
    Save memory with half-precision <precision>
-   ../advanced/model_parallel
+   ../advanced/model_parallel/index
    Train on single or multiple GPUs <../accelerators/gpu>
    Train on single or multiple HPUs <../integrations/hpu/index>
    Train on single or multiple IPUs <../accelerators/ipu>
@@ -134,7 +134,7 @@ How-to Guides
 .. displayitem::
     :header: Train 1 trillion+ parameter models
     :description: Scale GPU training to 1 trillion + parameter models
-    :button_link: ../advanced/model_parallel.html
+    :button_link: ../advanced/model_parallel/index.html
     :col_css: col-md-4
     :height: 180
 
