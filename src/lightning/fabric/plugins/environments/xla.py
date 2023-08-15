@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import logging
 from typing import Any
 
@@ -51,6 +52,7 @@ class XLAEnvironment(ClusterEnvironment):
     def detect() -> bool:
         return XLAAccelerator.is_available()
 
+    @functools.lru_cache(maxsize=1)
     def world_size(self) -> int:
         import torch_xla.core.xla_model as xm
 
@@ -59,6 +61,7 @@ class XLAEnvironment(ClusterEnvironment):
     def set_world_size(self, size: int) -> None:
         log.debug("XLAEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
+    @functools.lru_cache(maxsize=1)
     def global_rank(self) -> int:
         import torch_xla.core.xla_model as xm
 
@@ -67,11 +70,13 @@ class XLAEnvironment(ClusterEnvironment):
     def set_global_rank(self, rank: int) -> None:
         log.debug("XLAEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
+    @functools.lru_cache(maxsize=1)
     def local_rank(self) -> int:
         import torch_xla.core.xla_model as xm
 
         return xm.get_local_ordinal()
 
+    @functools.lru_cache(maxsize=1)
     def node_rank(self) -> int:
         if _using_pjrt() and _XLA_GREATER_EQUAL_2_1:
             from torch_xla import runtime as xr
