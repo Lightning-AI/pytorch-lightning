@@ -282,12 +282,9 @@ The most drastic GPU memory savings can be achieved by offloading parameters to 
 
 .. code-block:: python
 
-    # 1. Set `cpu_offload=True`
+    # Set `cpu_offload=True`
     strategy = FSDPStrategy(..., cpu_offload=True)
     fabric = L.Fabric(..., strategy=strategy)
-
-    # 2. Set `move_to_device=False` (won't be required in future versions)
-    model, optimizer = setup(model, optimizer, move_to_device=False)
 
 The drawback is a much slower training speed due to the added communication between CPU and GPU for transferring parameters in every forward pass.
 You should use this only if you have enough CPU memory and other scaling methods don’t give you enough memory savings.
