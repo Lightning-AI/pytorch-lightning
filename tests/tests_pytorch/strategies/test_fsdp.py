@@ -557,8 +557,11 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
     if trainer.global_rank != 0:
         assert len(model_state_dict) == 0
 
-        if _TORCH_GREATER_EQUAL_2_1:
-            assert len(optimizer_state_dict) == 0
+    if trainer.global_rank != 0 and _TORCH_GREATER_EQUAL_2_1 or not _TORCH_GREATER_EQUAL_2_0:
+        assert len(optimizer_state_dict) == 0
+
+    if not _TORCH_GREATER_EQUAL_2_0:
+        return
 
     # restore model to ddp
     model = TestBoringModel()
@@ -628,10 +631,10 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
     if trainer.global_rank != 0:
         assert len(restored_model_state_dict) == 0
 
-        if _TORCH_GREATER_EQUAL_2_1:
-            assert len(restored_optimizer_state_dict) == 0
+    if trainer.global_rank != 0 and _TORCH_GREATER_EQUAL_2_1 or not _TORCH_GREATER_EQUAL_2_0:
+        assert len(restored_optimizer_state_dict) == 0
 
-    if trainer.global_rank == 0:
+    if trainer.global_rank == 0 and _TORCH_GREATER_EQUAL_2_0:
         # assert everything is the same
         assert len(model_state_dict) == len(restored_model_state_dict)
         assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
@@ -641,7 +644,7 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
     trainer.strategy.barrier()
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
     [
@@ -678,3 +681,12 @@ def test_configure_model(precision, expected_dtype):
 
     model = MyModel()
     trainer.fit(model)
+
+
+@RunIf(min_torch="1.12", max_torch="2.0")
+def test_load_save_optimizer_torch_lt_2_0():
+    strategy = FSDPStrategy()
+    with pytest.warns(UserWarning, match="does not support saving the optimizer state"):
+        strategy.optimizer_state(Mock())
+    with pytest.warns(UserWarning, match="does not support loading the optimizer state"):
+        strategy.load_optimizer_state_dict(Mock())
