@@ -406,6 +406,3 @@ Here's an example using that uses ``wrap`` to create your model:
 In this case, Lightning will not re-wrap your model, so you don't need to set ``FSDPStrategy(auto_wrap_policy=...)``.
 
 Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about it.
-
-
-
