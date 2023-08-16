@@ -218,6 +218,7 @@ After:
 
 
 It is best practice to make the code in :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` idempotent as shown here.
+Learn more about :doc:`efficient initialization of models in Lightning <../model_init>`.
 
 
 ----
