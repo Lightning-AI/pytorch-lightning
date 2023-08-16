@@ -138,6 +138,7 @@ jobs:
     needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
+      fail-fast: false
       matrix:
         name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
@@ -163,6 +164,7 @@ jobs:
     needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
+      fail-fast: false
       matrix:
         name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
