@@ -24,14 +24,6 @@ Expert skills
    :height: 150
    :tag: basic
 
-.. displayitem::
-   :header: Level : Customize your cluster creation
-   :description: Learn to use a custom cloud container.
-   :button_link: build_a_machine_learning_workflow.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
 
 .. raw:: html
 

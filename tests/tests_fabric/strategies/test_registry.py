@@ -56,6 +56,7 @@ def test_available_strategies_in_registry():
         "single_tpu",  # legacy
         "single_xla",
         "xla",
+        "xla_fsdp",
         "dp",
     }
     if _TORCH_GREATER_EQUAL_1_12:

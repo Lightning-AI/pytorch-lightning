@@ -138,17 +138,6 @@ def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "
 
     # Don't skip by default
     if (PACKAGE_LIGHTNING or is_lightning) and not bool(int(os.getenv("SKIP_LIGHTING_UTILITY_WHEELS_BUILD", "0"))):
-        # building and copying launcher wheel if installed in editable mode
-        launcher_project_path = get_dist_path_if_editable_install("lightning_launcher")
-        if launcher_project_path:
-            from lightning_launcher.__version__ import __version__ as launcher_version
-
-            # todo: check why logging.info is missing in outputs
-            print(f"Packaged Lightning Launcher with your application. Version: {launcher_version}")
-            _prepare_wheel(launcher_project_path)
-            tar_name = _copy_tar(launcher_project_path, root)
-            tar_files.append(os.path.join(root, tar_name))
-
         # building and copying lightning-cloud wheel if installed in editable mode
         lightning_cloud_project_path = get_dist_path_if_editable_install("lightning_cloud")
         if lightning_cloud_project_path:
