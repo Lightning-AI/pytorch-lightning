@@ -168,7 +168,7 @@ train, val = data.random_split(dataset, [55000, 5000])
 # -------------------
 autoencoder = LitAutoEncoder()
 trainer = L.Trainer()
-trainer.fit(autoencoder, data.DataLoader(train), data.DataLoader(val))
+trainer.fit(autoencoder, data.DataLoader(train, batch_size=256), data.DataLoader(val, batch_size=256))
 ```
 
 Run the model on your terminal
