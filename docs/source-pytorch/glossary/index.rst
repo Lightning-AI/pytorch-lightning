@@ -10,9 +10,11 @@
    Cloud checkpoint <../common/checkpointing_advanced>
    Console Logging <../common/console_logs>
    Debugging <../debug/debugging>
+   DeepSpeed <../advanced/model_parallel/deepspeed>
    Early stopping <../common/early_stopping>
    Experiment manager (Logger) <../visualize/experiment_managers>
    Finetuning <../advanced/finetuning>
+   FSDP <../advanced/model_parallel/fsdp>
    GPU <../accelerators/gpu>
    Half precision <../common/precision>
    HPU <../integrations/hpu/index>
@@ -102,6 +104,13 @@ Glossary
    :height: 100
 
 .. displayitem::
+   :header: DeepSpeed
+   :description: Distribute models with billions of parameters across hundreds GPUs
+   :col_css: col-md-12
+   :button_link: ../advanced/model_parallel/deepspeed.html
+   :height: 100
+
+.. displayitem::
    :header: Early stopping
    :description: Stop the training when no improvement is observed
    :col_css: col-md-12
@@ -120,6 +129,13 @@ Glossary
    :description: Technique for training pretrained models
    :col_css: col-md-12
    :button_link: ../advanced/finetuning.html
+   :height: 100
+
+.. displayitem::
+   :header: FSDP
+   :description: Distribute models with billions of parameters across hundreds GPUs
+   :col_css: col-md-12
+   :button_link: ../advanced/model_parallel/fsdp.html
    :height: 100
 
 .. displayitem::
