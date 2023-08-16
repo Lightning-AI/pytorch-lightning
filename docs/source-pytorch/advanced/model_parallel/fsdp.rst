@@ -259,15 +259,15 @@ Here is the memory and speed impact for each option when configured in our examp
      - SHARD_GRAD_OP
      - FULL_SHARD
    * - Memory (MB)
-     - 26’953
-     - 23’181
-     - 11’815
-     - 11’578
-   * - Iteration time (sec)
-     - 0.26
-     - 0.30
-     - 0.31
-     - 0.36
+     - 23’125
+     - 19’296
+     - 11’772
+     - 9’627
+   * - Iterations per second
+     - 4.31
+     - 3.04
+     - 3.61
+     - 3.19
 
 
 ----
