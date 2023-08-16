@@ -2,53 +2,359 @@
 
 .. _fully-sharded-training:
 
+###################################################
+Train models with billions of parameters using FSDP
+###################################################
+
+Use Fully Shared Data Parallel (FSDP) to train large models with billions or trillions of parameters efficiently on multiple GPUs and across multiple machines.
+
+.. note:: This is an experimental feature.
+
+
+Today, large models with billions of parameters are trained with many GPUs across several machines in parallel.
+Even a single A100 GPU with 80 GB of VRAM (the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
+The memory consumption for training is generally made up of
+
+1. the model parameters,
+2. the optimizer states (e.g., Adam has two additional exponential averages per parameter),
+3. the layer activations (forward) and
+4. the gradients (backward).
+
+|
+
+When the sum of these memory components exceed the VRAM of a single GPU, regular data-parallel training (DDP) can no longer be employed.
+One of the methods that can alleviate this limitation is called **model-parallel** training, and known as **FSDP** in PyTorch, and in this guide, you will learn how to effectively scale large models with it.
+
+
+----
+
+
+***************************
+Checklist: When to use FSDP
+***************************
+
+|
+
+✅   I have multiple GPUs
+
+✅   I have tried regular DDP training with batch size 1 but I run out of memory
+
+✅   I have PyTorch 2.0 or newer installed
+
+
+----
+
+
 **********************
-Fully Sharded Training
+Enable FSDP in Trainer
 **********************
 
-PyTorch has it's own version of `FSDP <https://pytorch.org/docs/stable/fsdp.html>`_ which is upstreamed from their `fairscale <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__ project.
-It was introduced in their `v1.11.0 release <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_ but it is recommended to use it with PyTorch v1.12 or more and that's what
-Lightning supports.
 
-.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
-
-Auto Wrapping
-=============
-
-Model layers should be wrapped in FSDP in a nested way to save peak memory and enable communication and computation overlapping. The
-simplest way to do it is auto wrapping, which can serve as a drop-in replacement for DDP without changing the rest of the code. You don't
-have to ``wrap`` layers manually as in the case of manual wrapping.
-
-.. note::
-    For users of PyTorch < 2.0: While initializing the optimizers inside ``configure_optimizers`` hook, make sure to use ``self.trainer.model.parameters()``, else
-    PyTorch will raise an error. This is required because when you use auto-wrap, the model layers are sharded and your
-    ``lightning_module.parameters()`` will return a generator with no params.
+To enable model-parallel training with FSDP in a single-line change, set ``strategy="fsdp"``:
 
 .. code-block:: python
 
-    model = BoringModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
-    trainer.fit(model)
+    fabric = L.Trainer(accelerator="cuda", devices=2, strategy="fsdp")
 
-
-You can customize the strategy configuration by adjusting the arguments of :class:`~lightning.pytorch.strategies.FSDPStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
+As we will see in the next sections, there are many settings we can tune to optimize memory usage and throughput, scaling to massively large models.
+This is equivalent to the above, but will let us configure additional settings later:
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
     from lightning.pytorch.strategies import FSDPStrategy
 
-    # equivalent to passing `"fsdp_cpu_offload"`
-    fsdp = FSDPStrategy(cpu_offload=True)
-    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
-
-    # configure the wrapping condition
-    fsdp = FSDPStrategy(auto_wrap_policy={MyTransformerBlock})
-    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
+    fabric = L.Trainer(accelerator="cuda", devices=2, strategy=FSDPStrategy())
 
 
-Read more `here <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/#auto-wrapping>`__.
+Here is a full code example:
 
+.. code-block:: python
+
+    TODO
+
+
+We will reuse this Transformer example throughout the guide, optimize speed and memory usage, and compare it to regular DDP training.
+
+
+----
+
+
+*********************
+Identify large layers
+*********************
+
+Models that have many large layers like linear layers in LLMs, ViTs, etc. with >100M parameters will benefit the most from FSDP because the memory they consume through parameters, activations and corresponding optimizer states can be evenly split across all GPUs.
+However, one should avoid splitting small layers that have a few thousand parameters because communication overhead would dominate and slow the training down.
+We can specify a list of layer classes in the **wrapping policy** to inform FSDP which parameters it should wrap:
+
+.. code-block:: python
+
+    # 1. Define a set of layers that FSDP should manage
+    #    Here we are choosing the large encoder and decoder layers
+    policy = {nn.TransformerEncoderLayer, nn.TransformerDecoderLayer}
+
+    # 2. Pass the policy to the FSDPStrategy object
+    strategy = FSDPStrategy(auto_wrap_policy=policy)
+
+    fabric = L.Trainer(..., strategy=strategy)
+
+.. collapse:: Alternative ways to define the policy (Lightning < 2.1)
+
+    The ``auto_wrap_policy`` argument also accepts the old-style function-policies. For example:
+
+    .. code-block:: python
+
+        from functools import partial
+
+        # 1. Import a suiting wrapping policy from PyTorch
+        from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
+
+        # 2. Configure the policy
+        policy = partial(size_based_auto_wrap_policy, min_num_params=10000)
+
+        # 3. Pass it to the FSDPStrategy object
+        strategy = FSDPStrategy(auto_wrap_policy=policy)
+
+    PyTorch provides several of these functional policies under :mod:`torch.distributed.fsdp.wrap`.
+
+|
+
+Verify that FSDP works with your model by comparing the peak memory usage printed in the CUDA memory summary (see example above) with regular DDP training.
+You should see a decrease in allocated memory and a slight increase in iteration time:
+
+.. list-table::
+   :widths: 25 25 25
+   :header-rows: 1
+
+   * -
+     - DDP
+     - FSDP
+   * - Memory (MB)
+     - 26’953
+     - 11’578
+   * - Iteration time (sec)
+     - 0.26
+     - 0.36
+
+----
+
+
+*****************************
+Speed up model initialization
+*****************************
+
+The standard practice in PyTorch is to put all model parameters into CPU memory first and then in a second step move them to the GPU device.
+However, the larger the model the longer these two steps take. With the :meth:`~lightning.fabric.fabric.Fabric.init_module` context manager, you can initialize very large models quickly and reduce memory peaks.
+
+Before:
+
+.. code-block:: python
+
+    # Slow: Places the model on CPU first
+    model = Transformer(vocab_size=dataset.vocab_size)
+
+After:
+
+.. code-block:: python
+
+    # Fast: Creates the model on the GPU directly
+    with fabric.init_module():
+        model = Transformer(vocab_size=dataset.vocab_size)
+
+
+----
+
+
+******************************
+Optimize the sharding strategy
+******************************
+
+By default, FSDP will automatically shard 1) the model weights 2) the gradients during backward and 3) the optimizer states across all GPUs of the corresponding layers selected by the auto-wrap-policy.
+You can configure the following options to trade-off memory for speed:
+
+.. code-block:: python
+
+    strategy = FSDPStrategy(
+        # Default: Shard weights, gradients, optimizer state (1 + 2 + 3)
+        sharding_strategy="FULL_SHARD",
+        # Shard gradients, optimizer state (2 + 3)
+        sharding_strategy="SHARD_GRAD_OP",
+        # Don't shard anything (similar to DDP)
+        sharding_strategy="NO_SHARD",
+    )
+    fabric = L.Trainer(..., strategy=strategy)
+
+
+**Recipe for choosing a sharding strategy:**
+
+1. Try the default settings first (FULL_SHARD). This is the slowest but will save you the most memory.
+2. Try SHARD_GRAD_OP. If you run out of memory, revert back to the default (FULL_SHARD). Otherwise you should expect to see an increase in iteration speed.
+
+|
+
+Here is the memory and speed impact for each option when configured in our example code:
+
+.. list-table::
+   :widths: 25 25 25 25 25
+   :header-rows: 1
+
+   * -
+     - DDP
+     - NO_SHARD
+     - SHARD_GRAD_OP
+     - FULL_SHARD
+   * - Memory (MB)
+     - 26’953
+     - 23’181
+     - 11’815
+     - 11’578
+   * - Iteration time (sec)
+     - 0.26
+     - 0.30
+     - 0.31
+     - 0.36
+
+
+----
+
+
+**************************
+Trade-off speed for memory
+**************************
+
+If you are short on GPU memory because you are training large models with 10+ billion parameters or require extreme batch sizes, consider trading off speed for more memory by enabling activation checkpointing or CPU offload.
+
+
+Activation checkpointing
+========================
+
+Activations, the intermediate outputs of layers, are stored during the forward pass and needed during the backward pass to compute the gradients.
+By enabling activation checkpointing, we can choose to discard and recompute selected layer activations dynamically during the backward pass when they are required, instead of storing them throughout the forward pass.
+While this approach may slightly reduce training speed, it significantly reduces memory consumption.
+The freed-up memory can then be allocated to increase the model's capacity or accommodate larger batch sizes, resulting in potential performance improvements.
+
+To enable activation checkpointing, pass in the list of layers to checkpoint.
+This is typically your transformer block (including attention + feed-forward):
+
+.. code-block:: python
+
+    strategy = FSDPStrategy(
+        # Enable activation checkpointing on these layers
+        activation_checkpointing_policy={
+            nn.TransformerEncoderLayer,
+            nn.TransformerDecoderLayer,
+        },
+    )
+    fabric = L.Trainer(..., strategy=strategy)
+
+
+Offload parameters to CPU
+=========================
+
+The most drastic GPU memory savings can be achieved by offloading parameters to the CPU:
+
+.. code-block:: python
+
+    # Set `cpu_offload=True`
+    strategy = FSDPStrategy(..., cpu_offload=True)
+    fabric = L.Trainer(..., strategy=strategy)
+
+The drawback is a much slower training speed due to the added communication between CPU and GPU for transferring parameters in every forward pass.
+You should use this only if you have enough CPU memory and other scaling methods don’t give you enough memory savings.
+In our example, we see a 4x memory saving, but a 10x increase in iteration time:
+
+.. list-table::
+   :widths: 25 25 25 25
+   :header-rows: 1
+
+   * -
+     - DDP
+     - FSDP
+     - FSDP + CPU offload
+   * - Memory (MB)
+     - 26’953
+     - 11’578
+     - 2’825
+   * - Iteration time (sec)
+     - 0.26
+     - 0.36
+     - 3.24
+
+
+----
+
+
+**********************************
+Advanced performance optimizations
+**********************************
+
+If you’ve reached a good understanding of how the different FSDP settings impact the memory usage and speed of your model, here are a few more to squeeze out the last bit of performance.
+These settings really depend on the specific use cases, so you will have to turn them on and off to see the impact on your model.
+
+
+Disable foreach in the optimizer
+================================
+
+The commonly used optimizers in PyTorch have a setting ``foreach=True|False`` that speeds up the parameter and state updates when enabled.
+However, you might see a slight memory peak and the larger the model is, the more noticeable it can be.
+Consider disabling the ``foreach`` option if undesired memory patterns occur:
+
+.. code-block:: python
+
+    optimizer = torch.optim.AdamW(model.parameters(), foreach=False)
+
+`See the full list of optimizers that support this <https://pytorch.org/docs/stable/optim.html#algorithms>`_.
+
+
+Limit all-gathers
+=================
+
+If you are running training close to the max.
+GPU memory limit, you might be getting so-called CUDA malloc retries.
+This is essentially the GPU running out of memory but before crashing completely, it tries to find some unused or cached memory it can free.
+When they happen frequently, these retries can have a significant impact on speed.
+Normally, you would decrease the batch size slightly to avoid it.
+With FSDP, you have one more knob you can tweak to combat the issue, by setting ``limit_all_gathers=True``:
+
+.. code-block:: python
+
+    strategy = FSDPStrategy(
+        # Default: The CPU will schedule the transfer of weights between GPUs
+        # at will, sometimes too aggressively
+        limit_all_gathers=False,
+        # Enable this if you are close to the max. GPU memory usage
+        limit_all_gathers=True,
+    )
+    fabric = L.Trainer(..., strategy=strategy)
+
+You can monitor CUDA malloc retries in the output of ``torch.cuda.memory_summary()`` for example, or through the PyTorch profiler.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----
 
 Manual Wrapping
 ===============
@@ -101,39 +407,5 @@ In this case, Lightning will not re-wrap your model, so you don't need to set ``
 
 Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about it.
 
-----
 
 
-Activation Checkpointing
-========================
-
-Activation checkpointing reduces GPU memory usage by avoiding the storage of intermediate activation tensors in
-selected layers. The tradeoff is that computation cost for the backpropagation increases, as the dropped activations
-need to be recomputed.
-
-Enable checkpointing on large layers (like Transformers) by providing a policy:
-
-.. code-block:: python
-
-    from lightning.pytorch.strategies import FSDPStrategy
-
-    fsdp = FSDPStrategy(activation_checkpointing_policy={MyTransformerBlock})
-    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
-
-
-You could also configure activation checkpointing manually inside the ``configure_model`` hook:
-
-.. code-block:: python
-
-    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import apply_activation_checkpointing
-
-
-    class MyModel(pl.LightningModule):
-        ...
-
-        def configure_model(self):
-            # Same code as in the "Manual wrapping" snippet above
-            ...
-            apply_activation_checkpointing(self.model)
-
-In this case, Lightning will not re-configure activation checkpointing, so you don't need to set ``FSDPStrategy(activation_checkpointing=...)``.
