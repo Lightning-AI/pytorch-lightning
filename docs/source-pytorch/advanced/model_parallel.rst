@@ -54,8 +54,8 @@ The table below points out a few important differences between the two.
      - None
      - Requires the ``deepspeed`` package
    * - Configuration options
-     - Simple and intuitive
-     - Extensive and complex
+     - Simpler and easier to get started
+     - More comprehensive, allows finer control
    * - Configuration
      - Via Trainer
      - Via Trainer or configuration file
