@@ -23,6 +23,9 @@ Check out this amazing video explaining model parallelism and how it works behin
 When NOT to use model-parallel strategies
 *****************************************
 
+If the model parameters, activations, optimizer states and gradients all fit in GPU memory, then you do not need to use a model-parallel strategy.
+Instead, use regular distributed data-parallel (DDP) training to scale your batch size and speed up training across multiple GPUs and machines.
+There are several :ref:`DDP optimizations <ddp-optimizations>` you can explore if memory and speed are a concern.
 
 
 *********************************************
