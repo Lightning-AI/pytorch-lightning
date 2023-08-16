@@ -39,7 +39,7 @@ If you've determined that your model is large enough that you need to leverage m
 Both have a very similar feature set and have been used to train the largest SOTA models in the world.
 Our recommendation is
 
-- **Use FSDP** if you are new to model-parallel training, or if you are migrating from PyTorch FSDP to Lightning.
+- **Use FSDP** if you are new to model-parallel training, if you are migrating from PyTorch FSDP to Lightning, or if you are already familiar with DDP.
 - **Use DeepSpeed** if you know you will need cutting edge features not present in FSDP, or you are already familiar with DeepSpeed and are migrating to Lightning.
 
 The table below points out a few important differences between the two.
