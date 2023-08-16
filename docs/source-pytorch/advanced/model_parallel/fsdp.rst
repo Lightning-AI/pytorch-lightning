@@ -84,7 +84,11 @@ Here is a full code example:
         def __init__(self, vocab_size):
             super().__init__()
             self.model = Transformer(  # 1B parameters
-                vocab_size=vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64,
+                vocab_size=vocab_size,
+                nlayers=32,
+                nhid=4096,
+                ninp=1024,
+                nhead=64,
             )
 
         def training_step(self, batch):
@@ -211,7 +215,11 @@ After:
 
         def configure_model(self):
             self.model = self.model or Transformer(  # 1B parameters
-                vocab_size=self.vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64,
+                vocab_size=self.vocab_size,
+                nlayers=32,
+                nhid=4096,
+                ninp=1024,
+                nhead=64,
             )
 
 
