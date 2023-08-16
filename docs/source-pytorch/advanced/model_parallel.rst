@@ -83,7 +83,7 @@ Guides
    :header: FSDP
    :description: Distribute models with billions of parameters across hundreds GPUs with FSDP
    :col_css: col-md-4
-   :button_link: fsdp.html
+   :button_link: model_parallel/fsdp.html
    :height: 160
    :tag: advanced
 
@@ -91,7 +91,7 @@ Guides
    :header: DeepSpeed
    :description: Distribute models with billions of parameters across hundreds GPUs with DeepSpeed
    :col_css: col-md-4
-   :button_link: deepspeed.html
+   :button_link: model_parallel/deepspeed.html
    :height: 160
    :tag: advanced
 

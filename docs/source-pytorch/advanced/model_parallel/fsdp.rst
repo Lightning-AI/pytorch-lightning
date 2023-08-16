@@ -83,7 +83,9 @@ Here is a full code example:
     class LanguageModel(L.LightningModule):
         def __init__(self, vocab_size):
             super().__init__()
-            self.model = Transformer(vocab_size=vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64)
+            self.model = Transformer(  # 1B parameters
+                vocab_size=vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64
+            )
 
         def training_step(self, batch):
             input, target = batch
@@ -169,11 +171,11 @@ You should see a decrease in allocated memory and a slight increase in iteration
      - DDP
      - FSDP
    * - Memory (MB)
-     - 26’953 (TODO!)
+     - 23’125
      - 9’627
-   * - Iteration time (sec)
-     - 0.26 (TODO!)
-     - 0.36 (TODO!)
+   * - Iterations per second
+     - 4.31
+     - 3.19
 
 ----
 
@@ -183,22 +185,39 @@ Speed up model initialization
 *****************************
 
 The standard practice in PyTorch is to put all model parameters into CPU memory first and then in a second step move them to the GPU device.
-However, the larger the model the longer these two steps take. With the :meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module` context manager, you can initialize very large models quickly and reduce memory peaks.
+However, the larger the model the longer these two steps take.
+If you create the large model layers inside the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook, you can initialize very large models quickly and reduce memory peaks.
 
 Before:
 
 .. code-block:: python
 
     # Slow: Places the model on CPU first
-    model = Transformer(vocab_size=dataset.vocab_size)
+    class LanguageModel(L.LightningModule):
+        def __init__(self, vocab_size):
+            super().__init__()
+            self.model = Transformer(  # 1B parameters
+                vocab_size=vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64
+            )
 
 After:
 
 .. code-block:: python
 
-    # Fast: Creates the model on the GPU directly
-    with trainer.init_module():
-        model = Transformer(vocab_size=dataset.vocab_size)
+    # Fast: Delays the model creation until Trainer can place it on GPU
+    class LanguageModel(L.LightningModule):
+        def __init__(self, vocab_size):
+            super().__init__()
+            self.vocab_size = vocab_size
+            self.model = None
+
+        def configure_model(self):
+            self.model = self.model or Transformer(  # 1B parameters
+                vocab_size=self.vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64
+            )
+
+
+It is best practice to make the code in :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` idempotent as shown here.
 
 
 ----
