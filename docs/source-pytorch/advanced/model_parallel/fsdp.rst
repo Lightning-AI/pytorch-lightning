@@ -83,7 +83,9 @@ Here is a full code example:
     class LanguageModel(L.LightningModule):
         def __init__(self, vocab_size):
             super().__init__()
-            self.model = Transformer(vocab_size=vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64)  # 1B parameters
+            self.model = Transformer(  # 1B parameters
+                vocab_size=vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64,
+            )
 
         def training_step(self, batch):
             input, target = batch
@@ -106,7 +108,7 @@ Here is a full code example:
     model = LanguageModel(vocab_size=dataset.vocab_size)
 
     # Trainer
-    trainer = L.Trainer(max_steps=10, accelerator="cuda", devices=2, strategy=FSDPStrategy())
+    trainer = L.Trainer(accelerator="cuda", devices=2, strategy=FSDPStrategy())
     trainer.fit(model, train_dataloader)
     trainer.print(torch.cuda.memory_summary())
 
