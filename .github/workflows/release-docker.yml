@@ -3,6 +3,9 @@ name: Docker
 on:
   push:
     branches: [master, "release/*"]
+  pull_request:
+    paths:
+      - ".github/workflows/release-docker.yml"
   release:
     types: [published]
 
@@ -16,7 +19,6 @@ jobs:
       matrix:
         include:
           # We only release one docker image per PyTorch version.
-          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.7.1"}
           - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.8.0"}
           - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "12.0.1"}
           - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.8.0"}
@@ -36,6 +38,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: dockers/release/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
           build_args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
@@ -49,12 +52,13 @@ jobs:
       - name: Publish Latest to Docker
         uses: docker/build-push-action@v4
         # Only latest Python and PyTorch
-        if: matrix.python_version == '3.9' && matrix.pytorch_version == '1.13'
+        if: matrix.python_version == '3.10' && matrix.pytorch_version == '2.0'
         with:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: dockers/release/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
           build_args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
