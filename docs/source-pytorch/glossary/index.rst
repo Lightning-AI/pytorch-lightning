@@ -25,7 +25,7 @@
    TPU <../accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <../model/build_model.rst>
-   Model Parallel <../advanced/model_parallel/index>
+   Model Parallel <../advanced/model_parallel>
    Plugins <../extensions/plugins>
    Progress bar <../common/progress_bar>
    Production <../deploy/production_advanced>
@@ -203,7 +203,7 @@ Glossary
    :header: Model Parallelism
    :description: A way to scale training that splits a model between multiple devices.
    :col_css: col-md-12
-   :button_link: ../advanced/model_parallel/index.html
+   :button_link: ../advanced/model_parallel.html
    :height: 100
 
 .. displayitem::
