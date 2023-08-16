@@ -211,7 +211,7 @@ After:
 
         def configure_model(self):
             self.model = self.model or Transformer(  # 1B parameters
-                vocab_size=self.vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64
+                vocab_size=self.vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64,
             )
 
 
@@ -329,13 +329,13 @@ In our example, we see a 4x memory saving, but a 10x increase in iteration time:
      - FSDP
      - FSDP + CPU offload
    * - Memory (MB)
-     - 26’953
-     - 11’578
-     - 2’825
-   * - Iteration time (sec)
-     - 0.26
-     - 0.36
-     - 3.24
+     - 23’125
+     - 9’627
+     - 2’790
+   * - Iterations per second
+     - 4.31
+     - 3.19
+     - 0.02
 
 
 ----
