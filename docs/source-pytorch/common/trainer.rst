@@ -957,7 +957,7 @@ Additionally, you can pass a strategy object.
 
 See Also:
     - :ref:`Multi GPU Training <multi_gpu>`.
-    - :doc:`Model Parallel GPU training guide <../advanced/model_parallel/index>`.
+    - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
     - :doc:`TPU training guide <../accelerators/tpu>`.
 
 
