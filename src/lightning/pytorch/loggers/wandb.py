@@ -488,6 +488,7 @@ class WandbLogger(Logger):
             **kwargs: Optional kwargs are lists passed to each Wandb.Audio instance (ex: caption, sample_rate).
 
         Optional kwargs are lists passed to each audio (ex: caption, sample_rate).
+
         """
         if not isinstance(audios, list):
             raise TypeError(f'Expected a list as "audios", found {type(audios)}')
@@ -510,6 +511,7 @@ class WandbLogger(Logger):
             **kwargs: Optional kwargs are lists passed to each Wandb.Video instance (ex: caption, fps, format).
 
         Optional kwargs are lists passed to each video (ex: caption, fps, format).
+
         """
         if not isinstance(videos, list):
             raise TypeError(f'Expected a list as "videos", found {type(videos)}')
