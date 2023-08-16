@@ -25,7 +25,7 @@ Scale to 1 trillion+ parameters with multiple distributed strategies.
 
 .. displayitem::
    :header: Reach 1 trillion parameters on GPUs
-   :description: Scale to 1 trillion params on GPUs with FSDP and Deepspeed.
+   :description: Scale to 1 trillion params on GPUs with FSDP and DeepSpeed.
    :col_css: col-md-6
    :button_link: ../advanced/model_parallel.html
    :height: 150
