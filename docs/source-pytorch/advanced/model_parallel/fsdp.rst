@@ -54,7 +54,7 @@ To enable model-parallel training with FSDP in a single-line change, set ``strat
 
 .. code-block:: python
 
-    fabric = L.Trainer(accelerator="cuda", devices=2, strategy="fsdp")
+    trainer = L.Trainer(accelerator="cuda", devices=2, strategy="fsdp")
 
 As we will see in the next sections, there are many settings we can tune to optimize memory usage and throughput, scaling to massively large models.
 This is equivalent to the above, but will let us configure additional settings later:
@@ -63,7 +63,7 @@ This is equivalent to the above, but will let us configure additional settings l
 
     from lightning.pytorch.strategies import FSDPStrategy
 
-    fabric = L.Trainer(accelerator="cuda", devices=2, strategy=FSDPStrategy())
+    trainer = L.Trainer(accelerator="cuda", devices=2, strategy=FSDPStrategy())
 
 
 Here is a full code example:
@@ -96,7 +96,7 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
     # 2. Pass the policy to the FSDPStrategy object
     strategy = FSDPStrategy(auto_wrap_policy=policy)
 
-    fabric = L.Trainer(..., strategy=strategy)
+    trainer = L.Trainer(..., strategy=strategy)
 
 .. collapse:: Alternative ways to define the policy (Lightning < 2.1)
 
@@ -144,7 +144,7 @@ Speed up model initialization
 *****************************
 
 The standard practice in PyTorch is to put all model parameters into CPU memory first and then in a second step move them to the GPU device.
-However, the larger the model the longer these two steps take. With the :meth:`~lightning.fabric.fabric.Fabric.init_module` context manager, you can initialize very large models quickly and reduce memory peaks.
+However, the larger the model the longer these two steps take. With the :meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module` context manager, you can initialize very large models quickly and reduce memory peaks.
 
 Before:
 
@@ -158,7 +158,7 @@ After:
 .. code-block:: python
 
     # Fast: Creates the model on the GPU directly
-    with fabric.init_module():
+    with trainer.init_module():
         model = Transformer(vocab_size=dataset.vocab_size)
 
 
@@ -182,7 +182,7 @@ You can configure the following options to trade-off memory for speed:
         # Don't shard anything (similar to DDP)
         sharding_strategy="NO_SHARD",
     )
-    fabric = L.Trainer(..., strategy=strategy)
+    trainer = L.Trainer(..., strategy=strategy)
 
 
 **Recipe for choosing a sharding strategy:**
@@ -245,7 +245,7 @@ This is typically your transformer block (including attention + feed-forward):
             nn.TransformerDecoderLayer,
         },
     )
-    fabric = L.Trainer(..., strategy=strategy)
+    trainer = L.Trainer(..., strategy=strategy)
 
 
 Offload parameters to CPU
@@ -257,7 +257,7 @@ The most drastic GPU memory savings can be achieved by offloading parameters to 
 
     # Set `cpu_offload=True`
     strategy = FSDPStrategy(..., cpu_offload=True)
-    fabric = L.Trainer(..., strategy=strategy)
+    trainer = L.Trainer(..., strategy=strategy)
 
 The drawback is a much slower training speed due to the added communication between CPU and GPU for transferring parameters in every forward pass.
 You should use this only if you have enough CPU memory and other scaling methods don’t give you enough memory savings.
@@ -325,7 +325,7 @@ With FSDP, you have one more knob you can tweak to combat the issue, by setting 
         # Enable this if you are close to the max. GPU memory usage
         limit_all_gathers=True,
     )
-    fabric = L.Trainer(..., strategy=strategy)
+    trainer = L.Trainer(..., strategy=strategy)
 
 You can monitor CUDA malloc retries in the output of ``torch.cuda.memory_summary()`` for example, or through the PyTorch profiler.
 
