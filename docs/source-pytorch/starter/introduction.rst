@@ -236,7 +236,7 @@ Enable advanced training features using Trainer arguments. These are state-of-th
        accelerator="gpu",
     )
 
-   # train 1T+ parameter models with DeepSpeed/FSDP
+   # train 1TB+ parameter models with Deepspeed/fsdp
    trainer = Trainer(
        devices=4,
        accelerator="gpu",
