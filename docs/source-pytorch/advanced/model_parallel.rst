@@ -4,14 +4,10 @@
 Training models with billions of parameters
 ###########################################
 
-When training large models, fitting larger batch sizes, or trying to increase throughput using multi-GPU compute, Lightning provides advanced optimized distributed training strategies to support these cases and offer substantial improvements in memory usage.
-Note that some of the extreme memory saving configurations will affect the speed of training.
-This speed/memory trade-off in most cases can be adjusted.
+**Audience**: Users who want to train massive models of billions of parameters efficiently across multiple GPUs and machines.
 
-Some of these memory-efficient strategies rely on offloading onto other forms of memory, such as CPU RAM or NVMe.
-This means you can even see memory benefits on a **single GPU**, using a strategy such as :ref:`deepspeed-zero-stage-3-offload`.
-
-Check out this amazing video explaining model parallelism and how it works behind the scenes:
+Lightning provides advanced and optimized model-parallel training strategies to support massive models of billions of parameters.
+Check out this amazing video for an introduction to model parallelism and its benefits:
 
 .. raw:: html
 
@@ -39,7 +35,7 @@ There are several :ref:`DDP optimizations <ddp-optimizations>` you can explore i
 Choosing the right strategy for your use case
 *********************************************
 
-If you've determined that your model is large enough that you need to leverage model parallelism, you have two training strategies to choose from: FSDP, the native solution that comes built-in with PyTorch, or the popular 3rd party `DeepSpeed <https://github.com/microsoft/DeepSpeed>`__ library.
+If you've determined that your model is large enough that you need to leverage model parallelism, you have two training strategies to choose from: FSDP, the native solution that comes built-in with PyTorch, or the popular third-party `DeepSpeed <https://github.com/microsoft/DeepSpeed>`__ library.
 Both have a very similar feature set and have been used to train the largest SOTA models in the world.
 Our recommendation is
 
@@ -94,7 +90,7 @@ Once you've chosen the right strategy for your use case, follow the full guide b
    :header: FSDP
    :description: Distribute models with billions of parameters across hundreds GPUs with FSDP
    :col_css: col-md-4
-   :button_link: fsdp.html
+   :button_link: model_parallel/fsdp.html
    :height: 160
    :tag: advanced
 
@@ -102,7 +98,7 @@ Once you've chosen the right strategy for your use case, follow the full guide b
    :header: DeepSpeed
    :description: Distribute models with billions of parameters across hundreds GPUs with DeepSpeed
    :col_css: col-md-4
-   :button_link: deepspeed.html
+   :button_link: model_parallel/deepspeed.html
    :height: 160
    :tag: advanced
 
