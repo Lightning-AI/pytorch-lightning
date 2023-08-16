@@ -387,64 +387,30 @@ With FSDP, you have one more knob you can tweak to combat the issue, by setting 
 You can monitor CUDA malloc retries in the output of ``torch.cuda.memory_summary()`` for example, or through the PyTorch profiler.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-----
-
-Manual Wrapping
+Manual wrapping
 ===============
 
-Manual wrapping can be useful to explore complex sharding strategies by applying ``wrap`` selectively to some parts of the model. To activate
-parameter sharding with manual wrapping, you can wrap your model using the ``wrap`` function. Internally in Lightning, we enable a context manager around the ``configure_model`` hook to make sure the ``wrap`` parameters are passed correctly.
+Manual wrapping can be useful to explore complex sharding strategies by applying ``wrap`` selectively to some parts of the model.
+To activate parameter sharding with manual wrapping, you can wrap your model using the ``wrap`` function.
+Internally in Lightning, we enable a context manager around the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook to make sure the ``wrap`` parameters are passed correctly.
 
-When not using Fully Sharded, these ``wrap`` calls are a no-op. This means once the changes have been made, there is no need to remove the changes for other strategies.
-
-``wrap`` simply wraps the module with a Fully Sharded Parallel class with the correct parameters from the Lightning context manager.
-
-Here's an example using that uses ``wrap`` to create your model:
+Here is an example that uses ``wrap`` to create a model:
 
 .. code-block:: python
 
     import torch
     import torch.nn as nn
-    import lightning.pytorch as pl
-    from lightning.pytorch import Trainer
+    import lightning as L
+
     from torch.distributed.fsdp.wrap import wrap
 
 
-    class MyModel(pl.LightningModule):
+    class MyModel(L.LightningModule):
         def configure_model(self):
             self.linear_layer = nn.Linear(32, 32)
             self.block = nn.Sequential(nn.Linear(32, 32), nn.Linear(32, 32))
 
-            # modules are sharded across processes
-            # as soon as they are wrapped with `wrap`.
-            # During the forward/backward passes, weights get synced across processes
-            # and de-allocated once computation is complete, saving memory.
-
-            # Wraps the layer in a Fully Sharded Wrapper automatically
+            # Modules get sharded across processes as soon as they are wrapped with `wrap`.
             linear_layer = wrap(self.linear_layer)
 
             for i, layer in enumerate(self.block):
@@ -457,9 +423,10 @@ Here's an example using that uses ``wrap`` to create your model:
 
 
     model = MyModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
+    trainer = L.Trainer(accelerator="cuda", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
 
+When not using FSDP, these ``wrap`` calls are a no-op.
+This means once the changes have been made, there is no need to remove the changes for other strategies.
 In this case, Lightning will not re-wrap your model, so you don't need to set ``FSDPStrategy(auto_wrap_policy=...)``.
-
 Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about it.
