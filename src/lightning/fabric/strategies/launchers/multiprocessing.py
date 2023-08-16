@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
 import os
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
@@ -19,7 +20,10 @@ from typing import Any, Callable, Dict, Literal, Optional, TYPE_CHECKING
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
+from lightning_utilities import apply_to_collection
+from torch.nn import Module
 
+from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
@@ -50,6 +54,7 @@ class _MultiProcessingLauncher(_Launcher):
             - 'fork': Preferable for IPython/Jupyter environments where 'spawn' is not available. Not available on
               the Windows platform for example.
             - 'forkserver': Alternative implementation to 'fork'.
+
     """
 
     def __init__(
@@ -82,6 +87,7 @@ class _MultiProcessingLauncher(_Launcher):
             function: The entry point for all launched processes.
             *args: Optional positional arguments to be passed to the given function.
             **kwargs: Optional keyword arguments to be passed to the given function.
+
         """
         if self._start_method in ("fork", "forkserver"):
             _check_bad_cuda_fork()
@@ -120,6 +126,10 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
+
+        if self._start_method == "spawn" and isinstance(self._strategy.accelerator, CPUAccelerator):
+            args, kwargs = _disable_module_memory_sharing((args, kwargs))
+
         os.environ["LOCAL_RANK"] = str(process_idx)
         results = function(*args, **kwargs)
 
@@ -143,6 +153,7 @@ class _GlobalStateSnapshot:
 
             # in worker process
             snapshot.restore()
+
     """
 
     use_deterministic_algorithms: bool
@@ -152,8 +163,7 @@ class _GlobalStateSnapshot:
 
     @classmethod
     def capture(cls) -> "_GlobalStateSnapshot":
-        """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker
-        process."""
+        """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker process."""
         return cls(
             use_deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
             use_deterministic_algorithms_warn_only=torch.is_deterministic_algorithms_warn_only_enabled(),
@@ -175,6 +185,7 @@ def _check_bad_cuda_fork() -> None:
 
     The error message replaces PyTorch's 'Cannot re-initialize CUDA in forked subprocess' with helpful advice for
     Lightning users.
+
     """
     if not torch.cuda.is_initialized():
         return
@@ -187,3 +198,21 @@ def _check_bad_cuda_fork() -> None:
     if _IS_INTERACTIVE:
         message += " You will have to restart the Python kernel."
     raise RuntimeError(message)
+
+
+def _disable_module_memory_sharing(data: Any) -> Any:
+    """Disables memory sharing on parameters and buffers of `nn.Module`s contained in the given collection.
+
+    Note: This is only required when running on CPU.
+    """
+    # PyTorch enables memory sharing automatically on all tensors that are passed through `mp.spawn`.
+    # For model weights and buffers, this is undesired and can lead to race conditions between processes.
+    # Hence, we copy the tensors in the entire module to ensure it doesn't share memory with other processes.
+
+    @torch.no_grad()
+    def unshare(module: Module) -> Module:
+        for tensor in itertools.chain(module.parameters(), module.buffers()):
+            tensor.data = tensor.data.clone()
+        return module
+
+    return apply_to_collection(data, function=unshare, dtype=Module)

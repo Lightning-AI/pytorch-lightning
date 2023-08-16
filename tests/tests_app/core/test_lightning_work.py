@@ -70,8 +70,7 @@ def test_lightning_work_no_children_allowed():
 
 
 def test_forgot_to_call_init():
-    """This test validates the error message for user registering state without calling __init__ is
-    comprehensible."""
+    """This test validates the error message for user registering state without calling __init__ is comprehensible."""
 
     class W(LightningWork):
         def __init__(self):
@@ -110,8 +109,8 @@ def test_unsupported_attribute_declaration_outside_init(name, value):
     ],
 )
 def test_supported_attribute_declaration_outside_init(name, value):
-    """Test the custom LightningWork setattr implementation for the few reserved attributes that are allowed to be
-    set from outside __init__."""
+    """Test the custom LightningWork setattr implementation for the few reserved attributes that are allowed to be set
+    from outside __init__."""
     flow = EmptyWork()
     setattr(flow, name, value)
     assert getattr(flow, name) == value

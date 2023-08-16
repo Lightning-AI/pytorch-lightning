@@ -220,6 +220,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise ImportError(
@@ -313,6 +314,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         Return:
             The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
             deepspeed optimizer.
+
         """
         if len(optimizers) != 1:
             raise ValueError(
@@ -328,6 +330,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         """Set up a module for inference (no optimizers).
 
         For training, see :meth:`setup_module_and_optimizers`.
+
         """
         self._deepspeed_engine, _ = self._initialize_engine(module)
         return self._deepspeed_engine
@@ -336,6 +339,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         """Optimizers can only be set up jointly with the model in this strategy.
 
         Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer together.
+
         """
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
@@ -386,6 +390,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             ValueError:
                 When no :class:`deepspeed.DeepSpeedEngine` objects were found in the state, or when multiple
                 :class:`deepspeed.DeepSpeedEngine` objects were found.
+
         """
         if storage_options is not None:
             raise TypeError(
@@ -451,6 +456,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             RuntimeError:
                 If DeepSpeed was unable to load the checkpoint due to missing files or because the checkpoint is
                 not in the expected DeepSpeed format.
+
         """
         if isinstance(state, (Module, Optimizer)) or self.load_full_weights and self.zero_stage_3:
             # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
@@ -565,6 +571,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
         This calls :func:`deepspeed.initialize` internally.
+
         """
         import deepspeed
 
@@ -720,12 +727,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return cfg
 
     def _restore_zero_state(self, module: Module, ckpt: Mapping[str, Any]) -> None:
-        """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be
-        sharded across processes before loading the state dictionary when using ZeRO stage 3. This is then
-        automatically synced across processes.
+        """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be sharded
+        across processes before loading the state dictionary when using ZeRO stage 3. This is then automatically synced
+        across processes.
 
         Args:
             ckpt: The ckpt file.
+
         """
         import deepspeed
 

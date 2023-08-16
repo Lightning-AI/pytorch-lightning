@@ -60,6 +60,7 @@ class Auth:
         Returns
         ----------
         True if credentials are available.
+
         """
         if not self.secrets_file.exists():
             logger.debug("Credentials file not found.")
@@ -71,7 +72,7 @@ class Auth:
             return True
 
     def save(self, token: str = "", user_id: str = "", api_key: str = "", username: str = "") -> None:
-        """save credentials to disk."""
+        """Save credentials to disk."""
         self.secrets_file.parent.mkdir(exist_ok=True, parents=True)
         with self.secrets_file.open("w") as f:
             json.dump(
@@ -98,7 +99,7 @@ class Auth:
 
     @property
     def auth_header(self) -> Optional[str]:
-        """authentication header used by lightning-cloud client."""
+        """Authentication header used by lightning-cloud client."""
         if self.api_key:
             token = f"{self.user_id}:{self.api_key}"
             return f"Basic {base64.b64encode(token.encode('ascii')).decode('ascii')}"  # E501
@@ -108,7 +109,7 @@ class Auth:
         )
 
     def _run_server(self) -> None:
-        """start a server to complete authentication."""
+        """Start a server to complete authentication."""
         AuthServer().login_with_browser(self)
 
     def authenticate(self) -> Optional[str]:
@@ -117,6 +118,7 @@ class Auth:
         Returns
         ----------
         authorization header to use when authentication completes.
+
         """
         if not self.load():
             # First try to authenticate from env

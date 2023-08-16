@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import os
+import re
 from unittest import mock
 
 import pytest
@@ -82,3 +83,12 @@ def test_detect():
         },
     ):
         assert TorchElasticEnvironment.detect()
+
+
+@mock.patch.dict(os.environ, {"WORLD_SIZE": "8"})
+def test_validate_user_settings():
+    """Test that the environment can validate the number of devices and nodes set in Fabric/Trainer."""
+    env = TorchElasticEnvironment()
+    env.validate_settings(num_devices=4, num_nodes=2)
+    with pytest.raises(ValueError, match=re.escape("the product (2 * 2) does not match the world size (8)")):
+        env.validate_settings(num_devices=2, num_nodes=2)

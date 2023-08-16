@@ -27,6 +27,7 @@ def test_run_frontend(monkeypatch):
     dispatcher.
 
     This CLI call is made by Lightning AI and is not meant to be invoked by the user directly.
+
     """
     runner = CliRunner()
 

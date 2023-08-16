@@ -356,7 +356,7 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
                 assert metrics["callback"]["tracking"] == expected
                 assert computed_value == 2
 
-                assert self.results["training_step.tracking_2"].value == total * devices
+                assert self.results["training_step.tracking_2"].value == total
                 assert metrics["callback"]["tracking_2"] == expected
                 assert computed_value == 2
                 self.has_validated_sum = True

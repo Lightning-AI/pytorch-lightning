@@ -96,7 +96,8 @@ def _load_from_checkpoint(
         model = _load_state(cls, checkpoint, strict=strict, **kwargs)
         state_dict = checkpoint["state_dict"]
         if not state_dict:
-            raise ValueError(f"The state dict in {checkpoint_path!r} contains no parameters.")
+            rank_zero_warn(f"The state dict in {checkpoint_path!r} contains no parameters.")
+            return model
 
         device = next((t for t in state_dict.values() if isinstance(t, torch.Tensor)), torch.tensor(0)).device
         assert isinstance(model, pl.LightningModule)
@@ -215,6 +216,7 @@ def update_hparams(hparams: dict, updates: dict) -> None:
     Args:
         hparams: the original params and also target object
         updates: new params to be used as update
+
     """
     for k, v in updates.items():
         # if missing, add the key
@@ -240,6 +242,7 @@ def load_hparams_from_tags_csv(tags_csv: _PATH) -> Dict[str, Any]:
     >>> vars(hparams) == hparams_new
     True
     >>> os.remove(path_csv)
+
     """
     fs = get_filesystem(tags_csv)
     if not fs.exists(tags_csv):
@@ -282,6 +285,7 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Di
     >>> vars(hparams) == hparams_new
     True
     >>> os.remove(path_yaml)
+
     """
     fs = get_filesystem(config_yaml)
     if not fs.exists(config_yaml):

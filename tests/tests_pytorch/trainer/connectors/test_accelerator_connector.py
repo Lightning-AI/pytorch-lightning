@@ -36,7 +36,9 @@ from lightning.pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAcce
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision import (
+    DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
+    FSDPPrecisionPlugin,
     HalfPrecisionPlugin,
     MixedPrecisionPlugin,
     PrecisionPlugin,
@@ -547,17 +549,11 @@ def test_check_fsdp_strategy_and_fallback():
         Trainer(accelerator="cpu", strategy="fsdp")
 
 
-def test_unsupported_tpu_choice(tpu_available):
-    with pytest.raises(
-        MisconfigurationException, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"
-    ):
-        Trainer(accelerator="tpu", precision="64-true")
-
-    # if user didn't set strategy, AcceleratorConnector will choose "single_xla" or "xla"
-    with pytest.raises(
-        ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"
-    ), pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16-mixed\)` but AMP with fp16 is not supported"):
-        Trainer(accelerator="tpu", precision="16-mixed", strategy="ddp")
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_unsupported_tpu_choice(xla_available, tpu_available):
+    # if user didn't set strategy, _Connector will choose the SingleDeviceXLAStrategy or XLAStrategy
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
+        Trainer(accelerator="tpu", precision="16-true", strategy="ddp")
 
 
 def mock_ipu_available(monkeypatch, value=True):
@@ -1015,16 +1011,26 @@ def test_connector_sets_num_nodes(strategy, cuda_count_2):
 
 
 @pytest.mark.parametrize(
-    ("precision_str", "precision_cls"),
+    ("precision_str", "strategy_str", "expected_precision_cls"),
     [
-        ("64-true", DoublePrecisionPlugin),
-        ("32-true", PrecisionPlugin),
-        ("16-true", HalfPrecisionPlugin),
-        ("bf16-true", HalfPrecisionPlugin),
-        ("16-mixed", MixedPrecisionPlugin),
-        ("bf16-mixed", MixedPrecisionPlugin),
+        ("64-true", "auto", DoublePrecisionPlugin),
+        ("32-true", "auto", PrecisionPlugin),
+        ("16-true", "auto", HalfPrecisionPlugin),
+        ("bf16-true", "auto", HalfPrecisionPlugin),
+        ("16-mixed", "auto", MixedPrecisionPlugin),
+        ("bf16-mixed", "auto", MixedPrecisionPlugin),
+        pytest.param("32-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("bf16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("bf16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("32-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("16-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("bf16-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("16-mixed", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("bf16-mixed", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
     ],
 )
-def test_precision_selection(precision_str, precision_cls):
-    connector = _AcceleratorConnector(precision=precision_str)
-    assert isinstance(connector.precision_plugin, precision_cls)
+def test_precision_selection(precision_str, strategy_str, expected_precision_cls):
+    connector = _AcceleratorConnector(precision=precision_str, strategy=strategy_str)
+    assert isinstance(connector.precision_plugin, expected_precision_cls)
