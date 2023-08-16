@@ -482,6 +482,12 @@ class WandbLogger(Logger):
     def log_audio(self, key: str, audios: List[Any], step: Optional[int] = None, **kwargs: Any) -> None:
         """Log audios (numpy arrays, or file paths).
 
+        Args:
+            key: The key to be used for logging the audio files
+            audios: The list of audio file paths, or numpy arrays to be logged
+            step: The step number to be used for logging the audio files
+            **kwargs: Optional kwargs are lists passed to each Wandb.Audio instance (ex: caption, sample_rate).
+
         Optional kwargs are lists passed to each audio (ex: caption, sample_rate).
         """
         if not isinstance(audios, list):
@@ -497,6 +503,12 @@ class WandbLogger(Logger):
     @rank_zero_only
     def log_video(self, key: str, videos: List[Any], step: Optional[int] = None, **kwargs: Any) -> None:
         """Log videos (numpy arrays, or file paths).
+
+        Args:
+            key: The key to be used for logging the video files
+            videos: The list of video file paths, or numpy arrays to be logged
+            step: The step number to be used for logging the video files
+            **kwargs: Optional kwargs are lists passed to each Wandb.Video instance (ex: caption, fps, format).
 
         Optional kwargs are lists passed to each video (ex: caption, fps, format).
         """
