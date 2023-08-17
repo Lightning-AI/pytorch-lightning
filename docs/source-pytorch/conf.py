@@ -28,6 +28,8 @@ import lightning
 # VARIABLES WHEN WORKING ON DOCS... MAKE THIS TRUE TO BUILD FASTER
 # -----------------------
 _PL_FAST_DOCS_DEV = bool(int(os.getenv("PL_FAST_DOCS_DEV", 0)))
+_DOCS_FETCHING_ASSETS = int(os.environ.get("DOCS_FETCHING_ASSETS", True))
+_SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
 # -----------------------
 # BUILD stuff
@@ -36,6 +38,7 @@ _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.join(_PATH_HERE, "..", "..")
 _PATH_RAW_NB = os.path.join(_PATH_ROOT, "_notebooks")
 _SHOULD_COPY_NOTEBOOKS = True
+_FOLDER_GENERATED = "generated"
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -53,8 +56,6 @@ else:
     _SHOULD_COPY_NOTEBOOKS = False
     warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
 
-FOLDER_GENERATED = "generated"
-SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
 # -- Project documents -------------------------------------------------------
 
@@ -80,14 +81,14 @@ if _SHOULD_COPY_NOTEBOOKS:
             os.remove(file)
 
 
-os.makedirs(os.path.join(_PATH_HERE, FOLDER_GENERATED), exist_ok=True)
+os.makedirs(os.path.join(_PATH_HERE, _FOLDER_GENERATED), exist_ok=True)
 # copy all documents from GH templates like contribution guide
 for md in glob.glob(os.path.join(_PATH_ROOT, ".github", "*.md")):
-    shutil.copy(md, os.path.join(_PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
+    shutil.copy(md, os.path.join(_PATH_HERE, _FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
 _transform_changelog(
     os.path.join(_PATH_ROOT, "src", "lightning", "fabric", "CHANGELOG.md"),
-    os.path.join(_PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
+    os.path.join(_PATH_HERE, _FOLDER_GENERATED, "CHANGELOG.md"),
 )
 
 
@@ -97,7 +98,7 @@ assist_local.AssistantCLI.pull_docs_files(
     checkout="tags/1.0.0",
 )
 
-if not _PL_FAST_DOCS_DEV:
+if _DOCS_FETCHING_ASSETS:
     fetch_external_assets(
         docs_folder=_PATH_HERE,
         assets_folder="_static/fetched-s3-assets",
@@ -196,7 +197,7 @@ language = "en"
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    f"{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md",
+    f"{_FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md",
     "notebooks/sample-template*",
 ]
 
@@ -372,7 +373,7 @@ PACKAGE_MAPPING = {
     "hydra-core": "hydra",
 }
 MOCK_PACKAGES = []
-if SPHINX_MOCK_REQUIREMENTS:
+if _SPHINX_MOCK_REQUIREMENTS:
     _path_require = lambda fname: os.path.join(_PATH_ROOT, "requirements", "pytorch", fname)
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(_path_require("base.txt"))
