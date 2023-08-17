@@ -19,7 +19,7 @@ Can I Build a DAG with Lightning?
 *********************************
 Yes!
 
-DAGs are one of the easiest Lightning Apps to build. For example, here's a `full app that defines a DAG <../examples/dag/dag.html>`_.
+DAGs are one of the easiest Lightning Apps to build. For example, here's a :doc:`full app that defines a DAG <../examples/dag/dag>`.
 
 ----
 
