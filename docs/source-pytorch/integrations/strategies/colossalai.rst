@@ -27,7 +27,7 @@ You can install the Colossal-AI integration by running
 
     pip install lightning-colossalai
 
-This will install both the `colossalai <https://colossalai.org/download>`_ package as well as the ``ColossalAIStrategy`` for the Lightning Trainer:
+This will install both the `colossalai <https://colossalai.org/docs/get_started/installation>`_ package as well as the ``ColossalAIStrategy`` for the Lightning Trainer:
 
 .. code-block:: python
 
