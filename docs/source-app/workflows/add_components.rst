@@ -28,4 +28,4 @@ Contribute a component
 **********************
 One of the first principles of the Lightning community is to code something *once* for the benefit or everyone!
 
-To contribute a component, :doc:`follow this guide <../build_lightning_component/index>`_.
+To contribute a component, :doc:`follow this guide <build_lightning_component/index>`.
