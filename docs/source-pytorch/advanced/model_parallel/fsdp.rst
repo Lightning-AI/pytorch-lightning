@@ -167,7 +167,7 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
 Verify that FSDP works with your model by comparing the peak memory usage printed in the CUDA memory summary (see example above) with regular DDP training.
 You should see a decrease in allocated memory and a slight increase in iteration time:
 
-.. list-table::
+.. list-table:: Numbers were produced with A100 40GB GPUs, Lightning 2.1 and PyTorch 2.1.
    :widths: 25 25 25
    :header-rows: 1
 
@@ -261,7 +261,7 @@ You can configure the following options to trade-off memory for speed:
 
 Here is the memory and speed impact for each option when configured in our example code:
 
-.. list-table::
+.. list-table:: Numbers were produced with A100 40GB GPUs, Lightning 2.1 and PyTorch 2.1.
    :widths: 25 25 25 25 25
    :header-rows: 1
 
@@ -331,9 +331,9 @@ The most drastic GPU memory savings can be achieved by offloading parameters to 
 
 The drawback is a much slower training speed due to the added communication between CPU and GPU for transferring parameters in every forward pass.
 You should use this only if you have enough CPU memory and other scaling methods don’t give you enough memory savings.
-In our example, we see a 4x memory saving, but a 10x increase in iteration time:
+In our example, we see a 3.5x memory saving, but a significant increase in iteration time:
 
-.. list-table::
+.. list-table:: Numbers were produced with A100 40GB GPUs, Lightning 2.1 and PyTorch 2.1.
    :widths: 25 25 25 25
    :header-rows: 1
 
