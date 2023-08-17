@@ -3,7 +3,7 @@ Level 5: Debug A Lightning app
 ##############################
 **Audience:** Users who want to debug a distributed app locally.
 
-**Prereqs:** You must have finished the `Basic levels <../basic/index>`_.
+**Prereqs:** You must have finished the :doc:`Basic levels <../basic/index>`.
 
 ----
 
