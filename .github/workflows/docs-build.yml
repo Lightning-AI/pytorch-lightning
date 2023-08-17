@@ -43,7 +43,6 @@ jobs:
         check: ["doctest", "linkcheck"]
     env:
       SPHINX_MOCK_REQUIREMENTS: 0
-      DOCS_FETCHING_ASSETS: 0
     steps:
       - uses: actions/checkout@v3
         with:
