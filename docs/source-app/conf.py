@@ -26,6 +26,7 @@ _PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
 sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
+SKIP_FETCHING_ASSETS = int(os.environ.get("SKIP_FETCHING_ASSETS", False))
 
 # -- Project information -----------------------------------------------------
 
@@ -47,9 +48,10 @@ github_repo = project
 # -- Project documents -------------------------------------------------------
 
 
-fetch_external_assets(
-    docs_folder=_PATH_HERE, assets_folder="_static/fetched-s3-assets", retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
-)
+if not SKIP_FETCHING_ASSETS:
+    fetch_external_assets(
+        docs_folder=_PATH_HERE, assets_folder="_static/fetched-s3-assets", retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
+    )
 
 # -- General configuration ---------------------------------------------------
 
