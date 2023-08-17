@@ -3,7 +3,7 @@ Add a web UI with Streamlit (intermediate)
 ##########################################
 **Audience:** Users who want to communicate between the Lightning App and Streamlit.
 
-**Prereqs:** Must have read the `streamlit basic <basic.html>`_ guide.
+**Prereqs:** Must have read the :doc:`streamlit basic <basic>` guide.
 
 ----
 

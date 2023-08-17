@@ -6,7 +6,7 @@ Cache LightningWork Runs
 
 **Level:** Advanced
 
-**Prereqs**: Level 16+ and read the `Event Loop guide <../glossary/event_loop.html>`_.
+**Prereqs**: Level 16+ and read the :doc:`Event Loop guide <../glossary/event_loop>`.
 
 ----
 
