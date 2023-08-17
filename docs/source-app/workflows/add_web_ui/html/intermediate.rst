@@ -3,7 +3,7 @@ Add a web UI with HTML (intermediate)
 #####################################
 **Audience:** Users who want to add a web UI using plain html.
 
-**Prereqs:** Must have read the `html basic <basic.html>`_ guide.
+**Prereqs:** Must have read the :doc:`html basic <basic>` guide.
 
 ----
 

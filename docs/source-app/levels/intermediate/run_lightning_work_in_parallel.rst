@@ -3,7 +3,7 @@ Level 6: Run a Lightning component in parallel
 ##############################################
 **Audience:** Users who want to run a Lightning Component in parallel (asynchroneously).
 
-**Prereqs:** You must have finished `Level 5 <debug_a_lightning_app.html>`_.
+**Prereqs:** You must have finished :doc:`Level 5 <debug_a_lightning_app>`.
 
 ----
 
