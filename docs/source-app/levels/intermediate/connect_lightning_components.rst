@@ -4,7 +4,7 @@ Level 4: Connect components into a full stack AI app
 
 **Audience:** Users who want to build apps with multiple components.
 
-**Prereqs:** You know how to :doc:`build a component <../basic/build_a_lightning_component.html>`.
+**Prereqs:** You know how to :doc:`build a component <../basic/build_a_lightning_component>`.
 
 ----
 
