@@ -3,7 +3,7 @@ Level 3: Save money on cloud costs
 ##################################
 **Audience:** Users who want to use the AWS cloud efficiently.
 
-**Prereqs:** You must have finished `level 1 <../basic/build_a_lightning_component.html>`_.
+**Prereqs:** You must have finished :doc:`level 1 <../basic/build_a_lightning_component>`.
 
 ----
 

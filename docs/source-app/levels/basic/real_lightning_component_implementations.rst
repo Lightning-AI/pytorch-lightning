@@ -3,7 +3,7 @@ Level 2: Explore real component implementations
 ###############################################
 **Audience:** Users who want to deeply understand what is possible with Lightning components.
 
-**Prereqs:** You must have finished `level 1 <../basic/build_a_lightning_component.html>`_.
+**Prereqs:** You must have finished :doc:`level 1 <../basic/build_a_lightning_component>`.
 
 ----
 
