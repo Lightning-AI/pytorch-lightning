@@ -27,8 +27,8 @@ import lightning
 # -----------------------
 # VARIABLES WHEN WORKING ON DOCS... MAKE THIS TRUE TO BUILD FASTER
 # -----------------------
-_PL_FAST_DOCS_DEV = bool(int(os.getenv("PL_FAST_DOCS_DEV", 0)))
 _SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", 1))
+_FAST_DOCS_DEV = bool(int(os.getenv("FAST_DOCS_DEV", 0)))
 
 # -----------------------
 # BUILD stuff
@@ -97,7 +97,7 @@ assist_local.AssistantCLI.pull_docs_files(
     checkout="tags/1.0.0",
 )
 
-if not _PL_FAST_DOCS_DEV:
+if not _FAST_DOCS_DEV:
     fetch_external_assets(
         docs_folder=_PATH_HERE,
         assets_folder="_static/fetched-s3-assets",
@@ -200,7 +200,7 @@ exclude_patterns = [
     "notebooks/sample-template*",
 ]
 
-if _PL_FAST_DOCS_DEV:
+if _FAST_DOCS_DEV:
     exclude_patterns.append("notebooks/*")
     exclude_patterns.append("tutorials.rst")
 
