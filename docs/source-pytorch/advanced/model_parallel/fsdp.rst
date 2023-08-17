@@ -6,19 +6,19 @@
 Train models with billions of parameters using FSDP
 ###################################################
 
-Use Fully Shared Data Parallel (FSDP) to train large models with billions or trillions of parameters efficiently on multiple GPUs and across multiple machines.
+Use Fully Shared Data Parallel (FSDP) to train large models with billions of parameters efficiently on multiple GPUs and across multiple machines.
 
 .. note:: This is an experimental feature.
 
 
 Today, large models with billions of parameters are trained with many GPUs across several machines in parallel.
-Even a single A100 GPU with 80 GB of VRAM (the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
+Even a single H100 GPU with 80 GB of VRAM (the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
 The memory consumption for training is generally made up of
 
 1. the model parameters,
-2. the optimizer states (e.g., Adam has two additional exponential averages per parameter),
-3. the layer activations (forward) and
-4. the gradients (backward).
+2. the layer activations (forward) and
+3. the gradients (backward).
+4. the optimizer states (e.g., Adam has two additional exponential averages per parameter),
 
 |
 
@@ -214,7 +214,9 @@ After:
             self.model = None
 
         def configure_model(self):
-            self.model = self.model or Transformer(  # 1B parameters
+            if self.model is not None:
+                return
+            self.model = Transformer(  # 1B parameters
                 vocab_size=self.vocab_size,
                 nlayers=32,
                 nhid=4096,
@@ -311,6 +313,9 @@ This is typically your transformer block (including attention + feed-forward):
         },
     )
     trainer = L.Trainer(..., strategy=strategy)
+
+
+As in our example, it is typical to set the ``activation_checkpointing_policy`` the same as ``auto_wrap_policy``.
 
 
 Offload parameters to CPU
