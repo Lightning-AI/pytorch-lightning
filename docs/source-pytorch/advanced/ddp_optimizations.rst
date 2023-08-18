@@ -6,18 +6,19 @@
 DDP Optimizations
 #################
 
+Tune settings specific to DDP training for increased speed and memory efficiency.
 
-************************
-Gradients as Bucket View
-************************
 
-Enabling ``gradient_as_bucket_view=True`` in the ``DDPStrategy`` will make gradients views point to different offsets of the ``allreduce`` communication buckets. See :class:`~torch.nn.parallel.DistributedDataParallel` for more information.
+----
 
+
+***********************
+Gradient as Bucket View
+***********************
+
+Enabling ``gradient_as_bucket_view=True`` in the ``DDPStrategy`` will make gradients views point to different offsets of the ``allreduce`` communication buckets.
+See :class:`~torch.nn.parallel.DistributedDataParallel` for more information.
 This can reduce peak memory usage and throughput as saved memory will be equal to the total gradient memory + removes the need to copy gradients to the ``allreduce`` communication buckets.
-
-.. note::
-
-    When ``gradient_as_bucket_view=True`` you cannot call ``detach_()`` on gradients. If hitting such errors, please fix it by referring to the :meth:`~torch.optim.Optimizer.zero_grad` function in ``torch/optim/optimizer.py`` as a solution (`source <https://pytorch.org/docs/master/_modules/torch/nn/parallel/distributed.html#DistributedDataParallel>`__).
 
 .. code-block:: python
 
@@ -27,6 +28,9 @@ This can reduce peak memory usage and throughput as saved memory will be equal t
     model = MyModel()
     trainer = L.Trainer(devices=4, strategy=DDPStrategy(gradient_as_bucket_view=True))
     trainer.fit(model)
+
+.. note::
+    When ``gradient_as_bucket_view=True`` you cannot call ``detach_()`` on gradients.
 
 
 ----
@@ -49,16 +53,19 @@ DDP Static Graph
 ----
 
 
-***********************************************************
-When Using DDP on a Multi-node Cluster, Set NCCL Parameters
-***********************************************************
+********************************************
+On a Multi-Node Cluster, Set NCCL Parameters
+********************************************
 
-`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/Lightning-AI/lightning/issues/7179>`__. In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
+`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs.
+There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/Lightning-AI/lightning/issues/7179>`__.
+In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
 NCCL parameters can be adjusted via environment variables.
 
 .. note::
 
-    AWS and GCP already set default values for these on their clusters. This is typically useful for custom cluster setups.
+    AWS and GCP already set default values for these on their clusters.
+    This is typically useful for custom cluster setups.
 
 * `NCCL_NSOCKS_PERTHREAD <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-nsocks-perthread>`__
 * `NCCL_SOCKET_NTHREADS <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-socket-nthreads>`__
@@ -77,7 +84,8 @@ NCCL parameters can be adjusted via environment variables.
 DDP Communication Hooks
 ***********************
 
-DDP Communication hooks is an interface to control how gradients are communicated across workers, overriding the standard allreduce in DistributedDataParallel. This allows you to enable performance improving communication hooks when using multiple nodes.
+DDP Communication hooks is an interface to control how gradients are communicated across workers, overriding the standard allreduce in :class:`~torch.nn.parallel.DistributedDataParallel`.
+This allows you to enable performance improving communication hooks when using multiple nodes.
 Enable `FP16 Compress Hook for multi-node throughput improvement <https://pytorch.org/docs/stable/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_hook>`__:
 
 .. code-block:: python
