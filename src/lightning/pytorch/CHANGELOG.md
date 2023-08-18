@@ -150,6 +150,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Broadcast and reduction of tensors with XLA-based strategies now preserve the input's device ([#18275](https://github.com/Lightning-AI/lightning/pull/18275))
 
+
+- Due to lack of reliability, Trainer now only runs on one GPU instead of all GPUs in a Jupyter notebook if `devices="auto"` (default) ([#18291](https://github.com/Lightning-AI/lightning/pull/18291))
+
+
 ### Deprecated
 
 - Deprecated the `SingleTPUStrategy` (`strategy="single_tpu"`) in favor of `SingleDeviceXLAStrategy` (`strategy="single_xla"`) ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
