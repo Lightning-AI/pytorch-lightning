@@ -11,7 +11,7 @@
      - `PR12804`_
 
    * - used ``Trainer.reset_train_val_dataloaders()``
-     - call ``Trainer.reset_train_dataloaders()`` and ``Trainer.reset_val_dataloaders()`` separately
+     - call ``Trainer.fit_loop.setup_data()``
      - `PR12184`_
 
    * - imported ``pl.core.lightning``
