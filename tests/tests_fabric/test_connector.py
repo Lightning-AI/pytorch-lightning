@@ -957,7 +957,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     def _mock_interactive():
         monkeypatch.setattr(lightning.fabric.utilities.imports, "_IS_INTERACTIVE", is_interactive)
         monkeypatch.setattr(lightning.fabric.connector, "_IS_INTERACTIVE", is_interactive)
-        monkeypatch.setattr(lightning.fabric.accelerators.cuda, "_IS_INTERACTIVE", is_interactive)
         if _IS_WINDOWS:
             # simulate fork support on windows
             monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])

@@ -840,7 +840,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         monkeypatch.setattr(
             lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", is_interactive
         )
-        monkeypatch.setattr(lightning.pytorch.accelerators.cuda, "_IS_INTERACTIVE", is_interactive)
         if _IS_WINDOWS:
             # simulate fork support on windows
             monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
