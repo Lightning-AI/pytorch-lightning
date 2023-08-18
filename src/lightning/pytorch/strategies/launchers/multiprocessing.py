@@ -27,10 +27,11 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.strategies.launchers.multiprocessing import _check_bad_cuda_fork, _check_missing_main_guard
+from lightning.fabric.strategies.launchers.multiprocessing import _check_bad_cuda_fork, _check_missing_main_guard, _disable_module_memory_sharing
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning.fabric.utilities.types import _PATH
+from lightning.pytorch.accelerators import CPUAccelerator
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.connectors.signal_connector import _SIGNUM
 from lightning.pytorch.trainer.states import TrainerFn, TrainerState
@@ -146,6 +147,9 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
+        if self._start_method == "spawn" and isinstance(self._strategy.accelerator, CPUAccelerator):
+            args, kwargs = _disable_module_memory_sharing((args, kwargs))
+
         os.environ["LOCAL_RANK"] = str(process_idx)
         results = function(*args, **kwargs)
 
