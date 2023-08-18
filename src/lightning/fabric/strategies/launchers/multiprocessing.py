@@ -229,14 +229,14 @@ def _check_missing_main_guard() -> None:
         """
         Launching multiple processes with the 'spawn' start method requires that your script guards the main
         function with an `if __name__ == \"__main__\"` clause. For example:
-    
+
         def main():
             # Put your code here
             ...
-    
+
         if __name__ == "__main__":
             main()
-    
+
         Alternatively, you can run with `strategy="ddp"` to avoid this error.
         """
     )
