@@ -36,7 +36,8 @@ def test_forking_on_unsupported_platform(_):
 
 @pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
 @mock.patch("lightning.fabric.strategies.launchers.multiprocessing.mp")
-def test_start_method(mp_mock, start_method):
+@mock.patch("lightning.fabric.strategies.launchers.multiprocessing._check_missing_main_guard")
+def test_start_method(_, mp_mock, start_method):
     mp_mock.get_all_start_methods.return_value = [start_method]
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
     launcher.launch(function=Mock())
@@ -51,7 +52,8 @@ def test_start_method(mp_mock, start_method):
 
 @pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
 @mock.patch("lightning.fabric.strategies.launchers.multiprocessing.mp")
-def test_restore_globals(mp_mock, start_method):
+@mock.patch("lightning.fabric.strategies.launchers.multiprocessing._check_missing_main_guard")
+def test_restore_globals(_, mp_mock, start_method):
     """Test that we pass the global state snapshot to the worker function only if we are starting with 'spawn'."""
     mp_mock.get_all_start_methods.return_value = [start_method]
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
