@@ -113,7 +113,7 @@ class _Connector:
         accelerator = self._argument_from_env("accelerator", accelerator, default="auto")
         strategy = self._argument_from_env("strategy", strategy, default="auto")
         devices = self._argument_from_env("devices", devices, default="auto")
-        num_nodes = self._argument_from_env("num_nodes", num_nodes, default=1)
+        num_nodes = int(self._argument_from_env("num_nodes", num_nodes, default=1))
         precision = self._argument_from_env("precision", precision, default="32-true")
 
         # 1. Parsing flags
@@ -293,7 +293,7 @@ class _Connector:
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
-        self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
+        self._num_nodes_flag = num_nodes
         self._devices_flag = devices
 
         if self._devices_flag in ([], 0, "0"):

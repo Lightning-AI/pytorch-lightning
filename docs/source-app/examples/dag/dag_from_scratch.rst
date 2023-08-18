@@ -15,7 +15,7 @@ In this example, you will learn how to create a simple DAG which:
 
 and learn how to schedule this entire process.
 
-Find the complete example `here <https://github.com/Lightning-AI/lightning/blob/master/examples/app_dag/app.py>`_.
+Find the complete example `here <https://github.com/Lightning-AI/lightning/blob/master/examples/app/dag/app.py>`_.
 
 ----
 
