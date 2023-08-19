@@ -2,9 +2,9 @@
 
 .. _model_init:
 
-************************
+########################
 Efficient initialization
-************************
+########################
 
 Instantiating a ``nn.Module`` in PyTorch creates all parameters on CPU in float32 precision by default.
 To speed up initialization, you can force PyTorch to create the model directly on the target device and with the desired precision without changing your model code.
