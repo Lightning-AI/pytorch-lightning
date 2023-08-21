@@ -11,7 +11,7 @@ onnx <1.15.0
 onnxruntime <1.16.0
 psutil <5.9.6 # for `DeviceStatsMonitor`
 pandas >1.0, <2.0.4  # needed in benchmarks
-fastapi <0.100.0  # for `ServableModuleValidator`
+fastapi <0.102.0  # for `ServableModuleValidator`
 uvicorn <0.23.3  # for `ServableModuleValidator`
 
 tensorboard >=2.9.1, <2.15.0  # for `TensorBoardLogger`
