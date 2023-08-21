@@ -29,7 +29,7 @@ from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa:
 from lightning.pytorch.trainer import Trainer  # noqa: E402
 
 import lightning.app  # isort: skip # noqa: E402
-import lightning.store  # isort: skip # noqa: E402
+import lightning.store  # isort: skip # noqa: E402, F401
 
 _PACKAGE_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(_PACKAGE_ROOT))
