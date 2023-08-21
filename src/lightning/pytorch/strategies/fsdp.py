@@ -31,10 +31,11 @@ from lightning.fabric.strategies.fsdp import (
     _activation_checkpointing_kwargs,
     _auto_wrap_policy_kwargs,
     _get_full_state_dict_context,
+    _get_sharded_state_dict_context,
     _init_cpu_offload,
     _init_sharding_strategy,
     _optimizer_has_flat_params,
-    _setup_activation_checkpointing, _get_sharded_state_dict_context,
+    _setup_activation_checkpointing,
 )
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
@@ -50,7 +51,7 @@ from lightning.fabric.utilities.imports import (
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
-from lightning.fabric.utilities.types import ProcessGroup, ReduceOp, _PATH
+from lightning.fabric.utilities.types import _PATH, ProcessGroup, ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
@@ -489,7 +490,6 @@ class FSDPStrategy(ParallelStrategy):
             return {}
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp import OptimStateKeyType
 
         if isinstance(optimizer, LightningOptimizer):
             optimizer = optimizer._optimizer
