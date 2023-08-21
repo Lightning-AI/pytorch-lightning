@@ -18,9 +18,7 @@ from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
-
-from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_GREATER_EQUAL_2_1, XLAAccelerator
+from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, XLAAccelerator, _using_pjrt
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
