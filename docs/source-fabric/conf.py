@@ -255,6 +255,11 @@ intersphinx_mapping = {
 }
 nitpicky = True
 
+nitpick_ignore = [
+    ("py:class", "lightning.fabric.wrappers._FabricModule"),
+    ("py:class", "lightning.fabric.strategies.strategy._Sharded"),
+]
+
 # -- Options for todo extension ----------------------------------------------
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
