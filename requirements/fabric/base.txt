@@ -4,6 +4,6 @@
 numpy >=1.17.2, <1.25.3
 torch >=1.11.0, <2.1.0
 fsspec[http]>2021.06.0, <2023.7.0
-packaging >=17.1, <=23.0
+packaging >=17.1, <=23.1
 typing-extensions >=4.0.0, <=4.7.1
 lightning-utilities >=0.7.0, <0.10.0
