@@ -48,7 +48,6 @@ class _FabricOptimizer:
             optimizer: The optimizer to wrap
             strategy: Reference to the strategy for handling the optimizer step
 
-        :meta public:
 
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
