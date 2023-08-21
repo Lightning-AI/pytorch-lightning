@@ -538,6 +538,6 @@ class FSDPStrategy(ParallelStrategy):
             save_state_dict(converted_state, writer)
 
             if self.global_rank == 0:
-                torch.save(metadata, filepath / _METADATA_FILENAME)
+                torch.save(metadata, path / _METADATA_FILENAME)
         else:
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
