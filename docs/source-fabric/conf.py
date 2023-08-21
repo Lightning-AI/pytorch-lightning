@@ -254,15 +254,19 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
     "pytorch_lightning": ("https://lightning.ai/docs/pytorch/stable/", None),
-    "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable", None),
+    "lightning": ("https://lightning.ai/docs/app/stable//", None),
+    "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
 }
 nitpicky = True
 
 nitpick_ignore = [
+    # Nitpick does not see protected nor private API
     ("py:class", "lightning.fabric.wrappers._FabricModule"),
     ("py:class", "lightning.fabric.wrappers._FabricOptimizer"),
     ("py:class", "lightning.fabric.loggers.csv_logs._ExperimentWriter"),
     ("py:class", "lightning.fabric.strategies.strategy._Sharded"),
+    # These seem to be missing in reference generated API
+    ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
