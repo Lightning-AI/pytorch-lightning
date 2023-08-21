@@ -43,6 +43,7 @@ jobs:
         check: ["doctest", "linkcheck"]
     env:
       SPHINX_MOCK_REQUIREMENTS: 0
+      FAST_DOCS_DEV: 1
     steps:
       - uses: actions/checkout@v3
         with:
@@ -106,6 +107,8 @@ jobs:
       fail-fast: false
       matrix:
         pkg-name: ["app", "fabric", "pytorch"]
+    env:
+      FAST_DOCS_DEV: 0
     steps:
       - uses: actions/checkout@v3
         with:
