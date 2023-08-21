@@ -108,7 +108,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "make-doctest (fabric)"
+      - "docs-checks (fabric, doctest)"
       - "make-html (fabric)"
 
   - id: "pytorch_lightning: Docs"
@@ -125,7 +125,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "make-doctest (pytorch)"
+      - "docs-checks (pytorch, doctest)"
       - "make-html (pytorch)"
 
   - id: "pytorch_lightning: Docker"
@@ -352,7 +352,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "make-doctest (app)"
+      - "docs-checks (app, doctest)"
       - "make-html (app)"
 
   # SECTION: common
