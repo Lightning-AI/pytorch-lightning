@@ -68,9 +68,9 @@ def _select_seed_randomly(min_seed_value: int = min_seed_value, max_seed_value: 
 
 
 def reset_seed() -> None:
-    r"""Reset the seed to the value that :func:`lightning.fabric.utilities.seed.seed_everything` previously set.
+    r"""Reset the seed to the value that :func:`~lightning.fabric.utilities.seed.seed_everything` previously set.
 
-    If :func:`lightning.fabric.utilities.seed.seed_everything` is unused, this function will do nothing.
+    If :func:`~lightning.fabric.utilities.seed.seed_everything` is unused, this function will do nothing.
 
     """
     seed = os.environ.get("PL_GLOBAL_SEED", None)

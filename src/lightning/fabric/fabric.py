@@ -903,7 +903,7 @@ class Fabric:
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
         r"""Helper function to seed everything without explicitly importing Lightning.
 
-        See :func:`lightning.fabric.utilities.seed.seed_everything` for more details.
+        See :func:`~lightning.fabric.utilities.seed.seed_everything` for more details.
 
         """
         if workers is None:
