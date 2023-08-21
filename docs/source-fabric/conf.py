@@ -267,6 +267,7 @@ nitpick_ignore = [
     ("py:class", "lightning.fabric.strategies.strategy._Sharded"),
     # These seem to be missing in reference generated API
     ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
+    ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
