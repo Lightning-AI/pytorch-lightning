@@ -203,3 +203,12 @@ def test_memory_sharing_disabled():
 
     trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp_spawn", max_steps=0)
     trainer.fit(model)
+
+
+def test_check_for_missing_main_guard():
+    launcher = _MultiProcessingLauncher(strategy=Mock(), start_method="spawn")
+    with mock.patch(
+        "lightning.pytorch.strategies.launchers.multiprocessing.mp.current_process",
+        return_value=Mock(_inheriting=True),  # pretend that main is importing itself
+    ), pytest.raises(RuntimeError, match="requires that your script guards the main"):
+        launcher.launch(function=Mock())

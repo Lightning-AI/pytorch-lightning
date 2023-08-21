@@ -27,7 +27,11 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.strategies.launchers.multiprocessing import _check_bad_cuda_fork, _disable_module_memory_sharing
+from lightning.fabric.strategies.launchers.multiprocessing import (
+    _check_bad_cuda_fork,
+    _check_missing_main_guard,
+    _disable_module_memory_sharing,
+)
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning.fabric.utilities.types import _PATH
@@ -99,6 +103,8 @@ class _MultiProcessingLauncher(_Launcher):
         """
         if self._start_method in ("fork", "forkserver"):
             _check_bad_cuda_fork()
+        if self._start_method == "spawn":
+            _check_missing_main_guard()
 
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
