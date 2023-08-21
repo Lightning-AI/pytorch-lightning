@@ -1,6 +1,5 @@
 """Root package info."""
 import logging
-import os
 
 # explicitly don't set root logger's propagation and leave this to subpackages to manage
 _logger = logging.getLogger(__name__)
