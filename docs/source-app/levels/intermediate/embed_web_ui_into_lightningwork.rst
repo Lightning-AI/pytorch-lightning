@@ -3,7 +3,7 @@ Level 9: Embed graphical UIs into work
 ######################################
 **Audience:** Users who need to embed a Graphical UI in their Lightning Apps.
 
-**Prereqs:** You have finished `Level 8 <share_files_between_components.html>`_.
+**Prereqs:** You have finished :doc:`Level 8 <share_files_between_components>`.
 
 ----
 
