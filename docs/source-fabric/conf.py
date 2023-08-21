@@ -259,6 +259,8 @@ nitpicky = True
 
 nitpick_ignore = [
     ("py:class", "lightning.fabric.wrappers._FabricModule"),
+    ("py:class", "lightning.fabric.wrappers._FabricOptimizer"),
+    ("py:class", "lightning.fabric.loggers.csv_logs._ExperimentWriter"),
     ("py:class", "lightning.fabric.strategies.strategy._Sharded"),
 ]
 
