@@ -265,6 +265,8 @@ nitpick_ignore = [
     ("py:class", "lightning.fabric.wrappers._FabricOptimizer"),
     ("py:class", "lightning.fabric.loggers.csv_logs._ExperimentWriter"),
     ("py:class", "lightning.fabric.strategies.strategy._Sharded"),
+    # Nitpick does not see abstract API
+    ("py:meth", "lightning.fabric.plugins.collectives.Collective.init_group"),
     # These seem to be missing in reference generated API
     ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
     ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
