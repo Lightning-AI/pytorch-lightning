@@ -3,7 +3,7 @@ Add a web UI with Dash (intermediate)
 #####################################
 **Audience:** Users who want to communicate between the Lightning App and Dash.
 
-**Prereqs:** Must have read the `dash basic <basic.html>`_ guide.
+**Prereqs:** Must have read the :doc:`dash basic <basic>` guide.
 
 ----
 

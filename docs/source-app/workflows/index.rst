@@ -2,7 +2,7 @@
    :maxdepth: 1
    :hidden:
 
-   access_app_state/access_app_state
+   access_app_state
    add_web_ui/index
    add_web_link
    secrets <../glossary/secrets>
@@ -35,7 +35,7 @@ How to:
    :header: Access the App State
    :description: Learn to work with the app state
    :col_css: col-md-4
-   :button_link: access_app_state/access_app_state.html
+   :button_link: access_app_state.html
    :height: 180
 
 .. displayitem::
