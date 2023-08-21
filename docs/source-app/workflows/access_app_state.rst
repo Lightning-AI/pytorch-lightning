@@ -38,7 +38,7 @@ For example, here we define a **Flow** component and **Work** component, where t
 
 You can easily check the state of your entire App as follows:
 
-.. literalinclude:: ../../code_samples/quickstart/app_01.py
+.. literalinclude:: ../code_samples/quickstart/app_01.py
 
 Run the App with:
 

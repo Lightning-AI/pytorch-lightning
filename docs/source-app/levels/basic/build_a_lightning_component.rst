@@ -13,7 +13,7 @@ Why you need Lightning components
 A Lightning component is a self-contained, modular machine-learning component
 that you can plug into your existing ML workflows. A Lightning component organizes arbitrary code so it can run on the cloud, manages
 its own infrastructure, cloud costs, networking and more. Connect components using your current workflow management tools or
-our `next-generation reactive orchestrator <../intermediate/index.html>`_.
+our :doc:`next-generation reactive orchestrator <../intermediate/index>`.
 
 Components run on the cloud or your laptop without code changes 🤯🤯.
 
