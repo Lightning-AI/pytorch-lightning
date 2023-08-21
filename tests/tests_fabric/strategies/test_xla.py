@@ -14,13 +14,13 @@
 import os
 from functools import partial
 from unittest import mock
-from unittest.mock import MagicMock, Mock
+from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, XLAAccelerator
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_GREATER_EQUAL_2_1, XLAAccelerator
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
@@ -52,6 +52,7 @@ def xla_launch(fn, strategy=None):
 def broadcast_on_tpu_fn(strategy):
     # test broadcasting a tensor
     obj = torch.tensor(strategy.global_rank)
+    assert obj.device.type == "cpu"
     # In PjRT, the local rank and global rank have no solid relation.
     # global rank may not even be contiguous on a host, because it depends on the 3D mesh structure that is formed by
     # the TPUs on all hosts in a pod. So checking a different src is not reliable
@@ -59,12 +60,22 @@ def broadcast_on_tpu_fn(strategy):
     src = 0
     result = strategy.broadcast(obj, src)
     assert result.item() == src
-    assert result.device.type == "xla"
+    assert result.device.type == "cpu"  # the original device is preserved
 
     # test broadcasting an arbitrary object
-    obj = ("ver_0.5", "logger_name", strategy.global_rank)
-    result = strategy.broadcast(obj, src=src)
-    assert result == ("ver_0.5", "logger_name", src)
+    if _using_pjrt():
+        tensor = torch.tensor(strategy.global_rank, device=strategy.root_device, dtype=torch.bfloat16)
+        obj = ("ver_0.5", "logger_name", strategy.global_rank, tensor)
+        result = strategy.broadcast(obj, src=src)
+        assert result == ("ver_0.5", "logger_name", src, ANY)
+        assert result[3].device.type == "xla"  # the original device is preserved
+        assert result[3].dtype == torch.bfloat16
+    else:
+        # XRT fails to unpickle tensors, segfaults with
+        # RuntimeError: vector::_M_range_check: __n (which is 1) >= this->size() (which is 1)
+        obj = ("ver_0.5", "logger_name", strategy.global_rank)
+        result = strategy.broadcast(obj, src=src)
+        assert result == ("ver_0.5", "logger_name", src)
 
 
 @RunIf(tpu=True)
@@ -134,7 +145,7 @@ def tpu_all_gather_fn(strategy):
         tensor = torch.tensor(1.0, requires_grad=True)
         result = strategy.all_gather(tensor, sync_grads=sync_grads)
         summed = result.sum()
-        assert summed.device.type == "xla"
+        assert summed.device.type == "cpu"  # the original device is preserved
         assert torch.equal(summed, torch.tensor(strategy.world_size, dtype=torch.float32))
         if not _XLA_GREATER_EQUAL_2_1:
             summed.backward()
