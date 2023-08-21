@@ -53,6 +53,7 @@ class Path(PathlibPath):
     Args:
         *args: Accepts the same arguments as in :class:`pathlib.Path`
         **kwargs: Accepts the same keyword arguments as in :class:`pathlib.Path`
+
     """
 
     @classmethod
@@ -105,6 +106,7 @@ class Path(PathlibPath):
         """The name of the LightningWork where this path was first created.
 
         Attaching a Path to a LightningWork will automatically make it the `origin`.
+
         """
         from lightning.app.core.work import LightningWork
 
@@ -115,6 +117,7 @@ class Path(PathlibPath):
         """The name of the LightningWork where this path is being accessed.
 
         By default, this is the same as the :attr:`origin_name`.
+
         """
         from lightning.app.core.work import LightningWork
 
@@ -125,6 +128,7 @@ class Path(PathlibPath):
         """The hash of this Path uniquely identifies the file path and the associated origin Work.
 
         Returns ``None`` if the origin is not defined, i.e., this Path did not yet get attached to a LightningWork.
+
         """
         if self._origin is None:
             return None
@@ -152,6 +156,7 @@ class Path(PathlibPath):
         If you strictly want to check local existence only, use :meth:`exists_local` instead. If you strictly want
         to check existence on the remote (regardless of whether the file exists locally or not), use
         :meth:`exists_remote`.
+
         """
         return self.exists_local() or (self._origin and self.exists_remote())
 
@@ -164,6 +169,7 @@ class Path(PathlibPath):
 
         Raises:
             RuntimeError: If the path is not attached to any Work (origin undefined).
+
         """
         # Fail early if we need to check the remote but an origin is not defined
         if not self._origin or self._request_queue is None or self._response_queue is None:
@@ -272,6 +278,7 @@ class Path(PathlibPath):
 
         Args:
             work: LightningWork to be attached to this Path.
+
         """
         if self._origin is None:
             # Can become an owner only if there is not already one
@@ -374,11 +381,11 @@ def _is_lit_path(path: Union[str, Path]) -> bool:
 
 
 def _shared_local_mount_path() -> pathlib.Path:
-    """Returns the shared directory through which the Copier threads move files from one Work filesystem to
-    another.
+    """Returns the shared directory through which the Copier threads move files from one Work filesystem to another.
 
     The shared directory can be set via the environment variable ``SHARED_MOUNT_DIRECTORY`` and should be pointing to a
     directory that all Works have mounted (shared filesystem).
+
     """
     path = pathlib.Path(os.environ.get("SHARED_MOUNT_DIRECTORY", ".shared"))
     path.mkdir(parents=True, exist_ok=True)
@@ -397,6 +404,7 @@ def _shared_storage_path() -> pathlib.Path:
     The shared path gets set by the environment. Locally, it is pointing to a directory determined by the
     ``SHARED_MOUNT_DIRECTORY`` environment variable. In the cloud, the shared path will point to a S3 bucket. All Works
     have access to this shared dropbox.
+
     """
     storage_path = os.getenv("LIGHTNING_STORAGE_PATH", "")
     if storage_path != "":

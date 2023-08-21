@@ -3,7 +3,7 @@ Level 10: Start from lightning app templates
 ############################################
 **Audience:** All users who want to move quickly with Lightning
 
-**Prereqs:** You have finished `Level 9 <embed_web_ui_into_lightningwork.html>`_.
+**Prereqs:** You have finished :doc:`Level 9 <embed_web_ui_into_lightningwork>`.
 
 ----
 

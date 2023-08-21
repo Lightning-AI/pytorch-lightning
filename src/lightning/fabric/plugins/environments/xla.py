@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import logging
 from typing import Any
 
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, XLAAccelerator
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1, XLAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 
 log = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ class XLAEnvironment(ClusterEnvironment):
 
     A list of environment variables set by XLA can be found
     `here <https://github.com/pytorch/xla/blob/master/torch_xla/core/xla_env_vars.py>`_.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -50,7 +52,13 @@ class XLAEnvironment(ClusterEnvironment):
     def detect() -> bool:
         return XLAAccelerator.is_available()
 
+    @functools.lru_cache(maxsize=1)
     def world_size(self) -> int:
+        """The number of processes across all devices and hosts.
+
+        The output is cached for performance.
+
+        """
         import torch_xla.core.xla_model as xm
 
         return xm.xrt_world_size()
@@ -58,7 +66,13 @@ class XLAEnvironment(ClusterEnvironment):
     def set_world_size(self, size: int) -> None:
         log.debug("XLAEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
+    @functools.lru_cache(maxsize=1)
     def global_rank(self) -> int:
+        """The rank (index) of the currently running process across all host and devices.
+
+        The output is cached for performance.
+
+        """
         import torch_xla.core.xla_model as xm
 
         return xm.get_ordinal()
@@ -66,12 +80,28 @@ class XLAEnvironment(ClusterEnvironment):
     def set_global_rank(self, rank: int) -> None:
         log.debug("XLAEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
+    @functools.lru_cache(maxsize=1)
     def local_rank(self) -> int:
+        """The rank (index) of the currently running process inside of the current host.
+
+        The output is cached for performance.
+
+        """
         import torch_xla.core.xla_model as xm
 
         return xm.get_local_ordinal()
 
+    @functools.lru_cache(maxsize=1)
     def node_rank(self) -> int:
+        """The rank (index) of the host on which the current process runs.
+
+        The output is cached for performance.
+
+        """
+        if _using_pjrt() and _XLA_GREATER_EQUAL_2_1:
+            from torch_xla import runtime as xr
+
+            return xr.host_index()
         import torch_xla.core.xla_env_vars as xenv
         from torch_xla.utils.utils import getenv_as
 

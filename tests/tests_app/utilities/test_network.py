@@ -1,9 +1,11 @@
+import re
 from unittest import mock
 
 import pytest
+from urllib3.exceptions import HTTPError
 
 from lightning.app.core import constants
-from lightning.app.utilities.network import find_free_network_port, LightningClient
+from lightning.app.utilities.network import _retry_wrapper, find_free_network_port, LightningClient
 
 
 def test_find_free_network_port():
@@ -45,8 +47,26 @@ def test_find_free_network_port_cloudspace(_, patch_constants):
     assert constants.APP_SERVER_PORT not in ports
 
 
-# @pytest.mark.xfail(reason="seems to require login to the platform")
-@pytest.mark.parametrize("retry", [True, False])
-def test_lightning_client_retry_enabled(retry):
-    client = LightningClient(retry=retry)
-    assert hasattr(client.auth_service_get_user_with_http_info, "__wrapped__") is retry
+def test_lightning_client_retry_enabled():
+    client = LightningClient()  # default: retry=True
+    assert hasattr(client.auth_service_get_user_with_http_info, "__wrapped__")
+
+    client = LightningClient(retry=False)
+    assert not hasattr(client.auth_service_get_user_with_http_info, "__wrapped__")
+
+    client = LightningClient(retry=True)
+    assert hasattr(client.auth_service_get_user_with_http_info, "__wrapped__")
+
+
+@mock.patch("time.sleep")
+def test_retry_wrapper_max_tries(_):
+    mock_client = mock.MagicMock()
+    mock_client.test.__name__ = "test"
+    mock_client.test.side_effect = HTTPError("failed")
+
+    wrapped_mock_client = _retry_wrapper(mock_client, mock_client.test, max_tries=3)
+
+    with pytest.raises(Exception, match=re.escape("The test request failed to reach the server, error: failed")):
+        wrapped_mock_client()
+
+    assert mock_client.test.call_count == 3

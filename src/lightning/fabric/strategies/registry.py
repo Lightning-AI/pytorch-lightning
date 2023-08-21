@@ -40,6 +40,7 @@ class _StrategyRegistry(dict):
         or
 
         StrategyRegistry.register("lightning", LightningStrategy, description="Super fast", a=1, b=True)
+
     """
 
     def register(
@@ -58,6 +59,7 @@ class _StrategyRegistry(dict):
             description : strategy description
             override : overrides the registered strategy, if True
             init_params: parameters to initialize the strategy
+
         """
         if not (name is None or isinstance(name, str)):
             raise TypeError(f"`name` must be a str, found {name}")
@@ -86,6 +88,7 @@ class _StrategyRegistry(dict):
 
         Args:
             name (str): the name that identifies a strategy, e.g. "deepspeed_stage_3"
+
         """
         if name in self:
             data = self[name]

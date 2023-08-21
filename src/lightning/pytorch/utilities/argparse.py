@@ -38,6 +38,7 @@ def _parse_env_variables(cls: Type, template: str = "PL_%(cls_name)s_%(cls_argum
         >>> _parse_env_variables(Trainer)
         Namespace(devices=42)
         >>> del os.environ["PL_TRAINER_DEVICES"]
+
     """
     env_args = {}
     for arg_name in inspect.signature(cls).parameters:

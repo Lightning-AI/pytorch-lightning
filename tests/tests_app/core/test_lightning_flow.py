@@ -77,8 +77,7 @@ def test_unsupported_attribute_types(cls, attribute):
     ],
 )
 def test_unsupported_attribute_declaration_outside_init_or_run(name, value):
-    """Test that LightningFlow attributes (with a few exceptions) are not allowed to be declared outside
-    __init__."""
+    """Test that LightningFlow attributes (with a few exceptions) are not allowed to be declared outside __init__."""
     flow = EmptyFlow()
     with pytest.raises(AttributeError, match=f"Cannot set attributes that were not defined in __init__: {name}"):
         setattr(flow, name, value)
@@ -102,8 +101,8 @@ def test_unsupported_attribute_declaration_outside_init_or_run(name, value):
 )
 @pytest.mark.parametrize("defined", [False, True])
 def test_unsupported_attribute_declaration_inside_run(defined, name, value):
-    """Test that LightningFlow attributes can set LightningFlow or LightningWork inside its run method, but
-    everything else needs to be defined in the __init__ method."""
+    """Test that LightningFlow attributes can set LightningFlow or LightningWork inside its run method, but everything
+    else needs to be defined in the __init__ method."""
 
     class Flow(LightningFlow):
         def __init__(self):
@@ -163,8 +162,8 @@ def test_name_gets_removed_from_state_when_defined_as_flow_works(value):
     ],
 )
 def test_supported_attribute_declaration_outside_init(name, value):
-    """Test the custom LightningFlow setattr implementation for the few reserved attributes that are allowed to be
-    set from outside __init__."""
+    """Test the custom LightningFlow setattr implementation for the few reserved attributes that are allowed to be set
+    from outside __init__."""
     flow = EmptyFlow()
     setattr(flow, name, value)
     assert getattr(flow, name) == value

@@ -245,6 +245,7 @@ def test_deepspeed_env_variables_on_platforms(_, deepspeed_dist_mock, platform):
     """Test to ensure that we set up distributed communication correctly.
 
     When using Windows, ranks environment variables should not be set, and DeepSpeed should handle this.
+
     """
     fabric = Fabric(strategy=DeepSpeedStrategy(stage=3))
     strategy = fabric._strategy
@@ -390,9 +391,7 @@ def test_deepspeed_init_module_with_stage_3(empty_init):
 
     with mock.patch("deepspeed.zero.Init") as zero_init_mock, fabric.init_module(empty_init=empty_init):
         BoringModel()
-    zero_init_mock.assert_called_once_with(
-        remote_device="cpu", pin_memory=True, config_dict_or_path=ANY, dtype=torch.bfloat16
-    )
+    zero_init_mock.assert_called_once_with(enabled=True, remote_device=None, config_dict_or_path=ANY)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
@@ -409,6 +408,6 @@ def test_deepspeed_init_module_with_stages_1_2(stage, empty_init):
     ) as init_mock, fabric.init_module(empty_init=empty_init):
         model = BoringModel()
 
-    zero_init_mock.assert_not_called()
+    zero_init_mock.assert_called_with(enabled=False, remote_device=None, config_dict_or_path=ANY)
     assert init_mock.call_count == int(not empty_init)
     assert model.layer.weight.dtype == torch.bfloat16

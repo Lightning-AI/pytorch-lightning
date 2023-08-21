@@ -20,7 +20,7 @@ from torch import Tensor
 from torch.nn import Module
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
@@ -82,7 +82,7 @@ class XLAStrategy(DDPStrategy):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
 
     @property
@@ -92,6 +92,22 @@ class XLAStrategy(DDPStrategy):
         import torch_xla.core.xla_model as xm
 
         return xm.xla_device()
+
+    @property
+    def global_rank(self) -> int:
+        return super().global_rank if self._launched else 0
+
+    @property
+    def local_rank(self) -> int:
+        return super().local_rank if self._launched else 0
+
+    @property
+    def node_rank(self) -> int:
+        return super().node_rank if self._launched else 0
+
+    @property
+    def world_size(self) -> int:
+        return super().world_size if self._launched else 1
 
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
@@ -111,9 +127,12 @@ class XLAStrategy(DDPStrategy):
         self.setup_precision_plugin()
 
         if self._sync_module_states:
-            from torch_xla.experimental import pjrt
+            if _XLA_GREATER_EQUAL_2_1:
+                from torch_xla.core.xla_model import broadcast_master_param
+            else:
+                from torch_xla.experimental.pjrt import broadcast_master_param
 
-            pjrt.broadcast_master_param(self.model)
+            broadcast_master_param(self.model)
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
@@ -167,8 +186,9 @@ class XLAStrategy(DDPStrategy):
         if is_tensor:
             if obj.dim() == 0:
                 obj = obj.unsqueeze(0)
-            if obj.device.type != "xla":
-                obj = obj.to(self.root_device)
+            original_device = obj.device
+            # XLA distributed requires that the data is on the XLA device
+            obj = obj.to(self.root_device)
         else:
             # support for arbitrary pickle-ables
             buffer = io.BytesIO()
@@ -182,8 +202,11 @@ class XLAStrategy(DDPStrategy):
         obj = obj[0]
 
         if not is_tensor:
+            # this will preserve the dtype and device of any tensors
             buffer = io.BytesIO(obj.cpu().byte().numpy())
             obj = torch.load(buffer)
+        else:
+            obj = obj.to(original_device)
 
         return obj
 
@@ -211,10 +234,8 @@ class XLAStrategy(DDPStrategy):
         return output
 
     def setup_distributed(self) -> None:
-        from torch_xla.experimental.pjrt import using_pjrt
-
         assert self.parallel_devices is not None
-        if using_pjrt() and len(self.parallel_devices) == 1:
+        if _using_pjrt() and len(self.parallel_devices) == 1:
             # spawning only 1 device with PjRT is not supported:
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
@@ -249,6 +270,7 @@ class XLAStrategy(DDPStrategy):
 
         Args:
             filepath: Path to checkpoint
+
         """
         if self.local_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)
@@ -262,6 +284,7 @@ class XLAStrategy(DDPStrategy):
             sync_grads: flag that allows users to synchronize gradients for the all-gather operation.
         Return:
             A tensor of shape (world_size, ...)
+
         """
         if not self._launched:
             return tensor
@@ -271,13 +294,15 @@ class XLAStrategy(DDPStrategy):
             )
         if tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
-        if tensor.device.type != "xla":
-            tensor = tensor.to(self.root_device)
+        original_device = tensor.device
+        tensor = tensor.to(self.root_device)
 
         import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
 
-        return xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
+        tensor = xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
+        tensor = tensor.to(original_device)
+        return tensor
 
     def teardown(self) -> None:
         super().teardown()

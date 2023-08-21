@@ -14,6 +14,7 @@
 """Test that the warnings actually appear and they have the correct `stacklevel`
 
 Needs to be run outside of `pytest` as it captures all the warnings.
+
 """
 from contextlib import redirect_stderr
 from io import StringIO
@@ -39,16 +40,19 @@ if __name__ == "__main__":
         cache.deprecation("test7")
 
     output = stderr.getvalue()
-    assert "test_warnings.py:29: UserWarning: test1" in output
-    assert "test_warnings.py:30: DeprecationWarning: test2" in output
+    base_line = 30
+    expected_lines = [
+        f"test_warnings.py:{base_line}: UserWarning: test1",
+        f"test_warnings.py:{base_line+1}: DeprecationWarning: test2",
+        f"test_warnings.py:{base_line+3}: UserWarning: test3",
+        f"test_warnings.py:{base_line+4}: DeprecationWarning: test4",
+        f"test_warnings.py:{base_line+6}: LightningDeprecationWarning: test5",
+        f"test_warnings.py:{base_line+9}: UserWarning: test6",
+        f"test_warnings.py:{base_line+10}: LightningDeprecationWarning: test7",
+    ]
 
-    assert "test_warnings.py:32: UserWarning: test3" in output
-    assert "test_warnings.py:33: DeprecationWarning: test4" in output
-
-    assert "test_warnings.py:35: LightningDeprecationWarning: test5" in output
-
-    assert "test_warnings.py:38: UserWarning: test6" in output
-    assert "test_warnings.py:39: LightningDeprecationWarning: test7" in output
+    for ln in expected_lines:
+        assert ln in output, f"Missing line {ln!r} in:\n{output}"
 
     # check that logging is properly configured
     import logging

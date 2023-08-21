@@ -40,8 +40,7 @@ except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run, RunDisabled = None, None, None
 
-_WANDB_AVAILABLE = RequirementCache("wandb")
-_WANDB_GREATER_EQUAL_0_12_10 = RequirementCache("wandb>=0.12.10")
+_WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):
@@ -206,7 +205,8 @@ class WandbLogger(Logger):
 
     **Log Tables**
 
-    `W&B Tables <https://docs.wandb.ai/guides/data-vis>`_ can be used to log, query and analyze tabular data.
+    `W&B Tables <https://docs.wandb.ai/guides/tables/visualize-tables>`_ can be used to log,
+    query and analyze tabular data.
 
     They support any type of media (text, image, video, audio, molecule, html, etc) and are great for storing,
     understanding and sharing any form of data, from datasets to model predictions.
@@ -280,6 +280,7 @@ class WandbLogger(Logger):
             If required WandB package is not installed on the device.
         MisconfigurationException:
             If both ``log_model`` and ``offline`` is set to ``True``.
+
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -300,11 +301,8 @@ class WandbLogger(Logger):
         checkpoint_name: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
-        if wandb is None:
-            raise ModuleNotFoundError(
-                "You want to use `wandb` logger which is not installed yet,"
-                " install it with `pip install wandb`."  # pragma: no-cover
-            )
+        if wandb is None or not _WANDB_AVAILABLE:
+            raise ModuleNotFoundError(str(_WANDB_AVAILABLE))
 
         if offline and log_model:
             raise MisconfigurationException(
@@ -351,9 +349,8 @@ class WandbLogger(Logger):
         # We create an experiment here in the main process, and attach to it in the worker process.
         # Using wandb-service, we persist the same experiment even if multiple `Trainer.fit/test/validate` calls
         # are made.
-        if _WANDB_GREATER_EQUAL_0_12_10:
-            wandb.require("service")
-            _ = self.experiment
+        wandb.require("service")
+        _ = self.experiment
 
         state = self.__dict__.copy()
         # args needed to reload correct experiment
@@ -441,6 +438,7 @@ class WandbLogger(Logger):
         """Log a Table containing any object type (text, image, audio, video, molecule, html, etc).
 
         Can be defined either with `columns` and `data` or with `dataframe`.
+
         """
 
         metrics = {key: wandb.Table(columns=columns, data=data, dataframe=dataframe)}
@@ -458,6 +456,7 @@ class WandbLogger(Logger):
         """Log text as a Table.
 
         Can be defined either with `columns` and `data` or with `dataframe`.
+
         """
 
         self.log_table(key, columns, data, dataframe, step)
@@ -467,6 +466,7 @@ class WandbLogger(Logger):
         """Log images (tensors, numpy arrays, PIL Images or file paths).
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
+
         """
         if not isinstance(images, list):
             raise TypeError(f'Expected a list as "images", found {type(images)}')
@@ -484,6 +484,7 @@ class WandbLogger(Logger):
 
         Returns:
             The path to the save directory.
+
         """
         return self._save_dir
 
@@ -494,6 +495,7 @@ class WandbLogger(Logger):
         Returns:
             The name of the project the current experiment belongs to. This name is not the same as `wandb.Run`'s
             name. To access wandb's internal experiment name, use ``logger.experiment.name`` instead.
+
         """
         return self._project
 
@@ -503,6 +505,7 @@ class WandbLogger(Logger):
 
         Returns:
             The id of the experiment if the experiment exists else the id given to the constructor.
+
         """
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
@@ -532,6 +535,7 @@ class WandbLogger(Logger):
 
         Returns:
             The path to the downloaded artifact.
+
         """
         if wandb.run is not None and use_artifact:
             artifact = wandb.run.use_artifact(artifact)
@@ -551,6 +555,7 @@ class WandbLogger(Logger):
 
         Returns:
             wandb Artifact object for the artifact.
+
         """
         return self.experiment.use_artifact(artifact, type=artifact_type)
 

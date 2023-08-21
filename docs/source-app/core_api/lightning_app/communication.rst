@@ -8,7 +8,7 @@ Communication between Lightning Components
 
 **Level:** Intermediate
 
-**Prerequisite**: Read the `Communication in Lightning Apps article <../../access_app_state.html>`_.
+**Prerequisite**: Read the :doc:`Communication in Lightning Apps article <../../../workflows/access_app_state>`.
 
 ----
 

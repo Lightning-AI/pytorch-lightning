@@ -34,28 +34,38 @@ env:
   PYPI_CACHE_DIR: "_pip-wheels"
 
 jobs:
-  make-doctest:
-    runs-on: ubuntu-latest
-    container:
-      image: pytorchlightning/pytorch_lightning:docs
+  docs-checks:
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         pkg-name: ["app", "fabric", "pytorch"]
+        check: ["doctest", "linkcheck"]
+    env:
+      SPHINX_MOCK_REQUIREMENTS: 0
+      FAST_DOCS_DEV: 1
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
-
-      - uses: aws-actions/configure-aws-credentials@v2
-        if: ${{ matrix.pkg-name != 'pytorch' }}
+      - uses: actions/setup-python@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-          aws-region: us-east-1
+          python-version: "3.9"
 
+      - name: Install AWS CLI
+        if: ${{ matrix.pkg-name != 'pytorch' }}
+        continue-on-error: true
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+          unzip -qq awscli.zip
+          bash ./aws/install
+          aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
@@ -64,6 +74,11 @@ jobs:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
 
+      - name: Install pandoc & texlive
+        if: ${{ matrix.pkg-name == 'pytorch' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       - name: Install package & dependencies
         run: |
           mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit
@@ -74,36 +89,48 @@ jobs:
           pip list
 
       - name: Test Documentation
-        env:
-          SPHINX_MOCK_REQUIREMENTS: 0
+        if: ${{ matrix.check == 'doctest' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
           make doctest
           make coverage
 
+      - name: Check External Links
+        if: ${{ matrix.check == 'linkcheck' }}
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
+        run: make  linkcheck SPHINXOPTS="--keep-going"
+
 
   make-html:
-    runs-on: ubuntu-latest
-    container:
-      image: pytorchlightning/pytorch_lightning:docs
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         pkg-name: ["app", "fabric", "pytorch"]
+    env:
+      FAST_DOCS_DEV: 0
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
-
-      - uses: aws-actions/configure-aws-credentials@v2
-        if: ${{ matrix.pkg-name != 'pytorch' }}
+      - uses: actions/setup-python@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-          aws-region: us-east-1
+          python-version: "3.9"
 
+      - name: Install AWS CLI
+        if: ${{ matrix.pkg-name != 'pytorch' }}
+        continue-on-error: true
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
+          unzip -qq awscli.zip
+          bash ./aws/install
+          aws --version
       - run: aws s3 sync s3://sphinx-packages/ pypi_pkgs/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       - name: pip wheels cache
@@ -112,6 +139,11 @@ jobs:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
 
+      - name: Install pandoc & texlive
+        if: ${{ matrix.pkg-name == 'pytorch' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       - name: Install package & dependencies
         run: |
           mkdir -p $PYPI_CACHE_DIR  # in case cache was not hit
@@ -126,11 +158,6 @@ jobs:
       - name: Make Documentation
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
-
-      - name: Check External Links (Optional)
-        working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: make linkcheck
-        continue-on-error: true
 
       - name: Keep artifact
         id: keep-artifact
@@ -153,13 +180,15 @@ jobs:
           cache-key: "pypi_wheels"
 
   deploy-docs:
-    needs: [make-doctest, make-html]
+    needs: [docs-checks, make-html]
     if: github.repository_owner == 'Lightning-AI' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         pkg-name: ["app", "fabric", "pytorch"]
+    env:
+      GCP_TARGET: "gs://lightning-docs-${{ matrix.pkg-name }}"
     steps:
       - uses: actions/download-artifact@v3
         with:
@@ -179,14 +208,22 @@ jobs:
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/stable to GCS 🪣
         if: startsWith(github.ref, 'refs/heads/release/')
-        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/stable
+        run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/stable
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/latest to GCS 🪣
         if: github.ref == 'refs/heads/master'
-        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/latest
+        run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/latest
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
         if: startsWith(github.ref, 'refs/tags/')
-        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-${{ matrix.pkg-name }}/${{  github.ref_name }}
+        run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/${{  github.ref_name }}
+
+      # Uploading docs as archive to GCS, so they can be as backup
+      - name: Upload docs as archive to GCS 🪣
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: docs/build
+        run: |
+          zip ${{  github.ref_name }}.zip -r html/
+          gsutil cp ${{  github.ref_name }}.zip ${GCP_TARGET}

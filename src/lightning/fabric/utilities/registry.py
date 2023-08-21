@@ -42,6 +42,7 @@ def _load_external_callbacks(group: str) -> List[Any]:
 
     Return:
         A list of all callbacks collected from external factories.
+
     """
     if _PYTHON_GREATER_EQUAL_3_8_0:
         from importlib.metadata import entry_points

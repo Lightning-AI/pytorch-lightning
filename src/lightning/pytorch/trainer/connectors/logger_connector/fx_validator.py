@@ -124,6 +124,7 @@ class _FxValidator:
         "setup": None,
         "teardown": None,
         "configure_sharded_model": None,
+        "configure_model": None,
         "training_step": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),

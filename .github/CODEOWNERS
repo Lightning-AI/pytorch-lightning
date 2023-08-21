@@ -8,12 +8,12 @@
 * @lantiga @borda @tchaton @awaelchli
 
 # CI/CD and configs
-/.actions/                  @borda @carmocca @ethanwharris
-/.github/                   @borda @carmocca @ethanwharris
-/.azure/                    @borda @carmocca @ethanwharris
+/.actions/                  @borda @carmocca @ethanwharris @justusschock
+/.github/                   @borda @carmocca @ethanwharris @justusschock
+/.azure/                    @borda @carmocca @ethanwharris @justusschock
 /.azure/app-cloud-e2e.yml   @awaelchli @ethanwharris @lantiga
-/dockers/                   @borda @carmocca @ethanwharris
-*.yml                       @borda @carmocca @ethanwharris
+/dockers/                   @borda @carmocca @ethanwharris @justusschock
+*.yml                       @borda @carmocca @ethanwharris @justusschock
 
 # Docs
 /docs/                                      @edenlightning @lantiga @borda @awaelchli
@@ -24,15 +24,15 @@
 /docs/source-fabric/index.rst               @awaelchli @lantiga @carmocca
 /docs/source-pytorch/conf.py                @borda @awaelchli @carmocca
 /docs/source-pytorch/index.rst              @williamfalcon @lantiga
-/docs/source-pytorch/levels                 @williamfalcon
-/docs/source-app/                           @williamfalcon @tchaton @awaelchli
+/docs/source-pytorch/levels                 @williamfalcon @lantiga
+/docs/source-app/                           @williamfalcon @lantiga @tchaton @awaelchli
 /docs/source-app/index.rst                  @williamfalcon @lantiga
-/docs/source-app/expertise_levels           @williamfalcon
+/docs/source-app/expertise_levels           @williamfalcon @lantiga
 
 # PyTorch Lightning
 /src/lightning/pytorch                      @williamfalcon @awaelchli @carmocca @justusschock
 /src/pytorch_lightning                      @williamfalcon @awaelchli @carmocca @justusschock
-/tests/tests_pytorch                        @awaelchli @carmocca @justusschock
+/tests/tests_pytorch                        @awaelchli @carmocca @justusschock @borda
 
 # Core APIs
 /src/lightning/pytorch/callbacks/callback.py @williamfalcon @awaelchli @carmocca
@@ -42,9 +42,9 @@
 /src/lightning/pytorch/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
 
 # Data Utilities
-/examples/data/           @nohalon @justusschock
-/src/lightning/data/      @nohalon @justusschock
-/tests/tests_data         @nohalon @justusschock
+/examples/data/           @nohalon @justusschock @lantiga
+/src/lightning/data/      @nohalon @justusschock @lantiga
+/tests/tests_data         @nohalon @justusschock @lantiga
 
 # Lightning Fabric
 /src/lightning/fabric                       @awaelchli @carmocca @justusschock
@@ -65,4 +65,4 @@
 /src/pytorch_lightning/__about__.py  @williamfalcon @borda @carmocca
 /src/lightning_app/__about__.py      @williamfalcon @lantiga @borda
 /src/lightning_fabric/__about__.py   @williamfalcon @borda @awaelchli
-/src/*/__setup__.py                  @borda @carmocca
+/src/*/__setup__.py                  @borda @carmocca @justusschock

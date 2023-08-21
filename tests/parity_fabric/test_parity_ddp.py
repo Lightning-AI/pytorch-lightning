@@ -161,6 +161,6 @@ def run_parity_test(accelerator: str = "cpu", devices: int = 2, tolerance: float
 
 
 if __name__ == "__main__":
-    from jsonargparse.cli import CLI
+    from jsonargparse import CLI
 
     CLI(run_parity_test)

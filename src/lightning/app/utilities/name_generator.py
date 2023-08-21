@@ -1353,6 +1353,7 @@ def get_unique_name():
     'meek-ardinghelli-4506'
     >>> get_unique_name()
     'truthful-dijkstra-2286'
+
     """
     adjective, surname, i = choice(_adjectives), choice(_surnames), randint(0, 9999)  # noqa: S311
     return f"{adjective}-{surname}-{i}"

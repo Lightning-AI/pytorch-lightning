@@ -5,6 +5,7 @@
     <../advanced/gradient_accumulation>
     <../advanced/distributed_communication>
     <../advanced/multiple_setup>
+    <../advanced/model_parallel/fsdp>
 
 
 ###############
@@ -21,7 +22,7 @@ Advanced skills
     :description: Learn how to perform efficient gradient accumulation in distributed settings
     :button_link: ../advanced/gradient_accumulation.html
     :col_css: col-md-4
-    :height: 160
+    :height: 170
     :tag: advanced
 
 .. displayitem::
@@ -29,7 +30,7 @@ Advanced skills
     :description: Learn all about communication primitives for distributed operation. Gather, reduce, broadcast, etc.
     :button_link: ../advanced/distributed_communication.html
     :col_css: col-md-4
-    :height: 160
+    :height: 170
     :tag: advanced
 
 .. displayitem::
@@ -37,7 +38,15 @@ Advanced skills
     :description: See how flexible Fabric is to work with multiple models and optimizers!
     :button_link: ../advanced/multiple_setup.html
     :col_css: col-md-4
-    :height: 160
+    :height: 170
+    :tag: advanced
+
+.. displayitem::
+    :header: Train models with billions of parameters
+    :description: Train the largest models with FSDP across multiple GPUs and machines
+    :button_link: ../advanced/model_parallel/fsdp.html
+    :col_css: col-md-4
+    :height: 170
     :tag: advanced
 
 .. raw:: html

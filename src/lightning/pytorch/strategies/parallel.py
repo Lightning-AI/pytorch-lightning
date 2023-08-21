@@ -27,7 +27,7 @@ from lightning.pytorch.strategies.strategy import Strategy
 
 
 class ParallelStrategy(Strategy, ABC):
-    """Plugin for training with multiple processes in parallel."""
+    """Strategy for training with multiple processes in parallel."""
 
     def __init__(
         self,
@@ -112,6 +112,7 @@ class ParallelStrategy(Strategy, ABC):
 
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
+
         """
         if isinstance(self.model, pl.utilities.types.DistributedDataParallel):
             with self.model.no_sync():

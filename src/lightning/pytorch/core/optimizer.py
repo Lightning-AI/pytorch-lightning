@@ -34,13 +34,16 @@ def do_nothing_closure() -> None:
 
 
 class LightningOptimizer:
-    """This class is used to wrap the user optimizers and handle properly the backward and optimizer_step logic
-    across accelerators, AMP, accumulate_grad_batches."""
+    """This class is used to wrap the user optimizers and handle properly the backward and optimizer_step logic across
+    accelerators, AMP, accumulate_grad_batches.
+
+    Note: The purpose of this wrapper is only to define new methods and redirect the `.step()` call. The internal
+    state ``__dict__`` is not kept in sync with the internal state of the original optimizer, but the Trainer never
+    relies on the internal state of the wrapper.
+
+    """
 
     def __init__(self, optimizer: Optimizer):
-        # copy most of the `Optimizer` methods into this instance. `__del__` is skipped in case the optimizer has
-        # implemented custom logic which we would not want to call on destruction of the `LightningOptimizer`
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
         self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
         self._optimizer = optimizer
@@ -49,19 +52,11 @@ class LightningOptimizer:
         self._on_before_step = do_nothing_closure
         self._on_after_step = do_nothing_closure
 
+        self.refresh()
+
     @property
     def optimizer(self) -> Optimizer:
         return self._optimizer
-
-    @classmethod
-    def _to_lightning_optimizer(
-        cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy"
-    ) -> "LightningOptimizer":
-        # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
-        # tests/core/test_lightning_optimizer.py::test_lightning_optimizer[False]
-        lightning_optimizer = optimizer if isinstance(optimizer, LightningOptimizer) else cls(optimizer)
-        lightning_optimizer._strategy = proxy(strategy)
-        return lightning_optimizer
 
     @contextmanager
     def toggle_model(self, sync_grad: bool = True) -> Generator[None, None, None]:
@@ -73,6 +68,7 @@ class LightningOptimizer:
         When performing gradient accumulation, there is no need to perform grad synchronization
         during the accumulation phase.
         Setting `sync_grad` to False will block this synchronization and improve performance.
+
         """
         # local import here to avoid circular import
         from lightning.pytorch.loops.utilities import _block_parallel_sync_behavior
@@ -84,6 +80,15 @@ class LightningOptimizer:
             lightning_module.toggle_optimizer(self)
             yield
             lightning_module.untoggle_optimizer(self)
+
+    def refresh(self) -> None:
+        """Refreshes the ``__dict__`` so that it matches the internal states in the wrapped optimizer.
+
+        This is only needed to present the user with an updated view in case they inspect the state of this wrapper.
+        """
+        # copy most of the `Optimizer` methods into this instance. `__del__` is skipped in case the optimizer has
+        # implemented custom logic which we would not want to call on destruction of the `LightningOptimizer`
+        self.__dict__.update({k: v for k, v in self.optimizer.__dict__.items() if k not in ("step", "__del__")})
 
     def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> Any:
         """Performs a single optimization step (parameter update).
@@ -144,6 +149,7 @@ class LightningOptimizer:
 
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
                     opt_dis.step(closure=closure_dis)
+
         """
         self._on_before_step()
 
@@ -158,6 +164,16 @@ class LightningOptimizer:
         self._on_after_step()
 
         return step_output
+
+    @classmethod
+    def _to_lightning_optimizer(
+        cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy"
+    ) -> "LightningOptimizer":
+        # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
+        # tests/core/test_lightning_optimizer.py::test_lightning_optimizer[False]
+        lightning_optimizer = optimizer if isinstance(optimizer, LightningOptimizer) else cls(optimizer)
+        lightning_optimizer._strategy = proxy(strategy)
+        return lightning_optimizer
 
 
 def _init_optimizers_and_lr_schedulers(
@@ -237,8 +253,7 @@ def _configure_optimizers(
 
 
 def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[LRSchedulerConfig]:
-    """Convert each scheduler into `LRSchedulerConfig` with relevant information, when using automatic
-    optimization."""
+    """Convert each scheduler into `LRSchedulerConfig` with relevant information, when using automatic optimization."""
     lr_scheduler_configs = []
     for scheduler in schedulers:
         if isinstance(scheduler, dict):
@@ -326,7 +341,11 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
                 " It should have `state_dict` and `load_state_dict` methods defined."
             )
 
-        if not isinstance(scheduler, LRSchedulerTypeTuple) and not is_overridden("lr_scheduler_step", model):
+        if (
+            not isinstance(scheduler, LRSchedulerTypeTuple)
+            and not is_overridden("lr_scheduler_step", model)
+            and model.automatic_optimization
+        ):
             raise MisconfigurationException(
                 f"The provided lr scheduler `{scheduler.__class__.__name__}` doesn't follow PyTorch's LRScheduler"
                 " API. You should override the `LightningModule.lr_scheduler_step` hook with your own logic if"

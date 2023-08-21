@@ -139,6 +139,13 @@ How-to Guides
     :height: 180
 
 .. displayitem::
+   :header: Train in a notebook
+   :description: Train models in interactive notebooks (Jupyter, Colab, Kaggle, etc.)
+   :col_css: col-md-4
+   :button_link: ../common/notebooks.html
+   :height: 180
+
+.. displayitem::
     :header: Train on single or multiple GPUs
     :description: Train models faster with GPU accelerators
     :button_link: ../accelerators/gpu.html

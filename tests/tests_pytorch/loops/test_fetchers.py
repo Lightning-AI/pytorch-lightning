@@ -129,12 +129,14 @@ def get_cycles_per_ms() -> float:
 
     This is to avoid system disturbance that skew the results, e.g. the very first cuda call likely does a bunch of
     init, which takes much longer than subsequent calls.
+
     """
 
     def measure() -> float:
         """Measure and return approximate number of cycles per millisecond for `torch.cuda._sleep` Copied from:
 
         https://github.com/pytorch/pytorch/blob/v1.9.0/test/test_cuda.py#L81.
+
         """
         start = torch.cuda.Event(enable_timing=True)
         end = torch.cuda.Event(enable_timing=True)

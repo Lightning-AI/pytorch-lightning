@@ -37,11 +37,13 @@ class DeepSpeedPrecision(Precision):
     """Precision plugin for DeepSpeed integration.
 
     Args:
-        precision: Full precision (32-true), half precision (16-mixed) or bfloat16 precision (bf16-mixed).
+        precision: Full precision (32-true), half precision (16-true, bf16-true) or
+            mixed precision (16-mixed, bf16-mixed).
 
     Raises:
         ValueError:
             If unsupported ``precision`` is provided.
+
     """
 
     def __init__(self, precision: _PRECISION_INPUT) -> None:
@@ -69,8 +71,12 @@ class DeepSpeedPrecision(Precision):
 
     @contextmanager
     def init_context(self) -> Generator[None, None, None]:
+        if "true" not in self.precision:
+            yield
+            return
+
         default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self._desired_dtype if "true" in self.precision else default_dtype)
+        torch.set_default_dtype(self._desired_dtype)
         yield
         torch.set_default_dtype(default_dtype)
 

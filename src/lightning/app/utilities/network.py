@@ -95,6 +95,7 @@ def _configure_session() -> Session:
     """Configures the session for GET and POST requests.
 
     It enables a generous retrial strategy that waits for the application server to connect.
+
     """
     retry_strategy = Retry(
         # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
@@ -123,41 +124,46 @@ def _get_next_backoff_time(num_retries: int, backoff_value: float = 0.5) -> floa
     return min(_DEFAULT_BACKOFF_MAX, next_backoff_value)
 
 
-def _retry_wrapper(self, func: Callable) -> Callable:
-    """Returns the function decorated by a wrapper that retries the call several times if a connection error
-    occurs.
+def _retry_wrapper(self, func: Callable, max_tries: Optional[int] = None) -> Callable:
+    """Returns the function decorated by a wrapper that retries the call several times if a connection error occurs.
 
     The retries follow an exponential backoff.
+
     """
 
     @wraps(func)
     def wrapped(*args: Any, **kwargs: Any) -> Any:
         consecutive_errors = 0
-        while _get_next_backoff_time(consecutive_errors) != _DEFAULT_BACKOFF_MAX:
+
+        while True:
             try:
                 return func(self, *args, **kwargs)
-            except lightning_cloud.openapi.rest.ApiException as ex:
-                # retry if the control plane fails with all errors except 4xx but not 408 - (Request Timeout)
-                if ex.status == 408 or ex.status == 409 or not str(ex.status).startswith("4"):
+            except (lightning_cloud.openapi.rest.ApiException, urllib3.exceptions.HTTPError) as ex:
+                # retry if the backend fails with all errors except 4xx but not 408 - (Request Timeout)
+                if (
+                    isinstance(ex, urllib3.exceptions.HTTPError)
+                    or ex.status in (408, 409)
+                    or not str(ex.status).startswith("4")
+                ):
                     consecutive_errors += 1
                     backoff_time = _get_next_backoff_time(consecutive_errors)
+
+                    msg = (
+                        f"error: {str(ex)}"
+                        if isinstance(ex, urllib3.exceptions.HTTPError)
+                        else f"response: {ex.status}"
+                    )
                     logger.debug(
-                        f"The {func.__name__} request failed to reach the server, got a response {ex.status}."
+                        f"The {func.__name__} request failed to reach the server, {msg}."
                         f" Retrying after {backoff_time} seconds."
                     )
+
+                    if max_tries is not None and consecutive_errors == max_tries:
+                        raise Exception(f"The {func.__name__} request failed to reach the server, {msg}.")
+
                     time.sleep(backoff_time)
                 else:
                     raise ex
-            except urllib3.exceptions.HTTPError as ex:
-                consecutive_errors += 1
-                backoff_time = _get_next_backoff_time(consecutive_errors)
-                logger.debug(
-                    f"The {func.__name__} request failed to reach the server, got a an error {str(ex)}."
-                    f" Retrying after {backoff_time} seconds."
-                )
-                time.sleep(backoff_time)
-
-        raise Exception(f"The default maximum backoff {_DEFAULT_BACKOFF_MAX} seconds has been reached.")
 
     return wrapped
 
@@ -169,15 +175,17 @@ class LightningClient(GridRestClient):
 
     Args:
         retry: Whether API calls should follow a retry mechanism with exponential backoff.
+        max_tries: Maximum number of attempts (or -1 to retry forever).
+
     """
 
-    def __init__(self, retry: bool = True) -> None:
+    def __init__(self, retry: bool = True, max_tries: Optional[int] = None) -> None:
         super().__init__(api_client=create_swagger_client())
         if retry:
             for base_class in GridRestClient.__mro__:
                 for name, attribute in base_class.__dict__.items():
                     if callable(attribute) and attribute.__name__ != "__init__":
-                        setattr(self, name, _retry_wrapper(self, attribute))
+                        setattr(self, name, _retry_wrapper(self, attribute, max_tries=max_tries))
 
 
 class CustomRetryAdapter(HTTPAdapter):
@@ -269,5 +277,6 @@ class HTTPClient:
 
         We enabled customisation here instead of just using `logger.debug` because HTTP logging can be very noisy, but
         it is crucial for finding bugs when we have them
+
         """
         pass

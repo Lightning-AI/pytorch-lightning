@@ -297,8 +297,7 @@ class UnusedParametersModel(BoringModel):
 
 
 def test_ddp_strategy_find_unused_parameters_exception():
-    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning
-    users."""
+    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning users."""
     trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp", max_steps=2)
     with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):
         trainer.fit(UnusedParametersModel())
