@@ -32,7 +32,6 @@ import lightning.app  # isort: skip # noqa: E402
 import lightning.store  # isort: skip # noqa: E402, F401
 
 
-
 __all__ = [
     "LightningApp",
     "LightningFlow",
