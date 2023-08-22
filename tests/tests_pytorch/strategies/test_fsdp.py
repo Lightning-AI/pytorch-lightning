@@ -3,6 +3,7 @@ from contextlib import nullcontext
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
+from re import escape
 from typing import Any, Dict, Optional
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
@@ -698,9 +699,28 @@ def test_sharded_state_dict_type_support():
     """Test that the sharded state dict type is supported."""
     with pytest.raises(
         NotImplementedError,
-        match=r"`FSDPStrategy\(state_dict_type='sharded'\)` is not supported in PyTorch < 2.0",
+        match=escape("`FSDPStrategy(state_dict_type='sharded')` is not supported in PyTorch < 2.0"),
     ):
         FSDPStrategy(state_dict_type="sharded")
+
+
+@RunIf(min_torch="2.0.0")
+def test_save_checkpoint_storage_options(tmp_path):
+    """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
+    strategy = FSDPStrategy()
+    with pytest.raises(TypeError, match=escape("FSDPStrategy.save_checkpoint(..., storage_options=...)` is not")):
+        strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock(), storage_options=Mock())
+
+
+@RunIf(min_torch="2.0.0")
+@mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+def test_save_checkpoint_folder_exists(tmp_path):
+    path = tmp_path / "exists"
+    path.mkdir()
+    (path / "file").touch()
+    strategy = FSDPStrategy()
+    with pytest.raises(FileExistsError, match="exists and is not empty"):
+        strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock())
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
