@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
 import sys
 from functools import partial, update_wrapper
@@ -51,6 +52,8 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
+
+ModuleType = TypeVar("ModuleType")
 
 
 class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -198,30 +201,6 @@ class LightningArgumentParser(ArgumentParser):
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, sub_configs=True, **kwargs)
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
-
-    def class_instantiator(self, class_type, *args, **kwargs):
-        for key, (base_type, hparams) in getattr(self, "_hparam_context", {}).items():
-            if issubclass(class_type, base_type):
-                with given_hyperparameters_context(hparams):
-                    return super().class_instantiator(class_type, *args, **kwargs)
-        return super().class_instantiator(class_type, *args, **kwargs)
-
-    def instantiate_classes(
-        self,
-        cfg: Namespace,
-        instantiate_groups: bool = True,
-        hparam_context: Optional[Dict[str, type]] = None,
-    ) -> Namespace:
-        if hparam_context:
-            cfg_dict = yaml.safe_load(self.dump(cfg))  # TODO: do not remove link targets!
-            self._hparam_context = {}
-            for key, base_type in hparam_context.items():
-                hparams = cfg_dict.get(key, {})
-                self._hparam_context[key] = (base_type, hparams)
-        init = super().instantiate_classes(cfg, instantiate_groups=instantiate_groups)
-        if hparam_context:
-            delattr(self, "_hparam_context")
-        return init
 
 
 class SaveConfigCallback(Callback):
@@ -407,6 +386,7 @@ class LightningCLI:
 
         self._set_seed()
 
+        self._add_instantiators()
         self.before_instantiate_classes()
         self.instantiate_classes()
 
@@ -553,18 +533,28 @@ class LightningCLI:
         else:
             self.config = parser.parse_args(args)
 
+    def _add_instantiators(self) -> None:
+        self.config_dump = yaml.safe_load(self.parser.dump(self.config, skip_link_targets=False))
+        if "subcommand" in self.config:
+            self.config_dump = self.config_dump[self.config.subcommand]
+
+        self.parser.add_instantiator(
+            _InstantiatorFn(cli=self, key="model"),
+            _get_module_type(self._model_class),
+            subclasses=self.subclass_mode_model,
+        )
+        self.parser.add_instantiator(
+            _InstantiatorFn(cli=self, key="data"),
+            _get_module_type(self._datamodule_class),
+            subclasses=self.subclass_mode_data,
+        )
+
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes."""
 
     def instantiate_classes(self) -> None:
         """Instantiates the classes and sets their attributes."""
-        hparam_prefix = ""
-        if "subcommand" in self.config:
-            hparam_prefix = self.config["subcommand"] + "."
-        hparam_context = {hparam_prefix + "model": self._model_class}
-        if self.datamodule_class is not None:
-            hparam_context[hparam_prefix + "data"] = self._datamodule_class
-        self.config_init = self.parser.instantiate_classes(self.config, hparam_context=hparam_context)
+        self.config_init = self.parser.instantiate_classes(self.config)
         self.datamodule = self._get(self.config_init, "data")
         self.model = self._get(self.config_init, "model")
         self._add_configure_optimizers_method_to_model(self.subcommand)
@@ -789,7 +779,20 @@ def _get_short_description(component: object) -> Optional[str]:
         rank_zero_warn(f"Failed parsing docstring for {component}: {ex}")
 
 
-ModuleType = TypeVar("ModuleType")
+def _get_module_type(value: Union[Callable, type]) -> type:
+    if callable(value) and not isinstance(value, type):
+        return inspect.signature(value).return_annotation
+    return value
+
+
+class _InstantiatorFn:
+    def __init__(self, cli: LightningCLI, key: str) -> None:
+        self.cli = cli
+        self.key = key
+
+    def __call__(self, class_type: Type[ModuleType], *args: Any, **kwargs: Any) -> ModuleType:
+        with given_hyperparameters_context(self.cli.config_dump.get(self.key, {})):
+            return class_type(*args, **kwargs)
 
 
 def instantiate_module(class_type: Type[ModuleType], config: Dict[str, Any]) -> ModuleType:

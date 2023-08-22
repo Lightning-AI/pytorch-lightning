@@ -118,7 +118,7 @@ def _load_state(
     cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint: Dict[str, Any],
     strict: Optional[bool] = None,
-    instantiator=None,
+    instantiator: Optional[Callable] = None,
     **cls_kwargs_new: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     cls_spec = inspect.getfullargspec(cls.__init__)

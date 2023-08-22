@@ -39,6 +39,7 @@ from lightning.pytorch.cli import (
     OptimizerCallable,
     SaveConfigCallback,
     instantiate_class,
+    instantiate_module,
 )
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger

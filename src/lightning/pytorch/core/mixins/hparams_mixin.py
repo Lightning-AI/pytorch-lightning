@@ -17,7 +17,7 @@ import types
 from argparse import Namespace
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, List, MutableMapping, Optional, Sequence, Union
+from typing import Any, Iterator, List, MutableMapping, Optional, Sequence, Union
 
 from lightning.fabric.utilities.data import AttributeDict
 from lightning.pytorch.utilities.parsing import save_hyperparameters
@@ -30,7 +30,7 @@ given_hyperparameters: ContextVar = ContextVar("given_hyperparameters", default=
 
 
 @contextmanager
-def given_hyperparameters_context(value):
+def given_hyperparameters_context(value: dict) -> Iterator[None]:
     token = given_hyperparameters.set(value)
     try:
         yield
