@@ -516,8 +516,6 @@ class FSDPStrategy(ParallelStrategy):
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
-        from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
-
         if storage_options is not None:
             raise TypeError(
                 "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
@@ -529,6 +527,8 @@ class FSDPStrategy(ParallelStrategy):
             raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
 
         if self._state_dict_type == "sharded":
+            from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
+
             path.mkdir(parents=True, exist_ok=True)
 
             converted_state = {"model": checkpoint.pop("state_dict")}
