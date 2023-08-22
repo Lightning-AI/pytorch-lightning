@@ -808,7 +808,9 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
     return state_dict_type_context  # type: ignore[return-value]
 
 
-def _get_full_state_dict_context(module: Module, rank0_only: bool = True, offload_to_cpu: bool = True) -> Generator[None, None, None]:
+def _get_full_state_dict_context(
+    module: Module, rank0_only: bool = True, offload_to_cpu: bool = True
+) -> Generator[None, None, None]:
     from torch.distributed.fsdp import FullStateDictConfig
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp import StateDictType
