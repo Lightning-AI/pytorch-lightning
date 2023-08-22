@@ -260,6 +260,7 @@ intersphinx_mapping = {
 nitpicky = True
 
 nitpick_ignore = [
+    ("py:class", "typing.Self"),
     # Nitpick does not see protected nor private API
     ("py:class", "lightning.fabric.wrappers._FabricModule"),
     ("py:class", "lightning.fabric.wrappers._FabricOptimizer"),
