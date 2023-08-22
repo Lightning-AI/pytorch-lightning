@@ -479,6 +479,40 @@ class FSDPStrategy(ParallelStrategy):
 
         return state_dict
 
+    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        if not _TORCH_GREATER_EQUAL_2_0:
+            rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support loading the optimizer state.")
+            return
+
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp import OptimStateKeyType
+
+        optimizer_states = checkpoint.get("optimizer_states")
+
+        # If the optimizer states are not present, we don't need to do anything (backward compatibility)
+        if optimizer_states is None:
+            return
+
+        if len(self.optimizers) != len(optimizer_states):
+            raise RuntimeError(
+                f"You have configured {len(self.optimizers)} optimizers but the checkpoint contains"
+                f" {len(optimizer_states)} optimizers to load. Please resume training with the same number"
+                " of optimizers or edit the checkpoint manually to remove states."
+            )
+
+        # rank0_only should be false because we need to load the optimizer state on all ranks
+        with _get_full_state_dict_context(self.model, rank0_only=False):
+            for optimizer, opt_state in zip(self.optimizers, optimizer_states):
+                # convert the optimizer state to the format expected by FSDP
+                opt_state = FSDP.rekey_optim_state_dict(opt_state, OptimStateKeyType.PARAM_NAME, self.model)
+
+                opt_state = FSDP.optim_state_dict_to_load(
+                    optim_state_dict=opt_state,
+                    model=self.model,
+                    optim=optimizer,
+                )
+                optimizer.load_state_dict(opt_state)
+
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
