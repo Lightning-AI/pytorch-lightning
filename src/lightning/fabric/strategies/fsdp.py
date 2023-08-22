@@ -808,12 +808,12 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
     return state_dict_type_context  # type: ignore[return-value]
 
 
-def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> Generator[None, None, None]:
+def _get_full_state_dict_context(module: Module, rank0_only: bool = True, offload_to_cpu: bool = True) -> Generator[None, None, None]:
     from torch.distributed.fsdp import FullStateDictConfig
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp import StateDictType
 
-    state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
+    state_dict_config = FullStateDictConfig(offload_to_cpu=offload_to_cpu, rank0_only=rank0_only)
 
     if _TORCH_GREATER_EQUAL_2_0:
         from torch.distributed.fsdp.api import FullOptimStateDictConfig

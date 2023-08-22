@@ -445,7 +445,7 @@ class FSDPStrategy(ParallelStrategy):
         if self._state_dict_type == "sharded":
             state_dict_ctx = _get_sharded_state_dict_context(self.model)
         elif self._state_dict_type == "full":
-            state_dict_ctx = _get_full_state_dict_context(self.model)
+            state_dict_ctx = _get_full_state_dict_context(self.model, offload_to_cpu=(self.world_size > 1))
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
         with state_dict_ctx:
@@ -465,7 +465,7 @@ class FSDPStrategy(ParallelStrategy):
         if self._state_dict_type == "sharded":
             state_dict_ctx = _get_sharded_state_dict_context(self.model)
         elif self._state_dict_type == "full":
-            state_dict_ctx = _get_full_state_dict_context(self.model)
+            state_dict_ctx = _get_full_state_dict_context(self.model, offload_to_cpu=(self.world_size > 1))
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
