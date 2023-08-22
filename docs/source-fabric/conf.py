@@ -261,9 +261,10 @@ nitpicky = True
 
 nitpick_ignore = [
     ("py:class", "typing.Self"),
-    # Nitpick does not see protected nor private API
+    # these are not generated with docs API ref
     ("py:class", "lightning.fabric.utilities.types.Optimizable"),
     ("py:class", "lightning.fabric.utilities.types.Steppable"),
+    # Nitpick does not see protected or private API
     ("py:class", "lightning.fabric.wrappers._FabricModule"),
     ("py:class", "lightning.fabric.wrappers._FabricOptimizer"),
     ("py:class", "lightning.fabric.loggers.csv_logs._ExperimentWriter"),
