@@ -24,7 +24,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import lightning.pytorch as pl
-from fabric.utilities.load import _lazy_load
+from lightning.fabric.utilities.load import _lazy_load
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies import _StrategyRegistry
@@ -400,7 +400,7 @@ class FSDPStrategy(ParallelStrategy):
         return [self.root_device.index]
 
     def teardown(self) -> None:
-        rank_zero_info(f"{self.__class__.__name__}: tearing down strategy...")
+        log.debug(f"{self.__class__.__name__}: tearing down strategy...")
 
         pl_module = self.lightning_module
         if (
@@ -541,16 +541,17 @@ class FSDPStrategy(ParallelStrategy):
         if self._state_dict_type == "sharded":
             path.mkdir(parents=True, exist_ok=True)
 
-            # FIXME:
-            converted_state = {k: v for k, v in checkpoint.items() if k in ("state_dict", "optimizer_states")}
-            metadata = {k: v for k, v in checkpoint.items() if k not in ("state_dict", "optimizer_states")}
+            converted_state = {"model": checkpoint.pop("state_dict")}
+            converted_state.update(
+                {f"optimizer_{idx}": optim_state for idx, optim_state in enumerate(checkpoint.pop("optimizer_states"))}
+            )
 
             # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
             writer = FileSystemWriter(path=path, single_file_per_rank=True)
             save_state_dict(converted_state, writer)
 
             if self.global_rank == 0:
-                torch.save(metadata, path / _METADATA_FILENAME)
+                torch.save(checkpoint, path / _METADATA_FILENAME)
         else:
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
 
@@ -579,16 +580,16 @@ class FSDPStrategy(ParallelStrategy):
             reader = FileSystemReader(path=path)
 
             with state_dict_ctx:
-                module_state = self.model.state_dict()
+                module_state = {"model": self.model.state_dict()}
                 load_state_dict(module_state, reader)
-                self.model.load_state_dict(module_state)
+                self.model.load_state_dict(module_state["model"])
 
                 if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                     # the optimizer states must be loaded separately
-                    for optim_idx, optim in enumerate(self.optimizers):
-                        optim_key = f"optimizer_{optim_idx}"
+                    for idx, optim in enumerate(self.optimizers):
+                        optim_key = f"optimizer_{idx}"
                         optim_state = load_sharded_optimizer_state_dict(
-                            model_state_dict=module_state,
+                            model_state_dict=module_state["model"],
                             optimizer_key=optim_key,
                             storage_reader=reader,
                         )
@@ -604,7 +605,12 @@ class FSDPStrategy(ParallelStrategy):
             return metadata
 
         if _is_full_checkpoint(path):
-            checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
+            # TODO: lazy loading not possible atm because deepcopy of callbacks
+            # checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
+            checkpoint = torch.load(path, map_location="cpu")
+
+            
+            
             # _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
 
             # if isinstance(state, Module):
