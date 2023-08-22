@@ -498,6 +498,8 @@ class FSDPStrategy(ParallelStrategy):
                 " of optimizers or edit the checkpoint manually to remove states."
             )
 
+        assert self.model is not None
+
         # rank0_only should be false because we need to load the optimizer state on all ranks
         with _get_full_state_dict_context(self.model, rank0_only=False):
             for optimizer, opt_state in zip(self.optimizers, optimizer_states):
