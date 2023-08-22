@@ -252,9 +252,9 @@ epub_exclude_files = ["search.html"]
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "typing_extensions": ("https://typing-extensions.readthedocs.io/en/stable/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
     "pytorch_lightning": ("https://lightning.ai/docs/pytorch/stable/", None),
-    "lightning": ("https://lightning.ai/docs/app/stable/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
 }
 nitpicky = True

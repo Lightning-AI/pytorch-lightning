@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
 from torch import Tensor
+from typing_extensions import Self
 
 from lightning.fabric.utilities.types import CollectibleGroup
 
@@ -110,12 +111,12 @@ class Collective(ABC):
     def _convert_to_native_op(cls, op: str) -> Any:
         ...
 
-    def setup(self, **kwargs: Any) -> "Collective":
+    def setup(self, **kwargs: Any) -> Self:
         if not self.is_initialized():
             self.init_group(**kwargs)
         return self
 
-    def create_group(self, **kwargs: Any) -> "Collective":
+    def create_group(self, **kwargs: Any) -> Self:
         """Create a group.
 
         This assumes that :meth:`~lightning.fabric.plugins.collectives.Collective.init_group` has been
@@ -127,7 +128,7 @@ class Collective(ABC):
         self._group = self.new_group(**kwargs)
         return self
 
-    def teardown(self) -> "Collective":
+    def teardown(self) -> Self:
         if self._group is None:
             raise RuntimeError(f"`{type(self).__name__}` does not own a group to destroy.")
         self.destroy_group(self._group)

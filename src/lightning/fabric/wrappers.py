@@ -99,8 +99,6 @@ class _FabricModule(_DeviceDtypeModuleMixin):
                 :meth:`lightning.fabric.fabric.Fabric.setup` method. This is needed when attribute lookup
                 on this wrapper should pass through to the original module.
 
-        :meta public:
-
         """
         super().__init__()
         self._forward_module = forward_module
@@ -229,8 +227,6 @@ class _FabricDataLoader:
             dataloader: The dataloader to wrap
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
-
-        :meta public:
 
         """
         self.__dict__.update(dataloader.__dict__)

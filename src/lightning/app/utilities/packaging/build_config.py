@@ -19,6 +19,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
+from typing_extensions import Self
+
 import lightning.app as L
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute
@@ -191,7 +193,7 @@ class BuildConfig:
         return {"__build_config__": asdict(self)}
 
     @classmethod
-    def from_dict(cls, d: Dict) -> "BuildConfig":
+    def from_dict(cls, d: Dict) -> Self:
         return cls(**d["__build_config__"])
 
 
