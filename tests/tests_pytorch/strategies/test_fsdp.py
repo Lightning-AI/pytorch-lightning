@@ -723,6 +723,7 @@ def test_save_checkpoint_folder_exists(tmp_path):
         strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock())
 
 
+# TODO: Extend this test once loading sharded state dict is supported
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
 def test_save_load_sharded_state_dict(tmp_path):
     """Test FSDP saving and loading with the sharded state dict format."""
