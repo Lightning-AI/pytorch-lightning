@@ -179,6 +179,12 @@ class FSDPStrategy(ParallelStrategy):
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
             activation_checkpointing, activation_checkpointing_policy
         )
+
+        if state_dict_type == "sharded" and not _TORCH_GREATER_EQUAL_2_0:
+            raise NotImplementedError(
+                "Saving checkpoints with `FSDPStrategy(state_dict_type='sharded')` is not supported in PyTorch < 2.0."
+                " Please upgrade `torch`."
+            )
         self._state_dict_type = state_dict_type
 
     @property
@@ -579,28 +585,30 @@ class FSDPStrategy(ParallelStrategy):
             from torch.distributed.fsdp import OptimStateKeyType
 
             optimizer_states = checkpoint.get("optimizer_states")
-
-            # If the optimizer states are not present, we don't need to do anything (backward compatibility)
             if optimizer_states is None:
+                # If the optimizer states are not present, we don't need to do anything (backward compatibility)
                 return
-
+            if not _TORCH_GREATER_EQUAL_2_0:
+                rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support loading the optimizer state.")
+                return checkpoint
             if len(self.optimizers) != len(optimizer_states):
                 raise RuntimeError(
                     f"You have configured {len(self.optimizers)} optimizers but the checkpoint contains"
                     f" {len(optimizer_states)} optimizers to load. Please resume training with the same number"
                     " of optimizers or edit the checkpoint manually to remove states."
                 )
-            if not _TORCH_GREATER_EQUAL_2_0:
-                rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support loading the optimizer state.")
-                return checkpoint
 
             assert self.model is not None
 
             # rank0_only should be false because we need to load the optimizer state on all ranks
             with _get_full_state_dict_context(self.model, rank0_only=False):
                 for optimizer, opt_state in zip(self.optimizers, optimizer_states):
-                    # convert the optimizer state to the format expected by FSDP
-                    opt_state = FSDP.rekey_optim_state_dict(opt_state, OptimStateKeyType.PARAM_NAME, self.model)
+                    if isinstance(list(opt_state["state"].keys())[0], int):
+                        # Handling the case where the optimizer state is saved from a normal optimizer
+                        opt_state = FSDP.rekey_optim_state_dict(
+                            opt_state, OptimStateKeyType.PARAM_NAME, self.model
+                        )
+                    # opt_state = FSDP.rekey_optim_state_dict(opt_state, OptimStateKeyType.PARAM_NAME, self.model)
 
                     opt_state = FSDP.optim_state_dict_to_load(
                         optim_state_dict=opt_state,
@@ -609,47 +617,12 @@ class FSDPStrategy(ParallelStrategy):
                     )
                     optimizer.load_state_dict(opt_state)
 
-            
-            
-            # _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
-
-            # if isinstance(state, Module):
-            #     return {}
             #
             # if _TORCH_GREATER_EQUAL_2_0:
             #     # Materialize lazy tensors if there are any left in the checkpoint
             #     # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
             #     checkpoint = _materialize_tensors(checkpoint)
 
-            # # Load optimizer states
-            # for optim_key, optim in optimizers.items():
-            #     # rank0_only should be false because we need to load the optimizer state on all ranks
-            #     with _get_full_state_dict_context(module, rank0_only=False):
-            #         temp_state_dict = checkpoint.pop(optim_key)
-            #
-            #         # Handling the case where the optimizer state is saved from a normal optimizer
-            #         if isinstance(list(temp_state_dict["state"].keys())[0], int):
-            #             temp_state_dict = FSDP.rekey_optim_state_dict(
-            #                 temp_state_dict, OptimStateKeyType.PARAM_NAME, module
-            #             )
-            #
-            #         optim_state_dict = FSDP.optim_state_dict_to_load(
-            #             optim_state_dict=temp_state_dict,
-            #             model=module,
-            #             optim=optim,
-            #         )
-            #         optim.load_state_dict(optim_state_dict)
-            #
-            # requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
-            # _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
-            #
-            # # Load metadata (anything not a module or optimizer)
-            # for key in requested_metadata_keys:
-            #     if key not in checkpoint:
-            #         continue
-            #     state[key] = checkpoint.pop(key)
-
-            # return the remaining metadata that wasn't requested as part of `state`
             return checkpoint
 
         raise ValueError(
