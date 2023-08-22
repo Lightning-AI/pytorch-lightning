@@ -445,9 +445,6 @@ class FSDPStrategy(ParallelStrategy):
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
 
-    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        pass
-
     def lightning_module_state_dict(self) -> Dict[str, Any]:
         assert self.model is not None
         if self._state_dict_type == "sharded":
@@ -459,42 +456,8 @@ class FSDPStrategy(ParallelStrategy):
         with state_dict_ctx:
             return self.model.state_dict()
 
-    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-
-        if not _TORCH_GREATER_EQUAL_2_0:
-            rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support loading the optimizer state.")
-            return
-
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp import OptimStateKeyType
-
-        optimizer_states = checkpoint.get("optimizer_states")
-
-        # If the optimizer states are not present, we don't need to do anything (backward compatibility)
-        if optimizer_states is None:
-            return
-
-        if len(self.optimizers) != len(optimizer_states):
-            raise RuntimeError(
-                f"You have configured {len(self.optimizers)} optimizers but the checkpoint contains"
-                f" {len(optimizer_states)} optimizers to load. Please resume training with the same number"
-                " of optimizers or edit the checkpoint manually to remove states."
-            )
-
-        assert self.model is not None
-
-        # rank0_only should be false because we need to load the optimizer state on all ranks
-        with _get_full_state_dict_context(self.model, rank0_only=False):
-            for optimizer, opt_state in zip(self.optimizers, optimizer_states):
-                # convert the optimizer state to the format expected by FSDP
-                opt_state = FSDP.rekey_optim_state_dict(opt_state, OptimStateKeyType.PARAM_NAME, self.model)
-
-                opt_state = FSDP.optim_state_dict_to_load(
-                    optim_state_dict=opt_state,
-                    model=self.model,
-                    optim=optimizer,
-                )
-                optimizer.load_state_dict(opt_state)
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        pass
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         if not _TORCH_GREATER_EQUAL_2_0:
@@ -522,6 +485,9 @@ class FSDPStrategy(ParallelStrategy):
         #     state_dict = FSDP.rekey_optim_state_dict(state_dict, OptimStateKeyType.PARAM_ID, self.model)
 
         return state_dict
+
+    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        pass
 
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
@@ -608,6 +574,40 @@ class FSDPStrategy(ParallelStrategy):
             # TODO: lazy loading not possible atm because deepcopy of callbacks
             # checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
             checkpoint = torch.load(path, map_location="cpu")
+
+            from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+            from torch.distributed.fsdp import OptimStateKeyType
+
+            optimizer_states = checkpoint.get("optimizer_states")
+
+            # If the optimizer states are not present, we don't need to do anything (backward compatibility)
+            if optimizer_states is None:
+                return
+
+            if len(self.optimizers) != len(optimizer_states):
+                raise RuntimeError(
+                    f"You have configured {len(self.optimizers)} optimizers but the checkpoint contains"
+                    f" {len(optimizer_states)} optimizers to load. Please resume training with the same number"
+                    " of optimizers or edit the checkpoint manually to remove states."
+                )
+            if not _TORCH_GREATER_EQUAL_2_0:
+                rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support loading the optimizer state.")
+                return checkpoint
+
+            assert self.model is not None
+
+            # rank0_only should be false because we need to load the optimizer state on all ranks
+            with _get_full_state_dict_context(self.model, rank0_only=False):
+                for optimizer, opt_state in zip(self.optimizers, optimizer_states):
+                    # convert the optimizer state to the format expected by FSDP
+                    opt_state = FSDP.rekey_optim_state_dict(opt_state, OptimStateKeyType.PARAM_NAME, self.model)
+
+                    opt_state = FSDP.optim_state_dict_to_load(
+                        optim_state_dict=opt_state,
+                        model=self.model,
+                        optim=optimizer,
+                    )
+                    optimizer.load_state_dict(opt_state)
 
             
             
