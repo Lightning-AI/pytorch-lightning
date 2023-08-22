@@ -167,10 +167,10 @@ if _RICH_AVAILABLE:
             if self._trainer.training and task.id != self._current_task_id:
                 return self._tasks[task.id]
 
-            text = " ".join(self.generate_metrics_texts())
+            text = " ".join(self._generate_metrics_texts())
             return Text(text, justify="left", style=self._style)
 
-        def generate_metrics_texts(self):
+        def _generate_metrics_texts(self):
             for k, v in self._metrics.items():
                 yield f"{k}: {round(v, 3) if isinstance(v, float) else v}"
 
