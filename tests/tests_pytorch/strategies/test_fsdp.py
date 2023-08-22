@@ -693,8 +693,18 @@ def test_load_save_optimizer_torch_lt_2_0():
         strategy.load_optimizer_state_dict(Mock())
 
 
+@mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False)
+def test_sharded_state_dict_type_support():
+    """Test that the sharded state dict type is supported."""
+    with pytest.raises(
+        NotImplementedError,
+        match=r"`FSDPStrategy\(state_dict_type='sharded'\)` is not supported in PyTorch < 2.0",
+    ):
+        FSDPStrategy(state_dict_type="sharded")
+
+
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
-def test_fsdp_save_load_sharded_state_dict(tmp_path):
+def test_save_load_sharded_state_dict(tmp_path):
     """Test FSDP saving and loading with the sharded state dict format."""
     model = TestBoringModel(wrap_min_params=1000)
     strategy = FSDPStrategy(
