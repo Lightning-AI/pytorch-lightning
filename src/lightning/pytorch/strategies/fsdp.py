@@ -36,7 +36,7 @@ from lightning.fabric.strategies.fsdp import (
     _init_cpu_offload,
     _init_sharding_strategy,
     _optimizer_has_flat_params,
-    _setup_activation_checkpointing, _is_sharded_checkpoint, _is_full_checkpoint,
+    _setup_activation_checkpointing, _is_sharded_checkpoint, _is_full_checkpoint, _load_raw_module_state,
 )
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
@@ -580,6 +580,7 @@ class FSDPStrategy(ParallelStrategy):
             # TODO: lazy loading not possible atm because deepcopy of callbacks
             # checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
             checkpoint = torch.load(path, map_location="cpu")
+            _load_raw_module_state(checkpoint["state_dict"], module=self.model)
 
             from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
             from torch.distributed.fsdp import OptimStateKeyType
@@ -587,7 +588,7 @@ class FSDPStrategy(ParallelStrategy):
             optimizer_states = checkpoint.get("optimizer_states")
             if optimizer_states is None:
                 # If the optimizer states are not present, we don't need to do anything (backward compatibility)
-                return
+                return checkpoint
             if not _TORCH_GREATER_EQUAL_2_0:
                 rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support loading the optimizer state.")
                 return checkpoint
@@ -622,7 +623,6 @@ class FSDPStrategy(ParallelStrategy):
             #     # Materialize lazy tensors if there are any left in the checkpoint
             #     # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
             #     checkpoint = _materialize_tensors(checkpoint)
-
             return checkpoint
 
         raise ValueError(
