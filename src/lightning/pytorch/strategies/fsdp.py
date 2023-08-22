@@ -24,6 +24,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import lightning.pytorch as pl
+from fabric.utilities.load import _lazy_load
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies import _StrategyRegistry
@@ -35,7 +36,7 @@ from lightning.fabric.strategies.fsdp import (
     _init_cpu_offload,
     _init_sharding_strategy,
     _optimizer_has_flat_params,
-    _setup_activation_checkpointing,
+    _setup_activation_checkpointing, _is_sharded_checkpoint, _is_full_checkpoint,
 )
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
@@ -148,7 +149,7 @@ class FSDPStrategy(ParallelStrategy):
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
-        state_dict_type: Literal["full", "sharded"] = "sharded",
+        state_dict_type: Literal["full", "sharded"] = "full",  # FIXME: make sharded the default
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -214,6 +215,14 @@ class FSDPStrategy(ParallelStrategy):
     @property
     def distributed_sampler_kwargs(self) -> Dict:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
+
+    @property
+    def restore_checkpoint_after_setup(self) -> bool:
+        return True
+
+    @property
+    def lightning_restore_optimizer(self) -> bool:
+        return False
 
     def setup_environment(self) -> None:
         log.debug(f"{self.__class__.__name__}: setting up distributed...")
@@ -423,6 +432,7 @@ class FSDPStrategy(ParallelStrategy):
             "fsdp",
             cls,
             description="Fully Sharded Data Parallel (FSDP) training",
+            # state_dict_type="full",
         )
         cls._registered_strategies.append("fsdp")
 
@@ -431,11 +441,12 @@ class FSDPStrategy(ParallelStrategy):
             cls,
             description="Fully Sharded Data Parallel (FSDP) training with Full Sharding and CPU Offloading",
             cpu_offload=True,
+            # state_dict_type="full",
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
 
-    # def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-    #     pass
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        pass
 
     def lightning_module_state_dict(self) -> Dict[str, Any]:
         assert self.model is not None
@@ -449,6 +460,7 @@ class FSDPStrategy(ParallelStrategy):
             return self.model.state_dict()
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+
         if not _TORCH_GREATER_EQUAL_2_0:
             rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support loading the optimizer state.")
             return
@@ -541,3 +553,100 @@ class FSDPStrategy(ParallelStrategy):
                 torch.save(metadata, path / _METADATA_FILENAME)
         else:
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
+
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+        # if not _TORCH_GREATER_EQUAL_2_0:
+        #     raise NotImplementedError(
+        #         "Saving and loading checkpoints with the `FSDPStrategy` is not supported in PyTorch < 2.0."
+        #         " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
+        #     )
+        # if not state:
+        #     raise ValueError(
+        #         f"Got FSDPStrategy.load_checkpoint(..., state={state!r}) but a state with at least "
+        #         f" a model instance to reload is required. Pass it in like so:"
+        #         " FSDPStrategy.load_checkpoint(..., state={'model': model, ...})"
+        #     )
+        # broadcast the path from rank 0 to ensure all the states are loaded from a common path
+        path = Path(self.broadcast(checkpoint_path))
+
+        from torch.distributed.checkpoint import FileSystemReader, load_state_dict
+        from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp import OptimStateKeyType
+
+        if _is_sharded_checkpoint(path):
+            state_dict_ctx = _get_sharded_state_dict_context(self.model)
+            reader = FileSystemReader(path=path)
+
+            with state_dict_ctx:
+                module_state = self.model.state_dict()
+                load_state_dict(module_state, reader)
+                self.model.load_state_dict(module_state)
+
+                if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+                    # the optimizer states must be loaded separately
+                    for optim_idx, optim in enumerate(self.optimizers):
+                        optim_key = f"optimizer_{optim_idx}"
+                        optim_state = load_sharded_optimizer_state_dict(
+                            model_state_dict=module_state,
+                            optimizer_key=optim_key,
+                            storage_reader=reader,
+                        )
+                        flattened_osd = FSDP.optim_state_dict_to_load(
+                            optim_state_dict=optim_state[optim_key],
+                            model=self.model,
+                            optim=optim,
+                        )
+                        optim.load_state_dict(flattened_osd)
+
+            # Load metadata (anything not a module or optimizer)
+            metadata = torch.load(path / _METADATA_FILENAME)
+            return metadata
+
+        if _is_full_checkpoint(path):
+            checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
+            # _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
+
+            # if isinstance(state, Module):
+            #     return {}
+            #
+            # if _TORCH_GREATER_EQUAL_2_0:
+            #     # Materialize lazy tensors if there are any left in the checkpoint
+            #     # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
+            #     checkpoint = _materialize_tensors(checkpoint)
+
+            # # Load optimizer states
+            # for optim_key, optim in optimizers.items():
+            #     # rank0_only should be false because we need to load the optimizer state on all ranks
+            #     with _get_full_state_dict_context(module, rank0_only=False):
+            #         temp_state_dict = checkpoint.pop(optim_key)
+            #
+            #         # Handling the case where the optimizer state is saved from a normal optimizer
+            #         if isinstance(list(temp_state_dict["state"].keys())[0], int):
+            #             temp_state_dict = FSDP.rekey_optim_state_dict(
+            #                 temp_state_dict, OptimStateKeyType.PARAM_NAME, module
+            #             )
+            #
+            #         optim_state_dict = FSDP.optim_state_dict_to_load(
+            #             optim_state_dict=temp_state_dict,
+            #             model=module,
+            #             optim=optim,
+            #         )
+            #         optim.load_state_dict(optim_state_dict)
+            #
+            # requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
+            # _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
+            #
+            # # Load metadata (anything not a module or optimizer)
+            # for key in requested_metadata_keys:
+            #     if key not in checkpoint:
+            #         continue
+            #     state[key] = checkpoint.pop(key)
+
+            # return the remaining metadata that wasn't requested as part of `state`
+            return checkpoint
+
+        raise ValueError(
+            f"The path {str(path)!r} does not point to a valid checkpoint. Make sure the path points to either a"
+            " directory with FSDP checkpoint shards, or a single file with a full checkpoint."
+        )
