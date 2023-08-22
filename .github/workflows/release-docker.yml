@@ -41,7 +41,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           # only on releases
           push: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' }}
-          dockerfile: dockers/release/Dockerfile
+          file: dockers/release/Dockerfile
           build_args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
@@ -62,7 +62,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           # only on releases
           push: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' }}
-          dockerfile: dockers/release/Dockerfile
+          file: dockers/release/Dockerfile
           build_args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
