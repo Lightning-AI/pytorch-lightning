@@ -36,6 +36,7 @@ from lightning.fabric.strategies.fsdp import (
     _init_sharding_strategy,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
+    _METADATA_FILENAME,
 )
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
@@ -76,7 +77,6 @@ if TYPE_CHECKING:
     _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
 
 
-_METADATA_FILENAME = "meta.pt"
 log = logging.getLogger(__name__)
 
 
