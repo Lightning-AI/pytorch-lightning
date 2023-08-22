@@ -2,11 +2,11 @@ import os
 from contextlib import nullcontext
 from datetime import timedelta
 from functools import partial
+from pathlib import Path
 from typing import Any, Dict, Optional
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
-from pathlib import Path
 import pytest
 import torch
 import torch.nn as nn
@@ -714,7 +714,7 @@ def test_fsdp_save_load_sharded_state_dict(tmp_path):
 
     checkpoint_path = Path(trainer.strategy.broadcast(trainer.checkpoint_callback.best_model_path))
     assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
-    
+
     metadata = torch.load(checkpoint_path / "meta.pt")
     assert "pytorch-lightning_version" in metadata
     assert len(metadata["callbacks"]) == 1  # model checkpoint callback
