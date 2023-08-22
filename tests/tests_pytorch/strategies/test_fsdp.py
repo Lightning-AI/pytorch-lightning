@@ -5,6 +5,7 @@ from functools import partial
 from typing import Any, Dict, Optional
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
+from pathlib import Path
 
 import pytest
 import torch
@@ -693,3 +694,42 @@ def test_load_save_optimizer_torch_lt_2_0():
         strategy.optimizer_state(Mock())
     with pytest.warns(UserWarning, match="does not support loading the optimizer state"):
         strategy.load_optimizer_state_dict(Mock())
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+def test_save_load_sharded_state_dict(tmp_path):
+    """Test FSDP saving and loading with the sharded state dict format."""
+    model = TestBoringModel()  # TODO: use BoringModel
+    strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, state_dict_type="sharded")
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cuda",
+        devices=2,
+        strategy=strategy,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+
+    checkpoint_path = Path(trainer.strategy.broadcast(trainer.checkpoint_callback.best_model_path))
+    assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
+
+    metadata = torch.load(checkpoint_path / "meta.pt")
+    assert "pytorch-lightning_version" in metadata
+    assert len(metadata["callbacks"]) == 1  # model checkpoint callback
+    assert "state_dict" not in metadata
+    assert "optimizer_states" not in metadata
+
+    model = TestBoringModel()  # TODO: use BoringModel
+    strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, state_dict_type="sharded")
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cuda",
+        devices=2,
+        strategy=strategy,
+        max_epochs=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model, ckpt_path=checkpoint_path)
