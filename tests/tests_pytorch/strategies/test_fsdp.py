@@ -694,6 +694,7 @@ def test_load_save_optimizer_torch_lt_2_0():
         strategy.load_optimizer_state_dict(Mock())
 
 
+@RunIf(min_torch="1.12")
 @mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False)
 def test_sharded_state_dict_type_support():
     """Test that the sharded state dict type is supported."""
@@ -704,7 +705,7 @@ def test_sharded_state_dict_type_support():
         FSDPStrategy(state_dict_type="sharded")
 
 
-@RunIf(min_torch="2.0.0")
+@RunIf(min_torch="1.12")
 def test_save_checkpoint_storage_options(tmp_path):
     """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
     strategy = FSDPStrategy()
@@ -712,7 +713,7 @@ def test_save_checkpoint_storage_options(tmp_path):
         strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock(), storage_options=Mock())
 
 
-@RunIf(min_torch="2.0.0")
+@RunIf(min_torch="1.12")
 @mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 def test_save_checkpoint_folder_exists(tmp_path):
     path = tmp_path / "exists"
