@@ -14,7 +14,7 @@
 import math
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, cast, Dict, Optional, Union
+from typing import Any, cast, Dict, Generator, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -170,7 +170,7 @@ if _RICH_AVAILABLE:
             text = " ".join(self._generate_metrics_texts())
             return Text(text, justify="left", style=self._style)
 
-        def _generate_metrics_texts(self):
+        def _generate_metrics_texts(self) -> Generator[str, None, None]:
             for k, v in self._metrics.items():
                 yield f"{k}: {round(v, 3) if isinstance(v, float) else v}"
 
