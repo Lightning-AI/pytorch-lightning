@@ -359,8 +359,7 @@ Save a checkpoint
 *****************
 
 Since training large models can be very expensive, it is best practice to checkpoint the training state periodically in case it gets interrupted unexpectedly.
-Lightning saves a checkpoint every epoch by default, and further settings for when, how, and where the files get saved can be configured through
-the `ModelCheckpoint` callback"
+Lightning saves a checkpoint every epoch by default, and there are :ref:`several ways to configure the checkpointing behavior further <checkpointing>`.
 
 .. code-block:: python
 
