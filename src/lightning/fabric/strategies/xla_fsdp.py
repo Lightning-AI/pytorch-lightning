@@ -49,6 +49,10 @@ class XLAFSDPStrategy(ParallelStrategy):
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     For more information check out https://github.com/pytorch/xla/blob/master/docs/fsdp.md
+
+    Args:
+        sequential_save: With this enabled, individual ranks consecutively save their state dictionary shards, reducing
+            peak system RAM usage, although it elongates the saving process.
     """
 
     def __init__(
@@ -58,6 +62,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
         state_dict_type: Literal["full", "sharded"] = "sharded",
+        sequential_save: bool = False,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -72,6 +77,7 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         self._fsdp_kwargs = kwargs
         self._state_dict_type = state_dict_type
+        self._sequential_save = sequential_save
         self._launched = False
 
     @property
@@ -263,13 +269,15 @@ class XLAFSDPStrategy(ParallelStrategy):
             )
         if tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
-        if tensor.device.type != "xla":
-            tensor = tensor.to(self.root_device)
+        original_device = tensor.device
+        tensor = tensor.to(self.root_device)
 
         import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
 
-        return xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
+        tensor = xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
+        tensor = tensor.to(original_device)
+        return tensor
 
     def all_reduce(
         self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
@@ -313,8 +321,9 @@ class XLAFSDPStrategy(ParallelStrategy):
         if is_tensor:
             if obj.dim() == 0:
                 obj = obj.unsqueeze(0)
-            if obj.device.type != "xla":
-                obj = obj.to(self.root_device)
+            original_device = obj.device
+            # XLA distributed requires that the data is on the XLA device
+            obj = obj.to(self.root_device)
         else:
             # support for arbitrary pickle-ables
             buffer = io.BytesIO()
@@ -328,8 +337,11 @@ class XLAFSDPStrategy(ParallelStrategy):
         obj = obj[0]
 
         if not is_tensor:
+            # this will preserve the dtype and device of any tensors
             buffer = io.BytesIO(obj.cpu().byte().numpy())
             obj = torch.load(buffer)
+        else:
+            obj = obj.to(original_device)
 
         return obj
 
@@ -376,12 +388,40 @@ class XLAFSDPStrategy(ParallelStrategy):
                 " currently limited to a single model per checkpoint. To save multiple models, call the"
                 " save method for each model separately with a different path."
             )
-        rank = self.local_rank
-        world_size = self.world_size
         import torch_xla.core.xla_model as xm
 
         # ensure model parameters are updated
         xm.mark_step()
+
+        if self._sequential_save:
+            for rank in range(self.world_size):
+                if rank == self.local_rank:
+                    self._save_checkpoint_shard(path, state, storage_options, filter)
+                self.barrier(f"wait-for-{rank}-save")
+        else:
+            self._save_checkpoint_shard(path, state, storage_options, filter)
+
+        if self._state_dict_type == "full":
+            from torch_xla.distributed.fsdp import consolidate_sharded_model_checkpoints
+
+            self.barrier("before_ckpt_consolidation")
+            if self.is_global_zero:
+                consolidate_sharded_model_checkpoints(
+                    ckpt_prefix=os.path.join(path, "checkpoint"), ckpt_suffix="_rank-*-of-*.pth"
+                )
+            self.barrier("after_ckpt_consolidation")
+            self.checkpoint_io.remove_checkpoint(
+                os.path.join(path, f"checkpoint_rank-{self.local_rank:08d}-of-{self.world_size:08d}.pth")
+            )
+
+    def _save_checkpoint_shard(
+        self,
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
+        storage_options: Optional[Any],
+        filter: Optional[Dict[str, Callable[[str, Any], bool]]],
+    ) -> None:
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
         converted_state: Dict[str, Any] = {}
         for key, obj in state.items():
@@ -398,22 +438,9 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         self.checkpoint_io.save_checkpoint(
             converted_state,
-            os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth"),
+            os.path.join(path, f"checkpoint_rank-{self.local_rank:08d}-of-{self.world_size:08d}.pth"),
             storage_options=storage_options,
         )
-
-        if self._state_dict_type == "full":
-            from torch_xla.distributed.fsdp import consolidate_sharded_model_checkpoints
-
-            self.barrier("before_ckpt_consolidation")
-            if self.is_global_zero:
-                consolidate_sharded_model_checkpoints(
-                    ckpt_prefix=os.path.join(path, "checkpoint"), ckpt_suffix="_rank-*-of-*.pth"
-                )
-            self.barrier("after_ckpt_consolidation")
-            self.checkpoint_io.remove_checkpoint(
-                os.path.join(path, f"checkpoint_rank-{rank:08d}-of-{world_size:08d}.pth")
-            )
 
     def load_checkpoint(
         self,

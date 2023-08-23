@@ -11,15 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
 import os
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
+from textwrap import dedent
 from typing import Any, Callable, Dict, Literal, Optional, TYPE_CHECKING
 
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
+from lightning_utilities import apply_to_collection
+from torch.nn import Module
 
+from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
@@ -87,6 +92,8 @@ class _MultiProcessingLauncher(_Launcher):
         """
         if self._start_method in ("fork", "forkserver"):
             _check_bad_cuda_fork()
+        if self._start_method == "spawn":
+            _check_missing_main_guard()
 
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
@@ -122,6 +129,10 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
+
+        if self._start_method == "spawn" and isinstance(self._strategy.accelerator, CPUAccelerator):
+            args, kwargs = _disable_module_memory_sharing((args, kwargs))
+
         os.environ["LOCAL_RANK"] = str(process_idx)
         results = function(*args, **kwargs)
 
@@ -189,4 +200,44 @@ def _check_bad_cuda_fork() -> None:
     )
     if _IS_INTERACTIVE:
         message += " You will have to restart the Python kernel."
+    raise RuntimeError(message)
+
+
+def _disable_module_memory_sharing(data: Any) -> Any:
+    """Disables memory sharing on parameters and buffers of `nn.Module`s contained in the given collection.
+
+    Note: This is only required when running on CPU.
+    """
+    # PyTorch enables memory sharing automatically on all tensors that are passed through `mp.spawn`.
+    # For model weights and buffers, this is undesired and can lead to race conditions between processes.
+    # Hence, we copy the tensors in the entire module to ensure it doesn't share memory with other processes.
+
+    @torch.no_grad()
+    def unshare(module: Module) -> Module:
+        for tensor in itertools.chain(module.parameters(), module.buffers()):
+            tensor.data = tensor.data.clone()
+        return module
+
+    return apply_to_collection(data, function=unshare, dtype=Module)
+
+
+def _check_missing_main_guard() -> None:
+    """Raises an exception if the ``__name__ == "__main__"`` guard is missing."""
+    if not getattr(mp.current_process(), "_inheriting", False):
+        return
+    message = dedent(
+        """
+        Launching multiple processes with the 'spawn' start method requires that your script guards the main
+        function with an `if __name__ == \"__main__\"` clause. For example:
+
+        def main():
+            # Put your code here
+            ...
+
+        if __name__ == "__main__":
+            main()
+
+        Alternatively, you can run with `strategy="ddp"` to avoid this error.
+        """
+    )
     raise RuntimeError(message)

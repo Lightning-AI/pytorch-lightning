@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import os
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, TYPE_CHECKING, Union
 
 import torch
@@ -29,8 +31,10 @@ from lightning.fabric.strategies.fsdp import (
     _activation_checkpointing_kwargs,
     _auto_wrap_policy_kwargs,
     _get_full_state_dict_context,
+    _get_sharded_state_dict_context,
     _init_cpu_offload,
     _init_sharding_strategy,
+    _METADATA_FILENAME,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
 )
@@ -48,10 +52,10 @@ from lightning.fabric.utilities.imports import (
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
-from lightning.fabric.utilities.types import ProcessGroup, ReduceOp
+from lightning.fabric.utilities.types import _PATH, ProcessGroup, ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.plugins.precision import PrecisionPlugin
-from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
+from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
@@ -116,6 +120,12 @@ class FSDPStrategy(ParallelStrategy):
 
             Also accepts a :class:`torch.distributed.fsdp.ShardingStrategy` enum value.
 
+        state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
+
+            - ``"full"``: The full weights and optimizer states get assembled on rank 0 and saved to a single file.
+            - ``"sharded"``: Each rank saves its shard of weights and optimizer states to a file. The checkpoint is
+              a folder with as many files as the world size.
+
         \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
 
     """
@@ -138,6 +148,7 @@ class FSDPStrategy(ParallelStrategy):
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
+        state_dict_type: Literal["full", "sharded"] = "full",
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -168,24 +179,12 @@ class FSDPStrategy(ParallelStrategy):
             activation_checkpointing, activation_checkpointing_policy
         )
 
-    def lightning_module_state_dict(self) -> Dict[str, Any]:
-        """Gathers the full state dict by unsharding all the parameters.
-
-        To avoid OOM, the returned parameters will only be returned on rank 0 and on CPU. All other ranks get an empty
-        dict.
-
-        """
-        from torch.distributed.fsdp import FullyShardedDataParallel
-        from torch.distributed.fsdp.api import FullStateDictConfig, StateDictType
-
-        assert self.model is not None
-
-        with FullyShardedDataParallel.state_dict_type(
-            module=self.model,
-            state_dict_type=StateDictType.FULL_STATE_DICT,
-            state_dict_config=FullStateDictConfig(offload_to_cpu=(self.world_size > 1), rank0_only=True),
-        ):
-            return self.model.state_dict()
+        if state_dict_type == "sharded" and not _TORCH_GREATER_EQUAL_2_0:
+            raise NotImplementedError(
+                "Saving checkpoints with `FSDPStrategy(state_dict_type='sharded')` is not supported in PyTorch < 2.0."
+                " Please upgrade `torch`."
+            )
+        self._state_dict_type = state_dict_type
 
     @property
     def root_device(self) -> torch.device:
@@ -214,7 +213,7 @@ class FSDPStrategy(ParallelStrategy):
         if self.mixed_precision:
             return self.mixed_precision
         plugin = self.precision_plugin
-        if isinstance(plugin, FSDPMixedPrecisionPlugin):
+        if isinstance(plugin, FSDPPrecisionPlugin):
             return plugin.mixed_precision_config
         return None
 
@@ -398,7 +397,7 @@ class FSDPStrategy(ParallelStrategy):
         return [self.root_device.index]
 
     def teardown(self) -> None:
-        rank_zero_info(f"{self.__class__.__name__}: tearing down strategy...")
+        log.debug(f"{self.__class__.__name__}: tearing down strategy...")
 
         pl_module = self.lightning_module
         if (
@@ -441,8 +440,50 @@ class FSDPStrategy(ParallelStrategy):
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
 
+    def lightning_module_state_dict(self) -> Dict[str, Any]:
+        assert self.model is not None
+        if self._state_dict_type == "sharded":
+            state_dict_ctx = _get_sharded_state_dict_context(self.model)
+        elif self._state_dict_type == "full":
+            state_dict_ctx = _get_full_state_dict_context(self.model, world_size=self.world_size)
+        else:
+            raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
+        with state_dict_ctx:
+            return self.model.state_dict()
+
+    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+        if not _TORCH_GREATER_EQUAL_2_0:
+            rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support saving the optimizer state.")
+            return {}
+
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp import OptimStateKeyType
+
+        if isinstance(optimizer, LightningOptimizer):
+            optimizer = optimizer._optimizer
+
+        assert self.model is not None
+        if self._state_dict_type == "sharded":
+            with _get_sharded_state_dict_context(self.model):
+                return FSDP.optim_state_dict(self.model, optimizer)
+
+        elif self._state_dict_type == "full":
+            with _get_full_state_dict_context(self.model, world_size=self.world_size):
+                state_dict = FSDP.optim_state_dict(self.model, optimizer)
+                if self.global_rank == 0:
+                    # Store the optimizer state dict in standard format
+                    state_dict = FSDP.rekey_optim_state_dict(state_dict, OptimStateKeyType.PARAM_ID, self.model)
+                return state_dict
+
+        raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
+
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        from torch.distributed.fsdp import FullyShardedDataParallel, OptimStateKeyType
+        if not _TORCH_GREATER_EQUAL_2_0:
+            rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support loading the optimizer state.")
+            return
+
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp import OptimStateKeyType
 
         optimizer_states = checkpoint.get("optimizer_states")
 
@@ -460,36 +501,46 @@ class FSDPStrategy(ParallelStrategy):
         assert self.model is not None
 
         # rank0_only should be false because we need to load the optimizer state on all ranks
-        with _get_full_state_dict_context(self.model, rank0_only=False):
+        with _get_full_state_dict_context(self.model, world_size=self.world_size, rank0_only=False):
             for optimizer, opt_state in zip(self.optimizers, optimizer_states):
                 # convert the optimizer state to the format expected by FSDP
-                opt_state = FullyShardedDataParallel.rekey_optim_state_dict(
-                    opt_state, OptimStateKeyType.PARAM_NAME, self.model
-                )
+                opt_state = FSDP.rekey_optim_state_dict(opt_state, OptimStateKeyType.PARAM_NAME, self.model)
 
-                opt_state = FullyShardedDataParallel.optim_state_dict_to_load(
+                opt_state = FSDP.optim_state_dict_to_load(
                     optim_state_dict=opt_state,
                     model=self.model,
                     optim=optimizer,
                 )
-
                 optimizer.load_state_dict(opt_state)
 
-    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
-        from torch.distributed.fsdp import FullyShardedDataParallel, OptimStateKeyType
-
-        if isinstance(optimizer, LightningOptimizer):
-            optimizer = optimizer._optimizer
-
-        assert self.model is not None
-
-        with _get_full_state_dict_context(self.model, rank0_only=True):
-            state_dict = FullyShardedDataParallel.optim_state_dict(self.model, optimizer)
-
-        # Store the optimizer state dict in standard format
-        if self.global_rank == 0:
-            state_dict = FullyShardedDataParallel.rekey_optim_state_dict(
-                state_dict, OptimStateKeyType.PARAM_ID, self.model
+    def save_checkpoint(
+        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+    ) -> None:
+        if storage_options is not None:
+            raise TypeError(
+                "`FSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
+                " `FSDPStrategy` does not use the `CheckpointIO`."
             )
 
-        return state_dict
+        path = Path(self.broadcast(filepath))
+        if path.is_dir() and os.listdir(path):
+            raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
+
+        if self._state_dict_type == "sharded":
+            from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
+
+            path.mkdir(parents=True, exist_ok=True)
+
+            converted_state = {"model": checkpoint.pop("state_dict")}
+            converted_state.update(
+                {f"optimizer_{idx}": optim_state for idx, optim_state in enumerate(checkpoint.pop("optimizer_states"))}
+            )
+
+            # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
+            writer = FileSystemWriter(path=path, single_file_per_rank=True)
+            save_state_dict(converted_state, writer)
+
+            if self.global_rank == 0:
+                torch.save(checkpoint, path / _METADATA_FILENAME)
+        else:
+            return super().save_checkpoint(checkpoint=checkpoint, filepath=path)

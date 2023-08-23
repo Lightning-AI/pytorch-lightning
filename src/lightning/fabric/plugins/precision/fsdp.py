@@ -24,7 +24,7 @@ from typing_extensions import get_args
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
 
 if TYPE_CHECKING:
@@ -35,7 +35,7 @@ _PRECISION_INPUT = Literal["32-true", "16-true", "bf16-true", "16-mixed", "bf16-
 
 
 class FSDPPrecision(Precision):
-    """Precision plugin training with Fully Sharded Data Parallel (FSDP).
+    """Precision plugin for training with Fully Sharded Data Parallel (FSDP).
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
@@ -82,18 +82,22 @@ class FSDPPrecision(Precision):
     def mixed_precision_config(self) -> "TorchMixedPrecision":
         from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
 
+        # With PyTorch < 2.0, FSDP uses the noneness of `param_dtype` as a proxy for the `_uses_param_mixed_precision`
+        # property. In order to avoid FSDP assertion failures, we therefore avoid setting `param_dtype` to
+        # `torch.float32` here with PyTorch < 2.0.
         if self.precision == "16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.precision == "32-true":
-            param_dtype = reduce_dtype = buffer_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
+            reduce_dtype = buffer_dtype = torch.float32
         else:
             raise ValueError(f"Was unable to infer precision type, received {self.precision!r}.")
 
@@ -107,11 +111,11 @@ class FSDPPrecision(Precision):
     def init_context(self) -> Generator[None, None, None]:
         """A context manager to change the default tensor type when initializing module parameters or tensors.
 
-        See: :meth:`torch.set_default_dtype`
+        See: :func:`torch.set_default_dtype`
 
         """
         default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self.mixed_precision_config.param_dtype)
+        torch.set_default_dtype(self.mixed_precision_config.param_dtype or torch.float32)
         yield
         torch.set_default_dtype(default_dtype)
 
@@ -150,6 +154,13 @@ class FSDPPrecision(Precision):
         self.scaler.update()
         return step_output
 
+    def unscale_gradients(self, optimizer: Optimizer) -> None:
+        scaler = self.scaler
+        if scaler is not None:
+            if _optimizer_handles_unscaling(optimizer):
+                raise NotImplementedError("Gradient clipping is not implemented for optimizers handling the unscaling.")
+            scaler.unscale_(optimizer)  # type: ignore[arg-type]  # ShardedGradScaler has wrong type annotation
+
     def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
@@ -163,10 +174,3 @@ class FSDPPrecision(Precision):
         # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
         # https://github.com/pytorch/pytorch/issues/67233
         return torch.autocast("cuda", dtype=self._desired_input_dtype)
-
-    def unscale_gradients(self, optimizer: Optimizer) -> None:
-        scaler = self.scaler
-        if scaler is not None:
-            if _optimizer_handles_unscaling(optimizer):
-                raise NotImplementedError("Gradient clipping is not implemented for optimizers handling the unscaling.")
-            scaler.unscale_(optimizer)  # type: ignore[arg-type]  # ShardedGradScaler has wrong type annotation
