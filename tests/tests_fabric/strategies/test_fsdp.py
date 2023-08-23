@@ -418,7 +418,7 @@ def test_has_meta_device_parameters():
         _has_meta_device_parameters(None)
 
 
-@RunIf(min_torch="1.12")
+@RunIf(min_torch="2.0")
 @pytest.mark.parametrize("torch_ge_2_1", [True, False])
 @mock.patch("torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.set_state_dict_type")
 def test_get_full_state_dict_context_offload(set_type_mock, monkeypatch, torch_ge_2_1):
