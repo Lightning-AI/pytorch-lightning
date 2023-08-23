@@ -487,7 +487,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 torch.save(metadata, path / _METADATA_FILENAME)
 
         elif self._state_dict_type == "full":
-            state_dict_ctx = _get_full_state_dict_context(module)
+            state_dict_ctx = _get_full_state_dict_context(module, world_size=self.world_size)
             full_state: Dict[str, Any] = {}
             with state_dict_ctx:
                 for key, obj in state.items():
@@ -531,7 +531,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         path = Path(self.broadcast(path))
 
         if isinstance(state, Module):
-            _load_raw_module_state_from_path(path, module=state, strict=strict)
+            _load_raw_module_state_from_path(path, module=state, world_size=self.world_size, strict=strict)
             return {}
 
         if isinstance(state, Optimizer):
@@ -597,7 +597,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         if _is_full_checkpoint(path):
             checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
-            _load_raw_module_state(checkpoint.pop(module_key), module=module, strict=strict)
+            _load_raw_module_state(checkpoint.pop(module_key), module=module, world_size=self.world_size, strict=strict)
 
             if isinstance(state, Module):
                 return {}
@@ -610,7 +610,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # Load optimizer states
             for optim_key, optim in optimizers.items():
                 # rank0_only should be false because we need to load the optimizer state on all ranks
-                with _get_full_state_dict_context(module, rank0_only=False):
+                with _get_full_state_dict_context(module, world_size=self.world_size, rank0_only=False):
                     temp_state_dict = checkpoint.pop(optim_key)
 
                     # Handling the case where the optimizer state is saved from a normal optimizer
@@ -808,16 +808,20 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
     return state_dict_type_context  # type: ignore[return-value]
 
 
-def _get_full_state_dict_context(module: Module, rank0_only: bool = True) -> Generator[None, None, None]:
-    from torch.distributed.fsdp import FullStateDictConfig, StateDictType
+def _get_full_state_dict_context(
+    module: Module, world_size: int, rank0_only: bool = True
+) -> Generator[None, None, None]:
+    from torch.distributed.fsdp import FullStateDictConfig
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-    state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
+    # In PyTorch <= 2.0, offload to CPU in combination with `world_size=1` is not possible
+    offload_to_cpu = world_size > 1 or _TORCH_GREATER_EQUAL_2_1
+    state_dict_config = FullStateDictConfig(offload_to_cpu=offload_to_cpu, rank0_only=rank0_only)
 
     if _TORCH_GREATER_EQUAL_2_0:
         from torch.distributed.fsdp.api import FullOptimStateDictConfig
 
-        optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
+        optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=offload_to_cpu, rank0_only=rank0_only)
         state_dict_type_context = FSDP.state_dict_type(
             module=module,
             state_dict_type=StateDictType.FULL_STATE_DICT,
@@ -848,7 +852,7 @@ def _has_fsdp_modules(module: object) -> TypeGuard[Module]:
     return isinstance(module, Module) and any(isinstance(m, FullyShardedDataParallel) for m in module.modules())
 
 
-def _load_raw_module_state_from_path(path: Path, module: Module, strict: bool = True) -> None:
+def _load_raw_module_state_from_path(path: Path, module: Module, world_size: int, strict: bool = True) -> None:
     """Loads the state dict from a file path into the FSDP module."""
     if not _is_full_checkpoint(path):
         raise ValueError(
@@ -856,13 +860,13 @@ def _load_raw_module_state_from_path(path: Path, module: Module, strict: bool = 
             f" full state dict: {path}"
         )
     # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
-    _load_raw_module_state(state_dict=_lazy_load(path), module=module, strict=strict)
+    _load_raw_module_state(state_dict=_lazy_load(path), module=module, world_size=world_size, strict=strict)
 
 
-def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, strict: bool = True) -> None:
+def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, world_size: int, strict: bool = True) -> None:
     """Loads the state dict into the module by gathering all weights first and then and writing back to each shard."""
 
-    with _get_full_state_dict_context(module, rank0_only=False):
+    with _get_full_state_dict_context(module, world_size=world_size, rank0_only=False):
         module.load_state_dict(state_dict, strict=strict)
 
 

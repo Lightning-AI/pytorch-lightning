@@ -48,6 +48,7 @@ class _FabricOptimizer:
             optimizer: The optimizer to wrap
             strategy: Reference to the strategy for handling the optimizer step
 
+
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
         # not want to call on destruction of the `_FabricOptimizer

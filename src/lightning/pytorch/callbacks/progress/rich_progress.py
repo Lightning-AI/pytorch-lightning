@@ -14,7 +14,7 @@
 import math
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, cast, Dict, Generator, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -167,10 +167,12 @@ if _RICH_AVAILABLE:
             if self._trainer.training and task.id != self._current_task_id:
                 return self._tasks[task.id]
 
-            text = ""
-            for k, v in self._metrics.items():
-                text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
+            text = " ".join(self._generate_metrics_texts())
             return Text(text, justify="left", style=self._style)
+
+        def _generate_metrics_texts(self) -> Generator[str, None, None]:
+            for k, v in self._metrics.items():
+                yield f"{k}: {round(v, 3) if isinstance(v, float) else v}"
 
 else:
     Task, Style = Any, Any  # type: ignore[assignment, misc]

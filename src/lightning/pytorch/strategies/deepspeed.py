@@ -860,7 +860,7 @@ class DeepSpeedStrategy(DDPStrategy):
         load(self.lightning_module, prefix="")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint()`
+        # Override to do nothing, the deepspeed engine already loaded the states in `load_checkpoint()`
         pass
 
     @classmethod
