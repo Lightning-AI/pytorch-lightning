@@ -354,6 +354,81 @@ In our example, we see a 3.5x memory saving, but a significant increase in itera
 ----
 
 
+*****************
+Save a checkpoint
+*****************
+
+Since training large models can be very expensive, it is best practice to checkpoint the training state periodically in case it gets interrupted unexpectedly.
+Lightning saves a checkpoint every epoch by default, and further settings for when, how, and where the files get saved can be configured through
+the `ModelCheckpoint` callback"
+
+.. code-block:: python
+
+    # Default: Saves a checkpoint every epoch
+    trainer = L.Trainer()
+    trainer.fit(model)
+
+    # You can also manually trigger a checkpoint at any time
+    trainer.save_checkpoint("path/to/checkpoint/file")
+
+    # DON'T do this (inefficient):
+    # torch.save("path/to/checkpoint/file", model.state_dict())
+
+To reduce memory peaks and speed up the saving to disk, each process/GPU will save its own file into a folder at the given path by default.
+The resulting checkpoint folder will have this structure:
+
+.. code-block:: text
+
+    path/to/checkpoint/file
+    ├── .metadata
+    ├── __0_0.distcp
+    ├── __1_0.distcp
+    └── meta.pt
+
+The “sharded” checkpoint format is the most efficient to save and load in Fabric.
+However, if you prefer to have a single consolidated file instead, you can configure this by setting the ``state_dict_type`` flag in the strategy:
+
+.. code-block:: python
+
+    # Default: Save individual files with state from each process
+    strategy = FSDPStrategy(state_dict_type="sharded")
+
+    # Save a single, consolidated checkpoint file
+    strategy = FSDPStrategy(state_dict_type="full")
+
+
+**Which checkpoint format should I use?**
+
+- ``state_dict_type="sharded"``: Use for pre-training very large models. It is fast and uses less memory, but it is less portable - you can’t easily load the checkpoint in raw PyTorch (in the future, Lightning will provide utilities to convert the checkpoint though).
+- ``state_dict_type="full"``: Use when pre-training small to moderately large models (less than 10B parameters), when fine-tuning, and when portability is required.
+
+
+----
+
+
+*****************
+Load a checkpoint
+*****************
+
+You can easily load checkpoints saved by Fabric to resume training:
+
+.. code-block:: python
+
+    # 1. Define model, optimizer, and other training loop state
+    state = {"model": model, "optimizer": optimizer, "iter": iteration}
+
+    # 2. Load using Fabric's method
+    fabric.load("path/to/checkpoint/file", state)
+
+    # DON'T do this (inefficient):
+    # model.load_state_dict(torch.load("path/to/checkpoint/file"))
+
+Fabric will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
+
+
+----
+
+
 **********************************
 Advanced performance optimizations
 **********************************
