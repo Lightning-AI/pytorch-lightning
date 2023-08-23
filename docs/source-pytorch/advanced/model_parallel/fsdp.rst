@@ -373,7 +373,19 @@ Lightning saves a checkpoint every epoch by default, and there are :ref:`several
     # DON'T do this (inefficient):
     # torch.save("path/to/checkpoint/file", model.state_dict())
 
-To reduce memory peaks and speed up the saving to disk, each process/GPU will save its own file into a folder at the given path by default.
+For single-machine training this is typically fine, but for larger models saving a checkpoint can become slow (minutes not seconds) or overflow CPU memory (OOM) depending on the system.
+To reduce memory peaks and speed up the saving to disk, set `state_dict_type="sharded"`:
+
+.. code-block:: python
+
+    # Default: Save a single, consolidated checkpoint file
+    strategy = FSDPStrategy(state_dict_type="full")
+
+    # Save individual files with state from each process
+    strategy = FSDPStrategy(state_dict_type="sharded")
+
+
+With this, each process/GPU will save its own file into a folder at the given path by default.
 The resulting checkpoint folder will have this structure:
 
 .. code-block:: text
@@ -384,17 +396,7 @@ The resulting checkpoint folder will have this structure:
     ├── __1_0.distcp
     └── meta.pt
 
-The “sharded” checkpoint format is the most efficient to save and load in Fabric.
-However, if you prefer to have a single consolidated file instead, you can configure this by setting the ``state_dict_type`` flag in the strategy:
-
-.. code-block:: python
-
-    # Default: Save individual files with state from each process
-    strategy = FSDPStrategy(state_dict_type="sharded")
-
-    # Save a single, consolidated checkpoint file
-    strategy = FSDPStrategy(state_dict_type="full")
-
+The “sharded” checkpoint format is the most efficient to save and load in Lightning.
 
 **Which checkpoint format should I use?**
 
