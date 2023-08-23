@@ -709,6 +709,7 @@ def test_save_load_sharded_state_dict(tmp_path):
         max_epochs=1,
         enable_progress_bar=False,
         enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -731,5 +732,6 @@ def test_save_load_sharded_state_dict(tmp_path):
         max_epochs=2,
         enable_progress_bar=False,
         enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(model, ckpt_path=checkpoint_path)
