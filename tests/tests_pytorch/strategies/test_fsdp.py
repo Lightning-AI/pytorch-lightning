@@ -4,7 +4,7 @@ from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from re import escape
-from typing import Any, Dict, Optional
+from typing import Optional
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
