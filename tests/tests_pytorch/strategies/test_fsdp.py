@@ -26,6 +26,8 @@ from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
+from lightning.pytorch.trainer.states import TrainerFn
+
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
     from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
@@ -682,13 +684,21 @@ def test_configure_model(precision, expected_dtype):
     trainer.fit(model)
 
 
-@RunIf(min_torch="1.12", max_torch="2.0")
-def test_load_save_optimizer_torch_lt_2_0():
-    strategy = FSDPStrategy()
+@mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False)
+@mock.patch("lightning.pytorch.strategies.fsdp.torch.load")
+@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+def test_load_save_optimizer_torch_lt_2_0(_, __, tmp_path):
+    strategy = FSDPStrategy(state_dict_type="full")
     with pytest.warns(UserWarning, match="does not support saving the optimizer state"):
         strategy.optimizer_state(Mock())
+
+    file = tmp_path / "test.ckpt"
+    file.touch()
+    trainer = Trainer()
+    trainer.state.fn = TrainerFn.FITTING
+    strategy._lightning_module = Mock(trainer=trainer)
     with pytest.warns(UserWarning, match="does not support loading the optimizer state"):
-        strategy.load_optimizer_state_dict(Mock())
+        strategy.load_checkpoint(file)
 
 
 @RunIf(min_torch="1.12")
