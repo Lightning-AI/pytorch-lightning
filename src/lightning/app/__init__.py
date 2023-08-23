@@ -45,5 +45,8 @@ __package_name__ = "lightning.app".split(".")[0]
 
 _PACKAGE_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(_PACKAGE_ROOT))
+if __package_name__ == "lightning":
+    _PACKAGE_ROOT = os.path.dirname(_PACKAGE_ROOT)
+    _PROJECT_ROOT = os.path.dirname(_PROJECT_ROOT)
 
 __all__ = ["LightningApp", "LightningFlow", "LightningWork", "LightningPlugin", "BuildConfig", "CloudCompute"]

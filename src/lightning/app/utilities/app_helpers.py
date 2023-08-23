@@ -33,7 +33,6 @@ from unittest.mock import MagicMock
 
 import websockets
 from deepdiff import Delta
-from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance, V1LightningappInstanceState
 
 import lightning.app
 from lightning.app.utilities.exceptions import LightningAppStateException
@@ -581,42 +580,3 @@ def _is_headless(app: "LightningApp") -> bool:
             if "target" in entry:
                 return False
     return True
-
-
-def _handle_is_headless(app: "LightningApp"):
-    """Utility for runtime-specific handling of changes to the ``is_headless`` property."""
-    app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", None)
-    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
-
-    if app_id is None or project_id is None:
-        return
-
-    from lightning.app.utilities.network import LightningClient
-
-    client = LightningClient()
-    list_apps_response = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
-
-    current_lightningapp_instance: Optional[Externalv1LightningappInstance] = None
-    for lightningapp_instance in list_apps_response.lightningapps:
-        if lightningapp_instance.id == app_id:
-            current_lightningapp_instance = lightningapp_instance
-            break
-
-    if not current_lightningapp_instance:
-        return
-
-    if any(
-        [
-            current_lightningapp_instance.spec.is_headless == app.is_headless,
-            current_lightningapp_instance.status.phase != V1LightningappInstanceState.RUNNING,
-        ]
-    ):
-        return
-
-    current_lightningapp_instance.spec.is_headless = app.is_headless
-
-    client.lightningapp_instance_service_update_lightningapp_instance(
-        project_id=project_id,
-        id=current_lightningapp_instance.id,
-        body=AppinstancesIdBody(name=current_lightningapp_instance.name, spec=current_lightningapp_instance.spec),
-    )

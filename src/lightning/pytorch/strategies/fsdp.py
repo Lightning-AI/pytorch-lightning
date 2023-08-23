@@ -35,6 +35,7 @@ from lightning.fabric.strategies.fsdp import (
     _get_sharded_state_dict_context,
     _init_cpu_offload,
     _init_sharding_strategy,
+    _METADATA_FILENAME,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing, _is_sharded_checkpoint, _is_full_checkpoint, _load_raw_module_state,
 )
@@ -472,8 +473,8 @@ class FSDPStrategy(ParallelStrategy):
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-        if isinstance(optimizer, LightningOptimizer):
-            optimizer = optimizer._optimizer
+        if self._state_dict_type == "sharded":
+            from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
 
         assert self.model is not None
         if self._state_dict_type == "sharded":
@@ -490,7 +491,10 @@ class FSDPStrategy(ParallelStrategy):
         # if self.global_rank == 0:
         #     state_dict = FSDP.rekey_optim_state_dict(state_dict, OptimStateKeyType.PARAM_ID, self.model)
 
-        return state_dict
+            if self.global_rank == 0:
+                torch.save(checkpoint, path / _METADATA_FILENAME)
+        else:
+            return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         pass

@@ -64,10 +64,10 @@ To speed this up, enable this flag in before building docs:
 
 ```bash
 # builds notebooks which is slow
-export PL_FAST_DOCS_DEV=0
+export FAST_DOCS_DEV=0
 
 # fast notebook build which is fast
-export PL_FAST_DOCS_DEV=1
+export FAST_DOCS_DEV=1
 ```
 
 ## docs CSS/theme

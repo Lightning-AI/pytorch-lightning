@@ -24,7 +24,7 @@ Jinja2 <=3.1.2
 PyYAML <=6.0.1
 requests <2.31.1
 rich >=12.3.0, <=13.5.2
-urllib3 <=2.0.2
+urllib3 <=2.0.4
 uvicorn <=0.23.2
 websocket-client <1.6.2
 websockets <=11.0.3

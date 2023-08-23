@@ -25,7 +25,8 @@ _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
 sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 
-SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
+_SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
+_FAST_DOCS_DEV = int(os.environ.get("FAST_DOCS_DEV", True))
 
 # -- Project information -----------------------------------------------------
 
@@ -46,10 +47,10 @@ github_repo = project
 
 # -- Project documents -------------------------------------------------------
 
-
-fetch_external_assets(
-    docs_folder=_PATH_HERE, assets_folder="_static/fetched-s3-assets", retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
-)
+if not _FAST_DOCS_DEV:
+    fetch_external_assets(
+        docs_folder=_PATH_HERE, assets_folder="_static/fetched-s3-assets", retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
+    )
 
 # -- General configuration ---------------------------------------------------
 
@@ -303,7 +304,7 @@ PACKAGE_MAPPING = {
     "PyYAML": "yaml",
 }
 MOCK_PACKAGES = []
-if SPHINX_MOCK_REQUIREMENTS:
+if _SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_ROOT, "requirements.txt"))
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
