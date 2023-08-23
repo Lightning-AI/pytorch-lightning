@@ -52,10 +52,7 @@ class _DataFetcher(Iterator):
         return self
 
     def __next__(self) -> Any:
-        assert self.iterator is not None
-        return self._fetch_next_batch(self.iterator)
-
-    def _fetch_next_batch(self, iterator: Iterator) -> Any:
+        assert (iterator := self.iterator) is not None
         self._start_profiler()
         try:
             batch = next(iterator)
@@ -103,11 +100,10 @@ class _PrefetchDataFetcher(_DataFetcher):
             # ignore pre-fetching, it's not necessary
             return self
         # prefetch batches to know when the iterator will be exhausted in advance
-        iterator = self.iterator
-        assert iterator is not None
         for _ in range(self.prefetch_batches):
             try:
-                self._fetch_next_batch(iterator)
+                batch = super().__next__()
+                self.batches.append(batch)
             except StopIteration:
                 # this would only happen when prefetch_batches > the number of batches available and makes
                 # `__next__` jump directly to the empty iterator case without trying to fetch again
@@ -115,30 +111,22 @@ class _PrefetchDataFetcher(_DataFetcher):
         return self
 
     def __next__(self) -> Any:
-        assert self.iterator is not None
         if self.batches:
             # there are pre-fetched batches already from a previous `prefetching` call.
             # consume one
             batch = self.batches.pop(0)
             try:
                 # refill the consumed batch
-                self._fetch_next_batch(self.iterator)
+                self.batches.append(super().__next__())
             except StopIteration:
                 # no more batches to fetch. we are done only if all pre-fetched batches were returned
                 self.done = not self.batches
         elif not self.done:
             # this will run only when no pre-fetching was done.
-            self._fetch_next_batch(self.iterator)
-            # consume the batch we just fetched
-            batch = self.batches.pop(0)
+            batch = super().__next__()
         else:
             # the iterator is empty
             raise StopIteration
-        return batch
-
-    def _fetch_next_batch(self, iterator: Iterator) -> Any:
-        batch = super()._fetch_next_batch(iterator)
-        self.batches.append(batch)
         return batch
 
     def reset(self) -> None:
