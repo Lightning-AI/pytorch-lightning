@@ -14,7 +14,7 @@
 import math
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, cast, Dict, Generator, Optional, Union
+from typing import Any, Dict, Generator, Optional, Union, cast
 
 from lightning_utilities.core.imports import RequirementCache
 
