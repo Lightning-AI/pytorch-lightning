@@ -156,7 +156,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Broadcast and reduction of tensors with XLA-based strategies now preserve the input's device ([#18275](https://github.com/Lightning-AI/lightning/pull/18275))
 
 
-- The `FSDPStrategy` now loads checkpoints after the `setup()` and `configure_model`/`configure_sharded_model` hooks ([#18358](https://github.com/Lightning-AI/lightning/pull/18358))
+- The `FSDPStrategy` now loads checkpoints after the `configure_model`/`configure_sharded_model` hook ([#18358](https://github.com/Lightning-AI/lightning/pull/18358))
 
 
 - The `FSDPStrategy.load_optimizer_state_dict` and `FSDPStrategy.load_model_state_dict` are a no-op now ([#18358](https://github.com/Lightning-AI/lightning/pull/18358))
