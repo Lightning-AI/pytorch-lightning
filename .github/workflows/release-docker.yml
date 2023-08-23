@@ -12,7 +12,7 @@ on:
     types: [published]
 
 jobs:
-  publish:
+  publish-docker:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
