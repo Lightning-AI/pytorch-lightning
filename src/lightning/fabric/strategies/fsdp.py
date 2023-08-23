@@ -808,14 +808,16 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
     return state_dict_type_context  # type: ignore[return-value]
 
 
-def _get_full_state_dict_context(module: Module, world_size: int, rank0_only: bool = True) -> Generator[None, None, None]:
+def _get_full_state_dict_context(
+    module: Module, world_size: int, rank0_only: bool = True
+) -> Generator[None, None, None]:
     from torch.distributed.fsdp import FullStateDictConfig
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp import StateDictType
 
     # In PyTorch <= 2.0, offload to CPU in combination with `world_size=1` is not possible
     offload_to_cpu = not (world_size == 1 and not _TORCH_GREATER_EQUAL_2_1)
-    
+
     state_dict_config = FullStateDictConfig(offload_to_cpu=offload_to_cpu, rank0_only=rank0_only)
 
     if _TORCH_GREATER_EQUAL_2_0:
