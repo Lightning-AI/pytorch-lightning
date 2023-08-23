@@ -7,7 +7,6 @@ from re import escape
 from typing import Any, Dict, Optional
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
-from pathlib import Path
 
 import pytest
 import torch

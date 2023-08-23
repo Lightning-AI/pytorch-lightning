@@ -24,7 +24,6 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.load import _lazy_load
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies import _StrategyRegistry
@@ -35,9 +34,12 @@ from lightning.fabric.strategies.fsdp import (
     _get_sharded_state_dict_context,
     _init_cpu_offload,
     _init_sharding_strategy,
+    _is_full_checkpoint,
+    _is_sharded_checkpoint,
+    _load_raw_module_state,
     _METADATA_FILENAME,
     _optimizer_has_flat_params,
-    _setup_activation_checkpointing, _is_sharded_checkpoint, _is_full_checkpoint, _load_raw_module_state,
+    _setup_activation_checkpointing,
 )
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
@@ -606,9 +608,7 @@ class FSDPStrategy(ParallelStrategy):
                 for optimizer, opt_state in zip(self.optimizers, optimizer_states):
                     if isinstance(list(opt_state["state"].keys())[0], int):
                         # Handling the case where the optimizer state is saved from a normal optimizer
-                        opt_state = FSDP.rekey_optim_state_dict(
-                            opt_state, OptimStateKeyType.PARAM_NAME, self.model
-                        )
+                        opt_state = FSDP.rekey_optim_state_dict(opt_state, OptimStateKeyType.PARAM_NAME, self.model)
                     # opt_state = FSDP.rekey_optim_state_dict(opt_state, OptimStateKeyType.PARAM_NAME, self.model)
 
                     opt_state = FSDP.optim_state_dict_to_load(
