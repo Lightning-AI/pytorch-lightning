@@ -80,7 +80,6 @@ if TYPE_CHECKING:
     _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
 
 
-_METADATA_FILENAME = "meta.pt"
 log = logging.getLogger(__name__)
 
 
