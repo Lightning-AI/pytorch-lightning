@@ -465,6 +465,7 @@ class FSDPStrategy(ParallelStrategy):
             return self.model.state_dict()
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        # Override to do nothing, the FSDP already loaded the states in `load_checkpoint()`
         pass
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
@@ -494,6 +495,7 @@ class FSDPStrategy(ParallelStrategy):
         raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        # Override to do nothing, the FSDP already loaded the states in `load_checkpoint()`
         pass
 
     def save_checkpoint(
@@ -529,24 +531,12 @@ class FSDPStrategy(ParallelStrategy):
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
-        # if not _TORCH_GREATER_EQUAL_2_0:
-        #     raise NotImplementedError(
-        #         "Saving and loading checkpoints with the `FSDPStrategy` is not supported in PyTorch < 2.0."
-        #         " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
-        #     )
-        # if not state:
-        #     raise ValueError(
-        #         f"Got FSDPStrategy.load_checkpoint(..., state={state!r}) but a state with at least "
-        #         f" a model instance to reload is required. Pass it in like so:"
-        #         " FSDPStrategy.load_checkpoint(..., state={'model': model, ...})"
-        #     )
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
 
         from torch.distributed.checkpoint import FileSystemReader, load_state_dict
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp import OptimStateKeyType
 
         if _is_sharded_checkpoint(path):
             state_dict_ctx = _get_sharded_state_dict_context(self.model)
@@ -578,10 +568,9 @@ class FSDPStrategy(ParallelStrategy):
             return metadata
 
         if _is_full_checkpoint(path):
-            # TODO: lazy loading not possible atm because deepcopy of callbacks
-            # checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
+            # TODO: Support lazy-loading here (see Fabric)
             checkpoint = torch.load(path, map_location="cpu")
-            _load_raw_module_state(checkpoint["state_dict"], module=self.model)
+            _load_raw_module_state(checkpoint["state_dict"], world_size=self.world_size, module=self.model)
 
             from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
             from torch.distributed.fsdp import OptimStateKeyType
@@ -617,11 +606,6 @@ class FSDPStrategy(ParallelStrategy):
                     )
                     optimizer.load_state_dict(opt_state)
 
-            #
-            # if _TORCH_GREATER_EQUAL_2_0:
-            #     # Materialize lazy tensors if there are any left in the checkpoint
-            #     # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
-            #     checkpoint = _materialize_tensors(checkpoint)
             return checkpoint
 
         raise ValueError(
