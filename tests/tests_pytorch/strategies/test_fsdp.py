@@ -734,6 +734,14 @@ def test_save_checkpoint_folder_exists(tmp_path):
         strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock())
 
 
+@RunIf(min_torch="1.12")
+@mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
+    strategy = FSDPStrategy(state_dict_type="invalid")
+    with pytest.raises(ValueError, match="Unknown state_dict_type"):
+        strategy.save_checkpoint(checkpoint=Mock(), filepath=tmp_path)
+
+
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
 def test_save_load_sharded_state_dict(tmp_path):
     """Test FSDP saving and loading with the sharded state dict format."""

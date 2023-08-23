@@ -527,8 +527,10 @@ class FSDPStrategy(ParallelStrategy):
 
             if self.global_rank == 0:
                 torch.save(checkpoint, path / _METADATA_FILENAME)
-        else:
+        elif self._state_dict_type == "full":
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
+        else:
+            raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
