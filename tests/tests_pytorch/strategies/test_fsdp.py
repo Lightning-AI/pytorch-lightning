@@ -505,21 +505,24 @@ def test_set_timeout(init_process_group_mock):
 
 
 @RunIf(min_torch="2.0")
-def test_fsdp_strategy_load_optimizer_states_multiple(tmp_path):
+@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+def test_fsdp_strategy_load_optimizer_states_multiple(_, tmp_path):
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")], state_dict_type="full")
+    trainer = Trainer()
+    trainer.state.fn = TrainerFn.FITTING
+    strategy._lightning_module = Mock(trainer=trainer)
     spec = torch.optim.Optimizer
 
     # More states than optimizers configured
     strategy.optimizers = [Mock(spec=spec)]
-    checkpoint = {"optimizer_states": [{"state": {}}, {"state": {}}]}
+    checkpoint = {"state_dict": {}, "optimizer_states": [{"state": {}}, {"state": {}}]}
     torch.save(checkpoint, tmp_path / "two-states.ckpt")
-    # with mock.patch("lightning.pytorch.strategies.fsdp.torch.load", return_value=checkpoint):
     with pytest.raises(RuntimeError, match="1 optimizers but the checkpoint contains 2 optimizers to load"):
         strategy.load_checkpoint(tmp_path / "two-states.ckpt")
 
     # Fewer states than optimizers configured
     strategy.optimizers = [Mock(spec=spec), Mock(spec=spec)]
-    checkpoint = {"optimizer_states": [{"state": {}}]}
+    checkpoint = {"state_dict": {}, "optimizer_states": [{"state": {}}]}
     torch.save(checkpoint, tmp_path / "one-state.ckpt")
     with pytest.raises(RuntimeError, match="2 optimizers but the checkpoint contains 1 optimizers to load"):
         strategy.load_checkpoint(tmp_path / "one-state.ckpt")
