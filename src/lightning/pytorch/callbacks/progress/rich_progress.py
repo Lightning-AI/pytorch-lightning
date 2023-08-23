@@ -176,7 +176,7 @@ if _RICH_AVAILABLE:
         def _generate_metrics_texts(self) -> Generator[str, None, None]:
             for name, value in self._metrics.items():
                 if not isinstance(value, str):
-                    value = format(value, self._metrics_format)
+                    value = f"{value:{self._metrics_format}}"
                 yield f"{name}: {value}"
 
 else:
