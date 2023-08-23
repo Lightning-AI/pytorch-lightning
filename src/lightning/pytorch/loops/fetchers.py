@@ -53,10 +53,9 @@ class _DataFetcher(Iterator):
 
     def __next__(self) -> Any:
         assert self.iterator is not None
-        data = self._fetch_next_batch(self.iterator)
-        return data
+        return self._fetch_next_batch(self.iterator)
 
-    def _fetch_next_batch(self, iterator: Iterator) -> None:
+    def _fetch_next_batch(self, iterator: Iterator) -> Any:
         self._start_profiler()
         try:
             batch = next(iterator)
@@ -137,9 +136,10 @@ class _PrefetchDataFetcher(_DataFetcher):
             raise StopIteration
         return batch
 
-    def _fetch_next_batch(self, iterator: Iterator) -> None:
+    def _fetch_next_batch(self, iterator: Iterator) -> Any:
         batch = super()._fetch_next_batch(iterator)
         self.batches.append(batch)
+        return batch
 
     def reset(self) -> None:
         super().reset()
