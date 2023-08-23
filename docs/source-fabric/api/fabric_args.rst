@@ -149,7 +149,7 @@ plugins
 
 Plugins allow you to connect arbitrary backends, precision libraries, clusters, etc. For example:
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
-:class:`~lightning.fabric.plugins.environments.ClusterEnvironment`.
+:class:`~lightning.fabric.plugins.environments.cluster_environment.ClusterEnvironment`.
 
 .. code-block:: python
 

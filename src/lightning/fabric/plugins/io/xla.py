@@ -25,7 +25,7 @@ from lightning.fabric.utilities.types import _PATH
 
 
 class XLACheckpointIO(TorchCheckpointIO):
-    """CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies.
+    """CheckpointIO that utilizes ``xm.save`` to save checkpoints for TPU training strategies.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
