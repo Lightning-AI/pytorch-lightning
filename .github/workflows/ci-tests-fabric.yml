@@ -110,7 +110,7 @@ jobs:
         #python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.release }}' == 'pre' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
-        python -c "print('EXTRA_PREFIX=' + str({'lightning': 'fabric-'}.get('${{ matrix.pkg-name }}', ''))" >> $GITHUB_ENV
+        python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.pkg-name}}' == 'lightning' else 'fabric-'))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       run: |
