@@ -12,38 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from datetime import timedelta
+from unittest import mock
+
+import pytest
+import torch
+from torch.nn.parallel import DistributedDataParallel
 
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.pytorch.plugins import DoublePrecisionPlugin, HalfPrecisionPlugin, PrecisionPlugin
-from datetime import timedelta
-from unittest import mock
-
-import pytest
-import torch
-
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.strategies import DDPStrategy
-from lightning.pytorch.trainer.states import TrainerFn
-from tests_pytorch.helpers.runif import RunIf
-import os
-from datetime import timedelta
-from unittest import mock
-from unittest.mock import Mock
-
-import pytest
-import torch
-from torch.distributed.optim import ZeroRedundancyOptimizer
-from torch.nn.parallel import DistributedDataParallel
-
-from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import DoublePrecisionPlugin, HalfPrecisionPlugin, PrecisionPlugin
 from lightning.pytorch.strategies import DDPStrategy
-from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
+
 
 @pytest.mark.parametrize(
     ("process_group_backend", "device_str", "expected_process_group_backend"),

@@ -12,45 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import lightning.pytorch as pl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.pytorch.callbacks import Callback
-from torch.multiprocessing import ProcessRaisedException
-
-import tests_pytorch.helpers.pipelines as tpipes
-from lightning.pytorch.callbacks import EarlyStopping
-from lightning.pytorch.trainer import seed_everything
-from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.simple_models import ClassificationModel
-from unittest import mock
-
-import pytest
-import torch
-from torch.nn.parallel.distributed import DistributedDataParallel
-
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.strategies import DDPStrategy
-from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from tests_pytorch.helpers.runif import RunIf
 import os
-from datetime import timedelta
 from unittest import mock
 from unittest.mock import Mock
 
 import pytest
 import torch
 from torch.distributed.optim import ZeroRedundancyOptimizer
-from torch.nn.parallel import DistributedDataParallel
+from torch.multiprocessing import ProcessRaisedException
+from torch.nn.parallel.distributed import DistributedDataParallel
 
+import lightning.pytorch as pl
+import tests_pytorch.helpers.pipelines as tpipes
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import Callback, EarlyStopping
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
-from lightning.pytorch.trainer.states import TrainerFn
+from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from lightning.pytorch.trainer import seed_everything
+from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
@@ -219,14 +204,14 @@ class UnusedParametersModel(BoringModel):
 
 def test_find_unused_parameters_exception():
     """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning users."""
-    trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp", max_steps=2)
-    with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):
-        trainer.fit(UnusedParametersModel())
-
     trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp_spawn", max_steps=2)
     with pytest.raises(
         ProcessRaisedException, match="It looks like your LightningModule has parameters that were not used in"
     ):
+        trainer.fit(UnusedParametersModel())
+
+    trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp", max_steps=2)
+    with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):
         trainer.fit(UnusedParametersModel())
 
 
@@ -289,7 +274,6 @@ def test_ddp_cpu():
     assert trainer.strategy.root_device == torch.device("cpu")
     model = BoringModelDDPCPU()
     trainer.fit(model)
-
 
 
 class BoringZeroRedundancyOptimizerModel(BoringModel):
@@ -417,9 +401,6 @@ def test_ddp_with_2_gpus():
     assert model.device == torch.device("cpu")
     cuda_memory = torch.cuda.memory_allocated()
     assert cuda_memory < model.start_cuda_memory
-
-
-
 
 
 @RunIf(min_cuda_gpus=4, standalone=True)
