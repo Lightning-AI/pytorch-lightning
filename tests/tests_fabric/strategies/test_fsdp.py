@@ -31,9 +31,9 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import (
     _FSDPBackwardSyncControl,
+    _get_full_state_dict_context,
     _has_meta_device_parameters,
     fsdp_overlap_step_with_backward,
-    _get_full_state_dict_context,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_1
 from tests_fabric.helpers.runif import RunIf
