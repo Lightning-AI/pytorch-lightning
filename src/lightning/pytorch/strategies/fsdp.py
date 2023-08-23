@@ -34,9 +34,9 @@ from lightning.fabric.strategies.fsdp import (
     _get_sharded_state_dict_context,
     _init_cpu_offload,
     _init_sharding_strategy,
+    _METADATA_FILENAME,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
-    _METADATA_FILENAME,
 )
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
