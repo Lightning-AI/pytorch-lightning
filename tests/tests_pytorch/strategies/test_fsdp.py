@@ -2,6 +2,8 @@ import os
 from contextlib import nullcontext
 from datetime import timedelta
 from functools import partial
+from pathlib import Path
+from re import escape
 from typing import Any, Dict, Optional
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
@@ -690,3 +692,63 @@ def test_load_save_optimizer_torch_lt_2_0():
         strategy.optimizer_state(Mock())
     with pytest.warns(UserWarning, match="does not support loading the optimizer state"):
         strategy.load_optimizer_state_dict(Mock())
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False)
+def test_sharded_state_dict_type_support():
+    """Test that the sharded state dict type is supported."""
+    with pytest.raises(
+        NotImplementedError,
+        match=escape("`FSDPStrategy(state_dict_type='sharded')` is not supported in PyTorch < 2.0"),
+    ):
+        FSDPStrategy(state_dict_type="sharded")
+
+
+@RunIf(min_torch="1.12")
+def test_save_checkpoint_storage_options(tmp_path):
+    """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
+    strategy = FSDPStrategy()
+    with pytest.raises(TypeError, match=escape("FSDPStrategy.save_checkpoint(..., storage_options=...)` is not")):
+        strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock(), storage_options=Mock())
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+def test_save_checkpoint_folder_exists(tmp_path):
+    path = tmp_path / "exists"
+    path.mkdir()
+    (path / "file").touch()
+    strategy = FSDPStrategy()
+    with pytest.raises(FileExistsError, match="exists and is not empty"):
+        strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock())
+
+
+# TODO: Extend this test once loading sharded state dict is supported
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+def test_save_load_sharded_state_dict(tmp_path):
+    """Test FSDP saving and loading with the sharded state dict format."""
+    model = TestBoringModel(wrap_min_params=1000)
+    strategy = FSDPStrategy(
+        auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=1000),
+        state_dict_type="sharded",
+    )
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cuda",
+        devices=2,
+        strategy=strategy,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+
+    checkpoint_path = Path(trainer.strategy.broadcast(trainer.checkpoint_callback.best_model_path))
+    assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
+
+    metadata = torch.load(checkpoint_path / "meta.pt")
+    assert "pytorch-lightning_version" in metadata
+    assert len(metadata["callbacks"]) == 1  # model checkpoint callback
+    assert "state_dict" not in metadata
+    assert "optimizer_states" not in metadata
