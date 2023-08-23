@@ -108,7 +108,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "make-doctest (fabric)"
+      - "docs-checks (fabric, doctest)"
       - "make-html (fabric)"
 
   - id: "pytorch_lightning: Docs"
@@ -125,7 +125,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "make-doctest (pytorch)"
+      - "docs-checks (pytorch, doctest)"
       - "make-html (pytorch)"
 
   - id: "pytorch_lightning: Docker"
@@ -352,7 +352,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "make-doctest (app)"
+      - "docs-checks (app, doctest)"
       - "make-html (app)"
 
   # SECTION: common
@@ -417,10 +417,12 @@ subprojects:
       - "install-pkg (windows-2022, notset, 3.8)"
       - "install-pkg (windows-2022, notset, 3.10)"
 
-  - id: "link-check"
+  - id: "release dockers"
     paths:
-      - ".github/workflows/ci-check-md-links.yml"
-      - ".github/workflows/markdown.links.config.json"
-      - "**/*.md"
+      - ".github/workflows/release-docker.yml"
+      - "dockers/release/*"
     checks:
-      - "check-md-links / markdown-link-check"
+      - "publish-docker (3.9, 1.13, 12.0.1)"
+      - "publish-docker (3.9, 1.13, 12.0.1)"
+      - "publish-docker (3.10, 2.0, 11.8.0)"
+      - "publish-docker (3.10, 2.0, 12.0.1)"

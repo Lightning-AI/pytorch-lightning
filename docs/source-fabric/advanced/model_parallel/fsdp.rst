@@ -2,19 +2,19 @@
 Training models with billions of parameters
 ###########################################
 
-Use Fully Shared Data Parallel (FSDP) to train large models with billions or trillions of parameters efficiently on multiple GPUs and across multiple machines.
+Use Fully Shared Data Parallel (FSDP) to train large models with billions of parameters efficiently on multiple GPUs and across multiple machines.
 
 .. note:: This is an experimental feature.
 
 
 Today, large models with billions of parameters are trained with many GPUs across several machines in parallel.
-Even a single A100 GPU with 80 GB of VRAM (the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
+Even a single H100 GPU with 80 GB of VRAM (the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
 The memory consumption for training is generally made up of
 
 1. the model parameters,
-2. the optimizer states (e.g., Adam has two additional exponential averages per parameter),
-3. the layer activations (forward) and
-4. the gradients (backward).
+2. the layer activations (forward) and
+3. the gradients (backward).
+4. the optimizer states (e.g., Adam has two additional exponential averages per parameter),
 
 |
 
@@ -142,14 +142,14 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
         # 3. Pass it to the FSDPStrategy object
         strategy = FSDPStrategy(auto_wrap_policy=policy)
 
-    PyTorch provides several of these functional policies under :mod:`torch.distributed.fsdp.wrap`.
+    PyTorch provides several of these functional policies under ``torch.distributed.fsdp.wrap``.
 
 |
 
 Verify that FSDP works with your model by comparing the peak memory usage printed in the CUDA memory summary (see example above) with regular DDP training.
 You should see a decrease in allocated memory and a slight increase in iteration time:
 
-.. list-table::
+.. list-table:: Numbers were produced with A100 40GB GPUs, Lightning 2.1 and PyTorch 2.1.
    :widths: 25 25 25
    :header-rows: 1
 
@@ -221,7 +221,7 @@ You can configure the following options to trade-off memory for speed:
 
 Here is the memory and speed impact for each option when configured in our example code:
 
-.. list-table::
+.. list-table:: Numbers were produced with A100 40GB GPUs, Lightning 2.1 and PyTorch 2.1.
    :widths: 25 25 25 25 25
    :header-rows: 1
 
@@ -275,6 +275,9 @@ This is typically your transformer block (including attention + feed-forward):
     fabric = L.Fabric(..., strategy=strategy)
 
 
+As in our example, it is typical to set the ``activation_checkpointing_policy`` the same as ``auto_wrap_policy``.
+
+
 Offload parameters to CPU
 =========================
 
@@ -282,18 +285,15 @@ The most drastic GPU memory savings can be achieved by offloading parameters to 
 
 .. code-block:: python
 
-    # 1. Set `cpu_offload=True`
+    # Set `cpu_offload=True`
     strategy = FSDPStrategy(..., cpu_offload=True)
     fabric = L.Fabric(..., strategy=strategy)
-
-    # 2. Set `move_to_device=False` (won't be required in future versions)
-    model, optimizer = setup(model, optimizer, move_to_device=False)
 
 The drawback is a much slower training speed due to the added communication between CPU and GPU for transferring parameters in every forward pass.
 You should use this only if you have enough CPU memory and other scaling methods don’t give you enough memory savings.
 In our example, we see a 4x memory saving, but a 10x increase in iteration time:
 
-.. list-table::
+.. list-table:: Numbers were produced with A100 40GB GPUs, Lightning 2.1 and PyTorch 2.1.
    :widths: 25 25 25 25
    :header-rows: 1
 

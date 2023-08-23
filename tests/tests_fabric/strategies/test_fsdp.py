@@ -31,6 +31,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import (
     _FSDPBackwardSyncControl,
+    _get_full_state_dict_context,
     _has_meta_device_parameters,
     fsdp_overlap_step_with_backward,
 )
@@ -415,6 +416,24 @@ def test_has_meta_device_parameters():
     # unsupported objects
     with pytest.raises(TypeError, match="Expected `torch.nn.Module` or `torch.optim.Optimizer`"):
         _has_meta_device_parameters(None)
+
+
+@RunIf(min_torch="2.0")
+@pytest.mark.parametrize("torch_ge_2_1", [True, False])
+@mock.patch("torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.set_state_dict_type")
+def test_get_full_state_dict_context_offload(set_type_mock, monkeypatch, torch_ge_2_1):
+    """Test that the state dict context manager handles CPU offloading depending on the PyTorch version."""
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_2_1", torch_ge_2_1)
+
+    with _get_full_state_dict_context(module=Mock(spec=FullyShardedDataParallel), world_size=1):
+        assert set_type_mock.call_args_list[0][0][2].offload_to_cpu is torch_ge_2_1  # model config
+        assert set_type_mock.call_args_list[0][0][3].offload_to_cpu is torch_ge_2_1  # optim config
+
+    set_type_mock.reset_mock()
+
+    with _get_full_state_dict_context(module=Mock(spec=FullyShardedDataParallel), world_size=4):
+        assert set_type_mock.call_args_list[0][0][2].offload_to_cpu  # model config
+        assert set_type_mock.call_args_list[0][0][3].offload_to_cpu  # optim config
 
 
 class SubBlock(nn.Sequential):

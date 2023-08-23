@@ -43,8 +43,6 @@ from lightning.app.storage.path import _storage_root_dir
 from lightning.app.utilities import frontend
 from lightning.app.utilities.app_helpers import (
     _delta_to_app_state_delta,
-    _handle_is_headless,
-    _is_headless,
     _LightningAppRef,
     _should_dispatch_app,
     Logger,
@@ -437,7 +435,6 @@ class LightningApp:
             self.backend.update_work_statuses(self.works)
 
         self._update_layout()
-        self._update_is_headless()
         self._update_status()
         self.maybe_apply_changes()
 
@@ -537,13 +534,6 @@ class LightningApp:
         for component in breadth_first(self.root, types=(lightning.app.LightningFlow,)):  # type: ignore[arg-type]
             layout = _collect_layout(self, component)
             component._layout = layout
-
-    def _update_is_headless(self) -> None:
-        self.is_headless = _is_headless(self)
-
-        # If `is_headless` changed, handle it.
-        # This ensures support for apps which dynamically add a UI at runtime.
-        _handle_is_headless(self)
 
     def _update_status(self) -> None:
         old_status = self.status

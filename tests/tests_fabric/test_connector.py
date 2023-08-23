@@ -655,16 +655,9 @@ def test_strategy_choice_ddp_cpu_slurm(strategy):
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_unsupported_tpu_choice(_, tpu_available):
-    with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"):
-        _Connector(accelerator="tpu", precision="64-true")
-
-    # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or XLAStrategy
-    with pytest.raises(
-        ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"
-    ), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision='16-mixed'\)` but AMP with fp16 is not supported"
-    ):
-        _Connector(accelerator="tpu", precision="16-mixed", strategy="ddp")
+    # if user didn't set strategy, _Connector will choose the SingleDeviceXLAStrategy or XLAStrategy
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
+        _Connector(accelerator="tpu", precision="16-true", strategy="ddp")
 
     # wrong precision plugin type
     strategy = XLAStrategy(accelerator=XLAAccelerator(), precision=Precision())
@@ -672,7 +665,7 @@ def test_unsupported_tpu_choice(_, tpu_available):
         _Connector(strategy=strategy)
 
     # wrong strategy type
-    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision=XLAPrecision())
+    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision=XLAPrecision(precision="16-true"))
     with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         _Connector(strategy=strategy)
 
@@ -1043,6 +1036,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert connector.strategy.launcher.is_interactive_compatible
 
 
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_xla_fsdp_automatic_strategy_selection(monkeypatch, tpu_available):
     import lightning.fabric.strategies as strategies
 

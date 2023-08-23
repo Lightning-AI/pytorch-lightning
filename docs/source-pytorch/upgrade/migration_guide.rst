@@ -1,5 +1,5 @@
-Guide how to upgrade to the 2.0 version
-#######################################
+2.0 upgrade guide
+#################
 
 The following section will guide you through updating to the 2.0 release.
 

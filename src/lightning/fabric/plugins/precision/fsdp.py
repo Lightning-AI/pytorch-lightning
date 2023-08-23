@@ -24,7 +24,7 @@ from typing_extensions import get_args
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
 
 if TYPE_CHECKING:
@@ -82,18 +82,22 @@ class FSDPPrecision(Precision):
     def mixed_precision_config(self) -> "TorchMixedPrecision":
         from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
 
+        # With PyTorch < 2.0, FSDP uses the noneness of `param_dtype` as a proxy for the `_uses_param_mixed_precision`
+        # property. In order to avoid FSDP assertion failures, we therefore avoid setting `param_dtype` to
+        # `torch.float32` here with PyTorch < 2.0.
         if self.precision == "16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.precision == "32-true":
-            param_dtype = reduce_dtype = buffer_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
+            reduce_dtype = buffer_dtype = torch.float32
         else:
             raise ValueError(f"Was unable to infer precision type, received {self.precision!r}.")
 
@@ -107,11 +111,11 @@ class FSDPPrecision(Precision):
     def init_context(self) -> Generator[None, None, None]:
         """A context manager to change the default tensor type when initializing module parameters or tensors.
 
-        See: :meth:`torch.set_default_dtype`
+        See: :func:`torch.set_default_dtype`
 
         """
         default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self.mixed_precision_config.param_dtype)
+        torch.set_default_dtype(self.mixed_precision_config.param_dtype or torch.float32)
         yield
         torch.set_default_dtype(default_dtype)
 

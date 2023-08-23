@@ -175,3 +175,40 @@ def test_kill():
     with patch("os.kill") as kill_patch:
         launcher.kill(15)
     assert kill_patch.mock_calls == [call(proc0.pid, 15), call(proc1.pid, 15)]
+
+
+class SimpleModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.tied_layer = torch.nn.Linear(32, 2)
+        self.tied_layer.weight = self.layer.weight
+        self.register_buffer("buffer", torch.ones(3))
+
+    def on_fit_start(self) -> None:
+        assert not self.layer.weight.is_shared()
+        assert not self.tied_layer.weight.is_shared()
+        assert not self.buffer.is_shared()
+
+        # weights remain tied
+        assert self.layer.weight.data_ptr() == self.tied_layer.weight.data_ptr()
+        assert torch.equal(self.layer.weight.data, self.tied_layer.weight.data)
+
+
+def test_memory_sharing_disabled():
+    """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
+    conditions on model updates."""
+    model = SimpleModel()
+    assert not model.layer.weight.is_shared()
+    assert model.layer.weight.data_ptr() == model.tied_layer.weight.data_ptr()
+
+    trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp_spawn", max_steps=0)
+    trainer.fit(model)
+
+
+def test_check_for_missing_main_guard():
+    launcher = _MultiProcessingLauncher(strategy=Mock(), start_method="spawn")
+    with mock.patch(
+        "lightning.pytorch.strategies.launchers.multiprocessing.mp.current_process",
+        return_value=Mock(_inheriting=True),  # pretend that main is importing itself
+    ), pytest.raises(RuntimeError, match="requires that your script guards the main"):
+        launcher.launch(function=Mock())
