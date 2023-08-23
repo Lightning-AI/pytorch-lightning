@@ -52,6 +52,7 @@ jobs:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       PYPI_CACHE_DIR: "_pip-wheels"
+      TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -75,14 +76,17 @@ jobs:
         mkdir -p $PYPI_CACHE_DIR
         ls -lh $PYPI_CACHE_DIR
 
-    - name: Switch PyTorch URL
-      run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+    - name: Env. variables
+      run: |
+        # Switch coverage scope
+        python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
+        python -c "print('EXTRA_PREFIX=' + str({'lightning': 'app-'}.get('${{ matrix.pkg-name }}', ''))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       run: |
         python -m pip install -q pip -U
-        extra=$(python -c "print({'lightning': 'app-'}.get('${{ matrix.pkg-name }}', ''))")
-        pip install -e ".[${extra}dev]" -U -f ${TORCH_URL} -f ${PYPI_CACHE_DIR} --prefer-binary
+        pip install -e ".[${EXTRA_PREFIX}dev]" -U --prefer-binary \
+          -f ${TORCH_URL} -f ${PYPI_CACHE_DIR}
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
