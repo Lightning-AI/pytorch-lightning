@@ -122,7 +122,7 @@ jobs:
         #python -m pip install -q pip -U
         pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --prefer-binary \
           "pytest-timeout" -r requirements/_integrations/accelerators.txt \
-          -f ${TORCH_URL} -f ${PYPI_CACHE_DIR}
+          --find-links=${TORCH_URL} --find-links=${PYPI_CACHE_DIR}
         pip list
     - name: Drop LAI from extensions
       if: ${{ matrix.pkg-name != 'lightning' }}
