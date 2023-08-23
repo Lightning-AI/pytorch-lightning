@@ -1,5 +1,6 @@
 import os
 from contextlib import nullcontext
+from copy import deepcopy
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
@@ -11,7 +12,6 @@ from unittest.mock import ANY, MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
-from copy import deepcopy
 
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import (
@@ -752,7 +752,6 @@ def test_fsdp_load_unknown_checkpoint_type(tmp_path):
         strategy.load_checkpoint(checkpoint_path=path)
 
 
-
 class TestFSDPCheckpointModel(BoringModel):
     def __init__(self, params_to_compare=None):
         super().__init__()
@@ -774,15 +773,15 @@ class TestFSDPCheckpointModel(BoringModel):
 def test_save_load_sharded_state_dict(tmp_path):
     """Test FSDP saving and loading with the sharded state dict format."""
     strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, state_dict_type="sharded")
-    trainer_kwargs = dict(
-        default_root_dir=tmp_path,
-        accelerator="cuda",
-        devices=2,
-        max_epochs=1,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-        logger=False,
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cuda",
+        "devices": 2,
+        "max_epochs": 1,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+        "logger": False,
+    }
 
     # Initial training
     model = TestFSDPCheckpointModel()
