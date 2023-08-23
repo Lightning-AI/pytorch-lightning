@@ -11,6 +11,7 @@ from unittest.mock import ANY, MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
+from copy import deepcopy
 
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import (
@@ -752,22 +753,43 @@ def test_fsdp_load_unknown_checkpoint_type(tmp_path):
         strategy.load_checkpoint(checkpoint_path=path)
 
 
+
+class TestFSDPCheckpointModel(BoringModel):
+    def __init__(self, params_to_compare=None):
+        super().__init__()
+        self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        self.params_to_compare = params_to_compare
+
+    def configure_optimizers(self):
+        # SGD's FSDP optimier state is fixed in https://github.com/pytorch/pytorch/pull/99214
+        return torch.optim.AdamW(self.parameters(), lr=0.1)
+
+    def on_train_start(self):
+        if self.params_to_compare is None:
+            return
+        for p0, p1 in zip(self.params_to_compare, self.trainer.model.parameters()):
+            torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
+
+
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
 def test_save_load_sharded_state_dict(tmp_path):
     """Test FSDP saving and loading with the sharded state dict format."""
-    model = TestBoringModel()  # TODO: use BoringModel
     strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, state_dict_type="sharded")
-    trainer = Trainer(
+    trainer_kwargs = dict(
         default_root_dir=tmp_path,
         accelerator="cuda",
         devices=2,
-        strategy=strategy,
         max_epochs=1,
         enable_progress_bar=False,
         enable_model_summary=False,
         logger=False,
     )
+
+    # Initial training
+    model = TestFSDPCheckpointModel()
+    trainer = Trainer(**trainer_kwargs, strategy=strategy)
     trainer.fit(model)
+    params_before = deepcopy(list(trainer.model.parameters()))
 
     checkpoint_path = Path(trainer.strategy.broadcast(trainer.checkpoint_callback.best_model_path))
     assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
@@ -778,16 +800,9 @@ def test_save_load_sharded_state_dict(tmp_path):
     assert "state_dict" not in metadata
     assert "optimizer_states" not in metadata
 
-    model = TestBoringModel()  # TODO: use BoringModel
+    # Load checkpoint and continue training
+    trainer_kwargs.update(max_epochs=2)
+    model = TestFSDPCheckpointModel(params_to_compare=params_before)
     strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, state_dict_type="sharded")
-    trainer = Trainer(
-        default_root_dir=tmp_path,
-        accelerator="cuda",
-        devices=2,
-        strategy=strategy,
-        max_epochs=2,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-        logger=False,
-    )
+    trainer = Trainer(**trainer_kwargs, strategy=strategy)
     trainer.fit(model, ckpt_path=checkpoint_path)
