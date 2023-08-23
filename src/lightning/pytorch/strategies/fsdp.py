@@ -151,7 +151,7 @@ class FSDPStrategy(ParallelStrategy):
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
-        state_dict_type: Literal["full", "sharded"] = "full",  # FIXME: make sharded the default
+        state_dict_type: Literal["full", "sharded"] = "full",
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -440,7 +440,6 @@ class FSDPStrategy(ParallelStrategy):
             "fsdp",
             cls,
             description="Fully Sharded Data Parallel (FSDP) training",
-            # state_dict_type="full",
         )
         cls._registered_strategies.append("fsdp")
 
@@ -449,7 +448,6 @@ class FSDPStrategy(ParallelStrategy):
             cls,
             description="Fully Sharded Data Parallel (FSDP) training with Full Sharding and CPU Offloading",
             cpu_offload=True,
-            # state_dict_type="full",
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
 
