@@ -136,7 +136,13 @@ if _RICH_AVAILABLE:
     class MetricsTextColumn(ProgressColumn):
         """A column containing text."""
 
-        def __init__(self, trainer: "pl.Trainer", style: Union[str, "Style"], text_delimiter: str, metrics_format: str):
+        def __init__(
+            self,
+            trainer: "pl.Trainer",
+            style: Union[str, "Style"],
+            text_delimiter: str,
+            metrics_format: Union[str, None],
+        ):
             self._trainer = trainer
             self._tasks: Dict[Union[int, TaskID], Any] = {}
             self._current_task_id = 0
@@ -176,7 +182,7 @@ if _RICH_AVAILABLE:
         def _generate_metrics_texts(self) -> Generator[str, None, None]:
             for name, value in self._metrics.items():
                 if not isinstance(value, str):
-                    value = f"{value:{self._metrics_format}}"
+                    value = round(value, 3) if self._metrics_format is None else f"{value:{self._metrics_format}}"
                 yield f"{name}: {value}"
 
 else:
@@ -210,7 +216,7 @@ class RichProgressBarTheme:
     processing_speed: Union[str, Style] = "grey70"
     metrics: Union[str, Style] = "white"
     metrics_text_delimiter: str = " "
-    metrics_format: str = ".3f"
+    metrics_format: Union[str, None] = None
 
 
 class RichProgressBar(ProgressBar):
