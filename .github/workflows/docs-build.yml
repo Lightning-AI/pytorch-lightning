@@ -35,6 +35,7 @@ env:
 
 jobs:
   docs-checks:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
