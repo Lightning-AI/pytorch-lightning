@@ -1,6 +1,5 @@
 """Root package info."""
 import logging
-import os
 
 # explicitly don't set root logger's propagation and leave this to subpackages to manage
 _logger = logging.getLogger(__name__)
@@ -29,9 +28,7 @@ from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa:
 from lightning.pytorch.trainer import Trainer  # noqa: E402
 
 import lightning.app  # isort: skip # noqa: E402
-import lightning.store  # isort: skip # noqa: E402
-
-lightning.app._PROJECT_ROOT = os.path.dirname(lightning.app._PROJECT_ROOT)
+import lightning.store  # isort: skip # noqa: E402, F401
 
 
 __all__ = [

@@ -142,7 +142,7 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
         # 3. Pass it to the FSDPStrategy object
         strategy = FSDPStrategy(auto_wrap_policy=policy)
 
-    PyTorch provides several of these functional policies under :mod:`torch.distributed.fsdp.wrap`.
+    PyTorch provides several of these functional policies under ``torch.distributed.fsdp.wrap``.
 
 |
 
