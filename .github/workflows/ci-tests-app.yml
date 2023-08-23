@@ -80,7 +80,8 @@ jobs:
       run: |
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
-        python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.pkg-name}}' == 'lightning' else 'app-'))" >> $GITHUB_ENV
+        # if you install mono-package set dependency only for this subpackage
+        python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.pkg-name}}' != 'lightning' else 'app-'))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       run: |
