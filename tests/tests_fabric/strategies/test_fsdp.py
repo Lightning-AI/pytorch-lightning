@@ -422,6 +422,7 @@ def test_has_meta_device_parameters():
 @pytest.mark.parametrize("torch_ge_2_1", [True, False])
 @mock.patch("torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.set_state_dict_type")
 def test_get_full_state_dict_context_offload(set_type_mock, monkeypatch, torch_ge_2_1):
+    """Test that the state dict context manager handles CPU offloading depending on the PyTorch version."""
     monkeypatch.setattr("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_2_1", torch_ge_2_1)
 
     with _get_full_state_dict_context(module=Mock(spec=FullyShardedDataParallel), world_size=1):
