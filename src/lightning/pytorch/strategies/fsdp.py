@@ -458,7 +458,7 @@ class FSDPStrategy(ParallelStrategy):
         if self._state_dict_type == "sharded":
             state_dict_ctx = _get_sharded_state_dict_context(self.model)
         elif self._state_dict_type == "full":
-            state_dict_ctx = _get_full_state_dict_context(self.model, offload_to_cpu=(self.world_size > 1))
+            state_dict_ctx = _get_full_state_dict_context(self.model, world_size=self.world_size)
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
         with state_dict_ctx:
@@ -484,7 +484,7 @@ class FSDPStrategy(ParallelStrategy):
                 return FSDP.optim_state_dict(self.model, optimizer)
 
         elif self._state_dict_type == "full":
-            with _get_full_state_dict_context(self.model, offload_to_cpu=(self.world_size > 1)):
+            with _get_full_state_dict_context(self.model, world_size=self.world_size):
                 state_dict = FSDP.optim_state_dict(self.model, optimizer)
                 if self.global_rank == 0:
                     # Store the optimizer state dict in standard format
@@ -603,7 +603,7 @@ class FSDPStrategy(ParallelStrategy):
             assert self.model is not None
 
             # rank0_only should be false because we need to load the optimizer state on all ranks
-            with _get_full_state_dict_context(self.model, rank0_only=False):
+            with _get_full_state_dict_context(self.model, world_size=self.world_size, rank0_only=False):
                 for optimizer, opt_state in zip(self.optimizers, optimizer_states):
                     if isinstance(list(opt_state["state"].keys())[0], int):
                         # Handling the case where the optimizer state is saved from a normal optimizer
