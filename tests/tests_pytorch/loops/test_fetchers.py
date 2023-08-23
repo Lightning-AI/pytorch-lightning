@@ -516,8 +516,9 @@ def test_done_dataloader_iter(iterable):
     iter(fetcher)
 
     assert not fetcher.done
-    for i in range(5):  # doesn't matter how many times you next this, the iter itself needs to be consumed
-        dataloader_iter = next(fetcher)
+    dataloader_iter = next(fetcher)
+    for i in range(5):  # doesn't matter how many times you next this, the dataloader_iter needs to be consumed
+        assert next(fetcher) is next(fetcher)
 
     assert not dataloader_iter.done
     assert dataloader_iter.data_fetcher is fetcher
