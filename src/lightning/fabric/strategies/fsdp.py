@@ -597,7 +597,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         if _is_full_checkpoint(path):
             checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
-            _load_raw_module_state(checkpoint.pop(module_key), module=module, world_size=world_size, strict=strict)
+            _load_raw_module_state(checkpoint.pop(module_key), module=module, world_size=self.world_size, strict=strict)
 
             if isinstance(state, Module):
                 return {}
