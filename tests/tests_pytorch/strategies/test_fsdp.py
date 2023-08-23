@@ -687,6 +687,7 @@ def test_configure_model(precision, expected_dtype):
     trainer.fit(model)
 
 
+@RunIf(min_torch="1.12")
 @mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False)
 @mock.patch("lightning.pytorch.strategies.fsdp.torch.load")
 @mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
