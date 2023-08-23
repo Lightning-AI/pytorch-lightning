@@ -576,7 +576,7 @@ class FSDPStrategy(ParallelStrategy):
             from torch.distributed.fsdp import OptimStateKeyType
 
             optimizer_states = checkpoint.get("optimizer_states")
-            if optimizer_states is None:
+            if optimizer_states is None or self.lightning_module.trainer.state.fn != TrainerFn.FITTING:
                 # If the optimizer states are not present, we don't need to do anything (backward compatibility)
                 return checkpoint
             if not _TORCH_GREATER_EQUAL_2_0:
@@ -597,7 +597,6 @@ class FSDPStrategy(ParallelStrategy):
                     if isinstance(list(opt_state["state"].keys())[0], int):
                         # Handling the case where the optimizer state is saved from a normal optimizer
                         opt_state = FSDP.rekey_optim_state_dict(opt_state, OptimStateKeyType.PARAM_NAME, self.model)
-                    # opt_state = FSDP.rekey_optim_state_dict(opt_state, OptimStateKeyType.PARAM_NAME, self.model)
 
                     opt_state = FSDP.optim_state_dict_to_load(
                         optim_state_dict=opt_state,
