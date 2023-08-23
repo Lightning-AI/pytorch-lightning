@@ -174,6 +174,18 @@ class _DataFetcherWrapper(Iterator):
     def __init__(self, data_fetcher: _DataLoaderIterDataFetcher) -> None:
         self.data_fetcher = data_fetcher
 
+    @property
+    def done(self) -> bool:
+        return self.data_fetcher.done
+
+    @property
+    def fetched(self) -> int:
+        return self.data_fetcher.fetched
+
+    @property
+    def length(self) -> Optional[int]:
+        return self.data_fetcher.length
+
     def __next__(self) -> Any:
         out = super(_DataLoaderIterDataFetcher, self.data_fetcher).__next__()
         if self.data_fetcher._is_sequential:

@@ -508,38 +508,34 @@ def test_fetching_is_profiled():
     assert all(d > 0 for d in durations)
 
 
-def test_done_consistent_across_fetchers():
-    iterable = [0, 1, 2]
-    loader = CombinedLoader(iterable)
-    fetcher = _PrefetchDataFetcher(prefetch_batches=0)
-    fetcher.setup(loader)
-    iter(fetcher)
-    assert not fetcher.done
-    assert next(fetcher) == 0
-    assert not fetcher.done
-    assert next(fetcher) == 1
-    assert not fetcher.done
-    assert next(fetcher) == 2
-    assert fetcher.done
-    with pytest.raises(StopIteration):
-        next(fetcher)
-    assert fetcher.done
-
+@pytest.mark.parametrize("iterable", [[1, 2, 3], IterDataset()])
+def test_done_dataloader_iter(iterable):
     loader = CombinedLoader(iterable)
     fetcher = _DataLoaderIterDataFetcher()
     fetcher.setup(loader)
     iter(fetcher)
+
     assert not fetcher.done
     for i in range(5):  # doesn't matter how many times you next this, the iter itself needs to be consumed
         dataloader_iter = next(fetcher)
-    assert not fetcher.done
-    assert fetcher is dataloader_iter.data_fetcher
-    assert next(dataloader_iter) == 0
-    assert not fetcher.done
+
+    assert not dataloader_iter.done
+    assert dataloader_iter.data_fetcher is fetcher
+
+    assert not dataloader_iter.done
     assert next(dataloader_iter) == 1
-    assert not fetcher.done
+    assert not dataloader_iter.done
     assert next(dataloader_iter) == 2
-    assert fetcher.done
+    assert not dataloader_iter.done
+
+    assert next(dataloader_iter) == 3
+    if isinstance(iterable, list):
+        # with sized data, we know we're done
+        assert dataloader_iter.done
+    else:
+        # with unsized data, the StopIteration needs to be raised
+        assert not dataloader_iter.done
+
     with pytest.raises(StopIteration):
         next(dataloader_iter)
-    assert fetcher.done
+    assert dataloader_iter.done
