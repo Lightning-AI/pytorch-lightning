@@ -457,7 +457,7 @@ class FSDPStrategy(ParallelStrategy):
         if self._state_dict_type == "sharded":
             state_dict_ctx = _get_sharded_state_dict_context(self.model)
         elif self._state_dict_type == "full":
-            state_dict_ctx = _get_full_state_dict_context(self.model)
+            state_dict_ctx = _get_full_state_dict_context(self.model, offload_to_cpu=(self.world_size > 1))
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
         with state_dict_ctx:
@@ -472,29 +472,25 @@ class FSDPStrategy(ParallelStrategy):
             return {}
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        from torch.distributed.fsdp import OptimStateKeyType
 
-        if self._state_dict_type == "sharded":
-            from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
+        if isinstance(optimizer, LightningOptimizer):
+            optimizer = optimizer._optimizer
 
         assert self.model is not None
         if self._state_dict_type == "sharded":
-            state_dict_ctx = _get_sharded_state_dict_context(self.model)
+            with _get_sharded_state_dict_context(self.model):
+                return FSDP.optim_state_dict(self.model, optimizer)
+
         elif self._state_dict_type == "full":
-            state_dict_ctx = _get_full_state_dict_context(self.model)
-        else:
-            raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
+            with _get_full_state_dict_context(self.model, offload_to_cpu=(self.world_size > 1)):
+                state_dict = FSDP.optim_state_dict(self.model, optimizer)
+                if self.global_rank == 0:
+                    # Store the optimizer state dict in standard format
+                    state_dict = FSDP.rekey_optim_state_dict(state_dict, OptimStateKeyType.PARAM_ID, self.model)
+                return state_dict
 
-        with state_dict_ctx:
-            state_dict = FSDP.optim_state_dict(self.model, optimizer)
-
-        # Store the optimizer state dict in standard format
-        # if self.global_rank == 0:
-        #     state_dict = FSDP.rekey_optim_state_dict(state_dict, OptimStateKeyType.PARAM_ID, self.model)
-
-            if self.global_rank == 0:
-                torch.save(checkpoint, path / _METADATA_FILENAME)
-        else:
-            return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
+        raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         pass
