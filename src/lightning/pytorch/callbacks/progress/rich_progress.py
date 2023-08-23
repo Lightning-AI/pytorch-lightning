@@ -136,12 +136,13 @@ if _RICH_AVAILABLE:
     class MetricsTextColumn(ProgressColumn):
         """A column containing text."""
 
-        def __init__(self, trainer: "pl.Trainer", style: Union[str, "Style"]):
+        def __init__(self, trainer: "pl.Trainer", style: Union[str, "Style"], text_delimiter: str):
             self._trainer = trainer
             self._tasks: Dict[Union[int, TaskID], Any] = {}
             self._current_task_id = 0
             self._metrics: Dict[Union[str, "Style"], Any] = {}
             self._style = style
+            self._text_delimiter = text_delimiter
             super().__init__()
 
         def update(self, metrics: Dict[Any, Any]) -> None:
@@ -167,7 +168,8 @@ if _RICH_AVAILABLE:
             if self._trainer.training and task.id != self._current_task_id:
                 return self._tasks[task.id]
 
-            text = " ".join(self._generate_metrics_texts())
+            metrics_texts = self._generate_metrics_texts()
+            text = self._text_delimiter.join(metrics_texts)
             return Text(text, justify="left", style=self._style)
 
         def _generate_metrics_texts(self) -> Generator[str, None, None]:
@@ -204,6 +206,7 @@ class RichProgressBarTheme:
     time: Union[str, Style] = "grey54"
     processing_speed: Union[str, Style] = "grey70"
     metrics: Union[str, Style] = "white"
+    metrics_text_delimiter: str = " "
 
 
 class RichProgressBar(ProgressBar):
@@ -325,7 +328,7 @@ class RichProgressBar(ProgressBar):
             reconfigure(**self._console_kwargs)
             self._console = get_console()
             self._console.clear_live()
-            self._metric_component = MetricsTextColumn(trainer, self.theme.metrics)
+            self._metric_component = MetricsTextColumn(trainer, self.theme.metrics, self.theme.metrics_text_delimiter)
             self.progress = CustomProgress(
                 *self.configure_columns(trainer),
                 self._metric_component,
