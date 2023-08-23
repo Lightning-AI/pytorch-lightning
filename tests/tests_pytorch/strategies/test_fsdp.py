@@ -45,11 +45,9 @@ class TestFSDPModel(BoringModel):
     def _init_model(self) -> None:
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
 
-    def setup(self, stage: str) -> None:
+    def configure_model(self) -> None:
         if self.layer is None:
             self._init_model()
-
-    def configure_model(self) -> None:
         # the model is already wrapped with FSDP: no need to wrap again!
         if isinstance(self.layer, FullyShardedDataParallel):
             return
@@ -57,10 +55,6 @@ class TestFSDPModel(BoringModel):
             if i % 2 == 0:
                 self.layer[i] = wrap(layer)
         self.layer = wrap(self.layer)
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        # when loading full state dict, we first need to create a new unwrapped model
-        self._init_model()
 
     def configure_optimizers(self):
         # There is some issue with SGD optimizer state in FSDP
