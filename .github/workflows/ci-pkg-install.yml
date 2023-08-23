@@ -44,7 +44,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04, macOS-12, windows-2022]
         pkg-name: ["app", "fabric", "pytorch", "lightning", "notset"]
-        python-version: ["3.8" , "3.10"]
+        python-version: ["3.8" , "3.11"]
         # TODO: add also install from source
     steps:
       - uses: actions/checkout@v3
