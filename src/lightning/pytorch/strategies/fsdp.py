@@ -463,7 +463,7 @@ class FSDPStrategy(ParallelStrategy):
             return self.model.state_dict()
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        # Override to do nothing, the FSDP already loaded the states in `load_checkpoint()`
+        # Override to do nothing, FSDP already loaded the states in `load_checkpoint()`
         pass
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
