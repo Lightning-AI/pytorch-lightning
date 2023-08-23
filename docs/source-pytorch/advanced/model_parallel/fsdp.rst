@@ -421,7 +421,7 @@ You can easily :ref:`load checkpoints <checkpointing>` saved by Lightning to res
     trainer.fit(model, ckpt_path="path/to/checkpoint/file")
 
 
-Fabric will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
+The Trainer will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
 Checkpoints saved with ``state_dict_type="full"`` can be loaded by all strategies, but sharded checkpoints can only be loaded by FSDP.
 Read :ref:`the checkpoints guide <checkpointing>` to explore more features.
 
