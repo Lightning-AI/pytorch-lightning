@@ -534,14 +534,15 @@ class FSDPStrategy(ParallelStrategy):
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
 
-        from torch.distributed.checkpoint import FileSystemReader, load_state_dict
-        from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
         assert self.model is not None
         assert self.lightning_module is not None
 
         if _is_sharded_checkpoint(path):
+            from torch.distributed.checkpoint import FileSystemReader, load_state_dict
+            from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+
             state_dict_ctx = _get_sharded_state_dict_context(self.model)
             reader = FileSystemReader(path=path)
 
