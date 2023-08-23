@@ -820,7 +820,7 @@ def _get_full_state_dict_context(
     if _TORCH_GREATER_EQUAL_2_0:
         from torch.distributed.fsdp.api import FullOptimStateDictConfig
 
-        optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
+        optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=offload_to_cpu, rank0_only=rank0_only)
         state_dict_type_context = FSDP.state_dict_type(
             module=module,
             state_dict_type=StateDictType.FULL_STATE_DICT,
