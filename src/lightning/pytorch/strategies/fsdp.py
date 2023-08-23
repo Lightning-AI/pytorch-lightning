@@ -540,6 +540,9 @@ class FSDPStrategy(ParallelStrategy):
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
+        assert self.model is not None
+        assert self.lightning_module is not None
+
         if _is_sharded_checkpoint(path):
             state_dict_ctx = _get_sharded_state_dict_context(self.model)
             reader = FileSystemReader(path=path)
@@ -590,8 +593,6 @@ class FSDPStrategy(ParallelStrategy):
                     f" {len(optimizer_states)} optimizers to load. Please resume training with the same number"
                     " of optimizers or edit the checkpoint manually to remove states."
                 )
-
-            assert self.model is not None
 
             # rank0_only should be false because we need to load the optimizer state on all ranks
             with _get_full_state_dict_context(self.model, world_size=self.world_size, rank0_only=False):
