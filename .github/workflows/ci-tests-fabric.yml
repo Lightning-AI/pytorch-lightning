@@ -86,7 +86,7 @@ jobs:
       run: python .actions/assistant.py replace_oldest_ver
 
     - name: Adjust PyTorch versions in requirements files
-      if: ${{ matrix.requires != 'oldest' && matrix.release != 'pre' }}
+      if: ${{ matrix.requires != 'oldest' }}
       run: |
         pip install -q wget packaging
         python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
@@ -107,16 +107,17 @@ jobs:
     - name: Env. variables
       run: |
         # Switch PyTorch URL
-        python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.release }}' == 'pre' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
-        python -c "print('TORCH_PREINSTALL=' + str('--pre' if '${{ matrix.release }}' == 'pre' else ''))" >> $GITHUB_ENV
+        #python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.release }}' == 'pre' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       run: |
-        python -m pip install -q pip -U
+        #python -m pip install -q pip -U
         extra=$(python -c "print({'lightning': 'fabric-'}.get('${{ matrix.pkg-name }}', ''))")
-        pip install -e ".[${extra}test,${extra}strategies]" "pytest-timeout" -U -f ${TORCH_URL} ${TORCH_PREINSTALL} -f ${PYPI_CACHE_DIR} --prefer-binary
+        echo $extra
+        pip install -e ".[${extra}test,${extra}strategies]" -U --prefer-binary \
+          "pytest-timeout" -f ${TORCH_URL} -f ${PYPI_CACHE_DIR}
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
