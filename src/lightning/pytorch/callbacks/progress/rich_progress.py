@@ -379,7 +379,10 @@ class RichProgressBar(ProgressBar):
                 self.train_progress_bar_id = self._add_task(total_batches, train_description)
             else:
                 self.progress.reset(
-                    self.train_progress_bar_id, total=total_batches, description=train_description, visible=True
+                    self.train_progress_bar_id,
+                    total=total_batches,
+                    description=train_description,
+                    visible=True,
                 )
 
         self.refresh()
@@ -402,7 +405,9 @@ class RichProgressBar(ProgressBar):
                 self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
 
             self.val_sanity_progress_bar_id = self._add_task(
-                self.total_val_batches_current_dataloader, self.sanity_check_description, visible=False
+                self.total_val_batches_current_dataloader,
+                self.sanity_check_description,
+                visible=False,
             )
         else:
             if self.val_progress_bar_id is not None:
@@ -410,14 +415,20 @@ class RichProgressBar(ProgressBar):
 
             # TODO: remove old tasks when new onces are created
             self.val_progress_bar_id = self._add_task(
-                self.total_val_batches_current_dataloader, self.validation_description, visible=False
+                self.total_val_batches_current_dataloader,
+                self.validation_description,
+                visible=False,
             )
 
         self.refresh()
 
     def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> "TaskID":
         assert self.progress is not None
-        return self.progress.add_task(f"[{self.theme.description}]{description}", total=total_batches, visible=visible)
+        return self.progress.add_task(
+            f"[{self.theme.description}]{description}",
+            total=total_batches,
+            visible=visible,
+        )
 
     def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
         if self.progress is not None and self.is_enabled:
@@ -489,7 +500,12 @@ class RichProgressBar(ProgressBar):
         self.refresh()
 
     def on_train_batch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs: STEP_OUTPUT,
+        batch: Any,
+        batch_idx: int,
     ) -> None:
         self._update(self.train_progress_bar_id, batch_idx + 1)
         self._update_metrics(trainer, pl_module)
@@ -576,7 +592,12 @@ class RichProgressBar(ProgressBar):
     def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self._stop_progress()
 
-    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
+    def on_exception(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        exception: BaseException,
+    ) -> None:
         self._stop_progress()
 
     def configure_columns(self, trainer: "pl.Trainer") -> list:
