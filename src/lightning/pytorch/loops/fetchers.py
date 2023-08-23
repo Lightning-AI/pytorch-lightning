@@ -29,6 +29,7 @@ class _DataFetcher(Iterator):
         self.iterator: Optional[Iterator] = None
         self.fetched: int = 0
         self.done: bool = False
+        self.length: Optional[int] = None
         self._start_profiler = _profile_nothing
         self._stop_profiler = _profile_nothing
 
@@ -42,6 +43,8 @@ class _DataFetcher(Iterator):
 
     def setup(self, combined_loader: CombinedLoader) -> None:
         self._combined_loader = combined_loader
+        self.length = sized_len(combined_loader)
+        self.done = self.length == 0
 
     def __iter__(self) -> "_DataFetcher":
         self.reset()
@@ -49,17 +52,23 @@ class _DataFetcher(Iterator):
         return self
 
     def __next__(self) -> Any:
-        self._start_profiler()
         assert self.iterator is not None
+        data = self._fetch_next_batch(self.iterator)
+        return data
+
+    def _fetch_next_batch(self, iterator: Iterator) -> None:
+        self._start_profiler()
         try:
-            data = next(self.iterator)
-        except StopIteration as ex:
+            batch = next(iterator)
+        except StopIteration:
             self.done = True
-            raise ex
+            raise
         finally:
             self._stop_profiler()
         self.fetched += 1
-        return data
+        if self.length is not None:
+            self.done = self.fetched >= self.length
+        return batch
 
     def reset(self) -> None:
         self.fetched = 0
@@ -77,7 +86,8 @@ class _PrefetchDataFetcher(_DataFetcher):
 
     Args:
         prefetch_batches: Number of batches to pre-fetch. Pre-fetching at least 1 batch is necessary to properly track
-            whether a batch is the last one (available with :attr:`self.done`) when the length is not available.
+            whether a batch is the last one (available with :attr:`self.done`) when the length is not available. The
+            value of this argument is ignored when the length is available.
 
     """
 
@@ -87,15 +97,10 @@ class _PrefetchDataFetcher(_DataFetcher):
             raise ValueError("`prefetch_batches` should at least be 0.")
         self.prefetch_batches = prefetch_batches
         self.batches: List[Any] = []
-        self._len: Optional[int] = None
-
-    def setup(self, combined_loader: CombinedLoader) -> None:
-        super().setup(combined_loader)
-        self._len = sized_len(combined_loader)
 
     def __iter__(self) -> "_PrefetchDataFetcher":
         super().__iter__()
-        if self._len is not None:
+        if self.length is not None:
             # ignore pre-fetching, it's not necessary
             return self
         # prefetch batches to know when the iterator will be exhausted in advance
@@ -107,7 +112,6 @@ class _PrefetchDataFetcher(_DataFetcher):
             except StopIteration:
                 # this would only happen when prefetch_batches > the number of batches available and makes
                 # `__next__` jump directly to the empty iterator case without trying to fetch again
-                self.done = True
                 break
         return self
 
@@ -125,27 +129,16 @@ class _PrefetchDataFetcher(_DataFetcher):
                 self.done = not self.batches
         elif not self.done:
             # this will run only when no pre-fetching was done.
-            try:
-                self._fetch_next_batch(self.iterator)
-                # consume the batch we just fetched
-                batch = self.batches.pop(0)
-            except StopIteration as ex:
-                self.done = True
-                raise ex
+            self._fetch_next_batch(self.iterator)
+            # consume the batch we just fetched
+            batch = self.batches.pop(0)
         else:
             # the iterator is empty
             raise StopIteration
         return batch
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:
-        self._start_profiler()
-        try:
-            batch = next(iterator)
-        finally:
-            self._stop_profiler()
-        self.fetched += 1
-        if self._len is not None:
-            self.done = self.fetched >= self._len
+        batch = super()._fetch_next_batch(iterator)
         self.batches.append(batch)
 
     def reset(self) -> None:
