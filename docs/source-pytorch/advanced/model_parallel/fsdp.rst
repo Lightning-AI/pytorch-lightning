@@ -359,7 +359,7 @@ Save a checkpoint
 *****************
 
 Since training large models can be very expensive, it is best practice to checkpoint the training state periodically in case it gets interrupted unexpectedly.
-Lightning saves a checkpoint every epoch by default, and there are :ref:`several ways to configure the checkpointing behavior further <checkpointing>`.
+Lightning saves a checkpoint every epoch by default, and there are :ref:`several settings to configure the checkpointing behavior in detail <checkpointing>`.
 
 .. code-block:: python
 
@@ -373,8 +373,8 @@ Lightning saves a checkpoint every epoch by default, and there are :ref:`several
     # DON'T do this (inefficient):
     # torch.save("path/to/checkpoint/file", model.state_dict())
 
-For single-machine training this is typically fine, but for larger models saving a checkpoint can become slow (minutes not seconds) or overflow CPU memory (OOM) depending on the system.
-To reduce memory peaks and speed up the saving to disk, set `state_dict_type="sharded"`:
+For single-machine training this typically works fine, but for larger models saving a checkpoint can become slow (minutes not seconds) or overflow CPU memory (OOM) depending on the system.
+To reduce memory peaks and speed up the saving to disk, set ``state_dict_type="sharded"``:
 
 .. code-block:: python
 
