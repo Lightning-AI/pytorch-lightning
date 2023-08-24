@@ -32,38 +32,32 @@ __all__ = [
 _ABLE_LOAD_APP, _ABLE_LOAD_DATA = False, False
 try:
     import lightning.app
+
     _ABLE_LOAD_APP = True
 except (ImportError, ModuleNotFoundError):
     # todo: try to parse if the foiling is because of dependency or just wrong import
     pass
 
 if _ABLE_LOAD_APP:
-    from lightning.app import storage  # noqa: E402
-    from lightning.app.core.app import LightningApp  # noqa: E402
-    from lightning.app.core.flow import LightningFlow  # noqa: E402
-    from lightning.app.core.work import LightningWork  # noqa: E402
-    from lightning.app.utilities.packaging.build_config import BuildConfig  # noqa: E402
-    from lightning.app.utilities.packaging.cloud_compute import CloudCompute  # noqa: E402
+    from lightning.app import storage
+    from lightning.app.core.app import LightningApp
+    from lightning.app.core.flow import LightningFlow
+    from lightning.app.core.work import LightningWork
+    from lightning.app.utilities.packaging.build_config import BuildConfig
+    from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
-    __all__ += [
-    "LightningApp",
-    "LightningFlow",
-    "LightningWork",
-    "BuildConfig",
-    "CloudCompute"]
+    __all__ += ["LightningApp", "LightningFlow", "LightningWork", "BuildConfig", "CloudCompute"]
 
 
 try:
     import lightning.data
+
     _ABLE_LOAD_DATA = True
 except (ImportError, ModuleNotFoundError):
     # todo: try to parse if the foiling is because of dependency or just wrong import
     pass
 
 if _ABLE_LOAD_DATA:
+    from lightning.data import LightningDataset, LightningIterableDataset
 
-    from lightning.data import LightningDataset, LightningIterableDataset  # noqa: E402
-
-    __all__ += [
-    "LightningDataset",
-    "LightningIterableDataset"]
+    __all__ += ["LightningDataset", "LightningIterableDataset"]
