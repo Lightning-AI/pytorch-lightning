@@ -36,6 +36,7 @@ from lightning.fabric.strategies.fsdp import (
     _init_sharding_strategy,
     _is_full_checkpoint,
     _is_sharded_checkpoint,
+    _has_meta_device_parameters,
     _load_raw_module_state,
     _METADATA_FILENAME,
     _optimizer_has_flat_params,
@@ -268,7 +269,11 @@ class FSDPStrategy(ParallelStrategy):
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in model.modules()):
-            # the user wrapped at least one layer in `configure_model` already
+            # The user has wrapped their submodules manually, don't apply the auto wrap policy.
+            if _has_meta_device_parameters(model):
+                rank_zero_warn(
+                    "The model is already wrapped in `FSDP` but there are still parameters on the meta device."
+                )
             if "auto_wrap_policy" in self.kwargs:
                 rank_zero_warn(
                     "A FSDP `auto_wrap_policy` is set, but the model is already wrapped. The policy will be ignored."
