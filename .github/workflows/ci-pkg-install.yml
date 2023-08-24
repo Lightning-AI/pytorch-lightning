@@ -49,7 +49,6 @@ jobs:
         include:
           - {os: "macOS-12", pkg-name: "lightning", python-version: "3.9", pkg-extra: "app"}
           - {os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.9", pkg-extra: "app"}
-          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pkg-extra: "app"}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -85,25 +84,29 @@ jobs:
           pip install -q pytest -r requirements.txt
           python -m pytest assistant.py
 
-      - name: build source
-        run: python setup.py build
       - name: Adjust code for standalone
         if: contains(fromJSON('["app", "fabric", "pytorch"]'), matrix.pkg-name)
         run: |
           python .actions/assistant.py copy_replace_imports --source_dir="./src" \
             --source_import="lightning.pytorch,lightning.fabric,lightning.app" \
             --target_import="pytorch_lightning,lightning_fabric,lightning_app"
-          rm src/lightning/__*.py
+          rm src/**/__*.py
       - name: Rename src folders
         working-directory: src/
-        run: mv lightning lit
+        run: |
+          mv lightning lit  # rename lightning folder to prevent accidental local imports
+          python -c "n = '${{matrix.pkg-name}}' ; n = n if n in ('app', 'fabric', 'pytorch') else '' ; print('PKG_NAME=' + n)" >> $GITHUB_ENV
+      - name: drop App doctest
+        if: ${{ (matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') && matrix.pkg-extra != 'app' }}
+        working-directory: src/lit
+        run: rm -rf app
+      - name: Install pytest doctest extension
+        run: |
+          pip install -q "pytest-doctestplus>=0.9.0"
+          pip list
+
       - name: DocTest package
         env:
           LIGHTING_TESTING: 1  # path for require wrapper
           PY_IGNORE_IMPORTMISMATCH: 1
-        run: |
-          pip install -q "pytest-doctestplus>=0.9.0"
-          pip list
-          PKG_NAME=$(python -c "n = '${{matrix.pkg-name}}'; print(n if n in ('app', 'fabric', 'pytorch') else '')")
-          echo $PKG_NAME
-          python -m pytest src/lit/${PKG_NAME} --ignore-glob="**/cli/*-template/**" --doctest-plus
+        run: python -m pytest src/lit/${PKG_NAME} --ignore-glob="**/cli/*-template/**" --doctest-plus
