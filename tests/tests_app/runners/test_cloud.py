@@ -178,7 +178,7 @@ class TestAppCreationClient:
         ],
     )
     def test_new_instance_on_different_cluster(self, tmp_path, cloud_backend, project_id, old_cluster, new_cluster):
-        entrypoint = Path(tmp_path) / "entrypoint.py"
+        entrypoint = tmp_path / "entrypoint.py"
         entrypoint.touch()
 
         app_name = "test-app"
@@ -256,7 +256,7 @@ class TestAppCreationClient:
         This tests that we don't try to reacreate a previously deleted app.
 
         """
-        entrypoint = Path(tmp_path) / "entrypoint.py"
+        entrypoint = tmp_path / "entrypoint.py"
         entrypoint.touch()
 
         app_name = "test-app"
@@ -314,7 +314,7 @@ class TestAppCreationClient:
     @pytest.mark.parametrize("flow_cloud_compute", [None, CloudCompute(name="t2.medium")])
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_run_with_default_flow_compute_config(self, tmp_path, monkeypatch, flow_cloud_compute):
-        entrypoint = Path(tmp_path) / "entrypoint.py"
+        entrypoint = tmp_path / "entrypoint.py"
         entrypoint.touch()
 
         mock_client = mock.MagicMock()
@@ -356,7 +356,7 @@ class TestAppCreationClient:
 
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_run_on_byoc_cluster(self, tmp_path, monkeypatch):
-        entrypoint = Path(tmp_path) / "entrypoint.py"
+        entrypoint = tmp_path / "entrypoint.py"
         entrypoint.touch()
 
         mock_client = mock.MagicMock()
@@ -406,7 +406,7 @@ class TestAppCreationClient:
 
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_requirements_file(self, tmp_path, monkeypatch):
-        entrypoint = Path(tmp_path) / "entrypoint.py"
+        entrypoint = tmp_path / "entrypoint.py"
         entrypoint.touch()
 
         mock_client = mock.MagicMock()
@@ -449,7 +449,7 @@ class TestAppCreationClient:
         )
 
         # with requirements file
-        requirements = Path(tmp_path) / "requirements.txt"
+        requirements = tmp_path / "requirements.txt"
         requirements.touch()
 
         cloud_runtime.dispatch(no_cache=True)
@@ -462,7 +462,7 @@ class TestAppCreationClient:
 
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_basic_auth_enabled(self, tmp_path, monkeypatch):
-        entrypoint = Path(tmp_path) / "entrypoint.py"
+        entrypoint = tmp_path / "entrypoint.py"
         entrypoint.touch()
 
         mock_client = mock.MagicMock()
@@ -523,9 +523,9 @@ class TestAppCreationClient:
 
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_no_cache(self, tmp_path, monkeypatch):
-        entrypoint = Path(tmp_path) / "entrypoint.py"
+        entrypoint = tmp_path / "entrypoint.py"
         entrypoint.touch()
-        requirements = Path(tmp_path) / "requirements.txt"
+        requirements = tmp_path / "requirements.txt"
         requirements.touch()
 
         mock_client = mock.MagicMock()
@@ -690,7 +690,7 @@ class TestAppCreationClient:
     @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
     def test_call_with_queue_server_type_specified(self, tmp_path, lightningapps, monkeypatch):
-        entrypoint = Path(tmp_path) / "entrypoint.py"
+        entrypoint = tmp_path / "entrypoint.py"
         entrypoint.touch()
 
         mock_client = mock.MagicMock()
@@ -1440,7 +1440,7 @@ class TestOpen:
     )
     def test_open_repo(self, tmp_path, monkeypatch, path, expected_root, entries, expected_filtered_entries):
         """Tests that the local source code repo is set up with the correct path and ignore functions."""
-        tmp_path = Path(tmp_path)
+        tmp_path = tmp_path
         for entry in entries:
             (tmp_path / entry).touch()
 
@@ -1691,7 +1691,7 @@ def write_file_of_size(path, size):
 @mock.patch("lightning.app.runners.backends.cloud.LightningClient", MagicMock())
 def test_check_uploaded_folder(monkeypatch, tmp_path, caplog):
     app = MagicMock()
-    root = Path(tmp_path)
+    root = tmp_path
     repo = LocalSourceCodeDir(root)
     backend = cloud.CloudRuntime(app)
     with caplog.at_level(logging.WARN):
@@ -1851,7 +1851,7 @@ def test_load_app_from_file():
     ],
 )
 def test_print_specs(tmp_path, caplog, monkeypatch, print_format, expected):
-    entrypoint = Path(tmp_path) / "entrypoint.py"
+    entrypoint = tmp_path / "entrypoint.py"
     entrypoint.touch()
 
     mock_client = mock.MagicMock()
@@ -1911,7 +1911,7 @@ def test_incompatible_cloud_compute_and_build_config(monkeypatch):
 
 
 def test_programmatic_lightningignore(monkeypatch, caplog, tmp_path):
-    path = Path(tmp_path)
+    path = tmp_path
     entrypoint = path / "entrypoint.py"
     entrypoint.touch()
 
@@ -1982,7 +1982,7 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmp_path):
 
 
 def test_default_lightningignore(monkeypatch, caplog, tmp_path):
-    path = Path(tmp_path)
+    path = tmp_path
     entrypoint = path / "entrypoint.py"
     entrypoint.touch()
 

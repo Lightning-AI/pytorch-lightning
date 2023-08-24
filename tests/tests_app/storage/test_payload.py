@@ -145,7 +145,7 @@ class Flow(LightningFlow):
 
 def test_payload_works(tmp_path):
     """This tests validates the payload api can be used to transfer return values from a work to another."""
-    with mock.patch("lightning.app.storage.path._storage_root_dir", return_value=pathlib.Path(tmp_path)):
+    with mock.patch("lightning.app.storage.path._storage_root_dir", return_value=pathlib.tmp_path):
         app = LightningApp(Flow(), log_level="debug")
         MultiProcessRuntime(app, start_server=False).dispatch()
 

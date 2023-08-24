@@ -57,7 +57,7 @@ def test_checkpoint_plugin_called(tmp_path):
     )
     trainer.fit(model)
 
-    ckpt_files = {fn.name for fn in Path(tmp_path).glob("*.ckpt")}
+    ckpt_files = {fn.name for fn in tmp_path.glob("*.ckpt")}
     assert ckpt_files == {"epoch=1-step=2.ckpt", "last.ckpt"}
     assert trainer.checkpoint_callback.best_model_path == tmp_path / "epoch=1-step=2.ckpt"
     assert trainer.checkpoint_callback.last_model_path == tmp_path / "last.ckpt"
@@ -83,7 +83,7 @@ def test_checkpoint_plugin_called(tmp_path):
     )
     trainer.fit(model)
 
-    ckpt_files = {fn.name for fn in Path(tmp_path).glob("*.ckpt")}
+    ckpt_files = {fn.name for fn in tmp_path.glob("*.ckpt")}
     assert ckpt_files == {"epoch=1-step=2.ckpt", "last.ckpt", "epoch=1-step=2-v1.ckpt", "last-v1.ckpt"}
     assert trainer.checkpoint_callback.best_model_path == tmp_path / "epoch=1-step=2-v1.ckpt"
     assert trainer.checkpoint_callback.last_model_path == tmp_path / "last-v1.ckpt"

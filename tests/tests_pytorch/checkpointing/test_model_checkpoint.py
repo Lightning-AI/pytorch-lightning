@@ -152,7 +152,7 @@ def test_model_checkpoint_score_and_ckpt(
     calls = mock_training_epoch_loop(trainer)
     trainer.fit(model)
 
-    ckpt_files = list(Path(tmp_path).glob("*.ckpt"))
+    ckpt_files = list(tmp_path.glob("*.ckpt"))
     assert len(ckpt_files) == len(model.scores) == max_epochs
 
     for epoch in range(max_epochs):
@@ -281,7 +281,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 
         return score
 
-    ckpt_files = list(Path(tmp_path).glob("*.ckpt"))
+    ckpt_files = list(tmp_path.glob("*.ckpt"))
     assert len(ckpt_files) == len(model.scores) == per_epoch_val_checks * max_epochs
 
     for epoch in range(max_epochs):

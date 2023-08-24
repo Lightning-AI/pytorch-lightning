@@ -300,7 +300,7 @@ def test_path_in_flow_and_work(cls, tmp_path):
             super().__init__()
             self.path_one = Path("a", "b")
             self.path_one = Path("a", "b", "c")
-            self.path_two = Path(tmp_path) / "write.txt"
+            self.path_two = tmp_path / "write.txt"
 
         def run(self):
             self.path_one = self.path_one / "d.txt"
@@ -505,7 +505,7 @@ def test_path_get_errors(tmp_path):
             path.get()
 
         with pytest.raises(FileExistsError, match="The file or folder .* exists locally. Pass `overwrite=True"):
-            path = Path(tmp_path)
+            path = tmp_path
             path._attach_queues(Mock(), Mock())
             path._attach_work(Mock())
             path.get()
@@ -625,12 +625,12 @@ def test_path_exists(tmp_path):
     send a message to the orchestrator to eventually check the existenc on the origin Work."""
     # Local Path (no Work queues attached)
     assert not Path("file").exists()
-    assert Path(tmp_path).exists()
+    assert tmp_path.exists()
     with open(tmp_path / "file", "w"):
         assert Path(tmp_path / "file").exists()
 
     # A local path that exists
-    path = Path(tmp_path)
+    path = tmp_path
     path.exists_remote = Mock()
     path.exists_local = Mock(return_value=True)
     assert path.exists() is True
@@ -657,7 +657,7 @@ def test_path_exists(tmp_path):
 
 def test_path_exists_local(tmp_path):
     assert not Path("file").exists_local()
-    assert Path(tmp_path).exists_local()
+    assert tmp_path.exists_local()
     with open(tmp_path / "file", "w"):
         assert Path(tmp_path / "file").exists_local()
 

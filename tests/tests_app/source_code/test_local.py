@@ -12,11 +12,11 @@ from lightning.app.source_code import LocalSourceCodeDir
 
 def test_repository_checksum(tmp_path):
     """LocalRepository.version() generates a different version each time."""
-    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    repository = LocalSourceCodeDir(path=tmp_path)
     version_a = repository.version
 
     # version is different
-    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    repository = LocalSourceCodeDir(path=tmp_path)
     version_b = repository.version
 
     assert version_a != version_b
@@ -26,19 +26,19 @@ def test_repository_checksum(tmp_path):
 @mock.patch.dict(os.environ, {"LIGHTNING_VSCODE_WORKSPACE": "something"})
 def test_local_cache_path_tmp(tmp_path):
     """LocalRepository.cache_location is under tmp."""
-    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    repository = LocalSourceCodeDir(path=tmp_path)
     assert str(repository.cache_location).startswith("/tmp")
 
 
 def test_local_cache_path_home(tmp_path):
     """LocalRepository.cache_location is under home."""
-    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    repository = LocalSourceCodeDir(path=tmp_path)
     assert str(repository.cache_location).startswith(str(Path.home()))
 
 
 def test_repository_package(tmp_path, monkeypatch):
     """LocalRepository.package() creates package from local dir."""
-    cache_path = Path(tmp_path)
+    cache_path = tmp_path
     source_path = cache_path / "nested"
     source_path.mkdir(parents=True, exist_ok=True)
     (source_path / "test.txt").write_text("test")
@@ -64,7 +64,7 @@ def test_repository_lightningignore(tmp_path):
     (tmp_path / ".lightningignore").write_text(lightningignore)
     (tmp_path / "test.txt").write_text("test")
 
-    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    repository = LocalSourceCodeDir(path=tmp_path)
 
     assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
@@ -72,7 +72,7 @@ def test_repository_lightningignore(tmp_path):
     (tmp_path / "ignore").mkdir()
     (tmp_path / "ignore/test.txt").write_text(str(uuid.uuid4()))
 
-    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    repository = LocalSourceCodeDir(path=tmp_path)
 
     assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
@@ -87,7 +87,7 @@ def test_repository_filters_with_absolute_relative_path(tmp_path):
     (tmp_path / ".lightningignore").write_text(lightningignore)
     (tmp_path / "test.txt").write_text("test")
 
-    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    repository = LocalSourceCodeDir(path=tmp_path)
 
     assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
@@ -97,7 +97,7 @@ def test_repository_filters_with_absolute_relative_path(tmp_path):
     (tmp_path / "ignore_file/test.txt").write_text(str(uuid.uuid4()))
     (tmp_path / "ignore_dir/test.txt").write_text(str(uuid.uuid4()))
 
-    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    repository = LocalSourceCodeDir(path=tmp_path)
 
     assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
@@ -246,7 +246,7 @@ def test_repository_lightningignore_supports_different_patterns(tmp_path):
     (tmp_path / ".lightningignore").write_text(lightningignore)
     (tmp_path / "test.txt").write_text("test")
 
-    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    repository = LocalSourceCodeDir(path=tmp_path)
 
     assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 
@@ -255,7 +255,7 @@ def test_repository_lightningignore_supports_different_patterns(tmp_path):
     (tmp_path / "ignore/test.txt").write_text(str(uuid.uuid4()))
 
     # check that version remains the same
-    repository = LocalSourceCodeDir(path=Path(tmp_path))
+    repository = LocalSourceCodeDir(path=tmp_path)
 
     assert set(repository.files) == {str(tmp_path / ".lightningignore"), str(tmp_path / "test.txt")}
 

@@ -309,7 +309,7 @@ def _swa_resume_training_from_checkpoint(tmp_path, model, resume_model, ddp=Fals
     with _backward_patch(trainer), pytest.raises(Exception, match="SWA crash test"):
         trainer.fit(model)
 
-    checkpoint_dir = Path(tmp_path) / "checkpoints"
+    checkpoint_dir = tmp_path / "checkpoints"
     checkpoint_files = os.listdir(checkpoint_dir)
     assert len(checkpoint_files) == 1
     ckpt_path = str(checkpoint_dir / checkpoint_files[0])
