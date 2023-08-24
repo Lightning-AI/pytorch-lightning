@@ -855,7 +855,8 @@ def test_module_init_context(precision, expected_dtype):
             # Parameters get sharded in `FSDPStrategy.setup()` and moved to the target device
             assert self.layer.weight.device == torch.device("cuda", self.local_rank)
             assert self.layer.weight.dtype == expected_dtype
-            # TODO: check optimizer
+            optimizer = self.optimizers(use_pl_optimizer=False)
+            assert optimizer.param_groups[0]["params"][0].device.type == "cuda"
 
     def _run_setup_assertions(empty_init, expected_device):
         trainer = Trainer(
@@ -864,13 +865,14 @@ def test_module_init_context(precision, expected_dtype):
             strategy=FSDPStrategy(auto_wrap_policy={torch.nn.Linear}),
             precision=precision,
             max_steps=1,
+            barebones=True,
         )
         with trainer.init_module(empty_init=empty_init):
             model = Model()
 
         # The model is on the CPU/meta-device until after `FSDPStrategy.setup()`
-        assert model.weight.device == expected_device
-        assert model.weight.dtype == expected_dtype
+        assert model.layer.weight.device == expected_device
+        assert model.layer.weight.dtype == expected_dtype
         trainer.fit(model)
 
     # Case 1: No empty init
