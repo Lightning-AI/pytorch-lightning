@@ -82,7 +82,7 @@ class PositionalEncoding(nn.Module):
     def _init_pos_encoding(self) -> Tensor:
         pe = torch.zeros(self.max_len, self.dim)
         position = torch.arange(0, self.max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, self.dim, 2).float() * (-math.log(10000.0) / dim))
+        div_term = torch.exp(torch.arange(0, self.dim, 2).float() * (-math.log(10000.0) / self.dim))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
