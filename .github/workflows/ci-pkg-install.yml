@@ -94,8 +94,8 @@ jobs:
         working-directory: src/
         run: |
           python -c "n = '${{matrix.pkg-name}}' ; n = n if n in ('app', 'fabric', 'pytorch') else '' ; print('PKG_NAME=' + n)" >> $GITHUB_ENV
-          rm ./*/__*.py
-          rm ./**/__*.py
+          rm -f ./*/__*.py
+          rm -f ./**/__*.py
           mv lightning lit  # rename lightning folder to prevent accidental local imports
       - name: drop App doctest
         if: ${{ (matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') && matrix.pkg-extra != 'app' }}
