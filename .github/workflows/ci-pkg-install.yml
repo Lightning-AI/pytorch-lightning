@@ -75,8 +75,8 @@ jobs:
         run: python -m lightning --version
       - name: Run CLI (direct bash)
         if: |
-          ((matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') && matrix.pkg-extra == 'app')
-          or matrix.pkg-name == 'app'
+          ((matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') && matrix.pkg-extra == 'app') || 
+          matrix.pkg-name == 'app'
         run: lightning --version
 
       - name: DocTests actions
