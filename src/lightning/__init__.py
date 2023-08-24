@@ -26,7 +26,7 @@ from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402
 
-import lightning.app  # isort: skip # noqa: E402 F401
+import lightning.app  # isort: skip # noqa: E402, F401
 
 
 __all__ = [
