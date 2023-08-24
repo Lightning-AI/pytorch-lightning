@@ -24,7 +24,7 @@ runs:
     working-directory: ${{ inputs.pkg-folder }}
     run: |
       import os, glob
-      
+
       lut = {'app': 'lightning_app', 'fabric': 'lightning_fabric', 'pytorch': 'pytorch_lightning'}
       act_pkg = lut.get('${{inputs.pkg-name}}', 'lightning')
       pkg_sdist = glob.glob('*.tar.gz')[0]
