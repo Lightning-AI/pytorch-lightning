@@ -90,6 +90,7 @@ jobs:
           python .actions/assistant.py copy_replace_imports --source_dir="./src" \
             --source_import="lightning.pytorch,lightning.fabric,lightning.app" \
             --target_import="pytorch_lightning,lightning_fabric,lightning_app"
+          rm src/*/__*.py
           rm src/**/__*.py
       - name: Rename src folders
         working-directory: src/
