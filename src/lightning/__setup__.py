@@ -51,7 +51,7 @@ def _prepare_extras() -> Dict[str, Any]:
     extras["data-data"] += extras["app-app"]  # todo: consider cutting/leaning this dependency
     extras["data-all"] = extras["data-data"] + extras["data-cloud"] + extras["data-examples"]
     extras["data-dev"] = extras["data-all"] + extras["data-test"]
-    extras["store-store"] += extras["app-app"]  # todo: consider cutting/leaning this dependency
+    extras["store-store"] = extras["app-app"]  # todo: consider cutting/leaning this dependency
 
     # merge per-project extras of the same category, e.g. `app-test` + `fabric-test`
     for extra in list(extras):
