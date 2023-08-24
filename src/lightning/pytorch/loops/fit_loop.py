@@ -183,6 +183,15 @@ class _FitLoop(_Loop):
         # until `on_run_start`, we use `limit_train_batches` instead
         return self.done or self.trainer.limit_train_batches == 0
 
+    def enable_xpu_profiling(self) -> None:
+        self.epoch_loop.enable_xpu_profiling()
+
+    def set_xpu_profiling_iter(self, num) -> None:
+        self.epoch_loop.set_xpu_profiling_iter(num)
+
+    def enable_bf16(self) -> None:
+        self.epoch_loop.enable_bf16()
+
     def run(self) -> None:
         if self.skip:
             return

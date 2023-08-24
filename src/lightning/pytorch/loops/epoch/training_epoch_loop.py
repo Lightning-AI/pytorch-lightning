@@ -75,6 +75,10 @@ class _TrainingEpochLoop(loops._Loop):
         self._warning_cache = WarningCache()
         self._batches_that_stepped: int = 0
 
+        self.xpu_profiling = False
+        self.bf16_training = False
+        self.profile_iter = 10000000
+
     @property
     def total_batch_idx(self) -> int:
         """Returns the current batch index (across epochs)"""
@@ -160,6 +164,18 @@ class _TrainingEpochLoop(loops._Loop):
             # seen per epoch, this is useful for tracking when validation is run multiple times per epoch
             self.val_loop.epoch_loop.batch_progress.total.reset()
 
+    def enable_bf16(self) -> None:
+        self.bf16_training = True
+        """Enable bfloat16 training"""
+
+    def set_xpu_profiling_iter(self, num) -> None:
+        self.profile_iter = num
+        """set xpu profiling training iteration"""
+
+    def enable_xpu_profiling(self) -> None:
+        self.xpu_profiling = True
+        """Enable xpu profiling on pytorch-lightning"""
+
     def on_run_start(self, data_fetcher: _DataFetcher) -> None:
         _ = iter(data_fetcher)  # creates the iterator inside the fetcher
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
@@ -213,12 +229,25 @@ class _TrainingEpochLoop(loops._Loop):
 
             self.batch_progress.increment_started()
 
+            dtype = torch.float
+            profile_name = "fp32"
+            if self.bf16_training:
+                profile_name = "bf16"
+                dtype=torch.bfloat16
             with self.trainer.profiler.profile("run_training_batch"):
-                if self.trainer.lightning_module.automatic_optimization:
-                    # in automatic optimization, there can only be one optimizer
-                    batch_output = self.automatic_optimization.run(self.trainer.optimizers[0], kwargs)
-                else:
-                    batch_output = self.manual_optimization.run(kwargs)
+                with torch.autograd.profiler_legacy.profile(enabled=self.xpu_profiling, use_xpu=True, record_shapes=False) as prof:
+                    with torch.xpu.amp.autocast(enabled=self.bf16_training, dtype=dtype):
+                        if self.trainer.lightning_module.automatic_optimization:
+                            # in automatic optimization, there can only be one optimizer
+                            batch_output = self.automatic_optimization.run(self.trainer.optimizers[0], kwargs)
+                        else:
+                            batch_output = self.manual_optimization.run(kwargs)
+                        torch.xpu.synchronize()
+
+                if self.batch_progress.total.processed == self.profile_iter and self.xpu_profiling:
+                    torch.save(prof.key_averages().table(sort_by="self_xpu_time_total"), './profiling.' + profile_name + '.train.pt')
+                    torch.save(prof.table(sort_by="id", row_limit=-1), './profiling.' + profile_name + '.train.detailed.pt')
+                    prof.export_chrome_trace('./profiling.' + profile_name + '_trace.json')
 
         self.batch_progress.increment_processed()
 

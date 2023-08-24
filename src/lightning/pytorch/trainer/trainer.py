@@ -444,6 +444,15 @@ class Trainer:
         self._last_train_dl_reload_epoch = float("-inf")
         self._last_val_dl_reload_epoch = float("-inf")
 
+    def enable_xpu_profile(self) -> None:
+        self.fit_loop.enable_xpu_profiling()
+
+    def enable_bf16(self) -> None:
+        self.fit_loop.enable_bf16()
+
+    def set_xpu_profiling_iter(self, num) -> None:
+        self.fit_loop.set_xpu_profiling_iter(num)
+
     def _maybe_unwrap_optimized(self, model: object) -> "pl.LightningModule":
         if not _TORCH_GREATER_EQUAL_2_0:
             if not isinstance(model, pl.LightningModule):
