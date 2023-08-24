@@ -54,6 +54,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_1,
 )
 from lightning.fabric.utilities.init import _EmptyInit
+from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, ProcessGroup, ReduceOp
@@ -580,9 +581,13 @@ class FSDPStrategy(ParallelStrategy):
             return metadata
 
         if _is_full_checkpoint(path):
-            # TODO: Support lazy-loading here (see Fabric)
-            checkpoint = torch.load(path, map_location="cpu")
-            _load_raw_module_state(checkpoint["state_dict"], world_size=self.world_size, module=self.model)
+            checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
+            _load_raw_module_state(checkpoint.pop("state_dict"), module=self.model, world_size=self.world_size)
+
+            if _TORCH_GREATER_EQUAL_2_0:
+                # Materialize lazy tensors if there are any left in the checkpoint
+                # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
+                checkpoint = _materialize_tensors(checkpoint)
 
             from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
             from torch.distributed.fsdp import OptimStateKeyType
