@@ -65,19 +65,28 @@ class PositionalEncoding(nn.Module):
     def __init__(self, dim: int, dropout: float = 0.1, max_len: int = 5000) -> None:
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
+        self.dim = dim
+        self.max_len = max_len
 
-        pe = torch.zeros(max_len, dim)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, dim, 2).float() * (-math.log(10000.0) / dim))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
+        pe = self._init_pos_encoding()
         # workaround, can't use buffer, see https://github.com/pytorch/pytorch/issues/68407
         self.register_parameter("pe", nn.Parameter(pe, requires_grad=False))
+
+    def reset_parameters(self) -> None:
+        self.pe.copy_(self._init_pos_encoding())
 
     def forward(self, x: Tensor) -> Tensor:
         x + self.pe[: x.size(0), :]  # type: ignore[index]
         return self.dropout(x)
+
+    def _init_pos_encoding(self) -> Tensor:
+        pe = torch.zeros(self.max_len, self.dim)
+        position = torch.arange(0, self.max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, self.dim, 2).float() * (-math.log(10000.0) / dim))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        return pe
 
 
 class WikiText2(Dataset):
