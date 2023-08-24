@@ -14,9 +14,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
-from torch.utils.data import Dataset
 from torch.nn.modules import MultiheadAttention
-
+from torch.utils.data import Dataset
 
 if hasattr(MultiheadAttention, "_reset_parameters") and not hasattr(MultiheadAttention, "reset_parameters"):
     MultiheadAttention.reset_parameters = MultiheadAttention._reset_parameters
