@@ -48,7 +48,9 @@ jobs:
         # TODO: add also install from source
         include:
           - {os: "macOS-12", pkg-name: "lightning", python-version: "3.9", pkg-extra: "app"}
+          - {os: "macOS-12", pkg-name: "notset", python-version: "3.9", pkg-extra: "app"}
           - {os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.9", pkg-extra: "app"}
+          - {os: "ubuntu-22.04", pkg-name: "notset", python-version: "3.9", pkg-extra: "app"}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
