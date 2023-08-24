@@ -51,6 +51,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_12,
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
 )
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -343,9 +344,16 @@ class FSDPStrategy(ParallelStrategy):
 
     @contextmanager
     def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
-        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
-        # is resolved. For now, the module will get moved to the device in `setup_module`.
-        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        empty_init_context: Union[torch.device, _EmptyInit, nullcontext]
+        if _TORCH_GREATER_EQUAL_2_1 and empty_init:
+            # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
+            # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
+            # These operations are applied to each submodule 'bottom up' in the module hierarchy.
+            empty_init_context = torch.device("meta")
+        elif _TORCH_GREATER_EQUAL_1_13:
+            empty_init_context = _EmptyInit(enabled=bool(empty_init))
+        else:
+            empty_init_context = nullcontext()
         with empty_init_context, self.precision_plugin.init_context():
             yield
 
