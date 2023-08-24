@@ -90,13 +90,13 @@ jobs:
           python .actions/assistant.py copy_replace_imports --source_dir="./src" \
             --source_import="lightning.pytorch,lightning.fabric,lightning.app" \
             --target_import="pytorch_lightning,lightning_fabric,lightning_app"
-          rm src/*/__*.py
-          rm src/**/__*.py
       - name: Rename src folders
         working-directory: src/
         run: |
-          mv lightning lit  # rename lightning folder to prevent accidental local imports
           python -c "n = '${{matrix.pkg-name}}' ; n = n if n in ('app', 'fabric', 'pytorch') else '' ; print('PKG_NAME=' + n)" >> $GITHUB_ENV
+          rm ./*/__*.py
+          rm ./**/__*.py
+          mv lightning lit  # rename lightning folder to prevent accidental local imports
       - name: drop App doctest
         if: ${{ (matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') && matrix.pkg-extra != 'app' }}
         working-directory: src/lit
