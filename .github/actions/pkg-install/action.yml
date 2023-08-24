@@ -32,11 +32,9 @@ runs:
       extra = '${{inputs.pkg-extra}}'
       extra = f'[{extra}]' if extra else ''
 
+      envs = [f'PKG_IMPORT={act_pkg}', f'PKG_SOURCE={pkg_sdist}', f'PKG_WHEEL={pkg_wheel}', f'PKG_EXTRA={extra}']
       with open(os.getenv('GITHUB_ENV'), "a") as gh_env:
-          gh_env.write(f'PKG_IMPORT={act_pkg}')
-          gh_env.write(f'PKG_SOURCE={pkg_sdist}')
-          gh_env.write(f'PKG_WHEEL={pkg_wheel}')
-          gh_env.write(f'PKG_EXTRA={extra}')
+          gh_env.write(os.linesep.join(envs))
     shell: python
 
   - name: Install package - wheel
