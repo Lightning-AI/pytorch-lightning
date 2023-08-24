@@ -59,7 +59,9 @@ def test_logdir_no_logger(tmp_path):
     expected = os.path.join(tmp_path)
     model = TestModel(expected)
 
-    trainer = Trainer(default_root_dir=tmp_path, max_steps=2, logger=False, callbacks=[ModelCheckpoint(dirpath=tmp_path)])
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_steps=2, logger=False, callbacks=[ModelCheckpoint(dirpath=tmp_path)]
+    )
 
     assert trainer.log_dir == expected
     trainer.fit(model)

@@ -88,7 +88,9 @@ def test_copier_existence_check(tmp_path):
     copier = _Copier(work, copy_request_queue=copy_request_queue, copy_response_queue=copy_response_queue)
 
     # A Path that does NOT exist
-    request = _ExistsRequest(source="src", path=str(tmp_path / "notexists"), destination="dest", name="name", hash="123")
+    request = _ExistsRequest(
+        source="src", path=str(tmp_path / "notexists"), destination="dest", name="name", hash="123"
+    )
     copy_request_queue.put(request)
     copier.run_once()
     response = copy_response_queue.get()

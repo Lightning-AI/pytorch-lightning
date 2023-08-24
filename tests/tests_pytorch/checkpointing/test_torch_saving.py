@@ -40,7 +40,12 @@ def test_model_torch_save_ddp_cpu(tmp_path):
     model = BoringModel()
     num_epochs = 1
     trainer = Trainer(
-        default_root_dir=tmp_path, max_epochs=num_epochs, strategy="ddp_spawn", accelerator="cpu", devices=2, logger=False
+        default_root_dir=tmp_path,
+        max_epochs=num_epochs,
+        strategy="ddp_spawn",
+        accelerator="cpu",
+        devices=2,
+        logger=False,
     )
     temp_path = os.path.join(tmp_path, "temp.pt")
     trainer.fit(model)

@@ -466,7 +466,9 @@ def test_pytorch_profiler_multiple_loggers(tmp_path):
 
     model = BoringModel()
     loggers = [TensorBoardLogger(save_dir=tmp_path), CSVLogger(tmp_path)]
-    trainer = Trainer(default_root_dir=tmp_path, profiler="pytorch", logger=loggers, limit_train_batches=5, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmp_path, profiler="pytorch", logger=loggers, limit_train_batches=5, max_epochs=1
+    )
     assert len(trainer.loggers) == 2
     trainer.fit(model)
     assert look_for_trace(tmp_path / "lightning_logs" / "version_0")
@@ -629,7 +631,9 @@ def test_profiler_table_kwargs_summary_length(tmp_path):
     summaries = []
     # Default table_kwargs (None) sets max_name_column_width to 55
     for table_kwargs in [{"max_name_column_width": 1}, {"max_name_column_width": 5}, None]:
-        pytorch_profiler = PyTorchProfiler(dirpath=tmp_path, filename="profile", schedule=None, table_kwargs=table_kwargs)
+        pytorch_profiler = PyTorchProfiler(
+            dirpath=tmp_path, filename="profile", schedule=None, table_kwargs=table_kwargs
+        )
 
         with pytorch_profiler.profile("a"):
             torch.ones(1)

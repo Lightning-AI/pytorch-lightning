@@ -255,7 +255,9 @@ def test_dm_reload_dataloaders_every_n_epochs(tmp_path):
     model.validation_step = None
     model.test_step = None
 
-    trainer = Trainer(default_root_dir=tmp_path, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2
+    )
     trainer.fit(model, dm)
 
 

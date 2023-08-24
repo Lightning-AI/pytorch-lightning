@@ -1634,7 +1634,9 @@ class TrainerStagesModel(BoringModel):
 )
 def test_model_in_correct_mode_during_stages(tmp_path, strategy, devices):
     model = TrainerStagesModel()
-    trainer = Trainer(default_root_dir=tmp_path, strategy=strategy, accelerator="cpu", devices=devices, fast_dev_run=True)
+    trainer = Trainer(
+        default_root_dir=tmp_path, strategy=strategy, accelerator="cpu", devices=devices, fast_dev_run=True
+    )
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)

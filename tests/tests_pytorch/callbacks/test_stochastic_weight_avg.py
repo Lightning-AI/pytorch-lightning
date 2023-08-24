@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 import os
-from pathlib import Path
 from typing import ContextManager, Optional
 from unittest import mock
 
