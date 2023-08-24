@@ -58,7 +58,7 @@ def _prepare_extras() -> Dict[str, Any]:
 
     # drop quasi base the req. file has the same name sub-package
     for k in list(extras.keys()):
-        kk = k.split('-')
+        kk = k.split("-")
         if not (len(kk) == 2 and kk[0] == kk[1]):
             continue
         extras[kk[0]] = list(extras[k])
