@@ -40,7 +40,7 @@ class TestDDPStrategy(DDPStrategy):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-def test_ddp_fp16_compress_comm_hook(tmpdir):
+def test_ddp_fp16_compress_comm_hook(tmp_path):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
     strategy = TestDDPStrategy(
@@ -52,7 +52,7 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy=strategy,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         sync_batchnorm=True,
         fast_dev_run=True,
         enable_progress_bar=False,
@@ -63,7 +63,7 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-def test_ddp_sgd_comm_hook(tmpdir):
+def test_ddp_sgd_comm_hook(tmp_path):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
     strategy = TestDDPStrategy(
@@ -76,7 +76,7 @@ def test_ddp_sgd_comm_hook(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy=strategy,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         sync_batchnorm=True,
         fast_dev_run=True,
         enable_progress_bar=False,
@@ -87,7 +87,7 @@ def test_ddp_sgd_comm_hook(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
+def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmp_path):
     """Test for DDP FP16 compress wrapper for SGD hook."""
     model = BoringModel()
     strategy = TestDDPStrategy(
@@ -101,7 +101,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy=strategy,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         sync_batchnorm=True,
         fast_dev_run=True,
         enable_progress_bar=False,
@@ -112,7 +112,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
+def test_ddp_spawn_fp16_compress_comm_hook(tmp_path):
     """Test for DDP Spawn FP16 compress hook."""
     model = BoringModel()
     strategy = DDPStrategy(ddp_comm_hook=default.fp16_compress_hook, start_method="spawn")
@@ -121,7 +121,7 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy=strategy,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         sync_batchnorm=True,
         fast_dev_run=True,
         enable_progress_bar=False,
@@ -132,7 +132,7 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-def test_ddp_post_local_sgd_comm_hook(tmpdir):
+def test_ddp_post_local_sgd_comm_hook(tmp_path):
     """Test for DDP post-localSGD hook."""
     model = BoringModel()
     strategy = TestDDPStrategy(
@@ -150,7 +150,7 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy=strategy,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         sync_batchnorm=True,
         enable_progress_bar=False,
         enable_model_summary=False,
@@ -161,7 +161,7 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
 
 @RunIf(skip_windows=True, min_cuda_gpus=2, standalone=True)
 @mock.patch("torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager.average_parameters")
-def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir):
+def test_post_local_sgd_model_averaging(average_parameters_mock, tmp_path):
     """Test that when using DDP with post-localSGD, model averaging is called."""
     model = BoringModel()
 
@@ -171,7 +171,7 @@ def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="ddp",
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         sync_batchnorm=True,
         enable_progress_bar=False,
         enable_model_summary=False,
@@ -196,7 +196,7 @@ def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir):
         accelerator="gpu",
         devices=2,
         strategy=ddp_strategy,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         sync_batchnorm=True,
     )
 
@@ -206,7 +206,7 @@ def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir):
 
 @RunIf(skip_windows=True, min_cuda_gpus=2, standalone=True)
 @mock.patch("torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager.average_parameters")
-def test_post_local_sgd_model_averaging_raises(average_parameters_mock, tmpdir):
+def test_post_local_sgd_model_averaging_raises(average_parameters_mock, tmp_path):
     """Test that when using DDP with post-localSGD a ValueError is thrown when the optimizer is
     ZeroRedundancyOptimizer."""
     from torch.distributed.optim import ZeroRedundancyOptimizer
@@ -231,7 +231,7 @@ def test_post_local_sgd_model_averaging_raises(average_parameters_mock, tmpdir):
         accelerator="gpu",
         devices=2,
         strategy=strategy,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         sync_batchnorm=True,
         enable_progress_bar=False,
         enable_model_summary=False,

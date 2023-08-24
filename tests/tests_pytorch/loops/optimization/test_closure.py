@@ -19,14 +19,14 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
-def test_optimizer_step_no_closure_raises(tmpdir):
+def test_optimizer_step_no_closure_raises(tmp_path):
     class TestModel(BoringModel):
         def optimizer_step(self, epoch=None, batch_idx=None, optimizer=None, optimizer_closure=None, **_):
             # does not call `optimizer_closure()`
             pass
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
     with pytest.raises(MisconfigurationException, match="The closure hasn't been executed"):
         trainer.fit(model)
 
@@ -40,12 +40,12 @@ def test_optimizer_step_no_closure_raises(tmpdir):
             return BrokenSGD(self.layer.parameters(), lr=0.1)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
     with pytest.raises(MisconfigurationException, match="The closure hasn't been executed"):
         trainer.fit(model)
 
 
-def test_closure_with_no_grad_optimizer(tmpdir):
+def test_closure_with_no_grad_optimizer(tmp_path):
     """Test that the closure is guaranteed to run with grad enabled.
 
     There are certain third-party library optimizers
@@ -68,6 +68,6 @@ def test_closure_with_no_grad_optimizer(tmpdir):
         def configure_optimizers(self):
             return NoGradAdamW(self.parameters(), lr=0.1)
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
     model = TestModel()
     trainer.fit(model)

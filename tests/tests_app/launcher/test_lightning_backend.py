@@ -280,7 +280,7 @@ def test_create_work_where_work_does_not_exists(mock_client):
     },
 )
 @mock.patch("lightning.app.launcher.lightning_backend.LightningClient")
-def test_create_work_with_drives_where_work_does_not_exists(mock_client, tmpdir):
+def test_create_work_with_drives_where_work_does_not_exists(mock_client, tmp_path):
     cloud_backend = CloudBackend("")
     non_matching_spec = Mock()
     app = MagicMock()
@@ -290,7 +290,7 @@ def test_create_work_with_drives_where_work_does_not_exists(mock_client, tmpdir)
     setattr(mocked_drive, "protocol", "lit://")
     setattr(mocked_drive, "component_name", "test-work")
     setattr(mocked_drive, "allow_duplicates", False)
-    setattr(mocked_drive, "root_folder", tmpdir)
+    setattr(mocked_drive, "root_folder", tmp_path)
     # deepcopy on a MagicMock instance will return an empty magicmock instance. To
     # overcome this we set the __deepcopy__ method `return_value` to equal what
     # should be the results of the deepcopy operation (an instance of the original class)
@@ -340,7 +340,7 @@ def test_create_work_with_drives_where_work_does_not_exists(mock_client, tmpdir)
     },
 )
 @mock.patch("lightning.app.launcher.lightning_backend.LightningClient")
-def test_create_work_proxy_http(mock_client, tmpdir):
+def test_create_work_proxy_http(mock_client, tmp_path):
     cloud_backend = CloudBackend("")
     non_matching_spec = Mock()
     app = MagicMock()
@@ -350,7 +350,7 @@ def test_create_work_proxy_http(mock_client, tmpdir):
     setattr(mocked_drive, "protocol", "lit://")
     setattr(mocked_drive, "component_name", "test-work")
     setattr(mocked_drive, "allow_duplicates", False)
-    setattr(mocked_drive, "root_folder", tmpdir)
+    setattr(mocked_drive, "root_folder", tmp_path)
     # deepcopy on a MagicMock instance will return an empty magicmock instance. To
     # overcome this we set the __deepcopy__ method `return_value` to equal what
     # should be the results of the deepcopy operation (an instance of the original class)

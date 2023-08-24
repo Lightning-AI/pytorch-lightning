@@ -38,9 +38,9 @@ def test_file_logger_automatic_versioning_relative_root_dir(tmp_path, monkeypatc
     assert logger.version == 2
 
 
-def test_file_logger_manual_versioning(tmpdir):
+def test_file_logger_manual_versioning(tmp_path):
     """Verify that manual versioning works."""
-    root_dir = tmpdir.mkdir("exp")
+    root_dir = tmp_path.mkdir("exp")
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
     root_dir.mkdir("version_2")
@@ -48,33 +48,33 @@ def test_file_logger_manual_versioning(tmpdir):
     assert logger.version == 1
 
 
-def test_file_logger_named_version(tmpdir):
+def test_file_logger_named_version(tmp_path):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
     exp_name = "exp"
-    tmpdir.mkdir(exp_name)
+    tmp_path.mkdir(exp_name)
     expected_version = "2020-02-05-162402"
 
-    logger = CSVLogger(root_dir=tmpdir, name=exp_name, version=expected_version)
+    logger = CSVLogger(root_dir=tmp_path, name=exp_name, version=expected_version)
     logger.log_metrics({"a": 1, "b": 2})
     logger.save()
     assert logger.version == expected_version
-    assert os.listdir(tmpdir / exp_name) == [expected_version]
-    assert os.listdir(tmpdir / exp_name / expected_version)
+    assert os.listdir(tmp_path / exp_name) == [expected_version]
+    assert os.listdir(tmp_path / exp_name / expected_version)
 
 
 @pytest.mark.parametrize("name", ["", None])
-def test_file_logger_no_name(tmpdir, name):
+def test_file_logger_no_name(tmp_path, name):
     """Verify that None or empty name works."""
-    logger = CSVLogger(root_dir=tmpdir, name=name)
+    logger = CSVLogger(root_dir=tmp_path, name=name)
     logger.log_metrics({"a": 1})
     logger.save()
-    assert os.path.normpath(logger._root_dir) == tmpdir  # use os.path.normpath to handle trailing /
-    assert os.listdir(tmpdir / "version_0")
+    assert os.path.normpath(logger._root_dir) == tmp_path  # use os.path.normpath to handle trailing /
+    assert os.listdir(tmp_path / "version_0")
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
-def test_file_logger_log_metrics(tmpdir, step_idx):
-    logger = CSVLogger(tmpdir)
+def test_file_logger_log_metrics(tmp_path, step_idx):
+    logger = CSVLogger(tmp_path)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
     logger.save()
@@ -86,14 +86,14 @@ def test_file_logger_log_metrics(tmpdir, step_idx):
     assert all(n in lines[0] for n in metrics)
 
 
-def test_file_logger_log_hyperparams(tmpdir):
-    logger = CSVLogger(tmpdir)
+def test_file_logger_log_hyperparams(tmp_path):
+    logger = CSVLogger(tmp_path)
     with pytest.raises(NotImplementedError):
         logger.log_hyperparams({})
 
 
-def test_flush_n_steps(tmpdir):
-    logger = CSVLogger(tmpdir, flush_logs_every_n_steps=2)
+def test_flush_n_steps(tmp_path):
+    logger = CSVLogger(tmp_path, flush_logs_every_n_steps=2)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.save = MagicMock()
     logger.log_metrics(metrics, step=0)

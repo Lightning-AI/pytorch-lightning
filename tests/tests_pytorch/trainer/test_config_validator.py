@@ -26,9 +26,9 @@ from lightning.pytorch.trainer.configuration_validator import (
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
-def test_wrong_train_setting(tmpdir):
+def test_wrong_train_setting(tmp_path):
     """Test that an error is raised when no `training_step()` is defined."""
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
 
     with pytest.raises(MisconfigurationException, match=r"No `training_step\(\)` method defined."):
         model = BoringModel()
@@ -36,9 +36,9 @@ def test_wrong_train_setting(tmpdir):
         trainer.fit(model)
 
 
-def test_wrong_configure_optimizers(tmpdir):
+def test_wrong_configure_optimizers(tmp_path):
     """Test that an error is thrown when no `configure_optimizers()` is defined."""
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
 
     with pytest.raises(MisconfigurationException, match=r"No `configure_optimizers\(\)` method defined."):
         model = BoringModel()
@@ -46,9 +46,9 @@ def test_wrong_configure_optimizers(tmpdir):
         trainer.fit(model)
 
 
-def test_fit_val_loop_config(tmpdir):
+def test_fit_val_loop_config(tmp_path):
     """When either val loop or val data are missing raise warning."""
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
 
     # no val data has val loop
     with pytest.warns(UserWarning, match=r"You passed in a `val_dataloader` but have no `validation_step`"):
@@ -63,9 +63,9 @@ def test_fit_val_loop_config(tmpdir):
         trainer.fit(model)
 
 
-def test_eval_loop_config(tmpdir):
+def test_eval_loop_config(tmp_path):
     """When either eval step or eval data is missing."""
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
 
     # has test data but no val step
     model = BoringModel()
@@ -93,7 +93,7 @@ def test_eval_loop_config(tmpdir):
 
 
 @pytest.mark.parametrize("datamodule", [False, True])
-def test_trainer_predict_verify_config(tmpdir, datamodule):
+def test_trainer_predict_verify_config(tmp_path, datamodule):
     class TestModel(LightningModule):
         def __init__(self):
             super().__init__()
@@ -118,7 +118,7 @@ def test_trainer_predict_verify_config(tmpdir, datamodule):
         data = TestLightningDataModule(data)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir)
+    trainer = Trainer(default_root_dir=tmp_path)
     results = trainer.predict(model, data)
 
     assert len(results) == 2

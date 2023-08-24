@@ -35,10 +35,10 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
 
 
-def test_checkpoint_callbacks_are_last(tmpdir):
+def test_checkpoint_callbacks_are_last(tmp_path):
     """Test that checkpoint callbacks always get moved to the end of the list, with preserved order."""
-    checkpoint1 = ModelCheckpoint(tmpdir, monitor="foo")
-    checkpoint2 = ModelCheckpoint(tmpdir, monitor="bar")
+    checkpoint1 = ModelCheckpoint(tmp_path, monitor="foo")
+    checkpoint2 = ModelCheckpoint(tmp_path, monitor="bar")
     model_summary = ModelSummary()
     early_stopping = EarlyStopping(monitor="foo")
     lr_monitor = LearningRateMonitor()
@@ -71,7 +71,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     # with model-specific callbacks that substitute ones in Trainer
     model = LightningModule()
     model.configure_callbacks = lambda: [checkpoint1, early_stopping, model_summary, checkpoint2]
-    trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmpdir)])
+    trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmp_path)])
     trainer.strategy._lightning_module = model
     cb_connector = _CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
@@ -121,17 +121,17 @@ class StatefulCallback1(Callback):
         return {"content1": self._unique}
 
 
-def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
+def test_all_callback_states_saved_before_checkpoint_callback(tmp_path):
     """Test that all callback states get saved even if the ModelCheckpoint is not given as last and when there are
     multiple callbacks of the same type."""
 
     callback0 = StatefulCallback0()
     callback1 = StatefulCallback1(unique="one")
     callback2 = StatefulCallback1(unique="two", other=2)
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename="all_states")
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="all_states")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_steps=1,
         limit_val_batches=1,
         callbacks=[
@@ -145,7 +145,7 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     )
     trainer.fit(model)
 
-    ckpt = torch.load(str(tmpdir / "all_states.ckpt"))
+    ckpt = torch.load(str(tmp_path / "all_states.ckpt"))
     state0 = ckpt["callbacks"]["StatefulCallback0"]
     state1 = ckpt["callbacks"]["StatefulCallback1{'unique': 'one'}"]
     state2 = ckpt["callbacks"]["StatefulCallback1{'unique': 'two'}"]

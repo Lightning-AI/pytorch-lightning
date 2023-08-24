@@ -28,7 +28,7 @@ def test_initialize_state():
     "extra_params",
     [pytest.param({"fast_dev_run": True}, id="Fast-Run"), pytest.param({"max_steps": 1}, id="Single-Step")],
 )
-def test_trainer_fn_while_running(tmpdir, extra_params):
+def test_trainer_fn_while_running(tmp_path, extra_params):
     class TestModel(BoringModel):
         def __init__(self, expected_fn, expected_stage):
             super().__init__()
@@ -56,7 +56,7 @@ def test_trainer_fn_while_running(tmpdir, extra_params):
             assert self.trainer.state.fn == self.expected_fn
             assert self.trainer.testing
 
-    trainer = Trainer(default_root_dir=tmpdir, **extra_params)
+    trainer = Trainer(default_root_dir=tmp_path, **extra_params)
 
     model = TestModel(TrainerFn.FITTING, RunningStage.TRAINING)
     trainer.fit(model)
@@ -75,7 +75,7 @@ def test_trainer_fn_while_running(tmpdir, extra_params):
     "extra_params",
     [pytest.param({"fast_dev_run": True}, id="Fast-Run"), pytest.param({"max_steps": 1}, id="Single-Step")],
 )
-def test_interrupt_state_on_keyboard_interrupt(tmpdir, extra_params):
+def test_interrupt_state_on_keyboard_interrupt(tmp_path, extra_params):
     """Tests that state is set to INTERRUPTED on KeyboardInterrupt."""
     model = BoringModel()
 
@@ -83,7 +83,7 @@ def test_interrupt_state_on_keyboard_interrupt(tmpdir, extra_params):
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
             raise KeyboardInterrupt
 
-    trainer = Trainer(callbacks=[InterruptCallback()], default_root_dir=tmpdir, **extra_params)
+    trainer = Trainer(callbacks=[InterruptCallback()], default_root_dir=tmp_path, **extra_params)
 
     trainer.fit(model)
     assert trainer.interrupted

@@ -23,7 +23,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 
 
-def test_callbacks_configured_in_model(tmpdir):
+def test_callbacks_configured_in_model(tmp_path):
     """Test the callback system with callbacks added through the model hook."""
     model_callback_mock = Mock(spec=Callback, model=Callback())
     trainer_callback_mock = Mock(spec=Callback, model=Callback())
@@ -34,7 +34,7 @@ def test_callbacks_configured_in_model(tmpdir):
 
     model = TestModel()
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "enable_checkpointing": False,
         "fast_dev_run": True,
         "enable_progress_bar": False,
@@ -74,7 +74,7 @@ def test_callbacks_configured_in_model(tmpdir):
         assert_expected_calls(trainer, model_callback_mock, trainer_callback_mock)
 
 
-def test_configure_callbacks_hook_multiple_calls(tmpdir):
+def test_configure_callbacks_hook_multiple_calls(tmp_path):
     """Test that subsequent calls to `configure_callbacks` do not change the callbacks list."""
     model_callback_mock = Mock(spec=Callback, model=Callback())
 
@@ -83,7 +83,7 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
             return model_callback_mock
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, enable_checkpointing=False)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True, enable_checkpointing=False)
 
     callbacks_before_fit = trainer.callbacks.copy()
     assert callbacks_before_fit
@@ -119,28 +119,28 @@ class OldStatefulCallback(Callback):
         self.state = state_dict["state"]
 
 
-def test_resume_callback_state_saved_by_type_stateful(tmpdir):
+def test_resume_callback_state_saved_by_type_stateful(tmp_path):
     """Test that a legacy checkpoint that didn't use a state key before can still be loaded, using
     state_dict/load_state_dict."""
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=1, callbacks=[callback])
     trainer.fit(model)
     ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
     assert ckpt_path.exists()
 
     callback = OldStatefulCallback(state=222)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=2, callbacks=[callback])
     trainer.fit(model, ckpt_path=ckpt_path)
     assert callback.state == 111
 
 
-def test_resume_incomplete_callbacks_list_warning(tmpdir):
+def test_resume_incomplete_callbacks_list_warning(tmp_path):
     model = BoringModel()
     callback0 = ModelCheckpoint(monitor="epoch")
     callback1 = ModelCheckpoint(monitor="global_step")
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_steps=1,
         callbacks=[callback0, callback1],
     )
@@ -148,7 +148,7 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
     ckpt_path = trainer.checkpoint_callback.best_model_path
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_steps=1,
         callbacks=[callback1],  # one callback is missing!
     )
@@ -156,7 +156,7 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
         trainer.fit(model, ckpt_path=ckpt_path)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_steps=1,
         callbacks=[callback1, callback0],  # all callbacks here, order switched
     )

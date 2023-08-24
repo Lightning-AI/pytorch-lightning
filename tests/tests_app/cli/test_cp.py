@@ -30,7 +30,7 @@ from lightning.app.cli.commands.cd import _CD_FILE, cd
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
-def test_cp_local_to_remote(tmpdir, monkeypatch):
+def test_cp_local_to_remote(tmp_path, monkeypatch):
     error_and_exit = MagicMock()
     monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
 
@@ -54,24 +54,24 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
     monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
 
     assert cd("/", verify=False) == "/"
-    cp.cp(str(tmpdir), "r:.")
+    cp.cp(str(tmp_path), "r:.")
     assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't allowed yet."
 
     assert cd("/project-0/app-name-0", verify=False) == "/project-0/app-name-0"
-    with open(f"{tmpdir}/a.txt", "w") as f:
+    with open(f"{tmp_path}/a.txt", "w") as f:
         f.write("hello world !")
 
     file_uploader = MagicMock()
     monkeypatch.setattr(cp, "FileUploader", file_uploader)
 
-    cp.cp(str(tmpdir), "r:.")
-    assert file_uploader._mock_call_args[1]["name"] == f"{tmpdir}/a.txt"
+    cp.cp(str(tmp_path), "r:.")
+    assert file_uploader._mock_call_args[1]["name"] == f"{tmp_path}/a.txt"
 
     os.remove(_CD_FILE)
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
-def test_cp_cloud_to_local(tmpdir, monkeypatch):
+def test_cp_cloud_to_local(tmp_path, monkeypatch):
     error_and_exit = MagicMock()
     monkeypatch.setattr(cp, "_error_and_exit", error_and_exit)
 
@@ -108,7 +108,7 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
     monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
 
     assert cd("/", verify=False) == "/"
-    cp.cp(str(tmpdir), "r:.")
+    cp.cp(str(tmp_path), "r:.")
     assert error_and_exit._mock_call_args_list[0].args[0] == "Uploading files at the project level isn't allowed yet."
 
     assert cd("/project-0/app-name-0", verify=False) == "/project-0/app-name-0"
@@ -116,11 +116,11 @@ def test_cp_cloud_to_local(tmpdir, monkeypatch):
     download_file = MagicMock()
     monkeypatch.setattr(cp, "_download_file", download_file)
 
-    cp.cp("r:.", str(tmpdir))
+    cp.cp("r:.", str(tmp_path))
 
     assert len(download_file.call_args_list) == 4
     for i, call in enumerate(download_file.call_args_list):
-        assert call.args[0] == PosixPath(tmpdir / artifacts[i].filename)
+        assert call.args[0] == PosixPath(tmp_path / artifacts[i].filename)
         assert call.args[1] == artifacts[i].url
 
     # cleanup

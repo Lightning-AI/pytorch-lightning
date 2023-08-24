@@ -75,12 +75,12 @@ class BarrierModel(BoringModel):
 
 @RunIf(min_cuda_gpus=4, standalone=True)
 @mock.patch("torch.distributed.barrier")
-def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
+def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmp_path):
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
     model = BoringModel()
     gpus = [1, 3]
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_steps=1,
         accelerator="gpu",
         devices=gpus,
@@ -93,7 +93,7 @@ def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
 
 
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
-def test_incorrect_ddp_script_spawning(tmpdir):
+def test_incorrect_ddp_script_spawning(tmp_path):
     """Test an error message when user accidentally instructs Lightning to spawn children processes on rank > 0."""
 
     class WronglyImplementedEnvironment(LightningEnvironment):
@@ -104,7 +104,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         strategy="ddp",
         accelerator="cpu",
         devices=2,
@@ -267,15 +267,15 @@ class BoringZeroRedundancyOptimizerModel(BoringModel):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True)
 @pytest.mark.parametrize("strategy", [pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"])
-def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
+def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmp_path, strategy):
     """Test to ensure that checkpoint is saved correctly when using zero redundancy optimizer."""
     model = BoringZeroRedundancyOptimizerModel()
     trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
 
     trainer.fit(model)
 
-    checkpoint_path = os.path.join(tmpdir, "model.pt")
-    # need to broadcast because tmpdir is different on each process
+    checkpoint_path = os.path.join(tmp_path, "model.pt")
+    # need to broadcast because tmp_path is different on each process
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)

@@ -30,11 +30,11 @@ else:
 
 
 @pytest.mark.parametrize("accumulate_grad_batches", [1, 2, 3])
-def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batches):
+def test_trainer_accumulate_grad_batches_zero_grad(tmp_path, accumulate_grad_batches):
     with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
         model = BoringModel()
         trainer = Trainer(
-            default_root_dir=tmpdir,
+            default_root_dir=tmp_path,
             limit_train_batches=20,
             limit_val_batches=1,
             max_epochs=1,
@@ -53,11 +53,11 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
         ({0: 2, 2: 1}, 5 + 5 + 10 + 10),
     ],
 )
-def test_trainer_accumulate_grad_batches_with_callback(tmpdir, accumulate_grad_batches, expected_call_count):
+def test_trainer_accumulate_grad_batches_with_callback(tmp_path, accumulate_grad_batches, expected_call_count):
     with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
         model = BoringModel()
         trainer = Trainer(
-            default_root_dir=tmpdir,
+            default_root_dir=tmp_path,
             limit_train_batches=10,
             limit_val_batches=1,
             max_epochs=4,

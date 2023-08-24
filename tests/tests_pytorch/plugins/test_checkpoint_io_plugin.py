@@ -38,16 +38,16 @@ class CustomCheckpointIO(CheckpointIO):
         os.remove(path)
 
 
-def test_checkpoint_plugin_called(tmpdir):
+def test_checkpoint_plugin_called(tmp_path):
     """Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when saving/loading."""
     checkpoint_plugin = CustomCheckpointIO()
     checkpoint_plugin = MagicMock(wraps=checkpoint_plugin, spec=CustomCheckpointIO)
 
-    ck = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    ck = ModelCheckpoint(dirpath=tmp_path, save_last=True)
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         strategy=SingleDeviceStrategy("cpu", checkpoint_io=checkpoint_plugin),
         callbacks=ck,
         max_epochs=2,
@@ -57,22 +57,22 @@ def test_checkpoint_plugin_called(tmpdir):
     )
     trainer.fit(model)
 
-    ckpt_files = {fn.name for fn in Path(tmpdir).glob("*.ckpt")}
+    ckpt_files = {fn.name for fn in Path(tmp_path).glob("*.ckpt")}
     assert ckpt_files == {"epoch=1-step=2.ckpt", "last.ckpt"}
-    assert trainer.checkpoint_callback.best_model_path == tmpdir / "epoch=1-step=2.ckpt"
-    assert trainer.checkpoint_callback.last_model_path == tmpdir / "last.ckpt"
+    assert trainer.checkpoint_callback.best_model_path == tmp_path / "epoch=1-step=2.ckpt"
+    assert trainer.checkpoint_callback.last_model_path == tmp_path / "last.ckpt"
     assert checkpoint_plugin.save_checkpoint.call_count == 4
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
 
     trainer.test(model, ckpt_path=ck.last_model_path)
-    checkpoint_plugin.load_checkpoint.assert_called_with(tmpdir / "last.ckpt")
+    checkpoint_plugin.load_checkpoint.assert_called_with(tmp_path / "last.ckpt")
 
     checkpoint_plugin.reset_mock()
-    ck = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    ck = ModelCheckpoint(dirpath=tmp_path, save_last=True)
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         strategy=SingleDeviceStrategy("cpu"),
         plugins=[checkpoint_plugin],
         callbacks=ck,
@@ -83,19 +83,19 @@ def test_checkpoint_plugin_called(tmpdir):
     )
     trainer.fit(model)
 
-    ckpt_files = {fn.name for fn in Path(tmpdir).glob("*.ckpt")}
+    ckpt_files = {fn.name for fn in Path(tmp_path).glob("*.ckpt")}
     assert ckpt_files == {"epoch=1-step=2.ckpt", "last.ckpt", "epoch=1-step=2-v1.ckpt", "last-v1.ckpt"}
-    assert trainer.checkpoint_callback.best_model_path == tmpdir / "epoch=1-step=2-v1.ckpt"
-    assert trainer.checkpoint_callback.last_model_path == tmpdir / "last-v1.ckpt"
+    assert trainer.checkpoint_callback.best_model_path == tmp_path / "epoch=1-step=2-v1.ckpt"
+    assert trainer.checkpoint_callback.last_model_path == tmp_path / "last-v1.ckpt"
     assert checkpoint_plugin.save_checkpoint.call_count == 4
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
 
     trainer.test(model, ckpt_path=ck.last_model_path)
     checkpoint_plugin.load_checkpoint.assert_called_once()
-    checkpoint_plugin.load_checkpoint.assert_called_with(tmpdir / "last-v1.ckpt")
+    checkpoint_plugin.load_checkpoint.assert_called_with(tmp_path / "last-v1.ckpt")
 
 
-def test_async_checkpoint_plugin(tmpdir):
+def test_async_checkpoint_plugin(tmp_path):
     """Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when async saving and
     loading."""
 
@@ -110,11 +110,11 @@ def test_async_checkpoint_plugin(tmpdir):
             base_ckpt_io.save_checkpoint = Mock(wraps=base_ckpt_io.save_checkpoint)
             base_ckpt_io.remove_checkpoint = Mock(wraps=base_ckpt_io.remove_checkpoint)
 
-    ck = ModelCheckpoint(dirpath=tmpdir, save_top_k=2, monitor="step", mode="max")
+    ck = ModelCheckpoint(dirpath=tmp_path, save_top_k=2, monitor="step", mode="max")
 
     model = CustomBoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         plugins=[checkpoint_plugin],
         callbacks=ck,
         max_epochs=3,

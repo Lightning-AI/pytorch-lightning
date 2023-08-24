@@ -87,8 +87,8 @@ def test_migrate_loop_current_epoch_to_progress_tracking():
 
 
 @pytest.mark.parametrize("model_class", [BoringModel, ManualOptimBoringModel])
-def test_migrate_loop_batches_that_stepped(tmpdir, model_class):
-    trainer = Trainer(max_steps=1, limit_val_batches=0, default_root_dir=tmpdir)
+def test_migrate_loop_batches_that_stepped(tmp_path, model_class):
+    trainer = Trainer(max_steps=1, limit_val_batches=0, default_root_dir=tmp_path)
     model = model_class()
     trainer.fit(model)
     ckpt_path = trainer.checkpoint_callback.best_model_path
@@ -104,7 +104,7 @@ def test_migrate_loop_batches_that_stepped(tmpdir, model_class):
             assert self.trainer.global_step == 1
             assert self.trainer.fit_loop.epoch_loop._batches_that_stepped == 1
 
-    trainer = Trainer(max_steps=2, limit_val_batches=0, default_root_dir=tmpdir)
+    trainer = Trainer(max_steps=2, limit_val_batches=0, default_root_dir=tmp_path)
     model = TestModel()
     trainer.fit(model, ckpt_path=ckpt_path)
     new_loop = trainer.fit_loop.epoch_loop

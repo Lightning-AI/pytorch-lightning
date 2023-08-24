@@ -57,9 +57,9 @@ def test_valid_unpublished_app_name():
 
 
 @pytest.mark.skip(reason="need to figure out how to authorize git clone from the private repo")
-def test_app_install(tmpdir, monkeypatch):
+def test_app_install(tmp_path, monkeypatch):
     """Tests unpublished app install."""
-    monkeypatch.chdir(tmpdir)
+    monkeypatch.chdir(tmp_path)
 
     real_app = "https://github.com/Lightning-AI/install-app"
     test_app_pip_name = "install-app"
@@ -166,8 +166,8 @@ def test_prompt_actions():
 
 
 @mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
-def test_version_arg_component(tmpdir, monkeypatch):
-    monkeypatch.chdir(tmpdir)
+def test_version_arg_component(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     runner = CliRunner()
 
     # Version does not exist
@@ -189,7 +189,7 @@ def test_version_arg_component(tmpdir, monkeypatch):
 
 @mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 @mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
-def test_version_arg_app(tmpdir):
+def test_version_arg_app(tmp_path):
     # Version does not exist
     app_name = "lightning/invideo"
     version_arg = "NOT-EXIST"
@@ -208,7 +208,7 @@ def test_version_arg_app(tmpdir):
 @mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 @mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
 @mock.patch("lightning.app.cli.cmd_install._show_install_app_prompt")
-def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
+def test_install_resolve_latest_version(mock_show_install_app_prompt, tmp_path):
     app_name = "lightning/invideo"
     runner = CliRunner()
     with mock.patch("lightning.app.cli.cmd_install.requests.get") as get_api_mock:
@@ -264,8 +264,8 @@ def test_proper_url_parsing():
 
 
 @_RunIf(skip_windows=True)
-def test_install_app_shows_error(tmpdir):
-    app_folder_dir = Path(tmpdir / "some_random_directory").absolute()
+def test_install_app_shows_error(tmp_path):
+    app_folder_dir = Path(tmp_path / "some_random_directory").absolute()
     app_folder_dir.mkdir()
 
     with pytest.raises(SystemExit, match=f"Folder {str(app_folder_dir)} exists, please delete it and try again."):
@@ -274,15 +274,15 @@ def test_install_app_shows_error(tmpdir):
         )
 
 
-# def test_env_creation(tmpdir):
+# def test_env_creation(tmp_path):
 # cwd = os.getcwd()
-# os.chdir(tmpdir)
+# os.chdir(tmp_path)
 
 # # install app
-# cmd_install.app("lightning/install-app", True, cwd=tmpdir)
+# cmd_install.app("lightning/install-app", True, cwd=tmp_path)
 
 # # assert app folder is installed with venv
-# assert "python" in set(os.listdir(os.path.join(tmpdir, "install-app/bin")))
+# assert "python" in set(os.listdir(os.path.join(tmp_path, "install-app/bin")))
 
 # # assert the deps are in the env
 # env_output = subprocess.check_output("source bin/activate && pip freeze", shell=True)
@@ -292,19 +292,19 @@ def test_install_app_shows_error(tmpdir):
 # assert env_output != non_env_output
 
 # # assert the reqs are in the env created and NOT in the non env
-# reqs = open(os.path.join(tmpdir, "install-app/requirements.txt")).read()
+# reqs = open(os.path.join(tmp_path, "install-app/requirements.txt")).read()
 # assert reqs in str(env_output) and reqs not in str(non_env_output)
 
 # # setup.py installs numpy
 # assert "numpy" in str(env_output)
 
 # # run the python script to make sure the file works (in a folder)
-# app_file = os.path.join(tmpdir, "install-app/src/app.py")
+# app_file = os.path.join(tmp_path, "install-app/src/app.py")
 # app_output = subprocess.check_output(f"source bin/activate && python {app_file}", shell=True)
 # assert "b'printed a\\ndeps loaded\\n'" == str(app_output)
 
 # # run the python script to make sure the file works (in root)
-# app_file = os.path.join(tmpdir, "install-app/app_b.py")
+# app_file = os.path.join(tmp_path, "install-app/app_b.py")
 # app_output = subprocess.check_output(f"source bin/activate && python {app_file}", shell=True)
 # assert "b'printed a\\n'" == str(app_output)
 
@@ -363,8 +363,8 @@ def test_private_component_registry():
         ),
     ],
 )
-def test_install_app_process(subprocess_mock, source_url, git_url, git_sha, tmpdir):
-    app_folder_dir = Path(tmpdir / "some_random_directory").absolute()
+def test_install_app_process(subprocess_mock, source_url, git_url, git_sha, tmp_path):
+    app_folder_dir = Path(tmp_path / "some_random_directory").absolute()
     app_folder_dir.mkdir()
 
     cmd_install._install_app_from_source(

@@ -123,17 +123,17 @@ def test_torchscript_properties(modelclass):
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
-def test_torchscript_save_load(tmpdir, modelclass):
+def test_torchscript_save_load(tmp_path, modelclass):
     """Test that scripted LightningModule is correctly saved and can be loaded."""
     model = modelclass()
-    output_file = str(tmpdir / "model.pt")
+    output_file = str(tmp_path / "model.pt")
     script = model.to_torchscript(file_path=output_file)
     loaded_script = torch.jit.load(output_file)
     assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
-def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
+def test_torchscript_save_load_custom_filesystem(tmp_path, modelclass):
     """Test that scripted LightningModule is correctly saved and can be loaded with custom filesystems."""
     _DUMMY_PRFEIX = "dummy"
     _PREFIX_SEPARATOR = "://"
@@ -144,7 +144,7 @@ def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
     fsspec.register_implementation(_DUMMY_PRFEIX, DummyFileSystem, clobber=True)
 
     model = modelclass()
-    output_file = os.path.join(_DUMMY_PRFEIX, _PREFIX_SEPARATOR, tmpdir, "model.pt")
+    output_file = os.path.join(_DUMMY_PRFEIX, _PREFIX_SEPARATOR, tmp_path, "model.pt")
     script = model.to_torchscript(file_path=output_file)
 
     fs = get_filesystem(output_file)

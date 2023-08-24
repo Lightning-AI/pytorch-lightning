@@ -3,8 +3,8 @@ from pathlib import Path
 from lightning.app.utilities.dependency_caching import get_hash
 
 
-def test_get_hash(tmpdir):
-    req_path = tmpdir / "requirements.txt"
+def test_get_hash(tmp_path):
+    req_path = tmp_path / "requirements.txt"
     Path(req_path).touch()
 
     # empty requirements file

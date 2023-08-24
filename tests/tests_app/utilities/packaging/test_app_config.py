@@ -10,23 +10,23 @@ def _make_empty_config_file(folder):
     return file
 
 
-def test_get_config_file(tmpdir):
-    _ = _make_empty_config_file(tmpdir)
-    config_file1 = _make_empty_config_file(tmpdir)
+def test_get_config_file(tmp_path):
+    _ = _make_empty_config_file(tmp_path)
+    config_file1 = _make_empty_config_file(tmp_path)
 
-    assert _get_config_file(tmpdir) == pathlib.Path(tmpdir, ".lightning")
-    assert _get_config_file(config_file1) == pathlib.Path(tmpdir, ".lightning")
+    assert _get_config_file(tmp_path) == pathlib.Path(tmp_path, ".lightning")
+    assert _get_config_file(config_file1) == pathlib.Path(tmp_path, ".lightning")
 
 
-def test_app_config_save_load(tmpdir):
+def test_app_config_save_load(tmp_path):
     config = AppConfig("my_app")
-    config.save_to_file(tmpdir / ".lightning")
-    loaded_config = AppConfig.load_from_file(tmpdir / ".lightning")
+    config.save_to_file(tmp_path / ".lightning")
+    loaded_config = AppConfig.load_from_file(tmp_path / ".lightning")
     assert config == loaded_config
 
     config = AppConfig("my_app2")
-    config.save_to_dir(tmpdir)
-    loaded_config = AppConfig.load_from_dir(tmpdir)
+    config.save_to_dir(tmp_path)
+    loaded_config = AppConfig.load_from_dir(tmp_path)
     assert config == loaded_config
 
 

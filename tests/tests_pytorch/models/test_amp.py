@@ -57,10 +57,10 @@ class AMPTestModel(BoringModel):
         pytest.param("ddp_spawn", "bf16-mixed", 2, marks=RunIf(skip_windows=True)),
     ],
 )
-def test_amp_cpus(tmpdir, strategy, precision, devices):
+def test_amp_cpus(tmp_path, strategy, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         accelerator="cpu",
         devices=devices,
         strategy=strategy,
@@ -85,10 +85,10 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
 @pytest.mark.parametrize(
     "devices", [pytest.param(1, marks=RunIf(min_cuda_gpus=1)), pytest.param(2, marks=RunIf(min_cuda_gpus=2))]
 )
-def test_amp_gpus(tmpdir, precision, devices):
+def test_amp_gpus(tmp_path, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         accelerator="gpu",
         devices=devices,
@@ -115,20 +115,20 @@ def test_amp_gpus(tmpdir, precision, devices):
         "SLURM_PROCID": "0",
     },
 )
-def test_amp_gpu_ddp_slurm_managed(tmpdir):
+def test_amp_gpu_ddp_slurm_managed(tmp_path):
     """Make sure DDP + AMP work."""
     # simulate setting slurm flags
     model = AMPTestModel()
 
     # exp file to get meta
-    logger = tutils.get_default_logger(tmpdir)
+    logger = tutils.get_default_logger(tmp_path)
 
     # exp file to get weights
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         accelerator="gpu",
         devices=[0],
@@ -143,11 +143,11 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
 
 @pytest.mark.parametrize("clip_val", [0, 10])
 @mock.patch("torch.nn.utils.clip_grad_norm_")
-def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
+def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmp_path):
     """Ensure that clip gradients is only called if the value is greater than 0."""
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         enable_progress_bar=False,
         max_epochs=1,
         devices=1,

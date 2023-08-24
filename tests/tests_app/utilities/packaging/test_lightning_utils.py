@@ -16,7 +16,7 @@ from lightning.app.utilities.packaging.lightning_utils import (
 
 
 @pytest.mark.skipif(not module_available("lightning"), reason="TODO: should work for lightning.app too")
-def test_prepare_lightning_wheels_and_requirement(tmpdir):
+def test_prepare_lightning_wheels_and_requirement(tmp_path):
     """This test ensures the lightning source gets packaged inside the lightning repo."""
     package_name = "lightning"
     if not get_dist_path_if_editable_install(package_name):
@@ -26,12 +26,12 @@ def test_prepare_lightning_wheels_and_requirement(tmpdir):
     if git_dir_name != package_name:
         pytest.skip("Needs to be run from within the repo")
 
-    cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir, package_name=package_name)
-    assert len(os.listdir(tmpdir)) == 1
-    assert len(glob.glob(str(tmpdir / "lightning-*.tar.gz"))) == 1
+    cleanup_handle = _prepare_lightning_wheels_and_requirements(tmp_path, package_name=package_name)
+    assert len(os.listdir(tmp_path)) == 1
+    assert len(glob.glob(str(tmp_path / "lightning-*.tar.gz"))) == 1
 
     cleanup_handle()
-    assert os.listdir(tmpdir) == []
+    assert os.listdir(tmp_path) == []
 
 
 def _mocked_get_dist_path_if_editable_install(*args, **kwargs):
@@ -42,10 +42,10 @@ def _mocked_get_dist_path_if_editable_install(*args, **kwargs):
     "lightning.app.utilities.packaging.lightning_utils.get_dist_path_if_editable_install",
     new=_mocked_get_dist_path_if_editable_install,
 )
-def test_prepare_lightning_wheels_and_requirement_for_packages_installed_in_editable_mode(tmpdir):
+def test_prepare_lightning_wheels_and_requirement_for_packages_installed_in_editable_mode(tmp_path):
     """This test ensures the source does not get packaged inside the lightning repo if not installed in editable
     mode."""
-    cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir)
+    cleanup_handle = _prepare_lightning_wheels_and_requirements(tmp_path)
     assert cleanup_handle is None
 
 

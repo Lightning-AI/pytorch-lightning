@@ -142,22 +142,22 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
         DoublePrecisionBoringModelComplexBuffer,
     ],
 )
-def test_double_precision(tmpdir, boring_model):
+def test_double_precision(tmp_path, boring_model):
     model = boring_model()
 
-    trainer = Trainer(max_epochs=2, default_root_dir=tmpdir, fast_dev_run=2, precision="64-true", log_every_n_steps=1)
+    trainer = Trainer(max_epochs=2, default_root_dir=tmp_path, fast_dev_run=2, precision="64-true", log_every_n_steps=1)
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model)
 
 
 @RunIf(min_cuda_gpus=2)
-def test_double_precision_ddp(tmpdir):
+def test_double_precision_ddp(tmp_path):
     model = DoublePrecisionBoringModel()
 
     trainer = Trainer(
         max_epochs=1,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,

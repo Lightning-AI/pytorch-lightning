@@ -147,14 +147,14 @@ def test_work_database_restart():
                 assert len(self._client.select_all()) == 1
                 self.stop()
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        app = LightningApp(Flow(db_root=tmpdir))
+    with tempfile.TemporaryDirectory() as tmp_path:
+        app = LightningApp(Flow(db_root=tmp_path))
         MultiProcessRuntime(app).dispatch()
 
         # Note: Waiting for SIGTERM signal to be handled
         sleep(2)
 
-        app = LightningApp(Flow(db_root=tmpdir, restart=True))
+        app = LightningApp(Flow(db_root=tmp_path, restart=True))
         MultiProcessRuntime(app).dispatch()
 
         # Note: Waiting for SIGTERM signal to be handled
@@ -196,8 +196,8 @@ def test_work_database_periodic_store():
                 self.stop()
 
     try:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            app = LightningApp(Flow(tmpdir))
+        with tempfile.TemporaryDirectory() as tmp_path:
+            app = LightningApp(Flow(tmp_path))
             MultiProcessRuntime(app).dispatch()
     except Exception:
         print(traceback.print_exc())

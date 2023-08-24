@@ -99,7 +99,7 @@ class SimpleFlow(LightningFlow):
         self.work_b.run()
 
 
-def test_simple_app(tmpdir):
+def test_simple_app(tmp_path):
     comp = SimpleFlow()
     app = LightningApp(comp, log_level="debug")
     assert app.root == comp
@@ -350,7 +350,7 @@ class A4(LightningFlow):
 
 
 @pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
-def test_setattr_multiprocessing(runtime_cls, tmpdir):
+def test_setattr_multiprocessing(runtime_cls, tmp_path):
     app = LightningApp(A4())
     runtime_cls(app, start_server=False).dispatch()
     assert app.root.work.var_a == 1
@@ -378,7 +378,7 @@ class SimpleApp2(LightningApp):
         return True
 
 
-def test_app_restarting_move_to_blocking(tmpdir):
+def test_app_restarting_move_to_blocking(tmp_path):
     """Validates sending restarting move the app to blocking again."""
     app = SimpleApp2(CounterFlow(), log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
@@ -616,7 +616,7 @@ class WaitForAllFlow(LightningFlow):
 @pytest.mark.skip(reason="flaky test which never terminates")
 @pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 @pytest.mark.parametrize("use_same_args", [False, True])
-def test_state_wait_for_all_all_works(tmpdir, runtime_cls, use_same_args):
+def test_state_wait_for_all_all_works(tmp_path, runtime_cls, use_same_args):
     app = LightningApp(WaitForAllFlow(use_same_args))
     runtime_cls(app, start_server=False).dispatch()
 
@@ -671,7 +671,7 @@ def test_lightning_app_checkpointing_with_nested_flows():
     assert app.root.flow.flow.flow.flow.flow.flow.flow.flow.flow.flow.work.counter == 5
 
 
-def test_load_state_dict_from_checkpoint_dir(tmpdir):
+def test_load_state_dict_from_checkpoint_dir(tmp_path):
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
 

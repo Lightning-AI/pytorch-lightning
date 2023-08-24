@@ -127,34 +127,34 @@ def test_comet_logger_manual_experiment_key(comet):
 
 @patch("lightning.pytorch.loggers.comet.CometOfflineExperiment")
 @patch("lightning.pytorch.loggers.comet.comet_ml")
-def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch):
+def test_comet_logger_dirs_creation(comet, comet_experiment, tmp_path, monkeypatch):
     """Test that the logger creates the folders and files in the right place."""
     _patch_comet_atexit(monkeypatch)
 
     comet.config.get_api_key.return_value = None
     comet.generate_guid.return_value = "4321"
 
-    logger = CometLogger(project_name="test", save_dir=tmpdir)
-    assert not os.listdir(tmpdir)
+    logger = CometLogger(project_name="test", save_dir=tmp_path)
+    assert not os.listdir(tmp_path)
     assert logger.mode == "offline"
-    assert logger.save_dir == tmpdir
+    assert logger.save_dir == tmp_path
     assert logger.name == "test"
     assert logger.version == "4321"
 
     _ = logger.experiment
 
-    comet_experiment.assert_called_once_with(offline_directory=tmpdir, project_name="test")
+    comet_experiment.assert_called_once_with(offline_directory=tmp_path, project_name="test")
 
     # mock return values of experiment
     logger.experiment.id = "1"
     logger.experiment.project_name = "test"
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(default_root_dir=tmp_path, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 
-    assert trainer.checkpoint_callback.dirpath == (tmpdir / "test" / "1" / "checkpoints")
+    assert trainer.checkpoint_callback.dirpath == (tmp_path / "test" / "1" / "checkpoints")
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=3.ckpt"}
     assert trainer.log_dir == logger.save_dir
 
@@ -211,20 +211,20 @@ def test_comet_version_without_experiment(comet):
 
 @patch("lightning.pytorch.loggers.comet.CometExperiment")
 @patch("lightning.pytorch.loggers.comet.comet_ml")
-def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
+def test_comet_epoch_logging(comet, comet_experiment, tmp_path, monkeypatch):
     """Test that CometLogger removes the epoch key from the metrics dict and passes it as argument."""
     _patch_comet_atexit(monkeypatch)
-    logger = CometLogger(project_name="test", save_dir=tmpdir)
+    logger = CometLogger(project_name="test", save_dir=tmp_path)
     logger.log_metrics({"test": 1, "epoch": 1}, step=123)
     logger.experiment.log_metrics.assert_called_once_with({"test": 1}, epoch=1, step=123)
 
 
 @patch("lightning.pytorch.loggers.comet.CometExperiment")
 @patch("lightning.pytorch.loggers.comet.comet_ml")
-def test_comet_metrics_safe(comet, tmpdir, monkeypatch):
+def test_comet_metrics_safe(comet, tmp_path, monkeypatch):
     """Test that CometLogger.log_metrics doesn't do inplace modification of metrics."""
     _patch_comet_atexit(monkeypatch)
-    logger = CometLogger(project_name="test", save_dir=tmpdir)
+    logger = CometLogger(project_name="test", save_dir=tmp_path)
     metrics = {"tensor": tensor([[1.0, 0.0], [0.0, 1.0]], requires_grad=True), "epoch": 1}
     logger.log_metrics(metrics)
     assert metrics["tensor"].requires_grad

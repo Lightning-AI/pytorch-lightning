@@ -14,17 +14,17 @@ from lightning.app.utilities.component import _set_flow_context
 
 
 class SyncWorkLITDriveA(LightningWork):
-    def __init__(self, tmpdir):
+    def __init__(self, tmp_path):
         super().__init__()
-        self.tmpdir = tmpdir
+        self.tmp_path = tmp_path
 
     def run(self, drive: Drive):
-        with open(f"{self.tmpdir}/a.txt", "w") as f:
+        with open(f"{self.tmp_path}/a.txt", "w") as f:
             f.write("example")
 
-        drive.root_folder = self.tmpdir
+        drive.root_folder = self.tmp_path
         drive.put("a.txt")
-        os.remove(f"{self.tmpdir}/a.txt")
+        os.remove(f"{self.tmp_path}/a.txt")
 
 
 class SyncWorkLITDriveB(LightningWork):
@@ -35,10 +35,10 @@ class SyncWorkLITDriveB(LightningWork):
 
 
 class SyncFlowLITDrives(LightningFlow):
-    def __init__(self, tmpdir):
+    def __init__(self, tmp_path):
         super().__init__()
         self.log_dir = Drive("lit://log_dir")
-        self.work_a = SyncWorkLITDriveA(str(tmpdir))
+        self.work_a = SyncWorkLITDriveA(str(tmp_path))
         self.work_b = SyncWorkLITDriveB()
 
     def run(self):
@@ -47,10 +47,10 @@ class SyncFlowLITDrives(LightningFlow):
         self.stop()
 
 
-def test_synchronization_lit_drive(tmpdir):
+def test_synchronization_lit_drive(tmp_path):
     if os.path.exists("a.txt"):
         os.remove("a.txt")
-    app = LightningApp(SyncFlowLITDrives(tmpdir))
+    app = LightningApp(SyncFlowLITDrives(tmp_path))
     MultiProcessRuntime(app, start_server=False).dispatch()
     if os.path.exists("a.txt"):
         os.remove("a.txt")

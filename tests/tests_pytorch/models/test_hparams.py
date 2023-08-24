@@ -90,7 +90,7 @@ class SaveHparamsDecoratedDataModule(BoringDataModule):
 # -------------------------
 # STANDARD TESTS
 # -------------------------
-def _run_standard_hparams_test(tmpdir, model, cls, datamodule=None, try_overwrite=False):
+def _run_standard_hparams_test(tmp_path, model, cls, datamodule=None, try_overwrite=False):
     """Tests for the existence of an arg 'test_arg=14'."""
     obj = datamodule if issubclass(cls, LightningDataModule) else model
 
@@ -99,7 +99,7 @@ def _run_standard_hparams_test(tmpdir, model, cls, datamodule=None, try_overwrit
     assert obj.hparams.test_arg == 14
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=2)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, overfit_batches=2)
     trainer.fit(model, datamodule=datamodule if issubclass(cls, LightningDataModule) else None)
 
     # make sure the raw checkpoint saved the properties
@@ -125,7 +125,7 @@ def _run_standard_hparams_test(tmpdir, model, cls, datamodule=None, try_overwrit
 @pytest.mark.parametrize(
     "cls", [SaveHparamsModel, SaveHparamsDecoratedModel, SaveHparamsDataModule, SaveHparamsDecoratedDataModule]
 )
-def test_namespace_hparams(tmpdir, cls):
+def test_namespace_hparams(tmp_path, cls):
     hparams = Namespace(test_arg=14)
 
     if issubclass(cls, LightningDataModule):
@@ -136,13 +136,13 @@ def test_namespace_hparams(tmpdir, cls):
         datamodule = None
 
     # run standard test suite
-    _run_standard_hparams_test(tmpdir, model, cls, datamodule=datamodule)
+    _run_standard_hparams_test(tmp_path, model, cls, datamodule=datamodule)
 
 
 @pytest.mark.parametrize(
     "cls", [SaveHparamsModel, SaveHparamsDecoratedModel, SaveHparamsDataModule, SaveHparamsDecoratedDataModule]
 )
-def test_dict_hparams(tmpdir, cls):
+def test_dict_hparams(tmp_path, cls):
     hparams = {"test_arg": 14}
     if issubclass(cls, LightningDataModule):
         model = BoringModel()
@@ -152,14 +152,14 @@ def test_dict_hparams(tmpdir, cls):
         datamodule = None
 
     # run standard test suite
-    _run_standard_hparams_test(tmpdir, model, cls, datamodule=datamodule)
+    _run_standard_hparams_test(tmp_path, model, cls, datamodule=datamodule)
 
 
 @RunIf(omegaconf=True)
 @pytest.mark.parametrize(
     "cls", [SaveHparamsModel, SaveHparamsDecoratedModel, SaveHparamsDataModule, SaveHparamsDecoratedDataModule]
 )
-def test_omega_conf_hparams(tmpdir, cls):
+def test_omega_conf_hparams(tmp_path, cls):
     conf = OmegaConf.create({"test_arg": 14, "mylist": [15.4, {"a": 1, "b": 2}]})
     if issubclass(cls, LightningDataModule):
         model = BoringModel()
@@ -171,7 +171,7 @@ def test_omega_conf_hparams(tmpdir, cls):
     assert isinstance(obj.hparams, Container)
 
     # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, cls, datamodule=datamodule)
+    raw_checkpoint_path = _run_standard_hparams_test(tmp_path, model, cls, datamodule=datamodule)
     obj2 = cls.load_from_checkpoint(raw_checkpoint_path)
     assert isinstance(obj2.hparams, Container)
 
@@ -180,7 +180,7 @@ def test_omega_conf_hparams(tmpdir, cls):
     assert obj2.hparams.mylist[0] == 15.4
 
 
-def test_explicit_args_hparams(tmpdir):
+def test_explicit_args_hparams(tmp_path):
     """Tests that a model can take implicit args and assign."""
 
     # define model
@@ -192,14 +192,14 @@ def test_explicit_args_hparams(tmpdir):
     model = LocalModel(test_arg=14, test_arg2=90)
 
     # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, LocalModel)
+    raw_checkpoint_path = _run_standard_hparams_test(tmp_path, model, LocalModel)
     model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=120)
 
     # config specific tests
     assert model.hparams.test_arg2 == 120
 
 
-def test_implicit_args_hparams(tmpdir):
+def test_implicit_args_hparams(tmp_path):
     """Tests that a model can take regular args and assign."""
 
     # define model
@@ -211,14 +211,14 @@ def test_implicit_args_hparams(tmpdir):
     model = LocalModel(test_arg=14, test_arg2=90)
 
     # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, LocalModel)
+    raw_checkpoint_path = _run_standard_hparams_test(tmp_path, model, LocalModel)
     model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=120)
 
     # config specific tests
     assert model.hparams.test_arg2 == 120
 
 
-def test_explicit_missing_args_hparams(tmpdir):
+def test_explicit_missing_args_hparams(tmp_path):
     """Tests that a model can take regular args and assign."""
 
     # define model
@@ -233,7 +233,7 @@ def test_explicit_missing_args_hparams(tmpdir):
     assert model.hparams.test_arg == 14
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=2, overfit_batches=0.5)
     trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties
@@ -366,7 +366,7 @@ else:
         BoringModelWithMixinAndInit,
     ],
 )
-def test_collect_init_arguments(tmpdir, cls):
+def test_collect_init_arguments(tmp_path, cls):
     """Test that the model automatically saves the arguments passed into the constructor."""
     extra_args = {}
     if cls is AggSubClassBoringModel:
@@ -386,7 +386,7 @@ def test_collect_init_arguments(tmpdir, cls):
         assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
 
     # verify that the checkpoint saved the correct values
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=2, overfit_batches=0.5)
     trainer.fit(model)
 
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
@@ -489,18 +489,18 @@ class OtherArgsModel(BoringModel):
 @pytest.mark.parametrize(
     ("cls", "config"), [(AnotherArgModel, {"arg1": 42}), (OtherArgsModel, {"arg1": 3.14, "arg2": "abc"})]
 )
-def test_single_config_models_fail(tmpdir, cls, config):
+def test_single_config_models_fail(tmp_path, cls, config):
     """Test fail on passing unsupported config type."""
     with pytest.raises(ValueError):
         _ = cls(**config)
 
 
 @pytest.mark.parametrize("past_key", ["module_arguments"])
-def test_load_past_checkpoint(tmpdir, past_key):
+def test_load_past_checkpoint(tmp_path, past_key):
     model = CustomBoringModel()
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
     trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties
@@ -518,7 +518,7 @@ def test_load_past_checkpoint(tmpdir, past_key):
     assert model2.hparams.batch_size == -17
 
 
-def test_hparams_pickle(tmpdir):
+def test_hparams_pickle(tmp_path):
     ad = AttributeDict({"key1": 1, "key2": "abc"})
     pkl = pickle.dumps(ad)
     assert ad == pickle.loads(pkl)
@@ -535,15 +535,15 @@ class UnpickleableArgsBoringModel(BoringModel):
         self.save_hyperparameters()
 
 
-def test_hparams_pickle_warning(tmpdir):
+def test_hparams_pickle_warning(tmp_path):
     model = UnpickleableArgsBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=1)
     with pytest.warns(UserWarning, match="attribute 'pickle_me' removed from hparams because it cannot be pickled"):
         trainer.fit(model)
     assert "pickle_me" not in model.hparams
 
 
-def test_hparams_save_yaml(tmpdir):
+def test_hparams_save_yaml(tmp_path):
     class Options(str, Enum):
         option1name = "option1val"
         option2name = "option2val"
@@ -556,7 +556,7 @@ def test_hparams_save_yaml(tmpdir):
         "nested": {"any_num": 123, "anystr": "abcd"},
         "switch": Options.option3name,
     }
-    path_yaml = os.path.join(tmpdir, "testing-hparams.yaml")
+    path_yaml = os.path.join(tmp_path, "testing-hparams.yaml")
 
     def _compare_params(loaded_params, default_params: dict):
         assert isinstance(loaded_params, (dict, DictConfig))
@@ -587,10 +587,10 @@ class NoArgsSubClassBoringModel(CustomBoringModel):
 
 
 @pytest.mark.parametrize("cls", [BoringModel, NoArgsSubClassBoringModel])
-def test_model_nohparams_train_test(tmpdir, cls):
+def test_model_nohparams_train_test(tmp_path, cls):
     """Test models that do not take any argument in init."""
     model = cls()
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmp_path)
 
     train_loader = DataLoader(RandomDataset(32, 64), batch_size=32)
     trainer.fit(model, train_loader)
@@ -599,7 +599,7 @@ def test_model_nohparams_train_test(tmpdir, cls):
     trainer.test(dataloaders=test_loader)
 
 
-def test_model_ignores_non_exist_kwargument(tmpdir):
+def test_model_ignores_non_exist_kwargument(tmp_path):
     """Test that the model takes only valid class arguments."""
 
     class LocalModel(BoringModel):
@@ -611,7 +611,7 @@ def test_model_ignores_non_exist_kwargument(tmpdir):
     assert model.hparams.batch_size == 15
 
     # verify that the checkpoint saved the correct values
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
     trainer.fit(model)
 
     # verify that we can overwrite whatever we want
@@ -633,11 +633,11 @@ class SubClassVarArgs(SuperClassPositionalArgs):
         super().__init__(*args, **kwargs)
 
 
-def test_args(tmpdir):
+def test_args(tmp_path):
     """Test for inheritance: super class takes positional arg, subclass takes varargs."""
     hparams = {"test": 1}
     model = SubClassVarArgs(hparams)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
     trainer.fit(model)
 
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
@@ -652,7 +652,7 @@ class RuntimeParamChangeModelSaving(BoringModel):
 
 
 @pytest.mark.parametrize("cls", [RuntimeParamChangeModelSaving])
-def test_init_arg_with_runtime_change(tmpdir, cls):
+def test_init_arg_with_runtime_change(tmp_path, cls):
     """Test that we save/export only the initial hparams, no other runtime change allowed."""
     model = cls(running_arg=123)
     assert model.hparams.running_arg == 123
@@ -660,12 +660,12 @@ def test_init_arg_with_runtime_change(tmpdir, cls):
     assert model.hparams.running_arg == -1
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         limit_test_batches=2,
         max_epochs=1,
-        logger=TensorBoardLogger(tmpdir),
+        logger=TensorBoardLogger(tmp_path),
     )
     trainer.fit(model)
 
@@ -680,17 +680,17 @@ class UnsafeParamModel(BoringModel):
         self.save_hyperparameters()
 
 
-def test_model_with_fsspec_as_parameter(tmpdir):
-    model = UnsafeParamModel(LocalFileSystem(tmpdir))
+def test_model_with_fsspec_as_parameter(tmp_path):
+    model = UnsafeParamModel(LocalFileSystem(tmp_path))
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, max_epochs=1
+        default_root_dir=tmp_path, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, max_epochs=1
     )
     trainer.fit(model)
     trainer.test()
 
 
 @pytest.mark.skipif(RequirementCache("hydra-core<1.1"), reason="Requires Hydra's Compose API")
-def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
+def test_model_save_hyper_parameters_interpolation_with_hydra(tmp_path):
     """This test relies on configuration saved under tests/models/conf/config.yaml."""
     from hydra import compose, initialize
 
@@ -710,9 +710,9 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
         kwarg_1 = {"cfg": [compose(config_name="config")]}
         model = TestHydraModel(args_0, args_1, args_2, kwarg_1=kwarg_1)
         epochs = 2
-        checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1)
+        checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmp_path, save_top_k=-1)
         trainer = Trainer(
-            default_root_dir=tmpdir,
+            default_root_dir=tmp_path,
             callbacks=[checkpoint_callback],
             limit_train_batches=10,
             limit_val_batches=10,
@@ -724,7 +724,7 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
 
 
 @pytest.mark.parametrize("ignore", ["arg2", ("arg2", "arg3")])
-def test_ignore_args_list_hparams(tmpdir, ignore):
+def test_ignore_args_list_hparams(tmp_path, ignore):
     """Tests that args can be ignored in save_hyperparameters."""
 
     class LocalModel(BoringModel):
@@ -740,7 +740,7 @@ def test_ignore_args_list_hparams(tmpdir, ignore):
         assert arg not in model.hparams
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=2, overfit_batches=0.5)
     trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties
@@ -787,7 +787,7 @@ class HparamsNamespaceContainerModel(BoringModel):
         self.save_hyperparameters(config)
 
 
-def test_empty_hparams_container(tmpdir):
+def test_empty_hparams_container(tmp_path):
     """Test that save_hyperparameters() is a no-op when saving an empty hparams container."""
     model = HparamsKwargsContainerModel()
     assert not model.hparams
@@ -795,7 +795,7 @@ def test_empty_hparams_container(tmpdir):
     assert not model.hparams
 
 
-def test_hparams_name_from_container(tmpdir):
+def test_hparams_name_from_container(tmp_path):
     """Test that save_hyperparameters(container) captures the name of the argument correctly."""
     model = HparamsKwargsContainerModel(a=1, b=2)
     assert model._hparams_name is None
@@ -814,7 +814,7 @@ class DataClassModel(BoringModel):
         self.save_hyperparameters(ignore=("ignore_me",))
 
 
-def test_dataclass_lightning_module(tmpdir):
+def test_dataclass_lightning_module(tmp_path):
     """Test that save_hyperparameters() works with a LightningModule as a dataclass."""
     model = DataClassModel(33, optional="cocofruit")
     assert model.hparams == {"mandatory": 33, "optional": "cocofruit"}
@@ -838,10 +838,10 @@ class DataModuleWithHparams(LightningDataModule):
         return DataLoader(RandomDataset(32, 64), batch_size=32)
 
 
-def _get_mock_logger(tmpdir):
+def _get_mock_logger(tmp_path):
     mock_logger = mock.MagicMock(name="logger")
     mock_logger.name = "mock_logger"
-    mock_logger.save_dir = tmpdir
+    mock_logger.save_dir = tmp_path
     mock_logger.version = "0"
     del mock_logger.__iter__
     return mock_logger
@@ -849,13 +849,13 @@ def _get_mock_logger(tmpdir):
 
 @pytest.mark.parametrize("model", [SaveHparamsModel({"arg1": 5, "arg2": "abc"}), NoHparamsModel()])
 @pytest.mark.parametrize("data", [DataModuleWithHparams({"data_dir": "foo"}), DataModuleWithoutHparams()])
-def test_adding_datamodule_hparams(tmpdir, model, data):
+def test_adding_datamodule_hparams(tmp_path, model, data):
     """Test that hparams from datamodule and model are logged."""
     org_model_hparams = copy.deepcopy(model.hparams_initial)
     org_data_hparams = copy.deepcopy(data.hparams_initial)
 
-    mock_logger = _get_mock_logger(tmpdir)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)
+    mock_logger = _get_mock_logger(tmp_path)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, logger=mock_logger)
     trainer.fit(model, datamodule=data)
 
     # Hparams of model and data were not modified
@@ -871,25 +871,25 @@ def test_adding_datamodule_hparams(tmpdir, model, data):
         mock_logger.log_hyperparams.assert_not_called()
 
 
-def test_no_datamodule_for_hparams(tmpdir):
+def test_no_datamodule_for_hparams(tmp_path):
     """Test that hparams model are logged if no datamodule is used."""
     model = SaveHparamsModel({"arg1": 5, "arg2": "abc"})
     org_model_hparams = copy.deepcopy(model.hparams_initial)
     data = DataModuleWithoutHparams()
     data.setup("fit")
 
-    mock_logger = _get_mock_logger(tmpdir)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)
+    mock_logger = _get_mock_logger(tmp_path)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, logger=mock_logger)
     trainer.fit(model, datamodule=data)
 
     # Merged hparams were logged
     mock_logger.log_hyperparams.assert_called_with(org_model_hparams)
 
 
-def test_colliding_hparams(tmpdir):
+def test_colliding_hparams(tmp_path):
     model = SaveHparamsModel({"data_dir": "abc", "arg2": "abc"})
     data = DataModuleWithHparams({"data_dir": "foo"})
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=CSVLogger(tmpdir))
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, logger=CSVLogger(tmp_path))
     with pytest.raises(RuntimeError, match=r"Error while merging hparams:"):
         trainer.fit(model, datamodule=data)
 

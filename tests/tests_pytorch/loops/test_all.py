@@ -87,13 +87,13 @@ class BatchHookObserverModel(BoringModel):
         pytest.param("mps", marks=RunIf(mps=True)),
     ],
 )
-def test_callback_batch_on_device(tmpdir, accelerator):
+def test_callback_batch_on_device(tmp_path, accelerator):
     """Test that the batch object sent to the on_*_batch_start/end hooks is on the right device."""
     batch_callback = BatchHookObserverCallback()
 
     model = BatchHookObserverModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_steps=1,
         limit_train_batches=1,
         limit_val_batches=1,

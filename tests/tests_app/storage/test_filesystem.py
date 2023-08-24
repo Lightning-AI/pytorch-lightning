@@ -7,27 +7,27 @@ from lightning.app.storage import FileSystem
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="TODO: Add support for windows")
-def test_filesystem(tmpdir):
+def test_filesystem(tmp_path):
     fs = FileSystem()
 
-    with open(f"{tmpdir}/a.txt", "w") as f:
+    with open(f"{tmp_path}/a.txt", "w") as f:
         f.write("example")
 
-    os.makedirs(f"{tmpdir}/checkpoints", exist_ok=True)
-    with open(f"{tmpdir}/checkpoints/a.txt", "w") as f:
+    os.makedirs(f"{tmp_path}/checkpoints", exist_ok=True)
+    with open(f"{tmp_path}/checkpoints/a.txt", "w") as f:
         f.write("example")
 
-    with open(f"{tmpdir}/info.txt", "w") as f:
+    with open(f"{tmp_path}/info.txt", "w") as f:
         f.write("example")
 
     assert fs.listdir("/") == []
-    fs.put(f"{tmpdir}/a.txt", "/a.txt")
-    fs.put(f"{tmpdir}/info.txt", "/info.txt")
+    fs.put(f"{tmp_path}/a.txt", "/a.txt")
+    fs.put(f"{tmp_path}/info.txt", "/info.txt")
     assert fs.listdir("/") == ["a.txt"]
 
     assert fs.isfile("/a.txt")
 
-    fs.put(f"{tmpdir}/checkpoints", "/checkpoints")
+    fs.put(f"{tmp_path}/checkpoints", "/checkpoints")
     assert not fs.isfile("/checkpoints")
     assert fs.isdir("/checkpoints")
     assert fs.isfile("/checkpoints/a.txt")
@@ -35,13 +35,13 @@ def test_filesystem(tmpdir):
     assert fs.listdir("/") == ["a.txt", "checkpoints"]
     assert fs.walk("/") == ["a.txt", "checkpoints/a.txt"]
 
-    os.remove(f"{tmpdir}/a.txt")
+    os.remove(f"{tmp_path}/a.txt")
 
-    assert not os.path.exists(f"{tmpdir}/a.txt")
+    assert not os.path.exists(f"{tmp_path}/a.txt")
 
-    fs.get("/a.txt", f"{tmpdir}/a.txt")
+    fs.get("/a.txt", f"{tmp_path}/a.txt")
 
-    assert os.path.exists(f"{tmpdir}/a.txt")
+    assert os.path.exists(f"{tmp_path}/a.txt")
 
     fs.rm("/a.txt")
 
@@ -60,17 +60,17 @@ def test_filesystem(tmpdir):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="TODO: Add support for windows")
-def test_filesystem_root(tmpdir):
+def test_filesystem_root(tmp_path):
     fs = FileSystem()
 
-    with open(f"{tmpdir}/a.txt", "w") as f:
+    with open(f"{tmp_path}/a.txt", "w") as f:
         f.write("example")
 
-    os.makedirs(f"{tmpdir}/checkpoints", exist_ok=True)
-    with open(f"{tmpdir}/checkpoints/a.txt", "w") as f:
+    os.makedirs(f"{tmp_path}/checkpoints", exist_ok=True)
+    with open(f"{tmp_path}/checkpoints/a.txt", "w") as f:
         f.write("example")
 
     assert fs.listdir("/") == []
-    fs.put(f"{tmpdir}/a.txt", "/")
-    fs.put(f"{tmpdir}/checkpoints", "/")
+    fs.put(f"{tmp_path}/a.txt", "/")
+    fs.put(f"{tmp_path}/checkpoints", "/")
     assert fs.listdir("/") == ["a.txt", "checkpoints"]

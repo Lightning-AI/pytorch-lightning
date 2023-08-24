@@ -3,9 +3,9 @@ import os
 from lightning.app.source_code.copytree import _copytree, _read_lightningignore
 
 
-def test_read_lightningignore(tmpdir):
+def test_read_lightningignore(tmp_path):
     """_read_lightningignore() removes comments from ignore files."""
-    test_path = tmpdir.join(".lightningignore")
+    test_path = tmp_path.join(".lightningignore")
     expected = "test"
     not_expected = "# comment"
     with open(test_path, "a") as f:
@@ -17,9 +17,9 @@ def test_read_lightningignore(tmpdir):
     assert expected not in result
 
 
-def test_read_lightningignore_excludes_empty_lines(tmpdir):
+def test_read_lightningignore_excludes_empty_lines(tmp_path):
     """_read_lightningignore() excludes empty lines."""
-    test_path = tmpdir.join(".lightningignore")
+    test_path = tmp_path.join(".lightningignore")
     gitignore = """
 
     foo

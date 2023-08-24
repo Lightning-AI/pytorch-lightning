@@ -172,7 +172,7 @@ def test_work_runner(parallel, cache_calls, *_):
     work_runner.copier.join()
 
 
-def test_pathlike_as_argument_to_run_method_warns(tmpdir):
+def test_pathlike_as_argument_to_run_method_warns(tmp_path):
     """Test that Lightning Produces a special warning for strings that look like paths."""
     # all these paths are not proper paths or don't have a file or folder that exists
     no_warning_expected = (
@@ -186,17 +186,17 @@ def test_pathlike_as_argument_to_run_method_warns(tmpdir):
         _pass_path_argument_to_work_and_test_warning(path=path, warning_expected=False)
 
     # warn if it looks like a folder and the folder exists
-    _pass_path_argument_to_work_and_test_warning(path=tmpdir, warning_expected=True)
+    _pass_path_argument_to_work_and_test_warning(path=tmp_path, warning_expected=True)
 
     # warn if it looks like a string or pathlib Path and the file exists
-    file = pathlib.Path(tmpdir, "file_exists.txt")
+    file = pathlib.Path(tmp_path, "file_exists.txt")
     file.write_text("test")
     assert os.path.exists(file)
     _pass_path_argument_to_work_and_test_warning(path=file, warning_expected=True)
     _pass_path_argument_to_work_and_test_warning(path=str(file), warning_expected=True)
 
     # do not warn if the path is wrapped in Lightning Path (and the file exists)
-    file = Path(tmpdir, "file_exists.txt")
+    file = Path(tmp_path, "file_exists.txt")
     file.write_text("test")
     assert os.path.exists(file)
     _pass_path_argument_to_work_and_test_warning(path=file, warning_expected=False)
@@ -498,21 +498,21 @@ def test_persist_artifacts(tmp_path):
     work = ArtifactWork()
     work._name = "root.work"
 
-    rel_tmpdir_path = Path(*tmp_path.parts[1:])
+    rel_tmp_path_path = Path(*tmp_path.parts[1:])
 
-    assert not os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "file.txt")
-    assert not os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "folder")
-    assert not os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "not-exists")
+    assert not os.path.exists(_artifacts_path(work) / rel_tmp_path_path / "file.txt")
+    assert not os.path.exists(_artifacts_path(work) / rel_tmp_path_path / "folder")
+    assert not os.path.exists(_artifacts_path(work) / rel_tmp_path_path / "not-exists")
 
     work.run()
 
     with pytest.warns(UserWarning, match="1 artifacts could not be saved because they don't exist"):
         persist_artifacts(work)
 
-    assert os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "file.txt")
-    assert os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "folder")
-    assert not os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "not-exists")
-    assert not os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "external.txt")
+    assert os.path.exists(_artifacts_path(work) / rel_tmp_path_path / "file.txt")
+    assert os.path.exists(_artifacts_path(work) / rel_tmp_path_path / "folder")
+    assert not os.path.exists(_artifacts_path(work) / rel_tmp_path_path / "not-exists")
+    assert not os.path.exists(_artifacts_path(work) / rel_tmp_path_path / "external.txt")
 
 
 def test_work_state_observer():

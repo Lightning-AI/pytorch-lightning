@@ -47,7 +47,7 @@ def test_closure_result_apply_accumulation():
 @pytest.mark.parametrize(
     "case", [(5.0, "must return a Tensor, a dict, or None"), ({"a": 5}, "the 'loss' key needs to be present")]
 )
-def test_warning_invalid_trainstep_output(tmpdir, case):
+def test_warning_invalid_trainstep_output(tmp_path, case):
     output, match = case
 
     class InvalidTrainStepModel(BoringModel):
@@ -55,7 +55,7 @@ def test_warning_invalid_trainstep_output(tmpdir, case):
             return output
 
     model = InvalidTrainStepModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
 
     with pytest.raises(MisconfigurationException, match=match):
         trainer.fit(model)

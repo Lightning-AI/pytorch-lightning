@@ -25,9 +25,9 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 
 
-def test_finetuning_with_ckpt_path(tmpdir):
+def test_finetuning_with_ckpt_path(tmp_path):
     """This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test."""
-    checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmp_path, filename="{epoch:02d}", save_top_k=-1)
 
     class ExtendedBoringModel(BoringModel):
         def configure_optimizers(self):
@@ -41,7 +41,7 @@ def test_finetuning_with_ckpt_path(tmpdir):
 
     model = ExtendedBoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=12,
         limit_val_batches=6,
@@ -50,13 +50,13 @@ def test_finetuning_with_ckpt_path(tmpdir):
         logger=False,
     )
     trainer.fit(model)
-    assert os.listdir(tmpdir) == ["epoch=00.ckpt"]
+    assert os.listdir(tmp_path) == ["epoch=00.ckpt"]
 
     best_model_paths = [checkpoint_callback.best_model_path]
     for idx in range(3, 6):
         # load from checkpoint
         trainer = pl.Trainer(
-            default_root_dir=tmpdir,
+            default_root_dir=tmp_path,
             max_epochs=idx,
             limit_train_batches=12,
             limit_val_batches=12,
@@ -74,16 +74,16 @@ def test_finetuning_with_ckpt_path(tmpdir):
             assert f"epoch={idx + 1}" in best_model_path
 
 
-def test_trainer_save_checkpoint_storage_options(tmpdir, xla_available):
+def test_trainer_save_checkpoint_storage_options(tmp_path, xla_available):
     """This test validates that storage_options argument is properly passed to ``CheckpointIO``"""
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
         enable_checkpointing=False,
     )
     trainer.fit(model)
-    instance_path = tmpdir + "/path.ckpt"
+    instance_path = tmp_path + "/path.ckpt"
     instance_storage_options = "my instance storage options"
 
     with mock.patch("lightning.fabric.plugins.io.torch_io.TorchCheckpointIO.save_checkpoint") as io_mock:

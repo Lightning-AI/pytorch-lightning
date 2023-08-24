@@ -20,11 +20,11 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.states import TrainerFn
 
 
-def test_num_dataloader_batches(tmpdir):
+def test_num_dataloader_batches(tmp_path):
     """Tests that the correct number of batches are allocated."""
     # when we have fewer batches in the dataloader we should use those instead of the limit
     model = BoringModel()
-    trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1, default_root_dir=tmp_path)
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 64
@@ -35,7 +35,7 @@ def test_num_dataloader_batches(tmpdir):
 
     # when we have more batches in the dataloader we should limit them
     model = BoringModel()
-    trainer = Trainer(limit_val_batches=7, limit_train_batches=7, max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(limit_val_batches=7, limit_train_batches=7, max_epochs=1, default_root_dir=tmp_path)
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 64

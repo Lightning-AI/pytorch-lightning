@@ -98,14 +98,14 @@ def test_invalid_strategy_choice(invalid_strategy):
 
 
 @RunIf(skip_windows=True, standalone=True)
-def test_strategy_choice_ddp_on_cpu(tmpdir):
+def test_strategy_choice_ddp_on_cpu(tmp_path):
     """Test that selecting DDPStrategy on CPU works."""
-    _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class=DDPStrategy)
+    _test_strategy_choice_ddp_and_cpu(tmp_path, ddp_strategy_class=DDPStrategy)
 
 
-def _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class):
+def _test_strategy_choice_ddp_and_cpu(tmp_path, ddp_strategy_class):
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
         strategy=ddp_strategy_class(find_unused_parameters=True),
         accelerator="cpu",
@@ -129,7 +129,7 @@ def _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class):
         "SLURM_LOCALID": "0",
     },
 )
-def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmpdir):
+def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmp_path):
     """Test that we choose the custom cluster even when SLURM or TE flags are around."""
 
     class CustomCluster(LightningEnvironment):
@@ -142,7 +142,7 @@ def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmpdir):
             return True
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         plugins=[CustomCluster()],
         fast_dev_run=True,
         accelerator="cpu",
@@ -250,8 +250,8 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     ],
 )
 @pytest.mark.parametrize("devices", [1, 2])
-def test_accelerator_choice_multi_node_gpu(cuda_count_2, tmpdir, strategy, strategy_class, devices):
-    trainer = Trainer(default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
+def test_accelerator_choice_multi_node_gpu(cuda_count_2, tmp_path, strategy, strategy_class, devices):
+    trainer = Trainer(default_root_dir=tmp_path, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(trainer.strategy, strategy_class)
 
 

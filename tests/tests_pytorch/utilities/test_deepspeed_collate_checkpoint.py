@@ -23,11 +23,11 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_deepspeed_collate_checkpoint(tmpdir):
+def test_deepspeed_collate_checkpoint(tmp_path):
     """Test to ensure that with DeepSpeed Stage 3 we can collate the sharded checkpoints into a single file."""
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         strategy=DeepSpeedStrategy(stage=3),
         accelerator="gpu",
         devices=2,
@@ -37,12 +37,12 @@ def test_deepspeed_collate_checkpoint(tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(model)
-    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    checkpoint_path = os.path.join(tmp_path, "model.pt")
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
     if trainer.is_global_zero:
         # ensure function call works
-        output_path = os.path.join(tmpdir, "single_model.pt")
+        output_path = os.path.join(tmp_path, "single_model.pt")
         convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, output_path)
         _assert_checkpoint_equal(model, output_path)
 

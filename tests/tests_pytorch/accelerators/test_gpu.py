@@ -45,10 +45,10 @@ def test_get_nvidia_gpu_stats():
 
 @RunIf(min_cuda_gpus=1)
 @mock.patch("torch.cuda.set_device")
-def test_set_cuda_device(set_device_mock, tmpdir):
+def test_set_cuda_device(set_device_mock, tmp_path):
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
         accelerator="gpu",
         devices=1,

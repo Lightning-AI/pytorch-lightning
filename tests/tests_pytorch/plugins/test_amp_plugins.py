@@ -127,12 +127,12 @@ class TestPrecisionModel(BoringModel):
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("accum", [1, 2])
-def test_amp_gradient_unscale(tmpdir, accum: int):
+def test_amp_gradient_unscale(tmp_path, accum: int):
     model = TestPrecisionModel()
 
     trainer = Trainer(
         max_epochs=2,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=0,
         strategy="ddp_spawn",
@@ -150,7 +150,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
 
 
 @RunIf(min_cuda_gpus=1)
-def test_amp_skip_optimizer(tmpdir):
+def test_amp_skip_optimizer(tmp_path):
     """Test that optimizers can be skipped when using amp."""
 
     class CustomBoringModel(BoringModel):
@@ -180,7 +180,7 @@ def test_amp_skip_optimizer(tmpdir):
                 torch.optim.SGD(self.layer2.parameters(), lr=0.1),
             ]
 
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=1, fast_dev_run=1, precision="16-mixed")
+    trainer = Trainer(default_root_dir=tmp_path, accelerator="gpu", devices=1, fast_dev_run=1, precision="16-mixed")
     model = CustomBoringModel()
     trainer.fit(model)
 

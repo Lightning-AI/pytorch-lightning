@@ -71,11 +71,11 @@ class TestDDPSpawnStrategy(DDPStrategy):
 
 
 @RunIf(skip_windows=True)
-def test_ddp_spawn_add_get_queue(tmpdir):
+def test_ddp_spawn_add_get_queue(tmp_path):
     """Tests get_extra_results/update_main_process_results with DDPSpawnStrategy."""
     ddp_spawn_strategy = TestDDPSpawnStrategy()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, accelerator="cpu", devices=2, strategy=ddp_spawn_strategy
+        default_root_dir=tmp_path, fast_dev_run=True, accelerator="cpu", devices=2, strategy=ddp_spawn_strategy
     )
 
     val: float = 1.0
@@ -109,9 +109,9 @@ class BoringModelDDP(BoringModel):
 
 
 @RunIf(skip_windows=True)
-def test_ddp_spawn_configure_ddp(tmpdir):
+def test_ddp_spawn_configure_ddp(tmp_path):
     """Tests with ddp spawn strategy."""
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmp_path, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=True)
 
     model = BoringModelDDP()
 

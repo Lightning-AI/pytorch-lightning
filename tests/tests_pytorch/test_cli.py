@@ -633,14 +633,14 @@ def test_cli_config_overwrite(cleandir):
         LightningCLI(BoringModel, save_config_kwargs={"overwrite": True}, trainer_defaults=trainer_defaults)
 
 
-def test_cli_config_filename(tmpdir):
+def test_cli_config_filename(tmp_path):
     with mock.patch("sys.argv", ["any.py", "fit"]):
         LightningCLI(
             BoringModel,
-            trainer_defaults={"default_root_dir": str(tmpdir), "logger": False, "max_steps": 1, "max_epochs": 1},
+            trainer_defaults={"default_root_dir": str(tmp_path), "logger": False, "max_steps": 1, "max_epochs": 1},
             save_config_kwargs={"config_filename": "name.yaml"},
         )
-    assert os.path.isfile(tmpdir / "name.yaml")
+    assert os.path.isfile(tmp_path / "name.yaml")
 
 
 @pytest.mark.parametrize("run", [False, True])

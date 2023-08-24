@@ -40,7 +40,7 @@ class TestBackboneFinetuningCallback(BackboneFinetuning):
                 assert backbone_lr == current_lr
 
 
-def test_finetuning_callback(tmpdir):
+def test_finetuning_callback(tmp_path):
     """Test finetuning callbacks works as expected."""
     seed_everything(42)
 
@@ -67,7 +67,7 @@ def test_finetuning_callback(tmpdir):
     model = FinetuningBoringModel()
     callback = TestBackboneFinetuningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
-    trainer = Trainer(limit_train_batches=4, default_root_dir=tmpdir, callbacks=[callback], max_epochs=8)
+    trainer = Trainer(limit_train_batches=4, default_root_dir=tmp_path, callbacks=[callback], max_epochs=8)
     trainer.fit(model)
 
     assert model.backbone.has_been_used
@@ -82,7 +82,7 @@ class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
             )
 
 
-def test_finetuning_callback_warning(tmpdir):
+def test_finetuning_callback_warning(tmp_path):
     """Test finetuning callbacks works as expected."""
     seed_everything(42)
 
@@ -103,14 +103,14 @@ def test_finetuning_callback_warning(tmpdir):
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=0.1)
 
-    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    chk = ModelCheckpoint(dirpath=tmp_path, save_last=True)
 
     model = FinetuningBoringModel()
     model.validation_step = None
     callback = TestBackboneFinetuningWarningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
     with pytest.warns(UserWarning, match="Did you init your optimizer in"):
-        trainer = Trainer(limit_train_batches=1, default_root_dir=tmpdir, callbacks=[callback, chk], max_epochs=2)
+        trainer = Trainer(limit_train_batches=1, default_root_dir=tmp_path, callbacks=[callback, chk], max_epochs=2)
         trainer.fit(model)
 
     assert model.backbone.has_been_used
@@ -118,7 +118,7 @@ def test_finetuning_callback_warning(tmpdir):
     trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
-def test_freeze_unfreeze_function(tmpdir):
+def test_freeze_unfreeze_function(tmp_path):
     """Test freeze properly sets requires_grad on the modules."""
     seed_everything(42)
 
@@ -156,7 +156,7 @@ def test_freeze_unfreeze_function(tmpdir):
     assert not model.backbone[3].weight.requires_grad
 
 
-def test_unfreeze_and_add_param_group_function(tmpdir):
+def test_unfreeze_and_add_param_group_function(tmp_path):
     """Test unfreeze_and_add_param_group properly unfreeze parameters and add to the correct param_group."""
     seed_everything(42)
 
@@ -208,7 +208,7 @@ class OnEpochLayerFinetuning(BaseFinetuning):
         self.unfreeze_and_add_param_group(pl_module.layer[epoch + 1], optimizer)
 
 
-def test_base_finetuning_internal_optimizer_metadata(tmpdir):
+def test_base_finetuning_internal_optimizer_metadata(tmp_path):
     """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning Callbacks."""
 
     seed_everything(42)
@@ -232,9 +232,9 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
             return torch.optim.SGD(self.layer[0].parameters(), lr=0.1)
 
     cb = OnEpochLayerFinetuning()
-    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    chk = ModelCheckpoint(dirpath=tmp_path, save_last=True)
     model = FreezeModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5, limit_train_batches=1, callbacks=[cb, chk])
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=5, limit_train_batches=1, callbacks=[cb, chk])
     trainer.fit(model)
     assert len(cb._internal_optimizer_metadata[0]) == 6
     assert cb._internal_optimizer_metadata[0][0]["params"] == ["layer.0.weight"]
@@ -323,15 +323,15 @@ class FinetuningBoringModel(BoringModel):
         return torch.optim.SGD(parameters, lr=0.1)
 
 
-def test_callbacks_restore(tmpdir):
+def test_callbacks_restore(tmp_path):
     """Test callbacks restore is called after optimizers have been re-created but before optimizer states reload."""
-    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    chk = ModelCheckpoint(dirpath=tmp_path, save_last=True)
 
     model = FinetuningBoringModel()
     callback = TestCallbacksRestoreCallback()
 
     trainer_kwargs = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "limit_train_batches": 1,
         "limit_val_batches": 1,
         "callbacks": [callback, chk],
@@ -397,12 +397,12 @@ class BackboneBoringModel(BoringModel):
         return self.layer(self.backbone(x))
 
 
-def test_callbacks_restore_backbone(tmpdir):
+def test_callbacks_restore_backbone(tmp_path):
     """Test callbacks restore is called after optimizers have been re-created but before optimizer states reload."""
 
-    ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    ckpt = ModelCheckpoint(dirpath=tmp_path, save_last=True)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=2,
@@ -413,7 +413,7 @@ def test_callbacks_restore_backbone(tmpdir):
 
     # initialize a trainer that continues the previous training
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=3,

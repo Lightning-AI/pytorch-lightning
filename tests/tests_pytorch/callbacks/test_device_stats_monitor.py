@@ -34,7 +34,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_cuda_gpus=1)
-def test_device_stats_gpu_from_torch(tmpdir):
+def test_device_stats_gpu_from_torch(tmp_path):
     """Test GPU stats are logged using a logger."""
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
@@ -51,14 +51,14 @@ def test_device_stats_gpu_from_torch(tmpdir):
                 assert any(f in h for h in metrics)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_train_batches=7,
         log_every_n_steps=1,
         accelerator="gpu",
         devices=1,
         callbacks=[device_stats],
-        logger=DebugLogger(tmpdir),
+        logger=DebugLogger(tmp_path),
         enable_checkpointing=False,
         enable_progress_bar=False,
     )
@@ -69,7 +69,7 @@ def test_device_stats_gpu_from_torch(tmpdir):
 @RunIf(psutil=True)
 @pytest.mark.parametrize("cpu_stats", [None, True, False])
 @mock.patch("lightning.pytorch.accelerators.cpu.get_cpu_stats", side_effect=get_cpu_stats)
-def test_device_stats_cpu(cpu_stats_mock, tmpdir, cpu_stats):
+def test_device_stats_cpu(cpu_stats_mock, tmp_path, cpu_stats):
     """Test CPU stats are logged when no accelerator is used."""
     model = BoringModel()
     CPU_METRIC_KEYS = (_CPU_VM_PERCENT, _CPU_SWAP_PERCENT, _CPU_PERCENT)
@@ -83,13 +83,13 @@ def test_device_stats_cpu(cpu_stats_mock, tmpdir, cpu_stats):
 
     device_stats = DeviceStatsMonitor(cpu_stats=cpu_stats)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=0,
         log_every_n_steps=1,
         callbacks=device_stats,
-        logger=DebugLogger(tmpdir),
+        logger=DebugLogger(tmp_path),
         enable_checkpointing=False,
         enable_progress_bar=False,
         accelerator="cpu",
@@ -110,19 +110,19 @@ class AssertTpuMetricsLogger(CSVLogger):
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_device_stats_monitor_tpu(tmpdir):
+def test_device_stats_monitor_tpu(tmp_path):
     """Test TPU stats are logged using a logger."""
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_train_batches=5,
         accelerator="tpu",
         devices="auto",
         log_every_n_steps=1,
         callbacks=[device_stats],
-        logger=AssertTpuMetricsLogger(tmpdir),
+        logger=AssertTpuMetricsLogger(tmp_path),
         enable_checkpointing=False,
         enable_progress_bar=False,
     )
@@ -135,13 +135,13 @@ def test_device_stats_monitor_tpu(tmpdir):
         raise e
 
 
-def test_device_stats_monitor_no_logger(tmpdir):
+def test_device_stats_monitor_no_logger(tmp_path):
     """Test DeviceStatsMonitor with no logger in Trainer."""
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         callbacks=[device_stats],
         max_epochs=1,
         logger=False,
@@ -174,13 +174,13 @@ def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch, tmp
         monitor.setup(trainer, Mock(), "fit")
 
 
-def test_device_stats_monitor_logs_for_different_stages(tmpdir):
+def test_device_stats_monitor_logs_for_different_stages(tmp_path):
     """Test that metrics are logged for all stages that is training, testing and validation."""
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=4,
         limit_val_batches=4,
@@ -189,7 +189,7 @@ def test_device_stats_monitor_logs_for_different_stages(tmpdir):
         accelerator="cpu",
         devices=1,
         callbacks=[device_stats],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
         enable_checkpointing=False,
         enable_progress_bar=False,
     )
@@ -197,7 +197,7 @@ def test_device_stats_monitor_logs_for_different_stages(tmpdir):
     # training and validation stages will run
     trainer.fit(model)
 
-    with open(f"{tmpdir}/lightning_logs/version_0/metrics.csv") as csvfile:
+    with open(f"{tmp_path}/lightning_logs/version_0/metrics.csv") as csvfile:
         content = csv.reader(csvfile, delimiter=",")
         it = iter(content).__next__()
 
@@ -214,7 +214,7 @@ def test_device_stats_monitor_logs_for_different_stages(tmpdir):
     # testing stage will run
     trainer.test(model)
 
-    with open(f"{tmpdir}/lightning_logs/version_0/metrics.csv") as csvfile:
+    with open(f"{tmp_path}/lightning_logs/version_0/metrics.csv") as csvfile:
         content = csv.reader(csvfile, delimiter=",")
         it = iter(content).__next__()
 

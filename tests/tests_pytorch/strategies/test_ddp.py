@@ -32,27 +32,27 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
-def test_multi_gpu_model_ddp_fit_only(tmpdir):
+def test_multi_gpu_model_ddp_fit_only(tmp_path):
     dm = ClassifDataModule()
     model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
     trainer.fit(model, datamodule=dm)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
-def test_multi_gpu_model_ddp_test_only(tmpdir):
+def test_multi_gpu_model_ddp_test_only(tmp_path):
     dm = ClassifDataModule()
     model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
     trainer.test(model, datamodule=dm)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
-def test_multi_gpu_model_ddp_fit_test(tmpdir):
+def test_multi_gpu_model_ddp_fit_test(tmp_path):
     seed_everything(4321)
     dm = ClassifDataModule()
     model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
     trainer.fit(model, datamodule=dm)
     result = trainer.test(model, datamodule=dm)
 
@@ -64,7 +64,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
 @mock.patch("lightning.pytorch.accelerators.cuda._clear_cuda_memory")
-def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_count_0, tmpdir):
+def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_count_0, tmp_path):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
@@ -74,7 +74,7 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_coun
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
         strategy=DDPStrategy(process_group_backend="gloo"),
         accelerator="gpu",
@@ -86,7 +86,7 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_coun
 
 @RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", "32-true"])
-def test_ddp_wrapper(tmpdir, precision):
+def test_ddp_wrapper(tmp_path, precision):
     """Test parameters to ignore are carried over for DDP."""
 
     class WeirdModule(torch.nn.Module):
@@ -112,7 +112,7 @@ def test_ddp_wrapper(tmpdir, precision):
 
     model = CustomModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
         precision=precision,
         strategy="ddp",

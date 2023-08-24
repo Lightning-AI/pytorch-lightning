@@ -46,7 +46,7 @@ def test_summary_callback_tracks_hyperparameters():
     assert "PLAppSummary" in work.trainer_hparams["callbacks"]
 
 
-def test_artifacts_tracker(tmpdir):
+def test_artifacts_tracker(tmp_path):
     work = ScriptRunner(root_path=os.path.dirname(__file__), script_path=__file__)
     tracker = PLAppArtifactsTracker(work=work)
     trainer = Mock()
@@ -57,10 +57,10 @@ def test_artifacts_tracker(tmpdir):
     assert work.log_dir == Path("default_root_dir")
     assert not work.logger_metadatas
 
-    trainer.loggers = [TensorBoardLogger(save_dir=tmpdir)]
+    trainer.loggers = [TensorBoardLogger(save_dir=tmp_path)]
     trainer.logger = trainer.loggers[0]
     tracker.setup(trainer=trainer, pl_module=Mock())
-    assert work.log_dir == Path(tmpdir / "lightning_logs" / "version_0")
+    assert work.log_dir == Path(tmp_path / "lightning_logs" / "version_0")
     assert len(work.logger_metadatas) == 1
     assert work.logger_metadatas[0] == {"class_name": "TensorBoardLogger"}
 

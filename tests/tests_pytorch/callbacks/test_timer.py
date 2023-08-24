@@ -103,13 +103,13 @@ def test_timer_time_remaining(time_mock):
     assert round(timer.time_elapsed()) == 3
 
 
-def test_timer_stops_training(tmpdir, caplog):
+def test_timer_stops_training(tmp_path, caplog):
     """Test that the timer stops training before reaching max_epochs."""
     model = BoringModel()
     duration = timedelta(milliseconds=100)
     timer = Timer(duration=duration)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1000, callbacks=[timer])
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1000, callbacks=[timer])
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
     assert trainer.global_step > 1
@@ -119,23 +119,23 @@ def test_timer_stops_training(tmpdir, caplog):
 
 
 @pytest.mark.parametrize("interval", ["step", "epoch"])
-def test_timer_zero_duration_stop(tmpdir, interval):
+def test_timer_zero_duration_stop(tmp_path, interval):
     """Test that the timer stops training immediately after the first check occurs."""
     model = BoringModel()
     duration = timedelta(0)
     timer = Timer(duration=duration, interval=interval)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[timer])
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[timer])
     trainer.fit(model)
     assert trainer.global_step == 0
     assert trainer.current_epoch == 0
 
 
 @pytest.mark.parametrize(("min_steps", "min_epochs"), [(None, 2), (3, None), (3, 2)])
-def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
+def test_timer_duration_min_steps_override(tmp_path, min_steps, min_epochs):
     model = BoringModel()
     duration = timedelta(0)
     timer = Timer(duration=duration)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[timer], min_steps=min_steps, min_epochs=min_epochs)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[timer], min_steps=min_steps, min_epochs=min_epochs)
     trainer.fit(model)
     if min_epochs:
         assert trainer.current_epoch >= min_epochs
@@ -144,15 +144,15 @@ def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
     assert timer.time_elapsed() > duration.total_seconds()
 
 
-def test_timer_resume_training(tmpdir):
+def test_timer_resume_training(tmp_path):
     """Test that the timer can resume together with the Trainer."""
     model = BoringModel()
     timer = Timer(duration=timedelta(milliseconds=200))
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, save_top_k=-1)
 
     # initial training
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=100,
         callbacks=[timer, checkpoint_callback],
     )
@@ -164,19 +164,19 @@ def test_timer_resume_training(tmpdir):
 
     # resume training (with depleted timer)
     timer = Timer(duration=timedelta(milliseconds=200))
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=timer)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=timer)
     trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
     assert timer._offset > 0
     assert trainer.global_step == saved_global_step
 
 
 @RunIf(skip_windows=True)
-def test_timer_track_stages(tmpdir):
+def test_timer_track_stages(tmp_path):
     """Test that the timer tracks time also for other stages (train/val/test)."""
     # note: skipped on windows because time resolution of time.monotonic() is not high enough for this fast test
     model = BoringModel()
     timer = Timer()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, callbacks=[timer])
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=5, callbacks=[timer])
     trainer.fit(model)
     assert timer.time_elapsed() == timer.time_elapsed("train") > 0
     assert timer.time_elapsed("validate") > 0

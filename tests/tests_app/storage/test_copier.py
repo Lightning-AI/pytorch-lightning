@@ -25,7 +25,7 @@ class MockPatch:
 @mock.patch("lightning.app.storage.path.pathlib.Path.is_dir")
 @mock.patch("lightning.app.storage.path.pathlib.Path.stat")
 @mock.patch("lightning.app.storage.copier._filesystem")
-def test_copier_copies_all_files(fs_mock, stat_mock, dir_mock, tmpdir):
+def test_copier_copies_all_files(fs_mock, stat_mock, dir_mock, tmp_path):
     """Test that the Copier calls the copy with the information provided in the request."""
     stat_mock().st_size = 0
     dir_mock.return_value = False
@@ -34,12 +34,12 @@ def test_copier_copies_all_files(fs_mock, stat_mock, dir_mock, tmpdir):
     work = mock.Mock()
     work.name = MockPatch()
     work._paths = {"file": {"source": "src", "path": "file", "hash": "123", "destination": "dest", "name": "name"}}
-    with mock.patch.dict(os.environ, {"SHARED_MOUNT_DIRECTORY": str(tmpdir / ".shared")}):
+    with mock.patch.dict(os.environ, {"SHARED_MOUNT_DIRECTORY": str(tmp_path / ".shared")}):
         copier = _Copier(work, copy_request_queue=copy_request_queue, copy_response_queue=copy_response_queue)
         request = _GetRequest(source="src", path="file", hash="123", destination="dest", name="name")
         copy_request_queue.put(request)
         copier.run_once()
-        fs_mock().put.assert_called_once_with("file", tmpdir / ".shared" / "123")
+        fs_mock().put.assert_called_once_with("file", tmp_path / ".shared" / "123")
 
 
 @mock.patch("lightning.app.storage.path.pathlib.Path.is_dir")
@@ -68,7 +68,7 @@ def test_copier_handles_exception(stat_mock, dir_mock, monkeypatch):
     assert response.exception.args[0] == "Something went wrong"
 
 
-def test_copier_existence_check(tmpdir):
+def test_copier_existence_check(tmp_path):
     """Test that the Copier responds to an existence check request."""
     copy_request_queue = _MockQueue()
     copy_response_queue = _MockQueue()
@@ -78,7 +78,7 @@ def test_copier_existence_check(tmpdir):
     work._paths = {
         "file": {
             "source": "src",
-            "path": str(tmpdir / "notexists"),
+            "path": str(tmp_path / "notexists"),
             "hash": "123",
             "destination": "dest",
             "name": "name",
@@ -88,26 +88,26 @@ def test_copier_existence_check(tmpdir):
     copier = _Copier(work, copy_request_queue=copy_request_queue, copy_response_queue=copy_response_queue)
 
     # A Path that does NOT exist
-    request = _ExistsRequest(source="src", path=str(tmpdir / "notexists"), destination="dest", name="name", hash="123")
+    request = _ExistsRequest(source="src", path=str(tmp_path / "notexists"), destination="dest", name="name", hash="123")
     copy_request_queue.put(request)
     copier.run_once()
     response = copy_response_queue.get()
     assert response.exists is False
 
     # A Path that DOES exist
-    request = _ExistsRequest(source="src", path=str(tmpdir), destination="dest", name="name", hash="123")
+    request = _ExistsRequest(source="src", path=str(tmp_path), destination="dest", name="name", hash="123")
     copy_request_queue.put(request)
     copier.run_once()
     response = copy_response_queue.get()
     assert response.exists is True
 
 
-def test_copy_files(tmpdir):
+def test_copy_files(tmp_path):
     """Test that the `test_copy_files` utility can handle both files and folders when the destination does not
     exist."""
     # copy from a src that does not exist
-    src = pathlib.Path(tmpdir, "dir1")
-    dst = pathlib.Path(tmpdir, "dir2")
+    src = pathlib.Path(tmp_path, "dir1")
+    dst = pathlib.Path(tmp_path, "dir2")
     with pytest.raises(FileNotFoundError):
         _copy_files(src, dst)
 
@@ -123,8 +123,8 @@ def test_copy_files(tmpdir):
     assert dst.is_dir()
 
     # copy file to a dst that does not exist
-    src = pathlib.Path(tmpdir, "dir3", "src-file.txt")
-    dst = pathlib.Path(tmpdir, "dir4", "dst-file.txt")
+    src = pathlib.Path(tmp_path, "dir3", "src-file.txt")
+    dst = pathlib.Path(tmp_path, "dir4", "dst-file.txt")
     src.parent.mkdir(parents=True)
     src.touch()
     assert not dst.exists()
@@ -132,16 +132,16 @@ def test_copy_files(tmpdir):
     assert dst.is_file()
 
 
-def test_copy_files_with_exception(tmpdir):
+def test_copy_files_with_exception(tmp_path):
     """Test that the `test_copy_files` utility properly raises exceptions from within the ThreadPoolExecutor."""
     fs_mock = Mock()
     fs_mock().put = Mock(side_effect=ValueError("error from thread"))
 
-    src = pathlib.Path(tmpdir, "src")
+    src = pathlib.Path(tmp_path, "src")
     src.mkdir()
     assert src.is_dir()
     pathlib.Path(src, "file.txt").touch()
-    dst = pathlib.Path(tmpdir, "dest")
+    dst = pathlib.Path(tmp_path, "dest")
 
     with mock.patch("lightning.app.storage.copier._filesystem", fs_mock), pytest.raises(
         ValueError, match="error from thread"

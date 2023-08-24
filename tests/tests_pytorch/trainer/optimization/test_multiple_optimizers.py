@@ -52,7 +52,7 @@ def test_multiple_optimizers_automatic_optimization_raises():
         trainer.fit(model)
 
 
-def test_multiple_optimizers_manual(tmpdir):
+def test_multiple_optimizers_manual(tmp_path):
     class TestModel(MultiOptModel):
         def __init__(self):
             super().__init__()
@@ -80,7 +80,7 @@ def test_multiple_optimizers_manual(tmpdir):
     model.val_dataloader = None
 
     trainer = pl.Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, max_epochs=1, log_every_n_steps=1, enable_model_summary=False
+        default_root_dir=tmp_path, limit_train_batches=2, max_epochs=1, log_every_n_steps=1, enable_model_summary=False
     )
     trainer.fit(model)
 

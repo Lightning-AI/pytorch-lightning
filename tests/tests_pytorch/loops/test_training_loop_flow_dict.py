@@ -20,7 +20,7 @@ from lightning.pytorch.core.module import LightningModule
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 
-def test__training_step__flow_dict(tmpdir):
+def test__training_step__flow_dict(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -37,7 +37,7 @@ def test__training_step__flow_dict(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
@@ -50,7 +50,7 @@ def test__training_step__flow_dict(tmpdir):
     assert model.training_step_called
 
 
-def test__training_step__tr_batch_end__flow_dict(tmpdir):
+def test__training_step__tr_batch_end__flow_dict(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -71,7 +71,7 @@ def test__training_step__tr_batch_end__flow_dict(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
@@ -84,7 +84,7 @@ def test__training_step__tr_batch_end__flow_dict(tmpdir):
     assert model.training_step_called
 
 
-def test__training_step__epoch_end__flow_dict(tmpdir):
+def test__training_step__epoch_end__flow_dict(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -102,7 +102,7 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
@@ -115,7 +115,7 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
     assert model.training_step_called
 
 
-def test__training_step__batch_end__epoch_end__flow_dict(tmpdir):
+def test__training_step__batch_end__epoch_end__flow_dict(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -137,7 +137,7 @@ def test__training_step__batch_end__epoch_end__flow_dict(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,

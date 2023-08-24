@@ -25,16 +25,16 @@ from tests_pytorch.helpers.runif import RunIf
 
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_xla_profiler_instance(tmpdir):
+def test_xla_profiler_instance(tmp_path):
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="xla", accelerator="tpu", devices="auto")
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True, profiler="xla", accelerator="tpu", devices="auto")
 
     assert isinstance(trainer.profiler, XLAProfiler)
     trainer.fit(model)
 
 
 @pytest.mark.skip(reason="XLA Profiler doesn't support Prog. capture yet")
-def test_xla_profiler_prog_capture(tmpdir):
+def test_xla_profiler_prog_capture(tmp_path):
     import torch_xla.debug.profiler as xp
     import torch_xla.utils.utils as xu
 
@@ -43,7 +43,7 @@ def test_xla_profiler_prog_capture(tmpdir):
 
     def train_worker():
         model = BoringModel()
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=4, profiler="xla", accelerator="tpu", devices=8)
+        trainer = Trainer(default_root_dir=tmp_path, max_epochs=4, profiler="xla", accelerator="tpu", devices=8)
 
         trainer.fit(model)
 
@@ -51,7 +51,7 @@ def test_xla_profiler_prog_capture(tmpdir):
     p.start()
     training_started.wait(120)
 
-    logdir = str(tmpdir)
+    logdir = str(tmp_path)
     xp.trace(f"localhost:{port}", logdir, duration_ms=2000, num_tracing_attempts=5, delay_ms=1000)
 
     p.terminate()

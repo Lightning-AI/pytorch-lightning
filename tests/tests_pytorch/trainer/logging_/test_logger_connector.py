@@ -191,7 +191,7 @@ class HookedModel(BoringModel):
             setattr(self, h, partial(call, h, attr))
 
 
-def test_fx_validator_integration(tmpdir):
+def test_fx_validator_integration(tmp_path):
     """Tries to log inside all `LightningModule` and `Callback` hooks to check any expected errors."""
     not_supported = {
         None: "`self.trainer` reference is not registered",
@@ -226,7 +226,7 @@ def test_fx_validator_integration(tmpdir):
 
     callback = HookedCallback(not_supported)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -265,7 +265,7 @@ def test_fx_validator_integration(tmpdir):
 
 
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
-def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
+def test_auto_add_dataloader_idx(tmp_path, add_dataloader_idx):
     """Test that auto_add_dataloader_idx argument works."""
 
     class TestModel(BoringModel):
@@ -282,7 +282,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
 
     model = TestModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=2)
     trainer.fit(model)
     logged = trainer.logged_metrics
 
@@ -295,7 +295,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
         assert "val_loss_custom_naming_1" in logged
 
 
-def test_metrics_reset(tmpdir):
+def test_metrics_reset(tmp_path):
     """Tests that metrics are reset correctly after the end of the train/val/test epoch."""
 
     class TestModel(LightningModule):
@@ -383,7 +383,7 @@ def test_metrics_reset(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         limit_test_batches=2,
@@ -408,7 +408,7 @@ def test_metrics_reset(tmpdir):
     compare_version("torchmetrics", operator.lt, "0.8.0"), reason="torchmetrics>=0.8.0 required for compute groups"
 )
 @pytest.mark.parametrize("compute_groups", [True, False])
-def test_metriccollection_compute_groups(tmpdir, compute_groups):
+def test_metriccollection_compute_groups(tmp_path, compute_groups):
     def assertion_calls(keep_base: bool, copy_state: bool):
         if _TORCHMETRICS_GREATER_EQUAL_0_9_1:
             assert copy_state != compute_groups
@@ -463,7 +463,7 @@ def test_metriccollection_compute_groups(tmpdir, compute_groups):
             self.metrics.wrapped_assertion_calls.reset_mock()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=0,
         max_epochs=1,
@@ -573,7 +573,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
 
 
 @pytest.mark.parametrize("logger", [False, True])
-def test_logged_metrics_has_logged_epoch_value(tmpdir, logger):
+def test_logged_metrics_has_logged_epoch_value(tmp_path, logger):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             self.log("epoch", -batch_idx, logger=True)
@@ -581,14 +581,14 @@ def test_logged_metrics_has_logged_epoch_value(tmpdir, logger):
 
     model = TestModel()
     trainer_kwargs = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "limit_train_batches": 2,
         "limit_val_batches": 0,
         "max_epochs": 1,
         "logger": False,
     }
     if logger:
-        trainer_kwargs["logger"] = CSVLogger(tmpdir)
+        trainer_kwargs["logger"] = CSVLogger(tmp_path)
     trainer = Trainer(**trainer_kwargs)
     if not logger:
         with pytest.warns(match=r"log\('epoch', ..., logger=True\)` but have no logger"):

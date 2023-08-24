@@ -34,25 +34,25 @@ def test_almost_max_upload_parts():
 
 
 @pytest.mark.parametrize("size", [1024 * 512, 1024 * 1024 * 5])
-def test_get_dir_size_and_count(tmpdir: Path, size):
+def test_get_dir_size_and_count(tmp_path: Path, size):
     data = os.urandom(size)
-    with open(os.path.join(tmpdir, "a"), "wb") as f:
+    with open(os.path.join(tmp_path, "a"), "wb") as f:
         f.write(data)
-    with open(os.path.join(tmpdir, "b"), "wb") as f:
+    with open(os.path.join(tmp_path, "b"), "wb") as f:
         f.write(data)
-    assert _get_dir_size_and_count(tmpdir, "a") == (size, 1)
+    assert _get_dir_size_and_count(tmp_path, "a") == (size, 1)
 
 
-def test_tar_path(tmpdir: Path, monkeypatch):
-    source_dir, inner_dir = _create_files(tmpdir)
+def test_tar_path(tmp_path: Path, monkeypatch):
+    source_dir, inner_dir = _create_files(tmp_path)
 
     # Test directory
-    target_file = tmpdir / "target.tar.gz"
+    target_file = tmp_path / "target.tar.gz"
     results = _tar_path(source_path=source_dir, target_file=target_file)
     assert results.before_size > 0
     assert results.after_size > 0
 
-    verify_dir = tmpdir / "verify"
+    verify_dir = tmp_path / "verify"
     os.makedirs(verify_dir)
     with tarfile.open(target_file) as tar:
         tar.extractall(verify_dir)
@@ -63,12 +63,12 @@ def test_tar_path(tmpdir: Path, monkeypatch):
     # Test single file
     f2_path = inner_dir / "f2"
 
-    target_file = tmpdir / "target_file.tar.gz"
+    target_file = tmp_path / "target_file.tar.gz"
     results = _tar_path(source_path=f2_path, target_file=target_file)
     assert results.before_size > 0
     assert results.after_size > 0
 
-    verify_dir = tmpdir / "verify_file"
+    verify_dir = tmp_path / "verify_file"
     os.makedirs(verify_dir)
     with tarfile.open(target_file) as tar:
         tar.extractall(verify_dir)
@@ -80,12 +80,12 @@ def test_tar_path(tmpdir: Path, monkeypatch):
 
     f2_path = "f2"
 
-    target_file = tmpdir / "target_file_local.tar.gz"
+    target_file = tmp_path / "target_file_local.tar.gz"
     results = _tar_path(source_path=f2_path, target_file=target_file)
     assert results.before_size > 0
     assert results.after_size > 0
 
-    verify_dir = tmpdir / "verify_file_local"
+    verify_dir = tmp_path / "verify_file_local"
     os.makedirs(verify_dir)
     with tarfile.open(target_file) as tar:
         tar.extractall(verify_dir)
@@ -106,13 +106,13 @@ def test_get_split_size():
     assert split_size == 1024 * 1000 * 10
 
 
-def test_tar_path_no_compression(tmpdir):
-    source_dir, _ = _create_files(tmpdir)
+def test_tar_path_no_compression(tmp_path):
+    source_dir, _ = _create_files(tmp_path)
 
-    target_file = tmpdir / "target.tar.gz"
+    target_file = tmp_path / "target.tar.gz"
     _tar_path(source_path=source_dir, target_file=target_file, compression=False)
 
-    verify_dir = tmpdir / "verify"
+    verify_dir = tmp_path / "verify"
     os.makedirs(verify_dir)
     with tarfile.open(target_file) as target_tar:
         target_tar.extractall(verify_dir)

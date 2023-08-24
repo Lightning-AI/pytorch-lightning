@@ -49,7 +49,7 @@ def test_start_stop_server_through_frontend(process_mock):
 
 @mock.patch("lightning.app.frontend.web.uvicorn")
 @pytest.mark.parametrize("root_path", ["", "/base"])
-def test_start_server_through_function(uvicorn_mock, tmpdir, monkeypatch, root_path):
+def test_start_server_through_function(uvicorn_mock, tmp_path, monkeypatch, root_path):
     FastAPIMock = MagicMock()
     FastAPIMock.mount = MagicMock()
     FastAPIGetDecoratorMock = MagicMock()
@@ -57,7 +57,7 @@ def test_start_server_through_function(uvicorn_mock, tmpdir, monkeypatch, root_p
     monkeypatch.setattr(lightning.app.frontend.web, "FastAPI", MagicMock(return_value=FastAPIMock))
 
     lightning.app.frontend.web._start_server(
-        serve_dir=tmpdir, host="myhost", port=1000, path="/test-flow", root_path=root_path
+        serve_dir=tmp_path, host="myhost", port=1000, path="/test-flow", root_path=root_path
     )
     uvicorn_mock.run.assert_called_once_with(app=ANY, host="myhost", port=1000, log_config=ANY, root_path=root_path)
 
@@ -68,7 +68,7 @@ def test_start_server_through_function(uvicorn_mock, tmpdir, monkeypatch, root_p
 
     # path has default value "/"
     FastAPIMock.mount = MagicMock()
-    lightning.app.frontend.web._start_server(serve_dir=tmpdir, host="myhost", port=1000, root_path=root_path)
+    lightning.app.frontend.web._start_server(serve_dir=tmp_path, host="myhost", port=1000, root_path=root_path)
     FastAPIMock.mount.assert_called_once_with(root_path or "/", ANY, name="static")
 
 
@@ -77,6 +77,6 @@ def test_healthz():
 
 
 @mock.patch("lightning.app.frontend.web.uvicorn")
-def test_start_server_find_free_port(uvicorn_mock, tmpdir):
-    lightning.app.frontend.web._start_server(serve_dir=tmpdir, host="myhost")
+def test_start_server_find_free_port(uvicorn_mock, tmp_path):
+    lightning.app.frontend.web._start_server(serve_dir=tmp_path, host="myhost")
     assert uvicorn_mock.run.call_args_list[0].kwargs["port"] > 0

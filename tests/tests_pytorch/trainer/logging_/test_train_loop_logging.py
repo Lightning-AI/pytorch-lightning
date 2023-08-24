@@ -38,7 +38,7 @@ from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11
 from tests_pytorch.helpers.runif import RunIf
 
 
-def test__training_step__log(tmpdir):
+def test__training_step__log(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(BoringModel):
@@ -81,7 +81,7 @@ def test__training_step__log(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
@@ -103,7 +103,7 @@ def test__training_step__log(tmpdir):
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
-def test__training_step__epoch_end__log(tmpdir):
+def test__training_step__epoch_end__log(tmp_path):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             out = super().training_step(batch, batch_idx)
@@ -120,7 +120,7 @@ def test__training_step__epoch_end__log(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
@@ -144,7 +144,7 @@ def test__training_step__epoch_end__log(tmpdir):
 @pytest.mark.parametrize(
     ("batches", "fx", "result"), [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, "avg", 2), (5, "SUM", 10)]
 )
-def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
+def test__training_step__log_max_reduce_fx(tmp_path, batches, fx, result):
     """Tests that log works correctly with different tensor types."""
 
     class TestModel(BoringModel):
@@ -160,7 +160,7 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=batches,
         limit_val_batches=batches,
         max_epochs=2,
@@ -173,7 +173,7 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     assert trainer.logged_metrics["bar"] == result
 
 
-def test_different_batch_types_for_sizing(tmpdir):
+def test_different_batch_types_for_sizing(tmp_path):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             assert isinstance(batch, dict)
@@ -196,7 +196,7 @@ def test_different_batch_types_for_sizing(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=2,
         max_epochs=1,
@@ -208,7 +208,7 @@ def test_different_batch_types_for_sizing(tmpdir):
     assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "n_step", "n_epoch"}
 
 
-def test_log_works_in_train_callback(tmpdir):
+def test_log_works_in_train_callback(tmp_path):
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
@@ -269,7 +269,7 @@ def test_log_works_in_train_callback(tmpdir):
     model = TestModel()
     cb = TestCallback()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=0,
         num_sanity_val_steps=0,
@@ -350,7 +350,7 @@ class LoggingSyncDistModel(BoringModel):
         pytest.param(2, "gpu", marks=RunIf(min_cuda_gpus=2)),
     ],
 )
-def test_logging_sync_dist_true(tmpdir, devices, accelerator):
+def test_logging_sync_dist_true(tmp_path, devices, accelerator):
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)
@@ -358,7 +358,7 @@ def test_logging_sync_dist_true(tmpdir, devices, accelerator):
     use_multiple_devices = devices > 1
     trainer = Trainer(
         max_epochs=1,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=3,
         limit_val_batches=3,
         enable_model_summary=False,
@@ -388,7 +388,7 @@ def test_logging_sync_dist_true(tmpdir, devices, accelerator):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
-def test_logging_sync_dist_true_ddp(tmpdir):
+def test_logging_sync_dist_true_ddp(tmp_path):
     """Tests to ensure that the sync_dist flag works with ddp."""
 
     class TestLoggingSyncDistModel(BoringModel):
@@ -405,7 +405,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
 
     model = TestLoggingSyncDistModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=2,
@@ -422,7 +422,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     assert trainer.logged_metrics["bar"] == 2
 
 
-def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
+def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmp_path: str):
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
@@ -448,7 +448,7 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
 
     progress_bar = TestProgressBar()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         callbacks=[progress_bar],
         max_epochs=2,
         limit_train_batches=1,
@@ -463,7 +463,7 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
     assert model.callback_on_train_end_called
 
 
-def test_logging_in_callbacks_with_log_function(tmpdir):
+def test_logging_in_callbacks_with_log_function(tmp_path):
     """Tests ensure self.log can be used directly in callbacks."""
 
     class LoggingCallback(callbacks.Callback):
@@ -481,7 +481,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
@@ -507,7 +507,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         "cpu",
     ],
 )
-def test_metric_are_properly_reduced(tmpdir, accelerator):
+def test_metric_are_properly_reduced(tmp_path, accelerator):
     class TestingModel(BoringModel):
         def __init__(self) -> None:
             super().__init__()
@@ -532,7 +532,7 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
 
     model = TestingModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         accelerator=accelerator,
         devices=1,
         max_epochs=2,
@@ -550,19 +550,19 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
     "value",
     [None, {"a": None}, {"a": 1}, {"a": {"b": None}}, {"a": {"b": 1}}, "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
 )
-def test_log_invalid_raises(tmpdir, value):
+def test_log_invalid_raises(tmp_path, value):
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", value)
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
     model = TestModel()
     match = escape(f"self.log(foo, {value})` was called")
     with pytest.raises(ValueError, match=match):
         trainer.fit(model)
 
 
-def test_log_tensor_and_clone_no_torch_warning(tmpdir):
+def test_log_tensor_and_clone_no_torch_warning(tmp_path):
     """Regression test for issue https://github.com/Lightning-AI/lightning/issues/14594."""
 
     class TestModel(BoringModel):
@@ -570,20 +570,20 @@ def test_log_tensor_and_clone_no_torch_warning(tmpdir):
             self.log("foo", torch.tensor(1))
             return super().training_step(*args)
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
     model = TestModel()
     match = r"recommended.*.clone\(\).detach\(\)"
     with no_warning_call(UserWarning, match=match):
         trainer.fit(model)
 
 
-def test_logging_raises(tmpdir):
+def test_logging_raises(tmp_path):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             self.log("foo/dataloader_idx_0", -1)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=0,
         max_epochs=1,
@@ -647,7 +647,7 @@ def test_logging_raises(tmpdir):
         trainer.fit(model)
 
 
-def test_sanity_metrics_are_reset(tmpdir):
+def test_sanity_metrics_are_reset(tmp_path):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             output = super().validation_step(batch, batch_idx)
@@ -665,14 +665,14 @@ def test_sanity_metrics_are_reset(tmpdir):
             return loss
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=2, num_sanity_val_steps=2
+        default_root_dir=tmp_path, max_epochs=1, limit_train_batches=1, limit_val_batches=2, num_sanity_val_steps=2
     )
     trainer.fit(TestModel())
 
     assert "val_loss" not in trainer.progress_bar_metrics
 
 
-def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
+def test_on_epoch_logging_with_sum_and_on_batch_start(tmp_path):
     class TestModel(BoringModel):
         def on_train_epoch_end(self):
             self.log("on_train_epoch_end", 3.0, reduce_fx="mean")
@@ -698,7 +698,7 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         enable_progress_bar=False,
         limit_train_batches=3,
         limit_val_batches=3,
@@ -711,7 +711,7 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
 
 
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
-def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
+def test_log_metrics_epoch_step_values(mock_log_metrics, tmp_path):
     """Tests the default epoch and step values logged."""
 
     class MyModel(BoringModel):
@@ -721,7 +721,7 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
 
     model = MyModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=0,
         max_epochs=2,
@@ -729,7 +729,7 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
         enable_model_summary=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        logger=TensorBoardLogger(tmpdir),
+        logger=TensorBoardLogger(tmp_path),
     )
     trainer.fit(model)
 
@@ -746,7 +746,7 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
 
 
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
-def test_log_on_train_start(mock_log_metrics, tmpdir):
+def test_log_on_train_start(mock_log_metrics, tmp_path):
     """Tests that logged metrics on_train_start get reset after the first epoch."""
 
     class MyModel(BoringModel):
@@ -755,7 +755,7 @@ def test_log_on_train_start(mock_log_metrics, tmpdir):
 
     model = MyModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=0,
         max_epochs=2,
@@ -763,7 +763,7 @@ def test_log_on_train_start(mock_log_metrics, tmpdir):
         enable_model_summary=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        logger=TensorBoardLogger(tmpdir),
+        logger=TensorBoardLogger(tmp_path),
     )
     trainer.fit(model)
 

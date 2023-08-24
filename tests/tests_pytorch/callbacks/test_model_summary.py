@@ -41,7 +41,7 @@ def test_model_summary_callback_with_enable_model_summary_true():
     assert model_summary_callback._max_depth == 1
 
 
-def test_custom_model_summary_callback_summarize(tmpdir):
+def test_custom_model_summary_callback_summarize(tmp_path):
     class CustomModelSummary(ModelSummary):
         @staticmethod
         def summarize(
@@ -61,6 +61,6 @@ def test_custom_model_summary_callback_summarize(tmpdir):
             assert trainable_parameters == 66
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=CustomModelSummary(), max_steps=1)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=CustomModelSummary(), max_steps=1)
 
     trainer.fit(model)

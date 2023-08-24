@@ -36,7 +36,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("mode", [1, 2])
-def test_replace_distributed_sampler(tmpdir, mode):
+def test_replace_distributed_sampler(tmp_path, mode):
     class IndexedRandomDataset(RandomDataset):
         def __getitem__(self, index):
             return self.data[index]
@@ -92,7 +92,7 @@ def test_replace_distributed_sampler(tmpdir, mode):
     model = TestModel(2, mode)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_test_batches=2,
         accelerator="cpu",
         devices=1,
@@ -136,8 +136,8 @@ class TestSpawnBoringModel(BoringModel):
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("num_workers", [0, 1])
-def test_dataloader_warnings(tmpdir, num_workers):
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
+def test_dataloader_warnings(tmp_path, num_workers):
+    trainer = Trainer(default_root_dir=tmp_path, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
     trainer.fit(TestSpawnBoringModel(num_workers))
 
 
@@ -586,10 +586,10 @@ def test_error_raised_with_insufficient_float_limit_train_dataloader():
         ("predict", "dataloaders"),
     ],
 )
-def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, dataloader_name, tmpdir):
+def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, dataloader_name, tmp_path):
     """Test that passing `Trainer.method(x_dataloader=None)` with no module-method implementations available raises an
     error."""
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
     model = BoringModel()
     datamodule = BoringDataModule()
     trainer_fn = getattr(trainer, trainer_fn_name)

@@ -18,12 +18,12 @@ from lightning.pytorch.demos.boring_classes import BoringModel
         (None, 3, 10, -1),
     ],
 )
-def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_steps):
+def test_min_max_steps_epochs(tmp_path, min_epochs, max_epochs, min_steps, max_steps):
     """Tests that max_steps can be used without max_epochs."""
     model = BoringModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         min_epochs=min_epochs,
         max_epochs=max_epochs,
         min_steps=min_steps,

@@ -22,7 +22,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops import _FitLoop
 
 
-def test_outputs_format(tmpdir):
+def test_outputs_format(tmp_path):
     """Tests that outputs objects passed to model hooks and methods are consistent and in the correct format."""
 
     class HookedModel(BoringModel):
@@ -45,7 +45,7 @@ def test_outputs_format(tmpdir):
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_val_batches=1,
         limit_train_batches=2,
@@ -57,7 +57,7 @@ def test_outputs_format(tmpdir):
 
 
 @pytest.mark.parametrize("seed_once", [True, False])
-def test_training_starts_with_seed(tmpdir, seed_once):
+def test_training_starts_with_seed(tmp_path, seed_once):
     """Test the behavior of seed_everything on subsequent Trainer runs in combination with different settings of
     num_sanity_val_steps (which must not affect the random state)."""
 
@@ -78,19 +78,19 @@ def test_training_starts_with_seed(tmpdir, seed_once):
 
     if seed_once:
         seed_everything(123)
-        sequence0 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=0)
-        sequence1 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=2)
+        sequence0 = run_training(default_root_dir=tmp_path, max_steps=2, num_sanity_val_steps=0)
+        sequence1 = run_training(default_root_dir=tmp_path, max_steps=2, num_sanity_val_steps=2)
         assert not torch.allclose(sequence0, sequence1)
     else:
         seed_everything(123)
-        sequence0 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=0)
+        sequence0 = run_training(default_root_dir=tmp_path, max_steps=2, num_sanity_val_steps=0)
         seed_everything(123)
-        sequence1 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=2)
+        sequence1 = run_training(default_root_dir=tmp_path, max_steps=2, num_sanity_val_steps=2)
         assert torch.allclose(sequence0, sequence1)
 
 
 @pytest.mark.parametrize(("max_epochs", "batch_idx_"), [(2, 5), (3, 8), (4, 12)])
-def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
+def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmp_path):
     class CurrentModel(BoringModel):
         def on_train_batch_start(self, batch, batch_idx):
             if batch_idx == batch_idx_:
@@ -98,7 +98,7 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
             return None
 
     model = CurrentModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, limit_train_batches=10)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=max_epochs, limit_train_batches=10)
     trainer.fit(model)
     if batch_idx_ > trainer.num_training_batches - 1:
         assert trainer.fit_loop.batch_idx == trainer.num_training_batches - 1
@@ -108,7 +108,7 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
         assert trainer.global_step == batch_idx_ * max_epochs
 
 
-def test_should_stop_mid_epoch(tmpdir):
+def test_should_stop_mid_epoch(tmp_path):
     """Test that training correctly stops mid epoch and that validation is still called at the right time."""
 
     class TestModel(BoringModel):
@@ -126,7 +126,7 @@ def test_should_stop_mid_epoch(tmpdir):
             return super().validation_step(*args)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=10, limit_val_batches=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, limit_train_batches=10, limit_val_batches=1)
     trainer.fit(model)
 
     # even though we stopped mid epoch, the fit loop finished normally and the current epoch was increased

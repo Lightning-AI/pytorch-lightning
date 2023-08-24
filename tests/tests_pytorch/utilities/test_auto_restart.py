@@ -71,7 +71,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
 
 
 def _fit_model(
-    tmpdir, should_signal, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=None
+    tmp_path, should_signal, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=None
 ):
     seed_everything(42)
     model = TestAutoRestartModelUnderSignal(should_signal, failure_on_step, failure_on_training, on_last_batch)
@@ -87,13 +87,13 @@ def _fit_model(
 
     test_callback = MyTestCallback()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=4,
         limit_val_batches=4,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
-        callbacks=[test_callback, OnExceptionCheckpoint(tmpdir)],
+        callbacks=[test_callback, OnExceptionCheckpoint(tmp_path)],
     )
     if should_signal:
         with pytest.raises(SIGTERMException):
@@ -111,7 +111,7 @@ def _fit_model(
 @pytest.mark.parametrize("failure_on_training", [False, True])
 @pytest.mark.parametrize("failure_on_step", [False, True])
 @RunIf(skip_windows=True)
-def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on_training, failure_on_step, tmpdir):
+def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on_training, failure_on_step, tmp_path):
     if failure_on_step:
         if on_last_batch:
             if failure_on_training:
@@ -130,4 +130,4 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
             # `on_train_epoch_end` happens after `on_validation_epoch_end` since Lightning v1.4
             status = "_FitLoop:on_advance_end" if failure_on_training else "_TrainingEpochLoop:on_advance_end"
 
-    _fit_model(tmpdir, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status)
+    _fit_model(tmp_path, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status)

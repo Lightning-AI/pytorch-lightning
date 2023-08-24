@@ -75,29 +75,29 @@ def test_property_local_rank():
     assert model.local_rank == 123
 
 
-def test_property_logger(tmpdir):
+def test_property_logger(tmp_path):
     """Test that the logger in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.logger is None
 
-    logger = TensorBoardLogger(tmpdir)
+    logger = TensorBoardLogger(tmp_path)
     trainer = Trainer(logger=logger)
     model.trainer = trainer
     assert model.logger == logger
 
 
-def test_property_loggers(tmpdir):
+def test_property_loggers(tmp_path):
     """Test that loggers in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.loggers == []
 
-    logger = TensorBoardLogger(tmpdir)
+    logger = TensorBoardLogger(tmp_path)
     trainer = Trainer(logger=logger)
     model.trainer = trainer
     assert model.loggers == [logger]
 
-    logger0 = TensorBoardLogger(tmpdir)
-    logger1 = TensorBoardLogger(tmpdir)
+    logger0 = TensorBoardLogger(tmp_path)
+    logger1 = TensorBoardLogger(tmp_path)
     trainer = Trainer(logger=[logger0, logger1])
     model.trainer = trainer
     assert model.loggers == [logger0, logger1]
@@ -120,7 +120,7 @@ def test_1_optimizer_toggle_model():
     assert not model._param_requires_grad_state
 
 
-def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
+def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmp_path):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -178,11 +178,11 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
 
     model = TestModel()
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=0)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmp_path, limit_train_batches=8, limit_val_batches=0)
     trainer.fit(model)
 
 
-def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
+def test_toggle_untoggle_3_optimizers_shared_parameters(tmp_path):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -279,7 +279,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             return [optimizer_1, optimizer_2, optimizer_3]
 
     model = TestModel()
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmp_path, limit_train_batches=8)
     trainer.fit(model)
 
 
@@ -290,9 +290,9 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
     ],
 )
-def test_device_placement(tmpdir, accelerator, device):
+def test_device_placement(tmp_path, accelerator, device):
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True, accelerator=accelerator, devices=1)
     trainer.fit(model)
 
     def assert_device(device: torch.device) -> None:
@@ -343,7 +343,7 @@ def test_sharded_tensor_state_dict(single_process_pg):
     ), "Expect the shards to be same after `m_1` loading `m_0`'s state dict"
 
 
-def test_lightning_module_configure_gradient_clipping(tmpdir):
+def test_lightning_module_configure_gradient_clipping(tmp_path):
     """Test custom gradient clipping inside `configure_gradient_clipping` hook."""
 
     class TestModel(BoringModel):
@@ -360,7 +360,7 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=0, gradient_clip_val=1e-4
+        default_root_dir=tmp_path, max_epochs=1, limit_train_batches=1, limit_val_batches=0, gradient_clip_val=1e-4
     )
     trainer.fit(model)
 
@@ -372,7 +372,7 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
                 assert p.grad.max() <= model.custom_gradient_clip_val
 
 
-def test_lightning_module_configure_gradient_clipping_different_argument_values(tmpdir):
+def test_lightning_module_configure_gradient_clipping_different_argument_values(tmp_path):
     """Test that setting gradient clipping arguments in `Trainer` and cusotmizing gradient clipping inside
     `configure_gradient_clipping` with different values raises an exception."""
 
@@ -384,7 +384,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0, gradient_clip_val=1e-4
+        default_root_dir=tmp_path, max_epochs=1, limit_train_batches=2, limit_val_batches=0, gradient_clip_val=1e-4
     )
     with pytest.raises(
         MisconfigurationException,
@@ -400,7 +400,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=0,

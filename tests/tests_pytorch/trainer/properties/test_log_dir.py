@@ -29,62 +29,62 @@ class TestModel(BoringModel):
         return super().training_step(*args, **kwargs)
 
 
-def test_logdir(tmpdir):
+def test_logdir(tmp_path):
     """Tests that the path is correct when checkpoint and loggers are used."""
-    expected = os.path.join(tmpdir, "lightning_logs", "version_0")
+    expected = os.path.join(tmp_path, "lightning_logs", "version_0")
 
     model = TestModel(expected)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[ModelCheckpoint(dirpath=tmpdir)])
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=2, callbacks=[ModelCheckpoint(dirpath=tmp_path)])
 
     assert trainer.log_dir == expected
     trainer.fit(model)
     assert trainer.log_dir == expected
 
 
-def test_logdir_no_checkpoint_cb(tmpdir):
+def test_logdir_no_checkpoint_cb(tmp_path):
     """Tests that the path is correct with no checkpoint."""
-    expected = os.path.join(tmpdir, "lightning_logs", "version_0")
+    expected = os.path.join(tmp_path, "lightning_logs", "version_0")
     model = TestModel(expected)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, enable_checkpointing=False)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=2, enable_checkpointing=False)
 
     assert trainer.log_dir == expected
     trainer.fit(model)
     assert trainer.log_dir == expected
 
 
-def test_logdir_no_logger(tmpdir):
+def test_logdir_no_logger(tmp_path):
     """Tests that the path is correct even when there is no logger."""
-    expected = os.path.join(tmpdir)
+    expected = os.path.join(tmp_path)
     model = TestModel(expected)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, logger=False, callbacks=[ModelCheckpoint(dirpath=tmpdir)])
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=2, logger=False, callbacks=[ModelCheckpoint(dirpath=tmp_path)])
 
     assert trainer.log_dir == expected
     trainer.fit(model)
     assert trainer.log_dir == expected
 
 
-def test_logdir_no_logger_no_checkpoint(tmpdir):
+def test_logdir_no_logger_no_checkpoint(tmp_path):
     """Tests that the path is correct even when there is no logger."""
-    expected = os.path.join(tmpdir)
+    expected = os.path.join(tmp_path)
     model = TestModel(expected)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, logger=False, enable_checkpointing=False)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=2, logger=False, enable_checkpointing=False)
 
     assert trainer.log_dir == expected
     trainer.fit(model)
     assert trainer.log_dir == expected
 
 
-def test_logdir_custom_callback(tmpdir):
+def test_logdir_custom_callback(tmp_path):
     """Tests that the path is correct even when there is a custom callback."""
-    expected = os.path.join(tmpdir, "lightning_logs", "version_0")
+    expected = os.path.join(tmp_path, "lightning_logs", "version_0")
     model = TestModel(expected)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_steps=2, callbacks=[ModelCheckpoint(dirpath=os.path.join(tmpdir, "ckpts"))]
+        default_root_dir=tmp_path, max_steps=2, callbacks=[ModelCheckpoint(dirpath=os.path.join(tmp_path, "ckpts"))]
     )
 
     assert trainer.log_dir == expected
@@ -92,16 +92,16 @@ def test_logdir_custom_callback(tmpdir):
     assert trainer.log_dir == expected
 
 
-def test_logdir_custom_logger(tmpdir):
+def test_logdir_custom_logger(tmp_path):
     """Tests that the path is correct even when there is a custom logger."""
-    expected = os.path.join(tmpdir, "custom_logs", "version_0")
+    expected = os.path.join(tmp_path, "custom_logs", "version_0")
     model = TestModel(expected)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_steps=2,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
-        logger=TensorBoardLogger(save_dir=tmpdir, name="custom_logs"),
+        callbacks=[ModelCheckpoint(dirpath=tmp_path)],
+        logger=TensorBoardLogger(save_dir=tmp_path, name="custom_logs"),
     )
 
     assert trainer.log_dir == expected
@@ -109,16 +109,16 @@ def test_logdir_custom_logger(tmpdir):
     assert trainer.log_dir == expected
 
 
-def test_logdir_multiple_loggers(tmpdir):
+def test_logdir_multiple_loggers(tmp_path):
     """Tests that the logdir equals the default_root_dir when trainer has multiple loggers."""
-    default_root_dir = tmpdir / "default_root_dir"
-    save_dir = tmpdir / "save_dir"
-    expected = os.path.join(tmpdir, "save_dir", "custom_logs", "version_0")
+    default_root_dir = tmp_path / "default_root_dir"
+    save_dir = tmp_path / "save_dir"
+    expected = os.path.join(tmp_path, "save_dir", "custom_logs", "version_0")
     model = TestModel(expected)
     trainer = Trainer(
         default_root_dir=default_root_dir,
         max_steps=2,
-        logger=[TensorBoardLogger(save_dir=save_dir, name="custom_logs"), CSVLogger(tmpdir)],
+        logger=[TensorBoardLogger(save_dir=save_dir, name="custom_logs"), CSVLogger(tmp_path)],
     )
 
     assert trainer.log_dir == expected

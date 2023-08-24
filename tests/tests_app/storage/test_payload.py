@@ -68,17 +68,17 @@ def test_payload_in_init():
 
 
 class WorkRun(LightningWork):
-    def __init__(self, tmpdir):
+    def __init__(self, tmp_path):
         super().__init__()
         self.var_a = None
-        self.tmpdir = tmpdir
+        self.tmp_path = tmp_path
 
     def run(self):
         self.var_a = Payload("something")
         assert self.var_a.name == "var_a"
         assert self.var_a._origin == "root.a"
         assert self.var_a.hash == "9bd514ad51fc33d895c50657acd0f0582301cf3e"
-        source_path = pathlib.Path(self.tmpdir, self.var_a.name)
+        source_path = pathlib.Path(self.tmp_path, self.var_a.name)
         assert not source_path.exists()
         response = self.var_a._handle_get_request(
             self,
@@ -95,8 +95,8 @@ class WorkRun(LightningWork):
         assert not response.exception
 
 
-def test_payload_in_run(tmpdir):
-    work = WorkRun(str(tmpdir))
+def test_payload_in_run(tmp_path):
+    work = WorkRun(str(tmp_path))
     work._name = "root.a"
     work.run()
 
@@ -143,9 +143,9 @@ class Flow(LightningFlow):
             self.stop()
 
 
-def test_payload_works(tmpdir):
+def test_payload_works(tmp_path):
     """This tests validates the payload api can be used to transfer return values from a work to another."""
-    with mock.patch("lightning.app.storage.path._storage_root_dir", return_value=pathlib.Path(tmpdir)):
+    with mock.patch("lightning.app.storage.path._storage_root_dir", return_value=pathlib.Path(tmp_path)):
         app = LightningApp(Flow(), log_level="debug")
         MultiProcessRuntime(app, start_server=False).dispatch()
 

@@ -27,12 +27,12 @@ def test_get_filesystem_custom_filesystem():
         ...
 
     fsspec.register_implementation(_DUMMY_PRFEIX, DummyFileSystem, clobber=True)
-    output_file = os.path.join(f"{_DUMMY_PRFEIX}://", "tmpdir/tmp_file")
+    output_file = os.path.join(f"{_DUMMY_PRFEIX}://", "tmp_path/tmp_file")
     assert isinstance(get_filesystem(output_file), DummyFileSystem)
 
 
 def test_get_filesystem_local_filesystem():
-    assert isinstance(get_filesystem("tmpdir/tmp_file"), LocalFileSystem)
+    assert isinstance(get_filesystem("tmp_path/tmp_file"), LocalFileSystem)
 
 
 def test_is_dir_with_local_filesystem(tmp_path):

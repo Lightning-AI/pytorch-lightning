@@ -25,7 +25,7 @@ from lightning.pytorch.trainer.states import RunningStage
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 
-def test__training_step__flow_scalar(tmpdir):
+def test__training_step__flow_scalar(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -42,7 +42,7 @@ def test__training_step__flow_scalar(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
@@ -55,7 +55,7 @@ def test__training_step__flow_scalar(tmpdir):
     assert model.training_step_called
 
 
-def test__training_step__tr_batch_end__flow_scalar(tmpdir):
+def test__training_step__tr_batch_end__flow_scalar(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -76,7 +76,7 @@ def test__training_step__tr_batch_end__flow_scalar(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
@@ -89,7 +89,7 @@ def test__training_step__tr_batch_end__flow_scalar(tmpdir):
     assert model.training_step_called
 
 
-def test__training_step__epoch_end__flow_scalar(tmpdir):
+def test__training_step__epoch_end__flow_scalar(tmp_path):
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -107,7 +107,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
@@ -137,7 +137,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     assert opt_closure_result.item() == 171
 
 
-def test_train_step_no_return(tmpdir):
+def test_train_step_no_return(tmp_path):
     """Tests that only training_step raises a warning when nothing is returned in case of automatic_optimization."""
 
     class TestModel(BoringModel):
@@ -150,7 +150,7 @@ def test_train_step_no_return(tmpdir):
             self.validation_step_called = True
 
     model = TestModel()
-    trainer_args = {"default_root_dir": tmpdir, "fast_dev_run": 2}
+    trainer_args = {"default_root_dir": tmp_path, "fast_dev_run": 2}
     trainer = Trainer(**trainer_args)
 
     Closure.warning_cache.clear()
@@ -171,7 +171,7 @@ def test_train_step_no_return(tmpdir):
         trainer.fit(model)
 
 
-def test_training_step_no_return_when_even(tmpdir):
+def test_training_step_no_return_when_even(tmp_path):
     """Tests correctness when some training steps have been skipped."""
 
     class TestModel(BoringModel):
@@ -183,7 +183,7 @@ def test_training_step_no_return_when_even(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=4,
         limit_val_batches=1,
         max_epochs=4,
@@ -207,7 +207,7 @@ def test_training_step_no_return_when_even(tmpdir):
             assert out == {}
 
 
-def test_training_step_none_batches(tmpdir):
+def test_training_step_none_batches(tmp_path):
     """Tests correctness when the train dataloader gives None for some steps."""
 
     class TestModel(BoringModel):
@@ -231,7 +231,7 @@ def test_training_step_none_batches(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_val_batches=1,
         max_epochs=4,
         enable_model_summary=False,

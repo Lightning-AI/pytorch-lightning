@@ -211,11 +211,11 @@ def _run_cli(args) -> Generator:
         "lightning",
     ] + args
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory() as tmp_path:
         env_copy = os.environ.copy()
         process = Popen(
             cmd,
-            cwd=tmpdir,
+            cwd=tmp_path,
             env=env_copy,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -283,14 +283,14 @@ def run_app_in_cloud(
     Popen("lightning logout", shell=True).wait()
 
     # 4. Launch the application in the cloud from the Lightning CLI.
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory() as tmp_path:
         env_copy = os.environ.copy()
         env_copy["PACKAGE_LIGHTNING"] = "1"
         env_copy["LIGHTING_TESTING"] = "1"
         if debug:
             print("Debug mode is enabled")
             env_copy["LIGHTNING_DEBUG"] = "1"
-        shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
+        shutil.copytree(app_folder, tmp_path, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         stdout_path = get_logfile(f"run_app_in_cloud_{name}")
 
@@ -312,7 +312,7 @@ def run_app_in_cloud(
                 *cmd_extra_args,
             ]
             print(f"Command: {cmd}")
-            process = Popen((cmd + extra_args), cwd=tmpdir, env=env_copy, stdout=stdout, stderr=sys.stderr)
+            process = Popen((cmd + extra_args), cwd=tmp_path, env=env_copy, stdout=stdout, stderr=sys.stderr)
             process.wait()
 
         # Fallback URL to prevent failures in case we don't get the admin URL

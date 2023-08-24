@@ -19,7 +19,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.models.test_hooks import get_members
 
 
-def test_lambda_call(tmpdir):
+def test_lambda_call(tmp_path):
     seed_everything(42)
 
     class CustomModel(BoringModel):
@@ -39,7 +39,7 @@ def test_lambda_call(tmpdir):
 
     # successful run
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -50,7 +50,7 @@ def test_lambda_call(tmpdir):
 
     # raises KeyboardInterrupt and loads from checkpoint
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=3,
         limit_train_batches=1,
         limit_val_batches=1,

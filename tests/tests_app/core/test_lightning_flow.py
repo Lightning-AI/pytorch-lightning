@@ -210,7 +210,7 @@ def test_setattr_outside_run_context():
     assert flow.state["vars"]["attribute"] == "allowed"
 
 
-def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
+def _run_state_transformation(tmp_path, attribute, update_fn, inplace=False):
     """This helper function defines a flow, assignes an attribute and performs a transformation on the state."""
 
     class StateTransformationTest(LightningFlow):
@@ -247,12 +247,12 @@ def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
         ((4, 5), lambda x: (4, 5, 6), (4, 5, 6)),
     ],
 )
-def test_attribute_state_change(attribute, update_fn, expected, tmpdir):
+def test_attribute_state_change(attribute, update_fn, expected, tmp_path):
     """Test that state changes get recored on all supported data types."""
-    assert _run_state_transformation(tmpdir, attribute, update_fn, inplace=False) == expected
+    assert _run_state_transformation(tmp_path, attribute, update_fn, inplace=False) == expected
 
 
-def test_inplace_attribute_state_change(tmpdir):
+def test_inplace_attribute_state_change(tmp_path):
     """Test that in-place modifications on containers get captured as a state change."""
 
     # inplace modification of a nested dict
@@ -261,7 +261,7 @@ def test_inplace_attribute_state_change(tmpdir):
 
     value = {"a": 1, "b": {"c": 2}}
     expected = {"a": 1, "b": {"c": 3}}
-    assert _run_state_transformation(tmpdir, value, transform, inplace=True) == expected
+    assert _run_state_transformation(tmp_path, value, transform, inplace=True) == expected
 
     # inplace modification of nested list
     def transform(x):
@@ -269,7 +269,7 @@ def test_inplace_attribute_state_change(tmpdir):
 
     value = ["a", 1, [2.0]]
     expected = ["a", 1, [2.0, 3.0]]
-    assert _run_state_transformation(tmpdir, value, transform, inplace=True) == expected
+    assert _run_state_transformation(tmp_path, value, transform, inplace=True) == expected
 
     # inplace modification of a custom dict
     def transform(x):
@@ -277,7 +277,7 @@ def test_inplace_attribute_state_change(tmpdir):
 
     value = Counter("abab")
     expected = Counter(a=4, b=3)
-    assert _run_state_transformation(tmpdir, value, transform, inplace=True) == expected
+    assert _run_state_transformation(tmp_path, value, transform, inplace=True) == expected
 
 
 def test_lightning_flow_and_work():
@@ -529,7 +529,7 @@ class CFlow(LightningFlow):
 
 
 @pytest.mark.parametrize("run_once", [False, True])
-def test_lightning_flow_iterate(tmpdir, run_once):
+def test_lightning_flow_iterate(tmp_path, run_once):
     app = LightningApp(CFlow(run_once))
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.looping == 0
@@ -563,7 +563,7 @@ class FlowCounter(LightningFlow):
         self.counter += 1
 
 
-def test_lightning_flow_counter(tmpdir):
+def test_lightning_flow_counter(tmp_path):
     app = LightningApp(FlowCounter())
     app.checkpointing = True
     MultiProcessRuntime(app, start_server=False).dispatch()

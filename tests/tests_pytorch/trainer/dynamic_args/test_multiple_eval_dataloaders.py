@@ -44,7 +44,7 @@ class RandomDatasetB(Dataset):
 
 
 @pytest.mark.parametrize("seq_type", [tuple, list])
-def test_multiple_eval_dataloaders_seq(tmpdir, seq_type):
+def test_multiple_eval_dataloaders_seq(tmp_path, seq_type):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx, dataloader_idx):
             if dataloader_idx == 0:
@@ -62,7 +62,7 @@ def test_multiple_eval_dataloaders_seq(tmpdir, seq_type):
     model = TestModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,

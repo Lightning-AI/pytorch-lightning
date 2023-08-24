@@ -294,13 +294,13 @@ def test_path_attach_queues():
 
 
 @pytest.mark.parametrize("cls", [LightningFlow, LightningWork])
-def test_path_in_flow_and_work(cls, tmpdir):
+def test_path_in_flow_and_work(cls, tmp_path):
     class PathComponent(cls):
         def __init__(self):
             super().__init__()
             self.path_one = Path("a", "b")
             self.path_one = Path("a", "b", "c")
-            self.path_two = Path(tmpdir) / "write.txt"
+            self.path_two = Path(tmp_path) / "write.txt"
 
         def run(self):
             self.path_one = self.path_one / "d.txt"
@@ -334,9 +334,9 @@ def test_path_in_flow_and_work(cls, tmpdir):
 
 
 class SourceWork(LightningWork):
-    def __init__(self, tmpdir):
+    def __init__(self, tmp_path):
         super().__init__(cache_calls=True)
-        self.path = Path(tmpdir, "src.txt")
+        self.path = Path(tmp_path, "src.txt")
         assert self.path.origin_name == ""
 
     def run(self):
@@ -363,9 +363,9 @@ class DestinationWork(LightningWork):
 
 
 class SourceToDestFlow(LightningFlow):
-    def __init__(self, tmpdir):
+    def __init__(self, tmp_path):
         super().__init__()
-        self.src_work = SourceWork(tmpdir)
+        self.src_work = SourceWork(tmp_path)
         self.dst_work = DestinationWork(self.src_work.path)
 
     def run(self):
@@ -376,20 +376,20 @@ class SourceToDestFlow(LightningFlow):
             self.stop()
 
 
-def test_multiprocess_path_in_work_and_flow(tmpdir):
-    root = SourceToDestFlow(tmpdir)
+def test_multiprocess_path_in_work_and_flow(tmp_path):
+    root = SourceToDestFlow(tmp_path)
     app = LightningApp(root, log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
 
 
 class DynamicSourceToDestFlow(LightningFlow):
-    def __init__(self, tmpdir):
+    def __init__(self, tmp_path):
         super().__init__()
-        self.tmpdir = str(tmpdir)
+        self.tmp_path = str(tmp_path)
 
     def run(self):
         if not hasattr(self, "src_work"):
-            self.src_work = SourceWork(self.tmpdir)
+            self.src_work = SourceWork(self.tmp_path)
         self.src_work.run()
         if self.src_work.has_succeeded:
             if not hasattr(self, "dst_work"):
@@ -401,8 +401,8 @@ class DynamicSourceToDestFlow(LightningFlow):
 
 # FIXME(alecmerdler): This test is failing...
 @pytest.mark.skip(reason="hanging...")
-def test_multiprocess_path_in_work_and_flow_dynamic(tmpdir):
-    root = DynamicSourceToDestFlow(tmpdir)
+def test_multiprocess_path_in_work_and_flow_dynamic(tmp_path):
+    root = DynamicSourceToDestFlow(tmp_path)
     app = LightningApp(root)
     MultiProcessRuntime(app).dispatch()
 
@@ -490,7 +490,7 @@ def test_path_as_argument_to_run_method():
     MultiProcessRuntime(app, start_server=False).dispatch()
 
 
-def test_path_get_errors(tmpdir):
+def test_path_get_errors(tmp_path):
     with _context("work"):
         with pytest.raises(
             RuntimeError, match="Trying to get the file .* but the path is not attached to a LightningApp"
@@ -505,16 +505,16 @@ def test_path_get_errors(tmpdir):
             path.get()
 
         with pytest.raises(FileExistsError, match="The file or folder .* exists locally. Pass `overwrite=True"):
-            path = Path(tmpdir)
+            path = Path(tmp_path)
             path._attach_queues(Mock(), Mock())
             path._attach_work(Mock())
             path.get()
 
 
 class SourceOverwriteWork(LightningWork):
-    def __init__(self, tmpdir):
+    def __init__(self, tmp_path):
         super().__init__(raise_exception=True)
-        self.path = Path(tmpdir, "folder")
+        self.path = Path(tmp_path, "folder")
 
     def run(self):
         self.path.mkdir(parents=True, exist_ok=True)
@@ -537,9 +537,9 @@ class DestinationOverwriteWork(LightningWork):
 
 
 class OverwriteFolderFlow(LightningFlow):
-    def __init__(self, tmpdir):
+    def __init__(self, tmp_path):
         super().__init__()
-        self.src_work = SourceOverwriteWork(tmpdir)
+        self.src_work = SourceOverwriteWork(tmp_path)
         self.dst_work = DestinationOverwriteWork(self.src_work.path)
 
     def run(self):
@@ -550,9 +550,9 @@ class OverwriteFolderFlow(LightningFlow):
             self.stop()
 
 
-def test_path_get_overwrite(tmpdir):
+def test_path_get_overwrite(tmp_path):
     """Test that .get(overwrite=True) overwrites the entire directory and replaces all files."""
-    root = OverwriteFolderFlow(tmpdir)
+    root = OverwriteFolderFlow(tmp_path)
     app = LightningApp(root, log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
 
@@ -564,10 +564,10 @@ def test_path_get_error_in_flow_context():
         Path().get()
 
 
-def test_path_response_with_exception(tmpdir):
+def test_path_response_with_exception(tmp_path):
     request_queue = _MockQueue()
     response_queue = _MockQueue()
-    path = Path(tmpdir / "file.txt")
+    path = Path(tmp_path / "file.txt")
     path._attach_queues(request_queue, response_queue)
     path._origin = "origin"
     path._consumer = "consumer"
@@ -576,7 +576,7 @@ def test_path_response_with_exception(tmpdir):
     response_queue.put(
         _GetResponse(
             source="origin",
-            path=str(tmpdir / "file.txt"),
+            path=str(tmp_path / "file.txt"),
             hash=path.hash,
             destination="consumer",
             exception=OSError("Something went wrong"),
@@ -590,17 +590,17 @@ def test_path_response_with_exception(tmpdir):
         path.get()
 
 
-def test_path_response_not_matching_reqeuest(tmpdir):
+def test_path_response_not_matching_reqeuest(tmp_path):
     request_queue = _MockQueue()
     response_queue = _MockQueue()
-    path = Path(tmpdir / "file.txt")
+    path = Path(tmp_path / "file.txt")
     path._attach_queues(request_queue, response_queue)
     path._origin = "origin"
     path._consumer = "consumer"
 
     # simulate a response that has a different owner than the request had
     response = _GetResponse(
-        source="other_origin", path=str(tmpdir / "file.txt"), hash=path.hash, destination="consumer", name=""
+        source="other_origin", path=str(tmp_path / "file.txt"), hash=path.hash, destination="consumer", name=""
     )
 
     response_queue.put(response)
@@ -620,17 +620,17 @@ def test_path_response_not_matching_reqeuest(tmpdir):
         path.get()
 
 
-def test_path_exists(tmpdir):
+def test_path_exists(tmp_path):
     """Test that the Path.exists() behaves as expected: First it should check if the file exists locally, and if not,
     send a message to the orchestrator to eventually check the existenc on the origin Work."""
     # Local Path (no Work queues attached)
     assert not Path("file").exists()
-    assert Path(tmpdir).exists()
-    with open(tmpdir / "file", "w"):
-        assert Path(tmpdir / "file").exists()
+    assert Path(tmp_path).exists()
+    with open(tmp_path / "file", "w"):
+        assert Path(tmp_path / "file").exists()
 
     # A local path that exists
-    path = Path(tmpdir)
+    path = Path(tmp_path)
     path.exists_remote = Mock()
     path.exists_local = Mock(return_value=True)
     assert path.exists() is True
@@ -655,22 +655,22 @@ def test_path_exists(tmpdir):
     path.exists_remote.assert_called_once()  # check remotely
 
 
-def test_path_exists_local(tmpdir):
+def test_path_exists_local(tmp_path):
     assert not Path("file").exists_local()
-    assert Path(tmpdir).exists_local()
-    with open(tmpdir / "file", "w"):
-        assert Path(tmpdir / "file").exists_local()
+    assert Path(tmp_path).exists_local()
+    with open(tmp_path / "file", "w"):
+        assert Path(tmp_path / "file").exists_local()
 
 
-def test_path_exists_remote(tmpdir):
-    path = Path(tmpdir / "not-attached.txt")
+def test_path_exists_remote(tmp_path):
+    path = Path(tmp_path / "not-attached.txt")
     with pytest.raises(RuntimeError, match="the path is not attached to a LightningWork"):
         path.exists_remote()
 
     # If Path does not exist locally, ask the orchestrator
     request_queue = _MockQueue()
     response_queue = _MockQueue()
-    path = Path(tmpdir / "not-exists.txt")
+    path = Path(tmp_path / "not-exists.txt")
     path._attach_queues(request_queue, response_queue)
     path._origin = "origin"
     path._consumer = "consumer"

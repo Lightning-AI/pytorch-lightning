@@ -20,7 +20,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.trainer import Trainer
 
 
-def test_no_val_on_train_epoch_loop_restart(tmpdir):
+def test_no_val_on_train_epoch_loop_restart(tmp_path):
     """Test that training validation loop doesn't get triggered at the beginning of a restart."""
     trainer_kwargs = {
         "max_epochs": 1,
@@ -32,7 +32,7 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     model = BoringModel()
     trainer.fit(model)
-    ckpt_path = str(tmpdir / "last.ckpt")
+    ckpt_path = str(tmp_path / "last.ckpt")
     trainer.save_checkpoint(ckpt_path)
 
     trainer_kwargs["max_epochs"] = 2

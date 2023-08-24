@@ -25,11 +25,11 @@ from tests_pytorch.strategies.test_ddp_strategy import UnusedParametersModel
 
 
 @RunIf(min_cuda_gpus=2, sklearn=True)
-def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
+def test_multi_gpu_early_stop_ddp_spawn(tmp_path):
     seed_everything(42)
 
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "callbacks": [EarlyStopping(monitor="train_acc")],
         "max_epochs": 50,
         "limit_train_batches": 10,
@@ -45,11 +45,11 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2)
-def test_multi_gpu_model_ddp_spawn(tmpdir):
+def test_multi_gpu_model_ddp_spawn(tmp_path):
     seed_everything(42)
 
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "max_epochs": 1,
         "limit_train_batches": 10,
         "limit_val_batches": 10,
@@ -65,12 +65,12 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2)
-def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
+def test_ddp_all_dataloaders_passed_to_fit(tmp_path):
     """Make sure DDP works with dataloaders passed to fit()"""
     model = BoringModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.2,

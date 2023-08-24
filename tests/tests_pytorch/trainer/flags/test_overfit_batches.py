@@ -28,14 +28,14 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 @pytest.mark.parametrize("overfit_batches", [1, 2, 0.1, 0.25, 1.0])
-def test_overfit_basic(tmpdir, overfit_batches):
+def test_overfit_basic(tmp_path, overfit_batches):
     """Tests that only training_step can be used when overfitting."""
     model = BoringModel()
     model.validation_step = None
     total_train_samples = len(BoringModel().train_dataloader())
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, overfit_batches=overfit_batches, enable_model_summary=False
+        default_root_dir=tmp_path, max_epochs=1, overfit_batches=overfit_batches, enable_model_summary=False
     )
     trainer.fit(model)
 
@@ -45,7 +45,7 @@ def test_overfit_basic(tmpdir, overfit_batches):
     )
 
 
-def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
+def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmp_path):
     class NonSequentialSampler(Sampler):
         def __init__(self, data_source):
             self.data_source = data_source
@@ -68,7 +68,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
             return torch.utils.data.DataLoader(dataset, sampler=sampler)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=2)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, overfit_batches=2)
 
     with pytest.warns(UserWarning, match="requested to overfit but enabled train dataloader shuffling"):
         trainer.fit(model)

@@ -61,7 +61,7 @@ class TestModel(BoringModel):
 
 
 @RunIf(skip_windows=True)
-def test_all_rank_logging_ddp_cpu(tmpdir):
+def test_all_rank_logging_ddp_cpu(tmp_path):
     """Check that all ranks can be logged from."""
     model = TestModel()
     all_rank_logger = AllRankLogger()
@@ -69,7 +69,7 @@ def test_all_rank_logging_ddp_cpu(tmpdir):
         accelerator="cpu",
         devices=2,
         strategy="ddp_spawn",
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
@@ -81,7 +81,7 @@ def test_all_rank_logging_ddp_cpu(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2)
-def test_all_rank_logging_ddp_spawn(tmpdir):
+def test_all_rank_logging_ddp_spawn(tmp_path):
     """Check that all ranks can be logged from."""
     model = TestModel()
     all_rank_logger = AllRankLogger()
@@ -89,7 +89,7 @@ def test_all_rank_logging_ddp_spawn(tmpdir):
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
@@ -99,7 +99,7 @@ def test_all_rank_logging_ddp_spawn(tmpdir):
     trainer.fit(model)
 
 
-def test_first_logger_call_in_subprocess(tmpdir):
+def test_first_logger_call_in_subprocess(tmp_path):
     """Test that the Trainer does not call the logger too early.
 
     Only when the worker processes are initialized do we have access to the rank and know which one is the main process.
@@ -120,11 +120,11 @@ def test_first_logger_call_in_subprocess(tmpdir):
     logger = Mock()
     logger.version = "0"
     logger.name = "name"
-    logger.save_dir = tmpdir
+    logger.save_dir = tmp_path
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
@@ -134,7 +134,7 @@ def test_first_logger_call_in_subprocess(tmpdir):
     trainer.fit(model)
 
 
-def test_logger_after_fit_predict_test_calls(tmpdir):
+def test_logger_after_fit_predict_test_calls(tmp_path):
     """Make sure logger outputs are finalized after fit, prediction, and test calls."""
 
     class BufferLogger(Logger):
@@ -180,7 +180,7 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,

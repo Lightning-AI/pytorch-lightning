@@ -24,7 +24,7 @@ from tests_pytorch.helpers.datasets import AverageDataset, MNIST, TrialMNIST
     ("dataset_cls", "args"),
     [(MNIST, {"root": _PATH_DATASETS}), (TrialMNIST, {"root": _PATH_DATASETS}), (AverageDataset, {})],
 )
-def test_pickling_dataset_mnist(tmpdir, dataset_cls, args):
+def test_pickling_dataset_mnist(tmp_path, dataset_cls, args):
     mnist = dataset_cls(**args)
 
     mnist_pickled = pickle.dumps(mnist)

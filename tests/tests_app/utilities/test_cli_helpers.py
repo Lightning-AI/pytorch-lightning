@@ -159,7 +159,7 @@ def test_get_newer_version(mock_requests, response, current_version, newer_versi
 
 
 @patch("lightning.app.utilities.cli_helpers._redirect_command")
-def test_check_environment_and_redirect(mock_redirect_command, tmpdir, monkeypatch):
+def test_check_environment_and_redirect(mock_redirect_command, tmp_path, monkeypatch):
     # Ensure that the test fails if it tries to redirect
     mock_redirect_command.side_effect = RuntimeError
 
@@ -170,11 +170,11 @@ def test_check_environment_and_redirect(mock_redirect_command, tmpdir, monkeypat
     assert _check_environment_and_redirect() is None
 
     # Test executable on the path with redirect
-    fake_python_path = os.path.join(tmpdir, "python")
+    fake_python_path = os.path.join(tmp_path, "python")
 
     os.symlink(sys.executable, fake_python_path)
 
-    monkeypatch.setenv("PATH", f"{tmpdir}")
+    monkeypatch.setenv("PATH", f"{tmp_path}")
     assert _check_environment_and_redirect() is None
 
     os.remove(fake_python_path)
@@ -197,5 +197,5 @@ def test_check_environment_and_redirect(mock_redirect_command, tmpdir, monkeypat
             ]
         )
 
-    monkeypatch.setenv("PATH", f"{tmpdir}")
+    monkeypatch.setenv("PATH", f"{tmp_path}")
     assert _check_environment_and_redirect() is None

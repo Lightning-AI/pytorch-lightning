@@ -60,9 +60,9 @@ def test_deepspeed_with_invalid_config_path():
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_with_env_path(tmpdir, monkeypatch, deepspeed_config):
+def test_deepspeed_with_env_path(tmp_path, monkeypatch, deepspeed_config):
     """Test to ensure if we pass an env variable, we load the config from the path."""
-    config_path = os.path.join(tmpdir, "temp.json")
+    config_path = os.path.join(tmp_path, "temp.json")
     with open(config_path, "w") as f:
         f.write(json.dumps(deepspeed_config))
     monkeypatch.setenv("PL_DEEPSPEED_CONFIG_PATH", config_path)
@@ -80,7 +80,7 @@ def test_deepspeed_defaults():
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
+def test_deepspeed_custom_activation_checkpointing_params(tmp_path):
     """Ensure if we modify the activation checkpointing parameters, the deepspeed config contains these changes."""
     ds = DeepSpeedStrategy(
         partition_activations=True,

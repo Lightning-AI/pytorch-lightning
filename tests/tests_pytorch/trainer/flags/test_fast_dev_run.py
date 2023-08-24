@@ -12,13 +12,13 @@ from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.tuner.tuning import Tuner
 
 
-def test_skip_on_fast_dev_run_tuner(tmpdir):
+def test_skip_on_fast_dev_run_tuner(tmp_path):
     """Test that tuner algorithms are skipped if fast dev run is enabled."""
     model = BoringModel()
     model.lr = 0.1  # avoid no-lr-found exception
     model.batch_size = 8
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         fast_dev_run=True,
     )
@@ -32,7 +32,7 @@ def test_skip_on_fast_dev_run_tuner(tmpdir):
 
 
 @pytest.mark.parametrize("fast_dev_run", [1, 4])
-def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
+def test_callbacks_and_logger_not_called_with_fastdevrun(tmp_path, fast_dev_run):
     """Test that ModelCheckpoint, EarlyStopping and Logger are turned off with fast_dev_run."""
 
     class FastDevRunModel(BoringModel):
@@ -69,10 +69,10 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     early_stopping_callback = EarlyStopping(monitor="foo")
     early_stopping_callback._evaluate_stopping_criteria = Mock()
     trainer_config = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "fast_dev_run": fast_dev_run,
         "val_check_interval": 2,
-        "logger": TensorBoardLogger(tmpdir),
+        "logger": TensorBoardLogger(tmp_path),
         "log_every_n_steps": 1,
         "callbacks": [checkpoint_callback, early_stopping_callback],
     }

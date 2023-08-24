@@ -143,7 +143,7 @@ class SwaTestCallback(StochasticWeightAveraging):
 
 
 def train_with_swa(
-    tmpdir,
+    tmp_path,
     batchnorm=True,
     strategy="auto",
     accelerator="cpu",
@@ -159,7 +159,7 @@ def train_with_swa(
     assert swa_callback.transfer_weights_calls == 0
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         enable_progress_bar=False,
         enable_model_summary=False,
         max_epochs=max_epochs,
@@ -180,41 +180,41 @@ def train_with_swa(
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
-def test_swa_callback_ddp(tmpdir):
-    train_with_swa(tmpdir, strategy="ddp", accelerator="gpu", devices=2)
+def test_swa_callback_ddp(tmp_path):
+    train_with_swa(tmp_path, strategy="ddp", accelerator="gpu", devices=2)
 
 
 @RunIf(min_cuda_gpus=2)
-def test_swa_callback_ddp_spawn(tmpdir):
-    train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="gpu", devices=2)
+def test_swa_callback_ddp_spawn(tmp_path):
+    train_with_swa(tmp_path, strategy="ddp_spawn", accelerator="gpu", devices=2)
 
 
 @RunIf(skip_windows=True)
-def test_swa_callback_ddp_cpu(tmpdir):
-    train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="cpu", devices=2)
+def test_swa_callback_ddp_cpu(tmp_path):
+    train_with_swa(tmp_path, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
 
 @pytest.mark.parametrize(
     "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
 )
-def test_swa_callback_1_gpu(tmpdir, accelerator):
-    train_with_swa(tmpdir, accelerator=accelerator, devices=1)
+def test_swa_callback_1_gpu(tmp_path, accelerator):
+    train_with_swa(tmp_path, accelerator=accelerator, devices=1)
 
 
 @pytest.mark.parametrize("batchnorm", [True, False])
 @pytest.mark.parametrize("iterable_dataset", [True, False])
-def test_swa_callback(tmpdir, batchnorm: bool, iterable_dataset: bool):
-    train_with_swa(tmpdir, batchnorm=batchnorm, iterable_dataset=iterable_dataset)
+def test_swa_callback(tmp_path, batchnorm: bool, iterable_dataset: bool):
+    train_with_swa(tmp_path, batchnorm=batchnorm, iterable_dataset=iterable_dataset)
 
 
 @pytest.mark.parametrize("interval", ["epoch", "step"])
-def test_swa_callback_scheduler_step(tmpdir, interval: str):
-    train_with_swa(tmpdir, interval=interval)
+def test_swa_callback_scheduler_step(tmp_path, interval: str):
+    train_with_swa(tmp_path, interval=interval)
 
 
-def test_swa_warns(tmpdir, caplog):
+def test_swa_warns(tmp_path, caplog):
     model = SwaTestModel(interval="step")
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=StochasticWeightAveraging(swa_lrs=1e-2))
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True, callbacks=StochasticWeightAveraging(swa_lrs=1e-2))
     with caplog.at_level(level=logging.INFO), pytest.warns(UserWarning, match="SWA is currently only supported"):
         trainer.fit(model)
     assert "Swapping scheduler `StepLR` for `SWALR`" in caplog.text
@@ -231,7 +231,7 @@ def test_swa_raises():
         StochasticWeightAveraging(swa_epoch_start=5, swa_lrs=[0.2, 1])
 
 
-def test_swa_deepcopy(tmpdir):
+def test_swa_deepcopy(tmp_path):
     """Test to ensure SWA Callback doesn't deepcopy dataloaders and datamodule potentially leading to OOM."""
 
     class TestSWA(StochasticWeightAveraging):
@@ -248,12 +248,12 @@ def test_swa_deepcopy(tmpdir):
 
     model = BoringModel()
     swa = TestSWA(swa_lrs=1e-2)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=swa, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=swa, fast_dev_run=True)
     trainer.fit(model, train_dataloaders=DataLoader(RandomDataset(32, 2)))
     assert swa.setup_called
 
 
-def test_swa_multiple_lrs(tmpdir):
+def test_swa_multiple_lrs(tmp_path):
     swa_lrs = [0.123, 0.321]
 
     class TestModel(BoringModel):
@@ -282,7 +282,7 @@ def test_swa_multiple_lrs(tmpdir):
     model = TestModel()
     swa_callback = StochasticWeightAveraging(swa_lrs=swa_lrs)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         callbacks=swa_callback,
         fast_dev_run=1,
     )
@@ -290,10 +290,10 @@ def test_swa_multiple_lrs(tmpdir):
     assert model.on_train_epoch_start_called
 
 
-def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False):
+def _swa_resume_training_from_checkpoint(tmp_path, model, resume_model, ddp=False):
     swa_start = 3
     trainer_kwargs = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "max_epochs": 5,
         "accelerator": "cpu",
         "strategy": "ddp_spawn" if ddp else "auto",
@@ -309,7 +309,7 @@ def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False)
     with _backward_patch(trainer), pytest.raises(Exception, match="SWA crash test"):
         trainer.fit(model)
 
-    checkpoint_dir = Path(tmpdir) / "checkpoints"
+    checkpoint_dir = Path(tmp_path) / "checkpoints"
     checkpoint_files = os.listdir(checkpoint_dir)
     assert len(checkpoint_files) == 1
     ckpt_path = str(checkpoint_dir / checkpoint_files[0])
@@ -338,25 +338,25 @@ class CustomSchedulerModel(SwaTestModel):
 
 
 @pytest.mark.parametrize("crash_on_epoch", [1, 3])
-def test_swa_resume_training_from_checkpoint(tmpdir, crash_on_epoch):
+def test_swa_resume_training_from_checkpoint(tmp_path, crash_on_epoch):
     model = SwaTestModel(crash_on_epoch=crash_on_epoch)
     resume_model = SwaTestModel()
-    _swa_resume_training_from_checkpoint(tmpdir, model, resume_model)
+    _swa_resume_training_from_checkpoint(tmp_path, model, resume_model)
 
 
 @pytest.mark.parametrize("crash_on_epoch", [1, 3])
-def test_swa_resume_training_from_checkpoint_custom_scheduler(tmpdir, crash_on_epoch):
+def test_swa_resume_training_from_checkpoint_custom_scheduler(tmp_path, crash_on_epoch):
     # Reproduces the bug reported in https://github.com/Lightning-AI/lightning/issues/11665
     model = CustomSchedulerModel(crash_on_epoch=crash_on_epoch)
     resume_model = CustomSchedulerModel()
-    _swa_resume_training_from_checkpoint(tmpdir, model, resume_model)
+    _swa_resume_training_from_checkpoint(tmp_path, model, resume_model)
 
 
 @RunIf(skip_windows=True)
-def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
+def test_swa_resume_training_from_checkpoint_ddp(tmp_path):
     model = SwaTestModel(crash_on_epoch=3)
     resume_model = SwaTestModel()
-    _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=True)
+    _swa_resume_training_from_checkpoint(tmp_path, model, resume_model, ddp=True)
 
 
 @pytest.mark.parametrize(
@@ -366,11 +366,11 @@ def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
         pytest.param("fsdp", marks=RunIf(min_cuda_gpus=1, skip_windows=True, min_torch="1.12")),
     ],
 )
-def test_misconfiguration_error_with_sharded_model(tmpdir, strategy: str):
+def test_misconfiguration_error_with_sharded_model(tmp_path, strategy: str):
     model = SwaTestModel()
     swa_callback = SwaTestCallback(swa_epoch_start=2, swa_lrs=0.1)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         enable_progress_bar=False,
         max_epochs=5,
         callbacks=[swa_callback],

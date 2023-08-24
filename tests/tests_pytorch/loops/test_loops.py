@@ -194,7 +194,7 @@ def test_loop_hierarchy():
 @pytest.mark.parametrize("stop_epoch", [1, 2])
 @pytest.mark.parametrize("stop_batch", [1, 2])
 @pytest.mark.parametrize(("n_dataloaders", "stop_dataloader"), [(2, 0), (2, 1), (3, 2)])
-def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch):
+def test_loop_restart_progress_multiple_dataloaders(tmp_path, n_dataloaders, stop_dataloader, stop_epoch, stop_batch):
     n_batches = 5
     n_epochs = 3
 
@@ -213,18 +213,18 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     model = ValidationModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=n_epochs,
         limit_train_batches=1,
         limit_val_batches=n_batches,
-        callbacks=OnExceptionCheckpoint(tmpdir),
+        callbacks=OnExceptionCheckpoint(tmp_path),
     )
 
     # simulate a failure
     with pytest.raises(CustomException):
         trainer.fit(model)
 
-    ckpt_path = str(tmpdir / "on_exception.ckpt")
+    ckpt_path = str(tmp_path / "on_exception.ckpt")
     checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
 
     trainer.fit_loop.load_state_dict(checkpoint)
@@ -255,7 +255,7 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
 @pytest.mark.parametrize("accumulate_grad_batches", [1, 2, 3])
 @pytest.mark.parametrize("stop_epoch", [1, 2])
 @pytest.mark.parametrize("stop_batch", [1, 2])
-def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, tmpdir):
+def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, tmp_path):
     n_epochs = 3
     n_batches = 3
 
@@ -268,21 +268,21 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     model = TestModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=n_epochs,
         limit_train_batches=n_batches,
         limit_val_batches=0,
         accumulate_grad_batches=accumulate_grad_batches,
         enable_progress_bar=False,
         logger=False,
-        callbacks=OnExceptionCheckpoint(tmpdir),
+        callbacks=OnExceptionCheckpoint(tmp_path),
     )
 
     # simulate a failure
     with pytest.raises(CustomException):
         trainer.fit(model)
 
-    ckpt_path = str(tmpdir / "on_exception.ckpt")
+    ckpt_path = str(tmp_path / "on_exception.ckpt")
     assert os.path.exists(ckpt_path)
     checkpoint = torch.load(ckpt_path)
 
@@ -419,7 +419,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch
 
 
-def test_loop_state_on_complete_run(tmpdir):
+def test_loop_state_on_complete_run(tmp_path):
     n_epochs = 3
     n_batches = 3
     accumulate_grad_batches = 1
@@ -432,7 +432,7 @@ def test_loop_state_on_complete_run(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=n_epochs,
         limit_val_batches=0,
         accumulate_grad_batches=accumulate_grad_batches,
@@ -524,19 +524,19 @@ def test_loop_state_on_complete_run(tmpdir):
     assert checkpoint["loops"]["fit_loop"] == expected
 
 
-def test_fit_loop_reset(tmpdir):
+def test_fit_loop_reset(tmp_path):
     """Test that the reset logic in fit- and epoch loop is aware of whether the loop is restarting from a completed
     loop or from a mid-epoch checkpoint."""
 
     # generate checkpoints at end of epoch and mid-epoch
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir,
+        dirpath=tmp_path,
         every_n_train_steps=2,
         save_top_k=-1,
     )
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=4,
         max_epochs=2,
         callbacks=[checkpoint_callback],
@@ -546,7 +546,7 @@ def test_fit_loop_reset(tmpdir):
     trainer.fit(model)
 
     # reset state loaded from a checkpoint from mid-epoch
-    mid_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=2.ckpt"))
+    mid_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=2.ckpt"))
     fit_loop = trainer.fit_loop
     epoch_loop = fit_loop.epoch_loop
     optimizer_loop = epoch_loop.automatic_optimization
@@ -577,7 +577,7 @@ def test_fit_loop_reset(tmpdir):
     assert optimizer_loop.restarting
 
     # reset state loaded from a checkpoint from the end of an epoch
-    end_of_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=4.ckpt"))
+    end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=4.ckpt"))
     fit_loop = trainer.fit_loop
     epoch_loop = fit_loop.epoch_loop
     fit_loop.restarting = False
@@ -610,7 +610,7 @@ def test_fit_loop_reset(tmpdir):
     [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
 )
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
-def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_interval, tmpdir):
+def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_interval, tmp_path):
     size, n_batches = 2, 4
     stop_batch = 1
     n_val_dataloaders = len(val_datasets)
@@ -644,16 +644,16 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
     model = TestModel(False)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
         enable_progress_bar=False,
-        callbacks=OnExceptionCheckpoint(tmpdir),
+        callbacks=OnExceptionCheckpoint(tmp_path),
     )
     trainer.fit(model)
 
-    ckpt_path = os.path.join(tmpdir, "on_exception.ckpt")
+    ckpt_path = os.path.join(tmp_path, "on_exception.ckpt")
     assert not os.path.exists(ckpt_path), "Shouldn't have failed"
     state_dict = trainer.fit_loop.state_dict()
     expected_global_step = trainer.global_step
@@ -683,12 +683,12 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
     model = TestModel(True)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
         enable_progress_bar=False,
-        callbacks=OnExceptionCheckpoint(tmpdir),
+        callbacks=OnExceptionCheckpoint(tmp_path),
     )
     with pytest.raises(CustomException):
         # will stop during validation
@@ -735,7 +735,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
     model = TestModel(False)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         val_check_interval=val_check_interval,
         enable_progress_bar=False,
@@ -760,7 +760,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 @RunIf(skip_windows=True)  # flaky on Windows
 @pytest.mark.parametrize("should_fail", [False, True])
 @pytest.mark.parametrize("persistent_workers", [False, True])
-def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
+def test_workers_are_shutdown(tmp_path, should_fail, persistent_workers):
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
 
@@ -773,7 +773,7 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=max_epochs,

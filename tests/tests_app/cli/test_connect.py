@@ -18,16 +18,16 @@ from lightning.app.utilities import cli_helpers
 from lightning.app.utilities.commands import base
 
 
-def monkeypatch_connection(monkeypatch, tmpdir, ppid):
-    connection_path = os.path.join(tmpdir, ppid)
+def monkeypatch_connection(monkeypatch, tmp_path, ppid):
+    connection_path = os.path.join(tmp_path, ppid)
     monkeypatch.setattr("lightning.app.cli.connect.app._clean_lightning_connection", MagicMock())
     monkeypatch.setattr("lightning.app.cli.connect.app._PPID", ppid)
-    monkeypatch.setattr("lightning.app.cli.connect.app._LIGHTNING_CONNECTION", tmpdir)
+    monkeypatch.setattr("lightning.app.cli.connect.app._LIGHTNING_CONNECTION", tmp_path)
     monkeypatch.setattr("lightning.app.cli.connect.app._LIGHTNING_CONNECTION_FOLDER", connection_path)
     return connection_path
 
 
-def test_connect_disconnect_local(tmpdir, monkeypatch):
+def test_connect_disconnect_local(tmp_path, monkeypatch):
     disconnect_app()
 
     with pytest.raises(Exception, match="Connection wasn't successful. Is your app localhost running ?"):
@@ -76,7 +76,7 @@ def test_connect_disconnect_local(tmpdir, monkeypatch):
     assert _retrieve_connection_to_an_app() == (None, None)
 
 
-def test_connect_disconnect_cloud(tmpdir, monkeypatch):
+def test_connect_disconnect_cloud(tmp_path, monkeypatch):
     disconnect_app()
 
     ppid_1 = str(psutil.Process(os.getpid()).ppid())
@@ -144,7 +144,7 @@ def test_connect_disconnect_cloud(tmpdir, monkeypatch):
     connect_app("example")
     assert messages == ["You are already connected to the cloud Lightning App: example."]
 
-    _ = monkeypatch_connection(monkeypatch, tmpdir, ppid=ppid_2)
+    _ = monkeypatch_connection(monkeypatch, tmp_path, ppid=ppid_2)
 
     messages = []
     connect_app("example")
@@ -154,7 +154,7 @@ def test_connect_disconnect_cloud(tmpdir, monkeypatch):
     disconnect_app()
     assert messages == ["You are disconnected from the cloud Lightning App: example."]
 
-    _ = monkeypatch_connection(monkeypatch, tmpdir, ppid=ppid_1)
+    _ = monkeypatch_connection(monkeypatch, tmp_path, ppid=ppid_1)
 
     messages = []
     disconnect_app()

@@ -21,7 +21,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_cuda_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_summary(tmpdir):
+def test_deepspeed_summary(tmp_path):
     """Test to ensure that the summary contains the correct values when stage 3 is enabled and that the trainer enables
     the `DeepSpeedSummary` when DeepSpeed is used."""
 
@@ -41,7 +41,7 @@ def test_deepspeed_summary(tmpdir):
 
     trainer = Trainer(
         strategy=DeepSpeedStrategy(stage=3),
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         accelerator="gpu",
         fast_dev_run=True,
         devices=2,

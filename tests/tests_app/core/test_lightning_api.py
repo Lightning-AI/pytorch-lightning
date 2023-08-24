@@ -107,7 +107,7 @@ class A2(LightningFlow):
             self.stop()
 
 
-def test_app_state_api_with_flows(tmpdir):
+def test_app_state_api_with_flows(tmp_path):
     """This test validates the AppState can properly broadcast changes from flows."""
     app = LightningApp(A2(), log_level="debug")
     MultiProcessRuntime(app, start_server=True).dispatch()
@@ -563,9 +563,9 @@ def test_configure_api():
 
 @pytest.mark.anyio()
 @mock.patch("lightning.app.core.api.UIRefresher", mock.MagicMock())
-async def test_get_annotations(tmpdir):
+async def test_get_annotations(tmp_path):
     cwd = os.getcwd()
-    os.chdir(tmpdir)
+    os.chdir(tmp_path)
 
     Path("lightning-annotations.json").write_text('[{"test": 3}]')
 

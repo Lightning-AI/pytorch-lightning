@@ -327,13 +327,13 @@ def test_empty_model_size(max_depth):
         pytest.param("mps", marks=RunIf(mps=True)),
     ],
 )
-def test_model_size_precision(tmpdir, accelerator):
+def test_model_size_precision(tmp_path, accelerator):
     """Test model size for half and full precision."""
     model = PreCalculatedModel()
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator=accelerator, devices=1, max_steps=1, max_epochs=1, precision=32
+        default_root_dir=tmp_path, accelerator=accelerator, devices=1, max_steps=1, max_epochs=1, precision=32
     )
     trainer.fit(model)
     summary = summarize(model)

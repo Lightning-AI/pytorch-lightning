@@ -23,7 +23,7 @@ from lightning.pytorch.strategies import SingleDeviceStrategy
 
 
 @pytest.mark.parametrize("restore_optimizer_and_schedulers", [True, False])
-def test_strategy_lightning_restore_optimizer_and_schedulers(tmpdir, restore_optimizer_and_schedulers):
+def test_strategy_lightning_restore_optimizer_and_schedulers(tmp_path, restore_optimizer_and_schedulers):
     class TestStrategy(SingleDeviceStrategy):
         load_optimizer_state_dict_called = False
 
@@ -35,14 +35,14 @@ def test_strategy_lightning_restore_optimizer_and_schedulers(tmpdir, restore_opt
             self.load_optimizer_state_dict_called = True
 
     # create ckpt to resume from
-    checkpoint_path = os.path.join(tmpdir, "model.ckpt")
+    checkpoint_path = os.path.join(tmp_path, "model.ckpt")
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
     trainer.fit(model)
     trainer.save_checkpoint(checkpoint_path)
 
     model = BoringModel()
     strategy = TestStrategy(torch.device("cpu"))
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=strategy, accelerator="cpu")
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True, strategy=strategy, accelerator="cpu")
     trainer.fit(model, ckpt_path=checkpoint_path)
     assert strategy.load_optimizer_state_dict_called == restore_optimizer_and_schedulers

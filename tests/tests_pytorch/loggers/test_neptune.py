@@ -83,15 +83,15 @@ class Run:
 
 
 @pytest.fixture()
-def tmpdir_unittest_fixture(request, tmpdir):
-    """Proxy for pytest `tmpdir` fixture between pytest and unittest.
+def tmp_path_unittest_fixture(request, tmp_path):
+    """Proxy for pytest `tmp_path` fixture between pytest and unittest.
 
     Resources:
-     * https://docs.pytest.org/en/6.2.x/tmpdir.html#the-tmpdir-fixture
+     * https://docs.pytest.org/en/6.2.x/tmp_path.html#the-tmp_path-fixture
      * https://towardsdatascience.com/mixing-pytest-fixture-and-unittest-testcase-for-selenium-test-9162218e8c8e
 
     """
-    request.cls.tmpdir = tmpdir
+    request.cls.tmp_path = tmp_path
 
 
 @patch("lightning.pytorch.loggers.neptune.neptune", new_callable=create_neptune_mock)
@@ -195,13 +195,13 @@ class TestNeptuneLogger(unittest.TestCase):
         run_instance_mock.__getitem__().log.assert_called_once_with(torch.ones(1))
 
     def _fit_and_test(self, logger, model):
-        trainer = Trainer(default_root_dir=self.tmpdir, max_epochs=1, limit_train_batches=0.05, logger=logger)
+        trainer = Trainer(default_root_dir=self.tmp_path, max_epochs=1, limit_train_batches=0.05, logger=logger)
         assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
         trainer.fit(model)
         trainer.test(model)
         assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
 
-    @pytest.mark.usefixtures("tmpdir_unittest_fixture")
+    @pytest.mark.usefixtures("tmp_path_unittest_fixture")
     @patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock())
     def test_neptune_leave_open_experiment_after_fit(self, neptune):
         """Verify that neptune experiment was NOT closed after training."""
@@ -217,7 +217,7 @@ class TestNeptuneLogger(unittest.TestCase):
         # then
         assert run_instance_mock.stop.call_count == 0
 
-    @pytest.mark.usefixtures("tmpdir_unittest_fixture")
+    @pytest.mark.usefixtures("tmp_path_unittest_fixture")
     @patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock())
     def test_neptune_log_metrics_on_trained_model(self, neptune):
         """Verify that trained models do log data."""

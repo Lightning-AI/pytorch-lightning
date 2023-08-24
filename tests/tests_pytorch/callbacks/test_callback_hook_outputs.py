@@ -18,7 +18,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 @pytest.mark.parametrize("single_cb", [False, True])
-def test_train_step_no_return(tmpdir, single_cb: bool):
+def test_train_step_no_return(tmp_path, single_cb: bool):
     """Tests that only training_step can be used."""
 
     class CB(Callback):
@@ -45,7 +45,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
 
     trainer = Trainer(
         callbacks=CB() if single_cb else [CB()],
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,

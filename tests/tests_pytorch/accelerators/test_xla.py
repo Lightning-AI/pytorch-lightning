@@ -52,7 +52,7 @@ class WeightSharingModule(BoringModel):
 
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_resume_training_on_cpu(tmpdir):
+def test_resume_training_on_cpu(tmp_path):
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
@@ -72,16 +72,16 @@ def test_resume_training_on_cpu(tmpdir):
     assert weight_tensor.device == torch.device("cpu")
 
     # Verify that training is resumed on CPU
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmp_path)
     trainer.fit(model, ckpt_path=model_path)
 
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_if_test_works_after_train(tmpdir):
+def test_if_test_works_after_train(tmp_path):
     """Ensure that .test() works after .fit()"""
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, accelerator="tpu", devices="auto", default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices="auto", default_root_dir=tmp_path, fast_dev_run=True)
     trainer.fit(model)
     out = trainer.test(model)
     assert len(out) == 1
@@ -159,13 +159,13 @@ class ManualOptimizationModel(BoringModel):
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_manual_optimization_tpus(tmpdir):
+def test_manual_optimization_tpus(tmp_path):
     model = ManualOptimizationModel()
     model_copy = deepcopy(model)
 
     trainer = Trainer(
         max_epochs=1,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=3,
         limit_test_batches=0,
         limit_val_batches=0,
@@ -198,13 +198,13 @@ def test_strategy_choice_tpu_strategy():
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_auto_parameters_tying_tpus(tmpdir):
+def test_auto_parameters_tying_tpus(tmp_path):
     model = WeightSharingModule()
     shared_params = find_shared_parameters(model)
 
     assert shared_params[0] == ["layer_1.weight", "layer_3.weight"]
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=3, accelerator="tpu", devices="auto", max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, limit_train_batches=3, accelerator="tpu", devices="auto", max_epochs=1)
     trainer.fit(model)
 
     assert torch.equal(model.layer_1.weight, model.layer_3.weight)
@@ -236,9 +236,9 @@ class NestedModule(BoringModel):
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_auto_parameters_tying_tpus_nested_module(tmpdir):
+def test_auto_parameters_tying_tpus_nested_module(tmp_path):
     model = NestedModule()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=3, accelerator="tpu", devices="auto", max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, limit_train_batches=3, accelerator="tpu", devices="auto", max_epochs=1)
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
