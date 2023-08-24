@@ -827,7 +827,7 @@ def test_fsdp_lazy_load_full_state_dict(_, lazy_load_mock, torch_load_mock, tmp_
 
     file = tmp_path / "test.ckpt"
     file.touch()
-    
+
     strategy.load_checkpoint(checkpoint_path=file)
     if _TORCH_GREATER_EQUAL_2_0:
         lazy_load_mock.assert_called_once()
