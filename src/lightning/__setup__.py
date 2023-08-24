@@ -39,20 +39,30 @@ def _prepare_extras() -> Dict[str, Any]:
         for p in req_files
         if p.name not in ("docs.txt", "base.txt") and not p.parent.name.startswith("_")
     }
+
     # project specific extras groups
     extras["fabric-all"] = extras["fabric-strategies"] + extras["fabric-examples"]
     extras["fabric-dev"] = extras["fabric-all"] + extras["fabric-test"]
     extras["pytorch-all"] = extras["pytorch-extra"] + extras["pytorch-strategies"] + extras["pytorch-examples"]
     extras["pytorch-dev"] = extras["pytorch-all"] + extras["pytorch-test"]
-    extras["app-extra"] = extras["app-cloud"] + extras["app-ui"] + extras["app-components"]
+    extras["app-extra"] = extras["app-app"] + extras["app-cloud"] + extras["app-ui"] + extras["app-components"]
     extras["app-all"] = extras["app-extra"]
     extras["app-dev"] = extras["app-all"] + extras["app-test"]
     extras["data-all"] = extras["data-data"] + extras["data-cloud"] + extras["data-examples"]
     extras["data-dev"] = extras["data-all"] + extras["data-test"]
+
     # merge per-project extras of the same category, e.g. `app-test` + `fabric-test`
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
         extras[name] = extras.get(name, []) + extras[extra]
+
+    # drop quasi base the req. file has the same name sub-package
+    for k in list(extras.keys()):
+        kk = k.split('-')
+        if not (len(kk) == 2 and kk[0] == kk[1]):
+            continue
+        extras[kk[0]] = list(extras[k])
+        del extras[k]
     extras = {name: sorted(set(reqs)) for name, reqs in extras.items()}
     print("The extras are: ", extras)
     return extras
