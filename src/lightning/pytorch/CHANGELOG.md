@@ -109,6 +109,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for loading sharded/distributed checkpoints in FSDP ([#18358](https://github.com/Lightning-AI/lightning/pull/18358))
 
 
+- Made the text delimiter in the rich progress bar configurable ([#18372](https://github.com/Lightning-AI/lightning/pull/18372))
+
+
 ### Changed
 
 - Removed the limitation to call `self.trainer.model.parameters()` in `LightningModule.configure_optimizers()` ([#17309](https://github.com/Lightning-AI/lightning/pull/17309))
