@@ -339,7 +339,10 @@ class RichProgressBar(ProgressBar):
             self._console = get_console()
             self._console.clear_live()
             self._metric_component = MetricsTextColumn(
-                trainer, self.theme.metrics, self.theme.metrics_text_delimiter, self.theme.metrics_format
+                trainer,
+                self.theme.metrics,
+                self.theme.metrics_text_delimiter,
+                self.theme.metrics_format,
             )
             self.progress = CustomProgress(
                 *self.configure_columns(trainer),
