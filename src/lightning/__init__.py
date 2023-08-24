@@ -1,6 +1,8 @@
 """Root package info."""
 import logging
 
+from lightning_utilities import module_available
+
 # explicitly don't set root logger's propagation and leave this to subpackages to manage
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
@@ -29,14 +31,10 @@ __all__ = [
     "Fabric",
 ]
 
-_ABLE_LOAD_APP, _ABLE_LOAD_DATA = False, False
-try:
-    import lightning.app
+# todo: try to parse if the foiling is because of dependency or just wrong import
+_ABLE_LOAD_APP = module_available("lightning.app")
+_ABLE_LOAD_DATA = module_available("lightning.data")
 
-    _ABLE_LOAD_APP = True
-except (ImportError, ModuleNotFoundError):
-    # todo: try to parse if the foiling is because of dependency or just wrong import
-    pass
 
 if _ABLE_LOAD_APP:
     from lightning.app import storage
@@ -46,16 +44,8 @@ if _ABLE_LOAD_APP:
     from lightning.app.utilities.packaging.build_config import BuildConfig
     from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
-    __all__ += ["LightningApp", "LightningFlow", "LightningWork", "BuildConfig", "CloudCompute"]
+    __all__ += ["LightningApp", "LightningFlow", "LightningWork", "BuildConfig", "CloudCompute", "storage"]
 
-
-try:
-    import lightning.data
-
-    _ABLE_LOAD_DATA = True
-except (ImportError, ModuleNotFoundError):
-    # todo: try to parse if the foiling is because of dependency or just wrong import
-    pass
 
 if _ABLE_LOAD_DATA:
     from lightning.data import LightningDataset, LightningIterableDataset

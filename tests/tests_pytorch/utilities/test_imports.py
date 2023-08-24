@@ -83,24 +83,28 @@ def clean_import():
 @pytest.mark.parametrize(
     ("patch_name", "new_fn", "to_import"),
     [
-        ("torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch"),
-        (
+        pytest.param(
+            "torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch", id="ProcessGroup"
+        ),
+        pytest.param(
             "lightning_utilities.core.imports.RequirementCache.__bool__",
             _shortcut_patch(RequirementCache.__bool__, ("neptune",), ("requirement",)),
             "lightning.pytorch.loggers.neptune",
+            id="neptune",
         ),
-        (
+        pytest.param(
             "lightning_utilities.core.imports.RequirementCache.__bool__",
             _shortcut_patch(RequirementCache.__bool__, ("jsonargparse[signatures]>=4.12.0",), ("requirement",)),
             "lightning.pytorch.cli",
+            id="cli",
         ),
-        (
+        pytest.param(
             "lightning_utilities.core.imports.compare_version",
             _shortcut_patch(compare_version, ("torch", operator.ge, "1.12.0")),
             "lightning.pytorch.strategies.fsdp",
+            id="fsdp",
         ),
     ],
-    ids=["ProcessGroup", "neptune", "cli", "fsdp"],
 )
 def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, clean_import):
     """This tests simulates unavailability of certain modules by patching the functions that check for their
