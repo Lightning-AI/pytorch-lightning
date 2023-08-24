@@ -84,7 +84,7 @@ def clear_app_state_state_variables():
 
 
 @pytest.fixture()
-def another_tmpdir(tmp_path: Path) -> py.path.local:
+def another_tmp_path(tmp_path: Path) -> py.path.local:
     random_dir = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
     tmp_path = os.path.join(tmp_path, random_dir)
     return py.path.local(tmp_path)
