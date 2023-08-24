@@ -99,7 +99,10 @@ jobs:
       - name: drop App doctest
         if: ${{ (matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') && matrix.pkg-extra != 'app' }}
         working-directory: src/lit
-        run: rm -rf app
+        run: |
+          rm -rf app
+          rm -rf data
+          rm -rf store
       - name: Install pytest doctest extension
         run: |
           pip install -q "pytest-doctestplus>=0.9.0"
