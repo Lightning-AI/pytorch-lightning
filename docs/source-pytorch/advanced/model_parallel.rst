@@ -1,8 +1,8 @@
 .. _model-parallel:
 
-########################################
-Train models with billions of parameters
-########################################
+###########################################
+Training models with billions of parameters
+###########################################
 
 **Audience**: Users who want to train massive models of billions of parameters efficiently across multiple GPUs and machines.
 

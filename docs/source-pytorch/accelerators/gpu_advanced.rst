@@ -19,7 +19,7 @@ For experts pushing the state-of-the-art in model development, Lightning offers 
         <div class="row">
 
 .. displayitem::
-   :header: Train models with billions of parameters
+   :header: Train 1 trillion+ parameter models
    :description:
    :col_css: col-md-4
    :button_link: ../advanced/model_parallel.html
