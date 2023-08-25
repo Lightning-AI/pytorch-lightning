@@ -7,7 +7,7 @@ on:
     tags: ["*"]
   # use this event type to share secrets with forks.
   # it's important that the PR head SHA is checked out to run the changes
-  pull_request_target:
+  pull_request:  # fixme: pull_request_target
     branches: ["master", "release/*"]
     paths:
       - ".actions/*"
