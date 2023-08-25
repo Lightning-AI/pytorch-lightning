@@ -62,14 +62,15 @@ def test_import_deepspeed_lazily():
 @RunIf(min_python="3.9")
 def test_import_lightning_multiprocessing_start_method_not_set():
     """Regression test for avoiding the lightning import to set the multiprocessing context."""
+    import lightning
 
     # The following would fail with "context has already been set"
     code = dedent(
-        """
+        f"""
         import sys
         import multiprocessing as mp
 
-        import lightning
+        import {lightning.__name__}
         mp.set_start_method("spawn")
         """
     )
