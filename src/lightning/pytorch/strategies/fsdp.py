@@ -269,12 +269,12 @@ class FSDPStrategy(ParallelStrategy):
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in model.modules()):
-            # The user has wrapped their submodules manually, don't apply the auto wrap policy.
             if _has_meta_device_parameters(model):
                 rank_zero_warn(
                     "The model is already wrapped in `FSDP` but there are still parameters on the meta device."
                 )
             if "auto_wrap_policy" in self.kwargs:
+                # The user has wrapped their submodules manually, don't apply the auto wrap policy.
                 rank_zero_warn(
                     "A FSDP `auto_wrap_policy` is set, but the model is already wrapped. The policy will be ignored."
                 )
