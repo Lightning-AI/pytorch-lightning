@@ -400,14 +400,14 @@ def _check_dataloader_iterable(
         prefix = "train_" if trainer_fn == TrainerFn.FITTING else ""
         if not source.is_module():
             raise TypeError(
-                f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`."
+                f"An invalid dataloader was passed to `Trainer.{trainer_fn.value}({prefix}dataloaders=...)`."
                 f" Found {dataloader}."
             )
         if not is_overridden(source.name, source.instance):
             raise TypeError(
-                f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`."
+                f"An invalid dataloader was passed to `Trainer.{trainer_fn.value}({prefix}dataloaders=...)`."
                 f" Found {dataloader}."
-                f" Either pass the dataloader to the `.{trainer_fn}()` method OR implement"
+                f" Either pass the dataloader to the `.{trainer_fn.value}()` method OR implement"
                 f" `def {source.name}(self):` in your LightningModule/LightningDataModule."
             )
         raise TypeError(
