@@ -1,6 +1,5 @@
 """Root package info."""
 import logging
-import warnings
 
 from lightning_utilities import module_available
 
