@@ -1,11 +1,11 @@
 # app.py
 # !pip install scikit-learn xgboost
-import lightning as L
+from lightning.app import LightningWork, LightningApp
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
 
-class XGBoostComponent(L.LightningWork):
+class XGBoostComponent(LightningWork):
     def run(self):
         iris = datasets.load_iris()
         X, y = iris.data, iris.target
@@ -18,4 +18,4 @@ class XGBoostComponent(L.LightningWork):
         print(f'preds: {preds}')
 
 
-app = L.LightningApp(XGBoostComponent())
+app = LightningApp(XGBoostComponent())
