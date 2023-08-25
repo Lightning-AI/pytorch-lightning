@@ -39,10 +39,12 @@ LOCAL_FILE_URI_PREFIX = "file:"
 _MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0") or module_available("mlflow")
 
 if _MLFLOW_AVAILABLE:
+    import mlflow
     from mlflow.entities import Metric, Param
     from mlflow.tracking import context, MlflowClient
     from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 else:
+    mlflow = None
     MlflowClient, context = None, None
     Metric, Param = None, None
     MLFLOW_RUN_NAME = "mlflow.runName"
@@ -184,6 +186,8 @@ class MLFlowLogger(Logger):
         """
         if self._initialized:
             return self._mlflow_client
+
+        mlflow.set_tracking_uri(self._tracking_uri)
 
         if self._run_id is not None:
             run = self._mlflow_client.get_run(self._run_id)
