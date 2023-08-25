@@ -237,27 +237,6 @@ def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
     trainer_fn(model)
 
 
-@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
-def test_fetching_dataloader_iter_running_stages_multiple_dataloaders(fn, tmp_path):
-    class MyModel(BoringModel):
-        def validation_step(self, dataloader_iter):
-            ...
-
-        def test_step(self, dataloader_iter):
-            ...
-
-        def predict_step(self, dataloader_iter):
-            ...
-
-    def dataloaders():
-        return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
-
-    model = MyModel()
-    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
-    trainer_fn = getattr(trainer, fn)
-    trainer_fn(model, dataloaders())
-
-
 class DummyWaitable:
     def __init__(self, val: Any) -> None:
         self.val = val

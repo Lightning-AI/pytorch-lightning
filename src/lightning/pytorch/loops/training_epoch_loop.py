@@ -427,7 +427,7 @@ class _TrainingEpochLoop(loops._Loop):
         kwargs["batch"] = batch
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
         # the `batch_idx` is optional, but its name can be anything
-        # as long as there are two argumetns after 'self', we assume they are the `batch` and `batch_idx`
+        # as long as there are two arguments after 'self', we assume they are the `batch` and `batch_idx`
         if batch_idx is not None and is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
             kwargs["batch_idx"] = batch_idx
         return kwargs
