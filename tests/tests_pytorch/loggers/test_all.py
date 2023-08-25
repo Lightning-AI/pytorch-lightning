@@ -82,6 +82,7 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
     return logger_class(**args)
 
 
+@mock.patch("lightning.pytorch.loggers.mlflow.mlflow", Mock())
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
 def test_loggers_fit_test_all(tmpdir, monkeypatch, logger_class):
