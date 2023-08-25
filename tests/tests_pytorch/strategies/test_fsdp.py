@@ -807,3 +807,29 @@ def test_save_load_sharded_state_dict(tmp_path):
     strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, state_dict_type="sharded")
     trainer = Trainer(**trainer_kwargs, strategy=strategy)
     trainer.fit(model, ckpt_path=checkpoint_path)
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("lightning.pytorch.strategies.fsdp.torch.load")
+@mock.patch("lightning.pytorch.strategies.fsdp._lazy_load")
+@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+def test_fsdp_lazy_load_full_state_dict(_, lazy_load_mock, torch_load_mock, tmp_path):
+    """Test that loading a single file (full state) is lazy to reduce peak CPU memory usage."""
+    model = BoringModel()
+    checkpoint = {"state_dict": model.state_dict()}
+    lazy_load_mock.return_value = checkpoint
+
+    strategy = FSDPStrategy()
+    trainer = Trainer()
+    model.trainer = trainer
+    strategy._lightning_module = model
+    strategy.model = model
+
+    file = tmp_path / "test.ckpt"
+    file.touch()
+
+    strategy.load_checkpoint(checkpoint_path=file)
+    if _TORCH_GREATER_EQUAL_2_0:
+        lazy_load_mock.assert_called_once()
+    else:
+        torch_load_mock.assert_called_once()

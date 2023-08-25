@@ -43,17 +43,17 @@ class SizedDataset(Dataset):
         return idx + 1
 
 
-@pytest.mark.parametrize("use_combined_loader", [False, True])
+@pytest.mark.parametrize("multiple_iterables", [False, True])
 @pytest.mark.parametrize("dataset_cls", [IterDataset, SizedDataset])
 @pytest.mark.parametrize("prefetch_batches", list(range(5)))
-def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
+def test_prefetch_iterator(multiple_iterables, dataset_cls, prefetch_batches):
     fetcher = _PrefetchDataFetcher(prefetch_batches=prefetch_batches)
     assert fetcher.prefetch_batches == prefetch_batches
 
-    if use_combined_loader:
+    if multiple_iterables:
         loader = CombinedLoader([DataLoader(dataset_cls()), DataLoader(dataset_cls())])
     else:
-        loader = DataLoader(dataset_cls())
+        loader = CombinedLoader(DataLoader(dataset_cls()))
     fetcher.setup(loader)
 
     def generate():
@@ -67,7 +67,7 @@ def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
     fetched = (
         [1, 2, 3] if dataset_cls is SizedDataset else [1, 2, 3, 3, 3, 3, 3][prefetch_batches : prefetch_batches + 3]
     )
-    batches = [[1, 1], [2, 2], [3, 3]] if use_combined_loader else [1, 2, 3]
+    batches = [[1, 1], [2, 2], [3, 3]] if multiple_iterables else [1, 2, 3]
     expected = list(zip(fetched, batches, is_last_batch))
     assert len(expected) == 3
 
@@ -77,8 +77,8 @@ def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
     assert fetcher.fetched == 3
 
 
-@pytest.mark.parametrize("use_combined_loader", [False, True])
-def test_profiler_closing(use_combined_loader):
+@pytest.mark.parametrize("multiple_iterables", [False, True])
+def test_profiler_closing(multiple_iterables):
     """Tests if the profiler terminates upon raising a StopIteration on an iterable dataset."""
 
     class TestDataset(IterableDataset):
@@ -89,10 +89,10 @@ def test_profiler_closing(use_combined_loader):
             return iter(self.list)
 
     fetcher = _PrefetchDataFetcher()
-    if use_combined_loader:
+    if multiple_iterables:
         loader = CombinedLoader([DataLoader(TestDataset()), DataLoader(TestDataset())])
     else:
-        loader = DataLoader(TestDataset())
+        loader = CombinedLoader(TestDataset())
     fetcher.setup(loader)
     profiler = SimpleProfiler()
     fetcher._start_profiler = lambda: profiler.start("test")
@@ -115,11 +115,14 @@ class EmptySizedDataset(Dataset):
 @pytest.mark.parametrize("dataset_cls", [EmptyIterDataset, EmptySizedDataset])
 @pytest.mark.parametrize("prefetch_batches", list(range(2)))
 def test_empty_prefetch_iterator(dataset_cls, prefetch_batches):
-    loader = DataLoader(dataset_cls())
+    loader = CombinedLoader(DataLoader(dataset_cls()))
     fetcher = _PrefetchDataFetcher(prefetch_batches=prefetch_batches)
     fetcher.setup(loader)
 
-    assert not fetcher.done
+    if dataset_cls is EmptySizedDataset:
+        assert fetcher.done  # for 0 length sized datasets we know we're done already
+    else:
+        assert not fetcher.done
     assert not list(fetcher)
     assert fetcher.done
 
@@ -192,12 +195,14 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
                 opt.step()
 
         def on_train_epoch_end(self):
-            assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
+            # since the dataset is sized, the loop stops at the limit even though the training_step controls the
+            # consumption of batches
+            assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 32
             assert self.trainer.fit_loop._data_fetcher.fetched == 64
             assert self.count == 64
 
     model = TestModel(automatic_optimization=automatic_optimization)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="cpu")
     trainer.fit(model)
 
 
@@ -227,7 +232,7 @@ def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
             return super().test_step(batch, batch_idx)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1, accelerator="cpu")
     trainer_fn = getattr(trainer, fn)
     trainer_fn(model)
 
@@ -275,6 +280,7 @@ class AsyncBoringModel(BoringModel):
     def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
         if self.batch_i_handle is None:
             batch_i_raw = next(dataloader_iter)
+            self.num_batches_processed += 1
             self.batch_i_handle = self._async_op(batch_i_raw)
 
         # Invariant: _async_op for batch[i] has been initiated
@@ -282,6 +288,7 @@ class AsyncBoringModel(BoringModel):
         is_last = False
         try:
             batch_ip1_raw = next(dataloader_iter)
+            self.num_batches_processed += 1
             batch_ip1_handle = self._async_op(batch_ip1_raw)
         except StopIteration:
             is_last = True
@@ -294,7 +301,6 @@ class AsyncBoringModel(BoringModel):
         self.optimizers().zero_grad()
 
         self.batch_i_handle = batch_ip1_handle
-        self.num_batches_processed += 1
 
         return {"loss": loss, "is_last": is_last}
 
@@ -304,7 +310,7 @@ class AsyncBoringModel(BoringModel):
 
 def test_training_step_with_dataloader_access(tmpdir) -> None:
     """A baseline functional test for `training_step` with dataloader access."""
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, accelerator="cpu")
     m = AsyncBoringModel()
     trainer.fit(m)
     assert m.num_batches_processed == DATASET_LEN, f"Expect all {DATASET_LEN} batches to be processed."
@@ -333,7 +339,7 @@ def test_stop_iteration(trigger_stop_iteration, tmpdir):
                 return DataLoader(RandomDataset(BATCH_SIZE, 2 * EXPECT_NUM_BATCHES_PROCESSED))
             return DataLoader(RandomDataset(BATCH_SIZE, EXPECT_NUM_BATCHES_PROCESSED))
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, accelerator="cpu")
     m = TestModel(trigger_stop_iteration)
     trainer.fit(m)
     expected = EXPECT_NUM_BATCHES_PROCESSED
@@ -350,7 +356,7 @@ def test_on_train_batch_start_overridden(tmpdir) -> None:
         def on_train_batch_start(self, batch, batch_idx):
             pass
 
-    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir)
+    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir, accelerator="cpu")
     m = InvalidModel()
     with pytest.warns(match="InvalidModel.on_train_batch_start` hook may not match"):
         trainer.fit(m)
@@ -364,7 +370,7 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
         def on_train_batch_end(self, *_):
             pass
 
-    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir)
+    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir, accelerator="cpu")
     m = InvalidModel()
     with pytest.warns(match="InvalidModel.on_train_batch_end` hook may not match"):
         trainer.fit(m)
@@ -437,6 +443,7 @@ def test_fetching_is_profiled():
         enable_checkpointing=False,
         enable_progress_bar=False,
         logger=False,
+        accelerator="cpu",
     )
     trainer.fit(model)
     trainer.test(model)
@@ -487,6 +494,7 @@ def test_fetching_is_profiled():
         enable_checkpointing=False,
         enable_progress_bar=False,
         logger=False,
+        accelerator="cpu",
     )
     trainer.fit(model)
 
@@ -498,3 +506,37 @@ def test_fetching_is_profiled():
     durations = profiler.recorded_durations[key]
     assert len(durations) == 2  # 2 polls in training_step
     assert all(d > 0 for d in durations)
+
+
+@pytest.mark.parametrize("iterable", [[1, 2, 3], IterDataset()])
+def test_done_dataloader_iter(iterable):
+    loader = CombinedLoader(iterable)
+    fetcher = _DataLoaderIterDataFetcher()
+    fetcher.setup(loader)
+    iter(fetcher)
+
+    assert not fetcher.done
+    dataloader_iter = next(fetcher)
+    for i in range(5):  # doesn't matter how many times you next this, the dataloader_iter needs to be consumed
+        assert next(fetcher) is next(fetcher)
+
+    assert not dataloader_iter.done
+    assert dataloader_iter.data_fetcher is fetcher
+
+    assert not dataloader_iter.done
+    assert next(dataloader_iter) == 1
+    assert not dataloader_iter.done
+    assert next(dataloader_iter) == 2
+    assert not dataloader_iter.done
+
+    assert next(dataloader_iter) == 3
+    if isinstance(iterable, list):
+        # with sized data, we know we're done
+        assert dataloader_iter.done
+    else:
+        # with unsized data, the StopIteration needs to be raised
+        assert not dataloader_iter.done
+
+    with pytest.raises(StopIteration):
+        next(dataloader_iter)
+    assert dataloader_iter.done
