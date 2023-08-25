@@ -365,6 +365,7 @@ def test_mlflow_log_model(client, _, tmpdir, log_model):
 @mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
 @mock.patch("lightning.pytorch.loggers.mlflow.mlflow")
 def test_set_tracking_uri(mlflow_mock, *_):
+    """Test that the tracking uri is set for logging artifacts to MLFlow server."""
     logger = MLFlowLogger(tracking_uri="the_tracking_uri")
     mlflow_mock.set_tracking_uri.assert_not_called()
     _ = logger.experiment
