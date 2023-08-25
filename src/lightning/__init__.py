@@ -1,8 +1,6 @@
 """Root package info."""
 import logging
 
-from lightning_utilities import module_available
-
 # explicitly don't set root logger's propagation and leave this to subpackages to manage
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
