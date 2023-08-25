@@ -375,11 +375,9 @@ def test_logger_default_name(tmpdir, monkeypatch):
     assert logger.name == "lightning_logs"
 
     # MLflow
-    with (
-        mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True),
-        mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient") as mlflow_client,
-        mock.patch("lightning.pytorch.loggers.mlflow.mlflow"),
-    ):
+    with mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
+        "lightning.pytorch.loggers.mlflow.MlflowClient"
+    ) as mlflow_client, mock.patch("lightning.pytorch.loggers.mlflow.mlflow"):
         mlflow_client().get_experiment_by_name.return_value = None
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir)
 
