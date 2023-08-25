@@ -92,6 +92,7 @@ Customize the theme for your :class:`~lightning.pytorch.callbacks.RichProgressBa
             time="grey82",
             processing_speed="grey82",
             metrics="grey82",
+            metrics_text_delimiter="\n",
         )
     )
 

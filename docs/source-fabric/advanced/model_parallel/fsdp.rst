@@ -142,7 +142,7 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
         # 3. Pass it to the FSDPStrategy object
         strategy = FSDPStrategy(auto_wrap_policy=policy)
 
-    PyTorch provides several of these functional policies under :mod:`torch.distributed.fsdp.wrap`.
+    PyTorch provides several of these functional policies under ``torch.distributed.fsdp.wrap``.
 
 |
 
@@ -386,6 +386,8 @@ You can easily load checkpoints saved by Fabric to resume training:
     # model.load_state_dict(torch.load("path/to/checkpoint/file"))
 
 Fabric will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
+Checkpoints saved with ``state_dict_type="full"`` can be loaded by all strategies, but sharded checkpoints can only be loaded by FSDP.
+Read :doc:`the checkpoints guide <../../guide/checkpoint>` to explore more features.
 
 
 ----

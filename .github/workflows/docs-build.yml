@@ -9,6 +9,7 @@ on:
   # it's important that the PR head SHA is checked out to run the changes
   pull_request_target:
     branches: ["master", "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/*"
       - ".github/workflows/docs-build.yml"
@@ -35,6 +36,7 @@ env:
 
 jobs:
   docs-checks:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
