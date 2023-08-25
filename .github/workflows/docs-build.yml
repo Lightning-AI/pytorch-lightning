@@ -132,7 +132,7 @@ jobs:
           cache-key: "pypi_wheels"
 
   deploy-docs:
-    needs: [docs-checks, make-html]
+    needs: docs-make
     if: github.repository_owner == 'Lightning-AI' && github.event_name == 'push'
     runs-on: ubuntu-20.04
     strategy:
