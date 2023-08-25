@@ -132,8 +132,8 @@ How-to Guides
     :height: 180
 
 .. displayitem::
-    :header: Train 1 trillion+ parameter models
-    :description: Scale GPU training to 1 trillion + parameter models
+    :header: Train models with billions of parameters
+    :description: Scale GPU training for models with billions of parameters
     :button_link: ../advanced/model_parallel.html
     :col_css: col-md-4
     :height: 180

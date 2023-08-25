@@ -833,3 +833,54 @@ def test_fsdp_lazy_load_full_state_dict(_, lazy_load_mock, torch_load_mock, tmp_
         lazy_load_mock.assert_called_once()
     else:
         torch_load_mock.assert_called_once()
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@pytest.mark.parametrize(
+    ("precision", "expected_dtype"),
+    [
+        ("32-true", torch.float32),
+        ("16-true", torch.float16),
+        pytest.param("bf16-true", torch.bfloat16, marks=RunIf(bf16_cuda=True)),
+    ],
+)
+def test_module_init_context(precision, expected_dtype):
+    """Test that the module under the init-context gets moved to the right device and dtype."""
+
+    class Model(BoringModel):
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=1e-2)
+
+        def on_train_start(self):
+            # Parameters get sharded in `FSDPStrategy.setup()` and moved to the target device
+            assert self.layer.weight.device == torch.device("cuda", self.local_rank)
+            assert self.layer.weight.dtype == expected_dtype
+            optimizer = self.optimizers(use_pl_optimizer=False)
+            assert optimizer.param_groups[0]["params"][0].device.type == "cuda"
+
+    def _run_setup_assertions(empty_init, expected_device):
+        trainer = Trainer(
+            accelerator="cuda",
+            devices=2,
+            strategy=FSDPStrategy(auto_wrap_policy={torch.nn.Linear}),
+            precision=precision,
+            max_steps=1,
+            barebones=True,
+        )
+        with trainer.init_module(empty_init=empty_init):
+            model = Model()
+
+        # The model is on the CPU/meta-device until after `FSDPStrategy.setup()`
+        assert model.layer.weight.device == expected_device
+        assert model.layer.weight.dtype == expected_dtype
+        trainer.fit(model)
+
+    # Case 1: No empty init
+    _run_setup_assertions(empty_init=False, expected_device=torch.device("cpu"))
+
+    if _TORCH_GREATER_EQUAL_2_1:
+        # Case 2: Empty-init with PyTorch >= 2.1 supports meta device
+        _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
+    else:
+        # Case 2: Empty-init with PyTorch < 2.1 only supports `torch.empty()`-init
+        _run_setup_assertions(empty_init=True, expected_device=torch.device("cpu"))
