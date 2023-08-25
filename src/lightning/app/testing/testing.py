@@ -35,9 +35,8 @@ from requests import Session
 from rich import print
 from rich.color import ANSI_COLOR_NAMES
 
-from lightning.app import LightningApp, LightningFlow
 from lightning.app.cli.lightning_cli import run_app
-from lightning.app.core import constants
+from lightning.app.core import constants, LightningApp, LightningFlow
 from lightning.app.runners.multiprocess import MultiProcessRuntime
 from lightning.app.testing.config import _Config
 from lightning.app.utilities.app_logs import _app_logs_reader

@@ -15,9 +15,9 @@
 import warnings
 from typing import Any, Type
 
-from lightning.app import structures
 from lightning.app.core.flow import LightningFlow
 from lightning.app.core.work import LightningWork
+from lightning.app.structures import List as _List
 from lightning.app.utilities.cloud import is_running_in_cloud
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
@@ -77,7 +77,7 @@ class MultiNode(LightningFlow):
                 " To run on multiple nodes in the cloud, launch your app with `--cloud`."
             )
             num_nodes = 1
-        self.ws = structures.List(
+        self.ws = _List(
             *[
                 work_cls(
                     *work_args,

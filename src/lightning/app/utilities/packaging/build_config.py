@@ -17,13 +17,15 @@ import os
 import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, TYPE_CHECKING, Union
 
 from typing_extensions import Self
 
-from lightning.app.core.work import LightningWork
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute
+
+if TYPE_CHECKING:
+    from lightning.app.core.work import LightningWork
 
 logger = Logger(__name__)
 
