@@ -32,11 +32,9 @@ __all__ = [
 ]
 
 # todo: try to parse if the foiling is because of dependency or just wrong import
-_ABLE_LOAD_APP = module_available("lightning.app")
-_ABLE_LOAD_DATA = module_available("lightning.data")
 
 
-if _ABLE_LOAD_APP:
+if module_available("lightning.app"):
     from lightning.app import storage
     from lightning.app.core.app import LightningApp
     from lightning.app.core.flow import LightningFlow
@@ -47,7 +45,7 @@ if _ABLE_LOAD_APP:
     __all__ += ["LightningApp", "LightningFlow", "LightningWork", "BuildConfig", "CloudCompute", "storage"]
 
 
-if _ABLE_LOAD_DATA:
+if module_available("lightning.data"):
     from lightning.data import LightningDataset, LightningIterableDataset
 
     __all__ += ["LightningDataset", "LightningIterableDataset"]
