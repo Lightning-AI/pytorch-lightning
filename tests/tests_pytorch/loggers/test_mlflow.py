@@ -359,3 +359,13 @@ def test_mlflow_log_model(client, _, tmpdir, log_model):
         assert not client.return_value.log_artifact.called
         # Metadata and aliases log
         assert not client.return_value.log_artifacts.called
+
+
+@mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+@mock.patch("lightning.pytorch.loggers.mlflow.mlflow")
+def test_set_tracking_uri(mlflow_mock, *_):
+    logger = MLFlowLogger(tracking_uri="the_tracking_uri")
+    mlflow_mock.set_tracking_uri.assert_not_called()
+    _ = logger.experiment
+    mlflow_mock.set_tracking_uri.assert_called_with("the_tracking_uri")
