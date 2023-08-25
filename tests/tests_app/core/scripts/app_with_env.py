@@ -1,14 +1,14 @@
 import os
 
-import lightning as L
+from lightning.app import CloudCompute, LightningApp, LightningWork
 
 
-class MyWork(L.LightningWork):
+class MyWork(LightningWork):
     def __init__(self):
-        super().__init__(cloud_compute=L.CloudCompute(name=os.environ.get("COMPUTE_NAME", "default")))
+        super().__init__(cloud_compute=CloudCompute(name=os.environ.get("COMPUTE_NAME", "default")))
 
     def run(self):
         pass
 
 
-app = L.LightningApp(MyWork())
+app = LightningApp(MyWork())
