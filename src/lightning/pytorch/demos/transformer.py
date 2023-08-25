@@ -18,6 +18,7 @@ from torch.nn.modules import MultiheadAttention
 from torch.utils.data import Dataset
 
 if hasattr(MultiheadAttention, "_reset_parameters") and not hasattr(MultiheadAttention, "reset_parameters"):
+    # See https://github.com/pytorch/pytorch/issues/107909
     MultiheadAttention.reset_parameters = MultiheadAttention._reset_parameters
 
 
