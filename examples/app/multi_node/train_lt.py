@@ -1,6 +1,7 @@
 # app.py
 from lightning.app import CloudCompute, LightningApp, LightningWork
 from lightning.app.components import LightningTrainerMultiNode
+from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 
 

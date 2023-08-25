@@ -1,3 +1,4 @@
+from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 
 if __name__ == "__main__":

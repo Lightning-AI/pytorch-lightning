@@ -21,7 +21,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from multiprocessing import Process
 from subprocess import Popen
 from time import sleep
@@ -30,7 +30,6 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Type
 import requests
 from lightning_cloud.openapi import V1LightningappInstanceState
 from lightning_cloud.openapi.rest import ApiException
-from lightning_utilities.core.imports import package_available
 from requests import Session
 from rich import print
 from rich.color import ANSI_COLOR_NAMES
