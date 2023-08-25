@@ -23,7 +23,7 @@ from torch import Tensor
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataFetcherWrapper, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import _BatchProgress
 from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
@@ -127,23 +127,17 @@ class _EvaluationLoop(_Loop):
         previous_dataloader_idx = 0
         while True:
             try:
-                if self._is_sequential:
-                    batch, batch_idx, dataloader_idx = next(data_fetcher)
-
-                    if previous_dataloader_idx != dataloader_idx:
-                        # the dataloader has changed, notify the logger connector
-                        self._store_dataloader_outputs()
-                    previous_dataloader_idx = dataloader_idx
+                if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
+                    # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting,
+                    # they should be removed. for now just set them to a sentinel value
+                    batch, batch_idx, dataloader_idx = next(data_fetcher), -1, -1
                 else:
-                    batch_idx = (
-                        data_fetcher.fetched
-                        if isinstance(data_fetcher, _DataLoaderIterDataFetcher)
-                        else self.batch_progress.current.ready
-                    )
-                    batch = next(data_fetcher)
-                    dataloader_idx = 0
+                    batch, batch_idx, dataloader_idx = next(data_fetcher)
+                if previous_dataloader_idx != dataloader_idx:
+                    # the dataloader has changed, notify the logger connector
+                    self._store_dataloader_outputs()
+                previous_dataloader_idx = dataloader_idx
                 self.batch_progress.is_last_batch = data_fetcher.done
-
                 # run step hooks
                 self._evaluation_step(batch, batch_idx, dataloader_idx)
             except StopIteration:
@@ -233,10 +227,6 @@ class _EvaluationLoop(_Loop):
             self.batch_progress.reset_on_run()
 
         data_fetcher = _select_data_fetcher(trainer)
-        if isinstance(data_fetcher, _DataLoaderIterDataFetcher) and self.num_dataloaders > 1:
-            raise NotImplementedError(
-                "Using `dataloader_iter` in your step method is not supported with multiple dataloaders"
-            )
         combined_loader = self._combined_loader
         assert combined_loader is not None
 
@@ -381,22 +371,31 @@ class _EvaluationLoop(_Loop):
 
         """
         trainer = self.trainer
+        using_dataloader_iter = isinstance(batch, _DataFetcherWrapper)
 
-        batch = trainer.precision_plugin.convert_input(batch)
-        batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
-        batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)
+        if not using_dataloader_iter:
+            batch = trainer.precision_plugin.convert_input(batch)
+            batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
+            batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)
 
-        step_kwargs = self._build_kwargs(
+        # the `_step` methods don't take a batch_idx when `dataloader_iter` is used, but all other hooks still do,
+        # so we need different kwargs
+        hook_kwargs = self._build_kwargs(
             batch, batch_idx, dataloader_idx if self._is_sequential and self.num_dataloaders > 1 else None
+        )
+        step_kwargs = self._build_kwargs(
+            batch,
+            batch_idx if not using_dataloader_iter else None,
+            dataloader_idx if self._is_sequential and self.num_dataloaders > 1 and not using_dataloader_iter else None,
         )
 
         self.batch_progress.increment_ready()
 
-        trainer._logger_connector.on_batch_start(**step_kwargs)
+        trainer._logger_connector.on_batch_start(**hook_kwargs)
 
         hook_name = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
-        call._call_callback_hooks(trainer, hook_name, *step_kwargs.values())
-        call._call_lightning_module_hook(trainer, hook_name, *step_kwargs.values())
+        call._call_callback_hooks(trainer, hook_name, *hook_kwargs.values())
+        call._call_lightning_module_hook(trainer, hook_name, *hook_kwargs.values())
 
         self.batch_progress.increment_started()
 
@@ -406,8 +405,8 @@ class _EvaluationLoop(_Loop):
         self.batch_progress.increment_processed()
 
         hook_name = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
-        call._call_callback_hooks(trainer, hook_name, output, *step_kwargs.values())
-        call._call_lightning_module_hook(trainer, hook_name, output, *step_kwargs.values())
+        call._call_callback_hooks(trainer, hook_name, output, *hook_kwargs.values())
+        call._call_lightning_module_hook(trainer, hook_name, output, *hook_kwargs.values())
 
         trainer._logger_connector.on_batch_end()
 
@@ -424,19 +423,22 @@ class _EvaluationLoop(_Loop):
         if not self.batch_progress.is_last_batch and trainer.received_sigterm:
             raise SIGTERMException
 
-    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> OrderedDict:
+    def _build_kwargs(self, batch: Any, batch_idx: Optional[int], dataloader_idx: Optional[int]) -> OrderedDict:
         """Helper method to build the arguments for the current step.
 
         Args:
             batch: the current batch to run through the step.
-            batch_idx: the index of the current batch
-            dataloader_idx: the index of the dataloader producing the current batch. None if not multiple dataloaders.
+            batch_idx: the index of the current batch. None if using ``dataloader_iter``.
+            dataloader_idx: the index of the dataloader producing the current batch. None if not multiple dataloaders
+                in sequential mode or when using ``dataloader_iter``.
 
         Returns:
             the dictionary containing all the keyboard arguments for the step
 
         """
-        step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
+        step_kwargs = OrderedDict([("batch", batch)])
+        if batch_idx is not None:
+            step_kwargs["batch_idx"] = batch_idx
         if dataloader_idx is not None:
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
@@ -446,9 +448,16 @@ class _EvaluationLoop(_Loop):
         step_hook = "test_step" if trainer.testing else "validation_step"
         batch_start_hook = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
         batch_end_hook = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
-        assert self._combined_loader is not None
         _verify_dataloader_idx_requirement(
-            (step_hook, batch_start_hook, batch_end_hook),
+            (step_hook,),
+            self._is_sequential
+            and self.num_dataloaders > 1
+            and not isinstance(self._data_fetcher, _DataLoaderIterDataFetcher),
+            self._stage,
+            trainer.lightning_module,
+        )
+        _verify_dataloader_idx_requirement(
+            (batch_start_hook, batch_end_hook),
             self._is_sequential and self.num_dataloaders > 1,
             self._stage,
             trainer.lightning_module,

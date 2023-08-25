@@ -17,7 +17,7 @@ from typing import Any, Dict, Optional, Union
 
 import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
-from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataFetcherWrapper, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
 from lightning.pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
@@ -189,16 +189,23 @@ class _TrainingEpochLoop(loops._Loop):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        batch_idx = data_fetcher.fetched if isinstance(data_fetcher, _DataLoaderIterDataFetcher) else self.batch_idx + 1
-        batch = next(data_fetcher)
+        if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
+            # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting,
+            # they should be removed. for now just set them to a sentinel value
+            batch, batch_idx, dataloader_idx = next(data_fetcher), -1, -1
+        else:
+            batch, batch_idx, dataloader_idx = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
 
         trainer = self.trainer
-        batch = trainer.precision_plugin.convert_input(batch)
-        batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
-        batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=0)
+        using_dataloader_iter = isinstance(batch, _DataFetcherWrapper)
 
-        kwargs = self._build_kwargs(OrderedDict(), batch, batch_idx)
+        if not using_dataloader_iter:
+            batch = trainer.precision_plugin.convert_input(batch)
+            batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
+            batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=0)
+
+        kwargs = self._build_kwargs(OrderedDict(), batch, batch_idx if not using_dataloader_iter else None)
 
         self.batch_progress.increment_ready()
         trainer._logger_connector.on_batch_start(batch, batch_idx)
@@ -405,13 +412,13 @@ class _TrainingEpochLoop(loops._Loop):
             for logger in self.trainer.loggers:
                 logger.save()
 
-    def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
+    def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: Optional[int]) -> OrderedDict:
         """Helper method to build the arguments for the current step.
 
         Args:
             kwargs: The kwargs passed down to the hooks.
             batch: The current batch to run through the step.
-            batch_idx: The current batch idx.
+            batch_idx: the index of the current batch. None if using ``dataloader_iter``.
 
         Returns:
             The kwargs passed down to the hooks.
@@ -421,6 +428,6 @@ class _TrainingEpochLoop(loops._Loop):
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
         # the `batch_idx` is optional, but its name can be anything
         # as long as there are two argumetns after 'self', we assume they are the `batch` and `batch_idx`
-        if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
+        if batch_idx is not None and is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
             kwargs["batch_idx"] = batch_idx
         return kwargs

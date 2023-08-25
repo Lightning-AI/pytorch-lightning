@@ -98,6 +98,7 @@ def test_prediction_loop_with_iterable_dataset(tmp_path):
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
+        devices=1,
     )
     preds = trainer.predict(model, itertools.count())
     assert preds == [(0, 0, 0), (1, 1, 0), (2, 2, 0)]
@@ -112,12 +113,14 @@ def test_prediction_loop_with_iterable_dataset(tmp_path):
     assert preds == [[(0, 0, 0), (1, 1, 0)], [(2, 0, 1), (3, 1, 1)]]
 
     class MyModel(BoringModel):
-        def predict_step(self, dataloader_iter, batch_idx, dataloader_idx=0):
-            ...
+        outs = []
+
+        def predict_step(self, dataloader_iter):
+            self.outs.append(next(dataloader_iter))
 
     model = MyModel()
-    with pytest.raises(NotImplementedError, match="dataloader_iter.*is not supported with multiple dataloaders"):
-        trainer.predict(model, {"a": [0, 1], "b": [2, 3]})
+    trainer.predict(model, {"a": [0, 1], "b": [2, 3]})
+    assert model.outs == [(0, 0, 0), (1, 1, 0), (2, 0, 1), (3, 1, 1)]
 
 
 def test_invalid_dataloader_idx_raises_step(tmp_path):
