@@ -314,11 +314,10 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
 
     # MLflow
-    with (
-        mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True),
-        mock.patch("lightning.pytorch.loggers.mlflow.Metric") as Metric,
-        mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient"),
-        mock.patch("lightning.pytorch.loggers.mlflow.mlflow"),
+    with mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
+        "lightning.pytorch.loggers.mlflow.Metric"
+    ) as Metric, mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient"), mock.patch(
+        "lightning.pytorch.loggers.mlflow.mlflow"
     ):
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
