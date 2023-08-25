@@ -184,6 +184,10 @@ class MLFlowLogger(Logger):
         if self._initialized:
             return self._mlflow_client
 
+        import mlflow
+
+        mlflow.set_tracking_uri(self._tracking_uri)
+
         if self._run_id is not None:
             run = self._mlflow_client.get_run(self._run_id)
             self._experiment_id = run.info.experiment_id
