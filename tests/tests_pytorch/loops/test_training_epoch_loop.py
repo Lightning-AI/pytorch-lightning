@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from collections.abc import Iterator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -103,3 +104,31 @@ def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, 
     trainer.fit_loop.epoch_loop.val_loop.run = Mock()
     trainer.fit(model)
     assert trainer.fit_loop.epoch_loop.val_loop.run.call_count == val_count
+
+
+def test_training_loop_dataloader_iter_multiple_dataloaders(tmp_path):
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=3,
+        limit_val_batches=0,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+        devices=1,
+    )
+
+    class MyModel(BoringModel):
+        outs = []
+
+        def training_step(self, dataloader_iter):
+            self.outs.append(next(dataloader_iter))
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx: int = 0):
+            assert isinstance(batch, Iterator)  # this is the dataloader_iter
+            assert batch_idx == -1
+            assert dataloader_idx == 0
+
+    model = MyModel()
+    trainer.fit(model, {"a": [0, 1], "b": [2, 3]})
+    assert model.outs == [({"a": 0, "b": 2}, 0, 0), ({"a": 1, "b": 3}, 1, 0)]

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
+from collections.abc import Iterator
 
 import pytest
 from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler
@@ -117,6 +118,11 @@ def test_prediction_loop_with_iterable_dataset(tmp_path):
 
         def predict_step(self, dataloader_iter):
             self.outs.append(next(dataloader_iter))
+
+        def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx: int = 0):
+            assert isinstance(batch, Iterator)  # this is the dataloader_iter
+            assert batch_idx == -1
+            assert dataloader_idx == -1
 
     model = MyModel()
     trainer.predict(model, {"a": [0, 1], "b": [2, 3]})

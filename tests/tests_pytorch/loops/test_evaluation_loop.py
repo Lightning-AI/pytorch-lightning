@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Iterator
 from unittest import mock
 from unittest.mock import call, Mock
 
@@ -177,6 +178,11 @@ def test_evaluation_loop_dataloader_iter_multiple_dataloaders(tmp_path):
 
         def validation_step(self, dataloader_iter):
             self.outs.append(next(dataloader_iter))
+
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx: int = 0):
+            assert isinstance(batch, Iterator)  # this is the dataloader_iter
+            assert batch_idx == -1
+            assert dataloader_idx == -1
 
     model = MyModel()
     trainer.validate(model, {"a": [0, 1], "b": [2, 3]})
