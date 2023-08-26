@@ -21,6 +21,7 @@ from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
 from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.pytorch.utilities.types import _SizedIterable
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 
@@ -248,7 +249,7 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
 class _IndexBatchSamplerWrapper(BatchSampler):
     """This class is used to wrap a :class:`torch.utils.data.BatchSampler` and capture its indices."""
 
-    def __init__(self, batch_sampler: BatchSampler) -> None:
+    def __init__(self, batch_sampler: _SizedIterable) -> None:
         # do not call super().__init__() on purpose
         self.seen_batch_indices: List[List[int]] = []
 
