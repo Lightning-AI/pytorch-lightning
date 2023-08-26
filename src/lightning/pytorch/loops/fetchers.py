@@ -153,7 +153,7 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
         self.iterator_wrapper = iter(_DataFetcherWrapper(self))
         return self
 
-    def __next__(self) -> "_DataFetcherWrapper":
+    def __next__(self) -> Iterator["_DataFetcherWrapper"]:
         if self.done:
             raise StopIteration
         return self.iterator_wrapper
