@@ -412,7 +412,7 @@ def test_update_dataloader_typerror_custom_exception():
     assert isinstance(new_dataloader, GoodImpl)
 
 
-def test_custom_batch_sampler():
+def test_custom_torch_batch_sampler():
     """This test asserts, that custom `BatchSampler`, with all the arguments, that are required in order to properly
     reinstantiate the class, is invoked properly.
 
@@ -454,6 +454,20 @@ def test_custom_batch_sampler():
     assert not hasattr(batch_sampler, "__pl_saved_arg_names")
     assert not hasattr(batch_sampler, "__pl_saved_args")
     assert not hasattr(batch_sampler, "__pl_saved_default_kwargs")
+
+
+def test_custom_batch_sampler():
+    """Test that a custom (non-PyTorch) batch sampler requires the user to set `use_distributed_sampler=False`."""
+
+    class CustomBatchSampler:  # not inheriting from `BatchSampler`
+        def __iter__(self):
+            while True:
+                yield [0, 1, 2, 3]
+
+    batch_sampler = CustomBatchSampler()
+    dataloader = DataLoader(range(100), batch_sampler=batch_sampler)
+    with pytest.raises(TypeError, match=r"can't inject a \(distributed\) sampler into your batch sampler"):
+        _ = _update_dataloader(dataloader, sampler=Mock())
 
 
 def test_custom_batch_sampler_no_sampler():
