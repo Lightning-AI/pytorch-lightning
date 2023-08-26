@@ -17,7 +17,7 @@ from typing import Any, Callable, cast, Dict, Iterable, Iterator, List, Optional
 import torch
 from torch import Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.utils.data import BatchSampler, DistributedSampler, Sampler
+from torch.utils.data import DistributedSampler, Sampler
 from typing_extensions import Self
 
 from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
