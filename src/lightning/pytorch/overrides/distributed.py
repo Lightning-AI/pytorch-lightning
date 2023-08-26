@@ -22,8 +22,8 @@ from typing_extensions import Self
 
 from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from lightning.pytorch.utilities.types import _SizedIterable
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
+from lightning.pytorch.utilities.types import _SizedIterable
 
 
 def _find_tensors(

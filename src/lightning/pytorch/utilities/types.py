@@ -18,7 +18,7 @@ Convention:
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Generator, List, Mapping, Optional, Protocol, runtime_checkable, Type, Union, Iterator
+from typing import Any, Generator, Iterator, List, Mapping, Optional, Protocol, runtime_checkable, Type, Union
 
 import torch
 from torch import Tensor
@@ -85,7 +85,6 @@ class LRSchedulerConfig:
 
 
 class _SizedIterable(Protocol):
-
     def __len__(self) -> int:
         pass
 
