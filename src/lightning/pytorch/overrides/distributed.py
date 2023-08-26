@@ -18,6 +18,7 @@ import torch
 from torch import Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
+from typing_extensions import Self
 
 from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
@@ -246,7 +247,7 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
         return (self.dataset[index] for index in super().__iter__())
 
 
-class _IndexBatchSamplerWrapper(BatchSampler):
+class _IndexBatchSamplerWrapper(BatchSampler):  # TODO: Subclass BatchSampler needed?
     """This class is used to wrap a :class:`torch.utils.data.BatchSampler` and capture its indices."""
 
     def __init__(self, batch_sampler: _SizedIterable) -> None:
@@ -267,7 +268,7 @@ class _IndexBatchSamplerWrapper(BatchSampler):
         self.seen_batch_indices.append(batch)
         return batch
 
-    def __iter__(self) -> Iterator[List[int]]:
+    def __iter__(self) -> Self:
         self.seen_batch_indices = []
         self._iterator = iter(self._batch_sampler)
         return self
