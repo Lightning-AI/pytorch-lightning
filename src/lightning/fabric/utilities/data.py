@@ -180,6 +180,7 @@ def _dataloader_init_kwargs_resolve_sampler(
     if batch_sampler is not None and type(batch_sampler) is not BatchSampler:
         batch_sampler_cls = type(batch_sampler)
         if hasattr(batch_sampler, "__pl_saved_args"):
+            # This is a PyTorch `BatchSampler` for which we captured the init args
             args = batch_sampler.__pl_saved_args
             kwargs = batch_sampler.__pl_saved_kwargs
             default_kwargs = batch_sampler.__pl_saved_default_kwargs
@@ -196,7 +197,8 @@ def _dataloader_init_kwargs_resolve_sampler(
                 )
 
             batch_sampler = _reinstantiate_wrapped_cls(batch_sampler, *args, **kwargs)
-        else:
+        elif isinstance(batch_sampler, BatchSampler):
+            # This is a PyTorch `BatchSampler` for which we could not capture the init args
             try:
                 batch_sampler = batch_sampler_cls(
                     sampler,
@@ -218,6 +220,14 @@ def _dataloader_init_kwargs_resolve_sampler(
                     "To mitigate this, either follow the API of `BatchSampler` or instantiate "
                     "your custom batch sampler inside `*_dataloader` hooks of your module."
                 ) from ex
+        else:
+            # The sampler is not a PyTorch `BatchSampler`, we don't know how to inject a custom sampler
+            raise TypeError(
+                " Lightning can't inject a (distributed) sampler into your batch sampler, because it doesn't subclass"
+                " PyTorch's `BatchSampler`. To mitigate this, either follow the API of `BatchSampler` or set"
+                " `.setup_dataloaders(..., use_distributed_sampler=False)`. If you choose the latter, you will be "
+                " responsible for handling the distributed sampling within your batch sampler."
+            )
 
         return {
             "sampler": None,
