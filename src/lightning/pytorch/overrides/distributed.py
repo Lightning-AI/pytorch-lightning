@@ -247,7 +247,7 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
         return (self.dataset[index] for index in super().__iter__())
 
 
-class _IndexBatchSamplerWrapper(BatchSampler):  # TODO: Subclass BatchSampler needed?
+class _IndexBatchSamplerWrapper:
     """This class is used to wrap a :class:`torch.utils.data.BatchSampler` and capture its indices."""
 
     def __init__(self, batch_sampler: _SizedIterable) -> None:
