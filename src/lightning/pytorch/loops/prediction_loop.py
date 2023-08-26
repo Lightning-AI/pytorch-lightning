@@ -108,9 +108,8 @@ class _PredictionLoop(_Loop):
         while True:
             try:
                 if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-                    # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting,
-                    # they should be removed. for now just set them to a sentinel value
-                    batch, batch_idx, dataloader_idx = next(data_fetcher), -1, -1
+                    # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting
+                    batch, batch_idx, dataloader_idx = next(data_fetcher), None, None
                 else:
                     batch, batch_idx, dataloader_idx = next(data_fetcher)
                 self.batch_progress.is_last_batch = data_fetcher.done
@@ -203,13 +202,13 @@ class _PredictionLoop(_Loop):
             self._data_fetcher.teardown()
             self._data_fetcher = None
 
-    def _predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def _predict_step(self, batch: Any, batch_idx: Optional[int], dataloader_idx: Optional[int]) -> None:
         """Runs the actual predict step together with all the necessary bookkeeping and the hooks tied to it.
 
         Args:
             batch: the current batch to run the prediction on
-            batch_idx: the index of the current batch
-            dataloader_idx: the index of the dataloader producing the current batch
+            batch_idx: the index of the current batch. None if using ``dataloader_iter``.
+            dataloader_idx: the index of the dataloader producing the current batch. None if using ``dataloader_iter``.
 
         """
         trainer = self.trainer
@@ -222,15 +221,14 @@ class _PredictionLoop(_Loop):
 
         self.batch_progress.increment_ready()
 
-        any_on_epoch = self._store_data_for_prediction_writer(batch_idx, dataloader_idx)
+        if not using_dataloader_iter:
+            any_on_epoch = self._store_data_for_prediction_writer(batch_idx, dataloader_idx)
 
         # the `_step` methods don't take a batch_idx when `dataloader_iter` is used, but all other hooks still do,
         # so we need different kwargs
         hook_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
-        step_kwargs = self._build_kwargs(
-            batch,
-            batch_idx if not using_dataloader_iter else None,
-            dataloader_idx if self.num_dataloaders > 1 and not using_dataloader_iter else None,
+        step_kwargs = OrderedDict(
+            [(k, v) for k, v in hook_kwargs.items() if not using_dataloader_iter or k != "batch_idx"]
         )
 
         call._call_callback_hooks(trainer, "on_predict_batch_start", *hook_kwargs.values())
@@ -266,9 +264,7 @@ class _PredictionLoop(_Loop):
         Returns:
             the dictionary containing all the keyboard arguments for the predict step
         """
-        step_kwargs = OrderedDict([("batch", batch)])
-        if batch_idx is not None:
-            step_kwargs["batch_idx"] = batch_idx
+        step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
         if dataloader_idx is not None:
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs

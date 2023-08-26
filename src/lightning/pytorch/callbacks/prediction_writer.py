@@ -23,6 +23,7 @@ import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities import LightningEnum
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 class WriteInterval(LightningEnum):
@@ -106,6 +107,10 @@ class BasePredictionWriter(Callback):
         if write_interval not in list(WriteInterval):
             raise MisconfigurationException(f"`write_interval` should be one of {[i.value for i in WriteInterval]}.")
         self.interval = WriteInterval(write_interval)
+
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
+        if is_param_in_hook_signature(pl_module.predict_step, "dataloader_iter", explicit=True):
+            raise NotImplementedError("The ``PredictionWriterCallback`` does not support using `dataloader_iter`.")
 
     def write_on_batch_end(
         self,

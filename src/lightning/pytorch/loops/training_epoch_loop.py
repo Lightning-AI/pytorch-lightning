@@ -17,7 +17,7 @@ from typing import Any, Dict, Optional, Union
 
 import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
-from lightning.pytorch.loops.fetchers import _DataFetcher, _DataFetcherWrapper, _DataLoaderIterDataFetcher
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
 from lightning.pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from lightning.pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
@@ -188,24 +188,20 @@ class _TrainingEpochLoop(loops._Loop):
             return
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
+        using_dataloader_iter = isinstance(data_fetcher, _DataLoaderIterDataFetcher)
 
-        if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
-            # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting,
-            # they should be removed. for now just set them to a sentinel value
-            batch, batch_idx, dataloader_idx = next(data_fetcher), -1, -1
+        if using_dataloader_iter:
+            # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting
+            batch, batch_idx, dataloader_idx = next(data_fetcher), None, None
         else:
             batch, batch_idx, dataloader_idx = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
 
         trainer = self.trainer
-        using_dataloader_iter = isinstance(batch, _DataFetcherWrapper)
-
         if not using_dataloader_iter:
             batch = trainer.precision_plugin.convert_input(batch)
             batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
             batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=0)
-
-        kwargs = self._build_kwargs(OrderedDict(), batch, batch_idx if not using_dataloader_iter else None)
 
         self.batch_progress.increment_ready()
         trainer._logger_connector.on_batch_start(batch, batch_idx)
@@ -224,6 +220,7 @@ class _TrainingEpochLoop(loops._Loop):
 
             self.batch_progress.increment_started()
 
+            kwargs = self._build_kwargs(OrderedDict(), batch, batch_idx)
             with trainer.profiler.profile("run_training_batch"):
                 if trainer.lightning_module.automatic_optimization:
                     # in automatic optimization, there can only be one optimizer
