@@ -177,56 +177,55 @@ def _dataloader_init_kwargs_resolve_sampler(
     instantiation."""
     batch_sampler = getattr(dataloader, "batch_sampler")
 
-    if batch_sampler is not None:
-        if type(batch_sampler) is not BatchSampler:
-            batch_sampler_cls = type(batch_sampler)
-            if hasattr(batch_sampler, "__pl_saved_args"):
-                args = batch_sampler.__pl_saved_args
-                kwargs = batch_sampler.__pl_saved_kwargs
-                default_kwargs = batch_sampler.__pl_saved_default_kwargs
-                arg_names = batch_sampler.__pl_saved_arg_names
+    if batch_sampler is not None and type(batch_sampler) is not BatchSampler:
+        batch_sampler_cls = type(batch_sampler)
+        if hasattr(batch_sampler, "__pl_saved_args"):
+            args = batch_sampler.__pl_saved_args
+            kwargs = batch_sampler.__pl_saved_kwargs
+            default_kwargs = batch_sampler.__pl_saved_default_kwargs
+            arg_names = batch_sampler.__pl_saved_arg_names
 
-                success, args, kwargs = _replace_value_in_saved_args(
-                    "sampler", sampler, args, kwargs, default_kwargs, arg_names
+            success, args, kwargs = _replace_value_in_saved_args(
+                "sampler", sampler, args, kwargs, default_kwargs, arg_names
+            )
+            if not success:
+                raise TypeError(
+                    "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
+                    f"`{batch_sampler_cls.__qualname__}` does not have an argument called `sampler.` To mitigate "
+                    "this, expose an argument `sampler` in the `__init__` method of your custom class."
                 )
-                if not success:
-                    raise TypeError(
-                        "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
-                        f"`{batch_sampler_cls.__qualname__}` does not have an argument called `sampler.` To mitigate "
-                        "this, expose an argument `sampler` in the `__init__` method of your custom class."
-                    )
 
-                batch_sampler = _reinstantiate_wrapped_cls(batch_sampler, *args, **kwargs)
-            else:
-                try:
-                    batch_sampler = batch_sampler_cls(
-                        sampler,
-                        batch_size=batch_sampler.batch_size,
-                        drop_last=batch_sampler.drop_last,
-                    )
-                except TypeError as ex:
-                    import re
+            batch_sampler = _reinstantiate_wrapped_cls(batch_sampler, *args, **kwargs)
+        else:
+            try:
+                batch_sampler = batch_sampler_cls(
+                    sampler,
+                    batch_size=batch_sampler.batch_size,
+                    drop_last=batch_sampler.drop_last,
+                )
+            except TypeError as ex:
+                import re
 
-                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(ex))
-                    if not match:
-                        # an unexpected `TypeError`, continue failure
-                        raise
+                match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(ex))
+                if not match:
+                    # an unexpected `TypeError`, continue failure
+                    raise
 
-                    # There could either be too few or too many arguments. Customizing the message based on this doesn't
-                    # make much sense since our MisconfigurationException is going to be raised from the original one.
-                    raise TypeError(
-                        "We tried to re-instantiate your custom batch sampler and failed. "
-                        "To mitigate this, either follow the API of `BatchSampler` or instantiate "
-                        "your custom batch sampler inside `*_dataloader` hooks of your module."
-                    ) from ex
+                # There could either be too few or too many arguments. Customizing the message based on this doesn't
+                # make much sense since our MisconfigurationException is going to be raised from the original one.
+                raise TypeError(
+                    "We tried to re-instantiate your custom batch sampler and failed. "
+                    "To mitigate this, either follow the API of `BatchSampler` or instantiate "
+                    "your custom batch sampler inside `*_dataloader` hooks of your module."
+                ) from ex
 
-            return {
-                "sampler": None,
-                "shuffle": False,
-                "batch_sampler": batch_sampler,
-                "batch_size": 1,
-                "drop_last": False,
-            }
+        return {
+            "sampler": None,
+            "shuffle": False,
+            "batch_sampler": batch_sampler,
+            "batch_size": 1,
+            "drop_last": False,
+        }
 
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 

@@ -6,10 +6,9 @@ import numpy as np
 import pytest
 import torch
 from torch import Tensor
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
 from lightning.fabric.utilities.data import (
-    _dataloader_init_kwargs_resolve_sampler,
     _get_dataloader_init_args_and_kwargs,
     _replace_dunder_methods,
     _replace_value_in_saved_args,
