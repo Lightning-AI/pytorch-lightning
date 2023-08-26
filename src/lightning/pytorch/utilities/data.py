@@ -137,7 +137,6 @@ def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
     mode: Optional[RunningStage] = None,
-    disallow_batch_sampler: bool = False,
 ) -> Tuple[Tuple[Any], Dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
@@ -189,7 +188,7 @@ def _get_dataloader_init_args_and_kwargs(
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
     else:
-        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode, disallow_batch_sampler))
+        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode))
 
     required_args = {
         p.name
@@ -232,7 +231,6 @@ def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
     mode: Optional[RunningStage] = None,
-    disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its re-
     instantiation.
@@ -240,27 +238,13 @@ def _dataloader_init_kwargs_resolve_sampler(
     If the dataloader is being used for prediction, the sampler will be wrapped into an `_IndexBatchSamplerWrapper`, so
     Lightning can keep track of its indices.
 
-    If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
-    automatically, since `poptorch.DataLoader` will try to increase the batch_size
-
     """
     is_predicting = mode == RunningStage.PREDICTING
     batch_sampler = getattr(dataloader, "batch_sampler")
     batch_sampler_cls = type(batch_sampler)
 
     if batch_sampler is not None:
-        if disallow_batch_sampler:
-            # Check that we don't have a PyTorch default batch sampler that was instantiated in DataLoader __init__
-            if not (
-                batch_sampler_cls is BatchSampler
-                and batch_sampler.sampler == sampler
-                and dataloader.batch_size == batch_sampler.batch_size
-            ):
-                raise MisconfigurationException(
-                    "It is not possible to have a batch sampler in your dataloader, "
-                    "when running on multiple IPU devices."
-                )
-        elif batch_sampler_cls is not BatchSampler or is_predicting:
+        if batch_sampler_cls is not BatchSampler or is_predicting:
             if hasattr(batch_sampler, "__pl_saved_args"):
                 args = batch_sampler.__pl_saved_args
                 kwargs = batch_sampler.__pl_saved_kwargs

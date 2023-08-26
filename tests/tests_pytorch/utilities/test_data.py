@@ -239,20 +239,7 @@ def test_custom_batch_sampler_no_sampler():
 
     # Assert that error is raised
     with pytest.raises(TypeError, match="sampler into the batch sampler"):
-        dataloader = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
-
-
-def test_dataloader_disallow_batch_sampler():
-    dataset = RandomDataset(5, 100)
-    dataloader = DataLoader(dataset, batch_size=10)
-
-    # This should not raise
-    _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
-
-    dataset = RandomDataset(5, 100)
-    sampler = SequentialSampler(dataset)
-    batch_sampler = BatchSampler(sampler, batch_size=10, drop_last=False)
-    dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
+        _ = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
