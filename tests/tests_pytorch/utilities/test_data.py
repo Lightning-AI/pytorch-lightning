@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -137,7 +138,7 @@ def test_update_dataloader_typerror_custom_exception():
 
 
 @pytest.mark.parametrize("predicting", [True, False])
-def test_custom_batch_sampler(predicting):
+def test_custom_torch_batch_sampler(predicting):
     """This test asserts, that custom `BatchSampler`, with all the arguments, that are required in order to properly
     reinstantiate the class, is invoked properly.
 
@@ -188,6 +189,20 @@ def test_custom_batch_sampler(predicting):
     assert not hasattr(batch_sampler, "__pl_saved_default_kwargs")
 
 
+def test_custom_batch_sampler():
+    """Test that a custom (non-PyTorch) batch sampler requires the user to set `use_distributed_sampler=False`."""
+
+    class CustomBatchSampler:  # not inheriting from `BatchSampler`
+        def __iter__(self):
+            while True:
+                yield [0, 1, 2, 3]
+
+    batch_sampler = CustomBatchSampler()
+    dataloader = DataLoader(range(100), batch_sampler=batch_sampler)
+    with pytest.raises(TypeError, match=r"can't inject a \(distributed\) sampler into your batch sampler"):
+        _ = _update_dataloader(dataloader, sampler=Mock())
+
+
 def test_custom_batch_sampler_no_drop_last():
     """Tests whether appropriate warning is raised when the custom `BatchSampler` does not support `drop_last` and we
     want to reset it."""
@@ -213,7 +228,7 @@ def test_custom_batch_sampler_no_drop_last():
 
     # Assert that warning is raised
     with pytest.warns(UserWarning, match="drop_last=False"):
-        dataloader = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
+        _ = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
 
 
 def test_custom_batch_sampler_no_sampler():
