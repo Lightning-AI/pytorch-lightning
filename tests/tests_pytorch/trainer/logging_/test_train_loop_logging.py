@@ -682,6 +682,7 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
         def on_validation_epoch_end(self):
             self.log("on_validation_epoch_end", 3.0, reduce_fx="mean")
             assert self.trainer._results["on_validation_epoch_end.on_validation_epoch_end"].value == 3.0
+            print(self.trainer.callback_metrics)
             assert all(v == 3 for v in self.trainer.callback_metrics.values())
 
         def on_train_batch_start(self, *_):
@@ -777,5 +778,5 @@ def test_unsqueezed_tensor_logging():
     trainer.state.stage = RunningStage.TRAINING
     model._current_fx_name = "training_step"
     model.trainer = trainer
-    model.log("foo", Tensor([1.2]))
+    model.log("foo", Tensor([1.2]), on_epoch=True)
     assert trainer.callback_metrics["foo"].ndim == 0

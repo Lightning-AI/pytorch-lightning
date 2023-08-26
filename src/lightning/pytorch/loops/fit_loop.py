@@ -328,8 +328,6 @@ class _FitLoop(_Loop):
 
         self.epoch_progress.increment_ready()
 
-        trainer._logger_connector.on_epoch_start()
-
         call._call_callback_hooks(trainer, "on_train_epoch_start")
         call._call_lightning_module_hook(trainer, "on_train_epoch_start")
 
