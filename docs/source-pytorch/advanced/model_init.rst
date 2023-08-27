@@ -21,8 +21,7 @@ To speed up initialization, you can force PyTorch to create the model directly o
 
 This eliminates the waiting time to transfer the model parameters from the CPU to the device.
 
-When loading a model from a checkpoint, for example when fine-tuning, set `empty_init=True` to avoid expensive
-and redundant memory initialization:
+When loading a model from a checkpoint, for example when fine-tuning, set `empty_init=True` to avoid expensive and redundant memory initialization:
 
 .. code-block:: python
 
@@ -32,8 +31,7 @@ and redundant memory initialization:
 
     trainer.fit(model)
 
-For strategies that handle large sharded models (:ref:`FSDP <fully-sharded-training>`, :ref:`DeepSpeed <deepspeed_advanced>`), the :meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module`
-should not be used, instead override the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook:
+For strategies that handle large sharded models (:ref:`FSDP <fully-sharded-training>`, :ref:`DeepSpeed <deepspeed_advanced>`), the :meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module` should not be used, instead override the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook:
 
 .. code-block:: python
 
