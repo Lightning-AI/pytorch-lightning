@@ -3,13 +3,16 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler
+
 from lightning.fabric.utilities.data import _replace_dunder_methods
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import RandomDataset, RandomIterableDataset
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.data import (
-    _dataloader_init_kwargs_resolve_sampler,
     _get_dataloader_init_args_and_kwargs,
     _update_dataloader,
     extract_batch_size,
@@ -238,20 +241,7 @@ def test_custom_batch_sampler_no_sampler():
 
     # Assert that error is raised
     with pytest.raises(TypeError, match="sampler into the batch sampler"):
-        dataloader = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
-
-
-def test_dataloader_disallow_batch_sampler():
-    dataset = RandomDataset(5, 100)
-    dataloader = DataLoader(dataset, batch_size=10)
-
-    # This should not raise
-    _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
-
-    dataset = RandomDataset(5, 100)
-    sampler = SequentialSampler(dataset)
-    batch_sampler = BatchSampler(sampler, batch_size=10, drop_last=False)
-    dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
+        _ = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
