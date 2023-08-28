@@ -1177,11 +1177,19 @@ def test_verify_launch_called():
     with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
         fabric._validate_launched()
 
+    # Methods
     method_names = ("setup", "setup_module", "setup_dataloaders", "broadcast", "barrier", "all_reduce", "all_gather")
     for method_name in method_names:
         method = getattr(fabric, method_name)
         with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
             method(Mock())
+
+    # Context managers
+    ctx_manager_names = ("init_module", )
+    for ctx_manager_name in ctx_manager_names:
+        ctx_manager = getattr(fabric, ctx_manager_name)
+        with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"), ctx_manager():
+            pass
 
     fabric.launch()
     assert fabric._launched
