@@ -1,9 +1,9 @@
 # app.py
 import subprocess
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp, CloudCompute
 
 
-class ExternalModelServer(L.LightningWork):
+class ExternalModelServer(LightningWork):
     def run(self, x):
         # compile
         process = subprocess.Popen('g++ model_server.cpp -o model_server')
@@ -11,19 +11,19 @@ class ExternalModelServer(L.LightningWork):
         process = subprocess.Popen('./model_server')
         process.wait()
 
-class LocustLoadTester(L.LightningWork):
+class LocustLoadTester(LightningWork):
     def run(self, x):
         cmd = f'locust --master-host {self.host} --master-port {self.port}'
         process = subprocess.Popen(cmd)
         process.wait()
 
-class WorkflowOrchestrator(L.LightningFlow):
+class WorkflowOrchestrator(LightningFlow):
     def __init__(self) -> None:
         super().__init__()
         self.serve = ExternalModelServer(
-            cloud_compute=L.CloudCompute('cpu'), parallel=True
+            cloud_compute=CloudCompute('cpu'), parallel=True
         )
-        self.load_test = LocustLoadTester(cloud_compute=L.CloudCompute('cpu'))
+        self.load_test = LocustLoadTester(cloud_compute=CloudCompute('cpu'))
 
     def run(self):
         # start the server (on a CPU machine 1)
@@ -33,4 +33,4 @@ class WorkflowOrchestrator(L.LightningFlow):
         if self.serve.state.RUNNING:
             self.load_test.run()
 
-app = L.LightningApp(WorkflowOrchestrator())
+app = LightningApp(WorkflowOrchestrator())

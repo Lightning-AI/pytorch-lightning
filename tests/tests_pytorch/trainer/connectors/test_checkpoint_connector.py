@@ -151,7 +151,7 @@ def test_loops_restore(tmpdir):
 
     trainer_fns = list(TrainerFn)
     for fn in trainer_fns:
-        trainer_fn = getattr(trainer, f"{fn}_loop")
+        trainer_fn = getattr(trainer, f"{fn.value}_loop")
         trainer_fn.load_state_dict = mock.Mock()
 
     for fn in trainer_fns:
@@ -159,13 +159,13 @@ def test_loops_restore(tmpdir):
         trainer._checkpoint_connector.resume_start(ckpt_path)
         trainer._checkpoint_connector.restore_loops()
 
-        trainer_loop = getattr(trainer, f"{fn}_loop")
+        trainer_loop = getattr(trainer, f"{fn.value}_loop")
         trainer_loop.load_state_dict.assert_called()
         trainer_loop.load_state_dict.reset_mock()
 
         for fn2 in trainer_fns:
             if fn2 != fn:
-                trainer_loop2 = getattr(trainer, f"{fn2}_loop")
+                trainer_loop2 = getattr(trainer, f"{fn2.value}_loop")
                 trainer_loop2.load_state_dict.assert_not_called()
 
 

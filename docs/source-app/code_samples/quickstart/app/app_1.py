@@ -2,14 +2,14 @@ import flash
 from flash.core.data.utils import download_data
 from flash.image import ImageClassificationData, ImageClassifier
 
-import lightning as L
-from pytorch_lightning.callbacks import ModelCheckpoint
+from lightning.app import LightningWork, LightningFlow, LightningApp, CloudCompute
+from lightning.pytorch.callbacks import ModelCheckpoint
 
 
 # Step 1: Create a training LightningWork component that gets a backbone as input
 # and saves the best model and its score
-class ImageClassifierTrainWork(L.LightningWork):
-    def __init__(self, max_epochs: int, backbone: str, cloud_compute: L.CloudCompute):
+class ImageClassifierTrainWork(LightningWork):
+    def __init__(self, max_epochs: int, backbone: str, cloud_compute: CloudCompute):
         # parallel is set to True to run asynchronously
         super().__init__(parallel=True, cloud_compute=cloud_compute)
         # Number of epochs to run
@@ -44,7 +44,7 @@ class ImageClassifierTrainWork(L.LightningWork):
 
 
 # Step 2: Create a serving LightningWork component that gets a model input and serves it
-class ImageClassifierServeWork(L.LightningWork):
+class ImageClassifierServeWork(LightningWork):
     def run(self, best_model_path: str):
         # Load the model from the model path
         model = ImageClassifier.load_from_checkpoint(best_model_path)
@@ -53,7 +53,7 @@ class ImageClassifierServeWork(L.LightningWork):
 
 # Step 3: Create a root LightningFlow component that gets number of epochs and a path to
 # a dataset as inputs, initialize 2 training components and serves the best model
-class RootFlow(L.LightningFlow):
+class RootFlow(LightningFlow):
     def __init__(self, max_epochs: int, data_dir: str):
         super().__init__()
         self.data_dir = data_dir
@@ -89,4 +89,4 @@ class RootFlow(L.LightningFlow):
 download_data("https://pl-flash-data.s3.amazonaws.com/hymenoptera_data.zip", "./data")
 
 # Initialize your Lightning app with 5 epochs
-app = L.LightningApp(RootFlow(5, "./data/hymenoptera_data"))
+app = LightningApp(RootFlow(5, "./data/hymenoptera_data"))

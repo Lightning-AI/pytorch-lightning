@@ -1,12 +1,12 @@
 # app.py
-import lightning as L
+from lightning.app import LightningWork, LightningApp, CloudCompute
 
 
-class YourComponent(L.LightningWork):
+class YourComponent(LightningWork):
    def run(self):
       print('RUN ANY PYTHON CODE HERE')
 
 # run on a cloud machine ("cpu", "gpu", ...)
-compute = L.CloudCompute("gpu")
+compute = CloudCompute("gpu")
 component = YourComponent(cloud_compute=compute)
-app = L.LightningApp(component)
+app = LightningApp(component)

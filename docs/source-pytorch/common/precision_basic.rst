@@ -83,7 +83,7 @@ is properly selected.
 
 .. code-block:: python
 
-    fabric = Trainer(precision="64-true")
+    trainer = Trainer(precision="64-true")
 
     # init the model directly on the device and with parameters in full-precision
     with trainer.init_module():

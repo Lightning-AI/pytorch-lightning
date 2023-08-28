@@ -7,7 +7,7 @@ import torchvision
 from PIL import Image
 from pydantic import BaseModel
 
-import lightning as L
+from lightning.app import CloudCompute, LightningApp
 from lightning.app.components.serve import Image as InputImage
 from lightning.app.components.serve import PythonServer
 
@@ -38,5 +38,5 @@ class OutputData(BaseModel):
     prediction: int
 
 
-component = PyTorchServer(input_type=InputImage, output_type=OutputData, cloud_compute=L.CloudCompute("gpu"))
-app = L.LightningApp(component)
+component = PyTorchServer(input_type=InputImage, output_type=OutputData, cloud_compute=CloudCompute("gpu"))
+app = LightningApp(component)
