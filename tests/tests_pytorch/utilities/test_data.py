@@ -144,7 +144,6 @@ def test_custom_torch_batch_sampler(predicting):
 
     It also asserts, that during the reinstantiation, the wrapper of `__init__` method is not present anymore, therefore
     not setting `__pl_saved_{args,arg_names,kwargs}` attributes.
-
     """
 
     class MyBatchSampler(BatchSampler):
@@ -169,7 +168,7 @@ def test_custom_torch_batch_sampler(predicting):
     # updating dataloader, what happens on access of the dataloaders.
     # This should not fail, and would fail before support for custom args.
     dataloader = _update_dataloader(
-        dataloader, dataloader.sampler, mode=RunningStage.PREDICTING if predicting else None
+        dataloader, dataloader.sampler, mode=(RunningStage.PREDICTING if predicting else None)
     )
 
     # Assert the `__init__` method is not replaced anymore and everything is instantiated to correct types
@@ -189,10 +188,13 @@ def test_custom_torch_batch_sampler(predicting):
     assert not hasattr(batch_sampler, "__pl_saved_default_kwargs")
 
 
-def test_torch_batch_sampler_impostor():
-    """"""  # TODO
+@pytest.mark.parametrize("predicting", [True, False])
+def test_torch_batch_sampler_doppelganger(predicting):
+    """Test we can reinstantiate a sampler that mimics PyTorch's BatchSampler even if it does not inherit
+    from it. This is only possible if that sampler accepts the `batch_size` and `drop_last` arguments, and stores them
+    as attributes."""
 
-    class BatchSamplerImpostor:
+    class BatchSamplerDoppelganger:
         """A batch sampler that mimics `torch.utils.data.BatchSampler` but does not inherit from it."""
 
         def __init__(self, sampler, batch_size, drop_last):
@@ -207,9 +209,18 @@ def test_torch_batch_sampler_impostor():
         def __len__(self) -> int:
             return 4
 
-    batch_sampler = BatchSamplerImpostor(sampler=Mock(), batch_size=2, drop_last=False)
+    batch_sampler = BatchSamplerDoppelganger(sampler=Mock(), batch_size=2, drop_last=True)
     dataloader = DataLoader(range(100), batch_sampler=batch_sampler)
-    _ = _update_dataloader(dataloader, sampler=Mock())
+    dataloader = _update_dataloader(dataloader, sampler=Mock(), mode=(RunningStage.PREDICTING if predicting else None))
+
+    batch_sampler = dataloader.batch_sampler
+
+    if predicting:
+        assert isinstance(batch_sampler, _IndexBatchSamplerWrapper)
+        batch_sampler = batch_sampler._batch_sampler
+
+    assert isinstance(batch_sampler, BatchSamplerDoppelganger)
+    assert batch_sampler.drop_last == (not predicting)
 
 
 def test_custom_batch_sampler():

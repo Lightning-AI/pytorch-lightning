@@ -274,8 +274,8 @@ def _dataloader_init_kwargs_resolve_sampler(
                 )
 
             batch_sampler = _reinstantiate_wrapped_cls(batch_sampler, *args, **kwargs)
-        elif isinstance(batch_sampler, BatchSampler):
-            # This is a PyTorch `BatchSampler` for which we could not capture the init args
+        elif hasattr(batch_sampler, "batch_size"):
+            # This is a sampler for which we could not capture the init args
             try:
                 batch_sampler = batch_sampler_cls(
                     sampler,
@@ -292,10 +292,10 @@ def _dataloader_init_kwargs_resolve_sampler(
 
                 # There could either be too few or too many arguments. Customizing the message based on this doesn't
                 # make much sense since our MisconfigurationException is going to be raised from the original one.
-                raise MisconfigurationException(
-                    "We tried to re-instantiate your custom batch sampler and failed. "
-                    "To mitigate this, either follow the API of `BatchSampler` or instantiate "
-                    "your custom batch sampler inside `*_dataloader` hooks of your module."
+                raise TypeError(
+                    "We tried to re-instantiate your custom batch sampler and failed. To mitigate this, either follow"
+                    " the API of `BatchSampler` or instantiate your custom batch sampler inside `*_dataloader` hooks "
+                    " of your module."
                 ) from ex
         else:
             # The sampler is not a PyTorch `BatchSampler`, we don't know how to inject a custom sampler or
