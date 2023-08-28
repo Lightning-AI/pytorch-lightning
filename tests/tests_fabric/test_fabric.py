@@ -1185,7 +1185,7 @@ def test_verify_launch_called():
             method(Mock())
 
     # Context managers
-    ctx_manager_names = ("init_module", )
+    ctx_manager_names = ("init_module",)
     for ctx_manager_name in ctx_manager_names:
         ctx_manager = getattr(fabric, ctx_manager_name)
         with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"), ctx_manager():
