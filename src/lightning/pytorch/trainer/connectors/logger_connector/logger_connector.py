@@ -166,9 +166,6 @@ class _LoggerConnector:
     Utilities and properties
     """
 
-    def on_epoch_start(self) -> None:
-        ...
-
     def on_batch_start(self, batch: Any, dataloader_idx: Optional[int] = None) -> None:
         if self._first_loop_iter is None:
             self._first_loop_iter = True
