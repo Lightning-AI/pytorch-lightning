@@ -190,9 +190,12 @@ def test_custom_torch_batch_sampler(predicting):
 
 @pytest.mark.parametrize("predicting", [True, False])
 def test_custom_torch_batch_sampler_doppelganger(predicting):
-    """Test we can reinstantiate a sampler that mimics PyTorch's BatchSampler even if it does not inherit
-    from it. This is only possible if that sampler accepts the `batch_size` and `drop_last` arguments, and stores them
-    as attributes."""
+    """Test we can reinstantiate a sampler that mimics PyTorch's BatchSampler even if it does not inherit from it.
+
+    This is only possible if that sampler accepts the `batch_size` and `drop_last` arguments, and stores them
+    as attributes.
+
+    """
 
     class BatchSamplerDoppelganger:
         """A batch sampler that mimics `torch.utils.data.BatchSampler` but does not inherit from it."""
