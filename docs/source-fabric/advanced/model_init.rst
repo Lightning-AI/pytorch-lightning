@@ -53,6 +53,11 @@ When loading a model from a checkpoint, for example when fine-tuning, set ``empt
     model.load_state_dict(checkpoint["state_dict"])
 
 
+.. warning::
+    This is safe if you are loading a checkpoint that includes all parameters in the model.
+    If you are loading a partial checkpoint (``strict=False``), you may end up with a subset of parameters that have uninitialized weights, unless you handle them accordingly.
+
+
 ----
 
 
@@ -72,4 +77,4 @@ When training sharded models with :doc:`FSDP <model_parallel/fsdp>` or DeepSpeed
 
 .. note::
     Empty-init is experimental and the behavior may change in the future.
-    For FSDP, it is required that all user-defined modules that manage parameters implement a ``reset_parameters()`` method (all PyTorch built-in modules have this too).
+    For FSDP on PyTorch 2.1+, it is required that all user-defined modules that manage parameters implement a ``reset_parameters()`` method (all PyTorch built-in modules have this too).

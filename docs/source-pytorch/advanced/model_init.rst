@@ -47,7 +47,7 @@ When loading a model from a checkpoint, for example when fine-tuning, set ``empt
     with trainer.init_module(empty_init=True):
         # creation of the model is fast
         # and depending on the strategy allocates no memory, or uninitialized memory
-        model = MyLightningModule.load_from_checkpoint("my/checkpoint/path.ckpt)
+        model = MyLightningModule.load_from_checkpoint("my/checkpoint/path.ckpt")
 
     trainer.fit(model)
 
