@@ -189,6 +189,29 @@ def test_custom_torch_batch_sampler(predicting):
     assert not hasattr(batch_sampler, "__pl_saved_default_kwargs")
 
 
+def test_torch_batch_sampler_impostor():
+    """"""  # TODO
+
+    class BatchSamplerImpostor:
+        """A batch sampler that mimics `torch.utils.data.BatchSampler` but does not inherit from it."""
+
+        def __init__(self, sampler, batch_size, drop_last):
+            self.sampler = sampler
+            self.batch_size = batch_size
+            self.drop_last = drop_last
+
+        def __iter__(self):
+            while True:
+                yield [0, 1, 2, 3]
+
+        def __len__(self) -> int:
+            return 4
+
+    batch_sampler = BatchSamplerImpostor(sampler=Mock(), batch_size=2, drop_last=False)
+    dataloader = DataLoader(range(100), batch_sampler=batch_sampler)
+    _ = _update_dataloader(dataloader, sampler=Mock())
+
+
 def test_custom_batch_sampler():
     """Test that a custom (non-PyTorch) batch sampler requires the user to set `use_distributed_sampler=False`."""
 
