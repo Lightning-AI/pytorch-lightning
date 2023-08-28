@@ -52,6 +52,11 @@ When loading a model from a checkpoint, for example when fine-tuning, set ``empt
     trainer.fit(model)
 
 
+.. warning::
+    This is safe if you are loading a checkpoint that includes all parameters in the model.
+    If you are loading a partial checkpoint (``strict=False``), you may end up with a subset of parameters that have uninitialized weights, unless you handle them accordingly.
+
+
 ----
 
 
