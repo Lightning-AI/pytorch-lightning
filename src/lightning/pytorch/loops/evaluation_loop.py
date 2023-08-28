@@ -331,8 +331,6 @@ class _EvaluationLoop(_Loop):
         """Runs the ``on_{validation/test}_epoch_start`` hooks."""
         trainer = self.trainer
 
-        trainer._logger_connector.on_epoch_start()
-
         hook_name = "on_test_epoch_start" if trainer.testing else "on_validation_epoch_start"
         call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
         call._call_lightning_module_hook(trainer, hook_name, *args, **kwargs)
@@ -388,7 +386,9 @@ class _EvaluationLoop(_Loop):
 
         self.batch_progress.increment_ready()
 
-        trainer._logger_connector.on_batch_start(**hook_kwargs)
+        trainer._logger_connector.on_batch_start(
+            batch, dataloader_idx if self._is_sequential and self.num_dataloaders > 1 else None
+        )
 
         hook_name = "on_test_batch_start" if trainer.testing else "on_validation_batch_start"
         call._call_callback_hooks(trainer, hook_name, *hook_kwargs.values())

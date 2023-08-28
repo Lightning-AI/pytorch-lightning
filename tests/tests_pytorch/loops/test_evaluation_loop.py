@@ -20,6 +20,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import BatchSampler, RandomSampler
 
+from lightning import LightningModule
 from lightning.fabric.accelerators.cuda import _clear_cuda_memory
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -173,7 +174,7 @@ def test_evaluation_loop_dataloader_iter_multiple_dataloaders(tmp_path):
         devices=1,
     )
 
-    class MyModel(BoringModel):
+    class MyModel(LightningModule):
         outs = []
 
         def validation_step(self, dataloader_iter):
