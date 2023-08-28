@@ -20,7 +20,7 @@ from typing import Any, Callable, Dict, Literal, Optional, TYPE_CHECKING
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
-from lightning_utilities import apply_to_collection
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch.nn import Module
 
 from lightning.fabric.accelerators.cpu import CPUAccelerator
