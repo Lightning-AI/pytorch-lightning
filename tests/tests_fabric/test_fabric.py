@@ -743,6 +743,7 @@ def test_overridden_run_and_cli_not_allowed():
 def test_module_sharding_context():
     """Test that the sharding context manager gets applied when the strategy supports it and is a no-op otherwise."""
     fabric = Fabric()
+    fabric._launched = True
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
     with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
@@ -1185,7 +1186,7 @@ def test_verify_launch_called():
             method(Mock())
 
     # Context managers
-    ctx_manager_names = ("init_module",)
+    ctx_manager_names = ("init_module", )
     for ctx_manager_name in ctx_manager_names:
         ctx_manager = getattr(fabric, ctx_manager_name)
         with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"), ctx_manager():
