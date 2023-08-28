@@ -190,14 +190,11 @@ After:
     with fabric.init_module():
         model = Transformer(vocab_size=dataset.vocab_size)
 
-For FSDP specifically, we recommend setting ``empty_init=True`` as it will allow you to initialize even larger models:
-
-.. code-block:: python
-
     # Recommended for FSDP:
     with fabric.init_module(empty_init=True):
         model = Transformer(vocab_size=dataset.vocab_size)
 
+For FSDP specifically, we recommend setting ``empty_init=True`` as it will allow you to initialize even larger models.
 Empty-init creates fake parameters that don't allocate any memory, their actual initialization gets delayed until ``Fabric.setup()`` where FSDP will shard and recreate the real parameters.
 For more use cases of ``empty_init=True`` outside of FSDP, read the guide on :doc:`model initialization <../model_init>`.
 
