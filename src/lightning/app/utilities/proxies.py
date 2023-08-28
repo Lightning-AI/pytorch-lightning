@@ -50,7 +50,7 @@ from lightning.app.utilities.enum import (
 from lightning.app.utilities.exceptions import CacheMissException, LightningSigtermStateException
 
 if TYPE_CHECKING:
-    from lightning.app import LightningWork
+    from lightning.app.core import LightningWork
     from lightning.app.core.queues import BaseQueue
 
 from lightning.app.utilities.app_helpers import Logger
