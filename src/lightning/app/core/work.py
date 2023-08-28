@@ -623,7 +623,7 @@ class LightningWork:
                 calls[call_hash]["statuses"] = final_statuses
 
     def start(self) -> None:
-        """Starts LightingWork component via L.CloudCompute."""
+        """Starts LightingWork component via CloudCompute."""
         if self.status.stage == WorkStageStatus.STOPPED:
             raise Exception("A work can be started only once for now.")
 
@@ -665,7 +665,7 @@ class LightningWork:
         pass
 
     def stop(self) -> None:
-        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute.
+        """Stops LightingWork component and shuts down hardware provisioned via CloudCompute.
 
         This can only be called from a ``LightningFlow``.
 
@@ -681,7 +681,7 @@ class LightningWork:
         self._backend.stop_work(app, self)  # type: ignore[arg-type]
 
     def delete(self) -> None:
-        """Delete LightingWork component and shuts down hardware provisioned via L.CloudCompute.
+        """Delete LightingWork component and shuts down hardware provisioned via CloudCompute.
 
         Locally, the work.delete() behaves as work.stop().
 

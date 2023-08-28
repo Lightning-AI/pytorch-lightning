@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn import datasets
 from sklearn.metrics import mean_squared_error
 
-import lightning as L
+from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.components import TracerPythonScript
 from lightning.app.storage import Payload
 from lightning.app.structures import Dict, List
@@ -16,7 +16,7 @@ def get_path(path):
     return os.path.join(os.path.dirname(__file__), path)
 
 
-class GetDataWork(L.LightningWork):
+class GetDataWork(LightningWork):
     """This component is responsible to download some data and store them with a PayLoad."""
 
     def __init__(self):
@@ -32,7 +32,7 @@ class GetDataWork(L.LightningWork):
         print("Finished data collection.")
 
 
-class ModelWork(L.LightningWork):
+class ModelWork(LightningWork):
     """This component is receiving some data and train a sklearn model."""
 
     def __init__(self, model_path: str, parallel: bool):
@@ -50,7 +50,7 @@ class ModelWork(L.LightningWork):
         print(f"Finished training and evaluating {self.model_name}.")
 
 
-class DAG(L.LightningFlow):
+class DAG(LightningFlow):
     """This component is a DAG."""
 
     def __init__(self, models_paths: list):
@@ -100,7 +100,7 @@ class DAG(L.LightningFlow):
             self.has_completed = True
 
 
-class ScheduledDAG(L.LightningFlow):
+class ScheduledDAG(LightningFlow):
     def __init__(self, dag_cls, **dag_kwargs):
         super().__init__()
         self.dags = List()
@@ -119,7 +119,7 @@ class ScheduledDAG(L.LightningFlow):
                 dag.run()
 
 
-app = L.LightningApp(
+app = LightningApp(
     ScheduledDAG(
         DAG,
         models_paths=[

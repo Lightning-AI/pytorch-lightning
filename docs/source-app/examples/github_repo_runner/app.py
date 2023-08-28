@@ -80,8 +80,8 @@ class PyTorchLightningGithubRepoRunner(GithubRepoRunner):
         self.best_model_score = None
 
     def configure_tracer(self):
-        from pytorch_lightning import Trainer
-        from pytorch_lightning.callbacks import Callback
+        from lightning.pytorch import Trainer
+        from lightning.pytorch.callbacks import Callback
 
         tracer = super().configure_tracer()
 

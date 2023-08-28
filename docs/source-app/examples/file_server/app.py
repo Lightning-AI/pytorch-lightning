@@ -5,11 +5,11 @@ import uuid
 import zipfile
 from pathlib import Path
 
-import lightning as L
+from lightning.app import LightningWork, LightningApp
 from lightning.app.storage import Drive
 
 
-class FileServer(L.LightningWork):
+class FileServer(LightningWork):
     def __init__(
         self,
         drive: Drive,
@@ -26,7 +26,7 @@ class FileServer(L.LightningWork):
 
         """
         super().__init__(
-            cloud_build_config=L.BuildConfig(["flask, flask-cors"]),
+            cloud_build_config=BuildConfig(["flask, flask-cors"]),
             parallel=True,
             **kwargs,
         )

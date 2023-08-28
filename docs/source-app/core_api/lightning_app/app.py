@@ -1,8 +1,8 @@
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp
 from lightning.app.utilities.app_helpers import pretty_state
 
 
-class Work(L.LightningWork):
+class Work(LightningWork):
     def __init__(self):
         super().__init__(cache_calls=False)
         # Attributes are registered automatically in the state.
@@ -13,7 +13,7 @@ class Work(L.LightningWork):
         self.counter += 1
 
 
-class Flow(L.LightningFlow):
+class Flow(LightningFlow):
     def __init__(self):
         super().__init__()
         self.w = Work()
@@ -24,4 +24,4 @@ class Flow(L.LightningFlow):
         self.w.run()
 
 
-app = L.LightningApp(Flow())
+app = LightningApp(Flow())

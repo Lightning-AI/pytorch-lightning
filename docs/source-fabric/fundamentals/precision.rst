@@ -201,6 +201,9 @@ Tip: For faster initialization, you can create model parameters with the desired
     model = fabric.setup(model)
 
 
+See also: :doc:`../advanced/model_init`
+
+
 ----
 
 

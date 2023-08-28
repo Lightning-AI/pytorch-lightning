@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from lightning.app import LightningFlow
+    from lightning.app.core.flow import LightningFlow
 
 
 class Frontend(ABC):

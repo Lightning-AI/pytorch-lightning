@@ -384,8 +384,8 @@ doctest_test_doctest_blocks = ""
 doctest_global_setup = """
 import importlib
 import os
-import lightning as L
 
+from lightning.app import LightningWork, LightningFlow, LightningApp, CloudCompute
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
