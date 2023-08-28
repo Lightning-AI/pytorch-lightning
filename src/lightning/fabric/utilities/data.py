@@ -217,17 +217,18 @@ def _dataloader_init_kwargs_resolve_sampler(
                 # There could either be too few or too many arguments. Customizing the message based on this doesn't
                 # make much sense since our MisconfigurationException is going to be raised from the original one.
                 raise TypeError(
-                    "We tried to re-instantiate your custom batch sampler and failed. "
-                    "To mitigate this, either follow the API of `BatchSampler` or instantiate "
-                    "your custom batch sampler inside `*_dataloader` hooks of your module."
+                    " Lightning can't inject a (distributed) sampler into your batch sampler, because it doesn't"
+                    " subclass PyTorch's `BatchSampler`. To mitigate this, either follow the API of `BatchSampler`"
+                    " or set`.setup_dataloaders(..., use_distributed_sampler=False)`. If you choose the latter, you"
+                    " will be responsible for handling the distributed sampling within your batch sampler."
                 ) from ex
         else:
             # The sampler is not a PyTorch `BatchSampler`, we don't know how to inject a custom sampler
             raise TypeError(
-                " Lightning can't inject a (distributed) sampler into your batch sampler, because it doesn't subclass"
-                " PyTorch's `BatchSampler`. To mitigate this, either follow the API of `BatchSampler` or set"
-                " `.setup_dataloaders(..., use_distributed_sampler=False)`. If you choose the latter, you will be "
-                " responsible for handling the distributed sampling within your batch sampler."
+                " Lightning can't inject a (distributed) sampler into your batch sampler, because it doesn't"
+                " subclass PyTorch's `BatchSampler`. To mitigate this, either follow the API of `BatchSampler`"
+                " or set`.setup_dataloaders(..., use_distributed_sampler=False)`. If you choose the latter, you"
+                " will be responsible for handling the distributed sampling within your batch sampler."
             )
 
         return {
