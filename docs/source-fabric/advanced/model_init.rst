@@ -29,8 +29,8 @@ To speed up initialization, you can force PyTorch to create the model directly o
 
 The larger the model, the more noticeable is the impact on
 
-- speed: avoids redundant transfer of model parameters from CPU to device, avoids redundant casting from float32 to half precision
-- memory: reduced peak memory usage since model parameters are never stored in float32
+- **speed:** avoids redundant transfer of model parameters from CPU to device, avoids redundant casting from float32 to half precision
+- **memory:** reduced peak memory usage since model parameters are never stored in float32
 
 
 ----
