@@ -245,7 +245,7 @@ def _dataloader_init_kwargs_resolve_sampler(
 
     if batch_sampler is not None and (batch_sampler_cls is not BatchSampler or is_predicting):
         if hasattr(batch_sampler, "__pl_saved_args"):
-            # This is a PyTorch `BatchSampler` for which we captured the init args
+            # This is a PyTorch `BatchSampler` subclass for which we captured the init args
             args = batch_sampler.__pl_saved_args
             kwargs = batch_sampler.__pl_saved_kwargs
             default_kwargs = batch_sampler.__pl_saved_default_kwargs
