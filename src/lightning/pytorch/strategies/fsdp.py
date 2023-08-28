@@ -32,6 +32,7 @@ from lightning.fabric.strategies.fsdp import (
     _auto_wrap_policy_kwargs,
     _get_full_state_dict_context,
     _get_sharded_state_dict_context,
+    _has_meta_device_parameters,
     _init_cpu_offload,
     _init_sharding_strategy,
     _is_full_checkpoint,
@@ -51,6 +52,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_12,
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
 )
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
@@ -267,8 +269,12 @@ class FSDPStrategy(ParallelStrategy):
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in model.modules()):
-            # the user wrapped at least one layer in `configure_model` already
+            if _has_meta_device_parameters(model):
+                rank_zero_warn(
+                    "The model is already wrapped in `FSDP` but there are still parameters on the meta device."
+                )
             if "auto_wrap_policy" in self.kwargs:
+                # The user has wrapped their submodules manually, don't apply the auto wrap policy.
                 rank_zero_warn(
                     "A FSDP `auto_wrap_policy` is set, but the model is already wrapped. The policy will be ignored."
                 )
@@ -344,9 +350,16 @@ class FSDPStrategy(ParallelStrategy):
 
     @contextmanager
     def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
-        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
-        # is resolved. For now, the module will get moved to the device in `setup_module`.
-        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        empty_init_context: Union[torch.device, _EmptyInit, nullcontext]
+        if _TORCH_GREATER_EQUAL_2_1 and empty_init:
+            # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
+            # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
+            # These operations are applied to each submodule 'bottom up' in the module hierarchy.
+            empty_init_context = torch.device("meta")
+        elif _TORCH_GREATER_EQUAL_1_13:
+            empty_init_context = _EmptyInit(enabled=bool(empty_init))
+        else:
+            empty_init_context = nullcontext()
         with empty_init_context, self.precision_plugin.init_context():
             yield
 

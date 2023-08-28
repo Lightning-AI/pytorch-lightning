@@ -157,7 +157,7 @@ class _EvaluationLoop(_Loop):
     def setup_data(self) -> None:
         trainer = self.trainer
         trainer_fn = self._trainer_fn
-        if self._combined_loader is not None and trainer_fn == "fit" and not self._should_reload_val_dl:
+        if self._combined_loader is not None and trainer_fn == TrainerFn.FITTING and not self._should_reload_val_dl:
             return
 
         pl_module = trainer.lightning_module
@@ -168,7 +168,7 @@ class _EvaluationLoop(_Loop):
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
         # it should not reload again if it has already reloaded during sanity_check
-        if trainer_fn == "fit" and (
+        if trainer_fn == TrainerFn.FITTING and (
             (trainer.sanity_checking and trainer.fit_loop.epoch_loop._should_check_val_epoch())
             or not trainer.sanity_checking
         ):
@@ -184,7 +184,7 @@ class _EvaluationLoop(_Loop):
         else:
             combined_loader = dataloaders
 
-        if trainer_fn == "fit" and trainer.overfit_batches > 0:
+        if trainer_fn == TrainerFn.FITTING and trainer.overfit_batches > 0:
             _resolve_overfit_batches(combined_loader, stage)
 
         dataloaders = []
@@ -296,7 +296,7 @@ class _EvaluationLoop(_Loop):
         self._on_evaluation_model_train()
 
         if self.verbose and self.trainer.is_global_zero:
-            self._print_results(logged_outputs, self._stage)
+            self._print_results(logged_outputs, self._stage.value)
 
         return logged_outputs
 

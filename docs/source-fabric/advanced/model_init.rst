@@ -6,7 +6,7 @@
 Efficient initialization
 ########################
 
-Here are common use cases where you should use Lightning's initialization tricks to avoid major speed and memory bottlenecks when initializing your model.
+Here are common use cases where you should use :meth:`~lightning.fabric.fabric.Fabric.init_module` to avoid major speed and memory bottlenecks when initializing your model.
 
 
 ----
@@ -21,11 +21,11 @@ To speed up initialization, you can force PyTorch to create the model directly o
 
 .. code-block:: python
 
-    trainer = Trainer(accelerator="cuda", precision="16-true")
+    fabric = Fabric(accelerator="cuda", precision="16-true")
 
-    with trainer.init_module():
+    with fabric.init_module():
         # models created here will be on GPU and in float16
-        model = MyLightningModule()
+        model = MyModel()
 
 The larger the model, the more noticeable is the impact on
 
@@ -44,12 +44,13 @@ When loading a model from a checkpoint, for example when fine-tuning, set ``empt
 
 .. code-block:: python
 
-    with trainer.init_module(empty_init=True):
+    with fabric.init_module(empty_init=True):
         # creation of the model is fast
         # and depending on the strategy allocates no memory, or uninitialized memory
-        model = MyLightningModule.load_from_checkpoint("my/checkpoint/path.ckpt")
+        model = MyModel()
 
-    trainer.fit(model)
+    # weights get loaded into the model
+    model.load_state_dict(checkpoint["state_dict"])
 
 
 .. warning::
@@ -64,20 +65,16 @@ When loading a model from a checkpoint, for example when fine-tuning, set ``empt
 Model-parallel training (FSDP and DeepSpeed)
 ********************************************
 
-When training sharded models with :ref:`FSDP <fully-sharded-training>` or :ref:`DeepSpeed <deepspeed_advanced>`, :meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module` **should not be used**.
-Instead, override the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook:
+When training sharded models with :doc:`FSDP <model_parallel/fsdp>` or DeepSpeed, using :meth:`~lightning.fabric.fabric.Fabric.init_module` is necessary in most cases because otherwise model initialization gets very slow (minutes) or (and that's more likely) you run out of CPU memory due to the size of the model.
 
 .. code-block:: python
 
-    class MyModel(LightningModule):
-        def __init__(self):
-            super().__init__()
-            # don't instantiate layers here
-            # move the creation of layers to `configure_model`
+    # Recommended for FSDP and DeepSpeed
+    with fabric.init_module(empty_init=True):
+        model = GPT3()  # parameters are placed on the meta-device
 
-        def configure_model(self):
-            # create all your layers here
-            self.layers = nn.Sequential(...)
+    model = fabric.setup(model)  # parameters get sharded and initialized at once
 
-
-Delaying the creation of large layers to the ``configure_model`` hook is necessary in most cases because otherwise initialization gets very slow (minutes) or (and that's more likely) you run out of CPU memory due to the size of the model.
+.. note::
+    Empty-init is experimental and the behavior may change in the future.
+    For FSDP on PyTorch 2.1+, it is required that all user-defined modules that manage parameters implement a ``reset_parameters()`` method (all PyTorch built-in modules have this too).

@@ -20,7 +20,7 @@ from pathlib import Path
 from threading import Thread
 from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
-from lightning.app import LightningApp, LightningFlow
+from lightning.app.core import LightningApp, LightningFlow
 from lightning.app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning.app.runners.backends import Backend, BackendType
 from lightning.app.utilities.app_helpers import Logger

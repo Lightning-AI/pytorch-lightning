@@ -17,13 +17,15 @@ import os
 import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, TYPE_CHECKING, Union
 
 from typing_extensions import Self
 
-import lightning.app as L
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute
+
+if TYPE_CHECKING:
+    from lightning.app.core.work import LightningWork
 
 logger = Logger(__name__)
 
@@ -116,7 +118,7 @@ class BuildConfig:
         """
         return []
 
-    def on_work_init(self, work: "L.LightningWork", cloud_compute: Optional["CloudCompute"] = None) -> None:
+    def on_work_init(self, work: "LightningWork", cloud_compute: Optional["CloudCompute"] = None) -> None:
         """Override with your own logic to load the requirements or dockerfile."""
         found_requirements = self._find_requirements(work)
         if self.requirements:
@@ -142,7 +144,7 @@ class BuildConfig:
             self.dockerfile = found_dockerfile
         self._prepare_dockerfile()
 
-    def _find_requirements(self, work: "L.LightningWork", filename: str = "requirements.txt") -> List[str]:
+    def _find_requirements(self, work: "LightningWork", filename: str = "requirements.txt") -> List[str]:
         # 1. Get work file
         file = _get_work_file(work)
         if file is None:
@@ -155,7 +157,7 @@ class BuildConfig:
             return []
         return [r for r in requirements if r != "lightning"]
 
-    def _find_dockerfile(self, work: "L.LightningWork", filename: str = "Dockerfile") -> Optional[str]:
+    def _find_dockerfile(self, work: "LightningWork", filename: str = "Dockerfile") -> Optional[str]:
         # 1. Get work file
         file = _get_work_file(work)
         if file is None:
@@ -197,7 +199,7 @@ class BuildConfig:
         return cls(**d["__build_config__"])
 
 
-def _get_work_file(work: "L.LightningWork") -> Optional[str]:
+def _get_work_file(work: "LightningWork") -> Optional[str]:
     cls = work.__class__
     try:
         return inspect.getfile(cls)

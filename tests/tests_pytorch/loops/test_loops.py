@@ -818,8 +818,6 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
         expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
     elif should_fail:
         expected = [
-            # iterable check
-            0,
             # epoch ends
             1,
             # teardown
@@ -827,8 +825,6 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
         ]
     else:
         expected = [
-            # iterable check
-            0,
             # epoch ends
             1,
             2,
@@ -843,8 +839,6 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
         expected = [
             # sanity check
             0,
-            # iterable check
-            0,
             # epoch ends
             0,
             1,
@@ -852,8 +846,6 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
     else:
         expected = [
             # sanity check
-            0,
-            # iterable check
             0,
             # epoch ends
             0,

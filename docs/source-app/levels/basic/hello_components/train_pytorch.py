@@ -1,9 +1,9 @@
 # app.py
 # ! pip install torch
-import lightning as L
+from lightning.app import LightningWork, LightningApp, CloudCompute
 import torch
 
-class PyTorchComponent(L.LightningWork):
+class PyTorchComponent(LightningWork):
    def run(self):
       device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
       model = torch.nn.Sequential(torch.nn.Linear(1, 1),
@@ -23,6 +23,6 @@ class PyTorchComponent(L.LightningWork):
          loss.backward()
          optimizer.step()
 
-compute = L.CloudCompute('gpu')
+compute = CloudCompute('gpu')
 componet = PyTorchComponent(cloud_compute=compute)
-app = L.LightningApp(componet)
+app = LightningApp(componet)

@@ -734,7 +734,7 @@ class LightningFlow:
                 name: str
 
 
-            class Flow(L.LightningFlow):
+            class Flow(LightningFlow):
                 def __init__(self):
                     super().__init__()
                     self.names = []
@@ -772,10 +772,8 @@ class LightningFlow:
 
         .. code-block:: python
 
-            import lightning as L
 
-
-            class Work(L.LightningWork):
+            class Work(LightningWork):
                 def __init__(self):
                     super().__init__()
                     self.counter = 0
@@ -784,7 +782,7 @@ class LightningFlow:
                     self.counter += 1
 
 
-            class Flow(L.LightningFlow):
+            class Flow(LightningFlow):
                 def run(self):
                     # dynamically create a work.
                     if not getattr(self, "w", None):

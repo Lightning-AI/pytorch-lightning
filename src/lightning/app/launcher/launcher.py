@@ -11,10 +11,10 @@ from typing import Callable, Dict, List, Optional, Tuple, TypedDict
 
 ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
 
-if True:  # Avoid Module level import not at top of file
-    from lightning.app import LightningFlow
+if True:  # ToDo: Avoid Module level import not at top of file
     from lightning.app.core import constants
     from lightning.app.core.api import start_server
+    from lightning.app.core.flow import LightningFlow
     from lightning.app.core.queues import MultiProcessQueue, QueuingSystem
     from lightning.app.storage.orchestrator import StorageOrchestrator
     from lightning.app.utilities.app_commands import run_app_commands
