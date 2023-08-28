@@ -418,7 +418,6 @@ def test_custom_torch_batch_sampler():
 
     It also asserts, that during the reinstantiation, the wrapper of `__init__` method is not present anymore, therefore
     not setting `__pl_saved_{args,arg_names,kwargs}` attributes.
-
     """
 
     class MyBatchSampler(BatchSampler):
@@ -454,6 +453,36 @@ def test_custom_torch_batch_sampler():
     assert not hasattr(batch_sampler, "__pl_saved_arg_names")
     assert not hasattr(batch_sampler, "__pl_saved_args")
     assert not hasattr(batch_sampler, "__pl_saved_default_kwargs")
+
+
+def test_torch_batch_sampler_doppelganger():
+    """Test we can reinstantiate a sampler that mimics PyTorch's BatchSampler even if it does not inherit
+    from it. This is only possible if that sampler accepts the `batch_size` and `drop_last` arguments, and stores them
+    as attributes."""
+
+    class BatchSamplerDoppelganger:
+        """A batch sampler that mimics `torch.utils.data.BatchSampler` but does not inherit from it."""
+
+        def __init__(self, sampler, batch_size, drop_last):
+            self.sampler = sampler
+            self.batch_size = batch_size
+            self.drop_last = drop_last
+
+        def __iter__(self):
+            while True:
+                yield [0, 1, 2, 3]
+
+        def __len__(self) -> int:
+            return 4
+
+    batch_sampler = BatchSamplerDoppelganger(sampler=Mock(), batch_size=2, drop_last=True)
+    dataloader = DataLoader(range(100), batch_sampler=batch_sampler)
+    new_sampler = Mock()
+    dataloader = _update_dataloader(dataloader, sampler=new_sampler)
+
+    batch_sampler = dataloader.batch_sampler
+    assert isinstance(batch_sampler, BatchSamplerDoppelganger)
+    assert batch_sampler.sampler == new_sampler
 
 
 def test_custom_batch_sampler():

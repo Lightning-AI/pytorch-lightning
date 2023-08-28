@@ -274,8 +274,9 @@ def _dataloader_init_kwargs_resolve_sampler(
                 )
 
             batch_sampler = _reinstantiate_wrapped_cls(batch_sampler, *args, **kwargs)
-        elif hasattr(batch_sampler, "batch_size"):
-            # This is a sampler for which we could not capture the init args
+        elif hasattr(batch_sampler, "batch_size") and hasattr(batch_sampler, "drop_last"):
+            # This is a sampler for which we could not capture the init args, but it kinda looks like a batch sampler
+            # even if it does not inherit from PyTorch's interface.
             try:
                 batch_sampler = batch_sampler_cls(
                     sampler,
