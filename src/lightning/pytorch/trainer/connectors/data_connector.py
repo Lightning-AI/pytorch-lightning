@@ -387,6 +387,10 @@ def _check_dataloader_iterable(
     source: _DataLoaderSource,
     trainer_fn: TrainerFn,
 ) -> None:
+    if isinstance(dataloader, DataLoader):
+        # Fast path: `torch.utils.data.DataLoader` is always iterable, calling iter() would be expensive
+        return
+
     try:
         iter(dataloader)  # type: ignore[call-overload]
     except TypeError:
