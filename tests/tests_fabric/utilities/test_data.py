@@ -455,7 +455,7 @@ def test_custom_torch_batch_sampler():
     assert not hasattr(batch_sampler, "__pl_saved_default_kwargs")
 
 
-def test_torch_batch_sampler_doppelganger():
+def test_custom_torch_batch_sampler_doppelganger():
     """Test we can reinstantiate a sampler that mimics PyTorch's BatchSampler even if it does not inherit
     from it. This is only possible if that sampler accepts the `batch_size` and `drop_last` arguments, and stores them
     as attributes."""
