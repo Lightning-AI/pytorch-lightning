@@ -26,7 +26,8 @@ from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from lightning.pytorch.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
+from lightning.pytorch.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache, \
+    _check_dataloader_iterable
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _update_dataloader
@@ -643,3 +644,17 @@ def test_non_iterables_raise(tmp_path, trainer_fn_name, dataloader_name, stage, 
     setattr(model, dl_method, lambda: dataloader)
     with pytest.raises(TypeError, match=f"invalid dataloader was returned from `BoringModel.{dl_method}"):
         trainer_fn(model)
+
+
+def test_iterable_check_on_known_iterators():
+    """Test that we only call the `iter()` on the dataloader object if it isn't a known type."""
+    iterable = Mock()
+    iterable.__iter__ = Mock(return_value=iter(range(3)))
+    _check_dataloader_iterable(iterable, Mock(), Mock())
+    iterable.__iter__.assert_called_once()
+
+    # If it's a datalaoder, we don't call the expensive `__iter__` method
+    dataloader = Mock(spec=DataLoader)
+    dataloader.__iter__ = Mock()
+    _check_dataloader_iterable(dataloader, Mock(), Mock())
+    dataloader.__iter__.assert_not_called()
