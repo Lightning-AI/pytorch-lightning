@@ -4,7 +4,7 @@ from functools import partial
 from typing import Any, cast, Iterable, List, Literal, Optional, Tuple, Union
 
 import torch
-from lightning_utilities import apply_to_collection
+from lightning_utilities.core.apply_func import apply_to_collection
 from tqdm import tqdm
 
 import lightning as L
