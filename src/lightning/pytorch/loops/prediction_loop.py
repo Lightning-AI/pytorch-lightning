@@ -103,8 +103,7 @@ class _PredictionLoop(_Loop):
             return None
         self.reset()
         self.on_run_start()
-        data_fetcher = self._data_fetcher
-        assert data_fetcher is not None
+        assert (data_fetcher := self._data_fetcher) is not None
         while True:
             try:
                 if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
@@ -219,8 +218,9 @@ class _PredictionLoop(_Loop):
 
         """
         trainer = self.trainer
+        assert (data_fetcher := self._data_fetcher) is not None
 
-        if not (using_dataloader_iter := isinstance(self._data_fetcher, _DataLoaderIterDataFetcher)):
+        if not (using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher)):
             batch = trainer.precision_plugin.convert_input(batch)
             batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
             batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)
@@ -249,9 +249,9 @@ class _PredictionLoop(_Loop):
 
         if using_dataloader_iter:
             # update the hook kwargs now that the step method might have consumed the iterator
-            batch = self._data_fetcher._batch
-            batch_idx = self._data_fetcher._batch_idx
-            dataloader_idx = self._data_fetcher._dataloader_idx
+            batch = data_fetcher._batch
+            batch_idx = data_fetcher._batch_idx
+            dataloader_idx = data_fetcher._dataloader_idx
             hook_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
 
         call._call_callback_hooks(trainer, "on_predict_batch_end", predictions, *hook_kwargs.values())
