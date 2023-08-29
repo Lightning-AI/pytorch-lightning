@@ -125,7 +125,7 @@ class BasePredictionWriter(Callback):
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
         predictions: Sequence[Any],
-        batch_indices: Optional[Sequence[Any]],
+        batch_indices: Sequence[Any],
     ) -> None:
         """Override with the logic to write all batches."""
         raise NotImplementedError()
