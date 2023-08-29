@@ -13,7 +13,6 @@
 # limitations under the License.
 """Utilities related to data saving/loading."""
 import io
-import logging
 from pathlib import Path
 from typing import Any, Dict, IO, Union
 
@@ -24,8 +23,6 @@ from fsspec.implementations.local import AbstractFileSystem
 from lightning_utilities.core.imports import module_available
 
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
-
-log = logging.getLogger(__name__)
 
 
 def _load(
@@ -72,7 +69,6 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
 
     """
     bytesbuffer = io.BytesIO()
-    logging.debug(f"Saving checkpoint: {filepath}")
     torch.save(checkpoint, bytesbuffer)
     with fsspec.open(filepath, "wb") as f:
         f.write(bytesbuffer.getvalue())
