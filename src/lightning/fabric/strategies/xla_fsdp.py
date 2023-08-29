@@ -57,11 +57,10 @@ class XLAFSDPStrategy(ParallelStrategy):
         auto_wrap_policy: Same as ``auto_wrap_policy`` parameter in
             :class:`torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`.
             For convenience, this also accepts a set of the layer classes to wrap.
-        activation_checkpointing_policy: Same as ``auto_wrap_policy`` parameter in
-            :class:`torch_xla.distributed.fsdp.XlaFullyShardedDataParallel` but used when selecting the modules for
+        activation_checkpointing_policy: Used when selecting the modules for
             which you want to enable activation checkpointing. Enabling this can free up a significant amount of memory
-            at the cost of speed since activations in these layers need to be recomputed during backpropagation. For
-            convenience, this also accepts a set of the layer classes to wrap.
+            at the cost of speed since activations in these layers need to be recomputed during backpropagation.
+            This accepts a set of the layer classes to wrap.
 
         state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
 
