@@ -21,8 +21,6 @@ if not _root_logger.hasHandlers():
     _logger.propagate = False
 
 
-from lightning.app import components  # noqa: E402, F401
-
 if os.path.isfile(os.path.join(os.path.dirname(__file__), "__about__.py")):
     from lightning.app.__about__ import *  # noqa: F403
 if "__version__" not in locals():

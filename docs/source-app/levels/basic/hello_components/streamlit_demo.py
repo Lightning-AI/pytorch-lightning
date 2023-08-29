@@ -1,7 +1,7 @@
 # app.py
 # !pip install streamlit omegaconf scipy
 # !pip install torch
-import lightning as L
+from lightning.app import LightningApp
 import torch
 from io import BytesIO
 from functools import partial
@@ -9,7 +9,7 @@ from scipy.io.wavfile import write
 import streamlit as st
 
 
-class StreamlitApp(L.app.components.ServeStreamlit):
+class StreamlitApp(app.components.ServeStreamlit):
     def build_model(self):
         sample_rate = 48000
         model, _ = torch.hub.load('snakers4/silero-models', model='silero_tts',speaker="v3_en")
@@ -27,4 +27,4 @@ class StreamlitApp(L.app.components.ServeStreamlit):
             audio.seek(0)
             st.audio(audio)
 
-app = L.LightningApp(StreamlitApp())
+app = LightningApp(StreamlitApp())

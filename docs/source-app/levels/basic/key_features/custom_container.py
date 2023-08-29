@@ -1,13 +1,13 @@
 # app.py
-import lightning as L
+from lightning.app import LightningWork, LightningApp
 
 
-class YourComponent(L.LightningWork):
+class YourComponent(LightningWork):
    def run(self):
       print('RUN ANY PYTHON CODE HERE')
 
 
 # custom image (from any provider)
-config= L.BuildConfig(image="gcr.io/google-samples/hello-app:1.0")
+config= BuildConfig(image="gcr.io/google-samples/hello-app:1.0")
 component = YourComponent(cloud_build_config=config)
-app = L.LightningApp(component)
+app = LightningApp(component)

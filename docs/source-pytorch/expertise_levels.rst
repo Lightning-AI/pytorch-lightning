@@ -214,8 +214,8 @@ Configure all aspects of Lightning for advanced usecases.
    :tag: advanced
 
 .. displayitem::
-   :header: Level 21: Reach 1 trillion parameters on GPUs
-   :description: Scale to 1 trillion params on GPUs.
+   :header: Level 21: Train models with billions of parameters
+   :description: Scale GPU training to models with billions of parameters
    :col_css: col-md-6
    :button_link: levels/advanced_level_22.html
    :height: 150
