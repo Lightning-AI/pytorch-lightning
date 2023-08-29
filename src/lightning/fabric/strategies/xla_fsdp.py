@@ -15,7 +15,7 @@ import io
 from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, List, Literal, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -41,7 +41,7 @@ from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
-_POLICY_SET = Set[Module]
+_POLICY_SET = Set[Type[Module]]
 _POLICY = Union[_POLICY_SET, Callable[[Module, bool, int], bool]]
 
 

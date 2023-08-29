@@ -80,9 +80,9 @@ if TYPE_CHECKING:
     if _TORCH_GREATER_EQUAL_2_0:
         from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-        _POLICY = Union[Set[Module], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
+        _POLICY = Union[Set[Type[Module]], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
     else:
-        _POLICY = Union[Set[Module], Callable[[Module, bool, int], bool]]  # type: ignore[misc]
+        _POLICY = Union[Set[Type[Module]], Callable[[Module, bool, int], bool]]  # type: ignore[misc]
 
     _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
 
