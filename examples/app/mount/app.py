@@ -1,11 +1,10 @@
 import os
 
-import lightning as L
-from lightning_app import CloudCompute
-from lightning_app.storage import Mount
+from lightning.app import CloudCompute, LightningApp, LightningFlow, LightningWork
+from lightning.app.storage import Mount
 
 
-class Work(L.LightningWork):
+class Work(LightningWork):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -16,7 +15,7 @@ class Work(L.LightningWork):
         assert "esRedditJson1" in files
 
 
-class Flow(L.LightningFlow):
+class Flow(LightningFlow):
     def __init__(self):
         super().__init__()
         self.work_1 = Work(
@@ -32,4 +31,4 @@ class Flow(L.LightningFlow):
         self.work_1.run()
 
 
-app = L.LightningApp(Flow())
+app = LightningApp(Flow())

@@ -1,20 +1,20 @@
 # app.py
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp, CloudCompute
 
 
-class TrainComponent(L.LightningWork):
+class TrainComponent(LightningWork):
     def run(self, x):
         print(f'train a model on {x}')
 
-class AnalyzeComponent(L.LightningWork):
+class AnalyzeComponent(LightningWork):
     def run(self, x):
         print(f'analyze model on {x}')
 
-class WorkflowOrchestrator(L.LightningFlow):
+class WorkflowOrchestrator(LightningFlow):
     def __init__(self) -> None:
         super().__init__()
-        self.train = TrainComponent(cloud_compute=L.CloudCompute('cpu'))
-        self.analyze = AnalyzeComponent(cloud_compute=L.CloudCompute('gpu'))
+        self.train = TrainComponent(cloud_compute=CloudCompute('cpu'))
+        self.analyze = AnalyzeComponent(cloud_compute=CloudCompute('gpu'))
 
     def run(self):
         # run() starts the machine
@@ -27,4 +27,4 @@ class WorkflowOrchestrator(L.LightningFlow):
         if self.train.status.STOPPED:
             self.analyze.run("CPU machine 2")
 
-app = L.LightningApp(WorkflowOrchestrator())
+app = LightningApp(WorkflowOrchestrator())

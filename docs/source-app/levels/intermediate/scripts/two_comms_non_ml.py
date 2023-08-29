@@ -1,8 +1,8 @@
 # app.py
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp
 import time
 
-class A(L.LightningWork):
+class A(LightningWork):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.msg_changed = False
@@ -17,11 +17,11 @@ class A(L.LightningWork):
                 self.new_msg = f'A is at step: {step}'
                 print(self.new_msg)
 
-class B(L.LightningWork):
+class B(LightningWork):
     def run(self, msg):
         print(f'B: message from A: {msg}')
 
-class Example(L.LightningFlow):
+class Example(LightningFlow):
     def __init__(self) -> None:
         super().__init__()
         self.a = A(parallel=True)
@@ -33,4 +33,4 @@ class Example(L.LightningFlow):
             self.a.msg_changed = False
             self.b.run(self.a.new_msg)
 
-app = L.LightningApp(Example())
+app = LightningApp(Example())
