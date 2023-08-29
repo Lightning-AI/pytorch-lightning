@@ -5,33 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnRaleased] - 2023-08-DD
+## [2.0.8] - 2023-08-29
 
-### Chnaged
+### Changed
 
 - On XLA, avoid setting the global rank before processes have been launched as this will initialize the PJRT computation client in the main process ([#16966](https://github.com/Lightning-AI/lightning/pull/16966))
-
-
 - Fix inefficiency in rich progress bar ([#18369](https://github.com/Lightning-AI/lightning/pull/18369))
-
 
 ### Fixed
 
 - Fixed FSDP full-precision `param_dtype` training (`16-mixed` and `bf16-mixed` configurations) to avoid FSDP assertion errors with PyTorch < 2.0 ([#18278](https://github.com/Lightning-AI/lightning/pull/18278))
-
-
 - Fixed an issue that prevented the use of custom logger classes without an `experiment` property defined ([#18093](https://github.com/Lightning-AI/lightning/pull/18093))
-
-
 - Fixed setting the tracking uri in `MLFlowLogger` for logging artifacts to the MLFlow server ([#18395](https://github.com/Lightning-AI/lightning/pull/18395))
-
-
 - Fixed redundant `iter()` call to dataloader when checking dataloading configuration ([#18415](https://github.com/Lightning-AI/lightning/pull/18415))
-
-
 - Fixed model parameters getting shared between processes when running with `strategy="ddp_spawn"` and `accelerator="cpu"`; this has a necessary memory impact, as parameters are replicated for each process now ([#18238](https://github.com/Lightning-AI/lightning/pull/18238))
-
-
 - Properly manage `fetcher.done` with `dataloader_iter` ([#18376](https://github.com/Lightning-AI/lightning/pull/18376))
 
 
