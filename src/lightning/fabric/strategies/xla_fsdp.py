@@ -372,7 +372,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         path = Path(self.broadcast(path))
         # the user will typically set the path to something like `checkpoint.pth`. Remove the suffix for the dir name
         path_dir = path.with_suffix("")
-        if path_dir.is_dir() or next(path_dir.iterdir(), None) is not None:
+        if path_dir.is_dir() and any(path_dir.iterdir()):
             raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path_dir}")
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 

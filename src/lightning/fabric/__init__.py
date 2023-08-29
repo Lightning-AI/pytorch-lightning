@@ -13,7 +13,7 @@ elif package_available("lightning"):
 
 _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)
-_logger.setLevel(logging.INFO)
+_logger.setLevel(logging.DEBUG)
 
 if not _root_logger.hasHandlers():
     _logger.addHandler(logging.StreamHandler())
