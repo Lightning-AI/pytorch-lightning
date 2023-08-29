@@ -4,15 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [UnREleased] - 2023-08-DD
+## [2.0.8] - 2023-08-29
 
-## Canaged
+## Changed
 
 - Change top folder ([#18212](https://github.com/Lightning-AI/lightning/pull/18212))
-
-
 - Remove `_handle_is_headless` calls in app run loop ([#18362](https://github.com/Lightning-AI/lightning/pull/18362))
-
 
 ### Fixed
 
