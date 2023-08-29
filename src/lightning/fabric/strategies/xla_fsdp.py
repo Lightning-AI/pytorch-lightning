@@ -72,7 +72,7 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         sequential_save: With this enabled, individual ranks consecutively save their state dictionary shards, reducing
             peak system RAM usage, although it elongates the saving process.
-        \**kwargs: See available parameters in :class:`torch.distributed.fsdp.FullyShardedDataParallel`.
+        \**kwargs: See available parameters in :class:`torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`.
     """
 
     def __init__(
