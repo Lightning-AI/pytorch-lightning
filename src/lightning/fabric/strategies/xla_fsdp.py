@@ -96,8 +96,9 @@ class XLAFSDPStrategy(ParallelStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = _XLAFSDPBackwardSyncControl()
 
-        self._fsdp_kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
-        self._fsdp_kwargs = _activation_checkpointing_kwargs(activation_checkpointing_policy, kwargs)
+        kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
+        kwargs = _activation_checkpointing_kwargs(activation_checkpointing_policy, kwargs)
+        self._fsdp_kwargs = kwargs
         self._state_dict_type = state_dict_type
         self._sequential_save = sequential_save
         self._launched = False
@@ -625,7 +626,8 @@ def _activation_checkpointing_kwargs(policy: Optional[_POLICY_SET], kwargs: Dict
             " passing `auto_wrapper_callable` instead."
         )
     auto_wrapper_callable = partial(_activation_checkpointing_auto_wrapper, policy)
-    return {"auto_wrapper_callable": auto_wrapper_callable}
+    kwargs["auto_wrapper_callable"] = auto_wrapper_callable
+    return kwargs
 
 
 class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
