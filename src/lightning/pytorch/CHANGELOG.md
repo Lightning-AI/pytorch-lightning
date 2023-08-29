@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Run the DDP wrapper in a CUDA stream ([#17334](https://github.com/Lightning-AI/lightning/pull/17334))
 
 
-- Added ``SaveConfigCallback.save_config`` to ease use cases such as saving the config to a logger ([#17475](https://github.com/Lightning-AI/lightning/pull/17475))
+- Added `SaveConfigCallback.save_config` to ease use cases such as saving the config to a logger ([#17475](https://github.com/Lightning-AI/lightning/pull/17475))
 
 
 - Enabled optional file versioning of model checkpoints ([#17320](hhttps://github.com/Lightning-AI/lightning/pull/17320))
@@ -73,7 +73,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Handles initialization for FSDP models before wrapping and the Zero stage 3 initialization for DeepSpeed before sharding
 
 
-- Added support for meta-device initialization with `Fabric.init_module(empty_init=True)` in FSDP ([#18385](https://github.com/Lightning-AI/lightning/pull/18385))
+- Added support for meta-device initialization with `Trainer.init_module(empty_init=True)` in FSDP ([#18385](https://github.com/Lightning-AI/lightning/pull/18385))
 
 
 - Added `lightning.pytorch.plugins.PrecisionPlugin.init_context()` and `lightning.pytorch.strategies.Strategy.tensor_init_context()` context managers to control model and tensor instantiation ([#18004](https://github.com/Lightning-AI/lightning/pull/18004))
