@@ -112,6 +112,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Made the text delimiter in the rich progress bar configurable ([#18372](https://github.com/Lightning-AI/lightning/pull/18372))
 
 
+- Improved the error messaging and instructions when handling custom batch samplers in distributed settings ([#18402](https://github.com/Lightning-AI/lightning/pull/18402))
+
+
+
 ### Changed
 
 - Removed the limitation to call `self.trainer.model.parameters()` in `LightningModule.configure_optimizers()` ([#17309](https://github.com/Lightning-AI/lightning/pull/17309))
