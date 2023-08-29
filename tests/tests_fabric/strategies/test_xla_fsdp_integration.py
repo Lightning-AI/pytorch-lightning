@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -59,7 +60,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
     if fabric.strategy.all_reduce(fabric.node_rank, reduce_op="sum").item() > 0:
         return  # pytest.skip() is not pickleable
 
-    checkpoint_path = fabric.broadcast(str(tmp_path))
+    tmp_path = Path(fabric.broadcast(str(tmp_path)))
     with fabric.init_module():
         model_1 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
     model_1 = fabric.setup_module(model_1)
@@ -88,13 +89,14 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         "step_count": 1,
     }
 
+    checkpoint_path = tmp_path / "foo.pth"
     fabric.save(checkpoint_path, state)
 
     world_size = fabric.world_size
 
     if state_dict_type == "sharded":
         expected_files = {f"checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
-        assert set(os.listdir(checkpoint_path)) == expected_files
+        assert set(os.listdir(tmp_path / "foo")) == expected_files
 
         # define a second set of model and optimizer
         with fabric.init_module():
@@ -131,7 +133,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         assert state["coconut"] == 11
 
     if state_dict_type == "full":
-        assert set(os.listdir(checkpoint_path)) == {"checkpoint_consolidated.pth"}
+        assert set(os.listdir(tmp_path)) == {"foo.pth"}
 
         # define a second set of model and optimizer
         with fabric.init_module():
