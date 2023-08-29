@@ -1190,7 +1190,7 @@ def test_verify_launch_called():
     for ctx_manager_name in ctx_manager_names:
         ctx_manager = getattr(fabric, ctx_manager_name)
         with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"), ctx_manager():
-            pass
+            pass  # the error is raised in the context manager and caught by `pytest.raises`
 
     fabric.launch()
     assert fabric._launched
