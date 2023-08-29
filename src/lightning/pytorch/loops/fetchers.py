@@ -148,15 +148,27 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
                 ...
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._batch: Any = None
+        self._batch_idx: int = 0
+        self._dataloader_idx: int = 0
+
     def __iter__(self) -> "_DataLoaderIterDataFetcher":
         super().__iter__()
         self.iterator_wrapper = iter(_DataFetcherWrapper(self))
         return self
 
-    def __next__(self) -> Iterator["_DataFetcherWrapper"]:
+    def __next__(self) -> Iterator["_DataFetcherWrapper"]:  # type: ignore[override]
         if self.done:
             raise StopIteration
         return self.iterator_wrapper
+
+    def reset(self) -> None:
+        super().reset()
+        self._batch = None
+        self._batch_idx = 0
+        self._dataloader_idx = 0
 
 
 class _DataFetcherWrapper(Iterator):
@@ -176,4 +188,10 @@ class _DataFetcherWrapper(Iterator):
         return self.data_fetcher.length
 
     def __next__(self) -> _ITERATOR_RETURN:
-        return super(_DataLoaderIterDataFetcher, self.data_fetcher).__next__()
+        fetcher = self.data_fetcher
+        batch, batch_idx, dataloader_idx = super(_DataLoaderIterDataFetcher, fetcher).__next__()
+        # save the state so the loops can access it
+        fetcher._batch = batch
+        fetcher._batch_idx = batch_idx
+        fetcher._dataloader_idx = dataloader_idx
+        return batch, batch_idx, dataloader_idx

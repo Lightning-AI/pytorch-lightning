@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from collections.abc import Iterator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -119,16 +118,22 @@ def test_training_loop_dataloader_iter_multiple_dataloaders(tmp_path):
     )
 
     class MyModel(BoringModel):
-        outs = []
+        batch_start_ins = []
+        step_outs = []
+        batch_end_ins = []
+
+        def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+            self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
 
         def training_step(self, dataloader_iter):
-            self.outs.append(next(dataloader_iter))
+            self.step_outs.append(next(dataloader_iter))
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx: int = 0):
-            assert isinstance(batch, Iterator)  # this is the dataloader_iter
-            assert batch_idx == -1
-            assert dataloader_idx == 0
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
+            self.batch_end_ins.append((batch, batch_idx, dataloader_idx))
 
     model = MyModel()
     trainer.fit(model, {"a": [0, 1], "b": [2, 3]})
-    assert model.outs == [({"a": 0, "b": 2}, 0, 0), ({"a": 1, "b": 3}, 1, 0)]
+
+    assert model.batch_start_ins == [(None, 0, 0)] + model.step_outs[:-1]
+    assert model.step_outs == [({"a": 0, "b": 2}, 0, 0), ({"a": 1, "b": 3}, 1, 0)]
+    assert model.batch_end_ins == model.step_outs

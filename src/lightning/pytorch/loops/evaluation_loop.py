@@ -15,7 +15,7 @@ import os
 import shutil
 import sys
 from collections import ChainMap, defaultdict, OrderedDict
-from typing import Any, DefaultDict, Iterable, List, Optional, Tuple, Union
+from typing import Any, DefaultDict, Iterable, Iterator, List, Optional, Tuple, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -23,7 +23,7 @@ from torch import Tensor
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from lightning.pytorch.loops.fetchers import _DataFetcher, _DataFetcherWrapper, _DataLoaderIterDataFetcher
+from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.progress import _BatchProgress
 from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
@@ -128,17 +128,21 @@ class _EvaluationLoop(_Loop):
         while True:
             try:
                 if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
+                    dataloader_iter = next(data_fetcher)
                     # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting
-                    batch, batch_idx, dataloader_idx = next(data_fetcher), None, None
+                    batch = data_fetcher._batch
+                    batch_idx = data_fetcher._batch_idx
+                    dataloader_idx = data_fetcher._dataloader_idx
                 else:
+                    dataloader_iter = None
                     batch, batch_idx, dataloader_idx = next(data_fetcher)
-                    if previous_dataloader_idx != dataloader_idx:
-                        # the dataloader has changed, notify the logger connector
-                        self._store_dataloader_outputs()
-                    previous_dataloader_idx = dataloader_idx
+                if previous_dataloader_idx != dataloader_idx:
+                    # the dataloader has changed, notify the logger connector
+                    self._store_dataloader_outputs()
+                previous_dataloader_idx = dataloader_idx
                 self.batch_progress.is_last_batch = data_fetcher.done
                 # run step hooks
-                self._evaluation_step(batch, batch_idx, dataloader_idx)
+                self._evaluation_step(batch, batch_idx, dataloader_idx, dataloader_iter)
             except StopIteration:
                 # this needs to wrap the `*_step` call too (not just `next`) for `dataloader_iter` support
                 break
@@ -358,17 +362,20 @@ class _EvaluationLoop(_Loop):
         # profiler start, since the `__next__` call might use a different iterator
         self.trainer.profiler.stop(f"[{type(self).__name__}].{self._stage.dataloader_prefix}_next")
 
-    def _evaluation_step(self, batch: Any, batch_idx: Optional[int], dataloader_idx: Optional[int]) -> None:
+    def _evaluation_step(
+        self, batch: Any, batch_idx: int, dataloader_idx: int, dataloader_iter: Optional[Iterator]
+    ) -> None:
         """Runs the actual evaluation step together with all the necessary bookkeeping and the hooks tied to it.
 
         Args:
             batch: The current batch to run through the step.
-            batch_idx: The index of the current batch. None if using ``dataloader_iter``.
-            dataloader_idx: the index of the dataloader producing the current batch. None if using ``dataloader_iter``.
+            batch_idx: The index of the current batch.
+            dataloader_idx: the index of the dataloader producing the current batch.
+            dataloader_iter: The iterator if using this step flavor.
 
         """
         trainer = self.trainer
-        using_dataloader_iter = isinstance(batch, _DataFetcherWrapper)
+        using_dataloader_iter = dataloader_iter is not None
 
         if not using_dataloader_iter:
             batch = trainer.precision_plugin.convert_input(batch)
@@ -380,9 +387,7 @@ class _EvaluationLoop(_Loop):
         hook_kwargs = self._build_kwargs(
             batch, batch_idx, dataloader_idx if self._is_sequential and self.num_dataloaders > 1 else None
         )
-        step_kwargs = OrderedDict(
-            [(k, v) for k, v in hook_kwargs.items() if not using_dataloader_iter or k != "batch_idx"]
-        )
+        step_kwargs = hook_kwargs if not using_dataloader_iter else {"any": dataloader_iter}
 
         self.batch_progress.increment_ready()
 
@@ -400,6 +405,15 @@ class _EvaluationLoop(_Loop):
         output = call._call_strategy_hook(trainer, hook_name, *step_kwargs.values())
 
         self.batch_progress.increment_processed()
+
+        if using_dataloader_iter:
+            # update the hook kwargs now that the step method might have consumed the iterator
+            batch = self._data_fetcher._batch
+            batch_idx = self._data_fetcher._batch_idx
+            dataloader_idx = self._data_fetcher._dataloader_idx
+            hook_kwargs = self._build_kwargs(
+                batch, batch_idx, dataloader_idx if self._is_sequential and self.num_dataloaders > 1 else None
+            )
 
         hook_name = "on_test_batch_end" if trainer.testing else "on_validation_batch_end"
         call._call_callback_hooks(trainer, hook_name, output, *hook_kwargs.values())
@@ -420,14 +434,14 @@ class _EvaluationLoop(_Loop):
         if not self.batch_progress.is_last_batch and trainer.received_sigterm:
             raise SIGTERMException
 
-    def _build_kwargs(self, batch: Any, batch_idx: Optional[int], dataloader_idx: Optional[int]) -> OrderedDict:
+    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> OrderedDict:
         """Helper method to build the arguments for the current step.
 
         Args:
             batch: the current batch to run through the step.
-            batch_idx: the index of the current batch. None if using ``dataloader_iter``.
+            batch_idx: the index of the current batch.
             dataloader_idx: the index of the dataloader producing the current batch. None if not multiple dataloaders
-                in sequential mode or when using ``dataloader_iter``.
+                in sequential mode.
 
         Returns:
             the dictionary containing all the keyboard arguments for the step

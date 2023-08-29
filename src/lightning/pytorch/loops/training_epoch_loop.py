@@ -188,13 +188,15 @@ class _TrainingEpochLoop(loops._Loop):
             return
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
-        using_dataloader_iter = isinstance(data_fetcher, _DataLoaderIterDataFetcher)
 
-        if using_dataloader_iter:
+        if using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher):
+            dataloader_iter = next(data_fetcher)
             # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting
-            batch, batch_idx, dataloader_idx = next(data_fetcher), None, None
+            batch = data_fetcher._batch
+            batch_idx = data_fetcher._batch_idx
         else:
-            batch, batch_idx, dataloader_idx = next(data_fetcher)
+            dataloader_iter = None
+            batch, batch_idx, _ = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
 
         trainer = self.trainer
@@ -207,7 +209,7 @@ class _TrainingEpochLoop(loops._Loop):
         trainer._logger_connector.on_batch_start(batch)
 
         batch_output: _BATCH_OUTPUTS_TYPE = None  # for mypy
-        if batch is None:
+        if batch is None and not using_dataloader_iter:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
         else:
             # hook
@@ -220,7 +222,11 @@ class _TrainingEpochLoop(loops._Loop):
 
             self.batch_progress.increment_started()
 
-            kwargs = self._build_kwargs(OrderedDict(), batch, batch_idx)
+            kwargs = (
+                self._build_kwargs(OrderedDict(), batch, batch_idx)
+                if not using_dataloader_iter
+                else {"any": dataloader_iter}
+            )
             with trainer.profiler.profile("run_training_batch"):
                 if trainer.lightning_module.automatic_optimization:
                     # in automatic optimization, there can only be one optimizer
@@ -235,6 +241,11 @@ class _TrainingEpochLoop(loops._Loop):
         self.update_lr_schedulers("step", update_plateau_schedulers=False)
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
+
+        if using_dataloader_iter:
+            # update the hook kwargs now that the step method might have consumed the iterator
+            batch = data_fetcher._batch
+            batch_idx = data_fetcher._batch_idx
 
         call._call_callback_hooks(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
         call._call_lightning_module_hook(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
