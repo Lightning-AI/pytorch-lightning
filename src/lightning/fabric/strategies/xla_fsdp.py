@@ -361,12 +361,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
                 "Saving and loading checkpoints with the `XLAFSDPStrategy` is not supported in PyTorch < 2.0."
-                " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
-            )
-        if storage_options is not None:
-            raise TypeError(
-                "`XLAFSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
-                " `XLAFSDPStrategy` does not use the `CheckpointIO`."
+                " Please upgrade `torch`."
             )
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
         path = Path(self.broadcast(path))
@@ -405,12 +400,25 @@ class XLAFSDPStrategy(ParallelStrategy):
             self._save_checkpoint_shard(path_dir, state, storage_options, filter)
 
         if self._state_dict_type == "full":
+            ckpt_prefix = str(path_dir / "checkpoint")
+            ckpt_suffix = "_rank-*-of-*.pth"
+            assert (parallel_devices := self.parallel_devices) is not None
+            if len(parallel_devices) != self.world_size:  # multihost
+                raise OSError(
+                    "Multihost setups do not have a shared filesystem, so the checkpoint shards cannot be consolidated"
+                    " into a single checkpoint after saving them. Please switch to"
+                    " `XLAFSDPStrategy(state_dict_type='sharded')`. TIP: You can consolidate them manually by getting"
+                    " them together into a single directory and running `python -m"
+                    f" torch_xla.distributed.fsdp.consolidate_sharded_ckpts --ckpt_prefix {ckpt_prefix!r} --ckpt_suffix"
+                    f" {ckpt_suffix!r} --save_path {str(path)!r}`."
+                )
+
             from torch_xla.distributed.fsdp import consolidate_sharded_model_checkpoints
 
             self.barrier("before_ckpt_consolidation")
             if self.is_global_zero:
                 consolidate_sharded_model_checkpoints(
-                    ckpt_prefix=str(path_dir / "checkpoint"), ckpt_suffix="_rank-*-of-*.pth", save_path=path
+                    ckpt_prefix=ckpt_prefix, ckpt_suffix=ckpt_suffix, save_path=str(path)
                 )
             self.barrier("after_ckpt_consolidation")
             self.checkpoint_io.remove_checkpoint(
