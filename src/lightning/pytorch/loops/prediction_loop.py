@@ -219,9 +219,8 @@ class _PredictionLoop(_Loop):
 
         """
         trainer = self.trainer
-        using_dataloader_iter = dataloader_iter is not None
 
-        if not using_dataloader_iter:
+        if not (using_dataloader_iter := isinstance(self._data_fetcher, _DataLoaderIterDataFetcher)):
             batch = trainer.precision_plugin.convert_input(batch)
             batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
             batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)

@@ -225,7 +225,7 @@ class _TrainingEpochLoop(loops._Loop):
             kwargs = (
                 self._build_kwargs(OrderedDict(), batch, batch_idx)
                 if not using_dataloader_iter
-                else {"any": dataloader_iter}
+                else OrderedDict(any=dataloader_iter)
             )
             with trainer.profiler.profile("run_training_batch"):
                 if trainer.lightning_module.automatic_optimization:
@@ -423,13 +423,13 @@ class _TrainingEpochLoop(loops._Loop):
             for logger in self.trainer.loggers:
                 logger.save()
 
-    def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: Optional[int]) -> OrderedDict:
+    def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
         """Helper method to build the arguments for the current step.
 
         Args:
             kwargs: The kwargs passed down to the hooks.
             batch: The current batch to run through the step.
-            batch_idx: the index of the current batch. None if using ``dataloader_iter``.
+            batch_idx: the index of the current batch.
 
         Returns:
             The kwargs passed down to the hooks.
@@ -439,6 +439,6 @@ class _TrainingEpochLoop(loops._Loop):
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
         # the `batch_idx` is optional, but its name can be anything
         # as long as there are two arguments after 'self', we assume they are the `batch` and `batch_idx`
-        if batch_idx is not None and is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
+        if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
             kwargs["batch_idx"] = batch_idx
         return kwargs

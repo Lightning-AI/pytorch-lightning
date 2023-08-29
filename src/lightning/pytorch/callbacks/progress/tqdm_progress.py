@@ -295,7 +295,6 @@ class TQDMProgressBar(ProgressBar):
         batch_idx: int,
         dataloader_idx: int = 0,
     ) -> None:
-        # FIXME
         n = batch_idx + 1
         if self._should_update(n, self.val_progress_bar.total):
             _update_n(self.val_progress_bar, n)
