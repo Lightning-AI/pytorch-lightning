@@ -24,6 +24,7 @@ from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.pytorch.core.hooks import DataHooks
 from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.saving import _load_from_checkpoint
+from lightning.pytorch.utilities.restricted_classmethod import restricted_classmethod
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
@@ -157,7 +158,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         """
         pass
 
-    @classmethod
+    @restricted_classmethod
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[_PATH, IO],
@@ -202,6 +203,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         Note:
             ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningDataModule`
             **class** to call it instead of the :class:`LightningDataModule` instance.
+            A warning will be emitted if ``load_from_checkpoint`` is called from an instance.
 
         Example::
 

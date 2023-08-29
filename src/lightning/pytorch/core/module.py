@@ -65,6 +65,7 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.restricted_classmethod import restricted_classmethod
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import _METRIC, LRSchedulerPLType, LRSchedulerTypeUnion, STEP_OUTPUT
 
@@ -1459,7 +1460,7 @@ class LightningModule(
 
         return torchscript_module
 
-    @classmethod
+    @restricted_classmethod
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[_PATH, IO],
@@ -1508,6 +1509,7 @@ class LightningModule(
         Note:
             ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningModule`
             **class** to call it instead of the :class:`LightningModule` instance.
+            A warning will be emitted if ``load_from_checkpoint`` is called from an instance.
 
         Example::
 
