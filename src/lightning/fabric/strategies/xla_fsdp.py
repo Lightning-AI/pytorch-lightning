@@ -396,7 +396,8 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         if self._sequential_save:
             # each host runs this in parallel, but the ranks in the host run it sequentially
-            for rank in range(len(self.parallel_devices)):
+            assert (parallel_devices := self.parallel_devices) is not None
+            for rank in range(len(parallel_devices)):
                 if rank == self.local_rank:
                     self._save_checkpoint_shard(path_dir, state, storage_options, filter)
                 self.barrier(f"wait-for-{rank}-save")
