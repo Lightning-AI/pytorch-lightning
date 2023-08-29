@@ -207,11 +207,6 @@ class XLAStrategy(ParallelStrategy):
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla", cls, description=cls.__class__.__name__)
 
-    def _set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        rank_zero_only.rank = self.cluster_environment.global_rank()
-
     @staticmethod
     def _validate_dataloader(dataloader: object) -> None:
         if not has_len(dataloader):
