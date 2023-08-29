@@ -607,7 +607,7 @@ def _activation_checkpointing_auto_wrapper(policy: _POLICY_SET, module: Module, 
 
 def _activation_checkpointing_kwargs(policy: Optional[_POLICY_SET], kwargs: Dict) -> Dict:
     if not policy:
-        return {}
+        return kwargs
     if "auto_wrapper_callable" in kwargs:
         raise ValueError(
             "You cannot set both `auto_wrapper_callable` and `activation_checkpointing_policy`. Choose one"
