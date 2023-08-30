@@ -303,6 +303,8 @@ class CombinedLoader(Iterable):
                 raise NotImplementedError(f"`{type(dl).__name__}` does not define `__len__`")
             lengths.append(length)
         fn = _SUPPORTED_MODES[self._mode]["fn"]
+        if self._mode == "sequential":
+            return sum(self._iterator.limits)
         return fn(lengths)
 
     def reset(self) -> None:
