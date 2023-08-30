@@ -9,13 +9,10 @@ Welcome to ⚡ Fabric
       .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
          :alt: Animation showing how to convert standard training code to Lightning
    :right:
-      Fabric is the fast and lightweight way to scale PyTorch models without boilerplate code.
-
-        - Easily switch from running on CPU to GPU (Apple Silicon, CUDA, ...), TPU, multi-GPU or even multi-node training
-        - State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
-        - Handles all the boilerplate device logic for you
-        - Brings useful tools to help you build a trainer (callbacks, logging, checkpoints, ...)
-        - Designed with multi-billion parameter models in mind
+      Fabric is the fast and lightweight way to scale PyTorch models without boilerplate code which allows you to
+      easily switch from running on CPU to GPU (Apple Silicon, CUDA, ...), TPU, multi-GPU or even multi-node training.
+      You can also leverage State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed)
+      and mixed precision out of the box.
 
 .. raw:: html
 
@@ -66,52 +63,13 @@ Conda users
       </div>
    </div>
 
-Or read the `advanced install guide <starter/installation.html>`_
+Or read the :doc:`advanced install guide <fundamentals/installation>`.
 
 You can find our the list of supported PyTorch versions in our :ref:`compatibility matrix <versioning:Compatibility matrix>`.
 
 .. raw:: html
 
    <hr class="docutils" style="margin: 50px 0 50px 0">
-
-----
-
-Get Started
------------
-
-.. code-block:: diff
-
-      import torch
-      from lightning.pytorch.demos import WikiText2, Transformer
-    + import lightning as L
-
-    - device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    + fabric = L.Fabric(accelerator="cuda", devices=8, strategy="ddp")
-    + fabric.launch()
-
-      dataset = WikiText2()
-      dataloader = torch.utils.data.DataLoader(dataset)
-      model = Transformer(vocab_size=dataset.vocab_size)
-      optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-
-    - model = model.to(device)
-    + model, optimizer = fabric.setup(model, optimizer)
-    + dataloader = fabric.setup_dataloaders(dataloader)
-
-      model.train()
-      for epoch in range(20):
-          for batch in dataloader:
-              input, target = batch
-    -         input, target = input.to(device), target.to(device)
-              optimizer.zero_grad()
-              output = model(input, target)
-              loss = torch.nn.functional.nll_loss(output, target.view(-1))
-    -         loss.backward()
-    +         fabric.backward(loss)
-              optimizer.step()
-
-
-----
 
 
 Why Fabric?
@@ -146,7 +104,59 @@ This makes it easier to develop and debug your PyTorch code as you gradually add
 Fabric provides important tools to remove undesired boilerplate code (distributed, hardware, checkpoints, logging, ...), but leaves the design and orchestration fully up to you.
 
 
-----
+.. raw:: html
+
+   <hr class="docutils" style="margin: 50px 0 50px 0">
+
+Get Started
+-----------
+
+.. raw:: html
+
+    <div class="tutorials-callout-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. customcalloutitem::
+   :description: Detail introduction how to install this package.
+   :header: Install Lightning Fabric
+   :button_link:  fundamentals/installation.html
+
+.. customcalloutitem::
+   :description: Five easy steps to let ``Fabric`` scale your PyTorch models.
+   :header: From PyTorch to Fabric
+   :button_link:  fundamentals/convert.html
+
+.. customcalloutitem::
+   :description: Learn how to run your code on almost any accelerator HW.
+   :header: Accelerate your code with Fabric
+   :button_link:  fundamentals/accelerators.html
+
+.. customcalloutitem::
+   :description: Enable training large models on limited resources.
+   :header: Save memory with lower precision
+   :button_link:  fundamentals/precision.html
+
+.. customcalloutitem::
+   :description: Check utilizing Fabric in interactive notebooks even with multi-GOU support.
+   :header: Fabric inside notebooks
+   :button_link:  fundamentals/notebooks.html
+
+.. customcalloutitem::
+   :description: Learn scaling your training on multiple devices with distributed training.
+   :header: Launch distributed training
+   :button_link:  fundamentals/launch.html
+
+.. raw:: html
+
+        </div>
+    </div>
+
+.. End of callout item section
+
+
+.. raw:: html
 
     <div style="display:none">
 
