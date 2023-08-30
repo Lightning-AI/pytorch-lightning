@@ -50,7 +50,7 @@ def test_lr_monitor_single_lr(tmpdir):
 
 @pytest.mark.parametrize("opt", ["SGD", "Adam"])
 def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
-    """Test that learning rates and momentum are extracted and logged for single lr scheduler."""
+    """Test that learning rates, momentum and weight decay are extracted and logged for single lr scheduler."""
 
     class LogMomentumModel(BoringModel):
         def __init__(self, opt):
@@ -68,7 +68,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
             return [optimizer], [lr_scheduler]
 
     model = LogMomentumModel(opt=opt)
-    lr_monitor = LearningRateMonitor(log_momentum=True)
+    lr_monitor = LearningRateMonitor(log_momentum=True, log_weight_decay=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -83,6 +83,10 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
     assert all(v is not None for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
     assert len(lr_monitor.last_momentum_values) == len(trainer.lr_scheduler_configs)
     assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values)
+
+    assert all(v is not None for v in lr_monitor.last_weight_decay_values.values()), "Expected weight decay to be logged"
+    assert len(lr_monitor.last_weight_decay_values) == len(trainer.lr_scheduler_configs)
+    assert all(k == f"lr-{opt}-weight_decay" for k in lr_monitor.last_weight_decay_values)
 
 
 def test_log_momentum_no_momentum_optimizer(tmpdir):
@@ -599,12 +603,18 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
 
         def configure_optimizers(self):
             param_groups = [
-                {"params": list(self.linear_a.parameters())},
-                {"params": list(self.linear_b.parameters())},
+                {
+                    "params": list(self.linear_a.parameters()),
+                    "weight_decay": 0.1,
+                },
+                {
+                    "params": list(self.linear_b.parameters()),
+                    "weight_decay": 0.1,
+                },
             ]
             return torch.optim.Adam(param_groups, lr=self.hparams.lr, betas=self.hparams.momentum)
 
-    lr_monitor = LearningRateMonitor(log_momentum=True)
+    lr_monitor = LearningRateMonitor(log_momentum=True, log_weight_decay=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -618,6 +628,7 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
 
     lr = 1e-2
     momentum = 0.7
+    weight_decay = 0.1
     model = TestModel(lr=lr, momentum=(momentum, 0.999))
     trainer.fit(model)
 
@@ -625,6 +636,8 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
     assert list(lr_monitor.lrs) == ["lr-Adam/pg1", "lr-Adam/pg2"]
     assert list(lr_monitor.last_momentum_values) == ["lr-Adam/pg1-momentum", "lr-Adam/pg2-momentum"]
     assert all(val == momentum for val in lr_monitor.last_momentum_values.values())
+    assert list(lr_monitor.last_weight_decay_values) == ["lr-Adam/pg1-weight_decay", "lr-Adam/pg2-weight_decay"]
+    assert all(val == weight_decay for val in lr_monitor.last_weight_decay_values.values())
     assert all(all(val == lr for val in lr_monitor.lrs[lr_key]) for lr_key in lr_monitor.lrs)
 
 
