@@ -91,7 +91,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
     world_size = fabric.world_size
     local_process_count = len(fabric.strategy.parallel_devices)
     is_multihost = local_process_count < world_size
-    if state_dict_type == "fulL" and is_multihost:
+    if state_dict_type == "full" and is_multihost:
         with pytest.raises(OSError, match="Multihost setups do not have a shared filesystem"):
             fabric.save(checkpoint_path, state)
         return
