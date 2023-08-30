@@ -174,8 +174,9 @@ def test_xla_fsdp_train_save_load(tmp_path, use_auto_wrap_policy, state_dict_typ
     """Test XLAFSDP training, saving and loading checkpoint (both full and sharded)."""
     from torch_xla.distributed.fsdp.wrap import always_wrap_policy
 
+    policy = always_wrap_policy if use_auto_wrap_policy else None
     strategy = XLAFSDPStrategy(
-        auto_wrap_policy=always_wrap_policy if use_auto_wrap_policy else None,
+        auto_wrap_policy=policy,
         state_dict_type=state_dict_type,
         sequential_save=sequential_save,
     )

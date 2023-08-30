@@ -656,6 +656,7 @@ class Fabric:
 
         """
         rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
+        self._validate_launched()
         if isinstance(self.strategy, _Sharded):
             with self.strategy.module_sharded_context():
                 yield
@@ -694,6 +695,7 @@ class Fabric:
                 Set this to ``True`` if you are loading a checkpoint into a large model. Requires ``torch >= 1.13``.
 
         """
+        self._validate_launched()
         if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
             rank_zero_warn(
                 "`Fabric.init_module()` can't place the model parameters on the device directly"

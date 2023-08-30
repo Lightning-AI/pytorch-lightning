@@ -743,6 +743,7 @@ def test_overridden_run_and_cli_not_allowed():
 def test_module_sharding_context():
     """Test that the sharding context manager gets applied when the strategy supports it and is a no-op otherwise."""
     fabric = Fabric()
+    fabric._launched = True
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
     with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
@@ -1177,11 +1178,19 @@ def test_verify_launch_called():
     with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
         fabric._validate_launched()
 
+    # Methods
     method_names = ("setup", "setup_module", "setup_dataloaders", "broadcast", "barrier", "all_reduce", "all_gather")
     for method_name in method_names:
         method = getattr(fabric, method_name)
         with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
             method(Mock())
+
+    # Context managers
+    ctx_manager_names = ("init_module",)
+    for ctx_manager_name in ctx_manager_names:
+        ctx_manager = getattr(fabric, ctx_manager_name)
+        with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"), ctx_manager():
+            pass  # the error is raised in the context manager and caught by `pytest.raises`
 
     fabric.launch()
     assert fabric._launched
