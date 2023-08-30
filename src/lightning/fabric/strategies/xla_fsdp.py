@@ -425,6 +425,8 @@ class XLAFSDPStrategy(ParallelStrategy):
                 path_dir / f"checkpoint_rank-{self.global_rank:08d}-of-{self.world_size:08d}.pth"
             )
             self.barrier("after_shard_cleanup")
+            if path_dir.exists():
+                path_dir.rmdir()
 
     def _save_checkpoint_shard(
         self,
