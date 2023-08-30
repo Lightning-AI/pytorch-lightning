@@ -1,8 +1,11 @@
 import os
 from contextlib import nullcontext
+from copy import deepcopy
 from datetime import timedelta
 from functools import partial
-from typing import Any, Dict, Optional
+from pathlib import Path
+from re import escape
+from typing import Optional
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
@@ -21,6 +24,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
 from lightning.pytorch.strategies import FSDPStrategy
+from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -43,11 +47,9 @@ class TestFSDPModel(BoringModel):
     def _init_model(self) -> None:
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
 
-    def setup(self, stage: str) -> None:
+    def configure_model(self) -> None:
         if self.layer is None:
             self._init_model()
-
-    def configure_model(self) -> None:
         # the model is already wrapped with FSDP: no need to wrap again!
         if isinstance(self.layer, FullyShardedDataParallel):
             return
@@ -55,10 +57,6 @@ class TestFSDPModel(BoringModel):
             if i % 2 == 0:
                 self.layer[i] = wrap(layer)
         self.layer = wrap(self.layer)
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        # when loading full state dict, we first need to create a new unwrapped model
-        self._init_model()
 
     def configure_optimizers(self):
         # There is some issue with SGD optimizer state in FSDP
@@ -81,10 +79,10 @@ class TestFSDPModel(BoringModel):
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecisionPlugin)
 
         if self.trainer.precision == "16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.float16
         elif self.trainer.precision == "bf16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.trainer.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
@@ -137,10 +135,10 @@ class TestFSDPModelAutoWrapped(TestBoringModel):
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecisionPlugin)
 
         if self.trainer.precision == "16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.float16
         elif self.trainer.precision == "bf16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.trainer.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
@@ -506,22 +504,28 @@ def test_set_timeout(init_process_group_mock):
     )
 
 
-@RunIf(min_torch="1.12")
-def test_fsdp_strategy_load_optimizer_states_multiple():
-    strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
+@RunIf(min_torch="2.0")
+@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+def test_fsdp_strategy_load_optimizer_states_multiple(_, tmp_path):
+    strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")], state_dict_type="full")
+    trainer = Trainer()
+    trainer.state.fn = TrainerFn.FITTING
+    strategy._lightning_module = Mock(trainer=trainer)
     spec = torch.optim.Optimizer
 
     # More states than optimizers configured
     strategy.optimizers = [Mock(spec=spec)]
-    checkpoint = {"optimizer_states": [Mock(spec=spec), Mock(spec=spec)]}
+    checkpoint = {"state_dict": {}, "optimizer_states": [{"state": {}}, {"state": {}}]}
+    torch.save(checkpoint, tmp_path / "two-states.ckpt")
     with pytest.raises(RuntimeError, match="1 optimizers but the checkpoint contains 2 optimizers to load"):
-        strategy.load_optimizer_state_dict(checkpoint)
+        strategy.load_checkpoint(tmp_path / "two-states.ckpt")
 
     # Fewer states than optimizers configured
     strategy.optimizers = [Mock(spec=spec), Mock(spec=spec)]
-    checkpoint = {"optimizer_states": [Mock(spec=spec)]}
+    checkpoint = {"state_dict": {}, "optimizer_states": [{"state": {}}]}
+    torch.save(checkpoint, tmp_path / "one-state.ckpt")
     with pytest.raises(RuntimeError, match="2 optimizers but the checkpoint contains 1 optimizers to load"):
-        strategy.load_optimizer_state_dict(checkpoint)
+        strategy.load_checkpoint(tmp_path / "one-state.ckpt")
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
@@ -557,8 +561,11 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
     if trainer.global_rank != 0:
         assert len(model_state_dict) == 0
 
-        if _TORCH_GREATER_EQUAL_2_1:
-            assert len(optimizer_state_dict) == 0
+    if trainer.global_rank != 0 and _TORCH_GREATER_EQUAL_2_1 or not _TORCH_GREATER_EQUAL_2_0:
+        assert len(optimizer_state_dict) == 0
+
+    if not _TORCH_GREATER_EQUAL_2_0:
+        return
 
     # restore model to ddp
     model = TestBoringModel()
@@ -628,10 +635,10 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
     if trainer.global_rank != 0:
         assert len(restored_model_state_dict) == 0
 
-        if _TORCH_GREATER_EQUAL_2_1:
-            assert len(restored_optimizer_state_dict) == 0
+    if trainer.global_rank != 0 and _TORCH_GREATER_EQUAL_2_1 or not _TORCH_GREATER_EQUAL_2_0:
+        assert len(restored_optimizer_state_dict) == 0
 
-    if trainer.global_rank == 0:
+    if trainer.global_rank == 0 and _TORCH_GREATER_EQUAL_2_0:
         # assert everything is the same
         assert len(model_state_dict) == len(restored_model_state_dict)
         assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
@@ -641,7 +648,7 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
     trainer.strategy.barrier()
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
     [
@@ -655,7 +662,7 @@ def test_configure_model(precision, expected_dtype):
         devices=2,
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         precision=precision,
-        fast_dev_run=1,
+        max_epochs=1,
     )
 
     class MyModel(BoringModel):
@@ -667,6 +674,10 @@ def test_configure_model(precision, expected_dtype):
             assert self.layer.weight.device == expected_device
             assert self.layer.weight.dtype == expected_dtype
 
+        def configure_optimizers(self):
+            # There is some issue with SGD optimizer state in FSDP
+            return torch.optim.AdamW(self.layer.parameters(), lr=0.1)
+
         def on_fit_start(self):
             # Parameters get sharded in `.setup()` and moved to the target device
             assert self.layer.weight.device == torch.device("cuda", self.local_rank)
@@ -674,3 +685,202 @@ def test_configure_model(precision, expected_dtype):
 
     model = MyModel()
     trainer.fit(model)
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False)
+@mock.patch("lightning.pytorch.strategies.fsdp.torch.load")
+@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+def test_load_save_optimizer_torch_lt_2_0(_, __, tmp_path):
+    strategy = FSDPStrategy(state_dict_type="full")
+    with pytest.warns(UserWarning, match="does not support saving the optimizer state"):
+        strategy.optimizer_state(Mock())
+
+    file = tmp_path / "test.ckpt"
+    file.touch()
+    trainer = Trainer()
+    trainer.state.fn = TrainerFn.FITTING
+    strategy._lightning_module = Mock(trainer=trainer)
+    with pytest.warns(UserWarning, match="does not support loading the optimizer state"):
+        strategy.load_checkpoint(file)
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False)
+def test_sharded_state_dict_type_support():
+    """Test that the sharded state dict type is supported."""
+    with pytest.raises(
+        NotImplementedError,
+        match=escape("`FSDPStrategy(state_dict_type='sharded')` is not supported in PyTorch < 2.0"),
+    ):
+        FSDPStrategy(state_dict_type="sharded")
+
+
+@RunIf(min_torch="1.12")
+def test_save_checkpoint_storage_options(tmp_path):
+    """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
+    strategy = FSDPStrategy()
+    with pytest.raises(TypeError, match=escape("FSDPStrategy.save_checkpoint(..., storage_options=...)` is not")):
+        strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock(), storage_options=Mock())
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+def test_save_checkpoint_folder_exists(tmp_path):
+    path = tmp_path / "exists"
+    path.mkdir()
+    (path / "file").touch()
+    strategy = FSDPStrategy()
+    with pytest.raises(FileExistsError, match="exists and is not empty"):
+        strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock())
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
+    strategy = FSDPStrategy(state_dict_type="invalid")
+    with pytest.raises(ValueError, match="Unknown state_dict_type"):
+        strategy.save_checkpoint(checkpoint=Mock(), filepath=tmp_path)
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_load_unknown_checkpoint_type(tmp_path):
+    """Test that the strategy validates the contents at the checkpoint path."""
+    strategy = FSDPStrategy()
+    strategy.model = Mock()
+    strategy._lightning_module = Mock()
+    path = tmp_path / "empty_dir"  # neither a single file nor a directory with meta file
+    path.mkdir()
+    with pytest.raises(ValueError, match="does not point to a valid checkpoint"):
+        strategy.load_checkpoint(checkpoint_path=path)
+
+
+class TestFSDPCheckpointModel(BoringModel):
+    def __init__(self, params_to_compare=None):
+        super().__init__()
+        self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        self.params_to_compare = params_to_compare
+
+    def configure_optimizers(self):
+        # SGD's FSDP optimier state is fixed in https://github.com/pytorch/pytorch/pull/99214
+        return torch.optim.AdamW(self.parameters(), lr=0.1)
+
+    def on_train_start(self):
+        if self.params_to_compare is None:
+            return
+        for p0, p1 in zip(self.params_to_compare, self.trainer.model.parameters()):
+            torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+def test_save_load_sharded_state_dict(tmp_path):
+    """Test FSDP saving and loading with the sharded state dict format."""
+    strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, state_dict_type="sharded")
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cuda",
+        "devices": 2,
+        "max_epochs": 1,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+        "logger": False,
+    }
+
+    # Initial training
+    model = TestFSDPCheckpointModel()
+    trainer = Trainer(**trainer_kwargs, strategy=strategy)
+    trainer.fit(model)
+    params_before = deepcopy(list(trainer.model.parameters()))
+
+    checkpoint_path = Path(trainer.strategy.broadcast(trainer.checkpoint_callback.best_model_path))
+    assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
+
+    metadata = torch.load(checkpoint_path / "meta.pt")
+    assert "pytorch-lightning_version" in metadata
+    assert len(metadata["callbacks"]) == 1  # model checkpoint callback
+    assert "state_dict" not in metadata
+    assert "optimizer_states" not in metadata
+
+    # Load checkpoint and continue training
+    trainer_kwargs.update(max_epochs=2)
+    model = TestFSDPCheckpointModel(params_to_compare=params_before)
+    strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, state_dict_type="sharded")
+    trainer = Trainer(**trainer_kwargs, strategy=strategy)
+    trainer.fit(model, ckpt_path=checkpoint_path)
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("lightning.pytorch.strategies.fsdp.torch.load")
+@mock.patch("lightning.pytorch.strategies.fsdp._lazy_load")
+@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+def test_fsdp_lazy_load_full_state_dict(_, lazy_load_mock, torch_load_mock, tmp_path):
+    """Test that loading a single file (full state) is lazy to reduce peak CPU memory usage."""
+    model = BoringModel()
+    checkpoint = {"state_dict": model.state_dict()}
+    lazy_load_mock.return_value = checkpoint
+
+    strategy = FSDPStrategy()
+    trainer = Trainer()
+    model.trainer = trainer
+    strategy._lightning_module = model
+    strategy.model = model
+
+    file = tmp_path / "test.ckpt"
+    file.touch()
+
+    strategy.load_checkpoint(checkpoint_path=file)
+    if _TORCH_GREATER_EQUAL_2_0:
+        lazy_load_mock.assert_called_once()
+    else:
+        torch_load_mock.assert_called_once()
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@pytest.mark.parametrize(
+    ("precision", "expected_dtype"),
+    [
+        ("32-true", torch.float32),
+        ("16-true", torch.float16),
+        pytest.param("bf16-true", torch.bfloat16, marks=RunIf(bf16_cuda=True)),
+    ],
+)
+def test_module_init_context(precision, expected_dtype):
+    """Test that the module under the init-context gets moved to the right device and dtype."""
+
+    class Model(BoringModel):
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=1e-2)
+
+        def on_train_start(self):
+            # Parameters get sharded in `FSDPStrategy.setup()` and moved to the target device
+            assert self.layer.weight.device == torch.device("cuda", self.local_rank)
+            assert self.layer.weight.dtype == expected_dtype
+            optimizer = self.optimizers(use_pl_optimizer=False)
+            assert optimizer.param_groups[0]["params"][0].device.type == "cuda"
+
+    def _run_setup_assertions(empty_init, expected_device):
+        trainer = Trainer(
+            accelerator="cuda",
+            devices=2,
+            strategy=FSDPStrategy(auto_wrap_policy={torch.nn.Linear}),
+            precision=precision,
+            max_steps=1,
+            barebones=True,
+        )
+        with trainer.init_module(empty_init=empty_init):
+            model = Model()
+
+        # The model is on the CPU/meta-device until after `FSDPStrategy.setup()`
+        assert model.layer.weight.device == expected_device
+        assert model.layer.weight.dtype == expected_dtype
+        trainer.fit(model)
+
+    # Case 1: No empty init
+    _run_setup_assertions(empty_init=False, expected_device=torch.device("cpu"))
+
+    if _TORCH_GREATER_EQUAL_2_1:
+        # Case 2: Empty-init with PyTorch >= 2.1 supports meta device
+        _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
+    else:
+        # Case 2: Empty-init with PyTorch < 2.1 only supports `torch.empty()`-init
+        _run_setup_assertions(empty_init=True, expected_device=torch.device("cpu"))

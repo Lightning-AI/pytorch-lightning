@@ -2,19 +2,19 @@
 Training models with billions of parameters
 ###########################################
 
-Use Fully Shared Data Parallel (FSDP) to train large models with billions or trillions of parameters efficiently on multiple GPUs and across multiple machines.
+Use Fully Shared Data Parallel (FSDP) to train large models with billions of parameters efficiently on multiple GPUs and across multiple machines.
 
 .. note:: This is an experimental feature.
 
 
 Today, large models with billions of parameters are trained with many GPUs across several machines in parallel.
-Even a single A100 GPU with 80 GB of VRAM (the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
+Even a single H100 GPU with 80 GB of VRAM (the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
 The memory consumption for training is generally made up of
 
 1. the model parameters,
-2. the optimizer states (e.g., Adam has two additional exponential averages per parameter),
-3. the layer activations (forward) and
-4. the gradients (backward).
+2. the layer activations (forward) and
+3. the gradients (backward).
+4. the optimizer states (e.g., Adam has two additional exponential averages per parameter),
 
 |
 
@@ -84,9 +84,11 @@ Here is a full code example:
 
     # 1B parameters
     model = Transformer(vocab_size=dataset.vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
-    model, optimizer = fabric.setup(model, optimizer)
+    model = fabric.setup(model)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    optimizer = fabric.setup_optimizers(optimizer)
+
 
     for i in range(10):
         input, target = fabric.to_device(dataset[i])
@@ -142,14 +144,14 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
         # 3. Pass it to the FSDPStrategy object
         strategy = FSDPStrategy(auto_wrap_policy=policy)
 
-    PyTorch provides several of these functional policies under :mod:`torch.distributed.fsdp.wrap`.
+    PyTorch provides several of these functional policies under ``torch.distributed.fsdp.wrap``.
 
 |
 
 Verify that FSDP works with your model by comparing the peak memory usage printed in the CUDA memory summary (see example above) with regular DDP training.
 You should see a decrease in allocated memory and a slight increase in iteration time:
 
-.. list-table::
+.. list-table:: Numbers were produced with A100 40GB GPUs, Lightning 2.1 and PyTorch 2.1.
    :widths: 25 25 25
    :header-rows: 1
 
@@ -188,6 +190,14 @@ After:
     with fabric.init_module():
         model = Transformer(vocab_size=dataset.vocab_size)
 
+    # Recommended for FSDP:
+    with fabric.init_module(empty_init=True):
+        model = Transformer(vocab_size=dataset.vocab_size)
+
+For FSDP specifically, we recommend setting ``empty_init=True`` as it will allow you to initialize even larger models.
+Empty-init creates fake parameters that don't allocate any memory, their actual initialization gets delayed until ``Fabric.setup()`` where FSDP will shard and recreate the real parameters.
+For more use cases of ``empty_init=True`` outside of FSDP, read the guide on :doc:`model initialization <../model_init>`.
+
 
 ----
 
@@ -221,7 +231,7 @@ You can configure the following options to trade-off memory for speed:
 
 Here is the memory and speed impact for each option when configured in our example code:
 
-.. list-table::
+.. list-table:: Numbers were produced with A100 40GB GPUs, Lightning 2.1 and PyTorch 2.1.
    :widths: 25 25 25 25 25
    :header-rows: 1
 
@@ -275,6 +285,9 @@ This is typically your transformer block (including attention + feed-forward):
     fabric = L.Fabric(..., strategy=strategy)
 
 
+As in our example, it is typical to set the ``activation_checkpointing_policy`` the same as ``auto_wrap_policy``.
+
+
 Offload parameters to CPU
 =========================
 
@@ -290,7 +303,7 @@ The drawback is a much slower training speed due to the added communication betw
 You should use this only if you have enough CPU memory and other scaling methods don’t give you enough memory savings.
 In our example, we see a 4x memory saving, but a 10x increase in iteration time:
 
-.. list-table::
+.. list-table:: Numbers were produced with A100 40GB GPUs, Lightning 2.1 and PyTorch 2.1.
    :widths: 25 25 25 25
    :header-rows: 1
 
@@ -383,6 +396,8 @@ You can easily load checkpoints saved by Fabric to resume training:
     # model.load_state_dict(torch.load("path/to/checkpoint/file"))
 
 Fabric will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
+Checkpoints saved with ``state_dict_type="full"`` can be loaded by all strategies, but sharded checkpoints can only be loaded by FSDP.
+Read :doc:`the checkpoints guide <../../guide/checkpoint>` to explore more features.
 
 
 ----

@@ -1368,6 +1368,9 @@ class Trainer:
     ) -> None:
         r"""Runs routine to create a checkpoint.
 
+        This method needs to be called on all processes in case the selected strategy is handling distributed
+        checkpointing.
+
         Args:
             filepath: Path where checkpoint is saved.
             weights_only: If ``True``, will only save the model weights.

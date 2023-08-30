@@ -161,8 +161,9 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
 
     setup_method = getattr(fabric, setup_method)
 
+    match = r"has 2 parameters on different devices \(for example '1.weight' on cuda:0 and '0.weight' on cpu\)"
     if move_to_device:
-        with pytest.warns(PossibleUserWarning, match="has parameters on different devices"):
+        with pytest.warns(PossibleUserWarning, match=match):
             fabric_model = setup_method(model, move_to_device=move_to_device)
 
         # both have the same device now
@@ -170,7 +171,7 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
         assert module0.weight.device == module0.bias.device == device1
         assert module1.weight.device == module1.bias.device == device1
     else:
-        with no_warning_call(expected_warning=PossibleUserWarning, match="has parameters on different devices"):
+        with no_warning_call(expected_warning=PossibleUserWarning, match=match):
             setup_method(model, move_to_device=move_to_device)
 
 
@@ -742,6 +743,7 @@ def test_overridden_run_and_cli_not_allowed():
 def test_module_sharding_context():
     """Test that the sharding context manager gets applied when the strategy supports it and is a no-op otherwise."""
     fabric = Fabric()
+    fabric._launched = True
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
     with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
@@ -1176,11 +1178,19 @@ def test_verify_launch_called():
     with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
         fabric._validate_launched()
 
+    # Methods
     method_names = ("setup", "setup_module", "setup_dataloaders", "broadcast", "barrier", "all_reduce", "all_gather")
     for method_name in method_names:
         method = getattr(fabric, method_name)
         with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
             method(Mock())
+
+    # Context managers
+    ctx_manager_names = ("init_module",)
+    for ctx_manager_name in ctx_manager_names:
+        ctx_manager = getattr(fabric, ctx_manager_name)
+        with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"), ctx_manager():
+            pass  # the error is raised in the context manager and caught by `pytest.raises`
 
     fabric.launch()
     assert fabric._launched

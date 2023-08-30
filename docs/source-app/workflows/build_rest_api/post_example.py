@@ -1,8 +1,8 @@
-import lightning as L
+from lightning.app import LightningFlow, LightningApp
 from lightning.app.api import Post
 
 
-class Flow(L.LightningFlow):
+class Flow(LightningFlow):
     # 1. Define the state
     def __init__(self):
         super().__init__()
@@ -22,4 +22,4 @@ class Flow(L.LightningFlow):
         return [Post(route="/name", method=self.handle_post)]
 
 
-app = L.LightningApp(Flow())
+app = LightningApp(Flow())
