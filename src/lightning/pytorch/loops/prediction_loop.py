@@ -114,7 +114,10 @@ class _PredictionLoop(_Loop):
                     dataloader_idx = data_fetcher._dataloader_idx
                 else:
                     dataloader_iter = None
-                    batch, batch_idx, dataloader_idx = next(data_fetcher)
+                    batch, _, dataloader_idx = next(data_fetcher)
+                    # TODO: we should instead use the batch_idx returned by the fetcher, however, that will require
+                    # saving the fetcher state so that the batch_idx is correct after restarting
+                    batch_idx = self.batch_progress.current.ready
                 self.batch_progress.is_last_batch = data_fetcher.done
                 # run step hooks
                 self._predict_step(batch, batch_idx, dataloader_idx, dataloader_iter)

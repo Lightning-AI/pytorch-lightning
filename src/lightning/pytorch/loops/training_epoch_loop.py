@@ -196,7 +196,10 @@ class _TrainingEpochLoop(loops._Loop):
             batch_idx = data_fetcher._batch_idx
         else:
             dataloader_iter = None
-            batch, batch_idx, _ = next(data_fetcher)
+            batch, _, __ = next(data_fetcher)
+            # TODO: we should instead use the batch_idx returned by the fetcher, however, that will require saving the
+            # fetcher state so that the batch_idx is correct after restarting
+            batch_idx = self.batch_idx + 1
         self.batch_progress.is_last_batch = data_fetcher.done
 
         trainer = self.trainer
