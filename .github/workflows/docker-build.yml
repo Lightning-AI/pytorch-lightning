@@ -72,7 +72,7 @@ jobs:
           file: dockers/release/Dockerfile
           push: ${{ env.PUSH_RELEASE }}  # pushed in release-docker.yml only when PL is released
           tags: |
-            pytorchlightning/pytorch_lightning:${{ steps.get_version.outputs.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}
+            pytorchlightning/pytorch_lightning:${{ env.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}
             pytorchlightning/pytorch_lightning:latest-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}
         timeout-minutes: 35
 
