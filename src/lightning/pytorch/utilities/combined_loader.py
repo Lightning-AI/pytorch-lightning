@@ -96,8 +96,11 @@ class _MaxSizeCycle(_ModeIterator[List]):
         self._consumed = [False] * len(self.iterables)
         return self
 
-    # def __len__(self) -> Optional[int]:
-    #     return max(self.limits) if self.limits is not None else None
+    def __len__(self) -> Optional[int]:
+        lengths = _get_iterables_lengths(self.iterables)
+        if self.limits is not None:
+            return max([min(length, limit) for length, limit in zip(lengths, self.limits)])
+        return max(lengths)
 
     def reset(self) -> None:
         super().reset()
@@ -189,8 +192,11 @@ class _MaxSize(_ModeIterator[List]):
         return out
 
     # TODO: len for max size and max size cycle the same?
-    # def __len__(self) -> Optional[int]:
-    #     return max(self.limits) if self.limits is not None else None
+    def __len__(self) -> Optional[int]:
+        lengths = _get_iterables_lengths(self.iterables)
+        if self.limits is not None:
+            return max([min(length, limit) for length, limit in zip(lengths, self.limits)])
+        return max(lengths)
 
 
 class _CombinationMode(TypedDict):
