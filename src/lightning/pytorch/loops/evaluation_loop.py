@@ -386,7 +386,7 @@ class _EvaluationLoop(_Loop):
         hook_kwargs = self._build_kwargs(
             batch, batch_idx, dataloader_idx if self._is_sequential and self.num_dataloaders > 1 else None
         )
-        step_kwargs = hook_kwargs if not using_dataloader_iter else {"any": dataloader_iter}
+        step_args = hook_kwargs.values() if not using_dataloader_iter else (dataloader_iter,)
 
         self.batch_progress.increment_ready()
 
@@ -401,7 +401,7 @@ class _EvaluationLoop(_Loop):
         self.batch_progress.increment_started()
 
         hook_name = "test_step" if trainer.testing else "validation_step"
-        output = call._call_strategy_hook(trainer, hook_name, *step_kwargs.values())
+        output = call._call_strategy_hook(trainer, hook_name, *step_args)
 
         self.batch_progress.increment_processed()
 

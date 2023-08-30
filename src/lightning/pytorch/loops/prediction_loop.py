@@ -233,7 +233,7 @@ class _PredictionLoop(_Loop):
         # the `_step` methods don't take a batch_idx when `dataloader_iter` is used, but all other hooks still do,
         # so we need different kwargs
         hook_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
-        step_kwargs = hook_kwargs if not using_dataloader_iter else {"any": dataloader_iter}
+        step_args = hook_kwargs.values() if not using_dataloader_iter else (dataloader_iter,)
 
         call._call_callback_hooks(trainer, "on_predict_batch_start", *hook_kwargs.values())
         call._call_lightning_module_hook(trainer, "on_predict_batch_start", *hook_kwargs.values())
@@ -241,7 +241,7 @@ class _PredictionLoop(_Loop):
         self.batch_progress.increment_started()
 
         # configure step_kwargs
-        predictions = call._call_strategy_hook(trainer, "predict_step", *step_kwargs.values())
+        predictions = call._call_strategy_hook(trainer, "predict_step", *step_args)
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
