@@ -68,7 +68,7 @@ class _DataFetcher(Iterator):
 
     def reset(self) -> None:
         self.fetched = 0
-        self.done = False
+        self.done = self.length == 0
 
     def teardown(self) -> None:
         self.reset()
@@ -154,8 +154,8 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
         return self
 
     def __next__(self) -> Union["_DataFetcherWrapper", Tuple["_DataFetcherWrapper", int, int]]:
-        if self.done:
-            raise StopIteration
+        # if self.done:
+        #     raise StopIteration
         assert isinstance(self.iterator_wrapper, _DataFetcherWrapper)
         if self._is_sequential:
             mode = self.combined_loader._iterator
