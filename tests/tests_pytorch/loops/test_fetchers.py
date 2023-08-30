@@ -458,8 +458,7 @@ def test_fetching_is_profiled():
     key = "[_EvaluationLoop].val_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
-    # +1 because we fetch one extra batch before breaking the loop when the fast_dev_run condition allows
-    assert len(durations) == 2 * fast_dev_run + 1
+    assert len(durations) == 2 * fast_dev_run
     assert all(d > 0 for d in durations)
     # training
     key = "[_TrainingEpochLoop].train_dataloader_next"
@@ -471,13 +470,13 @@ def test_fetching_is_profiled():
     key = "[_EvaluationLoop].test_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
-    assert len(durations) == fast_dev_run + 1
+    assert len(durations) == fast_dev_run
     assert all(d > 0 for d in durations)
     # predict
     key = "[_PredictionLoop].predict_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
-    assert len(durations) == fast_dev_run + 1
+    assert len(durations) == fast_dev_run
     assert all(d > 0 for d in durations)
 
     # now test profiling when the dataloader_iter is polled manually

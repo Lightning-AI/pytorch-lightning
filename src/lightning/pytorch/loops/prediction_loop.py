@@ -170,6 +170,8 @@ class _PredictionLoop(_Loop):
         assert isinstance(combined_loader._iterator, _Sequential)
         # set the per-dataloader limits
         combined_loader._iterator.limits = self.max_batches
+        data_fetcher.reset()
+
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
         data_fetcher._start_profiler = self._on_before_fetch
