@@ -28,6 +28,10 @@ jobs:
         pkg-name: ["fabric", "pytorch"]
         runtime: ["xrt", "pjrt"]
         accelerator_type: ["v4-8"]
+        include:
+          # our v5 quota only allows for 2 v16 pods at the moment
+          - {pkg-name: "fabric", runtime: "pjrt", accelerator_type: "v5litepod-16"}
+          - {pkg-name: "pytorch", runtime: "pjrt", accelerator_type: "v5litepod-16"}
     timeout-minutes: 30
     env:
       XLA_VER: '2.0'
@@ -57,10 +61,21 @@ jobs:
         credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
 
     - uses: 'google-github-actions/setup-gcloud@v1'
+      with:
+        install_components: 'alpha'  # only relevant for v5 preview
+
+    - name: Alias gcloud
+      if: startsWith(matrix.accelerator_type, 'v5')
+      run: |
+        echo 'shopt -s expand_aliases; gcloud() {
+          command gcloud alpha "$@"
+        }; alias gcloud="gcloud"' >> .rcfile
 
     - name: Time-based job cleanup
       if: always()
       run: |
+        [ -f ".rcfile" ] && source .rcfile
+
         gcloud compute tpus tpu-vm list --format='value(name,createTime)' > creation_times.txt
         cat creation_times.txt
 
@@ -87,7 +102,11 @@ jobs:
           # Check if the age has surpassed a timeout
           if ((age > 35 * 60)); then
             # delete the job
-            gcloud compute tpus tpu-vm delete "$job_name" --async
+            if [[ "${{ matrix.accelerator_type }}" == v5* ]]; then
+              gcloud compute tpus queued-resources delete "$job_name-resource" --async --force
+            else
+              gcloud compute tpus tpu-vm delete "$job_name" --async
+            fi
             jobs_deleted=true
           else
             echo "Skipping $job_name, alive for $age seconds"
@@ -100,6 +119,37 @@ jobs:
           gcloud compute tpus tpu-vm list
         fi
 
+    # deleting queued-resources is not working correctly. delete if necessary until they fix it
+    - name: Zombie resource cleanup
+      if: startsWith(matrix.accelerator_type, 'v5')
+      run: |
+        [ -f ".rcfile" ] && source .rcfile
+
+        gcloud compute tpus queued-resources list --format='value(name,state)' > states.txt
+        cat states.txt
+
+        if [ ! -s "states.txt" ]; then
+          echo "No existing jobs"
+          exit 0
+        fi
+
+        jobs_deleted=false
+        while read -r resource_name state; do
+          if [[ $state == *SUSPENDED ]]; then
+            # delete the job
+            gcloud compute tpus queued-resources delete $resource_name --async --force
+            jobs_deleted=true
+          else
+            echo "Skipping $resource_name, $state"
+          fi
+        done < states.txt
+
+        if [ "$jobs_deleted" = true ]; then
+          sleep 5
+          # diagnostics
+          gcloud compute tpus queued-resources list
+        fi
+
     - name: Update script
       run: |
         import os
@@ -108,6 +158,7 @@ jobs:
             data = fo.read()
         data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
         data = data.replace('{RUNTIME}', '${{ matrix.runtime }}')
+        data = data.replace('{ACCELERATOR_TYPE}', '${{ matrix.accelerator_type }}')
         print(data)
         with open(fname, "w") as fw:
             fw.write(data)
@@ -125,6 +176,26 @@ jobs:
             --accelerator-type=${{ matrix.accelerator_type }} \
             --version="tpu-vm-v4-pt-$XLA_VER" \
             --preemptible
+
+        else
+          source .rcfile
+          resource_name="${JOB_NAME}-resource"
+          gcloud compute tpus queued-resources create $resource_name \
+            --node-id "$JOB_NAME" \
+            --accelerator-type=${{ matrix.accelerator_type }} \
+            --runtime-version="v2-alpha-tpuv5-lite" \
+            --best-effort
+
+          while true; do
+            state=$(gcloud compute tpus queued-resources describe $resource_name | awk '/state: /{print $2}')
+              if [[ $state == "PROVISIONING" || $state == "ACCEPTED" ]]; then
+                echo "$state..."; sleep 5
+              elif [[ $state == "ACTIVE" ]]; then
+                break
+              else
+                echo "Error: Invalid state $state"; exit 1
+              fi
+          done
         fi
 
     - name: Run tests
@@ -132,6 +203,7 @@ jobs:
       env:
         JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
       run: |
+        [ -f ".rcfile" ] && source .rcfile
         set -uex
 
         # zip-copy-unzip the repository
@@ -153,6 +225,8 @@ jobs:
       env:
         JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
       run: |
+        [ -f ".rcfile" ] && source .rcfile
+
         if ! gcloud compute tpus tpu-vm list | grep -q "$JOB_NAME"; then
           echo "$JOB_NAME wasn't created"
           exit 0
@@ -162,7 +236,11 @@ jobs:
         gcloud compute tpus tpu-vm describe "$JOB_NAME"
 
         # delete the job
-        gcloud compute tpus tpu-vm delete "$JOB_NAME" --async
+        if [[ "${{ matrix.accelerator_type }}" == v5* ]]; then
+          gcloud compute tpus queued-resources delete "$JOB_NAME-resource" --async --force
+        else
+          gcloud compute tpus tpu-vm delete "$JOB_NAME" --async
+        fi
         sleep 5
 
         # diagnostics
