@@ -245,8 +245,6 @@ class _EvaluationLoop(_Loop):
                 # some users want validation shuffling based on the training progress
                 _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
 
-
-
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
         # set the per-dataloader limits
