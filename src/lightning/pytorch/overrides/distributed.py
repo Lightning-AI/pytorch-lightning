@@ -17,11 +17,13 @@ from typing import Any, Callable, cast, Dict, Iterable, Iterator, List, Optional
 import torch
 from torch import Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.utils.data import BatchSampler, DistributedSampler, Sampler
+from torch.utils.data import DistributedSampler, Sampler
+from typing_extensions import Self
 
 from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
+from lightning.pytorch.utilities.types import _SizedIterable
 
 
 def _find_tensors(
@@ -245,10 +247,10 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
         return (self.dataset[index] for index in super().__iter__())
 
 
-class _IndexBatchSamplerWrapper(BatchSampler):
+class _IndexBatchSamplerWrapper:
     """This class is used to wrap a :class:`torch.utils.data.BatchSampler` and capture its indices."""
 
-    def __init__(self, batch_sampler: BatchSampler) -> None:
+    def __init__(self, batch_sampler: _SizedIterable) -> None:
         # do not call super().__init__() on purpose
         self.seen_batch_indices: List[List[int]] = []
 
@@ -266,7 +268,7 @@ class _IndexBatchSamplerWrapper(BatchSampler):
         self.seen_batch_indices.append(batch)
         return batch
 
-    def __iter__(self) -> Iterator[List[int]]:
+    def __iter__(self) -> Self:
         self.seen_batch_indices = []
         self._iterator = iter(self._batch_sampler)
         return self
