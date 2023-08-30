@@ -44,12 +44,12 @@ class _DataFetcher(Iterator):
     def setup(self, combined_loader: CombinedLoader) -> None:
         self._combined_loader = combined_loader
         # Note: too early, combined_loader._iterator is still None here
+        # self.length = sized_len(self.combined_loader)
+        # self.done = self.length == 0
 
     def __iter__(self) -> "_DataFetcher":
         self.reset()
         self.iterator = iter(self.combined_loader)
-        self.length = sized_len(self.combined_loader)
-        self.done = self.length == 0
         return self
 
     def __next__(self) -> Any:
@@ -69,7 +69,8 @@ class _DataFetcher(Iterator):
 
     def reset(self) -> None:
         self.fetched = 0
-        self.done = False
+        self.length = sized_len(self.combined_loader)
+        self.done = self.length == 0
 
     def teardown(self) -> None:
         self.reset()
