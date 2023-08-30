@@ -118,6 +118,8 @@ def test_empty_prefetch_iterator(dataset_cls, prefetch_batches):
     loader = CombinedLoader(DataLoader(dataset_cls()))
     fetcher = _PrefetchDataFetcher(prefetch_batches=prefetch_batches)
     fetcher.setup(loader)
+    iter(fetcher)
+    fetcher.reset()
 
     if dataset_cls is EmptySizedDataset:
         assert fetcher.done  # for 0 length sized datasets we know we're done already
