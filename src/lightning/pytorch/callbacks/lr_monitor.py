@@ -19,11 +19,9 @@ Learning Rate Monitor
 Monitor and logs learning rate for lr schedulers during training.
 
 """
-from typing import Literal
-
 import itertools
 from collections import defaultdict
-from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple, Type
+from typing import Any, DefaultDict, Dict, List, Literal, Optional, Set, Tuple, Type
 
 import torch
 from torch.optim.optimizer import Optimizer
