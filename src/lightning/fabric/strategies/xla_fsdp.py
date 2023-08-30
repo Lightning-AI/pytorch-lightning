@@ -156,7 +156,8 @@ class XLAFSDPStrategy(ParallelStrategy):
             del self._fsdp_kwargs["auto_wrap_policy"]
 
         # XLA FSDP requires that the root is wrapped, even if submodules are already wrapped
-        module = XLAFSDP(module=module, **self._fsdp_kwargs)
+        if not isinstance(module, XLAFSDP):
+            module = XLAFSDP(module=module, **self._fsdp_kwargs)
 
         return module
 
