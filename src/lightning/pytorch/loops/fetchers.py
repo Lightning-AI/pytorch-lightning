@@ -48,8 +48,8 @@ class _DataFetcher(Iterator):
         # self.done = self.length == 0
 
     def __iter__(self) -> "_DataFetcher":
-        self.reset()
         self.iterator = iter(self.combined_loader)
+        self.reset()
         return self
 
     def __next__(self) -> Any:

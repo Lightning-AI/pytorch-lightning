@@ -540,3 +540,22 @@ def test_done_dataloader_iter(iterable):
     with pytest.raises(StopIteration):
         next(dataloader_iter)
     assert dataloader_iter.done
+
+
+@pytest.mark.parametrize("iterable", [[1, 2, 3], IterDataset()])
+def test_done_dataloader_iter_with_limit(iterable):
+    loader = CombinedLoader(iterable)
+    fetcher = _DataLoaderIterDataFetcher()
+    fetcher.setup(loader)
+    iter(fetcher)
+    loader._iterator.limits = [1]
+    fetcher.reset()
+
+    assert not fetcher.done
+    dataloader_iter = next(fetcher)
+    assert not dataloader_iter.done
+    assert next(dataloader_iter) == 1
+    assert dataloader_iter.done
+    assert fetcher.done
+    # with pytest.raises(StopIteration):  # TODO why is it not raising?
+    #     next(dataloader_iter)

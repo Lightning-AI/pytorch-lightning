@@ -108,8 +108,11 @@ class _MinSize(_ModeIterator[List]):
     def __next__(self) -> List:
         return [next(it) for it in self.iterators]
 
-    # def __len__(self) -> Optional[int]:
-    #     return min(self.limits) if self.limits is not None else None
+    def __len__(self) -> Optional[int]:
+        lengths = _get_iterables_lengths(self.iterables)
+        if self.limits is not None:
+            return min([min(length, limit) for length, limit in zip(lengths, self.limits)])
+        return min(lengths)
 
 
 class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
@@ -355,8 +358,9 @@ def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
 def _get_iterables_lengths(iterables):
     lengths = []
     for iterable in iterables:
-        length = sized_len(iterable)
-        if length is None:
-            raise NotImplementedError(f"`{type(iterable).__name__}` does not define `__len__`")
+        if (length := sized_len(iterable)) is None:
+            length = float("inf")
+        # if length is None:
+        #     raise NotImplementedError(f"`{type(iterable).__name__}` does not define `__len__`")
         lengths.append(length)
     return lengths
