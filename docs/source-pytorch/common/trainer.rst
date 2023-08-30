@@ -257,7 +257,7 @@ benchmark
 
 The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. The value for
 ``torch.backends.cudnn.benchmark`` set in the current session will be used (``False`` if not manually set).
-If :paramref:`~lightning.pytorch.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
+If :paramref:`~lightning.pytorch.trainer.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
 You can read more about the interaction of ``torch.backends.cudnn.benchmark`` and ``torch.backends.cudnn.deterministic``
 `here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 

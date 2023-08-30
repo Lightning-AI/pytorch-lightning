@@ -328,3 +328,8 @@ def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
         if isinstance(dataloader._iterator, _MultiProcessingDataLoaderIter):
             dataloader._iterator._shutdown_workers()
         dataloader._iterator = None
+
+
+def _limited_len(combined_loader: CombinedLoader, limits: List[int]) -> int:
+    fn = _SUPPORTED_MODES[combined_loader._mode]["fn"]
+    return fn(limits)
