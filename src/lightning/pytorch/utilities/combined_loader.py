@@ -25,9 +25,24 @@ _T = TypeVar("_T")
 
 
 class _ModeIterator(Iterator[_T]):
-    def __init__(self, iterables: List[Iterable]) -> None:
+    # TODO: do we need limits as an input arg?
+    def __init__(self, iterables: List[Iterable], limits: Optional[List[Union[int, float]]] = None) -> None:
         self.iterables = iterables
         self.iterators: List[Iterator] = []
+        self.limits = limits
+
+    @property
+    def limits(self) -> Optional[List[Union[int, float]]]:
+        """Optional limits per iterator."""
+        return self._limits
+
+    @limits.setter
+    def limits(self, limits: Optional[List[Union[int, float]]]) -> None:
+        if limits is not None and len(limits) != len(self.iterables):
+            raise ValueError(
+                f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(self.iterables)})"
+            )
+        self._limits = limits
 
     def __next__(self) -> _T:
         raise NotImplementedError
@@ -35,6 +50,10 @@ class _ModeIterator(Iterator[_T]):
     def __iter__(self) -> Self:
         self.iterators = [iter(iterable) for iterable in self.iterables]
         return self
+
+    def __len__(self) -> Optional[int]:
+        # TODO: should base class define it?
+        raise NotImplementedError
 
     def reset(self) -> None:
         self.iterators = []
@@ -77,6 +96,9 @@ class _MaxSizeCycle(_ModeIterator[List]):
         self._consumed = [False] * len(self.iterables)
         return self
 
+    # def __len__(self) -> Optional[int]:
+    #     return max(self.limits) if self.limits is not None else None
+
     def reset(self) -> None:
         super().reset()
         self._consumed = []
@@ -86,26 +108,15 @@ class _MinSize(_ModeIterator[List]):
     def __next__(self) -> List:
         return [next(it) for it in self.iterators]
 
+    # def __len__(self) -> Optional[int]:
+    #     return min(self.limits) if self.limits is not None else None
+
 
 class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
     def __init__(self, iterables: List[Iterable], limits: Optional[List[Union[int, float]]] = None) -> None:
         super().__init__(iterables)
         self._iterator_idx = 0  # what would be dataloader_idx
         self._idx = 0  # what would be batch_idx
-        self.limits = limits
-
-    @property
-    def limits(self) -> Optional[List[Union[int, float]]]:
-        """Optional limits per iterator."""
-        return self._limits
-
-    @limits.setter
-    def limits(self, limits: Optional[List[Union[int, float]]]) -> None:
-        if limits is not None and len(limits) != len(self.iterables):
-            raise ValueError(
-                f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(self.iterables)})"
-            )
-        self._limits = limits
 
     def __next__(self) -> Tuple[Any, int, int]:
         n = len(self.iterables)
@@ -135,6 +146,12 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
         self._idx = 0
         self._load_current_iterator()
         return self
+
+    def __len__(self) -> Optional[int]:
+        lengths = _get_iterables_lengths(self.iterables)
+        if self.limits is not None:
+            return sum([min(length, limit) for length, limit in zip(lengths, self.limits)])
+        return sum(lengths)
 
     def reset(self) -> None:
         super().reset()
@@ -167,6 +184,10 @@ class _MaxSize(_ModeIterator[List]):
         if all_exhausted:
             raise StopIteration
         return out
+
+    # TODO: len for max size and max size cycle the same?
+    # def __len__(self) -> Optional[int]:
+    #     return max(self.limits) if self.limits is not None else None
 
 
 class _CombinationMode(TypedDict):
@@ -296,16 +317,15 @@ class CombinedLoader(Iterable):
 
     def __len__(self) -> int:
         """Compute the number of batches."""
-        lengths = []
-        for dl in self.flattened:
-            length = sized_len(dl)
-            if length is None:
-                raise NotImplementedError(f"`{type(dl).__name__}` does not define `__len__`")
-            lengths.append(length)
-        fn = _SUPPORTED_MODES[self._mode]["fn"]
-        if self._mode == "sequential":
-            return sum(self._iterator.limits)
-        return fn(lengths)
+        # lengths = []
+        # for dl in self.flattened:
+        #     length = sized_len(dl)
+        #     if length is None:
+        #         raise NotImplementedError(f"`{type(dl).__name__}` does not define `__len__`")
+        #     lengths.append(length)
+        # fn = _SUPPORTED_MODES[self._mode]["fn"]
+        # return fn(lengths)
+        return len(self._iterator)
 
     def reset(self) -> None:
         """Reset the state and shutdown any workers."""
@@ -330,3 +350,13 @@ def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
         if isinstance(dataloader._iterator, _MultiProcessingDataLoaderIter):
             dataloader._iterator._shutdown_workers()
         dataloader._iterator = None
+
+
+def _get_iterables_lengths(iterables):
+    lengths = []
+    for iterable in iterables:
+        length = sized_len(iterable)
+        if length is None:
+            raise NotImplementedError(f"`{type(iterable).__name__}` does not define `__len__`")
+        lengths.append(length)
+    return lengths

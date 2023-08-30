@@ -245,13 +245,15 @@ class _EvaluationLoop(_Loop):
                 # some users want validation shuffling based on the training progress
                 _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
 
+        # set the per-dataloader limits
+        max_batches = self.max_batches
+        assert isinstance(max_batches, list)
+        combined_loader._iterator.limits = max_batches  # Iterator is None here
+
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
-        if isinstance(combined_loader._iterator, _Sequential):
-            # set the per-dataloader limits
-            max_batches = self.max_batches
-            assert isinstance(max_batches, list)
-            combined_loader._iterator.limits = max_batches
+
+        # Iterator is not None here, but too late to set limits
 
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
