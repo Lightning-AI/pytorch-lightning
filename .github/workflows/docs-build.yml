@@ -61,7 +61,8 @@ jobs:
           bash ./aws/install
           aws --version
       - name: Pull sphinx template
-        run: aws s3 sync s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
+        run: |
+          aws s3 sync --no-sign-request s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
 
       - name: pip wheels cache
         uses: actions/cache/restore@v3
