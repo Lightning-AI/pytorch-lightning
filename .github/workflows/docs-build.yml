@@ -53,15 +53,9 @@ jobs:
         with:
           python-version: "3.9"
 
-      - name: Install AWS CLI
-        continue-on-error: true
-        run: |
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
-          unzip -qq awscli.zip
-          bash ./aws/install
-          aws --version
       - name: Pull sphinx template
         run: |
+          pip install awscli
           aws s3 sync --no-sign-request s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
 
       - name: pip wheels cache
