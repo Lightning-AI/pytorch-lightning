@@ -33,6 +33,7 @@ from lightning.fabric.strategies import _StrategyRegistry, ParallelStrategy
 from lightning.fabric.strategies.fsdp import _apply_filter
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate_keys_for_strict_loading, TBroadcast
+from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -390,10 +391,8 @@ class XLAFSDPStrategy(ParallelStrategy):
             )
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
         path = Path(self.broadcast(path))
-        # the user will typically set the path to something like `checkpoint.pth`. Remove the suffix for the dir name
-        path_dir = path.with_suffix("")
-        if path_dir.is_dir() and any(path_dir.iterdir()):
-            raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path_dir}")
+        if path.is_dir() and any(path.iterdir()):
+            raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
         modules = [module for module in state.values() if isinstance(module, XLAFSDP)]
@@ -419,13 +418,13 @@ class XLAFSDPStrategy(ParallelStrategy):
             assert (parallel_devices := self.parallel_devices) is not None
             for rank in range(len(parallel_devices)):
                 if rank == self.local_rank:
-                    self._save_checkpoint_shard(path_dir, state, storage_options, filter)
+                    self._save_checkpoint_shard(path, state, storage_options, filter)
                 self.barrier(f"wait-for-{rank}-save")
         else:
-            self._save_checkpoint_shard(path_dir, state, storage_options, filter)
+            self._save_checkpoint_shard(path, state, storage_options, filter)
 
         if self._state_dict_type == "full":
-            ckpt_prefix = str(path_dir / "checkpoint")
+            ckpt_prefix = str(path / "checkpoint")
             ckpt_suffix = "_rank-*-of-*.pth"
             assert (parallel_devices := self.parallel_devices) is not None
             if len(parallel_devices) != self.world_size:  # multihost
@@ -435,17 +434,20 @@ class XLAFSDPStrategy(ParallelStrategy):
                     " `XLAFSDPStrategy(state_dict_type='sharded')`. TIP: You can consolidate them manually by getting"
                     " them together into a single directory and running `python -m"
                     f" torch_xla.distributed.fsdp.consolidate_sharded_ckpts --ckpt_prefix {ckpt_prefix!r} --ckpt_suffix"
-                    f" {ckpt_suffix!r} --save_path {str(path)!r}`."
+                    f" {ckpt_suffix!r} --save_path 'path/to/consolidated.ckpt'`."
                 )
 
             from torch_xla.distributed.fsdp import consolidate_sharded_model_checkpoints
 
             self.barrier("before_ckpt_consolidation")
             if self.is_global_zero:
-                # if the user passed a directory, then the `save_path` would collide with the directory for the shards
-                save_path = str(path if path != path_dir else path.with_suffix(".ckpt"))
-                consolidate_sharded_model_checkpoints(ckpt_prefix, ckpt_suffix, save_path)
-                self.checkpoint_io.remove_checkpoint(path_dir)
+                save_path = path.parent / "consolidated.ckpt"
+                # save consolidated checkpoint separate to the shards
+                consolidate_sharded_model_checkpoints(ckpt_prefix, ckpt_suffix, str(save_path))
+                # remove the shards directory
+                self.checkpoint_io.remove_checkpoint(path)
+                # mv the consolidated checkpoint where the user would expect it
+                get_filesystem(save_path).mv(save_path, path)
             self.barrier("after_ckpt_consolidation")
 
     def _save_checkpoint_shard(
@@ -502,7 +504,6 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(path))
-        path_dir = path.with_suffix("")
 
         if isinstance(state, (Module, Optimizer)):
             raise NotImplementedError(
@@ -515,7 +516,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         modules = {key: module for key, module in state.items() if isinstance(module, XLAFSDP)}
         optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
         if self._state_dict_type == "sharded":
-            file = path_dir / f"checkpoint_rank-{self.global_rank:08d}-of-{self.world_size:08d}.pth"
+            file = path / f"checkpoint_rank-{self.global_rank:08d}-of-{self.world_size:08d}.pth"
             if not file.is_file():
                 raise ValueError(
                     f"The path {str(file)!r} does not point to valid sharded checkpoints. Make sure the path points to"

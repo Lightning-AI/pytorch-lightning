@@ -99,7 +99,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
 
     if state_dict_type == "sharded":
         pattern = rf"checkpoint_rank-0000000\d-of-{world_size:08d}\.pth"
-        shards = os.listdir(tmp_path / "foo")
+        shards = os.listdir(checkpoint_path)
         assert len(shards) == local_process_count
         for name in shards:
             assert re.match(pattern, name)
