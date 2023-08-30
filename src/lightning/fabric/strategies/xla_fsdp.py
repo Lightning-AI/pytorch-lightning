@@ -417,16 +417,11 @@ class XLAFSDPStrategy(ParallelStrategy):
 
             self.barrier("before_ckpt_consolidation")
             if self.is_global_zero:
-                consolidate_sharded_model_checkpoints(
-                    ckpt_prefix=ckpt_prefix, ckpt_suffix=ckpt_suffix, save_path=str(path)
-                )
+                # if the user passed a directory, then the `save_path` would collide with the directory for the shards
+                save_path = str(path if path != path_dir else path.with_suffix(".ckpt"))
+                consolidate_sharded_model_checkpoints(ckpt_prefix, ckpt_suffix, save_path)
+                self.checkpoint_io.remove_checkpoint(path_dir)
             self.barrier("after_ckpt_consolidation")
-            self.checkpoint_io.remove_checkpoint(
-                path_dir / f"checkpoint_rank-{self.global_rank:08d}-of-{self.world_size:08d}.pth"
-            )
-            self.barrier("after_shard_cleanup")
-            if path_dir.exists():
-                path_dir.rmdir()
 
     def _save_checkpoint_shard(
         self,
