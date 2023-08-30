@@ -447,7 +447,7 @@ class XLAFSDPStrategy(ParallelStrategy):
                 # remove the shards directory
                 self.checkpoint_io.remove_checkpoint(path)
                 # mv the consolidated checkpoint where the user would expect it
-                get_filesystem(save_path).mv(save_path, path)
+                get_filesystem(save_path).mv(str(save_path), str(path))
             self.barrier("after_ckpt_consolidation")
 
     def _save_checkpoint_shard(
