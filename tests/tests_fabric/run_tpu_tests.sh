@@ -7,10 +7,10 @@ if [[ "{ACCELERATOR_TYPE}" = v5litepod* ]]; then
   pip3 install tf-nightly tb-nightly tbp-nightly
   pip3 install numpy
   sudo apt-get install numactl libopenblas-dev -y
-  pip3 install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch-nightly%2B20230712-cp310-cp310-linux_x86_64.whl
-  pip3 install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch_xla-nightly%2B20230712-cp310-cp310-linux_x86_64.whl
-  gsutil cp gs://cloud-tpu-tpuvm-artifacts/v5litepod-preview/pytorch/wheels/torchvision-0.16.0a0+fc838ad-cp310-cp310-linux_x86_64.whl .
-  pip3 install torchvision-0.16.0a0+fc838ad-cp310-cp310-linux_x86_64.whl
+  pip3 install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch-nightly-cp310-cp310-linux_x86_64.whl
+  pip3 install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch_xla-nightly-cp310-cp310-linux_x86_64.whl
+  gsutil cp gs://cloud-tpu-tpuvm-artifacts/v5litepod-preview/pytorch/wheels/torchvision-0.16.0a0+c9ac3a5-cp310-cp310-linux_x86_64.whl .
+  pip3 install torchvision-0.16.0a0+c9ac3a5-cp310-cp310-linux_x86_64.whl
   pip3 install torch_xla[tpuvm]
 fi
 
@@ -18,9 +18,6 @@ echo "--- Install packages ---"
 # show what's already installed
 pip3 list
 if [[ "{ACCELERATOR_TYPE}" != v5litepod* ]]; then
-  # typing-extensions==4.5.0 comes pre-installed in the environment, and pydantic doesnt support that, however,
-  # pip cannot upgrade it because it's in the system folder: needs sudo
-  sudo pip3 install -U typing-extensions
   # set particular PyTorch version
   pip3 install -q wget packaging
   python3 -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
