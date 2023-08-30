@@ -35,7 +35,7 @@ from lightning.pytorch.trainer.connectors.data_connector import (
     _request_dataloader,
 )
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader, _limited_len
+from lightning.pytorch.utilities.combined_loader import _limited_len, _Sequential, CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
@@ -166,7 +166,9 @@ class _PredictionLoop(_Loop):
         if combined_loader._mode != "sequential":
             raise ValueError('`trainer.predict()` only supports the `CombinedLoader(mode="sequential")` mode.')
 
-        limit = _limited_len(combined_loader, self.max_batches) if isinstance(self.max_batches, list) else self.max_batches
+        limit = (
+            _limited_len(combined_loader, self.max_batches) if isinstance(self.max_batches, list) else self.max_batches
+        )
         data_fetcher.setup(combined_loader, limit=limit)
         iter(data_fetcher)  # creates the iterator inside the fetcher
         assert isinstance(combined_loader._iterator, _Sequential)

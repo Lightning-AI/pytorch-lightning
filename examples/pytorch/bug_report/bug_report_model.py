@@ -3,7 +3,6 @@ from torch.utils.data import DataLoader, Dataset
 
 from lightning.pytorch import LightningModule, Trainer
 
-
 global_batch_size = 4
 micro_batch_size = 2
 assert global_batch_size % micro_batch_size == 0
@@ -41,7 +40,7 @@ class BoringModel(LightningModule):
                 batch = next(dataloader_iter)
             except StopIteration:
                 self.val_iter_raised = True
-                return None
+                return
             self.val_fetched += 1
             self.layer(batch).sum()
 

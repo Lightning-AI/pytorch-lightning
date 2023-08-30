@@ -34,7 +34,7 @@ from lightning.pytorch.trainer.connectors.data_connector import (
 )
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.combined_loader import _SUPPORTED_MODES, CombinedLoader, _limited_len
+from lightning.pytorch.utilities.combined_loader import _limited_len, _SUPPORTED_MODES, CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -345,7 +345,9 @@ class _FitLoop(_Loop):
                 f" The available modes are: {[m for m in _SUPPORTED_MODES if m != 'sequential']}"
             )
         assert self._data_fetcher is not None
-        limit = _limited_len(combined_loader, self.max_batches) if isinstance(self.max_batches, list) else self.max_batches
+        limit = (
+            _limited_len(combined_loader, self.max_batches) if isinstance(self.max_batches, list) else self.max_batches
+        )
         self._data_fetcher.setup(combined_loader, limit=limit)
         with self.trainer.profiler.profile("run_training_epoch"):
             self.epoch_loop.run(self._data_fetcher)

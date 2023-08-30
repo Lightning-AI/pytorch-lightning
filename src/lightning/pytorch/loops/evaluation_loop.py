@@ -38,7 +38,7 @@ from lightning.pytorch.trainer.connectors.data_connector import (
 )
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader, _limited_len
+from lightning.pytorch.utilities.combined_loader import _limited_len, _Sequential, CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -245,7 +245,9 @@ class _EvaluationLoop(_Loop):
                 # some users want validation shuffling based on the training progress
                 _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
 
-        limit = _limited_len(combined_loader, self.max_batches) if isinstance(self.max_batches, list) else self.max_batches
+        limit = (
+            _limited_len(combined_loader, self.max_batches) if isinstance(self.max_batches, list) else self.max_batches
+        )
         data_fetcher.setup(combined_loader, limit=limit)
         iter(data_fetcher)  # creates the iterator inside the fetcher
         if isinstance(combined_loader._iterator, _Sequential):
