@@ -184,7 +184,7 @@ subprojects:
   - id: "pytorch_lightning: Docker"
     paths:
       - ".actions/*"
-      - ".github/workflows/ci-dockers-pytorch.yml"
+      - ".github/workflows/docker-build.yml"
       - "dockers/**"
       - "requirements/pytorch/**"
       - "requirements/fabric/**"
@@ -436,13 +436,3 @@ subprojects:
       - "install-pkg (windows-2022, lightning, 3.10)"
       - "install-pkg (windows-2022, notset, 3.8)"
       - "install-pkg (windows-2022, notset, 3.10)"
-
-  - id: "release dockers"
-    paths:
-      - ".github/workflows/release-docker.yml"
-      - "dockers/release/*"
-    checks:
-      - "publish-docker (3.9, 1.13, 12.0.1)"
-      - "publish-docker (3.9, 1.13, 12.0.1)"
-      - "publish-docker (3.10, 2.0, 11.8.0)"
-      - "publish-docker (3.10, 2.0, 12.0.1)"
