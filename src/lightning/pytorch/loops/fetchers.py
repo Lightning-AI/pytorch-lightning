@@ -41,9 +41,9 @@ class _DataFetcher(Iterator):
             )
         return self._combined_loader
 
-    def setup(self, combined_loader: CombinedLoader) -> None:
+    def setup(self, combined_loader: CombinedLoader, limit: Optional[int] = None) -> None:
         self._combined_loader = combined_loader
-        self.length = sized_len(combined_loader)
+        self.length = sized_len(combined_loader) if limit is None else limit
         self.done = self.length == 0
 
     def __iter__(self) -> "_DataFetcher":
