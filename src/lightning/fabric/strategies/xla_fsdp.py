@@ -14,8 +14,9 @@
 import io
 import os
 from contextlib import contextmanager, nullcontext
+from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, List, Literal, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -41,9 +42,12 @@ from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
+_POLICY_SET = Set[Type[Module]]
+_POLICY = Union[_POLICY_SET, Callable[[Module, bool, int], bool]]
+
 
 class XLAFSDPStrategy(ParallelStrategy):
-    """Strategy for training multiple XLA devices using the
+    r"""Strategy for training multiple XLA devices using the
     :func:`torch_xla.distributed.xla_fully_sharded_data_parallel.XlaFullyShardedDataParallel` method.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -51,8 +55,24 @@ class XLAFSDPStrategy(ParallelStrategy):
     For more information check out https://github.com/pytorch/xla/blob/master/docs/fsdp.md
 
     Args:
+        auto_wrap_policy: Same as ``auto_wrap_policy`` parameter in
+            :class:`torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`.
+            For convenience, this also accepts a set of the layer classes to wrap.
+        activation_checkpointing_policy: Used when selecting the modules for
+            which you want to enable activation checkpointing. Enabling this can free up a significant amount of memory
+            at the cost of speed since activations in these layers need to be recomputed during backpropagation.
+            This accepts a set of the layer classes to wrap.
+
+        state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
+
+            - ``"full"``: The full weights and optimizer states get assembled on rank 0 and saved to a single file.
+            - ``"sharded"``: Each rank saves its shard of weights and optimizer states to a file. The checkpoint is
+              a folder with files for each shard in the host. Note that TPU VM multihost does not have a shared
+              filesystem.
+
         sequential_save: With this enabled, individual ranks consecutively save their state dictionary shards, reducing
             peak system RAM usage, although it elongates the saving process.
+        \**kwargs: See available parameters in :class:`torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`.
     """
 
     def __init__(
@@ -61,6 +81,8 @@ class XLAFSDPStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
+        auto_wrap_policy: Optional[_POLICY] = None,
+        activation_checkpointing_policy: Optional[_POLICY_SET] = None,
         state_dict_type: Literal["full", "sharded"] = "sharded",
         sequential_save: bool = False,
         **kwargs: Any,
@@ -75,6 +97,8 @@ class XLAFSDPStrategy(ParallelStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = _XLAFSDPBackwardSyncControl()
 
+        kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
+        kwargs = _activation_checkpointing_kwargs(activation_checkpointing_policy, kwargs)
         self._fsdp_kwargs = kwargs
         self._state_dict_type = state_dict_type
         self._sequential_save = sequential_save
@@ -559,6 +583,43 @@ class XLAFSDPStrategy(ParallelStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla_fsdp", cls, description=cls.__class__.__name__)
+
+
+def _auto_wrap_policy_kwargs(policy: Optional["_POLICY"], kwargs: Dict) -> Dict:
+    if policy is None:
+        return kwargs
+    if isinstance(policy, set):
+        from torch_xla.distributed.fsdp.wrap import transformer_auto_wrap_policy
+
+        # this is not transformer specific despite the name
+        policy = partial(transformer_auto_wrap_policy, transformer_layer_cls=policy)
+    kwargs["auto_wrap_policy"] = policy
+    return kwargs
+
+
+def _activation_checkpointing_auto_wrapper(policy: _POLICY_SET, module: Module, *args: Any, **kwargs: Any) -> Module:
+    from torch_xla.distributed.fsdp import checkpoint_module
+    from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
+    module = checkpoint_module(module) if isinstance(module, tuple(policy)) else module
+    return XLAFSDP(module, *args, **kwargs)
+
+
+def _activation_checkpointing_kwargs(policy: Optional[_POLICY_SET], kwargs: Dict) -> Dict:
+    if not policy:
+        return kwargs
+    if "auto_wrapper_callable" in kwargs:
+        raise ValueError(
+            "You cannot set both `auto_wrapper_callable` and `activation_checkpointing_policy`. Choose one"
+        )
+    if not isinstance(policy, set):
+        raise TypeError(
+            f"`activation_checkpointing_policy` must be a set, found {policy}. You can try defining and"
+            " passing `auto_wrapper_callable` instead."
+        )
+    auto_wrapper_callable = partial(_activation_checkpointing_auto_wrapper, policy)
+    kwargs["auto_wrapper_callable"] = auto_wrapper_callable
+    return kwargs
 
 
 class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
