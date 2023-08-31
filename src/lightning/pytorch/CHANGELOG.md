@@ -64,6 +64,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Updated `LearningRateMonitor` to log monitored values to `trainer.callback_metrics` ([#17626](https://github.com/Lightning-AI/lightning/pull/17626))
 
 
+- Added `log_weight_decay` argument to `LearningRateMonitor` callback ([#18439](https://github.com/Lightning-AI/lightning/pull/18439))
+
+
 - Added `Trainer.print()` to print on local rank zero only ([#17980](https://github.com/Lightning-AI/lightning/pull/17980))
 
 
