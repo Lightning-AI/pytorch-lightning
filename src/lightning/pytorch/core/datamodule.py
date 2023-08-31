@@ -203,7 +203,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         Note:
             ``load_from_checkpoint`` is a **class** method. You must use your :class:`LightningDataModule`
             **class** to call it instead of the :class:`LightningDataModule` instance, or a
-            ``RestrictedClassmethodError`` exception will be raised.
+            ``TypeError`` will be raised.
 
         Example::
 

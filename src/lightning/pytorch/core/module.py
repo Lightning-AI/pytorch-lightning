@@ -1509,7 +1509,7 @@ class LightningModule(
         Note:
             ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningModule`
             **class** to call it instead of the :class:`LightningModule` instance, or a
-            ``RestrictedClassmethodError`` exception will be raised.
+            ``TypeError`` will be raised.
 
         Example::
 
