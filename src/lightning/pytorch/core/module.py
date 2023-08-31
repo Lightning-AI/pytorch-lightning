@@ -1462,7 +1462,7 @@ class LightningModule(
 
     @restricted_classmethod
     def load_from_checkpoint(
-        cls: type[Self],
+        cls,
         checkpoint_path: Union[_PATH, IO],
         map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[_PATH] = None,
@@ -1542,7 +1542,7 @@ class LightningModule(
             y_hat = pretrained_model(x)
         """
         loaded = _load_from_checkpoint(
-            cls,
+            cls,  # type: ignore
             checkpoint_path,
             map_location,
             hparams_file,
