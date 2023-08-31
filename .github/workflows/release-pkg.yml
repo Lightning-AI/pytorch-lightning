@@ -1,4 +1,4 @@
-name: Releasing
+name: Releasing package
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
