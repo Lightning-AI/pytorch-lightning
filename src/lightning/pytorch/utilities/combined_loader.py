@@ -122,7 +122,7 @@ class _MinSize(_ModeIterator[List]):
 
 class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
     def __init__(self, iterables: List[Iterable], limits: Optional[List[Union[int, float]]] = None) -> None:
-        super().__init__(iterables)
+        super().__init__(iterables, limits)
         self._iterator_idx = 0  # what would be dataloader_idx
         self._idx = 0  # what would be batch_idx
 

@@ -29,8 +29,22 @@ class BoringModel(LightningModule):
         self.val_iter_done = False
         self.val_step_entered = 0
 
+        self.train_fetched = 0
+        self.train_iter_raised = False
+        self.train_iter_done = False
+        self.train_step_entered = 0
+
     def training_step(self, dataloader_iter, batch_idx):
-        return self.layer(next(dataloader_iter)).sum()
+        self.train_step_entered += 1
+        self.train_iter_done = dataloader_iter.done
+        for i in range(global_batch_size // micro_batch_size):
+            try:
+                batch = next(dataloader_iter)
+            except StopIteration:
+                self.train_iter_raised = True
+                return
+            self.train_fetched += 1
+        return self.layer(batch).sum()
 
     def validation_step(self, dataloader_iter, batch_idx):
         self.val_step_entered += 1
@@ -53,14 +67,19 @@ val_data = DataLoader(RandomDataset(length=16), batch_size=micro_batch_size)
 
 model = BoringModel()
 trainer = Trainer(
-    limit_train_batches=1,
-    limit_val_batches=2,
-    num_sanity_val_steps=0,
+    # limit_train_batches=3,
+    # limit_val_batches=4,
+    num_sanity_val_steps=2,
+    max_steps=2,
     max_epochs=1,
     accelerator="cpu",
 )
-trainer.validate(model, val_data)
+trainer.fit(model, train_data, val_data)
 # trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+
+print("train fetched", model.train_fetched)
+print("train step entered", model.train_step_entered)
+print("train iter exhausted", model.train_iter_raised)
 
 print("val fetched", model.val_fetched)
 print("val step entered", model.val_step_entered)
