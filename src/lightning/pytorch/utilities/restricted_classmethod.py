@@ -8,9 +8,9 @@ class RestrictedClassmethodError(Exception):
     """
 
 
-_T = TypeVar("_T")
-_P = ParamSpec("_P")
-_R_co = TypeVar("_R_co", covariant=True)
+_T = TypeVar("_T")  # type of the method owner
+_P = ParamSpec("_P")  # parameters of the decorated method
+_R_co = TypeVar("_R_co", covariant=True)  # return type of the decorated method
 
 
 class restricted_classmethod(Generic[_T, _P, _R_co]):
