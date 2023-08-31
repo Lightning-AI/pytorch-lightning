@@ -578,7 +578,11 @@ def test_combined_loader_can_be_pickled():
     iter(cl)
 
     iterator = cl._iterator
-    assert iterator.__getstate__() == {"iterables": [dataloader, numbers], "iterators": [None, iterator.iterators[1]]}
+    assert iterator.__getstate__() == {
+        "iterables": [dataloader, numbers],
+        "iterators": [None, iterator.iterators[1]],
+        "_limits": None,
+    }
 
     # no error
     pickle.dumps(cl)
