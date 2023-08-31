@@ -42,7 +42,7 @@ class BoringModel(LightningModule):
                 batch = next(dataloader_iter)
             except StopIteration:
                 self.train_iter_raised = True
-                return
+                return None
             self.train_fetched += 1
         return self.layer(batch).sum()
 
