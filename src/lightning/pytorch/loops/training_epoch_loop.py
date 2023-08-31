@@ -167,8 +167,6 @@ class _TrainingEpochLoop(loops._Loop):
         iter(data_fetcher)  # creates the iterator inside the fetcher
         # set the per-dataloader limits
         max_batches = self.trainer.fit_loop.max_batches
-        assert isinstance(max_batches, (int, float))
-        max_batches = [max_batches] * len(self.trainer.fit_loop._combined_loader._iterator.iterables)
         self.trainer.fit_loop._combined_loader._iterator.limits = max_batches
         data_fetcher.reset()
 

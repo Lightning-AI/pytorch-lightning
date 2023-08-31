@@ -249,7 +249,6 @@ class _EvaluationLoop(_Loop):
         iter(data_fetcher)  # creates the iterator inside the fetcher
         # set the per-dataloader limits
         max_batches = self.max_batches
-        assert isinstance(max_batches, list)
         combined_loader._iterator.limits = max_batches
         data_fetcher.reset()
 

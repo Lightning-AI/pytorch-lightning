@@ -37,8 +37,10 @@ class _ModeIterator(Iterator[_T]):
         return self._limits
 
     @limits.setter
-    def limits(self, limits: Optional[List[Union[int, float]]]) -> None:
-        if limits is not None and len(limits) != len(self.iterables):
+    def limits(self, limits: Optional[Union[int, float, List[Union[int, float]]]]) -> None:
+        if isinstance(limits, (int, float)):
+            limits = [limits] * len(self.iterables)
+        elif isinstance(limits, list) and len(limits) != len(self.iterables):
             raise ValueError(
                 f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(self.iterables)})"
             )
