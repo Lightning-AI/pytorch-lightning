@@ -70,11 +70,13 @@ class _DataFetcher(Iterator):
         self.fetched = 0
         # self.length = sized_len(self.combined_loader)
 
-        try:
-            # try getting the length
-            self.length = self.combined_loader.limited_len()  # type: ignore [arg-type]
-        except (TypeError, NotImplementedError):
-            self.length = None
+        # teardown calls `reset()`, and if it happens early, `combined_loader` can still be None
+        if self._combined_loader is not None:
+            try:
+                # try getting the length
+                self.length = self.combined_loader.limited_len()  # type: ignore [arg-type]
+            except (TypeError, NotImplementedError):
+                self.length = None
 
         self.done = self.length == 0
 
