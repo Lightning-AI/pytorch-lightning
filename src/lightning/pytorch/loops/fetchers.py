@@ -69,7 +69,14 @@ class _DataFetcher(Iterator):
 
     def reset(self) -> None:
         self.fetched = 0
-        self.length = sized_len(self.combined_loader)
+        # self.length = sized_len(self.combined_loader)
+
+        try:
+            # try getting the length
+            self.length = self.combined_loader.limited_len()  # type: ignore [arg-type]
+        except (TypeError, NotImplementedError):
+            self.length = None
+
         self.done = self.length == 0
 
     def teardown(self) -> None:
