@@ -1,13 +1,11 @@
-name: Build Docs
+name: Docs builds
 # https://github.com/marketplace/actions/sphinx-build
 
 on:
   push:
     branches: ["master", "release/*"]
     tags: ["*"]
-  # use this event type to share secrets with forks.
-  # it's important that the PR head SHA is checked out to run the changes
-  pull_request_target:
+  pull_request:
     branches: ["master", "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
@@ -48,25 +46,14 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
 
-      - name: Install AWS CLI
-        if: ${{ matrix.pkg-name != 'pytorch' }}
-        continue-on-error: true
+      - name: Pull sphinx template
         run: |
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
-          unzip -qq awscli.zip
-          bash ./aws/install
-          aws --version
-      - run: aws s3 sync s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
-        if: ${{ matrix.pkg-name != 'pytorch' }}
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          pip install awscli
+          aws s3 sync --no-sign-request s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
 
       - name: pip wheels cache
         uses: actions/cache/restore@v3
