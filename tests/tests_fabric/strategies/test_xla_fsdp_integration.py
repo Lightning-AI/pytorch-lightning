@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import re
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -55,11 +57,8 @@ def test_xla_fsdp_rewrap_warning():
 
 def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
     """Fabric launch function for test_xla_fsdp_train_save_load."""
-    # check if multihost
-    if fabric.strategy.all_reduce(fabric.node_rank, reduce_op="sum").item() > 0:
-        return  # pytest.skip() is not pickleable
+    tmp_path = Path(fabric.broadcast(tmp_path))
 
-    checkpoint_path = fabric.broadcast(str(tmp_path))
     with fabric.init_module():
         model_1 = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
     model_1 = fabric.setup_module(model_1)
@@ -87,14 +86,23 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         "optimizer": optimizer_1,  # not needed in ckpt consolidation
         "step_count": 1,
     }
-
-    fabric.save(checkpoint_path, state)
+    checkpoint_path = tmp_path / "foo.pth"
 
     world_size = fabric.world_size
+    local_process_count = len(fabric.strategy.parallel_devices)
+    is_multihost = local_process_count < world_size
+    if state_dict_type == "full" and is_multihost:
+        with pytest.raises(OSError, match="Multihost setups do not have a shared filesystem"):
+            fabric.save(checkpoint_path, state)
+        return
+    fabric.save(checkpoint_path, state)
 
     if state_dict_type == "sharded":
-        expected_files = {f"checkpoint_rank-{i:08d}-of-{world_size:08d}.pth" for i in range(world_size)}
-        assert set(os.listdir(checkpoint_path)) == expected_files
+        pattern = rf"checkpoint_rank-0000000\d-of-{world_size:08d}\.pth"
+        shards = os.listdir(checkpoint_path)
+        assert len(shards) == local_process_count
+        for name in shards:
+            assert re.match(pattern, name)
 
         # define a second set of model and optimizer
         with fabric.init_module():
@@ -131,7 +139,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
         assert state["coconut"] == 11
 
     if state_dict_type == "full":
-        assert set(os.listdir(checkpoint_path)) == {"checkpoint_consolidated.pth"}
+        assert set(os.listdir(tmp_path)) == {"foo.pth"}
 
         # define a second set of model and optimizer
         with fabric.init_module():
