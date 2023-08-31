@@ -13,4 +13,4 @@ jobs:
     steps:
       - uses: readthedocs/actions/preview@v1
         with:
-          project-slug: "torchmetrics"
+          project-slug: "pytorch-lightning"
