@@ -19,6 +19,7 @@ Brief description of all our automation tools used for boosting development perf
 | .github/workflows/ci-examples-app.yml  | Run integration tests with App examples.                                                  | CPU         |
 | .github/workflows/ci-flagship-apps.yml | Run end-2-end tests with full applications, including deployment to the production cloud. | CPU         |
 | .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific, standalone and slow tests.                 | CPU         |
+| .github/workflows/tpu-tests.yml | Run only TPU-specific tests. Requires that the PR title contains '\[TPU\]' | TPU |
 
 \* Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases.
 
@@ -36,7 +37,7 @@ Brief description of all our automation tools used for boosting development perf
 | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | .github/workflows/docs-build.yml                                                            | Run doctest, linkcheck and full HTML build.                              |
 | .github/workflows/ci-rtfd.yml                                                               | Append link to the PR describtion with temporaty ReadTheDocs build docs. |
-| .github/workflows/ci-check-md-links.yml <br> .github/workflows%2Fmarkdown.links.config.json | Validate links in markdown files.                                        |
+| .github/workflows/ci-check-md-links.yml <br> .github/workflows/markdown.links.config.json | Validate links in markdown files.                                        |
 
 ## Code Quality
 
@@ -52,7 +53,7 @@ Brief description of all our automation tools used for boosting development perf
 | ------------------------------------ | ----------------------------------------------------------------------------------------------- |
 | .github/workflows/docker-build.yml   | Build docker images used for testing in CI. If run on nightly schedule, push to the Docker Hub. |
 | .github/workflows/ci-pkg-install.yml | Test if pytorch-lightning is successfully installed using pip.                                  |
-| .github/workflows/ci-checkpoints.yml | Test building checkpint whci is later (when release) used for back-compatibility check.         |
+| .github/workflows/ci-checkpoints.yml | Build checkpoints that are will be tested on release to ensure backwards-compatibility         |
 
 The published Docker Hub project is https://hub.docker.com/r/pytorchlightning/pytorch_lightning.
 
