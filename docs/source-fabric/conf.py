@@ -10,13 +10,11 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import glob
 import inspect
 import os
-import shutil
 import sys
 
-import pt_lightning_sphinx_theme
+import lai_sphinx_theme
 from lightning_utilities.docs import fetch_external_assets
 
 import lightning
@@ -147,7 +145,7 @@ pygments_style = None
 #
 # html_theme = "lai_sphinx_theme"
 html_theme = "lai_sphinx_theme"
-html_theme_path = [os.environ.get("LIT_SPHINX_PATH", pt_lightning_sphinx_theme.get_html_theme_path())]
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", lai_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
