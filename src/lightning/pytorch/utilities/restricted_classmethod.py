@@ -1,19 +1,31 @@
-from lighting.pytorch.utilities.rank_zero import rank_zero_warn
+from typing import Callable, Concatenate, Generic, ParamSpec, TypeVar
 
 
-class restricted_classmethod:
+class RestrictedClassmethodError(Exception):
+    """
+    This exception raised when a `restricted_classmethod` is invoked on an instance
+    instead of a class type.
+    """
+
+
+_T = TypeVar("_T")
+_P = ParamSpec("_P")
+_R_co = TypeVar("_R_co", covariant=True)
+
+
+class restricted_classmethod(Generic[_T, _P, _R_co]):
     """
     Custom `classmethod` that emits a warning when the classmethod is
     called on an instance and not the class type.
     """
 
-    def __init__(self, method):
+    def __init__(self, method: Callable[Concatenate[_T, _P], _R_co]) -> None:
         self.method = method
 
-    def __get__(self, instance, cls):
+    def __get__(self, instance: _T, cls: type[_T]) -> Callable[_P, _R_co]:
         if instance is not None:
-            rank_zero_warn(
-                f"The classmethod {cls.__name__}.{self.method.__name__} was called on an instance. Please "
-                f"call this method on the class type ({cls.__name__}) and make sure the return value is used"
+            raise RestrictedClassmethodError(
+                f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be invoked on an instance. Please "
+                f"invoke it on the class type and make sure the return value is used."
             )
-        return lambda *args, **kwargs: self.method(cls, *args, **kwargs)
+        return self.method.__get__(cls, cls)

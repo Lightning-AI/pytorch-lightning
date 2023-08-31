@@ -201,9 +201,9 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             :class:`LightningDataModule` instance with loaded weights and hyperparameters (if available).
 
         Note:
-            ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningDataModule`
-            **class** to call it instead of the :class:`LightningDataModule` instance.
-            A warning will be emitted if ``load_from_checkpoint`` is called from an instance.
+            ``load_from_checkpoint`` is a **class** method. You must use your :class:`LightningDataModule`
+            **class** to call it instead of the :class:`LightningDataModule` instance, or a
+            ``RestrictedClassmethodError`` exception will be raised.
 
         Example::
 

@@ -116,3 +116,17 @@ def test_load_from_checkpoint_warn_on_empty_state_dict(tmp_path):
     with pytest.warns(UserWarning, match="contains no parameters"):
         model = BoringModel.load_from_checkpoint(tmp_path / "checkpoint.ckpt", strict=False)
     assert model.device.type == "cpu"
+
+
+def test_load_from_checkpoint_classmethod(tmp_path):
+    """Test that load_from_checkpoint raises an exception when the method is called on an instance."""
+    from lightning.pytorch.utilities.restricted_classmethod import RestrictedClassmethodError
+
+    create_boring_checkpoint(tmp_path, BoringModel(), accelerator="cpu")
+
+    # No exception raised when called on the class type.
+    model = BoringModel.load_from_checkpoint(tmp_path / "checkpoint.ckpt", strict=False)
+
+    with pytest.raises(RestrictedClassmethodError):
+        # Exception raised when called on an instance.
+        model.load_from_checkpoint(tmp_path / "checkpoint.ckpt", strict=False)

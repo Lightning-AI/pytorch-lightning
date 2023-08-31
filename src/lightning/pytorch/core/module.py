@@ -1462,7 +1462,7 @@ class LightningModule(
 
     @restricted_classmethod
     def load_from_checkpoint(
-        cls,
+        cls: type[Self],
         checkpoint_path: Union[_PATH, IO],
         map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[_PATH] = None,
@@ -1508,8 +1508,8 @@ class LightningModule(
 
         Note:
             ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningModule`
-            **class** to call it instead of the :class:`LightningModule` instance.
-            A warning will be emitted if ``load_from_checkpoint`` is called from an instance.
+            **class** to call it instead of the :class:`LightningModule` instance, or a
+            ``RestrictedClassmethodError`` exception will be raised.
 
         Example::
 
