@@ -84,7 +84,9 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
     assert len(lr_monitor.last_momentum_values) == len(trainer.lr_scheduler_configs)
     assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values)
 
-    assert all(v is not None for v in lr_monitor.last_weight_decay_values.values()), "Expected weight decay to be logged"
+    assert all(
+        v is not None for v in lr_monitor.last_weight_decay_values.values()
+    ), "Expected weight decay to be logged"
     assert len(lr_monitor.last_weight_decay_values) == len(trainer.lr_scheduler_configs)
     assert all(k == f"lr-{opt}-weight_decay" for k in lr_monitor.last_weight_decay_values)
 
