@@ -80,9 +80,9 @@ if TYPE_CHECKING:
     if _TORCH_GREATER_EQUAL_2_0:
         from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-        _POLICY = Union[Set, Callable[[Module, bool, int], bool], ModuleWrapPolicy]
+        _POLICY = Union[Set[Type[Module]], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
     else:
-        _POLICY = Union[Set, Callable[[Module, bool, int], bool]]  # type: ignore[misc]
+        _POLICY = Union[Set[Type[Module]], Callable[[Module, bool, int], bool]]  # type: ignore[misc]
 
     _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
 
@@ -680,8 +680,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
 
 def _activation_checkpointing_kwargs(
-    activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
-    activation_checkpointing_policy: Optional["_POLICY"] = None,
+    activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]],
+    activation_checkpointing_policy: Optional["_POLICY"],
 ) -> Dict:
     if activation_checkpointing is None and activation_checkpointing_policy is None:
         return {}
