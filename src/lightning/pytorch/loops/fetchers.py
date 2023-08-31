@@ -14,7 +14,6 @@
 
 from typing import Any, Iterator, List, Optional, Tuple, Union
 
-from lightning.fabric.utilities.data import sized_len
 from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
