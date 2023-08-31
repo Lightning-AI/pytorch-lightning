@@ -103,6 +103,8 @@ class LearningRateMonitor(Callback):
         self.log_weight_decay = log_weight_decay
 
         self.lrs: Dict[str, List[float]] = {}
+        self.last_momentum_values: Dict[str, List[float]] = {}
+        self.last_weight_decay_values: Dict[str, List[float]] = {}
 
     def on_train_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Called before training, determines unique names for all lr schedulers in the case of multiple of the same
