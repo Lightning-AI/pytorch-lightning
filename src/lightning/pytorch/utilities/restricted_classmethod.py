@@ -1,4 +1,4 @@
-from lightning_utilities.core.rank_zero import rank_zero_warn
+from lighting.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class restricted_classmethod:
