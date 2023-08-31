@@ -1,9 +1,9 @@
 # !pip install torch
-import lightning as L
+from lightning.app import LightningWork, LightningApp, CloudCompute
 from lightning.app.components import MultiNode
 
 
-class MultiNodeComponent(L.LightningWork):
+class MultiNodeComponent(LightningWork):
     def run(
         self,
         main_address: str,
@@ -24,6 +24,6 @@ class MultiNodeComponent(L.LightningWork):
 
 
 # gpu-multi-fast has 4 GPUs x 8 nodes = 32 GPUs
-component = MultiNodeComponent(cloud_compute=L.CloudCompute("gpu-multi-fast"))
+component = MultiNodeComponent(cloud_compute=CloudCompute("gpu-multi-fast"))
 component = MultiNode(component, nodes=8)
-app = L.LightningApp(component)
+app = LightningApp(component)

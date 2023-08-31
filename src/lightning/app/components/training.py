@@ -15,10 +15,10 @@
 import os
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
-from lightning.app import structures
 from lightning.app.components.python import TracerPythonScript
 from lightning.app.core.flow import LightningFlow
 from lightning.app.storage.path import Path
+from lightning.app.structures import List as _List
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
@@ -169,7 +169,7 @@ class LightningTrainerScript(LightningFlow):
         self._script_runner = script_runner
         self._script_runner_kwargs = script_runner_kwargs
 
-        self.ws = structures.List()
+        self.ws = _List()
         for node_rank in range(self.num_nodes):
             self.ws.append(
                 self._script_runner(

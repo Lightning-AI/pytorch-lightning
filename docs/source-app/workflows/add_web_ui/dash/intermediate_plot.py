@@ -4,11 +4,11 @@ import pandas as pd
 import plotly.express as px
 from dash import Dash, dcc, html, Input, Output
 
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp
 from lightning.app.storage import Payload
 
 
-class LitDash(L.LightningWork):
+class LitDash(LightningWork):
     def __init__(self):
         super().__init__(parallel=True)
         self.df = None
@@ -57,7 +57,7 @@ class LitDash(L.LightningWork):
         dash_app.run_server(host=self.host, port=self.port)
 
 
-class Processor(L.LightningWork):
+class Processor(LightningWork):
     def run(self, df: Payload, selected_year: Optional[str]):
         if selected_year:
             df = df.value
@@ -66,7 +66,7 @@ class Processor(L.LightningWork):
             print(filtered_df)
 
 
-class LitApp(L.LightningFlow):
+class LitApp(LightningFlow):
     def __init__(self):
         super().__init__()
         self.lit_dash = LitDash()
@@ -83,4 +83,4 @@ class LitApp(L.LightningFlow):
         return tab1
 
 
-app = L.LightningApp(LitApp())
+app = LightningApp(LitApp())

@@ -1,22 +1,22 @@
 # app.py
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp, CloudCompute
 
 
-class TrainComponent(L.LightningWork):
+class TrainComponent(LightningWork):
     def run(self, message):
         for i in range(100000000000):
             print(message, i)
 
-class AnalyzeComponent(L.LightningWork):
+class AnalyzeComponent(LightningWork):
     def run(self, message):
         for i in range(100000000000):
             print(message, i)
 
-class LitWorkflow(L.LightningFlow):
+class LitWorkflow(LightningFlow):
     def __init__(self) -> None:
         super().__init__()
-        self.train = TrainComponent(cloud_compute=L.CloudCompute('cpu'), parallel=True)
-        self.analyze = AnalyzeComponent(cloud_compute=L.CloudCompute('cpu'))
+        self.train = TrainComponent(cloud_compute=CloudCompute('cpu'), parallel=True)
+        self.analyze = AnalyzeComponent(cloud_compute=CloudCompute('cpu'))
 
 
     def run(self):
@@ -24,4 +24,4 @@ class LitWorkflow(L.LightningFlow):
         self.analyze.run("machine B counting")
 
 
-app = L.LightningApp(LitWorkflow())
+app = LightningApp(LitWorkflow())

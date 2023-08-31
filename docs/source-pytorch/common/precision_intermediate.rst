@@ -133,6 +133,9 @@ Tip: For faster initialization, you can create model parameters with the desired
     trainer.fit(model)
 
 
+See also: :doc:`../advanced/model_init`
+
+
 ----
 
 

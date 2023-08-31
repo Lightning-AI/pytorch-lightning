@@ -75,6 +75,8 @@ If you want to be in complete control of how states get restored, you can omit p
     optimizer.load_state_dict(full_checkpoint["optimizer"])
     ...
 
+See also: :doc:`../advanced/model_init`
+
 
 From a raw state-dict file
 ==========================

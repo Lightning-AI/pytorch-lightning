@@ -1,4 +1,4 @@
-name: Releasing
+name: Releasing package
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
@@ -76,13 +76,13 @@ jobs:
       TAG: ${{ needs.release-version.outputs.tag }}
       BRANCH_NAME: "trigger/lightning-${{ needs.release-version.outputs.tag }}"
     steps:
-    - uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VER }}
     - uses: actions/checkout@v3
       with:
         repository: gridai/base-images
         token: ${{ secrets.PAT_GHOST }}
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VER }}
     - name: Update lightning version
       run: |
         import json, os

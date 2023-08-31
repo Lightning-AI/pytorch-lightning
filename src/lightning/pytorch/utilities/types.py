@@ -18,7 +18,7 @@ Convention:
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Generator, List, Mapping, Optional, Protocol, runtime_checkable, Type, Union
+from typing import Any, Generator, Iterator, List, Mapping, Optional, Protocol, runtime_checkable, Type, Union
 
 import torch
 from torch import Tensor
@@ -82,3 +82,11 @@ class LRSchedulerConfig:
     monitor: Optional[str] = None
     # enforce that the monitor exists for ReduceLROnPlateau
     strict: bool = True
+
+
+class _SizedIterable(Protocol):
+    def __len__(self) -> int:
+        pass
+
+    def __iter__(self) -> Iterator:
+        pass
