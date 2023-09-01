@@ -23,5 +23,5 @@ class LightningTransformer(pl.LightningModule):
     def predict_step(self, batch) -> Tensor:
         return self(batch)
 
-    def configure_optimizers(self) -> None:
+    def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.SGD(self.model.parameters(), lr=0.1)
