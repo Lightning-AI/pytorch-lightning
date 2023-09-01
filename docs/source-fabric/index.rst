@@ -11,7 +11,7 @@ Welcome to ⚡ Fabric
    :right:
       Fabric is the fast and lightweight way to scale PyTorch models without boilerplate code which allows you to
       easily switch from running on CPU to GPU (Apple Silicon, CUDA, ...), TPU, multi-GPU or even multi-node training.
-      You can also leverage State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed)
+      You can also leverage state-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed)
       and mixed precision out of the box.
 
 .. raw:: html
@@ -124,7 +124,7 @@ Get Started
    :button_link:  fundamentals/installation.html
 
 .. customcalloutitem::
-   :description: Five easy steps to let ``Fabric`` scale your PyTorch models.
+   :description: Five easy steps to let Fabric scale your PyTorch models.
    :header: From PyTorch to Fabric
    :button_link:  fundamentals/convert.html
 
@@ -139,7 +139,7 @@ Get Started
    :button_link:  fundamentals/precision.html
 
 .. customcalloutitem::
-   :description: Check utilizing Fabric in interactive notebooks even with multi-GOU support.
+   :description: Check utilizing Fabric in interactive notebooks even with multi-GPU support.
    :header: Fabric inside notebooks
    :button_link:  fundamentals/notebooks.html
 
