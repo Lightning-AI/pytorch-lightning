@@ -13,6 +13,7 @@
 # limitations under the License
 import inspect
 import os
+import sys
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -23,6 +24,7 @@ import torch.distributed
 from lightning_utilities.core.imports import package_available
 
 import lightning.pytorch
+from lightning.fabric.plugins import TransformerEnginePrecision
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -1034,3 +1036,16 @@ def test_connector_sets_num_nodes(strategy, cuda_count_2):
 def test_precision_selection(precision_str, strategy_str, expected_precision_cls):
     connector = _AcceleratorConnector(precision=precision_str, strategy=strategy_str)
     assert isinstance(connector.precision_plugin, expected_precision_cls)
+
+
+def test_connector_transformer_engine(monkeypatch):
+    monkeypatch.setattr(
+        lightning.fabric.plugins.precision.transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True
+    )
+    transformer_engine_mock = Mock()
+    monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
+    recipe_mock = Mock()
+    monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
+
+    connector = _AcceleratorConnector(precision="transformer-engine")
+    assert isinstance(connector.precision_plugin, TransformerEnginePrecision)
