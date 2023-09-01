@@ -84,7 +84,7 @@ Here are the only required methods.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
+    import lightning.pytorch as pl
     import torch
 
     from pytorch_lightning.demos.transformer import Transformer
