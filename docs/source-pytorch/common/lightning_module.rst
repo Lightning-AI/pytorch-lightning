@@ -87,7 +87,7 @@ Here are the only required methods.
     import lightning.pytorch as pl
     import torch
 
-    from pytorch_lightning.demos.transformer import Transformer
+    from lightning.pytorch.demos import LightningTransformer
 
 
     class LightningTransformer(pl.LightningModule):
