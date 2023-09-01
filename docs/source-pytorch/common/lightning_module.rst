@@ -112,7 +112,7 @@ Which you can train by doing:
 
 .. code-block:: python
 
-    from pytorch_lightning.demos.transformer import WikiText2
+    from lightning.pytorch.demos import WikiText2
     from torch.utils.data import DataLoader
 
     dataset = WikiText2()
