@@ -224,7 +224,7 @@ class LearningRateMonitor(Callback):
                 param_group=pg, name=name.replace(name, f"{name}-momentum"), use_betas=use_betas
             )
             stats.update(momentum)
-            weight_decay = self._extract_weight_decay(pg, name + "-weight_decay")
+            weight_decay = self._extract_weight_decay(pg, f"{name}-weight_decay")
             stats.update(weight_decay)
 
         return stats
