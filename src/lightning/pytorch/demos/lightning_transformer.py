@@ -1,7 +1,7 @@
 import torch
 
-import pytorch_lightning as pl
-from pytorch_lightning.demos.transformer import Transformer
+import lightning.pytorch as pl
+from lightning.pytorch.demos.transformer import Transformer
 
 
 class LightningTransformer(pl.LightningModule):
