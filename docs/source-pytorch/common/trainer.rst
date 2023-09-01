@@ -33,10 +33,21 @@ This is the basic use of the trainer:
 
 .. code-block:: python
 
-    model = MyLightningModule()
+    import lightning.pytorch as pl
+    from lightning.pytorch import Trainer
+
+    from lightning.pytorch.demos import LightningTransformer, WikiText2
+    from torch.utils.data import random_split, DataLoader
+
+    dataset = WikiText2()
+    train, val = random_split(dataset, [0.8, 0.2])
+    train_dataloader = DataLoader(train)
+    val_dataloader = DataLoader(val)
+
+    model = LightningTransformer(vocab_size=dataset.vocab_size)
 
     trainer = Trainer()
-    trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 --------
 
@@ -90,7 +101,7 @@ In Python scripts, it's recommended you use a main function to call the Trainer.
 
 
     def main(hparams):
-        model = LightningModule()
+        model = LightningTransformer(vocab_size=dataset.vocab_size)
         trainer = Trainer(accelerator=hparams.accelerator, devices=hparams.devices)
         trainer.fit(model)
 
@@ -158,7 +169,7 @@ Example::
 
     seed_everything(42, workers=True)
     # sets seeds for numpy, torch and python.random.
-    model = Model()
+    model = LightningTransformer(vocab_size=dataset.vocab_size)
     trainer = Trainer(deterministic=True)
 
 
@@ -1064,15 +1075,15 @@ With :func:`torch.inference_mode` disabled, you can enable the grad of your mode
 
 .. code-block:: python
 
-    class LitModel(LightningModule):
+    class LightningTransformer(pl.LightningModule):
         def validation_step(self, batch, batch_idx):
-            preds = self.layer1(batch)
+            preds = self.model(input.view(1, -1), target.view(1, -1))
             with torch.enable_grad():
                 grad_preds = preds.requires_grad_()
-                preds2 = self.layer2(grad_preds)
+                preds2 = self.model(grad_preds)
 
 
-    model = LitModel()
+    model = LightningTransformer(vocab_size=dataset.vocab_size)
     trainer = Trainer(inference_mode=False)
     trainer.validate(model)
 
@@ -1257,52 +1268,52 @@ both conditions are met. If any of these arguments is not set, it won't be consi
 .. code-block:: python
 
     # setting `trainer.should_stop` at any point of training will terminate it
-    class LitModel(LightningModule):
+    class LightningTransformer(pl.LightningModule):
         def training_step(self, *args, **kwargs):
             self.trainer.should_stop = True
 
 
     trainer = Trainer()
-    model = LitModel()
+    model = LightningTransformer(vocab_size=dataset.vocab_size)
     trainer.fit(model)
 
 .. code-block:: python
 
     # setting `trainer.should_stop` will stop training only after at least 5 epochs have run
-    class LitModel(LightningModule):
+    class LightningTransformer(pl.LightningModule):
         def training_step(self, *args, **kwargs):
             if self.current_epoch == 2:
                 self.trainer.should_stop = True
 
 
     trainer = Trainer(min_epochs=5, max_epochs=100)
-    model = LitModel()
+    model = LightningTransformer(vocab_size=dataset.vocab_size)
     trainer.fit(model)
 
 .. code-block:: python
 
     # setting `trainer.should_stop` will stop training only after at least 5 steps have run
-    class LitModel(LightningModule):
+    class LightningTransformer(pl.LightningModule):
         def training_step(self, *args, **kwargs):
             if self.global_step == 2:
                 self.trainer.should_stop = True
 
 
     trainer = Trainer(min_steps=5, max_epochs=100)
-    model = LitModel()
+    model = LightningTransformer(vocab_size=dataset.vocab_size)
     trainer.fit(model)
 
 .. code-block:: python
 
     # setting `trainer.should_stop` at any until both min_steps and min_epochs are satisfied
-    class LitModel(LightningModule):
+    class LightningTransformer(pl.LightningModule):
         def training_step(self, *args, **kwargs):
             if self.global_step == 7:
                 self.trainer.should_stop = True
 
 
     trainer = Trainer(min_steps=5, min_epochs=5, max_epochs=100)
-    model = LitModel()
+    model = LightningTransformer(vocab_size=dataset.vocab_size)
     trainer.fit(model)
 
 sanity_checking
