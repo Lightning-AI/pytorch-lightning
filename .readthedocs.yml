@@ -39,9 +39,9 @@ build:
   commands:
     - printenv
     - pwd ; ls -lh
+    - pip install -U pip awscli --user
+    - aws s3 sync --no-sign-request s3://sphinx-packages/ dist/ ; ls -lh dist/
     - >
-      pip install -U pip awscli ;
-      aws s3 sync --no-sign-request s3://sphinx-packages/ dist/ ;
       pip install -e . -q -r requirements/pytorch/docs.txt \
           -f 'https://download.pytorch.org/whl/cpu/torch_stable.html' -f dist/ ;
       pip list
