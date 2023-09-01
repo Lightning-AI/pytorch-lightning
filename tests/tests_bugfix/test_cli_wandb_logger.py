@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import glob
 import os
 from unittest import mock
 
 import pytest
 import yaml
-import glob
 
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers.wandb import WandbLogger
+
 
 @pytest.fixture()
 def cleandir(tmp_path, monkeypatch):
@@ -37,9 +37,10 @@ def ensure_cleandir():
 
 @pytest.mark.parametrize("log_model", [["True", True], ["False", False], ["all", "all"]])
 def test_wandb_logger_set_log_model_param_via_cli(log_model, cleandir):
-    """
-    Ensure that setting the log_model parameter via CLI works as intended.
-    Before the bug fix, this test fails, due to the wrong order in the Union type hint. 
+    """Ensure that setting the log_model parameter via CLI works as intended.
+
+    Before the bug fix, this test fails, due to the wrong order in the Union type hint.
+
     """
 
     passed_value, intended_value = log_model
@@ -56,9 +57,7 @@ def test_wandb_logger_set_log_model_param_via_cli(log_model, cleandir):
         "trainer": {
             "logger": {
                 "class_path": "lightning.pytorch.loggers.wandb.WandbLogger",
-                "init_args": {
-                    "log_model": passed_value
-                }
+                "init_args": {"log_model": passed_value},
             },
         }
     }
@@ -69,15 +68,13 @@ def test_wandb_logger_set_log_model_param_via_cli(log_model, cleandir):
 
     # Test case 1: Set the log_model parameter only via the config file.
     with mock.patch("sys.argv", ["any.py", "--config", config_path]):
-        cli = LCLI_CheckLogModel(
-            BoringModel, run=False, save_config_callback=None)
+        LCLI_CheckLogModel(BoringModel, run=False, save_config_callback=None)
 
     # Test case 2: Overwrite the log_model parameter via the command line. This behaves incorrectly before the bug fix.
     wandb_cli_arg = f"--trainer.logger.init_args.log_model={log_model[0]}"
 
     with mock.patch("sys.argv", ["any.py", "--config", config_path, wandb_cli_arg]):
-        cli = LCLI_CheckLogModel(
-            BoringModel, run=False, save_config_callback=None)
-        
+        LCLI_CheckLogModel(BoringModel, run=False, save_config_callback=None)
+
     # Remove the config file.
     os.remove(config_path)
