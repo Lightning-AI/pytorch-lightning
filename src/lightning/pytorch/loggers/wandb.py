@@ -18,7 +18,7 @@ Weights and Biases Logger
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Union
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
@@ -295,7 +295,7 @@ class WandbLogger(Logger):
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
         project: Optional[str] = None,
-        log_model: Union[str, bool] = False,
+        log_model: Union[Literal["all"], bool] = False,
         experiment: Union[Run, RunDisabled, None] = None,
         prefix: str = "",
         checkpoint_name: Optional[str] = None,
