@@ -18,10 +18,11 @@ Convention:
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Generator, Iterator, List, Mapping, Optional, Protocol, runtime_checkable, Type, Union
+from typing import Any, Generator, Iterator, List, Mapping, Optional, Protocol, runtime_checkable, Sequence, Type, Union
 
 import torch
 from torch import Tensor
+from torch.optim import Optimizer
 from torchmetrics import Metric
 
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER, LRScheduler, ProcessGroup, ReduceLROnPlateau
@@ -82,6 +83,20 @@ class LRSchedulerConfig:
     monitor: Optional[str] = None
     # enforce that the monitor exists for ReduceLROnPlateau
     strict: bool = True
+
+
+@dataclass
+class OptimizerLRSchedulerConfig:
+    optimizer: Optimizer
+    lr_scheduler: Union[LRSchedulerPLType, LRSchedulerConfig]
+
+
+OptimizerLRScheduler = Optional[Union[
+    Optimizer,
+    Sequence[Optimizer],
+    Tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerPLType, LRSchedulerConfig]]],
+    OptimizerLRSchedulerConfig,
+]]
 
 
 class _SizedIterable(Protocol):
