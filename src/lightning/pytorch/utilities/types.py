@@ -18,7 +18,20 @@ Convention:
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Generator, Iterator, List, Mapping, Optional, Protocol, runtime_checkable, Sequence, Tuple, Type, Union
+from typing import (
+    Any,
+    Generator,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Protocol,
+    runtime_checkable,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 import torch
 from torch import Tensor
