@@ -3,8 +3,8 @@ from pathlib import Path
 from torch.utils.data import DataLoader, random_split
 
 import lightning.pytorch as pl
-from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from lightning.pytorch.demos.transformer import WikiText2
+from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
 class WikiText2DataModule(pl.LightningDataModule):
