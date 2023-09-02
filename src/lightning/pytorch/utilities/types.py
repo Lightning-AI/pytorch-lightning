@@ -91,12 +91,14 @@ class OptimizerLRSchedulerConfig:
     lr_scheduler: Union[LRSchedulerPLType, LRSchedulerConfig]
 
 
-OptimizerLRScheduler = Optional[Union[
-    Optimizer,
-    Sequence[Optimizer],
-    Tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerPLType, LRSchedulerConfig]]],
-    OptimizerLRSchedulerConfig,
-]]
+OptimizerLRScheduler = Optional[
+    Union[
+        Optimizer,
+        Sequence[Optimizer],
+        Tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerPLType, LRSchedulerConfig]]],
+        OptimizerLRSchedulerConfig,
+    ]
+]
 
 
 class _SizedIterable(Protocol):

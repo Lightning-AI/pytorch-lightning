@@ -66,7 +66,13 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
-from lightning.pytorch.utilities.types import _METRIC, LRSchedulerPLType, LRSchedulerTypeUnion, OptimizerLRScheduler, STEP_OUTPUT
+from lightning.pytorch.utilities.types import (
+    _METRIC,
+    LRSchedulerPLType,
+    LRSchedulerTypeUnion,
+    OptimizerLRScheduler,
+    STEP_OUTPUT,
+)
 
 _ONNX_AVAILABLE = RequirementCache("onnx")
 
