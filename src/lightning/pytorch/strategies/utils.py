@@ -14,8 +14,9 @@
 import importlib
 from inspect import getmembers, isclass
 
+from lightning_utilities import is_overridden
+
 from lightning.fabric.strategies import _StrategyRegistry
-from lightning.fabric.utilities.registry import _is_register_method_overridden
 from lightning.pytorch.strategies.strategy import Strategy
 
 
@@ -23,5 +24,5 @@ def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> 
     # TODO(fabric): Remove this function once PL strategies inherit from Fabrics Strategy base class
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
-        if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):
+        if issubclass(mod, Strategy) and is_overridden("register_strategies", mod, Strategy):
             mod.register_strategies(registry)

@@ -11,25 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 import logging
 from typing import Any, List, Union
 
 from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 
 _log = logging.getLogger(__name__)
-
-
-def _is_register_method_overridden(mod: type, base_cls: Any, method: str) -> bool:
-    mod_attr = getattr(mod, method)
-    previous_super_cls = inspect.getmro(mod)[1]
-
-    if issubclass(previous_super_cls, base_cls):
-        super_attr = getattr(previous_super_cls, method)
-    else:
-        return False
-
-    return mod_attr.__code__ is not super_attr.__code__
 
 
 def _load_external_callbacks(group: str) -> List[Any]:

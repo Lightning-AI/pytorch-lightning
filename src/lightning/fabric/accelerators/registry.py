@@ -15,8 +15,9 @@ import importlib
 from inspect import getmembers, isclass
 from typing import Any, Callable, Dict, List, Optional
 
+from lightning_utilities import is_overridden
+
 from lightning.fabric.utilities.exceptions import MisconfigurationException
-from lightning.fabric.utilities.registry import _is_register_method_overridden
 
 
 class _AcceleratorRegistry(dict):
@@ -119,5 +120,5 @@ def call_register_accelerators(registry: _AcceleratorRegistry, base_module: str)
     from lightning.fabric.accelerators.accelerator import Accelerator
 
     for _, mod in getmembers(module, isclass):
-        if issubclass(mod, Accelerator) and _is_register_method_overridden(mod, Accelerator, "register_accelerators"):
+        if issubclass(mod, Accelerator) and is_overridden("register_accelerators", mod, Accelerator):
             mod.register_accelerators(registry)
