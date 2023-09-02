@@ -152,7 +152,7 @@ the model and inputs can be kept in true full or half precision.
     fabric = Fabric(precision="transformer-engine")
 
     # Customize the fp8 recipe or set a different base precision:
-    from lightning.fabric.plugins.precision import TransformerEnginePrecision
+    from lightning.fabric.plugins import TransformerEnginePrecision
 
     recipe = {"fp8_format": "HYBRID", "amax_history_len": 16, "amax_compute_algo": "max"}
     precision = TransformerEnginePrecision(dtype=torch.bfloat16, recipe=recipe)
