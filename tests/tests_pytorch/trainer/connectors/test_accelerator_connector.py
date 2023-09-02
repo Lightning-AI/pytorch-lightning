@@ -24,7 +24,6 @@ import torch.distributed
 from lightning_utilities.core.imports import package_available
 
 import lightning.pytorch
-from lightning.fabric.plugins import TransformerEnginePrecision
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -35,6 +34,7 @@ from lightning.fabric.plugins.environments import (
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAccelerator, MPSAccelerator, XLAAccelerator
+from lightning.pytorch.plugins import TransformerEnginePrecisionPlugin
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision import (
@@ -1048,4 +1048,8 @@ def test_connector_transformer_engine(monkeypatch):
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
 
     connector = _AcceleratorConnector(precision="transformer-engine")
-    assert isinstance(connector.precision_plugin, TransformerEnginePrecision)
+    assert isinstance(connector.precision_plugin, TransformerEnginePrecisionPlugin)
+
+    precision = TransformerEnginePrecisionPlugin()
+    connector = _AcceleratorConnector(plugins=precision)
+    assert connector.precision_plugin is precision
