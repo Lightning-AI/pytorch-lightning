@@ -14,6 +14,7 @@
 
 from typing import Any, Iterator, List, Optional, Tuple, Union
 
+from lightning.fabric.utilities.data import sized_len
 from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
@@ -68,16 +69,9 @@ class _DataFetcher(Iterator):
 
     def reset(self) -> None:
         self.fetched = 0
-        # self.length = sized_len(self.combined_loader)
-
         # teardown calls `reset()`, and if it happens early, `combined_loader` can still be None
         if self._combined_loader is not None:
-            try:
-                # try getting the length
-                self.length = self.combined_loader.limited_len()  # type: ignore [arg-type]
-            except (TypeError, NotImplementedError):
-                self.length = None
-
+            self.length = sized_len(self.combined_loader)
         self.done = self.length == 0
 
     def teardown(self) -> None:

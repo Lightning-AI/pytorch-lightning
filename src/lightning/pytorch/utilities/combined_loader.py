@@ -25,7 +25,6 @@ _T = TypeVar("_T")
 
 
 class _ModeIterator(Iterator[_T]):
-    # TODO: do we need limits as an input arg?
     def __init__(self, iterables: List[Iterable], limits: Optional[List[Union[int, float]]] = None) -> None:
         self.iterables = iterables
         self.iterators: List[Iterator] = []
@@ -53,8 +52,7 @@ class _ModeIterator(Iterator[_T]):
         self.iterators = [iter(iterable) for iterable in self.iterables]
         return self
 
-    def __len__(self) -> Optional[int]:
-        # TODO: should base class define it?
+    def __len__(self) -> int:
         raise NotImplementedError
 
     def reset(self) -> None:
@@ -74,8 +72,8 @@ class _ModeIterator(Iterator[_T]):
 
 
 class _MaxSizeCycle(_ModeIterator[List]):
-    def __init__(self, iterables: List[Iterable]) -> None:
-        super().__init__(iterables)
+    def __init__(self, iterables: List[Iterable], limits: Optional[List[Union[int, float]]] = None) -> None:
+        super().__init__(iterables, limits)
         self._consumed: List[bool] = []
 
     def __next__(self) -> List:
@@ -98,7 +96,7 @@ class _MaxSizeCycle(_ModeIterator[List]):
         self._consumed = [False] * len(self.iterables)
         return self
 
-    def __len__(self) -> Optional[int]:
+    def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         if self.limits is not None:
             return max([min(length, limit) for length, limit in zip(lengths, self.limits)])
@@ -113,7 +111,7 @@ class _MinSize(_ModeIterator[List]):
     def __next__(self) -> List:
         return [next(it) for it in self.iterators]
 
-    def __len__(self) -> Optional[int]:
+    def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         if self.limits is not None:
             return min([min(length, limit) for length, limit in zip(lengths, self.limits)])
@@ -155,7 +153,7 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
         self._load_current_iterator()
         return self
 
-    def __len__(self) -> Optional[int]:
+    def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         if self.limits is not None:
             return sum([min(length, limit) for length, limit in zip(lengths, self.limits)])
@@ -194,7 +192,7 @@ class _MaxSize(_ModeIterator[List]):
         return out
 
     # TODO: len for max size and max size cycle the same?
-    def __len__(self) -> Optional[int]:
+    def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         if self.limits is not None:
             return max([min(length, limit) for length, limit in zip(lengths, self.limits)])
@@ -272,7 +270,6 @@ class CombinedLoader(Iterable):
         tensor([10, 11, 12, 13, 14]) batch_idx=2 dataloader_idx=1
 
     """
-
     def __init__(self, iterables: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size") -> None:
         if mode not in _SUPPORTED_MODES:
             raise ValueError(f"Unsupported mode {mode!r}, please select one of: {list(_SUPPORTED_MODES)}.")
@@ -280,6 +277,7 @@ class CombinedLoader(Iterable):
         self._flattened, self._spec = _tree_flatten(iterables)
         self._mode = mode
         self._iterator: Optional[_ModeIterator] = None
+        self._limits = None
 
     @property
     def iterables(self) -> Any:
@@ -312,6 +310,14 @@ class CombinedLoader(Iterable):
         self._iterables = tree_unflatten(flattened, self._spec)
         self._flattened = flattened
 
+    @property
+    def limits(self):
+        return self._limits
+
+    @limits.setter
+    def limits(self, limits):
+        self._limits = limits
+
     def __next__(self) -> Any:
         assert self._iterator is not None
         out = next(self._iterator)
@@ -321,24 +327,21 @@ class CombinedLoader(Iterable):
 
     def __iter__(self) -> Self:
         cls = _SUPPORTED_MODES[self._mode]["iterator"]
-        iterator = cls(self.flattened)
+        iterator = cls(self.flattened, self._limits)
         iter(iterator)
         self._iterator = iterator
         return self
 
     def __len__(self) -> int:
         """Compute the number of batches."""
-        lengths = []
-        for dl in self.flattened:
-            length = sized_len(dl)
-            if length is None:
-                raise NotImplementedError(f"`{type(dl).__name__}` does not define `__len__`")
-            lengths.append(length)
-        fn = _SUPPORTED_MODES[self._mode]["fn"]
-        return fn(lengths)
-        # return len(self._iterator)
-
-    def limited_len(self):
+        # lengths = []
+        # for dl in self.flattened:
+        #     length = sized_len(dl)
+        #     if length is None:
+        #         raise NotImplementedError(f"`{type(dl).__name__}` does not define `__len__`")
+        #     lengths.append(length)
+        # fn = _SUPPORTED_MODES[self._mode]["fn"]
+        # return fn(lengths)
         return len(self._iterator)
 
     def reset(self) -> None:

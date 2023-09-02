@@ -244,46 +244,52 @@ class _FitLoop(_Loop):
         if trainer.datamodule is not None:
             allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
 
-        has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
-        self.max_batches = len(combined_loader) if has_len_all_ranks_ else float("inf")
-        if self.max_batches == 0:
-            return
+        limits = []
+        for dl in combined_loader.flattened:
+            # determine number of batches
+            length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
+            num_batches = _parse_num_batches(stage, length, trainer.limit_train_batches)
+            limits.append(num_batches)
 
-        self.max_batches = _parse_num_batches(stage, self.max_batches, trainer.limit_train_batches)
+        # self.max_batches = limits  # TODO Carlos says not possible to have this here
+        combined_loader.limits = limits
+
+        if all(limit == 0 for limit in limits):
+            return
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
         self._last_train_dl_reload_epoch = trainer.current_epoch
-
-        if isinstance(trainer.val_check_interval, int):
-            trainer.val_check_batch = trainer.val_check_interval
-            if trainer.val_check_batch > self.max_batches and trainer.check_val_every_n_epoch is not None:
-                raise ValueError(
-                    f" `val_check_interval` ({trainer.val_check_interval}) must be less than or equal"
-                    f" to the number of the training batches ({self.max_batches})."
-                    " If you want to disable validation set `limit_val_batches` to 0.0 instead."
-                    " If you want to validate based on the total training batches, set `check_val_every_n_epoch=None`."
-                )
-        else:
-            if not has_len_all_ranks_:
-                if trainer.val_check_interval == 1.0:
-                    trainer.val_check_batch = float("inf")
-                else:
-                    raise MisconfigurationException(
-                        "When using an IterableDataset for `train_dataloader`,"
-                        " `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies"
-                        " checking validation every k training batches."
-                    )
-            else:
-                trainer.val_check_batch = int(self.max_batches * trainer.val_check_interval)
-                trainer.val_check_batch = max(1, trainer.val_check_batch)
-
-        if trainer.loggers and self.max_batches < trainer.log_every_n_steps:
-            rank_zero_warn(
-                f"The number of training batches ({self.max_batches}) is smaller than the logging interval"
-                f" Trainer(log_every_n_steps={trainer.log_every_n_steps}). Set a lower value for log_every_n_steps if"
-                " you want to see logs for the training epoch.",
-                category=PossibleUserWarning,
-            )
+        #
+        # if isinstance(trainer.val_check_interval, int):
+        #     trainer.val_check_batch = trainer.val_check_interval
+        #     if trainer.val_check_batch > self.max_batches and trainer.check_val_every_n_epoch is not None:
+        #         raise ValueError(
+        #             f" `val_check_interval` ({trainer.val_check_interval}) must be less than or equal"
+        #             f" to the number of the training batches ({self.max_batches})."
+        #             " If you want to disable validation set `limit_val_batches` to 0.0 instead."
+        #             " If you want to validate based on the total training batches, set `check_val_every_n_epoch=None`."
+        #         )
+        # else:
+        #     if not has_len_all_ranks_:
+        #         if trainer.val_check_interval == 1.0:
+        #             trainer.val_check_batch = float("inf")
+        #         else:
+        #             raise MisconfigurationException(
+        #                 "When using an IterableDataset for `train_dataloader`,"
+        #                 " `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies"
+        #                 " checking validation every k training batches."
+        #             )
+        #     else:
+        #         trainer.val_check_batch = int(self.max_batches * trainer.val_check_interval)
+        #         trainer.val_check_batch = max(1, trainer.val_check_batch)
+        #
+        # if trainer.loggers and self.max_batches < trainer.log_every_n_steps:
+        #     rank_zero_warn(
+        #         f"The number of training batches ({self.max_batches}) is smaller than the logging interval"
+        #         f" Trainer(log_every_n_steps={trainer.log_every_n_steps}). Set a lower value for log_every_n_steps if"
+        #         " you want to see logs for the training epoch.",
+        #         category=PossibleUserWarning,
+        #     )
 
     def reset(self) -> None:
         """Resets the internal state of this loop."""

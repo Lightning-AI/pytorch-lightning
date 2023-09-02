@@ -165,12 +165,12 @@ class _PredictionLoop(_Loop):
         assert combined_loader is not None
         if combined_loader._mode != "sequential":
             raise ValueError('`trainer.predict()` only supports the `CombinedLoader(mode="sequential")` mode.')
+
+        # set the per-dataloader limits
+        combined_loader.limits = self.max_batches
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
-        assert isinstance(combined_loader._iterator, _Sequential)
-        # set the per-dataloader limits
-        combined_loader._iterator.limits = self.max_batches
-        data_fetcher.reset()
+        # data_fetcher.reset()
 
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
