@@ -11,11 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import importlib
-from inspect import getmembers, isclass
 from typing import Any, Callable, Dict, List, Optional
-
-from lightning_utilities import is_overridden
 
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 
@@ -113,12 +109,3 @@ class _AcceleratorRegistry(dict):
 
     def __str__(self) -> str:
         return "Registered Accelerators: {}".format(", ".join(self.available_accelerators()))
-
-
-def call_register_accelerators(registry: _AcceleratorRegistry, base_module: str) -> None:
-    module = importlib.import_module(base_module)
-    from lightning.fabric.accelerators.accelerator import Accelerator
-
-    for _, mod in getmembers(module, isclass):
-        if issubclass(mod, Accelerator) and is_overridden("register_accelerators", mod, Accelerator):
-            mod.register_accelerators(registry)

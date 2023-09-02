@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Any, List, Union
+from inspect import getmembers, isclass
+from types import ModuleType
+from typing import Any, List, Type, Union
+
+from lightning_utilities import is_overridden
 
 from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 
@@ -56,3 +60,10 @@ def _load_external_callbacks(group: str) -> List[Any]:
             )
         external_callbacks.extend(callbacks_list)
     return external_callbacks
+
+
+def _register_classes(registry: Any, method: str, module: ModuleType, parent: Type[object]) -> None:
+    for _, member in getmembers(module, isclass):
+        if issubclass(member, parent) and is_overridden(method, member, parent):
+            register_fn = getattr(member, method)
+            register_fn(registry)
