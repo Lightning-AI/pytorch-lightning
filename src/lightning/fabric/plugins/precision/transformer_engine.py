@@ -28,6 +28,8 @@ _TRANSFORMER_ENGINE_AVAILABLE = RequirementCache("transformer_engine>=0.11.0")
 
 if TYPE_CHECKING and _TRANSFORMER_ENGINE_AVAILABLE:
     from transformer_engine.common.recipe import DelayedScaling
+else:
+    DelayedScaling = None
 
 
 log = logging.getLogger(__name__)

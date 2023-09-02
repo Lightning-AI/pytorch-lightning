@@ -1039,6 +1039,8 @@ def test_precision_selection(precision_str, strategy_str, expected_precision_cls
 
 
 def test_connector_transformer_engine(monkeypatch):
+    import lightning.fabric  # avoid breakage with standalone package
+
     monkeypatch.setattr(
         lightning.fabric.plugins.precision.transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True
     )
