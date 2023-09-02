@@ -270,6 +270,7 @@ class CombinedLoader(Iterable):
         tensor([10, 11, 12, 13, 14]) batch_idx=2 dataloader_idx=1
 
     """
+
     def __init__(self, iterables: Any, mode: _LITERAL_SUPPORTED_MODES = "min_size") -> None:
         if mode not in _SUPPORTED_MODES:
             raise ValueError(f"Unsupported mode {mode!r}, please select one of: {list(_SUPPORTED_MODES)}.")

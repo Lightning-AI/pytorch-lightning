@@ -38,8 +38,7 @@ from lightning.pytorch.utilities.combined_loader import _SUPPORTED_MODES, Combin
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
-from lightning.pytorch.utilities.warnings import PossibleUserWarning
+from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 log = logging.getLogger(__name__)
 
