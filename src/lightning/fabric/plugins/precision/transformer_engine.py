@@ -44,17 +44,17 @@ class TransformerEnginePrecision(Precision):
     Args:
         dtype: The base dtype to use.
         recipe: Recipe for the DelayedScaling
-            `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/common.html#transform
-            er_engine.common.recipe.DelayedScaling`__. In dict format or the dataclass format.
+            `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/common.html#transformer_engine.common.recipe.DelayedScaling`__.
+            In dict format or the dataclass format.
         replace_layers: Whether to replace ``Linear`` and ``LayerNorm`` layers automatically with their Transformer
             Engine alternatives. Note that they don't subclass the torch equivalents so checks like
             ``isinstance(l, torch.nn.Linear)`` will not pass.
 
     .. note::
 
-        Support for FP8 in the linear layers with `precision='transformer-engine'` is currently limited to tensors with
-        shapes where the dimensions are divisible by 8 and 16 respectively. You might want to add padding to your inputs
-        to conform to this restriction.
+        Support for FP8 in the linear layers with ``precision='transformer-engine'`` is currently limited to tensors
+        with shapes where the dimensions are divisible by 8 and 16 respectively. You might want to add padding to your
+        inputs to conform to this restriction.
 
     """
 
