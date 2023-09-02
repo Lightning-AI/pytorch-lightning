@@ -31,6 +31,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
+from lightning.pytorch.utilities.data import has_len_all_ranks
 
 _BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
 
@@ -167,19 +168,16 @@ class _TrainingEpochLoop(loops._Loop):
 
     def on_run_start(self, data_fetcher: _DataFetcher) -> None:
         iter(data_fetcher)  # creates the iterator inside the fetcher
-        # set the per-dataloader limits
-        # max_batches = self.trainer.fit_loop.max_batches
-        # self.trainer.fit_loop._combined_loader._iterator.limits = max_batches
-        # data_fetcher.reset()
-
-        # Option 1: move iter(data_fetcher) to fit loop setup_data
-        # Option 2: Move any logic that requires max_batches to here (after iter(data_fetcher))
-        max_batches = sized_len(data_fetcher.combined_loader)  # or float("inf")
+        max_batches = sized_len(data_fetcher.combined_loader) or float("inf")
 
         trainer = self.trainer
+        trainer.fit_loop.max_batches = max_batches
 
-        # TODO:
-        has_len_all_ranks_ = True  # has_len_all_ranks(dl, trainer.strategy, allow_zero_length)
+        # TODO is this needed here too (already done in fit loop)?
+        allow_zero_length = trainer.lightning_module.allow_zero_length_dataloader_with_multiple_devices
+        if trainer.datamodule is not None:
+            allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
+        has_len_all_ranks_ = has_len_all_ranks(data_fetcher.combined_loader, trainer.strategy, allow_zero_length)
 
         if isinstance(trainer.val_check_interval, int):
             trainer.val_check_batch = trainer.val_check_interval
