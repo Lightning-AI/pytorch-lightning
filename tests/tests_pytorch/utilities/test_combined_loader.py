@@ -37,6 +37,8 @@ from lightning.pytorch.utilities.combined_loader import (
 )
 from tests_pytorch.helpers.runif import RunIf
 
+from lightning.pytorch.loops.fetchers import _DataLoaderIterDataFetcher
+
 
 @pytest.mark.parametrize(
     ("dataset_1", "dataset_2"),
@@ -600,3 +602,48 @@ def test_combined_loader_can_be_pickled():
 
     # no error
     pickle.dumps(cl)
+
+
+class IterDataset(IterableDataset):
+    def __iter__(self):
+        yield 1
+        yield 2
+        yield 3
+
+
+@pytest.mark.parametrize("mode", ["min_size", "max_size_cycle", "max_size", "sequential"])
+@pytest.mark.parametrize("iterables,limit,num_fetches,expected", [
+    # sized iterable
+    ([[1, 2, 3]], None, 2, False),
+    ([[1, 2, 3]], None, 3, True),
+    ([[1, 2, 3]], 0, 0, True),
+    ([[1, 2, 3]], 1, 1, True),
+    # unsized iterable
+    ([IterDataset()], None, 2, False),
+    ([IterDataset()], None, 3, False),  # not sized, no prefetching, so can't know if done
+    ([IterDataset()], 0, 0, True),
+    ([IterDataset()], 1, 1, True),
+])
+def test_done_dataloader_iter_with_limit(mode, iterables, limit, num_fetches, expected):
+    loader = CombinedLoader(iterables, mode=mode)
+    fetcher = _DataLoaderIterDataFetcher()
+    loader.limits = limit
+    fetcher.setup(loader)
+    iter(fetcher)
+
+    assert fetcher.done == (limit == 0)
+    if num_fetches == 0:
+        return
+
+    if mode == "sequential":
+        dataloader_iter, _, _ = next(fetcher)
+    else:
+        dataloader_iter = next(fetcher)
+
+    assert not dataloader_iter.done
+    for _ in range(num_fetches):
+        next(dataloader_iter)
+    assert dataloader_iter.done == expected
+    assert fetcher.done == expected
+    # with pytest.raises(StopIteration):  # TODO why is it not raising?
+    #     next(dataloader_iter)
