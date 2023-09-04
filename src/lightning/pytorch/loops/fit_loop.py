@@ -251,19 +251,18 @@ class _FitLoop(_Loop):
             num_batches = _parse_num_batches(stage, length, trainer.limit_train_batches)
             limits.append(num_batches)
 
-        # self.max_batches = limits  # TODO Carlos says not possible to have this here
         combined_loader.limits = limits
 
         trainer.training = True
         self._data_fetcher = _select_data_fetcher(trainer)
         self._data_fetcher.setup(combined_loader)
         iter(self._data_fetcher)  # creates the iterator inside the fetcher
-        self.max_batches = sized_len(combined_loader) or float("inf")
+        max_batches = sized_len(combined_loader)
+        self.max_batches = max_batches if max_batches is not None else float("inf")
+        has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
 
         if all(limit == 0 for limit in limits):
             return
-
-        has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
         self._last_train_dl_reload_epoch = trainer.current_epoch

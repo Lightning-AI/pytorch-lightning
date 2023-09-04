@@ -868,8 +868,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
         ("min_size", 16),
         ("max_size_cycle", 64),
         ("max_size", 64),
-        # inf here because at the time the error is raised, the max_batches value is not yet set
-        ("sequential", float("inf")),
+        ("sequential", 128),
     ],
 )
 def test_fit_multiple_train_loaders(tmpdir, mode, num_training_batches):
