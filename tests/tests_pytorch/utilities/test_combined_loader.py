@@ -87,7 +87,8 @@ def test_combined_loader_modes_for_dict():
     # min_size with dict
     min_len = min(lengths)
     combined_loader = CombinedLoader(iterables, "min_size")
-    assert combined_loader._iterator is None
+    iter(combined_loader)
+    assert combined_loader._iterator is not None
     assert len(combined_loader) == min_len
     for idx, item in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _MinSize)
@@ -99,7 +100,8 @@ def test_combined_loader_modes_for_dict():
     # max_size_cycle with dict
     max_len = max(lengths)
     combined_loader = CombinedLoader(iterables, "max_size_cycle")
-    assert combined_loader._iterator is None
+    iter(combined_loader)
+    assert combined_loader._iterator is not None
     assert len(combined_loader) == max_len
     for idx, item in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _MaxSizeCycle)
@@ -110,6 +112,7 @@ def test_combined_loader_modes_for_dict():
 
     # max_size with dict
     combined_loader = CombinedLoader(iterables, "max_size")
+    iter(combined_loader)
     assert len(combined_loader) == max_len
     for idx, item in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _MaxSize)
@@ -124,7 +127,8 @@ def test_combined_loader_modes_for_dict():
     # sequential with dict
     sum_len = sum(lengths)
     combined_loader = CombinedLoader(iterables, "sequential")
-    assert combined_loader._iterator is None
+    iter(combined_loader)
+    assert combined_loader._iterator is not None
     assert len(combined_loader) == sum_len
     for total_idx, (item, batch_idx, dataloader_idx) in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _Sequential)
