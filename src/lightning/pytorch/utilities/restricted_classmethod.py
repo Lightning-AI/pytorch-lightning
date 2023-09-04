@@ -1,4 +1,4 @@
-import types
+from types import MethodType
 from typing import Callable, Concatenate, Generic, ParamSpec, TypeVar
 
 _T = TypeVar("_T")  # type of the method owner
@@ -21,7 +21,4 @@ class _restricted_classmethod(Generic[_T, _P, _R_co]):
                 f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be called on an instance. Please "
                 f"call it on the class type and make sure the return value is used."
             )
-        # return self.method.__get__(cls, cls)
-
-        tmp = types.MethodType(self.method, cls)
-        return tmp
+        return MethodType(self.method, cls)

@@ -1,18 +1,22 @@
 import pytest
 
-from lightning.pytorch.utilities.restricted_classmethod import restricted_classmethod
+from lightning.pytorch.utilities.restricted_classmethod import _restricted_classmethod
 
 
-class _C:
-    @restricted_classmethod
-    def _rcmethod(cls):
+class RestrictedClass:
+    @_restricted_classmethod
+    def restricted_cmethod(cls):
+        "Can only be called on the class type."
+        pass
+
+    @classmethod
+    def cmethod(cls):
+        "Can be called on instance or class type."
         pass
 
 
 def test_restricted_classmethod():
-    c = _C()
-
     with pytest.raises(TypeError, match="cannot be called on an instance"):
-        c._rcmethod()
+        RestrictedClass().restricted_cmethod()
 
-    _C._rcmethod()  # no exception
+    RestrictedClass.restricted_cmethod()  # no exception
