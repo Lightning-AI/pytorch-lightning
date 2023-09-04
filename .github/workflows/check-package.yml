@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - name: Checkout 🛎️
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
     - run: mkdir dist && touch dist/.placeholder
@@ -71,7 +71,7 @@ jobs:
 
     steps:
     - name: Checkout 🛎️
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
     - name: Set up Python 🐍
@@ -80,7 +80,7 @@ jobs:
         python-version: 3.8
 
     - name: Pull re-usable 🤖 actions️
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: ${{ inputs.actions-ref }}
         path: .cicd
@@ -100,7 +100,7 @@ jobs:
 
     steps:
     - name: Checkout 🛎️
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
     - name: Set up Python 🐍 ${{ matrix.python-version }}
@@ -109,7 +109,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Pull re-usable 🤖 actions️
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: ${{ inputs.actions-ref }}
         path: .cicd

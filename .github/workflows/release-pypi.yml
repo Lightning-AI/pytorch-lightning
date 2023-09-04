@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 10
     steps:
     - name: Checkout 🛎️
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
     - name: Set up Python 🐍
@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout 🛎️
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
     - name: Download 📥 artifact
@@ -79,7 +79,7 @@ jobs:
     timeout-minutes: 5
     steps:
     - name: Checkout 🛎️
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
     - name: Download 📥 artifact

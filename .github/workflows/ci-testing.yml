@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 35
     steps:
     - name: Checkout 🛎
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
     - name: Set up Python 🐍 ${{ matrix.python-version }}
