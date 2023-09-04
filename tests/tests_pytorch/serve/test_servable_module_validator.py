@@ -7,7 +7,6 @@ from torch import Tensor
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.serve.servable_module_validator import ServableModule, ServableModuleValidator
-from tests_pytorch.helpers.runif import RunIf
 
 
 class ServableBoringModel(BoringModel, ServableModule):
