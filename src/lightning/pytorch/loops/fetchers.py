@@ -43,9 +43,6 @@ class _DataFetcher(Iterator):
 
     def setup(self, combined_loader: CombinedLoader) -> None:
         self._combined_loader = combined_loader
-        # Note: too early, combined_loader._iterator is still None here
-        # self.length = sized_len(self.combined_loader)
-        # self.done = self.length == 0
 
     def __iter__(self) -> "_DataFetcher":
         self.iterator = iter(self.combined_loader)

@@ -170,7 +170,6 @@ class _PredictionLoop(_Loop):
         combined_loader.limits = self.max_batches
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
-        # data_fetcher.reset()
 
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
