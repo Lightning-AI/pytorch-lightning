@@ -113,7 +113,7 @@ class EmptySizedDataset(Dataset):
 
 
 @pytest.mark.parametrize("dataset_cls", [EmptyIterDataset, EmptySizedDataset])
-@pytest.mark.parametrize("prefetch_batches", list(range(2)))
+@pytest.mark.parametrize("prefetch_batches", [0, 1])
 def test_empty_prefetch_iterator(dataset_cls, prefetch_batches):
     loader = CombinedLoader(DataLoader(dataset_cls()))
     fetcher = _PrefetchDataFetcher(prefetch_batches=prefetch_batches)
@@ -123,7 +123,8 @@ def test_empty_prefetch_iterator(dataset_cls, prefetch_batches):
     if dataset_cls is EmptySizedDataset:
         assert fetcher.done  # for 0 length sized datasets we know we're done already
     else:
-        assert not fetcher.done
+        # if we're prefetching, we can know in advance if the dataset is empty
+        assert fetcher.done == (prefetch_batches > 0)
     assert not list(fetcher)
     assert fetcher.done
 
