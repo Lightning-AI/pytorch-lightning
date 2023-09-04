@@ -164,48 +164,8 @@ class _TrainingEpochLoop(loops._Loop):
             self.val_loop.batch_progress.total.reset()
 
     def on_run_start(self, data_fetcher: _DataFetcher) -> None:
+        # TODO: is this needed?
         iter(data_fetcher)  # creates the iterator inside the fetcher
-        # max_batches = sized_len(data_fetcher.combined_loader) or float("inf")
-        #
-        # trainer = self.trainer
-        # trainer.fit_loop.max_batches = max_batches
-
-        # # TODO is this needed here too (already done in fit loop)?
-        # allow_zero_length = trainer.lightning_module.allow_zero_length_dataloader_with_multiple_devices
-        # if trainer.datamodule is not None:
-        #     allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
-        # has_len_all_ranks_ = has_len_all_ranks(data_fetcher.combined_loader, trainer.strategy, allow_zero_length)
-        #
-        # if isinstance(trainer.val_check_interval, int):
-        #     trainer.val_check_batch = trainer.val_check_interval
-        #     if trainer.val_check_batch > max_batches and trainer.check_val_every_n_epoch is not None:
-        #         raise ValueError(
-        #             f" `val_check_interval` ({trainer.val_check_interval}) must be less than or equal"
-        #             f" to the number of the training batches ({max_batches})."
-        #             " If you want to disable validation set `limit_val_batches` to 0.0 instead."
-        #             " If you want to validate based on the total training batches, set `check_val_every_n_epoch=None`."
-        #         )
-        # else:
-        #     if not has_len_all_ranks_:
-        #         if trainer.val_check_interval == 1.0:
-        #             trainer.val_check_batch = float("inf")
-        #         else:
-        #             raise MisconfigurationException(
-        #                 "When using an IterableDataset for `train_dataloader`,"
-        #                 " `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies"
-        #                 " checking validation every k training batches."
-        #             )
-        #     else:
-        #         trainer.val_check_batch = int(max_batches * trainer.val_check_interval)
-        #         trainer.val_check_batch = max(1, trainer.val_check_batch)
-        #
-        # if trainer.loggers and max_batches < trainer.log_every_n_steps:
-        #     rank_zero_warn(
-        #         f"The number of training batches ({max_batches}) is smaller than the logging interval"
-        #         f" Trainer(log_every_n_steps={trainer.log_every_n_steps}). Set a lower value for log_every_n_steps if"
-        #         " you want to see logs for the training epoch.",
-        #         category=PossibleUserWarning,
-        #     )
 
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready

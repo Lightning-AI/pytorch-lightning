@@ -199,7 +199,6 @@ class _EvaluationLoop(_Loop):
         if trainer.datamodule is not None:
             allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
 
-        # if self._is_sequential:
         self._max_batches = []
         for dl in combined_loader.flattened:
             # determine number of batches
@@ -207,9 +206,6 @@ class _EvaluationLoop(_Loop):
             limit_batches = getattr(trainer, f"limit_{stage.dataloader_prefix}_batches")
             num_batches = _parse_num_batches(stage, length, limit_batches)
             self._max_batches.append(num_batches)
-        # else:
-        #     has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
-        #     self._max_batches = len(combined_loader) if has_len_all_ranks_ else float("inf")
 
         # this depends on the data used, so reset it too
         self._seen_batches_per_dataloader = defaultdict(int)
@@ -249,7 +245,6 @@ class _EvaluationLoop(_Loop):
         combined_loader.limits = self.max_batches
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
-        # data_fetcher.reset()
 
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
