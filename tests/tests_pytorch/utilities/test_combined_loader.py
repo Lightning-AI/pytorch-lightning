@@ -613,13 +613,9 @@ class IterDataset(IterableDataset):
             yield i
 
 
-# @pytest.mark.parametrize("mode", ["min_size", "max_size_cycle", "max_size", "sequential"])
 @pytest.mark.parametrize(
     "mode,iterables,limit,num_fetches,expected",
     [
-        # ("min_size", [[1, 2, 3]], 0, 0, True),  # TODO: handle empty cases in a separate test!
-        # ("min_size", [[], [1, 2, 3]], None, 0, True),  # TODO: handle empty cases in a separate test!
-        # ("min_size", [IterDataset()], 0, 0, True),
         # sized
         ("min_size", [[1, 2, 3]], None, 2, False),
         ("min_size", [[1, 2, 3]], None, 3, True),
@@ -660,7 +656,7 @@ class IterDataset(IterableDataset):
     ],
 )
 def test_done_dataloader_iter_with_limit(mode, iterables, limit, num_fetches, expected):
-    """Test that the `done` property of for `dataloader_iter` gets set as expected."""
+    """Test that the `done` property for `dataloader_iter` gets set as expected."""
     loader = CombinedLoader(iterables, mode=mode)
     fetcher = _DataLoaderIterDataFetcher()
     loader.limits = limit
@@ -683,3 +679,37 @@ def test_done_dataloader_iter_with_limit(mode, iterables, limit, num_fetches, ex
     assert fetcher.done == expected
     # with pytest.raises(StopIteration):  # TODO why is it not raising?
     #     next(dataloader_iter)
+
+
+@pytest.mark.parametrize("mode", ["min_size", "max_size_cycle", "max_size", "sequential"])
+def test_done_dataloader_iter_empty_iterables(mode):
+    """Test that the `done` property for `dataloader_iter` gets set as expected for empty iterables."""
+    fetcher = _DataLoaderIterDataFetcher()
+
+    # single empty iterable
+    loader = CombinedLoader([], mode=mode)
+    fetcher.setup(loader)
+    iter(fetcher)
+    assert fetcher.done
+    # multiple iterables and all are empty
+    loader = CombinedLoader([[], []], mode=mode)
+    fetcher.setup(loader)
+    iter(fetcher)
+    assert fetcher.done
+    # one empty, one non-empty
+    loader = CombinedLoader([[], [1, 2, 3]], mode=mode)
+    fetcher.setup(loader)
+    iter(fetcher)
+    assert fetcher.done == (mode == "min_size")
+
+
+@pytest.mark.parametrize("mode", ["min_size", "max_size_cycle", "max_size", "sequential"])
+@pytest.mark.parametrize("iterables", [[], [IterDataset()], [[], [1, 2, 3]]])
+def test_done_dataloader_iter_zero_limit(iterables, mode):
+    """Test that the `done` property for `dataloader_iter` gets set as expected when the limit is 0."""
+    fetcher = _DataLoaderIterDataFetcher()
+    loader = CombinedLoader(iterables, mode=mode)
+    loader.limits = 0
+    fetcher.setup(loader)
+    iter(fetcher)
+    assert fetcher.done
