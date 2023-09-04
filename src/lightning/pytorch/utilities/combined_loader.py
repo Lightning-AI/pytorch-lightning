@@ -84,7 +84,9 @@ class _MaxSizeCycle(_ModeIterator[List]):
         return self
 
     def __len__(self) -> int:
-        return max(self.limits) if self.limits is not None else max(_get_iterables_lengths(self.iterables))
+        if self.limits is not None:
+            return max(self.limits)  # type: ignore[return-value]
+        return max(_get_iterables_lengths(self.iterables))  # type: ignore[return-value]
 
     def reset(self) -> None:
         super().reset()
@@ -97,7 +99,7 @@ class _MinSize(_ModeIterator[List]):
 
     def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
-        return min(lengths + self.limits) if self.limits is not None else min(lengths)
+        return min(lengths + self.limits) if self.limits is not None else min(lengths)  # type: ignore[return-value]
 
 
 class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
@@ -138,9 +140,10 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
     def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         if self.limits is not None:
-            # TODO: the limit should apply to the entire sequence
-            return sum([min(length, limit) for length, limit in zip(lengths, self.limits)])
-        return sum(lengths)
+            return sum(
+                [min(length, limit) for length, limit in zip(lengths, self.limits)]  # type: ignore[misc]
+            )
+        return sum(lengths)  # type: ignore[arg-type]
 
     def reset(self) -> None:
         super().reset()
@@ -175,7 +178,9 @@ class _MaxSize(_ModeIterator[List]):
         return out
 
     def __len__(self) -> int:
-        return max(self.limits) if self.limits is not None else max(_get_iterables_lengths(self.iterables))
+        if self.limits is not None:
+            return max(self.limits)  # type: ignore[return-value]
+        return max(_get_iterables_lengths(self.iterables))  # type: ignore[return-value]
 
 
 class _CombinationMode(TypedDict):
@@ -360,7 +365,8 @@ def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
 def _get_iterables_lengths(iterables: List[Iterable]) -> List[Union[int, float]]:
     lengths = []
     for iterable in iterables:
-        if (length := sized_len(iterable)) is None:
+        length: Optional[Union[float, int]] = sized_len(iterable)
+        if length is None:
             length = float("inf")
         # if length is None:
         #     raise NotImplementedError(f"`{type(iterable).__name__}` does not define `__len__`")
