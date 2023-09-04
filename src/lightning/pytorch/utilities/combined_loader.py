@@ -224,6 +224,7 @@ class CombinedLoader(Iterable):
         >>> iterables = {'a': DataLoader(range(6), batch_size=4),
         ...              'b': DataLoader(range(15), batch_size=5)}
         >>> combined_loader = CombinedLoader(iterables, 'max_size_cycle')
+        >>> _ = iter(combined_loader)
         >>> len(combined_loader)
         3
         >>> for batch in combined_loader:
@@ -233,6 +234,7 @@ class CombinedLoader(Iterable):
         {'a': tensor([0, 1, 2, 3]), 'b': tensor([10, 11, 12, 13, 14])}
 
         >>> combined_loader = CombinedLoader(iterables, 'max_size')
+        >>> _ = iter(combined_loader)
         >>> len(combined_loader)
         3
         >>> for batch in combined_loader:
@@ -242,6 +244,7 @@ class CombinedLoader(Iterable):
         {'a': None, 'b': tensor([10, 11, 12, 13, 14])}
 
         >>> combined_loader = CombinedLoader(iterables, 'min_size')
+        >>> _ = iter(combined_loader)
         >>> len(combined_loader)
         2
         >>> for batch in combined_loader:
@@ -250,6 +253,7 @@ class CombinedLoader(Iterable):
         {'a': tensor([4, 5]), 'b': tensor([5, 6, 7, 8, 9])}
 
         >>> combined_loader = CombinedLoader(iterables, 'sequential')
+        >>> _ = iter(combined_loader)
         >>> len(combined_loader)
         5
         >>> for batch, batch_idx, dataloader_idx in combined_loader:
