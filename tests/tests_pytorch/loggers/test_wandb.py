@@ -501,6 +501,8 @@ def test_wandb_logger_download_artifact(wandb, tmpdir):
     wandb.Api().artifact.assert_called_once_with("test_artifact", type="model")
 
 
+@mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
+@mock.patch("lightning.pytorch.loggers.wandb.wandb", mock.Mock())
 @pytest.mark.parametrize("log_model, expected", [("True", True), ("False", False), ("all", "all")])
 def test_wandb_logger_cli_integration(log_model, expected, monkeypatch, tmp_path):
     """Test that the WandbLogger can be used with the LightningCLI. Regression test for
