@@ -325,6 +325,11 @@ intersphinx_mapping = {
     "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
     "habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
 }
+nitpicky = True
+
+nitpick_ignore = [
+    ("py:class", "typing.Self"),
+]
 
 # -- Options for todo extension ----------------------------------------------
 
