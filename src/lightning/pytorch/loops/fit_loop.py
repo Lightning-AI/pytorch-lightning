@@ -17,9 +17,8 @@ from typing import Optional, Union
 import torch
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.utilities.data import _set_sampler_epoch, sized_len
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.fetchers import _DataFetcher
 from lightning.pytorch.loops.progress import _Progress
@@ -40,7 +39,7 @@ from lightning.pytorch.utilities.combined_loader import _SUPPORTED_MODES, Combin
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
+from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
 

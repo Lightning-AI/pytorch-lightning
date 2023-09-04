@@ -16,8 +16,6 @@ from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.data import sized_len
-from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
@@ -28,7 +26,6 @@ from lightning.pytorch.loops.utilities import _is_max_limit_reached
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
