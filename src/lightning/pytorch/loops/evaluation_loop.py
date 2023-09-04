@@ -242,7 +242,7 @@ class _EvaluationLoop(_Loop):
                 _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
 
         # set the per-dataloader limits
-        combined_loader.limits = self.max_batches
+        combined_loader.limits = self.max_batches  # type: ignore[assignment]
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
 
