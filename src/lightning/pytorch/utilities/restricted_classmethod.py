@@ -17,7 +17,7 @@ class restricted_classmethod(Generic[_T, _P, _R_co]):
     def __get__(self, instance: _T, cls: type[_T]) -> Callable[_P, _R_co]:
         if instance is not None:
             raise TypeError(
-                f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be invoked on an instance. Please "
-                f"invoke it on the class type and make sure the return value is used."
+                f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be called on an instance. Please "
+                f"call it on the class type and make sure the return value is used."
             )
         return self.method.__get__(cls, cls)
