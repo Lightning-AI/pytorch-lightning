@@ -24,7 +24,7 @@ from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.pytorch.core.hooks import DataHooks
 from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.saving import _load_from_checkpoint
-from lightning.pytorch.utilities.restricted_classmethod import restricted_classmethod
+from lightning.pytorch.utilities.restricted_classmethod import _restricted_classmethod
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
@@ -158,7 +158,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         """
         pass
 
-    @restricted_classmethod
+    @_restricted_classmethod
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[_PATH, IO],
