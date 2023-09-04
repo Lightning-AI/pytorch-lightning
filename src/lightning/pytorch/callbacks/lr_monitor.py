@@ -155,8 +155,8 @@ class LearningRateMonitor(Callback):
         # Initialize for storing values
         names_flatten = list(itertools.chain.from_iterable(names))
         self.lrs = {name: [] for name in names_flatten}
-        self.last_momentum_values = {name + "-momentum": None for name in names_flatten}
-        self.last_weight_decay_values = {name + "-weight_decay": None for name in names_flatten}
+        self.last_momentum_values = {name + "-momentum": [] for name in names_flatten}
+        self.last_weight_decay_values = {name + "-weight_decay": [] for name in names_flatten}
 
     def on_train_batch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if not trainer._logger_connector.should_update_logs:
