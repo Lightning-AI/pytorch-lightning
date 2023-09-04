@@ -345,7 +345,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
                 "processed": stop_batch,
                 "completed": stop_batch,
             },
-            "is_last_batch": False,
+            "is_last_batch": (stop_batch + 1) == n_batches,
         },
         "epoch_loop.scheduler_progress": {
             "total": {"ready": nbe_sch_steps + be_sch_steps, "completed": nbe_sch_steps + be_sch_steps},
