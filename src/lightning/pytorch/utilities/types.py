@@ -38,6 +38,7 @@ import torch
 from torch import Tensor
 from torch.optim import Optimizer
 from torchmetrics import Metric
+from typing_extensions import NotRequired, Required
 
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER, LRScheduler, ProcessGroup, ReduceLROnPlateau
 
@@ -100,7 +101,7 @@ class LRSchedulerConfig:
 
 
 class LRSchedulerConfigType(TypedDict, total=False):
-    scheduler: LRSchedulerTypeUnion
+    scheduler: Required[LRSchedulerTypeUnion]
     name: Optional[str]
     interval: str
     frequency: int
@@ -109,9 +110,9 @@ class LRSchedulerConfigType(TypedDict, total=False):
     scrict: bool
 
 
-class OptimizerLRSchedulerConfig(TypedDict, total=False):
+class OptimizerLRSchedulerConfig(TypedDict):
     optimizer: Optimizer
-    lr_scheduler: Union[LRSchedulerTypeUnion, LRSchedulerConfigType]
+    lr_scheduler: NotRequired[Union[LRSchedulerTypeUnion, LRSchedulerConfigType]]
 
 
 OptimizerLRScheduler = Optional[
