@@ -30,6 +30,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    TypedDict,
     Union,
 )
 
@@ -98,17 +99,26 @@ class LRSchedulerConfig:
     strict: bool = True
 
 
-@dataclass
-class OptimizerLRSchedulerConfig:
+class LRSchedulerConfigType(TypedDict, total=False):
+    scheduler: LRSchedulerTypeUnion
+    name: Optional[str]
+    interval: str
+    frequency: int
+    reduce_on_plateau: bool
+    monitor: Optional[str]
+    scrict: bool
+
+
+class OptimizerLRSchedulerConfig(TypedDict, total=False):
     optimizer: Optimizer
-    lr_scheduler: Union[LRSchedulerPLType, LRSchedulerConfig]
+    lr_scheduler: Union[LRSchedulerTypeUnion, LRSchedulerConfigType]
 
 
 OptimizerLRScheduler = Optional[
     Union[
         Optimizer,
         Sequence[Optimizer],
-        Tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerPLType, LRSchedulerConfig]]],
+        Tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerTypeUnion, LRSchedulerConfig]]],
         OptimizerLRSchedulerConfig,
     ]
 ]
