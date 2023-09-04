@@ -594,7 +594,7 @@ def test_combined_loader_can_be_pickled():
     assert iterator.__getstate__() == {
         "iterables": [dataloader, numbers],
         "iterators": [None, iterator.iterators[1]],
-        "_limits": None,
+        "limits": None,
     }
 
     # no error
