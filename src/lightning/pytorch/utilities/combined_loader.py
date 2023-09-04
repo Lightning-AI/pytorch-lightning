@@ -27,9 +27,7 @@ _T = TypeVar("_T")
 class _ModeIterator(Iterator[_T]):
     def __init__(self, iterables: List[Iterable], limits: Optional[List[Union[int, float]]] = None) -> None:
         if limits is not None and len(limits) != len(iterables):
-            raise ValueError(
-                f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(iterables)})"
-            )
+            raise ValueError(f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(iterables)})")
         self.iterables = iterables
         self.iterators: List[Iterator] = []
         self.limits = limits

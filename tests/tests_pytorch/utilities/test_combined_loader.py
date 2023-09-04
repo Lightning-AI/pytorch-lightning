@@ -26,6 +26,7 @@ from torch.utils.data.sampler import RandomSampler, SequentialSampler
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loops.fetchers import _DataLoaderIterDataFetcher
 from lightning.pytorch.utilities.combined_loader import (
     _LITERAL_SUPPORTED_MODES,
     _MaxSize,
@@ -36,8 +37,6 @@ from lightning.pytorch.utilities.combined_loader import (
     CombinedLoader,
 )
 from tests_pytorch.helpers.runif import RunIf
-
-from lightning.pytorch.loops.fetchers import _DataLoaderIterDataFetcher
 
 
 @pytest.mark.parametrize(
@@ -609,12 +608,11 @@ class IterDataset(IterableDataset):
         self.size = size
 
     def __iter__(self):
-        for i in range(self.size):
-            yield i
+        yield from range(self.size)
 
 
 @pytest.mark.parametrize(
-    "mode,iterables,limit,num_fetches,expected",
+    ("mode", "iterables", "limit", "num_fetches", "expected"),
     [
         # sized
         ("min_size", [[1, 2, 3]], None, 2, False),
