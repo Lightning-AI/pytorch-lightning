@@ -12,7 +12,7 @@ class _C:
 def test_restricted_classmethod():
     c = _C()
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="cannot be called on an instance"):
         c._rcmethod()
 
     _C._rcmethod()  # no exception
