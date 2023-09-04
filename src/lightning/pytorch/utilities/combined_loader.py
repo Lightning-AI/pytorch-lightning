@@ -355,7 +355,7 @@ def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
         dataloader._iterator = None
 
 
-def _get_iterables_lengths(iterables):
+def _get_iterables_lengths(iterables: List[Iterable]) -> List[Union[int, float]]:
     lengths = []
     for iterable in iterables:
         if (length := sized_len(iterable)) is None:
