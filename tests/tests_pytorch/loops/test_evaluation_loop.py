@@ -478,5 +478,5 @@ def test_evaluation_loop_non_sequential_mode_supprt(tmp_path, mode, expected, fn
 
     assert trainer.num_sanity_val_batches == []  # this is fit-only
     actual = trainer.num_val_batches if fn == "validate" else trainer.num_test_batches
-    assert actual == (3 if mode != "min_size" else 2)
+    assert actual == [3, 2]
     assert seen == expected
