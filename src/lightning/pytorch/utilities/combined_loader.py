@@ -30,21 +30,6 @@ class _ModeIterator(Iterator[_T]):
         self.iterators: List[Iterator] = []
         self.limits = limits
 
-    @property
-    def limits(self) -> Optional[List[Union[int, float]]]:
-        """Optional limits per iterator."""
-        return self._limits
-
-    @limits.setter
-    def limits(self, limits: Optional[Union[int, float, List[Union[int, float]]]]) -> None:
-        if isinstance(limits, (int, float)):
-            limits = [limits] * len(self.iterables)
-        elif isinstance(limits, list) and len(limits) != len(self.iterables):
-            raise ValueError(
-                f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(self.iterables)})"
-            )
-        self._limits = limits
-
     def __next__(self) -> _T:
         raise NotImplementedError
 
@@ -151,6 +136,7 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
     def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         if self.limits is not None:
+            # TODO: the limit should apply to the entire sequence
             return sum([min(length, limit) for length, limit in zip(lengths, self.limits)])
         return sum(lengths)
 
@@ -273,7 +259,7 @@ class CombinedLoader(Iterable):
         self._flattened, self._spec = _tree_flatten(iterables)
         self._mode = mode
         self._iterator: Optional[_ModeIterator] = None
-        self._limits = None
+        self._limits: Optional[List[Union[int, float]]] = None
 
     @property
     def iterables(self) -> Any:
@@ -307,11 +293,18 @@ class CombinedLoader(Iterable):
         self._flattened = flattened
 
     @property
-    def limits(self):
+    def limits(self) -> Optional[List[Union[int, float]]]:
+        """Optional limits per iterator."""
         return self._limits
 
     @limits.setter
-    def limits(self, limits):
+    def limits(self, limits: Optional[Union[int, float, List[Union[int, float]]]]) -> None:
+        if isinstance(limits, (int, float)):
+            limits = [limits] * len(self.flattened)
+        elif isinstance(limits, list) and len(limits) != len(self.flattened):
+            raise ValueError(
+                f"Mismatch in number of limits ({len(limits)}) and number of iterables ({len(self.flattened)})"
+            )
         self._limits = limits
 
     def __next__(self) -> Any:
@@ -333,6 +326,7 @@ class CombinedLoader(Iterable):
         # for dl in self.flattened:
         #     if sized_len(dl) is None:
         #         raise NotImplementedError(f"`{type(dl).__name__}` does not define `__len__`")
+        assert self._iterator is not None
         return len(self._iterator)
 
     def reset(self) -> None:
@@ -343,6 +337,7 @@ class CombinedLoader(Iterable):
         for iterable in self.flattened:
             _shutdown_workers_and_reset_iterator(iterable)
 
+    # TODO: is this still needed?
     def _dataset_length(self) -> int:
         """Compute the total length of the datasets according to the current mode."""
         datasets = [getattr(dl, "dataset", None) for dl in self.flattened]
