@@ -367,9 +367,10 @@ def test_sequential_mode_limits(limits, expected):
     assert list(iterator) == expected
 
 
-def test_sequential_mode_limits_raises():
+@pytest.mark.parametrize("iterator_cls", [_Sequential, _MinSize, _MaxSize, _MaxSizeCycle])
+def test_iterator_mode_limits_raises(iterator_cls):
     with pytest.raises(ValueError, match=r"number of limits \(0\) and number of iterables \(2\)"):
-        _Sequential([0, 1], [])
+        iterator_cls([0, 1], [])
 
 
 def test_combined_loader_flattened_setter():
