@@ -7,7 +7,7 @@ _R_co = TypeVar("_R_co", covariant=True)  # return type of the decorated method
 
 class restricted_classmethod(Generic[_T, _P, _R_co]):
     """
-    Custom `classmethod` that emits a warning when the classmethod is
+    Custom `classmethod` that raises an exception when the classmethod is
     called on an instance and not the class type.
     """
 
