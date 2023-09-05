@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import defaultdict, Counter
 from typing import Any, Iterator
 
 import pytest
@@ -310,7 +311,7 @@ class AsyncBoringModel(BoringModel):
         return DataLoader(RandomDataset(BATCH_SIZE, DATASET_LEN))
 
 
-def test_training_step_with_dataloader_access(tmpdir) -> None:
+def test_training_step_with_dataloader_iter(tmpdir) -> None:
     """A baseline functional test for `training_step` with dataloader access."""
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, accelerator="cpu")
     m = AsyncBoringModel()
@@ -318,8 +319,112 @@ def test_training_step_with_dataloader_access(tmpdir) -> None:
     assert m.num_batches_processed == DATASET_LEN, f"Expect all {DATASET_LEN} batches to be processed."
 
 
+class DataLoaderIterMonitorModel(BoringModel):
+    def __init__(self, fetches_per_step):
+        super().__init__()
+        self.fetches_per_step = fetches_per_step
+        self.record = {
+            "training": Counter(),
+            "validation": Counter(),
+            "sanity_validation": Counter(),
+            "test": Counter(),
+            "predict": Counter(),
+        }
+
+    def shared_step(self, dataloader_iter, stage):
+        self.record[stage]["entered"] += 1
+        for i in range(self.fetches_per_step):
+            try:
+                batch = next(dataloader_iter)
+            except StopIteration:
+                self.record[stage]["raised"] += 1
+                return None
+            self.record[stage]["fetched"] += 1
+        return self.layer(batch).sum()
+
+    def training_step(self, dataloader_iter, batch_idx):
+        return self.shared_step(dataloader_iter, "training")
+
+    def validation_step(self, dataloader_iter, batch_idx):
+        stage = "sanity_validation" if self.trainer.sanity_checking else "validation"
+        return self.shared_step(dataloader_iter, stage)
+
+    def test_step(self, dataloader_iter, batch_idx):
+        return self.shared_step(dataloader_iter, "test")
+
+    def predict_step(self, dataloader_iter, batch_idx):
+        return self.shared_step(dataloader_iter, "predict")
+
+
+@pytest.mark.parametrize("limit_sanity_val_batches, limit_train_batches, limit_eval_batches", [
+    (None, None, None),
+    (0, 0, 0),
+    (2, 2, 2),  # limits are lower than dataloader length
+    (100, 100, 100),  # limits are higher than dataloader length
+])
+def test_step_methods_with_dataloader_iter(limit_sanity_val_batches, limit_train_batches, limit_eval_batches, tmp_path):
+    global_batch_size = 4
+    micro_batch_size = 2
+    fetches_per_step = global_batch_size // micro_batch_size
+    data = DataLoader(RandomDataset(32, length=16), batch_size=micro_batch_size)
+    assert len(data) == 8
+
+    limit_sanity_val_batches = 2 if limit_sanity_val_batches is None else limit_sanity_val_batches
+    limit_train_batches = limit_train_batches
+    limit_val_batches = limit_eval_batches
+    limit_test_batches = limit_eval_batches
+    limit_predict_batches = limit_eval_batches
+    model = DataLoaderIterMonitorModel(fetches_per_step)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=limit_val_batches,
+        limit_test_batches=limit_test_batches,
+        limit_predict_batches=limit_predict_batches,
+        num_sanity_val_steps=limit_sanity_val_batches,
+        max_epochs=1,
+        accelerator="cpu",
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model, data, data)
+
+    def length(iterable, limit):
+        return len(iterable) if limit is None else min(limit, len(data))
+
+    assert model.record["sanity_validation"]["entered"] == length(data, limit_sanity_val_batches) // fetches_per_step
+    assert model.record["sanity_validation"]["fetched"] == length(data, limit_sanity_val_batches)
+    assert model.record["sanity_validation"]["raised"] == 0
+    assert model.record["training"]["entered"] == length(data, limit_train_batches) // fetches_per_step
+    assert model.record["training"]["fetched"] == length(data, limit_train_batches)
+    assert model.record["training"]["raised"] == 0
+    assert model.record["validation"]["entered"] == length(data, limit_eval_batches) // fetches_per_step
+    assert model.record["validation"]["fetched"] == length(data, limit_eval_batches)
+    assert model.record["validation"]["raised"] == 0
+
+    model = DataLoaderIterMonitorModel(fetches_per_step)
+    trainer.validate(model, data)
+    assert model.record["validation"]["entered"] == length(data, limit_eval_batches) // fetches_per_step
+    assert model.record["validation"]["fetched"] == length(data, limit_eval_batches)
+    assert model.record["validation"]["raised"] == 0
+
+    model = DataLoaderIterMonitorModel(fetches_per_step)
+    trainer.test(model, data)
+    assert model.record["test"]["entered"] == length(data, limit_eval_batches) // fetches_per_step
+    assert model.record["test"]["fetched"] == length(data, limit_eval_batches)
+    assert model.record["test"]["raised"] == 0
+
+    model = DataLoaderIterMonitorModel(fetches_per_step)
+    trainer.predict(model, data)
+    assert model.record["predict"]["entered"] == length(data, limit_eval_batches) // fetches_per_step
+    assert model.record["predict"]["fetched"] == length(data, limit_eval_batches)
+    assert model.record["predict"]["raised"] == 0
+
+
 @pytest.mark.parametrize("trigger_stop_iteration", [False, True])
-def test_stop_iteration(trigger_stop_iteration, tmpdir):
+def test_stop_iteration_with_dataloader_iter(trigger_stop_iteration, tmpdir):
     """Verify that StopIteration properly terminates the training when this is triggered from the current
     `dataloader_iter`"""
     EXPECT_NUM_BATCHES_PROCESSED = 2
