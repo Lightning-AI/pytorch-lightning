@@ -681,7 +681,9 @@ def test_done_dataloader_iter_with_limit(mode, iterables, limit, num_fetches, ex
         next(dataloader_iter)
     assert dataloader_iter.done == expected
     assert fetcher.done == expected
-    # with pytest.raises(StopIteration):  # TODO why is it not raising?
+
+    # TODO: iterator should raise StopIteration if limit is reached
+    # with pytest.raises(StopIteration):
     #     next(dataloader_iter)
 
 
