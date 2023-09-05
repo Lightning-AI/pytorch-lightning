@@ -35,7 +35,6 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
-
 class MockTqdm(Tqdm):
     def __init__(self, *args, **kwargs):
         self.n_values = []
@@ -638,6 +637,7 @@ def test_progress_bar_max_val_check_interval_ddp(tmp_path, val_check_interval):
 
 def test_get_progress_bar_metrics(tmp_path):
     """Test that the metrics shown in the progress bar can be customized."""
+
     class TestProgressBar(TQDMProgressBar):
         def get_metrics(self, trainer: Trainer, model: LightningModule):
             items = super().get_metrics(trainer, model)
@@ -660,7 +660,7 @@ def test_get_progress_bar_metrics(tmp_path):
     trainer.fit(model)
     standard_metrics = progress_bar.get_metrics(trainer, model)
     assert "v_num" not in standard_metrics.keys()
-    assert "my_metric" in standard_metrics.keys()
+    assert "my_metric" in standard_metrics
 
 
 def test_get_progress_bar_metrics_fast_dev_run(tmp_path):
