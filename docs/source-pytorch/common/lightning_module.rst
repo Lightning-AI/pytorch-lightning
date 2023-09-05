@@ -95,13 +95,12 @@ Here are the only required methods.
             super().__init__()
             self.model = Transformer(vocab_size=vocab_size)
 
-        def forward(self, batch):
-            input, target = batch
-            return self.model(input.view(1, -1), target.view(1, -1))
+        def forward(self, input, target):
+            return self.model(input, target)
 
         def training_step(self, batch, batch_idx):
             input, target = batch
-            output = self.model(input, target)
+            output = self(input, target)
             loss = torch.nn.functional.nll_loss(output, target.view(-1))
             return loss
 
@@ -119,7 +118,7 @@ Which you can train by doing:
     dataloader = DataLoader(dataset)
     model = LightningTransformer(vocab_size=dataset.vocab_size)
 
-    trainer = pl.Trainer(fast_dev_run=True)
+    trainer = pl.Trainer(fast_dev_run=100)
     trainer.fit(model=model, train_dataloaders=dataloader)
 
 The LightningModule has many convenient methods, but the core ones you need to know about are:
@@ -382,7 +381,7 @@ There are two ways to call ``test()``:
     trainer.fit(model=model, train_dataloaders=dataloader)
 
     # automatically auto-loads the best weights from the previous run
-    trainer.test(dataloaders=trainer.test_dataloaders)
+    trainer.test(dataloaders=test_dataloaders)
 
     # or call with pretrained model
     model = LightningTransformer.load_from_checkpoint(PATH)
