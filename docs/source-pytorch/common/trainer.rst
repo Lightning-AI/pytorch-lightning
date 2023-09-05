@@ -36,8 +36,7 @@ This is the basic use of the trainer:
     import lightning.pytorch as pl
     from lightning.pytorch import Trainer
 
-    from lightning.pytorch.demos import WikiText2
-    from lightning.pytorch.demos import LightningTransformer as MyLightningModule
+    from lightning.pytorch.demos import LightningTransformer as MyLightningModule, WikiText2
     from torch.utils.data import random_split, DataLoader
 
     dataset = WikiText2()
