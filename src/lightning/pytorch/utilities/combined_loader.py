@@ -342,7 +342,6 @@ class CombinedLoader(Iterable):
         for iterable in self.flattened:
             _shutdown_workers_and_reset_iterator(iterable)
 
-    # TODO: is this still needed?
     def _dataset_length(self) -> int:
         """Compute the total length of the datasets according to the current mode."""
         datasets = [getattr(dl, "dataset", None) for dl in self.flattened]

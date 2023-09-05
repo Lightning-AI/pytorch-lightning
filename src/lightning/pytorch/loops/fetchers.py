@@ -69,7 +69,7 @@ class _DataFetcher(Iterator):
         # teardown calls `reset()`, and if it happens early, `combined_loader` can still be None
         if self._combined_loader is not None:
             self.length = sized_len(self.combined_loader)
-        self.done = self.length == 0
+            self.done = self.length == 0
 
     def teardown(self) -> None:
         self.reset()
