@@ -64,6 +64,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Updated `LearningRateMonitor` to log monitored values to `trainer.callback_metrics` ([#17626](https://github.com/Lightning-AI/lightning/pull/17626))
 
 
+- Added `log_weight_decay` argument to `LearningRateMonitor` callback ([#18439](https://github.com/Lightning-AI/lightning/pull/18439))
+
+
 - Added `Trainer.print()` to print on local rank zero only ([#17980](https://github.com/Lightning-AI/lightning/pull/17980))
 
 
@@ -223,6 +226,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed redundant `iter()` call to dataloader when checking dataloading configuration ([#18415](https://github.com/Lightning-AI/lightning/pull/18415))
+
+
+- Fixed an issue that wouldn't prevent the user to set the `log_model` parameter in `WandbLogger` via the LightningCLI ([#18458](https://github.com/Lightning-AI/lightning/pull/18458))
 
 
 ## [2.0.7] - 2023-08-14
