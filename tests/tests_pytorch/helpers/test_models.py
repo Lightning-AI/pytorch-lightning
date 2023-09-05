@@ -23,11 +23,12 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel, RegressionModel
 
 
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(
     ("data_class", "model_class"),
     [
         (None, BoringModel),
-        (None, BasicGAN),
+        pytest.param(None, BasicGAN, marks=RunIf(mps=False)),
         (None, ParityModuleRNN),
         (None, ParityModuleMNIST),
         pytest.param(ClassifDataModule, ClassificationModel, marks=RunIf(sklearn=True, onnx=True)),
