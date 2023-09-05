@@ -110,7 +110,7 @@ class BasePredictionWriter(Callback):
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         if is_param_in_hook_signature(pl_module.predict_step, "dataloader_iter", explicit=True):
-            raise NotImplementedError("The ``PredictionWriterCallback`` does not support using `dataloader_iter`.")
+            raise NotImplementedError("The `PredictionWriterCallback` does not support using `dataloader_iter`.")
 
     def write_on_batch_end(
         self,
