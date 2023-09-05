@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import defaultdict, Counter
+from collections import Counter
 from typing import Any, Iterator
 
 import pytest
@@ -356,12 +356,15 @@ class DataLoaderIterMonitorModel(BoringModel):
         return self.shared_step(dataloader_iter, "predict")
 
 
-@pytest.mark.parametrize("limit_sanity_val_batches, limit_train_batches, limit_eval_batches", [
-    (None, None, None),
-    (0, 0, 0),
-    (2, 2, 2),  # limits are lower than dataloader length
-    (100, 100, 100),  # limits are higher than dataloader length
-])
+@pytest.mark.parametrize(
+    ("limit_sanity_val_batches", "limit_train_batches", "limit_eval_batches"),
+    [
+        (None, None, None),
+        (0, 0, 0),
+        (2, 2, 2),  # limits are lower than dataloader length
+        (100, 100, 100),  # limits are higher than dataloader length
+    ],
+)
 def test_step_methods_with_dataloader_iter(limit_sanity_val_batches, limit_train_batches, limit_eval_batches, tmp_path):
     global_batch_size = 4
     micro_batch_size = 2
