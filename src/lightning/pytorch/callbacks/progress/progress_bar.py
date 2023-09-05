@@ -220,7 +220,7 @@ def get_standard_metrics(trainer: "pl.Trainer") -> Dict[str, Union[int, str]]:
     if trainer.loggers:
         from lightning.pytorch.loggers.utilities import _version
 
-        if version := _version(trainer.loggers):
+        if (version := _version(trainer.loggers)) not in ("", None):
             if isinstance(version, str):
                 # show last 4 places of long version strings
                 version = version[-4:]

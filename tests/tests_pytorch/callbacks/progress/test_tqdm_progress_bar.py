@@ -30,8 +30,10 @@ from lightning.pytorch.callbacks.progress.tqdm_progress import Tqdm
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
+
 
 
 class MockTqdm(Tqdm):
@@ -634,22 +636,40 @@ def test_progress_bar_max_val_check_interval_ddp(tmpdir, val_check_interval):
         assert pbar_callback.is_enabled
 
 
-def test_get_progress_bar_metrics(tmpdir: str):
+def test_get_progress_bar_metrics(tmpdir):
+    """Test that the metrics shown in the progress bar can be customized."""
     class TestProgressBar(TQDMProgressBar):
         def get_metrics(self, trainer: Trainer, model: LightningModule):
             items = super().get_metrics(trainer, model)
             items.pop("v_num", None)
+            items["my_metric"] = 123
             return items
 
     progress_bar = TestProgressBar()
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[progress_bar],
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        logger=True,
     )
     model = BoringModel()
     trainer.fit(model)
     standard_metrics = progress_bar.get_metrics(trainer, model)
+    assert "v_num" not in standard_metrics.keys()
+    assert "my_metric" in standard_metrics.keys()
+
+
+def test_get_progress_bar_metrics_fast_dev_run(tmp_path):
+    """Test that `v_num` does not appear in the progress bar when a dummy logger is used (fast-dev-run)."""
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
+    model = BoringModel()
+    trainer.fit(model)
+    standard_metrics = trainer.progress_bar_callback.get_metrics(trainer, model)
+    assert isinstance(trainer.logger, DummyLogger)
     assert "v_num" not in standard_metrics.keys()
 
 
