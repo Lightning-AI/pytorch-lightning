@@ -140,7 +140,7 @@ class _Sequential(_ModeIterator[Tuple[Any, int, int]]):
     def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         if self.limits is not None:
-            return sum([min(length, limit) for length, limit in zip(lengths, self.limits)])  # type: ignore[misc]
+            return sum(min(length, limit) for length, limit in zip(lengths, self.limits))  # type: ignore[misc]
         return sum(lengths)  # type: ignore[arg-type]
 
     def reset(self) -> None:
