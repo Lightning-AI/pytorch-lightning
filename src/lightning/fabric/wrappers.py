@@ -50,13 +50,11 @@ class _FabricOptimizer:
 
 
         """
-        # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
-        # not want to call on destruction of the `_FabricOptimizer
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "__del__")}
         self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._strategy = strategy
         self._callbacks = callbacks or []
+        self._refresh()
 
     @property
     def optimizer(self) -> Optimizer:
@@ -64,6 +62,12 @@ class _FabricOptimizer:
 
     def state_dict(self) -> Dict[str, Tensor]:
         return self._strategy.get_optimizer_state(self.optimizer)
+
+    def load_state_dict(self, state_dict: Dict[str, Tensor]) -> None:
+        self.optimizer.load_state_dict(state_dict)
+        # `Optimizer.load_state_dict` modifies `optimizer.__dict__`, so we need to update the `__dict__` on
+        # this wrapper
+        self._refresh()
 
     def step(self, closure: Optional[Callable] = None) -> Any:
         kwargs = {"closure": closure} if closure is not None else {}
@@ -81,6 +85,17 @@ class _FabricOptimizer:
             if callable(hook):
                 hook(strategy=self._strategy, optimizer=optimizer)
         return output
+
+    def _refresh(self) -> None:
+        """Refreshes the ``__dict__`` so that it matches the internal states in the wrapped optimizer.
+
+        This is only needed to present the user with an updated view in case they inspect the state of this wrapper.
+        """
+        # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
+        # not want to call on destruction of the `_FabricOptimizer
+        self.__dict__.update({
+            k: v for k, v in self.optimizer.__dict__.items() if k not in ("load_state_dict", "state_dict", "step", "__del__")
+        })
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
