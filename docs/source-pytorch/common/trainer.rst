@@ -36,7 +36,8 @@ This is the basic use of the trainer:
     import lightning.pytorch as pl
     from lightning.pytorch import Trainer
 
-    from lightning.pytorch.demos import LightningTransformer, WikiText2
+    from lightning.pytorch.demos import WikiText2
+    from lightning.pytorch.demos import LightningTransformer as MyLightningModule
     from torch.utils.data import random_split, DataLoader
 
     dataset = WikiText2()
@@ -169,7 +170,7 @@ Example::
 
     seed_everything(42, workers=True)
     # sets seeds for numpy, torch and python.random.
-    model = LightningTransformer(vocab_size=dataset.vocab_size)
+    model = Model()
     trainer = Trainer(deterministic=True)
 
 
@@ -1077,7 +1078,7 @@ With :func:`torch.inference_mode` disabled, you can enable the grad of your mode
 
     class LightningTransformer(pl.LightningModule):
         def validation_step(self, batch, batch_idx):
-            preds = self.model(input.view(1, -1), target.view(1, -1))
+            preds = self.model(input, target)
             with torch.enable_grad():
                 grad_preds = preds.requires_grad_()
                 preds2 = self.model(grad_preds)
