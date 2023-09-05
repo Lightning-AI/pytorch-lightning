@@ -14,7 +14,7 @@ A :class:`~lightning.pytorch.core.module.LightningModule` organizes your PyTorch
 - Validation Loop (:meth:`~lightning.pytorch.core.module.LightningModule.validation_step`)
 - Test Loop (:meth:`~lightning.pytorch.core.module.LightningModule.test_step`)
 - Prediction Loop (:meth:`~lightning.pytorch.core.module.LightningModule.predict_step`)
-- Optimizers and LR Schedulers (:meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`)
+- Optimizers and LR Schedulers (:meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`)
 
 When you convert to use Lightning, the code IS NOT abstracted - just organized.
 All the other code that's not in the :class:`~lightning.pytorch.core.module.LightningModule`
@@ -136,7 +136,7 @@ The LightningModule has many convenience methods, but the core ones you need to 
      - the complete test step
    * - :meth:`~lightning.pytorch.core.module.LightningModule.predict_step`
      - the complete prediction step
-   * - :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`
+   * - :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`
      - define optimizers and LR schedulers
 
 ----------

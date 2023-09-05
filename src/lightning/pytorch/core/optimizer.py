@@ -387,7 +387,7 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
 
 class _MockOptimizer(Optimizer):
     """The `_MockOptimizer` will be used inplace of an optimizer in the event that `None` is returned from
-    `configure_optimizers`."""
+   :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`."""
 
     def __init__(self) -> None:
         super().__init__([torch.zeros(1)], {})

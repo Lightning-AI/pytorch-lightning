@@ -207,7 +207,7 @@ class MyCustomTrainer:
             limit_batches: Limits the batches during this training epoch.
                 If greater then the number of batches in the ``train_loader``, this has no effect.
             scheduler_cfg: The learning rate scheduler configuration.
-                Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
+                Have a look at :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` for supported values.
 
         """
         self.fabric.call("on_train_epoch_start")

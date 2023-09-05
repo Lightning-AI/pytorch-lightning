@@ -69,7 +69,7 @@ Access your Own Optimizer
 =========================
 
 The provided ``optimizer`` is a :class:`~lightning.pytorch.core.optimizer.LightningOptimizer` object wrapping your own optimizer
-configured in your :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`.
+configured in your :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
 You can access your own optimizer with ``optimizer.optimizer``. However, if you use your own optimizer
 to perform a step, Lightning won't be able to support accelerators, precision and profiling for you.
 

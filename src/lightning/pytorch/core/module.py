@@ -178,7 +178,7 @@ class LightningModule(
 
         Returns:
             A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
-            schedulers were returned in :meth:`configure_optimizers`.
+            schedulers were returned in :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
 
         """
         if not self.trainer.lr_scheduler_configs:
