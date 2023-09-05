@@ -116,35 +116,53 @@ Get Started
 
 .. Add callout items below this line
 
-.. customcalloutitem::
-   :description: Detail introduction how to install this package.
-   :header: Install Lightning Fabric
-   :button_link:  fundamentals/installation.html
+.. displayitem::
+    :header: Convert to Fabric in 5 minutes
+    :description: Learn how to add Fabric to your PyTorch code
+    :button_link: fundamentals/convert.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
-.. customcalloutitem::
-   :description: Five easy steps to let Fabric scale your PyTorch models.
-   :header: From PyTorch to Fabric
-   :button_link:  fundamentals/convert.html
+.. displayitem::
+    :header: Scale your model with Accelerators
+    :description: Take advantage of your hardware with a switch of a flag
+    :button_link: fundamentals/accelerators.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
-.. customcalloutitem::
-   :description: Learn how to run your code on almost any accelerator HW.
-   :header: Accelerate your code with Fabric
-   :button_link:  fundamentals/accelerators.html
+.. displayitem::
+    :header: Structure your Fabric code
+    :description: Best practices for setting up your training script with Fabric
+    :button_link: fundamentals/code_structure.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
-.. customcalloutitem::
-   :description: Enable training large models on limited resources.
-   :header: Save memory with lower precision
-   :button_link:  fundamentals/precision.html
+.. displayitem::
+    :header: Launch distributed training
+    :description: Launch a Python script on multiple devices and machines
+    :button_link: fundamentals/launch.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
-.. customcalloutitem::
-   :description: Check utilizing Fabric in interactive notebooks even with multi-GPU support.
-   :header: Fabric inside notebooks
-   :button_link:  fundamentals/notebooks.html
+.. displayitem::
+    :header: Launch Fabric in a notebook
+    :description: Launch on multiple devices from within a Jupyter notebook
+    :button_link: fundamentals/notebooks.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
-.. customcalloutitem::
-   :description: Learn scaling your training on multiple devices with distributed training.
-   :header: Launch distributed training
-   :button_link:  fundamentals/launch.html
+.. displayitem::
+    :header: Improve performance with Mixed-Precision training
+    :description: Save memory and speed up training using mixed precision
+    :button_link: fundamentals/precision.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
 .. raw:: html
 
