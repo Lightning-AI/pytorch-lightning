@@ -66,7 +66,7 @@ class CPUAccelerator(Accelerator):
 
 def _parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
     """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
-    :class:`~lightning.pytorch.trainer.Trainer`.
+    :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
     Args:
         cpu_cores: An int > 0.

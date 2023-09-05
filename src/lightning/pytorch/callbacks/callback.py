@@ -96,7 +96,7 @@ class Callback:
         """Called when the train epoch ends.
 
         To access all batch outputs at the end of the epoch, you can cache step outputs as an attribute of the
-        :class:`pytorch_lightning.LightningModule` and access them in this hook:
+        :class:`lightning.pytorch.core.LightningModule` and access them in this hook:
 
         .. code-block:: python
 
@@ -251,7 +251,7 @@ class Callback:
         r"""Called when saving a checkpoint to give you a chance to store anything else you might want to save.
 
         Args:
-            trainer: the current :class:`~lightning.pytorch.trainer.Trainer` instance.
+            trainer: the current :class:`~lightning.pytorch.trainer.trainer.Trainer` instance.
             pl_module: the current :class:`~lightning.pytorch.core.LightningModule` instance.
             checkpoint: the checkpoint dictionary that will be saved.
 
@@ -263,7 +263,7 @@ class Callback:
         r"""Called when loading a model checkpoint, use to reload state.
 
         Args:
-            trainer: the current :class:`~lightning.pytorch.trainer.Trainer` instance.
+            trainer: the current :class:`~lightning.pytorch.trainer.trainer.Trainer` instance.
             pl_module: the current :class:`~lightning.pytorch.core.LightningModule` instance.
             checkpoint: the full checkpoint dictionary that got loaded by the Trainer.
 

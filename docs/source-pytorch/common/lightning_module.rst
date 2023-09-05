@@ -1035,7 +1035,7 @@ Set and access example_input_array, which basically represents a single batch.
 Hooks
 =====
 
-This is the pseudocode to describe the structure of :meth:`~lightning.pytorch.trainer.Trainer.fit`.
+This is the pseudocode to describe the structure of :meth:`~lightning.pytorch.trainer.trainer.Trainer.fit`.
 The inputs and outputs of each function are not represented for simplicity. Please check each function's API reference
 for more information.
 
