@@ -93,9 +93,13 @@ class _FabricOptimizer:
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
         # not want to call on destruction of the `_FabricOptimizer
-        self.__dict__.update({
-            k: v for k, v in self.optimizer.__dict__.items() if k not in ("load_state_dict", "state_dict", "step", "__del__")
-        })
+        self.__dict__.update(
+            {
+                k: v
+                for k, v in self.optimizer.__dict__.items()
+                if k not in ("load_state_dict", "state_dict", "step", "__del__")
+            }
+        )
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
