@@ -47,7 +47,9 @@ test: clean
 	python -m coverage report
 
 docs: clean
-	pip install -e . --quiet -r requirements/pytorch/docs.txt
+	pip install -q awscli
+	aws s3 sync --no-sign-request s3://sphinx-packages/ dist/
+	pip install -e . --quiet -r requirements/pytorch/docs.txt -f dist/
 	cd docs/source-pytorch && $(MAKE) html --jobs $(nproc)
 
 update:
