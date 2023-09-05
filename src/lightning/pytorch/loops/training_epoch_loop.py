@@ -164,7 +164,6 @@ class _TrainingEpochLoop(loops._Loop):
             self.val_loop.batch_progress.total.reset()
 
     def on_run_start(self, data_fetcher: _DataFetcher) -> None:
-        # TODO: is this needed?
         iter(data_fetcher)  # creates the iterator inside the fetcher
 
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
