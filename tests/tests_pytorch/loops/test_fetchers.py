@@ -596,7 +596,7 @@ def test_fetching_is_profiled():
 
     model = MyModel()
     trainer = Trainer(
-        fast_dev_run=1,
+        fast_dev_run=2,
         profiler="simple",
         limit_val_batches=0,
         enable_model_summary=False,
