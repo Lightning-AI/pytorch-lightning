@@ -329,6 +329,8 @@ nitpicky = True
 
 nitpick_ignore = [
     ("py:class", "typing.Self"),
+    # missing in generated API
+    ("py:exc", "MisconfigurationException"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
