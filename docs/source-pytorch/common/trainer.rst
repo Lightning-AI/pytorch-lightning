@@ -34,7 +34,6 @@ This is the basic use of the trainer:
 .. code-block:: python
 
     import lightning.pytorch as pl
-    from lightning.pytorch import Trainer
 
     from lightning.pytorch.demos import LightningTransformer as MyLightningModule, WikiText2
     from torch.utils.data import random_split, DataLoader
@@ -46,7 +45,7 @@ This is the basic use of the trainer:
 
     model = LightningTransformer(vocab_size=dataset.vocab_size)
 
-    trainer = Trainer()
+    trainer = pl.Trainer()
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 --------
@@ -1273,7 +1272,7 @@ both conditions are met. If any of these arguments is not set, it won't be consi
             self.trainer.should_stop = True
 
 
-    trainer = Trainer()
+    trainer = pl.Trainer()
     model = LightningTransformer(vocab_size=dataset.vocab_size)
     trainer.fit(model)
 
