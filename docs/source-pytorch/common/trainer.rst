@@ -11,11 +11,11 @@
 Trainer
 =======
 
-Once you've organized your PyTorch code into a :class:`~lightning.pytorch.core.module.LightningModule`, the ``Trainer`` automates everything else.
+Once you've organized your PyTorch code into a :class:`~lightning.pytorch.core.LightningModule`, the ``Trainer`` automates everything else.
 
 The ``Trainer`` achieves the following:
 
-1. You maintain control over all aspects via PyTorch code in your :class:`~lightning.pytorch.core.module.LightningModule`.
+1. You maintain control over all aspects via PyTorch code in your :class:`~lightning.pytorch.core.LightningModule`.
 
 2. The trainer uses best practices embedded by contributors and users
    from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
@@ -320,7 +320,7 @@ Example::
 
 
 Model-specific callbacks can also be added inside the ``LightningModule`` through
-:meth:`~lightning.pytorch.core.module.LightningModule.configure_callbacks`.
+:meth:`~lightning.pytorch.core.LightningModule.configure_callbacks`.
 Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
 the trainer callbacks should there be two or more of the same type.
 :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
@@ -1124,7 +1124,7 @@ callback_metrics
 
 The metrics available to callbacks.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log`.
+This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log`.
 
 .. code-block:: python
 
@@ -1140,16 +1140,16 @@ logged_metrics
 
 The metrics sent to the loggers.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
-:paramref:`~lightning.pytorch.core.module.LightningModule.log.logger` argument set.
+This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.LightningModule.log.logger` argument set.
 
 progress_bar_metrics
 ********************
 
 The metrics sent to the progress bar.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
-:paramref:`~lightning.pytorch.core.module.LightningModule.log.prog_bar` argument set.
+This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.LightningModule.log.prog_bar` argument set.
 
 current_epoch
 *************

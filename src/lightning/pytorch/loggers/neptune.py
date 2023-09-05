@@ -97,7 +97,7 @@ class NeptuneLogger(Logger):
 
     **How to use NeptuneLogger?**
 
-    Use the logger anywhere in your :class:`~lightning.pytorch.core.module.LightningModule` as follows:
+    Use the logger anywhere in your :class:`~lightning.pytorch.core.LightningModule` as follows:
 
     .. code-block:: python
 
@@ -344,7 +344,7 @@ class NeptuneLogger(Logger):
     def experiment(self) -> Run:
         r"""
         Actual Neptune run object. Allows you to use neptune logging features in your
-        :class:`~lightning.pytorch.core.module.LightningModule`.
+        :class:`~lightning.pytorch.core.LightningModule`.
 
         Example::
 

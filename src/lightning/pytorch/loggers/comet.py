@@ -101,7 +101,7 @@ class CometLogger(Logger):
 
     **Log Hyperparameters:**
 
-    Log parameters used to initialize a :class:`~lightning.pytorch.core.module.LightningModule`:
+    Log parameters used to initialize a :class:`~lightning.pytorch.core.LightningModule`:
 
     .. code-block:: python
 
@@ -270,7 +270,7 @@ class CometLogger(Logger):
     def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]:
         r"""
         Actual Comet object. To use Comet features in your
-        :class:`~lightning.pytorch.core.module.LightningModule` do the following.
+        :class:`~lightning.pytorch.core.LightningModule` do the following.
 
         Example::
 

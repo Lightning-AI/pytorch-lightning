@@ -38,7 +38,7 @@ NOT_APPLICABLE = "n/a"
 
 
 class LayerSummary:
-    """Summary class for a single layer in a :class:`~lightning.pytorch.core.module.LightningModule`. It collects the
+    """Summary class for a single layer in a :class:`~lightning.pytorch.core.LightningModule`. It collects the
     following information:
 
     - Type of the layer (e.g. Linear, BatchNorm1d, ...)
@@ -142,7 +142,7 @@ class LayerSummary:
 
 
 class ModelSummary:
-    """Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule`.
+    """Generates a summary of all layers in a :class:`~lightning.pytorch.core.LightningModule`.
 
     Args:
         model: The model to summarize (also referred to as the root module).

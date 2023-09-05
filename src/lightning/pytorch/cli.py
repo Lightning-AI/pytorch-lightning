@@ -322,8 +322,8 @@ class LightningCLI:
         For more info, read :ref:`the CLI docs <lightning-cli>`.
 
         Args:
-            model_class: An optional :class:`~lightning.pytorch.core.module.LightningModule` class to train on or a
-                callable which returns a :class:`~lightning.pytorch.core.module.LightningModule` instance when
+            model_class: An optional :class:`~lightning.pytorch.core.LightningModule` class to train on or a
+                callable which returns a :class:`~lightning.pytorch.core.LightningModule` instance when
                 called. If ``None``, you can pass a registered model with ``--model=MyModel``.
             datamodule_class: An optional :class:`~lightning.pytorch.core.datamodule.LightningDataModule` class or a
                 callable which returns a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` instance when

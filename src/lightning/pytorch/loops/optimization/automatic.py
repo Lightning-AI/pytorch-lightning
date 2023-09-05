@@ -34,7 +34,7 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 class ClosureResult(OutputResult):
     """A container to hold the result of a :class:`Closure` call.
 
-    It is created from the output of :meth:`~lightning.pytorch.core.module.LightningModule.training_step`.
+    It is created from the output of :meth:`~lightning.pytorch.core.LightningModule.training_step`.
 
     Attributes:
         closure_loss: The loss with a graph attached.

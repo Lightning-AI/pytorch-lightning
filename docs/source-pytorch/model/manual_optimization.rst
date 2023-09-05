@@ -213,7 +213,7 @@ Every optimizer you use can be paired with any
 documentation of :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` for all the available options
 
 You can call ``lr_scheduler.step()`` at arbitrary intervals.
-Use ``self.lr_schedulers()`` in  your :class:`~lightning.pytorch.core.module.LightningModule` to access any learning rate schedulers
+Use ``self.lr_schedulers()`` in  your :class:`~lightning.pytorch.core.LightningModule` to access any learning rate schedulers
 defined in your :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
 
 .. warning::
