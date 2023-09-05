@@ -677,9 +677,9 @@ def test_done_dataloader_iter_with_limit(mode, iterables, limit, num_fetches, ex
     assert dataloader_iter.done == expected
     assert fetcher.done == expected
 
-    # TODO: iterator should raise StopIteration if limit is reached
-    # with pytest.raises(StopIteration):
-    #     next(dataloader_iter)
+    if fetcher.done:
+        with pytest.raises(StopIteration):
+            next(dataloader_iter)
 
 
 @pytest.mark.parametrize("mode", ["min_size", "max_size_cycle", "max_size", "sequential"])

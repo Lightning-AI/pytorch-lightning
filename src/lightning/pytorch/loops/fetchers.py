@@ -51,6 +51,9 @@ class _DataFetcher(Iterator):
 
     def __next__(self) -> Any:
         assert (iterator := self.iterator) is not None
+        if self.length is not None and self.fetched == self.length:
+            # The iterator may still have items, but the length is reached (determined by the limits)
+            raise StopIteration
         self._start_profiler()
         try:
             batch = next(iterator)
