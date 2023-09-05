@@ -16,11 +16,13 @@ import pickle
 from unittest import mock
 
 import pytest
+import yaml
 from lightning_utilities.test.warning import no_warning_call
 
 import lightning.pytorch
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -485,3 +487,39 @@ def test_wandb_logger_download_artifact(wandb, tmpdir):
     WandbLogger.download_artifact("test_artifact", str(tmpdir), "model", True)
 
     wandb.Api().artifact.assert_called_once_with("test_artifact", type="model")
+
+
+@mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
+@mock.patch("lightning.pytorch.loggers.wandb.wandb", mock.Mock())
+@pytest.mark.parametrize(("log_model", "expected"), [("True", True), ("False", False), ("all", "all")])
+def test_wandb_logger_cli_integration(log_model, expected, monkeypatch, tmp_path):
+    """Test that the WandbLogger can be used with the LightningCLI."""
+    monkeypatch.chdir(tmp_path)
+
+    class InspectParsedCLI(LightningCLI):
+        def before_instantiate_classes(self):
+            assert self.config.trainer.logger.init_args.log_model == expected
+
+    # Create a config file with the log_model parameter set. This seems necessary to be able
+    # to set the init_args parameter of the logger on the CLI later on.
+    input_config = {
+        "trainer": {
+            "logger": {
+                "class_path": "lightning.pytorch.loggers.wandb.WandbLogger",
+                "init_args": {"log_model": log_model},
+            },
+        }
+    }
+    config_path = "config.yaml"
+    with open(config_path, "w") as f:
+        f.write(yaml.dump(input_config))
+
+    # Test case 1: Set the log_model parameter only via the config file.
+    with mock.patch("sys.argv", ["any.py", "--config", config_path]):
+        InspectParsedCLI(BoringModel, run=False, save_config_callback=None)
+
+    # Test case 2: Overwrite the log_model parameter via the command line.
+    wandb_cli_arg = f"--trainer.logger.init_args.log_model={log_model}"
+
+    with mock.patch("sys.argv", ["any.py", "--config", config_path, wandb_cli_arg]):
+        InspectParsedCLI(BoringModel, run=False, save_config_callback=None)

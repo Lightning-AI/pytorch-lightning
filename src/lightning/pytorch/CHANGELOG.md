@@ -29,6 +29,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Properly manage `fetcher.done` with `dataloader_iter` ([#18376](https://github.com/Lightning-AI/lightning/pull/18376))
 
 
+- Fixed an issue that wouldn't prevent the user to set the `log_model` parameter in `WandbLogger` via the LightningCLI ([#18458](https://github.com/Lightning-AI/lightning/pull/18458))
+
+
 ## [2.0.7] - 2023-08-14
 
 ### Added
