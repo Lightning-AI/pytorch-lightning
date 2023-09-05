@@ -35,7 +35,7 @@ test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.
 	pip install -e . \
 	-r requirements/pytorch/base.txt \
-	-r requirements/app/base.txt \
+	-r requirements/app/app.txt \
 	-r requirements/fabric/base.txt \
 	-r requirements/pytorch/test.txt \
 	-r requirements/app/test.txt
