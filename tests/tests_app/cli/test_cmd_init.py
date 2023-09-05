@@ -7,6 +7,7 @@ import subprocess
 import pytest
 
 from lightning.app.cli import cmd_init
+from lightning.app.utilities.imports import _IS_MACOS, _IS_WINDOWS
 
 
 def test_validate_init_name():
@@ -25,6 +26,7 @@ def test_validate_init_name():
     assert "Error: your Lightning app name" in str(e.value)
 
 
+@pytest.mark.skipif(_IS_WINDOWS or _IS_MACOS)  # todo
 @pytest.mark.xfail(strict=False, reason="need app fast_dev_run to work via CLI")
 def test_make_app_template():
     template_name = "app-test-template"

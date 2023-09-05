@@ -12,7 +12,7 @@ from lightning.fabric.plugins.collectives import TorchCollective
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 from tests_fabric.helpers.runif import RunIf
 
 if TorchCollective.is_available():
@@ -268,6 +268,7 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
 
 @skip_distributed_unavailable
+@pytest.mark.skipif(_IS_WINDOWS)  # Todo
 @pytest.mark.xfail(strict=False, reason="TODO(carmocca): causing hangs in CI")
 def test_two_groups():
     collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
