@@ -134,7 +134,7 @@ class _TrainingEpochLoop(loops._Loop):
         while not self.done:
             try:
                 self.advance(data_fetcher)
-                self.on_advance_end()
+                self.on_advance_end(data_fetcher)
                 self._restarting = False
             except StopIteration:
                 break
@@ -185,7 +185,7 @@ class _TrainingEpochLoop(loops._Loop):
             StopIteration: When the epoch is canceled by the user returning -1
 
         """
-        if self.restarting and self._should_check_val_fx():
+        if self.restarting and self._should_check_val_fx(data_fetcher):
             # skip training and run validation in `on_advance_end`
             return
         # we are going to train first so the val loop does not need to restart
@@ -193,6 +193,7 @@ class _TrainingEpochLoop(loops._Loop):
 
         batch_idx = data_fetcher.fetched if isinstance(data_fetcher, _DataLoaderIterDataFetcher) else self.batch_idx + 1
         batch = next(data_fetcher)
+        # Note: `is_last_batch` is not yet determined if data fetcher is a `_DataLoaderIterDataFetcher`
         self.batch_progress.is_last_batch = data_fetcher.done
 
         trainer = self.trainer
@@ -226,6 +227,8 @@ class _TrainingEpochLoop(loops._Loop):
                 else:
                     batch_output = self.manual_optimization.run(kwargs)
 
+        # update `is_last_batch` again after dataloader_iter was fetched in `training_step()`
+        self.batch_progress.is_last_batch = data_fetcher.done
         self.batch_progress.increment_processed()
 
         # update non-plateau LR schedulers
@@ -245,11 +248,11 @@ class _TrainingEpochLoop(loops._Loop):
         # -----------------------------------------
         trainer._logger_connector.update_train_step_metrics()
 
-    def on_advance_end(self) -> None:
+    def on_advance_end(self, data_fetcher: _DataFetcher) -> None:
         # -----------------------------------------
         # VALIDATE IF NEEDED
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx()
+        should_check_val = self._should_check_val_fx(data_fetcher)
         if should_check_val:
             # this needs to be set so the correct `trainer._active_loop` is picked
             self.trainer.validating = True
@@ -376,7 +379,7 @@ class _TrainingEpochLoop(loops._Loop):
             or (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         )
 
-    def _should_check_val_fx(self) -> bool:
+    def _should_check_val_fx(self, data_fetcher: _DataFetcher) -> bool:
         """Decide if we should run validation."""
         if not self._should_check_val_epoch():
             return False
@@ -384,7 +387,7 @@ class _TrainingEpochLoop(loops._Loop):
         # val_check_batch is inf for iterable datasets with no length defined
         is_infinite_dataset = self.trainer.val_check_batch == float("inf")
         is_last_batch = self.batch_progress.is_last_batch
-        if is_last_batch and is_infinite_dataset:
+        if is_last_batch and (is_infinite_dataset or isinstance(data_fetcher, _DataLoaderIterDataFetcher)):
             return True
 
         if self.trainer.should_stop and self.trainer.fit_loop._can_stop_early:

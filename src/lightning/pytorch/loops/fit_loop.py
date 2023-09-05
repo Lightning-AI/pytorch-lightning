@@ -257,13 +257,14 @@ class _FitLoop(_Loop):
         trainer.training = True
         self._data_fetcher = _select_data_fetcher(trainer)
         trainer.training = training
+
         self._data_fetcher.setup(combined_loader)
         iter(self._data_fetcher)  # creates the iterator inside the fetcher
         max_batches = sized_len(combined_loader)
         self.max_batches = max_batches if max_batches is not None else float("inf")
         has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
 
-        if all(limit == 0 for limit in limits):
+        if sum(limits) == 0:
             return
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
