@@ -91,7 +91,7 @@ def test_combined_loader_modes_for_dict():
     iter(combined_loader)
     assert combined_loader._iterator is not None
     assert len(combined_loader) == min_len
-    for idx, item in enumerate(combined_loader):
+    for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MinSize)
         assert isinstance(item, dict)
         assert list(item) == ["a", "b"]
@@ -104,7 +104,7 @@ def test_combined_loader_modes_for_dict():
     iter(combined_loader)
     assert combined_loader._iterator is not None
     assert len(combined_loader) == max_len
-    for idx, item in enumerate(combined_loader):
+    for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSizeCycle)
         assert isinstance(item, dict)
         assert list(item) == ["a", "b"]
@@ -115,7 +115,7 @@ def test_combined_loader_modes_for_dict():
     combined_loader = CombinedLoader(iterables, "max_size")
     iter(combined_loader)
     assert len(combined_loader) == max_len
-    for idx, item in enumerate(combined_loader):
+    for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSize)
         assert isinstance(item, dict)
         assert list(item) == ["a", "b"]
@@ -154,7 +154,7 @@ def test_combined_loader_modes_for_list():
     combined_loader = CombinedLoader(iterables, "min_size")
     iter(combined_loader)
     assert len(combined_loader) == min_len
-    for idx, item in enumerate(combined_loader):
+    for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MinSize)
         assert isinstance(item, list)
         assert len(item) == 2
@@ -166,7 +166,7 @@ def test_combined_loader_modes_for_list():
     combined_loader = CombinedLoader(iterables, "max_size_cycle")
     iter(combined_loader)
     assert len(combined_loader) == max_len
-    for idx, item in enumerate(combined_loader):
+    for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSizeCycle)
         assert isinstance(item, list)
         assert len(item) == 2
@@ -177,7 +177,7 @@ def test_combined_loader_modes_for_list():
     combined_loader = CombinedLoader(iterables, "max_size")
     iter(combined_loader)
     assert len(combined_loader) == max_len
-    for idx, item in enumerate(combined_loader):
+    for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSize)
         assert isinstance(item, list)
         assert len(item) == 2
@@ -221,7 +221,7 @@ def test_combined_loader_modes_for_namedtuple():
     combined_loader = CombinedLoader(iterables, "min_size")
     iter(combined_loader)
     assert len(combined_loader) == min_len
-    for idx, item in enumerate(combined_loader):
+    for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MinSize)
         assert isinstance(item, IterablesNamedTuple)
     assert idx == min_len - 1
@@ -232,7 +232,7 @@ def test_combined_loader_modes_for_namedtuple():
     combined_loader = CombinedLoader(iterables, "max_size_cycle")
     iter(combined_loader)
     assert len(combined_loader) == max_len
-    for idx, item in enumerate(combined_loader):
+    for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSizeCycle)
         assert isinstance(item, IterablesNamedTuple)
     assert idx == max_len - 1
@@ -242,7 +242,7 @@ def test_combined_loader_modes_for_namedtuple():
     combined_loader = CombinedLoader(iterables, "max_size")
     iter(combined_loader)
     assert len(combined_loader) == max_len
-    for idx, item in enumerate(combined_loader):
+    for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSize)
         assert isinstance(item, IterablesNamedTuple)
         are_nones = [x is None for x in item]
@@ -506,7 +506,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(monkeypatch, accelerat
 
         assert len(combined_loader) == length // 2 if use_distributed_sampler else length
         if use_distributed_sampler:
-            last_batch = list(combined_loader)[-1]
+            last_batch = list(combined_loader)[-1][0]
             if a_length == 6:
                 assert last_batch == {"a": torch.tensor([0]), "b": torch.tensor([6])}
             elif a_length == 8:
@@ -592,6 +592,7 @@ def test_combined_loader_can_be_pickled():
         "iterables": [dataloader, numbers],
         "iterators": [None, iterator.iterators[1]],
         "limits": None,
+        "_idx": 0,
     }
 
     # no error

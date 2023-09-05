@@ -512,3 +512,46 @@ def test_rich_progress_bar_disabled(tmpdir):
     assert bar.val_progress_bar_id is None
     assert bar.test_progress_bar_id is None
     assert bar.predict_progress_bar_id is None
+
+
+@RunIf(rich=True)
+@pytest.mark.parametrize("metrics_format", [".3f", ".3e"])
+def test_rich_progress_bar_metrics_format(tmpdir, metrics_format):
+    metric_name = "train_loss"
+
+    class CustomModel(BoringModel):
+        def training_step(self, *args, **kwargs):
+            res = super().training_step(*args, **kwargs)
+            self.log(metric_name, res["loss"], prog_bar=True)
+            return res
+
+    progress_bar = RichProgressBar(theme=RichProgressBarTheme(metrics_format=metrics_format))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        callbacks=progress_bar,
+    )
+    model = CustomModel()
+    trainer.fit(model)
+
+    def extract_rendered_value():
+        rendered = progress_bar.progress.columns[-1]._renderable_cache
+        train_progress_bar_id = progress_bar.train_progress_bar_id
+        rendered_text = str(rendered[train_progress_bar_id][1])
+        return rendered_text.split(f"{metric_name}: ")[1]
+
+    rendered_value = extract_rendered_value()
+    value = trainer.logged_metrics[metric_name]
+    formatted_value = f"{value:{metrics_format}}"
+    assert rendered_value == formatted_value
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_metrics_theme_update(*_):
+    theme = RichProgressBar().theme
+    assert theme.metrics_format == ".3f"
+    assert theme.metrics_text_delimiter == " "
+
+    theme = RichProgressBar(theme=RichProgressBarTheme(metrics_format=".3e", metrics_text_delimiter="\n")).theme
+    assert theme.metrics_format == ".3e"
+    assert theme.metrics_text_delimiter == "\n"

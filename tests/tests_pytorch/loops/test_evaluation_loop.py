@@ -20,7 +20,7 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import BatchSampler, RandomSampler
 
 from lightning.fabric.accelerators.cuda import _clear_cuda_memory
-from lightning.pytorch import Trainer
+from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.utilities import CombinedLoader
 from tests_pytorch.helpers.runif import RunIf
@@ -169,15 +169,29 @@ def test_evaluation_loop_dataloader_iter_multiple_dataloaders(tmp_path):
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
+        devices=1,
     )
 
-    class MyModel(BoringModel):
-        def validation_step(self, dataloader_iter, batch_idx, dataloader_idx=0):
-            ...
+    class MyModel(LightningModule):
+        batch_start_ins = []
+        step_outs = []
+        batch_end_ins = []
+
+        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
+            self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
+
+        def validation_step(self, dataloader_iter):
+            self.step_outs.append(next(dataloader_iter))
+
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.batch_end_ins.append((batch, batch_idx, dataloader_idx))
 
     model = MyModel()
-    with pytest.raises(NotImplementedError, match="dataloader_iter.*is not supported with multiple dataloaders"):
-        trainer.validate(model, {"a": [0, 1], "b": [2, 3]})
+    trainer.validate(model, {"a": [0, 1], "b": [2, 3]})
+
+    assert model.batch_start_ins == [(None, 0, 0)] + model.step_outs
+    assert model.step_outs == [(0, 0, 0), (2, 0, 1)]
+    assert model.batch_end_ins == model.step_outs
 
 
 def test_invalid_dataloader_idx_raises_step(tmp_path):

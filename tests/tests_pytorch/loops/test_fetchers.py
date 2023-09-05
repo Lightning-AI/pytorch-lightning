@@ -58,7 +58,7 @@ def test_prefetch_iterator(multiple_iterables, dataset_cls, prefetch_batches):
     fetcher.setup(loader)
 
     def generate():
-        generated = [(fetcher.fetched, data, fetcher.done) for data in fetcher]
+        generated = [(fetcher.fetched, data, fetcher.done) for data, batch_idx, dataloader_idx in fetcher]
         assert fetcher.fetched == 3
         assert fetcher.done
         return generated
@@ -175,16 +175,17 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
             self.count = 0
             self.batches = []
 
-        def training_step(self, dataloader_iter, batch_idx):
-            assert self.count == batch_idx
+        def training_step(self, dataloader_iter):
             assert isinstance(self.trainer.fit_loop._data_fetcher, _DataLoaderIterDataFetcher)
             # fetch 2 batches
-            self.batches.append(next(dataloader_iter))
-            self.batches.append(next(dataloader_iter))
+            batch, batch_idx, dataloader_idx = next(dataloader_iter)
+            self.batches.append(batch)
+            batch, batch_idx, dataloader_idx = next(dataloader_iter)
+            self.batches.append(batch)
 
             batch = self.batches.pop(0)
             assert isinstance(batch, Tensor) or batch is None
-            self.count += 2
+            self.count = batch_idx + 1
             if self.automatic_optimization:
                 loss = super().training_step(batch, 0)
                 with pytest.raises(MisconfigurationException, match="dataloader_iter"):
@@ -212,54 +213,31 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
 @pytest.mark.parametrize("fn", ["validate", "test", "predict"])
 def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
     class TestModel(BoringModel):
-        def fetch(self, data_fetcher, dataloader_iter, batch_idx):
+        def fetch(self, data_fetcher, dataloader_iter):
             assert isinstance(data_fetcher, _DataLoaderIterDataFetcher)
-            assert data_fetcher.fetched == batch_idx
-            batch = next(dataloader_iter)
+            batch, batch_idx, dataloader_idx = next(dataloader_iter)
             assert data_fetcher.fetched == batch_idx + 1
             return batch
 
-        def validation_step(self, dataloader_iter, batch_idx):
+        def validation_step(self, dataloader_iter):
             data_fetcher = self.trainer.validate_loop._data_fetcher
-            batch = self.fetch(data_fetcher, dataloader_iter, batch_idx)
-            return super().validation_step(batch, batch_idx)
+            batch = self.fetch(data_fetcher, dataloader_iter)
+            return super().validation_step(batch, 0)
 
-        def test_step(self, dataloader_iter, batch_idx):
+        def test_step(self, dataloader_iter):
             data_fetcher = self.trainer.test_loop._data_fetcher
-            batch = self.fetch(data_fetcher, dataloader_iter, batch_idx)
-            return super().test_step(batch, batch_idx)
+            batch = self.fetch(data_fetcher, dataloader_iter)
+            return super().test_step(batch, 0)
 
-        def predict_step(self, dataloader_iter, batch_idx):
+        def predict_step(self, dataloader_iter):
             data_fetcher = self.trainer.predict_loop._data_fetcher
-            batch = self.fetch(data_fetcher, dataloader_iter, batch_idx)
-            return super().test_step(batch, batch_idx)
+            batch = self.fetch(data_fetcher, dataloader_iter)
+            return super().test_step(batch, 0)
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1, accelerator="cpu")
     trainer_fn = getattr(trainer, fn)
     trainer_fn(model)
-
-
-@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
-def test_fetching_dataloader_iter_running_stages_multiple_dataloaders(fn, tmp_path):
-    class MyModel(BoringModel):
-        def validation_step(self, dataloader_iter, batch_idx, dataloader_idx):
-            ...
-
-        def test_step(self, dataloader_iter, batch_idx, dataloader_idx):
-            ...
-
-        def predict_step(self, dataloader_iter, batch_idx, dataloader_idx):
-            ...
-
-    def dataloaders():
-        return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
-
-    model = MyModel()
-    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
-    trainer_fn = getattr(trainer, fn)
-    with pytest.raises(NotImplementedError, match="dataloader_iter.*is not supported with multiple dataloaders"):
-        trainer_fn(model, dataloaders())
 
 
 class DummyWaitable:
@@ -282,7 +260,7 @@ class AsyncBoringModel(BoringModel):
 
     def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
         if self.batch_i_handle is None:
-            batch_i_raw = next(dataloader_iter)
+            batch_i_raw, _, _ = next(dataloader_iter)
             self.num_batches_processed += 1
             self.batch_i_handle = self._async_op(batch_i_raw)
 
@@ -290,7 +268,7 @@ class AsyncBoringModel(BoringModel):
         batch_ip1_handle = None
         is_last = False
         try:
-            batch_ip1_raw = next(dataloader_iter)
+            batch_ip1_raw, _, _ = next(dataloader_iter)
             self.num_batches_processed += 1
             batch_ip1_handle = self._async_op(batch_ip1_raw)
         except StopIteration:
@@ -591,7 +569,7 @@ def test_fetching_is_profiled():
     class MyModel(BoringModel):
         def training_step(self, dataloader_iter):
             _ = next(dataloader_iter)
-            batch = next(dataloader_iter)
+            batch, _, _ = next(dataloader_iter)
             return super().training_step(batch, 0)
 
     model = MyModel()
@@ -633,12 +611,12 @@ def test_done_dataloader_iter(iterable):
     assert dataloader_iter.data_fetcher is fetcher
 
     assert not dataloader_iter.done
-    assert next(dataloader_iter) == 1
+    assert next(dataloader_iter)[0] == 1
     assert not dataloader_iter.done
-    assert next(dataloader_iter) == 2
+    assert next(dataloader_iter)[0] == 2
     assert not dataloader_iter.done
 
-    assert next(dataloader_iter) == 3
+    assert next(dataloader_iter)[0] == 3
     if isinstance(iterable, list):
         # with sized data, we know we're done
         assert dataloader_iter.done
