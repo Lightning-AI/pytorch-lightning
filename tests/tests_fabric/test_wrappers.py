@@ -362,7 +362,7 @@ def test_fabric_optimizer_wraps():
 
 def test_fabric_optimizer_state_dict():
     """Test that the FabricOptimizer calls into the strategy to collect the state."""
-    optimizer = Mock()
+    optimizer = Mock(spec=torch.optim.Adam)
     strategy = Mock()
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)
     fabric_optimizer.state_dict()
@@ -390,7 +390,7 @@ def test_fabric_optimizer_load_state_dict():
 
 def test_fabric_optimizer_steps():
     """Test that the FabricOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
-    optimizer = Mock()
+    optimizer = Mock(spec=torch.optim.Adam)
     strategy = Mock(spec=["optimizer_step"])
     strategy.optimizer_step.return_value = 123
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)
