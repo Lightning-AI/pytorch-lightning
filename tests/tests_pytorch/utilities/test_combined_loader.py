@@ -667,10 +667,7 @@ def test_done_dataloader_iter_with_limit(mode, iterables, limit, num_fetches, ex
     if num_fetches == 0:
         return
 
-    if mode == "sequential":
-        dataloader_iter, _, _ = next(fetcher)
-    else:
-        dataloader_iter = next(fetcher)
+    dataloader_iter = next(fetcher)
 
     assert not dataloader_iter.done
     for _ in range(num_fetches):

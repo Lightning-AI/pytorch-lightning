@@ -313,24 +313,24 @@ class DataLoaderIterMonitorModel(BoringModel):
         self.record[stage]["entered"] += 1
         for i in range(self.fetches_per_step):
             try:
-                batch = next(dataloader_iter)
+                batch, _, __ = next(dataloader_iter)
             except StopIteration:
                 self.record[stage]["raised"] += 1
                 return None
             self.record[stage]["fetched"] += 1
         return self.layer(batch).sum()
 
-    def training_step(self, dataloader_iter, batch_idx):
+    def training_step(self, dataloader_iter):
         return self.shared_step(dataloader_iter, "training")
 
-    def validation_step(self, dataloader_iter, batch_idx):
+    def validation_step(self, dataloader_iter):
         stage = "sanity_validation" if self.trainer.sanity_checking else "validation"
         return self.shared_step(dataloader_iter, stage)
 
-    def test_step(self, dataloader_iter, batch_idx):
+    def test_step(self, dataloader_iter):
         return self.shared_step(dataloader_iter, "test")
 
-    def predict_step(self, dataloader_iter, batch_idx):
+    def predict_step(self, dataloader_iter):
         return self.shared_step(dataloader_iter, "predict")
 
 
