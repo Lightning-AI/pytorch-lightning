@@ -44,7 +44,7 @@ class TransformerEnginePrecision(Precision):
     Args:
         dtype: The base dtype to use.
         recipe: Recipe for the DelayedScaling
-            `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/common.html#transformer_engine.common.recipe.DelayedScaling`__.
+            `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/common.html#transformer_engine.common.recipe.DelayedScaling>`__.
             In dict format or the dataclass format.
         replace_layers: Whether to replace ``Linear`` and ``LayerNorm`` layers automatically with their Transformer
             Engine alternatives. Note that they don't subclass the torch equivalents so checks like
