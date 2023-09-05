@@ -1,8 +1,8 @@
 .. include:: links.rst
 
-####################
-Welcome to ⚡ Fabric
-####################
+############################
+Welcome to ⚡ Lighting Fabric
+############################
 
 .. twocolumns::
    :left:
