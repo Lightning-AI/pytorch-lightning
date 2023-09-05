@@ -168,6 +168,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `FSDPStrategy.load_optimizer_state_dict` and `FSDPStrategy.load_model_state_dict` are a no-op now ([#18358](https://github.com/Lightning-AI/lightning/pull/18358))
 
 
+- The `Trainer.num_val_batches`, `Trainer.num_test_batches` and `Trainer.num_sanity_val_batches` now return a list of sizes per dataloader instead of a single integer ([#18441](https://github.com/Lightning-AI/lightning/pull/18441))
+
+
 ### Deprecated
 
 - Deprecated the `SingleTPUStrategy` (`strategy="single_tpu"`) in favor of `SingleDeviceXLAStrategy` (`strategy="single_xla"`) ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))

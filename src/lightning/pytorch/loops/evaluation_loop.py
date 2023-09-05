@@ -63,8 +63,7 @@ class _EvaluationLoop(_Loop):
         self.verbose = verbose
         self.inference_mode = inference_mode
         self.batch_progress = _BatchProgress()  # across dataloaders
-        #  list in "sequential" mode, number otherwise
-        self._max_batches: Union[int, float, List[Union[int, float]]] = []
+        self._max_batches: List[Union[int, float]] = []
 
         self._results = _ResultCollection(training=False)
         self._logged_outputs: List[_OUT_DICT] = []
@@ -85,24 +84,17 @@ class _EvaluationLoop(_Loop):
         return len(combined_loader.flattened)
 
     @property
-    def max_batches(self) -> Union[int, float, List[Union[int, float]]]:
-        """In "sequential" mode, the max number of batches to run per dataloader.
-
-        Otherwise, the max batches to run.
-
-        """
+    def max_batches(self) -> List[Union[int, float]]:
+        """The max number of batches to run per dataloader."""
         max_batches = self._max_batches
         if not self.trainer.sanity_checking:
             return max_batches
-        sanity_val_steps = self.trainer.num_sanity_val_steps
-        if isinstance(max_batches, list):
-            return [min(sanity_val_steps, batches) for batches in max_batches]
-        return min(sanity_val_steps, max_batches)
+        return [min(self.trainer.num_sanity_val_steps, batches) for batches in max_batches]
 
     @property
     def skip(self) -> bool:
         """Returns whether the evaluation should be skipped."""
-        return sum(self.max_batches) == 0 if isinstance(self.max_batches, list) else self.max_batches == 0
+        return sum(self.max_batches) == 0
 
     @property
     def _should_reload_val_dl(self) -> bool:
@@ -242,7 +234,7 @@ class _EvaluationLoop(_Loop):
                 _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
 
         # set the per-dataloader limits
-        combined_loader.limits = self.max_batches  # type: ignore[assignment]
+        combined_loader.limits = self.max_batches
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
 
