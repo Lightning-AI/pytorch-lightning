@@ -400,7 +400,7 @@ class DynamicSourceToDestFlow(LightningFlow):
 
 
 # FIXME(alecmerdler): This test is failing...
-@pytest.mark.skip(reason="hanging...")
+@pytest.mark.xfail(strict=False, reason="hanging...")
 def test_multiprocess_path_in_work_and_flow_dynamic(tmpdir):
     root = DynamicSourceToDestFlow(tmpdir)
     app = LightningApp(root)

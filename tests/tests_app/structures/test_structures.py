@@ -332,7 +332,7 @@ class CounterWork(LightningWork):
         self.counter += 1
 
 
-@pytest.mark.skip(reason="tchaton: Resolve this test.")
+@pytest.mark.xfail(strict=False, reason="tchaton: Resolve this test.")
 @pytest.mark.parametrize("run_once_iterable", [False, True])
 @pytest.mark.parametrize("cache_calls", [False, True])
 @pytest.mark.parametrize("use_list", [False, True])

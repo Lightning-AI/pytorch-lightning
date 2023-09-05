@@ -25,7 +25,7 @@ def test_validate_init_name():
     assert "Error: your Lightning app name" in str(e.value)
 
 
-@pytest.mark.skip(reason="need app fast_dev_run to work via CLI")
+@pytest.mark.xfail(strict=False, reason="need app fast_dev_run to work via CLI")
 def test_make_app_template():
     template_name = "app-test-template"
     template_name_folder = re.sub("-", "_", template_name)
@@ -58,7 +58,7 @@ def test_make_app_template():
         shutil.rmtree(template_dir)
 
 
-@pytest.mark.skip(reason="need component fast_dev_run to work via CLI")
+@pytest.mark.xfail(strict=False, reason="need component fast_dev_run to work via CLI")
 def test_make_component_template():
     template_name = "component-test-template"
     template_name_folder = re.sub("-", "_", template_name)

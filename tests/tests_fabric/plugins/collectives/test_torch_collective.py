@@ -268,7 +268,7 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
 
 @skip_distributed_unavailable
-@pytest.mark.skip(reason="TODO(carmocca): causing hangs in CI")
+@pytest.mark.xfail(strict=False, reason="TODO(carmocca): causing hangs in CI")
 def test_two_groups():
     collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
 
