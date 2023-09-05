@@ -1,12 +1,17 @@
+"""
+Implements a decorator @_restricted_classmethod that is a drop-in replacement for
+@classmethod, but raises an exception when the decorated method is called on an instance
+instead of a class type.
+"""
 from types import MethodType
-from typing import Callable, Concatenate, Generic, ParamSpec, TypeVar
+from typing import Callable, Concatenate, Generic, ParamSpec, TYPE_CHECKING, TypeVar
 
 _T = TypeVar("_T")  # type of the method owner
 _P = ParamSpec("_P")  # parameters of the decorated method
 _R_co = TypeVar("_R_co", covariant=True)  # return type of the decorated method
 
 
-class _restricted_classmethod(Generic[_T, _P, _R_co]):
+class _restricted_classmethod_impl(Generic[_T, _P, _R_co]):
     """
     Custom `classmethod` that raises an exception when the classmethod is
     called on an instance and not the class type.
@@ -18,7 +23,12 @@ class _restricted_classmethod(Generic[_T, _P, _R_co]):
     def __get__(self, instance: _T | None, cls: type[_T]) -> Callable[_P, _R_co]:
         if instance is not None:
             raise TypeError(
-                f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be called on an instance. Please "
-                f"call it on the class type and make sure the return value is used."
+                f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be called on an instance. "
+                f"Please call it on the class type and make sure the return value is used."
             )
         return MethodType(self.method, cls)
+
+
+# trick static type checkers into thinking its a @classmethod
+# https://github.com/microsoft/pyright/issues/5865
+_restricted_classmethod = classmethod if TYPE_CHECKING else _restricted_classmethod_impl
