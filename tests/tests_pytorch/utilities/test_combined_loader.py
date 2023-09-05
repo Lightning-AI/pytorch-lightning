@@ -526,17 +526,12 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(monkeypatch, accelerat
         },
         mode="max_size_cycle",
     )
-    # iter(combined_loader)
-    # with pytest.raises(NotImplementedError, match="DataLoader` does not define `__len__"):
-    #     len(combined_loader)
     assert len(combined_loader.iterables["b"]) == 8
 
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
     trainer.fit_loop.setup_data()
 
     assert len(combined_loader.iterables["b"]) == 4 if use_distributed_sampler else 8
-    # with pytest.raises(NotImplementedError, match="DataLoader` does not define `__len__"):
-    #     len(combined_loader)
 
 
 @pytest.mark.parametrize("use_distributed_sampler", [False, True])

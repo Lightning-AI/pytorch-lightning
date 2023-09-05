@@ -330,9 +330,6 @@ class CombinedLoader(Iterable):
 
     def __len__(self) -> int:
         """Compute the number of batches."""
-        # for dl in self.flattened:
-        #     if sized_len(dl) is None:
-        #         raise NotImplementedError(f"`{type(dl).__name__}` does not define `__len__`")
         assert self._iterator is not None
         return len(self._iterator)
 
@@ -367,7 +364,5 @@ def _get_iterables_lengths(iterables: List[Iterable]) -> List[Union[int, float]]
         length: Optional[Union[float, int]] = sized_len(iterable)
         if length is None:
             length = float("inf")
-        # if length is None:
-        #     raise NotImplementedError(f"`{type(iterable).__name__}` does not define `__len__`")
         lengths.append(length)
     return lengths
