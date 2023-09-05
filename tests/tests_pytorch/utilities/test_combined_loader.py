@@ -623,11 +623,14 @@ class IterDataset(IterableDataset):
         ("min_size", [[1, 2], [1, 2, 3]], 1, 1, True),
         ("max_size", [[1, 2], [1, 2, 3]], None, 2, False),
         ("max_size", [[1, 2], [1, 2, 3]], 2, 2, True),
+        ("max_size", [[1, 2], [1, 2, 3]], 100, 3, True),  # limit exceeds largest iterable
         ("max_size_cycle", [[1, 2], [1, 2, 3]], None, 2, False),
         ("max_size_cycle", [[1, 2], [1, 2, 3]], 2, 2, True),
+        ("max_size_cycle", [[1, 2], [1, 2, 3]], 100, 3, True),  # limit exceeds largest iterable
         ("sequential", [[1, 2], [1, 2, 3]], None, 2, False),
         ("sequential", [[1, 2], [1, 2, 3]], 2, 2, False),
         ("sequential", [[1, 2], [1, 2, 3]], 2, 4, True),  # limit in all iterables needs to be reached
+        ("sequential", [[1, 2], [1, 2, 3]], 100, 5, True),  # limit exceeds largest iterable
         # unsized
         ("min_size", [IterDataset()], None, 2, False),
         ("min_size", [IterDataset()], None, 3, False),  # not sized, no prefetching -> can't know if done
@@ -637,11 +640,14 @@ class IterDataset(IterableDataset):
         ("min_size", [IterDataset(2), IterDataset(3)], 1, 1, True),
         ("max_size", [IterDataset(2), IterDataset(3)], None, 2, False),
         ("max_size", [IterDataset(2), IterDataset(3)], 2, 2, True),
+        ("max_size", [IterDataset(2), IterDataset(3)], 100, 3, False),  # not sized, no prefetching -> can't know
         ("max_size_cycle", [IterDataset(2), IterDataset(3)], None, 2, False),
         ("max_size_cycle", [IterDataset(2), IterDataset(3)], 2, 2, True),
+        ("max_size_cycle", [IterDataset(2), IterDataset(3)], 100, 3, False),  # not sized, no prefetching -> can't know
         ("sequential", [IterDataset(2), IterDataset(3)], None, 2, False),
         ("sequential", [IterDataset(2), IterDataset(3)], 2, 2, False),  # not sized, no prefetching -> can't know
         ("sequential", [IterDataset(2), IterDataset(3)], 2, 4, True),  # limit in all iterables needs to be reached
+        ("sequential", [IterDataset(2), IterDataset(3)], 100, 5, False),  # not sized, no prefetching -> can't know
         # sized and unsized mixed
         ("min_size", [[1, 2], IterDataset(3)], None, 1, False),
         ("min_size", [[1, 2], IterDataset(3)], None, 2, True),  # smallest is sized -> done follows the limit
