@@ -369,6 +369,25 @@ def test_fabric_optimizer_state_dict():
     strategy.get_optimizer_state.assert_called_with(optimizer)
 
 
+def test_fabric_optimizer_load_state_dict():
+    """Test that the FabricOptimizer can load the state dict on the wrapped optimizer and update its
+    internal `__dict__`."""
+    model = torch.nn.Linear(1, 1)
+    optimizer = torch.optim.Adam(model.parameters())
+    assert not optimizer.state  # a fresh optimizer has no state
+    model(torch.rand(1)).backward()
+    optimizer.step()
+    assert optimizer.state
+    state_dict = optimizer.state_dict()
+
+    optimizer = torch.optim.Adam(model.parameters())  # fresh optimizer
+    fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=Mock())
+    assert not fabric_optimizer.state  # a fresh optimizer has no state
+    fabric_optimizer.load_state_dict(state_dict)
+    assert fabric_optimizer.state
+    assert fabric_optimizer.optimizer.state_dict()["state"] == state_dict["state"]
+
+
 def test_fabric_optimizer_steps():
     """Test that the FabricOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
     optimizer = Mock()
