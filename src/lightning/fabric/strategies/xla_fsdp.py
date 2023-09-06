@@ -172,18 +172,16 @@ class XLAFSDPStrategy(ParallelStrategy):
     def setup_module(self, module: Module) -> Module:
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
-        if any(isinstance(mod, XLAFSDP) for mod in module.modules()) and "auto_wrap_policy" in self._fsdp_kwargs:
+        kwargs = self._parse_fsdp_kwargs()
+        if any(isinstance(mod, XLAFSDP) for mod in module.modules()) and "auto_wrap_policy" in kwargs:
             rank_zero_warn(
                 "A XLAFSDP `auto_wrap_policy` is set, but at least one submodule is already wrapped."
                 " The policy will be ignored."
             )
-            del self._fsdp_kwargs["auto_wrap_policy"]
-
+            del kwargs["auto_wrap_policy"]
         # XLA FSDP requires that the root is wrapped, even if submodules are already wrapped
         if not isinstance(module, XLAFSDP):
-            kwargs = self._parse_fsdp_kwargs()
             module = XLAFSDP(module=module, **kwargs)
-
         return module
 
     def module_to_device(self, module: Module) -> None:
