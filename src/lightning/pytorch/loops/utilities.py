@@ -199,10 +199,9 @@ def _verify_dataloader_idx_requirement(
                         f"`dataloader_idx` in `{type(pl_module).__name__}.{hook}()`. Either remove the"
                         " argument or give it a default value i.e. `dataloader_idx=0`."
                     )
-        else:
-            if not param_present:
-                raise RuntimeError(
-                    f"You provided multiple `{stage.dataloader_prefix}_dataloader`, but no `dataloader_idx`"
-                    f" argument in `{type(pl_module).__name__}.{hook}()`. Try adding `dataloader_idx=0` to its"
-                    " signature."
-                )
+        elif not param_present:
+            raise RuntimeError(
+                f"You provided multiple `{stage.dataloader_prefix}_dataloader`, but no `dataloader_idx`"
+                f" argument in `{type(pl_module).__name__}.{hook}()`. Try adding `dataloader_idx=0` to its"
+                " signature."
+            )
