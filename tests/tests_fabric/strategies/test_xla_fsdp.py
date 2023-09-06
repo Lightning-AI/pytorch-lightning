@@ -124,7 +124,7 @@ def test_xla_fsdp_policy(xla_available):
 
     strategy = XLAFSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
     kwargs = strategy._parse_fsdp_kwargs()
-    kwargs = strategy._parse_fsdp_kwargs()  # ensure its idempotent
+    kwargs = strategy._parse_fsdp_kwargs()  # ensure it's idempotent
     assert set(kwargs) == {"auto_wrapper_callable"}
     assert kwargs["auto_wrapper_callable"].func is _activation_checkpointing_auto_wrapper
 
