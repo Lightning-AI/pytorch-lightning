@@ -113,7 +113,7 @@ Which you can train by doing:
 
     from torch.utils.data import DataLoader
 
-    dataset = WikiText2()
+    dataset = pl.demos.WikiText2()
     dataloader = DataLoader(dataset)
     model = LightningTransformer(vocab_size=dataset.vocab_size)
 
