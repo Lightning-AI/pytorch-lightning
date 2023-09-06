@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Iterator, List, Optional, Tuple, Union
+from typing import Any, Iterator, List, Optional
 
 from lightning.fabric.utilities.data import sized_len
-from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
+from lightning.pytorch.utilities.combined_loader import _ITERATOR_RETURN, CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
@@ -51,7 +51,7 @@ class _DataFetcher(Iterator):
         self.iterator = iter(self.combined_loader)
         return self
 
-    def __next__(self) -> Any:
+    def __next__(self) -> _ITERATOR_RETURN:
         assert (iterator := self.iterator) is not None
         self._start_profiler()
         try:
@@ -110,7 +110,7 @@ class _PrefetchDataFetcher(_DataFetcher):
                 break
         return self
 
-    def __next__(self) -> Any:
+    def __next__(self) -> _ITERATOR_RETURN:
         if self.batches:
             # there are pre-fetched batches already from a previous `prefetching` call.
             # consume one
@@ -141,33 +141,34 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
     Example::
 
         Class MyModel(LightningModule):
-            def training_step(self, dataloader_iter: Iterator, batch_idx: int) -> None:
+            def training_step(self, dataloader_iter: Iterator) -> None:
                 # it is the user responsibility to fetch and move the batch to the right device.
-                batch = next(dataloader_iter)
+                batch, batch_idx, dataloader_idx = next(dataloader_iter)
                 batch = batch.to(self.device)
                 ...
     """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._batch: Any = None
+        self._batch_idx: int = 0
+        self._dataloader_idx: int = 0
 
     def __iter__(self) -> "_DataLoaderIterDataFetcher":
         super().__iter__()
         self.iterator_wrapper = iter(_DataFetcherWrapper(self))
         return self
 
-    def __next__(self) -> Union["_DataFetcherWrapper", Tuple["_DataFetcherWrapper", int, int]]:
+    def __next__(self) -> Iterator["_DataFetcherWrapper"]:  # type: ignore[override]
         if self.done:
             raise StopIteration
-        assert isinstance(self.iterator_wrapper, _DataFetcherWrapper)
-        if self._is_sequential:
-            mode = self.combined_loader._iterator
-            assert isinstance(mode, _Sequential)
-            batch_idx = mode._idx
-            dataloader_idx = mode._iterator_idx
-            return self.iterator_wrapper, batch_idx, dataloader_idx
         return self.iterator_wrapper
 
-    @property
-    def _is_sequential(self) -> bool:
-        return self.combined_loader._mode == "sequential"
+    def reset(self) -> None:
+        super().reset()
+        self._batch = None
+        self._batch_idx = 0
+        self._dataloader_idx = 0
 
 
 class _DataFetcherWrapper(Iterator):
@@ -186,11 +187,11 @@ class _DataFetcherWrapper(Iterator):
     def length(self) -> Optional[int]:
         return self.data_fetcher.length
 
-    def __next__(self) -> Any:
-        out = super(_DataLoaderIterDataFetcher, self.data_fetcher).__next__()
-        if self.data_fetcher._is_sequential:
-            # avoid breaking change with sequential mode and dataloader_iter. this is okay because
-            # dataloader_iter + sequential + multiple dataloaders is not supported so the `*_step(..., batch_idx)` value
-            # and the batch_index we are excluding here will match
-            return out[0]
-        return out
+    def __next__(self) -> _ITERATOR_RETURN:
+        fetcher = self.data_fetcher
+        batch, batch_idx, dataloader_idx = super(_DataLoaderIterDataFetcher, fetcher).__next__()
+        # save the state so the loops can access it
+        fetcher._batch = batch
+        fetcher._batch_idx = batch_idx
+        fetcher._dataloader_idx = dataloader_idx
+        return batch, batch_idx, dataloader_idx
