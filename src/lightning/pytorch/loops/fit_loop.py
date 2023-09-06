@@ -264,7 +264,7 @@ class _FitLoop(_Loop):
         self.max_batches = max_batches if max_batches is not None else float("inf")
         has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
 
-        if sum(limits) == 0:
+        if self.max_batches == 0:
             return
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
