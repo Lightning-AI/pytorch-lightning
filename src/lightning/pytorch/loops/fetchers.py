@@ -191,7 +191,6 @@ class _DataFetcherWrapper(Iterator):
     def __next__(self) -> _ITERATOR_RETURN:
         fetcher = self.data_fetcher
         if fetcher.done:
-            # The iterator may still have items, but the length is reached (determined by the limits)
             raise StopIteration
         batch, batch_idx, dataloader_idx = super(_DataLoaderIterDataFetcher, fetcher).__next__()
         # save the state so the loops can access it
