@@ -345,7 +345,7 @@ class _FitLoop(_Loop):
                 f" The available modes are: {[m for m in _SUPPORTED_MODES if m != 'sequential']}"
             )
         data_fetcher = self._data_fetcher
-        assert self._data_fetcher is not None
+        assert data_fetcher is not None
         data_fetcher.setup(combined_loader)
         with self.trainer.profiler.profile("run_training_epoch"):
             self.epoch_loop.run(data_fetcher)
