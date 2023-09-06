@@ -33,20 +33,12 @@ This is the basic use of the trainer:
 
 .. code-block:: python
 
-    import lightning.pytorch as pl
+    from lightning.pytorch import Trainer
 
-    from lightning.pytorch.demos import LightningTransformer as MyLightningModule, WikiText2
-    from torch.utils.data import random_split, DataLoader
+    model = MyLightningModule()
 
-    dataset = WikiText2()
-    train, val = random_split(dataset, [0.8, 0.2])
-    train_dataloader = DataLoader(train)
-    val_dataloader = DataLoader(val)
-
-    model = LightningTransformer(vocab_size=dataset.vocab_size)
-
-    trainer = pl.Trainer()
-    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
+    trainer = Trainer()
+    trainer.fit(model, train_dataloader, val_dataloader)
 
 --------
 
