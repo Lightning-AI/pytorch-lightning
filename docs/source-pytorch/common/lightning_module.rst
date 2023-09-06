@@ -95,12 +95,12 @@ Here are the only required methods.
             super().__init__()
             self.model = Transformer(vocab_size=vocab_size)
 
-        def forward(self, input, target):
-            return self.model(input, target)
+        def forward(self, inputs, target):
+            return self.model(inputs, target)
 
         def training_step(self, batch, batch_idx):
-            input, target = batch
-            output = self(input, target)
+            inputs, target = batch
+            output = self(inputs, target)
             loss = torch.nn.functional.nll_loss(output, target.view(-1))
             return loss
 
@@ -162,8 +162,8 @@ To activate the training loop, override the :meth:`~lightning.pytorch.core.modul
             self.model = Transformer(vocab_size=vocab_size)
 
         def training_step(self, batch, batch_idx):
-            input, target = batch
-            output = self.model(input, target)
+            inputs, target = batch
+            output = self.model(inputs, target)
             loss = torch.nn.functional.nll_loss(output, target.view(-1))
             return loss
 
@@ -196,8 +196,8 @@ If you want to calculate epoch-level metrics and log them, use :meth:`~lightning
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        input, target = batch
-        output = self.model(input, target)
+        inputs, target = batch
+        output = self.model(inputs, target)
         loss = torch.nn.functional.nll_loss(output, target.view(-1))
 
         # logs metrics for each training_step,
@@ -241,8 +241,8 @@ override the :meth:`~lightning.pytorch.LightningModule.on_train_epoch_end` metho
             self.training_step_outputs = []
 
         def training_step(self, batch, batch_idx):
-            input, target = batch
-            output = self.model(input, target)
+            inputs, target = batch
+            output = self.model(inputs, target)
             loss = torch.nn.functional.nll_loss(output, target.view(-1))
             preds = ...
             self.training_step_outputs.append(preds)
@@ -270,8 +270,8 @@ To activate the validation loop while training, override the :meth:`~lightning.p
 
     class LightningTransformer(pl.LightningModule):
         def validation_step(self, batch, batch_idx):
-            input, target = batch
-            output = self.model(input, target)
+            inputs, target = batch
+            output = self.model(inputs, target)
             loss = F.cross_entropy(y_hat, y)
             self.log("val_loss", loss)
 
@@ -334,8 +334,8 @@ Note that this method is called before :meth:`~lightning.pytorch.LightningModule
 
         def validation_step(self, batch, batch_idx):
             x, y = batch
-            input, target = batch
-            output = self.model(input, target)
+            inputs, target = batch
+            output = self.model(inputs, target)
             loss = torch.nn.functional.nll_loss(output, target.view(-1))
             pred = ...
             self.validation_step_outputs.append(pred)
@@ -425,8 +425,8 @@ For the example let's override ``predict_step``:
             self.model = Transformer(vocab_size=vocab_size)
 
         def predict_step(self, batch):
-            input, target = batch
-            return self.model(input, target)
+            inputs, target = batch
+            return self.model(inputs, target)
 
 Under the hood, Lightning does the following (pseudocode):
 
@@ -474,12 +474,12 @@ If you want to perform inference with the system, you can add a ``forward`` meth
             self.model = Transformer(vocab_size=vocab_size)
 
         def forward(self, batch):
-            input, target = batch
-            return self.model(input.view(1, -1), target.view(1, -1))
+            inputs, target = batch
+            return self.model(inputs, target)
 
         def training_step(self, batch, batch_idx):
-            input, target = batch
-            output = self.model(input, target)
+            inputs, target = batch
+            output = self.model(inputs, target)
             loss = torch.nn.functional.nll_loss(output, target.view(-1))
             return loss
 
