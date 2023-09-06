@@ -368,10 +368,4 @@ def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
 
 
 def _get_iterables_lengths(iterables: List[Iterable]) -> List[Union[int, float]]:
-    lengths = []
-    for iterable in iterables:
-        length: Optional[Union[float, int]] = sized_len(iterable)
-        if length is None:
-            length = float("inf")
-        lengths.append(length)
-    return lengths
+    return [(float("inf") if (length := sized_len(iterable)) is None else length) for iterable in iterables]
