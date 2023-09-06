@@ -391,7 +391,7 @@ There are two ways to call ``test()``:
 
 .. note::
     `WikiText2` is used in a manner that does not create a train, test, val split. This is done for illustrative purposes only.
-    A proper split can be created in :meth:`lightning.pytorch.core.module.LightningModule.setup` or :meth:`lightning.pytorch.core.module.LightningDataModule.setup`.
+    A proper split can be created in :meth:`lightning.pytorch.core.LightningModule.setup` or :meth:`lightning.pytorch.core.LightningDataModule.setup`.
 
 .. note::
 
