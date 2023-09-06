@@ -131,15 +131,15 @@ def _reset_progress(loop: _Loop) -> None:
             _reset_progress(v)
 
 
-def _select_data_fetcher(trainer: "pl.Trainer") -> _DataFetcher:
+def _select_data_fetcher(trainer: "pl.Trainer", stage: RunningStage) -> _DataFetcher:
     lightning_module = trainer.lightning_module
-    if trainer.testing:
+    if stage == RunningStage.TESTING:
         step_fx_name = "test_step"
-    elif trainer.training:
+    elif stage == RunningStage.TRAINING:
         step_fx_name = "training_step"
-    elif trainer.validating or trainer.sanity_checking:
+    elif stage in (RunningStage.VALIDATING, RunningStage.SANITY_CHECKING):
         step_fx_name = "validation_step"
-    elif trainer.predicting:
+    elif stage in RunningStage.PREDICTING:
         step_fx_name = "predict_step"
     else:
         raise RuntimeError(f"DataFetcher is unsupported for {trainer.state.stage}")

@@ -228,7 +228,7 @@ class _EvaluationLoop(_Loop):
         if fn != TrainerFn.FITTING:
             self.batch_progress.reset_on_run()
 
-        data_fetcher = _select_data_fetcher(trainer)
+        data_fetcher = _select_data_fetcher(trainer, trainer.state.stage)
         combined_loader = self._combined_loader
         assert combined_loader is not None
 

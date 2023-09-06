@@ -308,7 +308,7 @@ class _FitLoop(_Loop):
             self.epoch_loop.val_loop.setup_data()
             trainer.training = True
 
-        self._data_fetcher = _select_data_fetcher(trainer)
+        self._data_fetcher = _select_data_fetcher(trainer, trainer.state.stage)
 
         call._call_callback_hooks(trainer, "on_train_start")
         call._call_lightning_module_hook(trainer, "on_train_start")
