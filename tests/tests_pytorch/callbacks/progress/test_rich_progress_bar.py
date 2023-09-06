@@ -28,7 +28,6 @@ from lightning.pytorch.loggers.logger import DummyLogger
 from tests_pytorch.helpers.runif import RunIf
 
 
-
 @RunIf(rich=True)
 def test_rich_progress_bar_callback():
     trainer = Trainer(callbacks=RichProgressBar())
