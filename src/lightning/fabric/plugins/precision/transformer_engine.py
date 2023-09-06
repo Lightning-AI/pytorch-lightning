@@ -36,8 +36,8 @@ log = logging.getLogger(__name__)
 
 
 class TransformerEnginePrecision(Precision):
-    """Plugin for training with fp8 precision via nvidia's `Transformer Engine
-    <https://docs.nvidia.com/deeplearning/transformer-engine`__.
+    """Plugin for training with fp8 precision via nvidia's
+    `Transformer Engine <https://docs.nvidia.com/deeplearning/transformer-engine>`__.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
