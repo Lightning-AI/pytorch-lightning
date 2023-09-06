@@ -141,7 +141,7 @@ if _RICH_AVAILABLE:
             trainer: "pl.Trainer",
             style: Union[str, "Style"],
             text_delimiter: str,
-            metrics_format: Union[str, None],
+            metrics_format: str,
         ):
             self._trainer = trainer
             self._tasks: Dict[Union[int, TaskID], Any] = {}
@@ -182,7 +182,7 @@ if _RICH_AVAILABLE:
         def _generate_metrics_texts(self) -> Generator[str, None, None]:
             for name, value in self._metrics.items():
                 if not isinstance(value, str):
-                    value = round(value, 3) if self._metrics_format is None else f"{value:{self._metrics_format}}"
+                    value = f"{value:{self._metrics_format}}"
                 yield f"{name}: {value}"
 
 else:
@@ -216,7 +216,7 @@ class RichProgressBarTheme:
     processing_speed: Union[str, Style] = "grey70"
     metrics: Union[str, Style] = "white"
     metrics_text_delimiter: str = " "
-    metrics_format: Union[str, None] = None
+    metrics_format: str = ".3f"
 
 
 class RichProgressBar(ProgressBar):
