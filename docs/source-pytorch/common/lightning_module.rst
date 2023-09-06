@@ -454,7 +454,7 @@ There are two ways to call ``predict()``:
 
     # or call with pretrained model
     model = LightningTransformer.load_from_checkpoint(PATH)
-    dataset = WikiText2()
+    dataset = pl.demos.WikiText2()
     test_dataloader = DataLoader(dataset)
     trainer = pl.Trainer()
     predictions = trainer.predict(model, dataloaders=test_dataloader)
