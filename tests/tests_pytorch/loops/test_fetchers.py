@@ -30,10 +30,11 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class IterDataset(IterableDataset):
+    def __init__(self, size=3):
+        self.size = size
+
     def __iter__(self):
-        yield 1
-        yield 2
-        yield 3
+        yield from range(1, self.size + 1)
 
 
 class SizedDataset(Dataset):
@@ -627,3 +628,110 @@ def test_done_dataloader_iter(iterable):
     with pytest.raises(StopIteration):
         next(dataloader_iter)
     assert dataloader_iter.done
+
+
+@pytest.mark.parametrize(
+    ("mode", "iterables", "limit", "num_fetches", "expected"),
+    [
+        # sized
+        ("min_size", [[1, 2, 3]], None, 2, False),
+        ("min_size", [[1, 2, 3]], None, 3, True),
+        ("min_size", [[1, 2, 3]], 1, 1, True),
+        ("min_size", [[1, 2], [1, 2, 3]], None, 1, False),
+        ("min_size", [[1, 2], [1, 2, 3]], None, 2, True),
+        ("min_size", [[1, 2], [1, 2, 3]], 1, 1, True),
+        ("max_size", [[1, 2], [1, 2, 3]], None, 2, False),
+        ("max_size", [[1, 2], [1, 2, 3]], 2, 2, True),
+        ("max_size", [[1, 2], [1, 2, 3]], 100, 3, True),  # limit exceeds largest iterable
+        ("max_size_cycle", [[1, 2], [1, 2, 3]], None, 2, False),
+        ("max_size_cycle", [[1, 2], [1, 2, 3]], 2, 2, True),
+        ("max_size_cycle", [[1, 2], [1, 2, 3]], 100, 3, True),  # limit exceeds largest iterable
+        ("sequential", [[1, 2], [1, 2, 3]], None, 2, False),
+        ("sequential", [[1, 2], [1, 2, 3]], 2, 2, False),
+        ("sequential", [[1, 2], [1, 2, 3]], 2, 4, True),  # limit in all iterables needs to be reached
+        ("sequential", [[1, 2], [1, 2, 3]], 100, 5, True),  # limit exceeds largest iterable
+        # unsized
+        ("min_size", [IterDataset()], None, 2, False),
+        ("min_size", [IterDataset()], None, 3, False),  # not sized, no prefetching -> can't know if done
+        ("min_size", [IterDataset()], 1, 1, True),
+        ("min_size", [IterDataset(2), IterDataset(3)], None, 1, False),
+        ("min_size", [IterDataset(2), IterDataset(3)], None, 2, False),  # not sized, no prefetching -> can't know
+        ("min_size", [IterDataset(2), IterDataset(3)], 1, 1, True),
+        ("max_size", [IterDataset(2), IterDataset(3)], None, 2, False),
+        ("max_size", [IterDataset(2), IterDataset(3)], 2, 2, True),
+        ("max_size", [IterDataset(2), IterDataset(3)], 100, 3, False),  # not sized, no prefetching -> can't know
+        ("max_size_cycle", [IterDataset(2), IterDataset(3)], None, 2, False),
+        ("max_size_cycle", [IterDataset(2), IterDataset(3)], 2, 2, True),
+        ("max_size_cycle", [IterDataset(2), IterDataset(3)], 100, 3, False),  # not sized, no prefetching -> can't know
+        ("sequential", [IterDataset(2), IterDataset(3)], None, 2, False),
+        ("sequential", [IterDataset(2), IterDataset(3)], 2, 2, False),  # not sized, no prefetching -> can't know
+        ("sequential", [IterDataset(2), IterDataset(3)], 2, 4, True),  # limit in all iterables needs to be reached
+        ("sequential", [IterDataset(2), IterDataset(3)], 100, 5, False),  # not sized, no prefetching -> can't know
+        # sized and unsized mixed
+        ("min_size", [[1, 2], IterDataset(3)], None, 1, False),
+        ("min_size", [[1, 2], IterDataset(3)], None, 2, True),  # smallest is sized -> done follows the limit
+        ("max_size", [IterDataset(2), [1, 2, 3]], None, 2, False),
+        ("max_size", [IterDataset(2), [1, 2, 3]], None, 3, False),  # 1st iterable is unsized -> can't know max
+        ("max_size_cycle", [IterDataset(2), [1, 2, 3]], None, 2, False),
+        ("max_size_cycle", [IterDataset(2), [1, 2, 3]], None, 3, False),
+        ("sequential", [[1, 2], IterDataset(3)], 2, 2, False),
+        ("sequential", [[1, 2], IterDataset(3)], 2, 4, True),  # limit in all iterables needs to be reached
+    ],
+)
+def test_done_dataloader_iter_with_limit(mode, iterables, limit, num_fetches, expected):
+    """Test that the `done` property for `dataloader_iter` gets set as expected."""
+    loader = CombinedLoader(iterables, mode=mode)
+    fetcher = _DataLoaderIterDataFetcher()
+    loader.limits = limit
+    fetcher.setup(loader)
+    iter(fetcher)
+
+    assert fetcher.done == (limit == 0)
+    if num_fetches == 0:
+        return
+
+    dataloader_iter = next(fetcher)
+
+    assert not dataloader_iter.done
+    for _ in range(num_fetches):
+        next(dataloader_iter)
+    assert dataloader_iter.done == expected
+    assert fetcher.done == expected
+
+    if fetcher.done:
+        with pytest.raises(StopIteration):
+            next(dataloader_iter)
+
+
+@pytest.mark.parametrize("mode", ["min_size", "max_size_cycle", "max_size", "sequential"])
+def test_done_dataloader_iter_empty_iterables(mode):
+    """Test that the `done` property for `dataloader_iter` gets set as expected for empty iterables."""
+    fetcher = _DataLoaderIterDataFetcher()
+
+    # single empty iterable
+    loader = CombinedLoader([], mode=mode)
+    fetcher.setup(loader)
+    iter(fetcher)
+    assert fetcher.done
+    # multiple iterables and all are empty
+    loader = CombinedLoader([[], []], mode=mode)
+    fetcher.setup(loader)
+    iter(fetcher)
+    assert fetcher.done
+    # one empty, one non-empty
+    loader = CombinedLoader([[], [1, 2, 3]], mode=mode)
+    fetcher.setup(loader)
+    iter(fetcher)
+    assert fetcher.done == (mode == "min_size")
+
+
+@pytest.mark.parametrize("mode", ["min_size", "max_size_cycle", "max_size", "sequential"])
+@pytest.mark.parametrize("iterables", [[], [IterDataset()], [[], [1, 2, 3]]])
+def test_done_dataloader_iter_zero_limit(iterables, mode):
+    """Test that the `done` property for `dataloader_iter` gets set as expected when the limit is 0."""
+    fetcher = _DataLoaderIterDataFetcher()
+    loader = CombinedLoader(iterables, mode=mode)
+    loader.limits = 0
+    fetcher.setup(loader)
+    iter(fetcher)
+    assert fetcher.done
