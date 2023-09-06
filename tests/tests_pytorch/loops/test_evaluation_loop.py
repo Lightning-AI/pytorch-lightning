@@ -189,7 +189,9 @@ def test_evaluation_loop_dataloader_iter_multiple_dataloaders(tmp_path):
     model = MyModel()
     trainer.validate(model, {"a": [0, 1], "b": [2, 3]})
 
-    assert model.batch_start_ins == [(None, 0, 0)] + model.step_outs
+    # in on_*_batch_start, the dataloader_idx and batch_idx are not yet known
+    # we only get the updated indices once we fetch from the iterator in the step-method
+    assert model.batch_start_ins == [(None, 0, 0), (0, 0, 0)]
     assert model.step_outs == [(0, 0, 0), (2, 0, 1)]
     assert model.batch_end_ins == model.step_outs
 
