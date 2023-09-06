@@ -51,9 +51,6 @@ class _DataFetcher(Iterator):
 
     def __next__(self) -> _ITERATOR_RETURN:
         assert (iterator := self.iterator) is not None
-        if self.length is not None and self.fetched == self.length:
-            # The iterator may still have items, but the length is reached (determined by the limits)
-            raise StopIteration
         self._start_profiler()
         try:
             batch = next(iterator)
@@ -193,6 +190,9 @@ class _DataFetcherWrapper(Iterator):
 
     def __next__(self) -> _ITERATOR_RETURN:
         fetcher = self.data_fetcher
+        if fetcher.done:
+            # The iterator may still have items, but the length is reached (determined by the limits)
+            raise StopIteration
         batch, batch_idx, dataloader_idx = super(_DataLoaderIterDataFetcher, fetcher).__next__()
         # save the state so the loops can access it
         fetcher._batch = batch
