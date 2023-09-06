@@ -111,7 +111,6 @@ Which you can train by doing:
 
 .. code-block:: python
 
-    from lightning.pytorch.demos import WikiText2
     from torch.utils.data import DataLoader
 
     dataset = WikiText2()
