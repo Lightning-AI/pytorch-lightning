@@ -1076,7 +1076,7 @@ With :func:`torch.inference_mode` disabled, you can enable the grad of your mode
 
     class LightningTransformer(pl.LightningModule):
         def validation_step(self, batch, batch_idx):
-            preds = self.model(input, target)
+            preds = self.model(inputs, target)
             with torch.enable_grad():
                 grad_preds = preds.requires_grad_()
                 preds2 = self.model(grad_preds)
