@@ -25,10 +25,10 @@ from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE
+from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
-from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import _StrategyRegistry, ParallelStrategy
 from lightning.fabric.strategies.fsdp import _apply_filter
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
@@ -80,7 +80,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
+        precision: Optional[XLAPrecision] = None,
         auto_wrap_policy: Optional[_POLICY] = None,
         activation_checkpointing_policy: Optional[_POLICY_SET] = None,
         state_dict_type: Literal["full", "sharded"] = "sharded",
@@ -97,8 +97,8 @@ class XLAFSDPStrategy(ParallelStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = _XLAFSDPBackwardSyncControl()
 
-        kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
-        kwargs = _activation_checkpointing_kwargs(activation_checkpointing_policy, kwargs)
+        self._auto_wrap_policy = auto_wrap_policy
+        self._activation_checkpointing_policy = activation_checkpointing_policy
         self._fsdp_kwargs = kwargs
         self._state_dict_type = state_dict_type
         self._sequential_save = sequential_save
@@ -181,7 +181,8 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         # XLA FSDP requires that the root is wrapped, even if submodules are already wrapped
         if not isinstance(module, XLAFSDP):
-            module = XLAFSDP(module=module, **self._fsdp_kwargs)
+            kwargs = self._parse_fsdp_kwargs()
+            module = XLAFSDP(module=module, **kwargs)
 
         return module
 
@@ -589,6 +590,17 @@ class XLAFSDPStrategy(ParallelStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla_fsdp", cls, description=cls.__class__.__name__)
+
+    def _parse_fsdp_kwargs(self) -> Dict:
+        # this needs to be delayed because `self.precision` isn't available at init
+        kwargs = self._fsdp_kwargs
+        precision = self.precision
+        if isinstance(precision, XLAPrecision):
+            # the `compute_dtype` will be passed to the `auto_wrapper_callable` automatically, so we don't need to pass
+            # it when creating it
+            kwargs.setdefault("compute_dtype", precision._desired_dtype)
+        kwargs = _auto_wrap_policy_kwargs(self._auto_wrap_policy, kwargs)
+        return _activation_checkpointing_kwargs(self._activation_checkpointing_policy, kwargs)
 
 
 def _auto_wrap_policy_kwargs(policy: Optional["_POLICY"], kwargs: Dict) -> Dict:
