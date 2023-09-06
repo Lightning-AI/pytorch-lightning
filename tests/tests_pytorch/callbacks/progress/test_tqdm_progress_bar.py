@@ -654,7 +654,6 @@ def test_get_progress_bar_metrics(tmp_path):
         max_epochs=1,
         enable_checkpointing=False,
         enable_model_summary=False,
-        logger=True,
     )
     model = BoringModel()
     trainer.fit(model)
