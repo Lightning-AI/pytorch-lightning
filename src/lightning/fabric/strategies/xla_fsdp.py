@@ -13,7 +13,6 @@
 # limitations under the License.
 import io
 from contextlib import contextmanager, nullcontext
-from copy import copy
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Literal, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
@@ -592,7 +591,7 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     def _parse_fsdp_kwargs(self) -> Dict:
         # this needs to be delayed because `self.precision` isn't available at init
-        kwargs = copy(self._fsdp_kwargs)
+        kwargs = self._fsdp_kwargs.copy()
         precision = self.precision
         if isinstance(precision, XLAPrecision):
             # the `compute_dtype` will be passed to the `auto_wrapper_callable` automatically, so we don't need to pass
