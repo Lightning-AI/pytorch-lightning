@@ -338,7 +338,8 @@ class CombinedLoader(Iterable):
 
     def __len__(self) -> int:
         """Compute the number of batches."""
-        assert self._iterator is not None
+        if self._iterator is None:
+            raise RuntimeError("Please call `iter(combined_loader)` first.")
         return len(self._iterator)
 
     def reset(self) -> None:

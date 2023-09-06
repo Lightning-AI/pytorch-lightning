@@ -77,6 +77,12 @@ def test_combined_dataset_no_length():
         cl._dataset_length()
 
 
+def test_combined_loader_length_must_call_iter_first():
+    loader = CombinedLoader([1, 2, 3])
+    with pytest.raises(RuntimeError, match="Please call `iter.*` first"):
+        len(loader)
+
+
 def test_combined_loader_modes_for_dict():
     """Test `CombinedLoaderIterator` given mapping iterables."""
     iterables = {
