@@ -134,7 +134,7 @@ class _TrainingEpochLoop(loops._Loop):
         while not self.done:
             try:
                 self.advance(data_fetcher)
-                self.on_advance_end()
+                self.on_advance_end(data_fetcher)
                 self._restarting = False
             except StopIteration:
                 break
@@ -164,7 +164,10 @@ class _TrainingEpochLoop(loops._Loop):
             self.val_loop.batch_progress.total.reset()
 
     def on_run_start(self, data_fetcher: _DataFetcher) -> None:
-        iter(data_fetcher)  # creates the iterator inside the fetcher
+        # `iter()` was called once in `FitLoop.setup_data()` already
+        if self.trainer.current_epoch > 0 and not self.restarting:
+            iter(data_fetcher)  # creates the iterator inside the fetcher
+
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
         data_fetcher._start_profiler = self._on_before_fetch
@@ -183,7 +186,7 @@ class _TrainingEpochLoop(loops._Loop):
             StopIteration: When the epoch is canceled by the user returning -1
 
         """
-        if self.restarting and self._should_check_val_fx():
+        if self.restarting and self._should_check_val_fx(data_fetcher):
             # skip training and run validation in `on_advance_end`
             return
         # we are going to train first so the val loop does not need to restart
@@ -200,6 +203,7 @@ class _TrainingEpochLoop(loops._Loop):
             # TODO: we should instead use the batch_idx returned by the fetcher, however, that will require saving the
             # fetcher state so that the batch_idx is correct after restarting
             batch_idx = self.batch_idx + 1
+        # Note: `is_last_batch` is not yet determined if data fetcher is a `_DataLoaderIterDataFetcher`
         self.batch_progress.is_last_batch = data_fetcher.done
 
         trainer = self.trainer
@@ -249,6 +253,8 @@ class _TrainingEpochLoop(loops._Loop):
             # update the hook kwargs now that the step method might have consumed the iterator
             batch = data_fetcher._batch
             batch_idx = data_fetcher._batch_idx
+            # update `is_last_batch` again after dataloader_iter was fetched in `training_step()`
+            self.batch_progress.is_last_batch = data_fetcher.done
 
         call._call_callback_hooks(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
         call._call_lightning_module_hook(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
@@ -261,11 +267,11 @@ class _TrainingEpochLoop(loops._Loop):
         # -----------------------------------------
         trainer._logger_connector.update_train_step_metrics()
 
-    def on_advance_end(self) -> None:
+    def on_advance_end(self, data_fetcher: _DataFetcher) -> None:
         # -----------------------------------------
         # VALIDATE IF NEEDED
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx()
+        should_check_val = self._should_check_val_fx(data_fetcher)
         if should_check_val:
             # this needs to be set so the correct `trainer._active_loop` is picked
             self.trainer.validating = True
@@ -392,7 +398,7 @@ class _TrainingEpochLoop(loops._Loop):
             or (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         )
 
-    def _should_check_val_fx(self) -> bool:
+    def _should_check_val_fx(self, data_fetcher: _DataFetcher) -> bool:
         """Decide if we should run validation."""
         if not self._should_check_val_epoch():
             return False
@@ -400,7 +406,7 @@ class _TrainingEpochLoop(loops._Loop):
         # val_check_batch is inf for iterable datasets with no length defined
         is_infinite_dataset = self.trainer.val_check_batch == float("inf")
         is_last_batch = self.batch_progress.is_last_batch
-        if is_last_batch and is_infinite_dataset:
+        if is_last_batch and (is_infinite_dataset or isinstance(data_fetcher, _DataLoaderIterDataFetcher)):
             return True
 
         if self.trainer.should_stop and self.trainer.fit_loop._can_stop_early:

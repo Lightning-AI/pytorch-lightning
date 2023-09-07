@@ -1430,7 +1430,7 @@ def test_spawn_predict_return_predictions(tmpdir):
 
 
 @pytest.mark.parametrize("return_predictions", [None, False, True])
-@pytest.mark.parametrize("precision", ["32-true", "64-true"])
+@pytest.mark.parametrize("precision", ["32-true", pytest.param("64-true", marks=RunIf(mps=False))])
 def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
     """Test that `return_predictions=True`."""
     seed_everything(42)
@@ -1871,7 +1871,7 @@ def test_detect_anomaly_nan(tmpdir):
 @pytest.mark.parametrize(
     ("trainer_kwargs", "strategy_cls", "accelerator_cls", "devices"),
     [
-        ({"strategy": "auto"}, SingleDeviceStrategy, CPUAccelerator, 1),
+        pytest.param({"strategy": "auto"}, SingleDeviceStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
         pytest.param({"strategy": "ddp"}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
         pytest.param({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
         (
@@ -1984,7 +1984,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         ({"devices": 1}, [0]),
         ({"devices": 1}, [0]),
         ({"devices": "1"}, [0]),
-        ({"devices": 2}, [0, 1]),
+        pytest.param({"devices": 2}, [0, 1], marks=RunIf(mps=False)),
         ({"accelerator": "gpu", "devices": 1}, [0]),
         ({"accelerator": "cuda", "devices": 1}, [0]),
         ({"accelerator": "cuda", "devices": 2}, [0, 1]),

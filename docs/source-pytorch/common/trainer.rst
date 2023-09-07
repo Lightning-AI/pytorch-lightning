@@ -811,35 +811,40 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 precision
 ^^^^^^^^^
 
-Lightning supports either double (64), float (32), bfloat16 (bf16), or half (16) precision training.
-Half precision is using 16 bit floating point operations while mixed precision is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. Since not all operations (like batchnorm) are numerically stable in lower bit precisions, these operations will still be carried out in fp32 whereas half precision unconditionally performs all operations in 16 bit.
-This can result in improved performance, achieving +3X speedups on modern GPUs.
+There are two different techniques to set the mixed precision. "True" precision and "Mixed" precision.
 
-.. testcode::
-    :skipif: not torch.cuda.is_available()
+Lightning supports doing floating point operations in 64-bit precision ("double"), 32-bit precision ("full"), or 16-bit ("half") with both regular and `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
+This selected precision will have a direct impact in the performance and memory usage based on your hardware.
+Automatic mixed precision settings are denoted by a ``"-mixed"`` suffix, while "true" precision settings have a ``"-true"`` suffix:
 
-    # default used by the Trainer
-    trainer = Trainer(precision=32)
+.. code-block:: python
 
-    # 16-bit mixed precision
-    trainer = Trainer(precision="16-mixed")
+    # Default used by the Trainer
+    fabric = Fabric(precision="32-true", devices=1)
 
-    # bfloat16 mixed precision
-    trainer = Trainer(precision="bf16-mixed")
+    # the same as:
+    fabric = Trainer(precision="32", devices=1)
 
-    # 16-bit true precision
-    trainer = Trainer(precision="16-true")
+    # 16-bit mixed precision (model weights remain in torch.float32)
+    fabric = Trainer(precision="16-mixed", devices=1)
 
-    # bfloat16 true precision
-    trainer = Trainer(precision="bf16-true")
+    # 16-bit bfloat mixed precision (model weights remain in torch.float32)
+    fabric = Trainer(precision="bf16-mixed", devices=1)
 
-    # 64-bit precision
-    trainer = Trainer(precision=64)
+    # 8-bit mixed precision via TransformerEngine (model weights remain in torch.float32)
+    fabric = Trainer(precision="transformer-engine", devices=1)
+
+    # 16-bit precision (model weights get cast to torch.float16)
+    fabric = Trainer(precision="16-true", devices=1)
+
+    # 16-bit bfloat precision (model weights get cast to torch.bfloat16)
+    fabric = Trainer(precision="bf16-true", devices=1)
+
+    # 64-bit (double) precision (model weights get cast to torch.float64)
+    fabric = Trainer(precision="64-true", devices=1)
 
 
 See the :doc:`N-bit precision guide <../common/precision>` for more details.
-
-.. note:: When running on TPUs, torch.bfloat16 will be used but tensor printing will still show torch.float32.
 
 
 profiler

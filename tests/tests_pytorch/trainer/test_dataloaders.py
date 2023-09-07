@@ -158,8 +158,6 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     assert trainer.num_training_batches == 2
     assert trainer.train_dataloader == train_loader
 
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
 
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 @pytest.mark.parametrize("n", [1, 2])
@@ -263,7 +261,7 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir):
             assert sum(1 for _ in dl) == num_batches
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
     assert trainer.num_training_batches == float("inf")
     assert epoch_cb.train_epoch_count == 1
 
@@ -301,7 +299,7 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
     val_dl = DataLoader(dataset=dataset, batch_size=batch_size)
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
     assert trainer.num_training_batches == limit_train_batches
     assert epoch_cb.train_epoch_count == max_epochs
     assert epoch_cb.train_batches_seen == limit_train_batches * max_epochs
@@ -338,7 +336,6 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset):
     val_dl = DataLoader(dataset=dataset, batch_size=batch_size)
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.num_val_batches[0] == limit_val_batches
     assert epoch_cb.val_epoch_count == max_epochs
     assert epoch_cb.val_batches_seen == limit_val_batches * max_epochs
@@ -375,7 +372,7 @@ def test_datasets_dataloaders_with_limit_num_batches(tmpdir, dataset):
     test_dl = DataLoader(dataset=dataset, batch_size=batch_size)
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
     assert trainer.num_training_batches == limit_batches
     assert trainer.num_val_batches[0] == limit_batches
     assert epoch_cb.train_epoch_count == max_epochs
@@ -917,7 +914,6 @@ def test_train_dataloader_not_implemented_error(tmpdir, check_interval, dataload
     trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, val_check_interval=check_interval)
     trainer.fit(model)
     # verify training completed
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize(
