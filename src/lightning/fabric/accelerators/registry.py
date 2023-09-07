@@ -14,6 +14,7 @@
 from typing import Any, Callable, Dict, List, Optional
 
 from lightning.fabric.utilities.exceptions import MisconfigurationException
+from lightning.fabric.utilities.registry import _register_classes
 
 
 class _AcceleratorRegistry(dict):
@@ -109,3 +110,17 @@ class _AcceleratorRegistry(dict):
 
     def __str__(self) -> str:
         return "Registered Accelerators: {}".format(", ".join(self.available_accelerators()))
+
+
+def call_register_accelerators(registry: _AcceleratorRegistry, base_module: str) -> None:  # pragma: no-cover
+    """Legacy.
+
+    Do not use.
+
+    """
+    import importlib
+
+    module = importlib.import_module(base_module)
+    from lightning.fabric.accelerators.accelerator import Accelerator
+
+    _register_classes(registry, "register_accelerators", module, Accelerator)
