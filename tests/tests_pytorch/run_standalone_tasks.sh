@@ -34,3 +34,7 @@ MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python strategies/scripts/
 # test that ddp can launched as a module (-m option)
 echo "Running ddp example as module"
 python -m strategies.scripts.cli_script ${args}
+
+# test that `python -O` (optimized mode) works
+echo "Running bug report model with 'python -O'"
+python -O ../../examples/pytorch/bug_report/bug_report_model.py

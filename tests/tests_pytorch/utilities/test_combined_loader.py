@@ -76,6 +76,12 @@ def test_combined_dataset_no_length():
         cl._dataset_length()
 
 
+def test_combined_loader_length_must_call_iter_first():
+    loader = CombinedLoader([1, 2, 3])
+    with pytest.raises(RuntimeError, match="Please call `iter.*` first"):
+        len(loader)
+
+
 def test_combined_loader_modes_for_dict():
     """Test `CombinedLoaderIterator` given mapping iterables."""
     iterables = {
@@ -87,7 +93,8 @@ def test_combined_loader_modes_for_dict():
     # min_size with dict
     min_len = min(lengths)
     combined_loader = CombinedLoader(iterables, "min_size")
-    assert combined_loader._iterator is None
+    iter(combined_loader)
+    assert combined_loader._iterator is not None
     assert len(combined_loader) == min_len
     for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MinSize)
@@ -99,7 +106,8 @@ def test_combined_loader_modes_for_dict():
     # max_size_cycle with dict
     max_len = max(lengths)
     combined_loader = CombinedLoader(iterables, "max_size_cycle")
-    assert combined_loader._iterator is None
+    iter(combined_loader)
+    assert combined_loader._iterator is not None
     assert len(combined_loader) == max_len
     for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSizeCycle)
@@ -110,6 +118,7 @@ def test_combined_loader_modes_for_dict():
 
     # max_size with dict
     combined_loader = CombinedLoader(iterables, "max_size")
+    iter(combined_loader)
     assert len(combined_loader) == max_len
     for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSize)
@@ -124,7 +133,8 @@ def test_combined_loader_modes_for_dict():
     # sequential with dict
     sum_len = sum(lengths)
     combined_loader = CombinedLoader(iterables, "sequential")
-    assert combined_loader._iterator is None
+    iter(combined_loader)
+    assert combined_loader._iterator is not None
     assert len(combined_loader) == sum_len
     for total_idx, (item, batch_idx, dataloader_idx) in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _Sequential)
@@ -147,6 +157,7 @@ def test_combined_loader_modes_for_list():
     # min_size with list
     min_len = min(lengths)
     combined_loader = CombinedLoader(iterables, "min_size")
+    iter(combined_loader)
     assert len(combined_loader) == min_len
     for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MinSize)
@@ -158,6 +169,7 @@ def test_combined_loader_modes_for_list():
     # max_size_cycle with list
     max_len = max(lengths)
     combined_loader = CombinedLoader(iterables, "max_size_cycle")
+    iter(combined_loader)
     assert len(combined_loader) == max_len
     for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSizeCycle)
@@ -168,6 +180,7 @@ def test_combined_loader_modes_for_list():
 
     # max_size with list
     combined_loader = CombinedLoader(iterables, "max_size")
+    iter(combined_loader)
     assert len(combined_loader) == max_len
     for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSize)
@@ -183,7 +196,8 @@ def test_combined_loader_modes_for_list():
     # sequential with list
     sum_len = sum(lengths)
     combined_loader = CombinedLoader(iterables, "sequential")
-    assert combined_loader._iterator is None
+    iter(combined_loader)
+    assert combined_loader._iterator is not None
     assert len(combined_loader) == sum_len
     for total_idx, (item, batch_idx, dataloader_idx) in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _Sequential)
@@ -210,6 +224,7 @@ def test_combined_loader_modes_for_namedtuple():
     # min_size with namedtuple
     min_len = min(lengths)
     combined_loader = CombinedLoader(iterables, "min_size")
+    iter(combined_loader)
     assert len(combined_loader) == min_len
     for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MinSize)
@@ -220,6 +235,7 @@ def test_combined_loader_modes_for_namedtuple():
     # max_size_cycle with namedtuple
     max_len = max(lengths)
     combined_loader = CombinedLoader(iterables, "max_size_cycle")
+    iter(combined_loader)
     assert len(combined_loader) == max_len
     for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSizeCycle)
@@ -229,6 +245,7 @@ def test_combined_loader_modes_for_namedtuple():
 
     # max_size with namedtuple
     combined_loader = CombinedLoader(iterables, "max_size")
+    iter(combined_loader)
     assert len(combined_loader) == max_len
     for item, idx, _ in combined_loader:
         assert isinstance(combined_loader._iterator, _MaxSize)
@@ -242,7 +259,8 @@ def test_combined_loader_modes_for_namedtuple():
     # sequential with namedtuple
     sum_len = sum(lengths)
     combined_loader = CombinedLoader(iterables, "sequential")
-    assert combined_loader._iterator is None
+    iter(combined_loader)
+    assert combined_loader._iterator is not None
     assert len(combined_loader) == sum_len
     for total_idx, (item, batch_idx, dataloader_idx) in enumerate(combined_loader):
         assert isinstance(combined_loader._iterator, _Sequential)
@@ -355,9 +373,10 @@ def test_sequential_mode_limits(limits, expected):
     assert list(iterator) == expected
 
 
-def test_sequential_mode_limits_raises():
+@pytest.mark.parametrize("iterator_cls", [_Sequential, _MinSize, _MaxSize, _MaxSizeCycle])
+def test_iterator_mode_limits_raises(iterator_cls):
     with pytest.raises(ValueError, match=r"number of limits \(0\) and number of iterables \(2\)"):
-        _Sequential([0, 1], [])
+        iterator_cls([0, 1], [])
 
 
 def test_combined_loader_flattened_setter():
@@ -474,7 +493,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(monkeypatch, accelerat
             },
             mode="max_size_cycle",
         )
-
+        iter(combined_loader)
         length = max(a_length, 8)
         assert len(combined_loader) == length
 
@@ -512,16 +531,12 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(monkeypatch, accelerat
         },
         mode="max_size_cycle",
     )
-    with pytest.raises(NotImplementedError, match="DataLoader` does not define `__len__"):
-        len(combined_loader)
     assert len(combined_loader.iterables["b"]) == 8
 
     trainer._data_connector.attach_data(model, train_dataloaders=combined_loader)
     trainer.fit_loop.setup_data()
 
     assert len(combined_loader.iterables["b"]) == 4 if use_distributed_sampler else 8
-    with pytest.raises(NotImplementedError, match="DataLoader` does not define `__len__"):
-        len(combined_loader)
 
 
 @pytest.mark.parametrize("use_distributed_sampler", [False, True])
@@ -581,6 +596,7 @@ def test_combined_loader_can_be_pickled():
     assert iterator.__getstate__() == {
         "iterables": [dataloader, numbers],
         "iterators": [None, iterator.iterators[1]],
+        "limits": None,
         "_idx": 0,
     }
 

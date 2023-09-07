@@ -173,6 +173,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `FSDPStrategy.load_optimizer_state_dict` and `FSDPStrategy.load_model_state_dict` are a no-op now ([#18358](https://github.com/Lightning-AI/lightning/pull/18358))
 
 
+- The `Trainer.num_val_batches`, `Trainer.num_test_batches` and `Trainer.num_sanity_val_batches` now return a list of sizes per dataloader instead of a single integer ([#18441](https://github.com/Lightning-AI/lightning/pull/18441))
+
 - The `*_step(dataloader_iter)` flavor now no longer takes the `batch_idx` in the signature ([#18390](https://github.com/Lightning-AI/lightning/pull/18390))
 - Calling `next(dataloader_iter)` now returns a triplet `(batch, batch_idx, dataloader_idx)` ([#18390](https://github.com/Lightning-AI/lightning/pull/18390))
 - Calling `next(combined_loader)` now returns a triplet `(batch, batch_idx, dataloader_idx)` ([#18390](https://github.com/Lightning-AI/lightning/pull/18390))
@@ -236,6 +238,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed an issue that wouldn't prevent the user to set the `log_model` parameter in `WandbLogger` via the LightningCLI ([#18458](https://github.com/Lightning-AI/lightning/pull/18458))
+
+
+- Fixed the display of `v_num` in the progress bar when running with `Trainer(fast_dev_run=True)` ([#18491](https://github.com/Lightning-AI/lightning/pull/18491))
+
+
+- Fixed `UnboundLocalError` when running with `python -O` ([#18496](https://github.com/Lightning-AI/lightning/pull/18496))
 
 
 ## [2.0.7] - 2023-08-14
