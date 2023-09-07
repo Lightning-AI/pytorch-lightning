@@ -143,7 +143,7 @@ and :class:`torch.nn.LayerNorm` layers in your model with their TE alternatives,
 to squeeze out all the possible performance. If Fabric detects that any layer has been replaced already, automatic
 replacement is not done.
 
-This plugin is a mix of "mixed" and "true" precision. The computation is downcasted to FP8 precision on the fly, but
+This plugin is a combination of "mixed" and "true" precision. The computation is downcasted to FP8 precision on the fly, but
 the model and inputs can be kept in true full or half precision.
 
 .. code-block:: python
@@ -152,7 +152,7 @@ the model and inputs can be kept in true full or half precision.
     fabric = Fabric(precision="transformer-engine")
 
     # Customize the fp8 recipe or set a different base precision:
-    from lightning.fabric.plugins.precision import TransformerEnginePrecision
+    from lightning.fabric.plugins import TransformerEnginePrecision
 
     recipe = {"fp8_format": "HYBRID", "amax_history_len": 16, "amax_compute_algo": "max"}
     precision = TransformerEnginePrecision(dtype=torch.bfloat16, recipe=recipe)
