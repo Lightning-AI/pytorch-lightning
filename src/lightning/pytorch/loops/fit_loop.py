@@ -351,15 +351,16 @@ class _FitLoop(_Loop):
         """Runs one whole epoch."""
         log.debug(f"{type(self).__name__}: advancing loop")
 
-        assert (combined_loader := self._combined_loader) is not None
+        combined_loader = self._combined_loader
+        assert combined_loader is not None
         if combined_loader._mode == "sequential":
             raise ValueError(
                 f'`{type(self).__name__}` does not support the `CombinedLoader(mode="sequential")` mode.'
                 f" The available modes are: {[m for m in _SUPPORTED_MODES if m != 'sequential']}"
             )
-        assert (data_fetcher := self._data_fetcher) is not None
         with self.trainer.profiler.profile("run_training_epoch"):
-            self.epoch_loop.run(data_fetcher)
+            assert self._data_fetcher is not None
+            self.epoch_loop.run(self._data_fetcher)
 
     def on_advance_end(self) -> None:
         trainer = self.trainer

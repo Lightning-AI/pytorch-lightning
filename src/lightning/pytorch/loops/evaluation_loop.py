@@ -114,7 +114,8 @@ class _EvaluationLoop(_Loop):
             return []
         self.reset()
         self.on_run_start()
-        assert (data_fetcher := self._data_fetcher) is not None
+        data_fetcher = self._data_fetcher
+        assert data_fetcher is not None
         previous_dataloader_idx = 0
         while True:
             try:
@@ -359,7 +360,8 @@ class _EvaluationLoop(_Loop):
 
         """
         trainer = self.trainer
-        assert (data_fetcher := self._data_fetcher) is not None
+        data_fetcher = self._data_fetcher
+        assert data_fetcher is not None
 
         if not (using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher)):
             batch = trainer.precision_plugin.convert_input(batch)

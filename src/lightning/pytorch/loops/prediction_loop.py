@@ -103,7 +103,8 @@ class _PredictionLoop(_Loop):
             return None
         self.reset()
         self.on_run_start()
-        assert (data_fetcher := self._data_fetcher) is not None
+        data_fetcher = self._data_fetcher
+        assert data_fetcher is not None
         while True:
             try:
                 if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
@@ -219,7 +220,8 @@ class _PredictionLoop(_Loop):
 
         """
         trainer = self.trainer
-        assert (data_fetcher := self._data_fetcher) is not None
+        data_fetcher = self._data_fetcher
+        assert data_fetcher is not None
 
         if not (using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher)):
             batch = trainer.precision_plugin.convert_input(batch)
