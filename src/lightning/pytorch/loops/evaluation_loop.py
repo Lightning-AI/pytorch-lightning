@@ -38,7 +38,7 @@ from lightning.pytorch.trainer.connectors.data_connector import (
 )
 from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
+from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -63,8 +63,7 @@ class _EvaluationLoop(_Loop):
         self.verbose = verbose
         self.inference_mode = inference_mode
         self.batch_progress = _BatchProgress()  # across dataloaders
-        #  list in "sequential" mode, number otherwise
-        self._max_batches: Union[int, float, List[Union[int, float]]] = []
+        self._max_batches: List[Union[int, float]] = []
 
         self._results = _ResultCollection(training=False)
         self._logged_outputs: List[_OUT_DICT] = []
@@ -85,24 +84,17 @@ class _EvaluationLoop(_Loop):
         return len(combined_loader.flattened)
 
     @property
-    def max_batches(self) -> Union[int, float, List[Union[int, float]]]:
-        """In "sequential" mode, the max number of batches to run per dataloader.
-
-        Otherwise, the max batches to run.
-
-        """
+    def max_batches(self) -> List[Union[int, float]]:
+        """The max number of batches to run per dataloader."""
         max_batches = self._max_batches
         if not self.trainer.sanity_checking:
             return max_batches
-        sanity_val_steps = self.trainer.num_sanity_val_steps
-        if isinstance(max_batches, list):
-            return [min(sanity_val_steps, batches) for batches in max_batches]
-        return min(sanity_val_steps, max_batches)
+        return [min(self.trainer.num_sanity_val_steps, batches) for batches in max_batches]
 
     @property
     def skip(self) -> bool:
         """Returns whether the evaluation should be skipped."""
-        return sum(self.max_batches) == 0 if isinstance(self.max_batches, list) else self.max_batches == 0
+        return sum(self.max_batches) == 0
 
     @property
     def _should_reload_val_dl(self) -> bool:
@@ -196,17 +188,13 @@ class _EvaluationLoop(_Loop):
         if trainer.datamodule is not None:
             allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
 
-        if self._is_sequential:
-            self._max_batches = []
-            for dl in combined_loader.flattened:
-                # determine number of batches
-                length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
-                limit_batches = getattr(trainer, f"limit_{stage.dataloader_prefix}_batches")
-                num_batches = _parse_num_batches(stage, length, limit_batches)
-                self._max_batches.append(num_batches)
-        else:
-            has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
-            self._max_batches = len(combined_loader) if has_len_all_ranks_ else float("inf")
+        self._max_batches = []
+        for dl in combined_loader.flattened:
+            # determine number of batches
+            length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
+            limit_batches = getattr(trainer, f"limit_{stage.dataloader_prefix}_batches")
+            num_batches = _parse_num_batches(stage, length, limit_batches)
+            self._max_batches.append(num_batches)
 
         # this depends on the data used, so reset it too
         self._seen_batches_per_dataloader = defaultdict(int)
@@ -238,13 +226,10 @@ class _EvaluationLoop(_Loop):
                 # some users want validation shuffling based on the training progress
                 _set_sampler_epoch(dl, trainer.fit_loop.epoch_progress.current.processed)
 
+        # set the per-dataloader limits
+        combined_loader.limits = self.max_batches
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
-        if isinstance(combined_loader._iterator, _Sequential):
-            # set the per-dataloader limits
-            max_batches = self.max_batches
-            assert isinstance(max_batches, list)
-            combined_loader._iterator.limits = max_batches
 
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
