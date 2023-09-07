@@ -139,7 +139,7 @@ def _select_data_fetcher(trainer: "pl.Trainer", stage: RunningStage) -> _DataFet
         step_fx_name = "training_step"
     elif stage in (RunningStage.VALIDATING, RunningStage.SANITY_CHECKING):
         step_fx_name = "validation_step"
-    elif stage in RunningStage.PREDICTING:
+    elif stage == RunningStage.PREDICTING:
         step_fx_name = "predict_step"
     else:
         raise RuntimeError(f"DataFetcher is unsupported for {trainer.state.stage}")
