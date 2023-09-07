@@ -11,10 +11,13 @@ from tests_fabric.helpers.runif import RunIf
         DeepSpeedPrecision("16-true"),
         DoublePrecision(),
         HalfPrecision(),
-        pytest.param(FSDPPrecision("16-true"), marks=RunIf(min_torch="1.12")),
+        pytest.param("fsdp", marks=RunIf(min_torch="1.12")),
     ],
 )
 def test_default_dtype_is_restored(precision):
+    if precision == "fsdp":
+        precision = FSDPPrecision("16-true")
+
     assert torch.get_default_dtype() is torch.float32
     with pytest.raises(RuntimeError, match="foo"), precision.init_context():
         assert torch.get_default_dtype() is not torch.float32
