@@ -358,10 +358,9 @@ class _FitLoop(_Loop):
                 f'`{type(self).__name__}` does not support the `CombinedLoader(mode="sequential")` mode.'
                 f" The available modes are: {[m for m in _SUPPORTED_MODES if m != 'sequential']}"
             )
-        data_fetcher = self._data_fetcher
-        assert data_fetcher is not None
         with self.trainer.profiler.profile("run_training_epoch"):
-            self.epoch_loop.run(data_fetcher)
+            assert self._data_fetcher is not None
+            self.epoch_loop.run(self._data_fetcher)
 
     def on_advance_end(self) -> None:
         trainer = self.trainer
