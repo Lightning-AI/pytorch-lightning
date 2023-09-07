@@ -132,7 +132,7 @@ and :class:`torch.nn.LayerNorm` layers in your model with their TE alternatives,
 to squeeze out all the possible performance. If Fabric detects that any layer has been replaced already, automatic
 replacement is not done.
 
-This plugin is a mix of "mixed" and "true" precision. The computation is downcasted to FP8 precision on the fly, but
+This plugin is a combination of "mixed" and "true" precision. The computation is downcasted to FP8 precision on the fly, but
 the model and inputs can be kept in true full or half precision.
 
 .. code-block:: python
