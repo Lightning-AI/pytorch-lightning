@@ -413,9 +413,10 @@ class XLAFSDPStrategy(ParallelStrategy):
         # ensure model parameters are updated
         xm.mark_step()
 
+        parallel_devices = self.parallel_devices
+        assert parallel_devices is not None
         if self._sequential_save:
             # each host runs this in parallel, but the ranks in the host run it sequentially
-            assert (parallel_devices := self.parallel_devices) is not None
             for rank in range(len(parallel_devices)):
                 if rank == self.local_rank:
                     self._save_checkpoint_shard(path, state, storage_options, filter)
@@ -426,7 +427,6 @@ class XLAFSDPStrategy(ParallelStrategy):
         if self._state_dict_type == "full":
             ckpt_prefix = str(path / "checkpoint")
             ckpt_suffix = "_rank-*-of-*.pth"
-            assert (parallel_devices := self.parallel_devices) is not None
             if len(parallel_devices) != self.world_size:  # multihost
                 raise OSError(
                     "Multihost setups do not have a shared filesystem, so the checkpoint shards cannot be consolidated"
