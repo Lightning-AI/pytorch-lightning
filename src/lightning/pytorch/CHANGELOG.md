@@ -247,6 +247,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `UnboundLocalError` when running with `python -O` ([#18496](https://github.com/Lightning-AI/lightning/pull/18496))
 
 
+- Fixed visual glitch with the TQDM progress bar leaving the validation bar incomplete before switching back to the training display ([#18503](https://github.com/Lightning-AI/lightning/pull/18503))
+
+
 ## [2.0.7] - 2023-08-14
 
 ### Added
