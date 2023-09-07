@@ -1068,6 +1068,7 @@ def test_connector_transformer_engine(monkeypatch):
     )
     transformer_engine_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
+    monkeypatch.setitem(sys.modules, "transformer_engine.pytorch", Mock())
     recipe_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
 
@@ -1089,6 +1090,13 @@ def test_connector_transformer_engine(monkeypatch):
     recipe_mock.DelayedScaling.assert_called_once_with(foo=0, fp8_format=recipe_mock.Format.HYBRID)
     assert isinstance(recipe["fp8_format"], str)  # not modified
 
+    # same logic as in `test_default_dtype_is_restored`
+    assert torch.get_default_dtype() is torch.float32
+    with pytest.raises(RuntimeError, match="foo"), precision.init_context():
+        assert torch.get_default_dtype() is not torch.float32
+        raise RuntimeError("foo")
+    assert torch.get_default_dtype() is torch.float32
+
     class SubModule(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -1101,7 +1109,6 @@ def test_connector_transformer_engine(monkeypatch):
             self.l2 = torch.nn.LayerNorm(1)
             self.l3 = SubModule()
 
-    monkeypatch.setitem(sys.modules, "transformer_engine.pytorch", Mock())
     model = MyModule()
 
     precision.replace_layers = False
