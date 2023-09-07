@@ -108,9 +108,9 @@ Glossary
 .. displayitem::
    :header: Mounts
    :description: Mount Cloud Data
-   :col_css: col-md-6
+   :col_css: col-md-12
    :button_link: mount.html
-   :height: 180
+   :height: 100
 
 .. displayitem::
    :header: Sharing Components
