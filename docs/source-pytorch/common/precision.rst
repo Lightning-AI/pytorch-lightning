@@ -23,7 +23,7 @@ N-Bit Precision
 
 .. displayitem::
    :header: Intermediate
-   :description: Enable state-of-the-art scaling with advanced mix-precision settings.
+   :description: Enable state-of-the-art scaling with advanced mixed-precision settings.
    :col_css: col-md-4
    :button_link: precision_intermediate.html
    :height: 150
