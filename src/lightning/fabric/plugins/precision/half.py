@@ -61,8 +61,10 @@ class HalfPrecision(Precision):
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(self._desired_input_dtype)
-        yield
-        torch.set_default_dtype(default_dtype)
+        try:
+            yield
+        finally:
+            torch.set_default_dtype(default_dtype)
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)

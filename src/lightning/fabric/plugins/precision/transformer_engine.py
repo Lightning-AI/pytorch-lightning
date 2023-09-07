@@ -99,31 +99,32 @@ class TransformerEnginePrecision(Precision):
         torch.set_default_dtype(self.dtype)
 
         replace_layers = self.replace_layers
-        if replace_layers:
-            original_linear = torch.nn.Linear
-            original_layer_norm = torch.nn.LayerNorm
-            torch.nn.Linear = te.Linear  # type: ignore[misc]
-            torch.nn.LayerNorm = te.LayerNorm  # type: ignore[misc]
+        try:
+            if replace_layers:
+                original_linear = torch.nn.Linear
+                original_layer_norm = torch.nn.LayerNorm
+                torch.nn.Linear = te.Linear  # type: ignore[misc]
+                torch.nn.LayerNorm = te.LayerNorm  # type: ignore[misc]
+            yield
+        finally:
+            if replace_layers:
+                torch.nn.Linear = original_linear  # type: ignore[misc]
+                torch.nn.LayerNorm = original_layer_norm  # type: ignore[misc]
 
-        yield
-
-        if replace_layers:
-            torch.nn.Linear = original_linear  # type: ignore[misc]
-            torch.nn.LayerNorm = original_layer_norm  # type: ignore[misc]
-
-        torch.set_default_dtype(default_dtype)
+            torch.set_default_dtype(default_dtype)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(self.dtype)
 
-        import transformer_engine.pytorch as te
+        try:
+            import transformer_engine.pytorch as te
 
-        with te.fp8_autocast(enabled=True, fp8_recipe=self.recipe):
-            yield
-
-        torch.set_default_dtype(default_dtype)
+            with te.fp8_autocast(enabled=True, fp8_recipe=self.recipe):
+                yield
+        finally:
+            torch.set_default_dtype(default_dtype)
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self.dtype)
