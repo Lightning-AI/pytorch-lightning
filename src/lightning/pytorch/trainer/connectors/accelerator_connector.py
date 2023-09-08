@@ -400,9 +400,9 @@ class _AcceleratorConnector:
             self._devices_flag = 1
             rank_zero_info(
                 f"Trainer will use only 1 of {self.accelerator.auto_device_count()} GPUs because it is running inside"
-                " an interactive/notebook environment. You may try to set `Trainer(devices="
-                f"{self.accelerator.auto_device_count()})` but please note that multi-GPU inside interactive/notebook"
-                " environments is considered experimental and unstable. Your mileage may vary."
+                " an interactive / notebook environment. You may try to set `Trainer(devices="
+                f"{self.accelerator.auto_device_count()})` but please note that multi-GPU inside interactive /"
+                " notebook environments is considered experimental and unstable. Your mileage may vary."
             )
         else:
             self._devices_flag = self.accelerator.auto_device_count()
