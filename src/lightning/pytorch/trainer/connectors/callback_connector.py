@@ -172,7 +172,15 @@ class _CallbackConnector:
         model_callbacks = [model_callbacks] if not isinstance(model_callbacks, Sequence) else model_callbacks
         model_callback_types = {type(c) for c in model_callbacks}
         trainer_callback_types = {type(c) for c in trainer.callbacks}
-        override_types = model_callback_types.intersection(trainer_callback_types)
+        # edge case: if an unmodified callback was added, the logic below would filter it
+        trainer_callback_types.discard(Callback)
+        # exclude trainer callbacks of the same class or subclass
+        override_types = set()
+        for m in model_callback_types:
+            for c in trainer_callback_types:
+                if issubclass(m, c):
+                    override_types.add(c)
+                    break
         if override_types:
             rank_zero_info(
                 "The following callbacks returned in `LightningModule.configure_callbacks` will override"
