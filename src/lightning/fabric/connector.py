@@ -353,7 +353,21 @@ class _Connector:
             self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
-        if self._devices_flag == "auto":
+        if self._devices_flag != "auto":
+            return
+        if (
+            _IS_INTERACTIVE
+            and isinstance(self.accelerator, CUDAAccelerator)
+            and self.accelerator.auto_device_count() > 1
+        ):
+            self._devices_flag = 1
+            rank_zero_info(
+                f"Fabric will use only 1 of {self.accelerator.auto_device_count()} GPUs because it is running inside"
+                " an interactive / notebook environment. You may try to set `Fabric(devices="
+                f"{self.accelerator.auto_device_count()})` but please note that multi-GPU inside interactive /"
+                " notebook environments is considered experimental and unstable. Your mileage may vary."
+            )
+        else:
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:

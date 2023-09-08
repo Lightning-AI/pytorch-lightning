@@ -43,19 +43,17 @@ class _DataFetcher(Iterator):
 
     def setup(self, combined_loader: CombinedLoader) -> None:
         self._combined_loader = combined_loader
-        self.length = sized_len(combined_loader)
-        self.done = self.length == 0
 
     def __iter__(self) -> "_DataFetcher":
-        self.reset()
         self.iterator = iter(self.combined_loader)
+        self.reset()
         return self
 
     def __next__(self) -> _ITERATOR_RETURN:
-        assert (iterator := self.iterator) is not None
+        assert self.iterator is not None
         self._start_profiler()
         try:
-            batch = next(iterator)
+            batch = next(self.iterator)
         except StopIteration:
             self.done = True
             raise
@@ -68,7 +66,10 @@ class _DataFetcher(Iterator):
 
     def reset(self) -> None:
         self.fetched = 0
-        self.done = False
+        # teardown calls `reset()`, and if it happens early, `combined_loader` can still be None
+        if self._combined_loader is not None:
+            self.length = sized_len(self.combined_loader)
+            self.done = self.length == 0
 
     def teardown(self) -> None:
         self.reset()
@@ -189,6 +190,8 @@ class _DataFetcherWrapper(Iterator):
 
     def __next__(self) -> _ITERATOR_RETURN:
         fetcher = self.data_fetcher
+        if fetcher.done:
+            raise StopIteration
         batch, batch_idx, dataloader_idx = super(_DataLoaderIterDataFetcher, fetcher).__next__()
         # save the state so the loops can access it
         fetcher._batch = batch
