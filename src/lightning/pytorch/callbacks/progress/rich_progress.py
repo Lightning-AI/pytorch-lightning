@@ -206,6 +206,7 @@ class RichProgressBarTheme:
     https://rich.readthedocs.io/en/stable/style.html
 
     """
+
     @staticmethod
     def detect_color_system() -> str:
         console = Console()
@@ -243,8 +244,6 @@ class RichProgressBarTheme:
     time: Union[str, Style] = colors["time"]
     processing_speed: Union[str, Style] = colors["processing_speed"]
     metrics: Union[str, Style] = "default"
-
-
 
 
 class RichProgressBar(ProgressBar):
