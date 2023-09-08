@@ -9,7 +9,7 @@ Welcome to ⚡ Lightning Fabric
       .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
          :alt: Animation showing how to convert standard training code to Lightning
    :right:
-      Fabric is the fast and lightweight way to scale PyTorch models without boilerplate code. Convert PyTorch code to Lightning Fabric in 5 lines and get access to SOTA distributed training features (DDP, FSDP, DeepSpeed, mixed precision and more) to scale the largest billion-parameter models.
+      Fabric is the fast and lightweight way to scale PyTorch models without boilerplate. Convert PyTorch code to Lightning Fabric in 5 lines and get access to SOTA distributed training features (DDP, FSDP, DeepSpeed, mixed precision and more) to scale the largest billion-parameter models.
 
 .. raw:: html
 
