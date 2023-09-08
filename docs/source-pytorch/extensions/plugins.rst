@@ -54,11 +54,12 @@ The full list of built-in precision plugins is listed below.
 
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
+    HalfPrecisionPlugin
     FSDPPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
-    XLABf16PrecisionPlugin
     XLAPrecisionPlugin
+    TransformerEnginePrecisionPlugin
 
 More information regarding precision with Lightning can be found :ref:`here <precision>`
 

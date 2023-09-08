@@ -11,11 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import importlib
-from inspect import getmembers, isclass
 from typing import Any, Callable, Dict, List, Optional
-
-from lightning.fabric.utilities.registry import _is_register_method_overridden
 
 
 class _StrategyRegistry(dict):
@@ -111,12 +107,3 @@ class _StrategyRegistry(dict):
 
     def __str__(self) -> str:
         return "Registered Strategies: {}".format(", ".join(self.keys()))
-
-
-def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:
-    module = importlib.import_module(base_module)
-    from lightning.fabric.strategies.strategy import Strategy
-
-    for _, mod in getmembers(module, isclass):
-        if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):
-            mod.register_strategies(registry)

@@ -345,7 +345,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
                 "processed": stop_batch,
                 "completed": stop_batch,
             },
-            "is_last_batch": False,
+            "is_last_batch": (stop_batch + 1) == n_batches,
         },
         "epoch_loop.scheduler_progress": {
             "total": {"ready": nbe_sch_steps + be_sch_steps, "completed": nbe_sch_steps + be_sch_steps},
@@ -815,49 +815,39 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
         trainer.fit(model, train_dataloader, val_dataloader)
 
     if persistent_workers:
+        # workers get created and persist until the teardown in the final epoch
         expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
     elif should_fail:
         expected = [
-            # iterable check
-            0,
-            # epoch ends
-            1,
-            # teardown
-            1,
+            # <-- iter() on epoch 0, workers get created
+            1,  # iter() on epoch 1, workers from epoch 0 get destroyed
+            1,  # teardown on failed epoch 1, workers from epoch 1 get destroyed
         ]
     else:
         expected = [
-            # iterable check
-            0,
-            # epoch ends
-            1,
-            2,
-            # teardown
-            3,
+            # <-- iter() on epoch 0, workers get created
+            1,  # iter() on epoch 1, workers from epoch 0 get destroyed
+            2,  # iter() on epoch 2, workers from epoch 1 get destroyed
+            3,  # teardown on epoch 2, workers from epoch 2 get destroyed
         ]
     assert train_dataloader.shutdown_workers_epochs == expected
 
     if persistent_workers:
+        # workers get created and persist until the teardown in the final epoch
         expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
     elif should_fail:
         expected = [
-            # sanity check
-            0,
-            # iterable check
-            0,
-            # epoch ends
-            0,
-            1,
+            # <-- iter() on sanity check, workers get created
+            0,  # iter() on epoch 0, workers from sanity check get destroyed
+            1,  # iter() on epoch 1, workers from epoch 0 get destroyed
+            1,  # teardown on failed epoch 1, workers from epoch 1 get destroyed
         ]
     else:
         expected = [
-            # sanity check
-            0,
-            # iterable check
-            0,
-            # epoch ends
-            0,
-            1,
-            2,
+            # <-- iter() on sanity check, workers get created
+            0,  # iter() on epoch 0, workers from sanity check get destroyed
+            1,  # iter() on epoch 1, workers from epoch 0 get destroyed
+            2,  # iter() on epoch 2, workers from epoch 1 get destroyed
+            3,  # teardown on epoch 2, workers from epoch 2 get destroyed
         ]
     assert val_dataloader.shutdown_workers_epochs == expected

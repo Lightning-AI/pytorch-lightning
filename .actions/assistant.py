@@ -36,9 +36,9 @@ REQUIREMENT_FILES = {
         "requirements/pytorch/examples.txt",
     ),
     "app": (
-        "requirements/app/base.txt",
-        "requirements/app/ui.txt",
+        "requirements/app/app.txt",
         "requirements/app/cloud.txt",
+        "requirements/app/ui.txt",
     ),
     "fabric": (
         "requirements/fabric/base.txt",

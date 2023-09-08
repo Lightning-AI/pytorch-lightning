@@ -84,9 +84,11 @@ Here is a full code example:
 
     # 1B parameters
     model = Transformer(vocab_size=dataset.vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
-    model, optimizer = fabric.setup(model, optimizer)
+    model = fabric.setup(model)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    optimizer = fabric.setup_optimizers(optimizer)
+
 
     for i in range(10):
         input, target = fabric.to_device(dataset[i])
@@ -142,7 +144,7 @@ We can specify a list of layer classes in the **wrapping policy** to inform FSDP
         # 3. Pass it to the FSDPStrategy object
         strategy = FSDPStrategy(auto_wrap_policy=policy)
 
-    PyTorch provides several of these functional policies under :mod:`torch.distributed.fsdp.wrap`.
+    PyTorch provides several of these functional policies under ``torch.distributed.fsdp.wrap``.
 
 |
 
@@ -187,6 +189,14 @@ After:
     # Fast: Creates the model on the GPU directly
     with fabric.init_module():
         model = Transformer(vocab_size=dataset.vocab_size)
+
+    # Recommended for FSDP:
+    with fabric.init_module(empty_init=True):
+        model = Transformer(vocab_size=dataset.vocab_size)
+
+For FSDP specifically, we recommend setting ``empty_init=True`` as it will allow you to initialize even larger models.
+Empty-init creates fake parameters that don't allocate any memory, their actual initialization gets delayed until ``Fabric.setup()`` where FSDP will shard and recreate the real parameters.
+For more use cases of ``empty_init=True`` outside of FSDP, read the guide on :doc:`model initialization <../model_init>`.
 
 
 ----
@@ -386,6 +396,8 @@ You can easily load checkpoints saved by Fabric to resume training:
     # model.load_state_dict(torch.load("path/to/checkpoint/file"))
 
 Fabric will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
+Checkpoints saved with ``state_dict_type="full"`` can be loaded by all strategies, but sharded checkpoints can only be loaded by FSDP.
+Read :doc:`the checkpoints guide <../../guide/checkpoint>` to explore more features.
 
 
 ----

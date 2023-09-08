@@ -1,10 +1,10 @@
 import os
 
-import lightning as L
+from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.storage import Drive
 
 
-class Work_1(L.LightningWork):
+class Work_1(LightningWork):
     def run(self, drive: Drive):
         # 1. Create a file.
         with open("a.txt", "w") as f:
@@ -17,7 +17,7 @@ class Work_1(L.LightningWork):
         os.remove("a.txt")
 
 
-class Work_2(L.LightningWork):
+class Work_2(LightningWork):
     def __init__(self):
         super().__init__()
 
@@ -34,7 +34,7 @@ class Work_2(L.LightningWork):
             print(f.readlines()[0])  # Prints Hello World !
 
 
-class Flow(L.LightningFlow):
+class Flow(LightningFlow):
     def __init__(self):
         super().__init__()
         self.drive_1 = Drive("lit://drive_1")
@@ -48,4 +48,4 @@ class Flow(L.LightningFlow):
         self.stop("Application End!")
 
 
-app = L.LightningApp(Flow())
+app = LightningApp(Flow())

@@ -751,7 +751,7 @@ def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
     assert set(logged_metrics) == cb_metrics
 
 
-inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
+inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING.value)
 expected0 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
        Test metric             DataLoader 0             DataLoader 1
@@ -770,7 +770,7 @@ inputs1 = (
         },
         {"different value": torch.tensor(1.5), "tes:t": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
     ],
-    RunningStage.TESTING,
+    RunningStage.TESTING.value,
 )
 expected1 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -792,7 +792,7 @@ inputs2 = (
         {f"a {'really ' * 11}long metric name": torch.tensor(5)},
         {f"a {'really ' * 11}long metric name": torch.tensor([[6]])},
     ],
-    RunningStage.VALIDATING,
+    RunningStage.VALIDATING.value,
 )
 expected2 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -947,7 +947,7 @@ def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
 
     class CustomBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx, dataloader_idx=None):
-            self.log(f"val_log_{self.trainer.state.fn}", batch_idx, on_step=True, on_epoch=False)
+            self.log(f"val_log_{self.trainer.state.fn.value}", batch_idx, on_step=True, on_epoch=False)
 
         def test_step(self, batch, batch_idx, dataloader_idx=None):
             self.log("test_log", batch_idx, on_step=True, on_epoch=False)

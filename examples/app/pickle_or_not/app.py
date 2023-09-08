@@ -1,11 +1,11 @@
 import logging
 
-import lightning as L
+from lightning.app import LightningApp, LightningFlow, LightningWork
 
 logger = logging.getLogger(__name__)
 
 
-class PickleChecker(L.LightningWork):
+class PickleChecker(LightningWork):
     def run(self, pickle_image: bytes):
         parsed = self.parse_image(pickle_image)
         if parsed == b"it is a pickle":
@@ -19,7 +19,7 @@ class PickleChecker(L.LightningWork):
         return image_str
 
 
-class Slack(L.LightningFlow):
+class Slack(LightningFlow):
     def __init__(self):
         super().__init__()
 
@@ -31,7 +31,7 @@ class Slack(L.LightningFlow):
         pass
 
 
-class RootComponent(L.LightningFlow):
+class RootComponent(LightningFlow):
     def __init__(self):
         super().__init__()
         self.pickle_checker = PickleChecker()
@@ -51,4 +51,4 @@ class RootComponent(L.LightningFlow):
             self.stop("Pickle or Not End")
 
 
-app = L.LightningApp(RootComponent())
+app = LightningApp(RootComponent())

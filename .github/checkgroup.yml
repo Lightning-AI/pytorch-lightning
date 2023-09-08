@@ -38,6 +38,9 @@ subprojects:
       - "pl-cpu (macOS-11, pytorch, 3.8, 1.13)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.8, 1.13)"
       - "pl-cpu (windows-2022, pytorch, 3.8, 1.13)"
+      - "pl-cpu (macOS-12, pytorch, 3.11, 2.0)"
+      - "pl-cpu (ubuntu-22.04, pytorch, 3.11, 2.0)"
+      - "pl-cpu (windows-2022, pytorch, 3.11, 2.0)"
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
@@ -108,8 +111,8 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "docs-checks (fabric, doctest)"
-      - "make-html (fabric)"
+      - "docs-make (fabric, doctest)"
+      - "docs-make (fabric, html)"
 
   - id: "pytorch_lightning: Docs"
     paths:
@@ -125,13 +128,13 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "docs-checks (pytorch, doctest)"
-      - "make-html (pytorch)"
+      - "docs-make (pytorch, doctest)"
+      - "docs-make (pytorch, html)"
 
   - id: "pytorch_lightning: Docker"
     paths:
       - ".actions/*"
-      - ".github/workflows/ci-dockers.yml"
+      - ".github/workflows/docker-build.yml"
       - "dockers/**"
       - "requirements/pytorch/**"
       - "requirements/fabric/**"
@@ -205,6 +208,9 @@ subprojects:
       - "fabric-cpu (macOS-11, fabric, 3.8, 1.13)"
       - "fabric-cpu (ubuntu-20.04, fabric, 3.8, 1.13)"
       - "fabric-cpu (windows-2022, fabric, 3.8, 1.13)"
+      - "fabric-cpu (macOS-12, fabric, 3.11, 2.0)"
+      - "fabric-cpu (ubuntu-22.04, fabric, 3.11, 2.0)"
+      - "fabric-cpu (windows-2022, fabric, 3.11, 2.0)"
 
   - id: "lightning_fabric: Azure GPU"
     paths:
@@ -259,12 +265,15 @@ subprojects:
       - "app-pytest (macOS-11, lightning, 3.8, latest)"
       - "app-pytest (macOS-11, lightning, 3.8, oldest)"
       - "app-pytest (macOS-11, app, 3.9, latest)"
+      - "app-pytest (macOS-12, app, 3.11, latest)"
       - "app-pytest (ubuntu-20.04, lightning, 3.8, latest)"
       - "app-pytest (ubuntu-20.04, lightning, 3.8, oldest)"
       - "app-pytest (ubuntu-20.04, app, 3.9, latest)"
+      - "app-pytest (ubuntu-22.04, app, 3.11, latest)"
       - "app-pytest (windows-2022, lightning, 3.8, latest)"
       - "app-pytest (windows-2022, lightning, 3.8, oldest)"
       - "app-pytest (windows-2022, app, 3.8, latest)"
+      - "app-pytest (windows-2022, app, 3.11, latest)"
 
   - id: "lightning_app: Examples"
     paths:
@@ -352,8 +361,8 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "docs-checks (app, doctest)"
-      - "make-html (app)"
+      - "docs-make (app, doctest)"
+      - "docs-make (app, html)"
 
   # SECTION: common
 
@@ -387,32 +396,32 @@ subprojects:
       - "!**/*.md"
     checks:
       - "install-pkg (ubuntu-22.04, app, 3.8)"
-      - "install-pkg (ubuntu-22.04, app, 3.10)"
+      - "install-pkg (ubuntu-22.04, app, 3.11)"
       - "install-pkg (ubuntu-22.04, fabric, 3.8)"
-      - "install-pkg (ubuntu-22.04, fabric, 3.10)"
+      - "install-pkg (ubuntu-22.04, fabric, 3.11)"
       - "install-pkg (ubuntu-22.04, pytorch, 3.8)"
-      - "install-pkg (ubuntu-22.04, pytorch, 3.10)"
+      - "install-pkg (ubuntu-22.04, pytorch, 3.11)"
       - "install-pkg (ubuntu-22.04, lightning, 3.8)"
-      - "install-pkg (ubuntu-22.04, lightning, 3.10)"
+      - "install-pkg (ubuntu-22.04, lightning, 3.11)"
       - "install-pkg (ubuntu-22.04, notset, 3.8)"
-      - "install-pkg (ubuntu-22.04, notset, 3.10)"
+      - "install-pkg (ubuntu-22.04, notset, 3.11)"
       - "install-pkg (macOS-12, app, 3.8)"
-      - "install-pkg (macOS-12, app, 3.10)"
+      - "install-pkg (macOS-12, app, 3.11)"
       - "install-pkg (macOS-12, fabric, 3.8)"
-      - "install-pkg (macOS-12, fabric, 3.10)"
+      - "install-pkg (macOS-12, fabric, 3.11)"
       - "install-pkg (macOS-12, pytorch, 3.8)"
-      - "install-pkg (macOS-12, pytorch, 3.10)"
+      - "install-pkg (macOS-12, pytorch, 3.11)"
       - "install-pkg (macOS-12, lightning, 3.8)"
-      - "install-pkg (macOS-12, lightning, 3.10)"
+      - "install-pkg (macOS-12, lightning, 3.11)"
       - "install-pkg (macOS-12, notset, 3.8)"
-      - "install-pkg (macOS-12, notset, 3.10)"
+      - "install-pkg (macOS-12, notset, 3.11)"
       - "install-pkg (windows-2022, app, 3.8)"
-      - "install-pkg (windows-2022, app, 3.10)"
+      - "install-pkg (windows-2022, app, 3.11)"
       - "install-pkg (windows-2022, fabric, 3.8)"
-      - "install-pkg (windows-2022, fabric, 3.10)"
+      - "install-pkg (windows-2022, fabric, 3.11)"
       - "install-pkg (windows-2022, pytorch, 3.8)"
-      - "install-pkg (windows-2022, pytorch, 3.10)"
+      - "install-pkg (windows-2022, pytorch, 3.11)"
       - "install-pkg (windows-2022, lightning, 3.8)"
-      - "install-pkg (windows-2022, lightning, 3.10)"
+      - "install-pkg (windows-2022, lightning, 3.11)"
       - "install-pkg (windows-2022, notset, 3.8)"
-      - "install-pkg (windows-2022, notset, 3.10)"
+      - "install-pkg (windows-2022, notset, 3.11)"

@@ -44,6 +44,7 @@ from lightning.pytorch.plugins import (
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
+    TransformerEnginePrecisionPlugin,
     XLAPrecisionPlugin,
 )
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
@@ -539,6 +540,8 @@ class _AcceleratorConnector:
             return PrecisionPlugin()
         if self._precision_flag == "64-true":
             return DoublePrecisionPlugin()
+        if self._precision_flag == "transformer-engine":
+            return TransformerEnginePrecisionPlugin()
 
         if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(

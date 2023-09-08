@@ -19,7 +19,7 @@ from typing import Any, List, Optional, Tuple
 
 from packaging.version import Version
 
-from lightning.app import LightningFlow, LightningWork
+from lightning.app.core import LightningFlow, LightningWork
 from lightning.app.core.queues import BaseQueue
 from lightning.app.utilities.imports import (
     _CLOUD_TEST_RUN,
