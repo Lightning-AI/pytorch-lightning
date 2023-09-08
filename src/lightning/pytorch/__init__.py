@@ -23,7 +23,6 @@ if not _root_logger.hasHandlers():
     _logger.propagate = False
 
 from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
-from lightning.pytorch import demos  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402
