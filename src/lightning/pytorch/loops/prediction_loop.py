@@ -38,6 +38,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
 
 
@@ -236,7 +237,6 @@ class _PredictionLoop(_Loop):
         # the `_step` methods don't take a batch_idx when `dataloader_iter` is used, but all other hooks still do,
         # so we need different kwargs
         hook_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
-        step_args = hook_kwargs.values() if not using_dataloader_iter else (dataloader_iter,)
 
         call._call_callback_hooks(trainer, "on_predict_batch_start", *hook_kwargs.values())
         call._call_lightning_module_hook(trainer, "on_predict_batch_start", *hook_kwargs.values())
@@ -244,6 +244,11 @@ class _PredictionLoop(_Loop):
         self.batch_progress.increment_started()
 
         # configure step_kwargs
+        step_args = (
+            self._build_step_args_from_hook_kwargs(hook_kwargs, "predict_step")
+            if not using_dataloader_iter
+            else (dataloader_iter,)
+        )
         predictions = call._call_strategy_hook(trainer, "predict_step", *step_args)
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
@@ -281,6 +286,14 @@ class _PredictionLoop(_Loop):
         if dataloader_idx is not None:
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
+
+    def _build_step_args_from_hook_kwargs(self, hook_kwargs: OrderedDict, step_hook_name: str):
+        """Helper method to build args for `test_step` or `validation_step`."""
+        kwargs = hook_kwargs.copy()
+        step_hook_fx = getattr(self.trainer.lightning_module, step_hook_name)
+        if not is_param_in_hook_signature(step_hook_fx, "batch_idx", min_args=2):
+            kwargs.pop("batch_idx", None)
+        return kwargs.values()
 
     def _get_batch_indices(self, dataloader: object) -> List[List[int]]:  # batches x samples
         """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
