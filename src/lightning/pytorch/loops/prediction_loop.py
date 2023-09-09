@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Iterator, List, Optional, Union
 
 import torch
 from lightning_utilities import WarningCache
@@ -270,7 +270,7 @@ class _PredictionLoop(_Loop):
         if self._return_predictions or any_on_epoch:
             self._predictions[dataloader_idx].append(move_data_to_device(predictions, torch.device("cpu")))
 
-    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> Dict[str, Any]:
+    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> OrderedDict:
         """Assembles the keyword arguments for the ``predict_step``
 
         Args:
@@ -287,13 +287,13 @@ class _PredictionLoop(_Loop):
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
 
-    def _build_step_args_from_hook_kwargs(self, hook_kwargs: OrderedDict, step_hook_name: str):
+    def _build_step_args_from_hook_kwargs(self, hook_kwargs: OrderedDict, step_hook_name: str) -> tuple:
         """Helper method to build args for `predict_step`."""
         kwargs = hook_kwargs.copy()
         step_hook_fx = getattr(self.trainer.lightning_module, step_hook_name)
         if not is_param_in_hook_signature(step_hook_fx, "batch_idx", min_args=2):
             kwargs.pop("batch_idx", None)
-        return kwargs.values()
+        return tuple(kwargs.values())
 
     def _get_batch_indices(self, dataloader: object) -> List[List[int]]:  # batches x samples
         """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
