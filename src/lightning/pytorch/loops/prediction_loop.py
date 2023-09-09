@@ -288,7 +288,7 @@ class _PredictionLoop(_Loop):
         return step_kwargs
 
     def _build_step_args_from_hook_kwargs(self, hook_kwargs: OrderedDict, step_hook_name: str):
-        """Helper method to build args for `test_step` or `validation_step`."""
+        """Helper method to build args for `predict_step`."""
         kwargs = hook_kwargs.copy()
         step_hook_fx = getattr(self.trainer.lightning_module, step_hook_name)
         if not is_param_in_hook_signature(step_hook_fx, "batch_idx", min_args=2):
