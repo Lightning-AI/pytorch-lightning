@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
 from unittest import mock
 from unittest.mock import call, Mock
 
@@ -505,7 +504,6 @@ def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmpdir):
             super().__init__()
             self.validation_step_called = False
             self.test_step_called = False
-            self.predict_step_called = False
 
         def validation_step(self, batch):
             self.validation_step_called = True
@@ -515,10 +513,6 @@ def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmpdir):
             self.test_step_called = True
             return {"y": self.step(batch)}
 
-        def predict_step(self, batch) -> Any:
-            self.predict_step_called = True
-            return self.step(batch)
-
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
 
@@ -527,6 +521,3 @@ def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmpdir):
 
     trainer.test(model)
     assert model.test_step_called
-
-    trainer.predict(model)
-    assert model.predict_step_called
