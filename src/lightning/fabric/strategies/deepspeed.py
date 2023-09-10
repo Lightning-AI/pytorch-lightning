@@ -26,6 +26,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Module
 from torch.optim import Optimizer
 
+from lightning.fabric.utilities.load import _take_state_and_load_stateful
 from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.precision import Precision
@@ -503,10 +504,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
 
-        for k in client_state.copy():
-            if k not in state:
-                continue
-            state[k] = client_state.pop(k)
+        _take_state_and_load_stateful(source=client_state, destination=state)
         return client_state
 
     def clip_gradients_norm(
