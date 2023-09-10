@@ -516,7 +516,7 @@ def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
 
-    trainer.fit(model)
+    trainer.validate(model)
     assert model.validation_step_called
 
     trainer.test(model)
