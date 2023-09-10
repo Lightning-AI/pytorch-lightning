@@ -205,7 +205,7 @@ def _materialize_tensors(collection: Any) -> Any:
     return apply_to_collection(collection, dtype=_NotYetLoadedTensor, function=_load_tensor)
 
 
-def _take_state_and_load_stateful(
+def _move_state_into(
     source: Dict[str, Any], destination: Dict[str, Union[Any, _Stateful]], keys: Optional[Set[str]] = None
 ) -> None:
     """Takes the state from the source destination and moves it into the destination dictionary.

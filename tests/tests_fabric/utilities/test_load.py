@@ -18,7 +18,7 @@ from lightning.fabric.utilities.load import (
     _lazy_load,
     _materialize_tensors,
     _NotYetLoadedTensor,
-    _take_state_and_load_stateful,
+    _move_state_into,
 )
 from tests_fabric.helpers.runif import RunIf
 
@@ -105,11 +105,11 @@ def test_materialize_tensors(tmp_path):
     assert materialized["nested"]["int"] == 1
 
 
-def test_take_state_and_load_stateful():
+def test_move_state_into():
     # all keys from the source
     source = {"apple": 1, "cocofruit": 2}
     destination = {"banana": 100}
-    _take_state_and_load_stateful(source, destination)
+    _move_state_into(source, destination)
     assert source == {}
     assert destination == {"apple": 1, "cocofruit": 2, "banana": 100}
 
@@ -117,7 +117,7 @@ def test_take_state_and_load_stateful():
     source = {"apple": 1, "cocofruit": 2}
     destination = {"banana": 100}
     keys = {"apple"}
-    _take_state_and_load_stateful(source, destination, keys=keys)
+    _move_state_into(source, destination, keys=keys)
     assert source == {"cocofruit": 2}
     assert destination == {"apple": 1, "banana": 100}
 
@@ -133,7 +133,7 @@ def test_take_state_and_load_stateful():
 
     source = {"cocofruit": 2, "banana": {"count": 100}}
     destination = {"banana": Fruit()}
-    _take_state_and_load_stateful(source, destination)
+    _move_state_into(source, destination)
     assert source == {}
     assert destination["cocofruit"] == 2
     assert destination["banana"].count == 100

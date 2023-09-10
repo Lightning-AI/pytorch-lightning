@@ -67,7 +67,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_1,
 )
 from lightning.fabric.utilities.init import _EmptyInit
-from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _take_state_and_load_stateful
+from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, _Stateful
@@ -630,7 +630,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
 
             # Load metadata (anything not a module or optimizer)
-            _take_state_and_load_stateful(source=checkpoint, destination=state, keys=requested_metadata_keys)
+            _move_state_into(source=checkpoint, destination=state, keys=requested_metadata_keys)
 
             # return the remaining metadata that wasn't requested as part of `state`
             return checkpoint
