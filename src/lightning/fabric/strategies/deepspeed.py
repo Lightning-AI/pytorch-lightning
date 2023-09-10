@@ -509,6 +509,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
 
+        # `Engine.load_checkpoint` adds useless keys 'optimizer' and 'lr_scheduler' to the client state; remove
+        # them to avoid name collision with user state
         keys = set(client_state.keys()) & set(state.keys()) - {"optimizer", "lr_scheduler"}
         _take_state_and_load_stateful(source=client_state, destination=state, keys=keys)
         return client_state
