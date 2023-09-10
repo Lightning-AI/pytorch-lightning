@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-import os
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, Mock
