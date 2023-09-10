@@ -20,7 +20,7 @@ import pytest
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
-from lightning.pytorch.loggers.mlflow import MLFLOW_RUN_NAME, resolve_tags
+# from lightning.pytorch.loggers.mlflow import MLFLOW_RUN_NAME, resolve_tags
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
@@ -34,10 +34,12 @@ def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, r
 
 
 @mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
-@mock.patch("lightning.pytorch.loggers.mlflow.mlflow", Mock())
-@mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
-def test_mlflow_logger_exists(client, _, tmpdir):
+# @mock.patch("lightning.pytorch.loggers.mlflow.mlflow", Mock())
+# @mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient")
+@mock.patch.dict("sys.modules", {"mlflow": MagicMock(tracking=Mock())})
+def test_mlflow_logger_exists(mlflow_mock, tmpdir):
     """Test launching three independent loggers with either same or different experiment name."""
+    client = mlflow_mock.MlflowClient
     run1 = MagicMock()
     run1.info.run_id = "run-id-1"
     run1.info.experiment_id = "exp-id-1"
