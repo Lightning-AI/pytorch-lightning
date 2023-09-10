@@ -48,13 +48,12 @@ class _FabricOptimizer:
             optimizer: The optimizer to wrap
             strategy: Reference to the strategy for handling the optimizer step
 
-
         """
-        self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._strategy = strategy
         self._callbacks = callbacks or []
-        self._refresh()
+        # imitate the class of the wrapped object to make isinstance checks work
+        self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
     @property
     def optimizer(self) -> Optimizer:
@@ -65,9 +64,6 @@ class _FabricOptimizer:
 
     def load_state_dict(self, state_dict: Dict[str, Tensor]) -> None:
         self.optimizer.load_state_dict(state_dict)
-        # `Optimizer.load_state_dict` modifies `optimizer.__dict__`, so we need to update the `__dict__` on
-        # this wrapper
-        self._refresh()
 
     def step(self, closure: Optional[Callable] = None) -> Any:
         kwargs = {"closure": closure} if closure is not None else {}
@@ -86,20 +82,10 @@ class _FabricOptimizer:
                 hook(strategy=self._strategy, optimizer=optimizer)
         return output
 
-    def _refresh(self) -> None:
-        """Refreshes the ``__dict__`` so that it matches the internal states in the wrapped optimizer.
-
-        This is only needed to present the user with an updated view in case they inspect the state of this wrapper.
-        """
-        # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
-        # not want to call on destruction of the `_FabricOptimizer
-        self.__dict__.update(
-            {
-                k: v
-                for k, v in self.optimizer.__dict__.items()
-                if k not in ("load_state_dict", "state_dict", "step", "__del__")
-            }
-        )
+    def __getattr__(self, item: Any) -> Any:
+        # __getattr__ gets called as a last resort if the attribute does not exist
+        # redirect it to the wrapped optimizer
+        return getattr(self._optimizer, item)
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
