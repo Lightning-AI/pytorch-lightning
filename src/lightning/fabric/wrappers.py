@@ -83,8 +83,6 @@ class _FabricOptimizer:
         return output
 
     def __getattr__(self, item: Any) -> Any:
-        # __getattr__ gets called as a last resort if the attribute does not exist
-        # redirect it to the wrapped optimizer
         return getattr(self._optimizer, item)
 
 
