@@ -210,8 +210,7 @@ def _take_state_and_load_stateful(
 ) -> None:
     """Takes the state from the source destination and moves it into the destination dictionary.
 
-    If an object in
-    the destination follows the stateful protocol, it loads the source state via ``load_state_dict``.
+    If an object in the destination follows the stateful protocol, it loads the source state via ``load_state_dict``.
 
     """
     keys = set(source.keys()) if keys is None else keys
