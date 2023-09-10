@@ -213,8 +213,7 @@ def _take_state_and_load_stateful(
     If an object in the destination follows the stateful protocol, it loads the source state via ``load_state_dict``.
 
     """
-    keys = set(source) if keys is None else keys
-    keys = keys & set(source)
+    keys = set(source) if keys is None else keys & set(source)
     for key in keys:
         state = source.pop(key)
         if key in destination and isinstance(destination[key], _Stateful):
