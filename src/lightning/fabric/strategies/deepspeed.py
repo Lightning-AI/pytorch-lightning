@@ -487,7 +487,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " states, call the load method for each model checkpoint separately."
             )
         engine = engines[0]
-        optimzer_state_requested = bool(len([item for item in state.values() if isinstance(item, Optimizer)]))
+
+        from deepspeed.runtime import DeepSpeedOptimizer
+        
+        optimzer_state_requested = bool(len([item for item in state.values() if isinstance(item, (Optimizer, DeepSpeedOptimizer))]))
 
         torch.cuda.empty_cache()
         _, client_state = engine.load_checkpoint(
@@ -504,7 +507,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
 
-        _take_state_and_load_stateful(source=client_state, destination=state)
+        keys = set(client_state.keys()) & set(state.keys()) - {"optimizer", "lr_scheduler"}
+        _take_state_and_load_stateful(source=client_state, destination=state, keys=keys)
         return client_state
 
     def clip_gradients_norm(
