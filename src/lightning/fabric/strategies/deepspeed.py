@@ -26,7 +26,6 @@ from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from lightning.fabric.utilities.load import _take_state_and_load_stateful
 from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.precision import Precision
@@ -34,6 +33,7 @@ from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
+from lightning.fabric.utilities.load import _take_state_and_load_stateful
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH

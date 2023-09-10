@@ -14,7 +14,7 @@ import pickle
 import warnings
 from functools import partial
 from io import BytesIO
-from typing import Any, Callable, Dict, IO, Optional, OrderedDict, Sequence, TYPE_CHECKING, Union, Mapping, Set
+from typing import Any, Callable, Dict, IO, Optional, OrderedDict, Sequence, Set, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -208,8 +208,12 @@ def _materialize_tensors(collection: Any) -> Any:
 def _take_state_and_load_stateful(
     source: Dict[str, Any], destination: Dict[str, Union[Any, _Stateful]], keys: Optional[Set[str]] = None
 ) -> None:
-    """Takes the state from the source destination and moves it into the destination dictionary. If an object in
-    the destination follows the stateful protocol, it loads the source state via ``load_state_dict``."""
+    """Takes the state from the source destination and moves it into the destination dictionary.
+
+    If an object in
+    the destination follows the stateful protocol, it loads the source state via ``load_state_dict``.
+
+    """
     keys = set(source.keys()) if keys is None else keys
     for key in keys:
         if key not in source:
