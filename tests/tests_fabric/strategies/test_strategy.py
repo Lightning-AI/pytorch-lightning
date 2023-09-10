@@ -80,21 +80,21 @@ def test_save_checkpoint_convert_stateful_objects(tmp_path):
 def test_save_load_stateful_objects(tmp_path):
     """Test that stateful objects other than modules and optimizers get converted and loaded correctly."""
 
-    class MyState:
+    class Fruit:
         count = 1
 
         def state_dict(self):
-            return {"cocofruit": self.count}
+            return {"count": self.count}
 
         def load_state_dict(self, state_dict):
-            self.count = state_dict["cocofruit"]
+            self.count = state_dict["count"]
 
-    state = MyState()
+    state = Fruit()
     state.count = 100
     assert isinstance(state, _Stateful)
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
     strategy.save_checkpoint(tmp_path / "checkpoint.ckpt", {"state": state})
-    state = MyState()
+    state = Fruit()
     assert state.count == 1
     strategy.load_checkpoint(tmp_path / "checkpoint.ckpt", {"state": state})
     assert state.count == 100
