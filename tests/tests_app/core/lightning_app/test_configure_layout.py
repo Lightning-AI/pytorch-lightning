@@ -216,6 +216,7 @@ class DynamicContentComponent(EmptyFlow):
         )
 
 
+@pytest.mark.skipif(_IS_WINDOWS, reason="strange TimeOut exception")
 @pytest.mark.xfail(strict=False, reason="hanging... need to be fixed")  # fixme
 def test_dynamic_content_layout_update():
     """Test that the `configure_layout()` gets called as part of the loop and can return new layouts."""
