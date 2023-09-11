@@ -9,6 +9,7 @@ from lightning.app.frontend.stream_lit import StreamlitFrontend
 from lightning.app.frontend.web import StaticWebFrontend
 from lightning.app.runners import MultiProcessRuntime
 from lightning.app.testing.helpers import EmptyFlow
+from lightning.app.utilities.imports import _IS_WINDOWS
 
 
 @pytest.mark.parametrize("return_val", [1, None, set(), "string"])
@@ -86,6 +87,7 @@ class StaticWebFrontendFlow(LightningFlow):
         return frontend
 
 
+@pytest.mark.skipif(_IS_WINDOWS, reason="strange TimeOut exception")
 @pytest.mark.xfail(strict=False, reason="hanging... need to be fixed")  # fixme
 @pytest.mark.parametrize("flow", [StaticWebFrontendFlow, StreamlitFrontendFlow])
 @mock.patch("lightning.app.runners.multiprocess.find_free_network_port")

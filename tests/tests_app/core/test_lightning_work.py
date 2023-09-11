@@ -13,7 +13,7 @@ from lightning.app.storage import Path
 from lightning.app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
 from lightning.app.testing.testing import LightningTestApp
 from lightning.app.utilities.enum import make_status, WorkStageStatus
-from lightning.fabric.utilities.imports import _IS_WINDOWS
+from lightning.app.utilities.imports import _IS_WINDOWS
 from lightning.app.utilities.exceptions import LightningWorkException
 from lightning.app.utilities.packaging.build_config import BuildConfig
 from lightning.app.utilities.proxies import ProxyWorkRun, WorkRunner
@@ -251,7 +251,7 @@ def test_work_path_assignment():
     assert work.path == work.lit_path
 
 
-@pytest.mark.skipif(_IS_WINDOWS, reason="strange TimeOut exception")  # Todo
+@pytest.mark.skipif(_IS_WINDOWS, reason="strange TimeOut exception")
 @pytest.mark.xfail(strict=False, reason="Timeout")  # fixme
 def test_work_state_change_with_path():
     """Test that type changes to a Path attribute are properly reflected within the state."""
