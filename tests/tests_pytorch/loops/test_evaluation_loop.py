@@ -513,7 +513,13 @@ def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmpdir):
             self.test_step_called = True
             return {"y": self.step(batch)}
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=1,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
     model = TestModel()
 
     trainer.fit(model)
