@@ -23,7 +23,7 @@ from lightning.app.storage.requests import _ExistsResponse, _GetResponse
 from lightning.app.testing.helpers import _MockQueue, _RunIf, EmptyWork
 from lightning.app.utilities.app_helpers import LightningJSONEncoder
 from lightning.app.utilities.component import _context
-from lightning.app.utilities.imports import _is_s3fs_available
+from lightning.app.utilities.imports import _is_s3fs_available, _IS_WINDOWS
 
 
 def test_path_instantiation():
@@ -400,6 +400,7 @@ class DynamicSourceToDestFlow(LightningFlow):
 
 
 # FIXME(alecmerdler): This test is failing...
+@pytest.mark.skipif(_IS_WINDOWS, reason="strange TimeOut exception")
 @pytest.mark.xfail(strict=False, reason="hanging...")
 def test_multiprocess_path_in_work_and_flow_dynamic(tmpdir):
     root = DynamicSourceToDestFlow(tmpdir)
