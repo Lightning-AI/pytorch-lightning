@@ -728,6 +728,8 @@ class Fabric:
 
         """
         if filter is not None:
+            if not isinstance(state, dict):
+                raise NotImplementedError("Filtering is not supported when a dictionary state is not passed.")
             if not isinstance(filter, dict):
                 raise TypeError(f"Filter should be a dictionary, given {filter!r}")
             if not set(filter).issubset(state):
