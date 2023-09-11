@@ -25,7 +25,7 @@ from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 from lightning.app.utilities.tree import breadth_first
 
 if TYPE_CHECKING:
-    from lightning.app import LightningFlow
+    from lightning.app.core import LightningFlow
 
 COMPONENT_CONTEXT: Optional[ComponentContext] = None
 
@@ -38,7 +38,7 @@ def _convert_paths_after_init(root: "LightningFlow"):
     consumer.
 
     """
-    from lightning.app import LightningFlow, LightningWork
+    from lightning.app.core import LightningFlow, LightningWork
     from lightning.app.storage import Path
 
     for component in breadth_first(root, types=(LightningFlow, LightningWork)):

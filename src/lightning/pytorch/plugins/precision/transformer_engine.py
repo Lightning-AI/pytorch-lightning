@@ -11,18 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import typing as t
-from typing import Protocol, runtime_checkable
-
-from lightning.app.core import LightningFlow, LightningWork
-from lightning.app.structures import Dict, List
-
-Component = t.Union[LightningFlow, LightningWork, Dict, List]
-ComponentTuple = (LightningFlow, LightningWork, Dict, List)
+from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision as FabricTEPrecision
+from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 
 
-@runtime_checkable
-class Hashable(Protocol):
-    def to_dict(self) -> t.Dict[str, t.Any]:
-        ...
+class TransformerEnginePrecisionPlugin(PrecisionPlugin, FabricTEPrecision):
+    pass

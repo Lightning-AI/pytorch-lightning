@@ -1,7 +1,7 @@
-import lightning as L
+from lightning.app import LightningWork
 
 
-class ExampleWork(L.LightningWork):
+class ExampleWork(LightningWork):
     def run(self, *args, **kwargs):
         print(f"I received the following props: args: {args} kwargs: {kwargs}")
 

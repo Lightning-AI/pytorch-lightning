@@ -310,7 +310,7 @@ def test_metrics_reset(tmpdir):
             return acc, ap
 
         def setup(self, stage):
-            fn = stage
+            fn = stage.value
             if fn == "fit":
                 for stage in ("train", "validate"):
                     acc, ap = self._create_metrics()
@@ -318,7 +318,7 @@ def test_metrics_reset(tmpdir):
                     self.add_module(f"ap_{fn}_{stage}", ap)
             else:
                 acc, ap = self._create_metrics()
-                stage = self.trainer.state.stage
+                stage = self.trainer.state.stage.value
                 self.add_module(f"acc_{fn}_{stage}", acc)
                 self.add_module(f"ap_{fn}_{stage}", ap)
 
@@ -326,7 +326,7 @@ def test_metrics_reset(tmpdir):
             return self.layer(x)
 
         def _step(self, batch):
-            fn, stage = self.trainer.state.fn, self.trainer.state.stage
+            fn, stage = self.trainer.state.fn.value, self.trainer.state.stage.value
 
             logits = self(batch)
             loss = logits.sum()

@@ -1,12 +1,13 @@
 from pathlib import Path
 
-import lightning as L
 import optuna
-from lightning.app.structures import Dict
 from objective import ObjectiveWork
 
+from lightning.app import CloudCompute, LightningApp, LightningFlow
+from lightning.app.structures import Dict
 
-class RootHPOFlow(L.LightningFlow):
+
+class RootHPOFlow(LightningFlow):
     def __init__(self, script_path, data_dir, total_trials, simultaneous_trials):
         super().__init__()
         self.script_path = script_path
@@ -29,7 +30,7 @@ class RootHPOFlow(L.LightningFlow):
                 objective_work = ObjectiveWork(
                     script_path=self.script_path,
                     data_dir=self.data_dir,
-                    cloud_compute=L.CloudCompute("cpu"),
+                    cloud_compute=CloudCompute("cpu"),
                 )
                 self.ws[work_name] = objective_work
             if not self.ws[work_name].has_started:
@@ -47,7 +48,7 @@ class RootHPOFlow(L.LightningFlow):
 
 
 if __name__ == "__main__":
-    app = L.LightningApp(
+    app = LightningApp(
         RootHPOFlow(
             script_path=str(Path(__file__).parent / "pl_script.py"),
             data_dir="data/hymenoptera_data_version_0",

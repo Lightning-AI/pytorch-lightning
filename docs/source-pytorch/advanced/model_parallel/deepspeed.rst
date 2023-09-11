@@ -248,6 +248,9 @@ This reduces the time taken to initialize very large models, as well as ensure w
     trainer.predict()
 
 
+See also: See also: :doc:`../model_init`
+
+
 .. _deepspeed-zero-stage-3-offload:
 
 DeepSpeed ZeRO Stage 3 Offload

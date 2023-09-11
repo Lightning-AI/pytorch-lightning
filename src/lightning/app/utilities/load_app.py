@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Type, Union
 from lightning.app.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
-    from lightning.app import LightningApp, LightningFlow, LightningWork
+    from lightning.app.core import LightningFlow, LightningWork, LightningApp
     from lightning.app.plugin.plugin import LightningPlugin
 
 from lightning.app.utilities.app_helpers import Logger, _mock_missing_imports
@@ -277,7 +277,7 @@ def _patch_sys_argv():
 
 
 def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:
-    from lightning.app import LightningWork
+    from lightning.app.core import LightningWork
 
     extras = {}
 

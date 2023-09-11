@@ -1,8 +1,9 @@
-import lightning as L
 from placeholdername import ComponentA, ComponentB
 
+from lightning.app import LightningApp, LightningFlow
 
-class LitApp(L.LightningFlow):
+
+class LitApp(LightningFlow):
     def __init__(self) -> None:
         super().__init__()
         self.component_a = ComponentA()
@@ -13,4 +14,4 @@ class LitApp(L.LightningFlow):
         self.component_b.run()
 
 
-app = L.LightningApp(LitApp())
+app = LightningApp(LitApp())

@@ -34,7 +34,7 @@ from lightning_cloud.openapi import (
 )
 from lightning_cloud.openapi.rest import ApiException
 
-from lightning.app import LightningApp, LightningWork
+from lightning.app.core import LightningApp, LightningWork
 from lightning.app.core.queues import QueuingSystem
 from lightning.app.runners.backends.backend import Backend
 from lightning.app.storage import Drive, Mount

@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type, Union
 
 if TYPE_CHECKING:
-    from lightning.app import LightningFlow, LightningWork
+    from lightning.app.core import LightningFlow, LightningWork
 
 
 class LightningVisitor(ast.NodeVisitor):

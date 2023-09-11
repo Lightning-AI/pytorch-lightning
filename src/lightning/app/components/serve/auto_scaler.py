@@ -504,11 +504,12 @@ class AutoScaler(LightningFlow):
 
     .. testcode::
 
-        import lightning as L
+        from lightning.app import LightningApp
+        from lightning.app.components import AutoScaler
 
         # Example 1: Auto-scaling serve component out-of-the-box
-        app = L.LightningApp(
-            L.app.components.AutoScaler(
+        app = LightningApp(
+            app.components.AutoScaler(
                 MyPythonServer,
                 min_replicas=1,
                 max_replicas=8,
@@ -519,7 +520,7 @@ class AutoScaler(LightningFlow):
 
 
         # Example 2: Customizing the scaling logic
-        class MyAutoScaler(L.app.components.AutoScaler):
+        class MyAutoScaler(AutoScaler):
             def scale(self, replicas: int, metrics: dict) -> int:
                 pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
                     replicas + metrics["pending_works"]
@@ -538,7 +539,7 @@ class AutoScaler(LightningFlow):
                 return replicas
 
 
-        app = L.LightningApp(
+        app = LightningApp(
             MyAutoScaler(
                 MyPythonServer,
                 min_replicas=1,

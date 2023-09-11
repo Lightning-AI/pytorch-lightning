@@ -74,16 +74,16 @@ class PanelFrontend(Frontend):
 
     .. code-block:: python
 
-        import lightning as L
+        from lightning.app import LightningFlow, LightningApp
         from lightning.app.frontend.panel import PanelFrontend
 
 
-        class LitPanel(L.LightningFlow):
+        class LitPanel(LightningFlow):
             def configure_layout(self):
                 return PanelFrontend("panel_app_basic.py")
 
 
-        class LitApp(L.LightningFlow):
+        class LitApp(LightningFlow):
             def __init__(self):
                 super().__init__()
                 self.lit_panel = LitPanel()
@@ -92,7 +92,7 @@ class PanelFrontend(Frontend):
                 return {"name": "home", "content": self.lit_panel}
 
 
-        app = L.LightningApp(LitApp())
+        app = LightningApp(LitApp())
 
     Start the Lightning server with `lightning run app app_basic.py`.
 

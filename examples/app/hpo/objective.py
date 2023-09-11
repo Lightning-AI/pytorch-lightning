@@ -3,16 +3,17 @@ import tempfile
 from datetime import datetime
 from typing import Optional
 
-import lightning as L
 import pandas as pd
 import torch
-from lightning.app.components import TracerPythonScript
 from optuna.distributions import CategoricalDistribution, LogUniformDistribution
 from torchmetrics import Accuracy
 
+from lightning.app import CloudCompute
+from lightning.app.components import TracerPythonScript
+
 
 class ObjectiveWork(TracerPythonScript):
-    def __init__(self, script_path: str, data_dir: str, cloud_compute: Optional[L.CloudCompute]):
+    def __init__(self, script_path: str, data_dir: str, cloud_compute: Optional[CloudCompute]):
         timestamp = datetime.now().strftime("%H:%M:%S")
         tmpdir = tempfile.TemporaryDirectory().name
         submission_path = os.path.join(tmpdir, f"{timestamp}.csv")

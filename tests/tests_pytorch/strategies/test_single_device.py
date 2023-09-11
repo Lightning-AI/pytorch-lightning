@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pickle
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
@@ -116,7 +116,7 @@ def test_process_dataloader_gets_called_as_expected(keyword, value, monkeypatch)
     strategy = SingleDeviceStrategy(accelerator=Mock())
     strategy.connect(model)
     trainer._accelerator_connector.strategy = strategy
-    process_dataloader_mock = Mock()
+    process_dataloader_mock = MagicMock()
     monkeypatch.setattr(strategy, "process_dataloader", process_dataloader_mock)
 
     if "train" in keyword:

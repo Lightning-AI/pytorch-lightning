@@ -777,5 +777,5 @@ def test_unsqueezed_tensor_logging():
     trainer.state.stage = RunningStage.TRAINING
     model._current_fx_name = "training_step"
     model.trainer = trainer
-    model.log("foo", Tensor([1.2]))
+    model.log("foo", Tensor([1.2]), on_epoch=True)
     assert trainer.callback_metrics["foo"].ndim == 0

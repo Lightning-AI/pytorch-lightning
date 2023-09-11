@@ -125,7 +125,7 @@ class LocalSourceCodeDir:
         return self.package_path
 
     def upload(self, url: str) -> None:
-        """Uploads package to URL, usually pre-signed URL.
+        """Uploads package to URL, usually pre-signed UR.
 
         Notes
         -----

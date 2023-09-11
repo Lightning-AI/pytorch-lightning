@@ -84,6 +84,11 @@ Glossary
     :col_css: col-md-4
 
 .. displayitem::
+    :header: Initialization
+    :button_link: ../advanced/model_init.html
+    :col_css: col-md-4
+
+.. displayitem::
     :header: Jypyter
     :button_link: ../launch/notebooks.html
     :col_css: col-md-4

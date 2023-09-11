@@ -78,7 +78,6 @@ def test_index_batch_sampler():
     batch_sampler = BatchSampler(sampler, 3, False)
     index_batch_sampler = _IndexBatchSamplerWrapper(batch_sampler)
 
-    assert isinstance(index_batch_sampler, BatchSampler)
     assert batch_sampler.batch_size == index_batch_sampler.batch_size
     assert batch_sampler.drop_last == index_batch_sampler.drop_last
     assert batch_sampler.sampler is sampler

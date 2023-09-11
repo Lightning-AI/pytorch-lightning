@@ -1,10 +1,11 @@
-import lightning as L
 import torch
-from lightning.app.components import PyTorchSpawnMultiNode
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+from lightning.app import CloudCompute, LightningApp, LightningWork
+from lightning.app.components import PyTorchSpawnMultiNode
 
-class PyTorchDistributed(L.LightningWork):
+
+class PyTorchDistributed(LightningWork):
     def run(
         self,
         world_size: int,
@@ -42,10 +43,10 @@ class PyTorchDistributed(L.LightningWork):
 
 
 # 8 GPUs: (2 nodes x 4 v 100)
-app = L.LightningApp(
+app = LightningApp(
     PyTorchSpawnMultiNode(
         PyTorchDistributed,
         num_nodes=2,
-        cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x v100
+        cloud_compute=CloudCompute("gpu-fast-multi"),  # 4 x v100
     )
 )

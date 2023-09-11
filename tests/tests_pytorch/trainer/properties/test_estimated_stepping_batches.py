@@ -69,7 +69,7 @@ def test_num_stepping_batches_iterable_dataset():
     max_steps = 1000
     trainer = Trainer(max_steps=max_steps)
     model = BoringModel()
-    train_dl = DataLoader(RandomIterableDataset(size=7, count=1e10))
+    train_dl = DataLoader(RandomIterableDataset(size=7, count=int(1e10)))
     trainer._data_connector.attach_data(model, train_dataloaders=train_dl)
     trainer.strategy.connect(model)
     assert trainer.estimated_stepping_batches == max_steps

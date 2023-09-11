@@ -23,6 +23,8 @@
    Use a pretrained model <../advanced/pretrained>
    ../data/data
    ../model/own_your_loop
+   ../advanced/model_init
+
 
 #############
 How-to Guides
@@ -128,6 +130,13 @@ How-to Guides
     :header: Save memory with half-precision
     :description: Use precision techniques to train faster and save memory
     :button_link: ../common/precision.html
+    :col_css: col-md-4
+    :height: 180
+
+.. displayitem::
+    :header: Set up large models efficiently
+    :description: Avoid memory peaks and speed up the initialization of large models
+    :button_link: ../advanced/model_init.html
     :col_css: col-md-4
     :height: 180
 

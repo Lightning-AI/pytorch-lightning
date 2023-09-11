@@ -26,7 +26,7 @@ from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.enum import WorkStageStatus
 
 if TYPE_CHECKING:
-    from lightning.app import LightningApp
+    from lightning.app.core.app import LightningApp
 
 
 _PathRequest = Union[_GetRequest, _ExistsRequest]
