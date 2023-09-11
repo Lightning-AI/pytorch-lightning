@@ -28,8 +28,8 @@ from lightning.app.utilities.app_helpers import (
     _state_dict,
 )
 from lightning.app.utilities.enum import CacheCallsKeys
-from lightning.app.utilities.imports import _IS_WINDOWS
 from lightning.app.utilities.exceptions import ExitAppException
+from lightning.app.utilities.imports import _IS_WINDOWS
 
 
 def test_empty_component():
