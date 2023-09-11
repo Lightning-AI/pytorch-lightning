@@ -28,6 +28,7 @@ from lightning.app.utilities.app_helpers import (
     _state_dict,
 )
 from lightning.app.utilities.enum import CacheCallsKeys
+from lightning.app.utilities.imports import _IS_WINDOWS
 from lightning.app.utilities.exceptions import ExitAppException
 
 
@@ -608,6 +609,7 @@ def test_flow_path_assignment():
     assert flow.path == flow.lit_path
 
 
+@pytest.mark.skipif(_IS_WINDOWS, reason="timeout with system crash")
 @pytest.mark.xfail(strict=False, reason="Timeout")  # fixme
 def test_flow_state_change_with_path():
     """Test that type changes to a Path attribute are properly reflected within the state."""
