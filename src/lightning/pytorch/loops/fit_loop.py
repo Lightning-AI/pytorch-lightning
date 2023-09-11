@@ -17,7 +17,8 @@ from typing import Optional, Union
 import torch
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.data import _set_sampler_epoch
+from lightning.fabric.utilities.data import _set_sampler_epoch, sized_len
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.fetchers import _DataFetcher
 from lightning.pytorch.loops.progress import _Progress
@@ -39,7 +40,6 @@ from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
-from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
 
@@ -244,12 +244,28 @@ class _FitLoop(_Loop):
         if trainer.datamodule is not None:
             allow_zero_length |= trainer.datamodule.allow_zero_length_dataloader_with_multiple_devices
 
+        limits = []
+        for dl in combined_loader.flattened:
+            # determine number of batches
+            length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
+            num_batches = _parse_num_batches(stage, length, trainer.limit_train_batches)
+            limits.append(num_batches)
+
+        combined_loader.limits = limits
+
+        training = trainer.training
+        trainer.training = True
+        self._data_fetcher = _select_data_fetcher(trainer)
+        trainer.training = training
+
+        self._data_fetcher.setup(combined_loader)
+        iter(self._data_fetcher)  # creates the iterator inside the fetcher
+        max_batches = sized_len(combined_loader)
+        self.max_batches = max_batches if max_batches is not None else float("inf")
         has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
-        self.max_batches = len(combined_loader) if has_len_all_ranks_ else float("inf")
+
         if self.max_batches == 0:
             return
-
-        self.max_batches = _parse_num_batches(stage, self.max_batches, trainer.limit_train_batches)
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
         self._last_train_dl_reload_epoch = trainer.current_epoch
@@ -308,8 +324,6 @@ class _FitLoop(_Loop):
             self.epoch_loop.val_loop.setup_data()
             trainer.training = True
 
-        self._data_fetcher = _select_data_fetcher(trainer)
-
         call._call_callback_hooks(trainer, "on_train_start")
         call._call_lightning_module_hook(trainer, "on_train_start")
         call._call_strategy_hook(trainer, "on_train_start")
@@ -344,9 +358,8 @@ class _FitLoop(_Loop):
                 f'`{type(self).__name__}` does not support the `CombinedLoader(mode="sequential")` mode.'
                 f" The available modes are: {[m for m in _SUPPORTED_MODES if m != 'sequential']}"
             )
-        assert self._data_fetcher is not None
-        self._data_fetcher.setup(combined_loader)
         with self.trainer.profiler.profile("run_training_epoch"):
+            assert self._data_fetcher is not None
             self.epoch_loop.run(self._data_fetcher)
 
     def on_advance_end(self) -> None:

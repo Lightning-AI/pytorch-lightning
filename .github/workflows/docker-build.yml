@@ -21,13 +21,14 @@ on:
     - cron: "0 0 * * *"  # at the end of every day
   release:
     types: [published]
+  workflow_dispatch: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 env:
-  PUSH_NIGHTLY: ${{ github.event_name == 'schedule' }}
+  PUSH_NIGHTLY: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
   PUSH_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' }}
 
 jobs:

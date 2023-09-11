@@ -10,13 +10,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning.fabric.accelerators.accelerator import Accelerator  # noqa: F401
+import sys
+
+from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.cpu import CPUAccelerator  # noqa: F401
 from lightning.fabric.accelerators.cuda import CUDAAccelerator, find_usable_cuda_devices  # noqa: F401
 from lightning.fabric.accelerators.mps import MPSAccelerator  # noqa: F401
-from lightning.fabric.accelerators.registry import _AcceleratorRegistry, call_register_accelerators
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.accelerators.xla import XLAAccelerator  # noqa: F401
+from lightning.fabric.utilities.registry import _register_classes
 
-_ACCELERATORS_BASE_MODULE = "lightning.fabric.accelerators"
 ACCELERATOR_REGISTRY = _AcceleratorRegistry()
-call_register_accelerators(ACCELERATOR_REGISTRY, _ACCELERATORS_BASE_MODULE)
+_register_classes(ACCELERATOR_REGISTRY, "register_accelerators", sys.modules[__name__], Accelerator)
