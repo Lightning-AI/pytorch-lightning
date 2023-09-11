@@ -42,6 +42,7 @@ from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 if _RICH_AVAILABLE:
     from rich import get_console
@@ -373,7 +374,6 @@ class _EvaluationLoop(_Loop):
         hook_kwargs = self._build_kwargs(
             batch, batch_idx, dataloader_idx if self._is_sequential and self.num_dataloaders > 1 else None
         )
-        step_args = hook_kwargs.values() if not using_dataloader_iter else (dataloader_iter,)
 
         self.batch_progress.increment_ready()
 
@@ -388,6 +388,11 @@ class _EvaluationLoop(_Loop):
         self.batch_progress.increment_started()
 
         hook_name = "test_step" if trainer.testing else "validation_step"
+        step_args = (
+            self._build_step_args_from_hook_kwargs(hook_kwargs, hook_name)
+            if not using_dataloader_iter
+            else (dataloader_iter,)
+        )
         output = call._call_strategy_hook(trainer, hook_name, *step_args)
 
         self.batch_progress.increment_processed()
@@ -437,6 +442,14 @@ class _EvaluationLoop(_Loop):
         if dataloader_idx is not None:
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
+
+    def _build_step_args_from_hook_kwargs(self, hook_kwargs: OrderedDict, step_hook_name: str) -> tuple:
+        """Helper method to build args for `test_step` or `validation_step`."""
+        kwargs = hook_kwargs.copy()
+        step_hook_fx = getattr(self.trainer.lightning_module, step_hook_name)
+        if not is_param_in_hook_signature(step_hook_fx, "batch_idx", min_args=2):
+            kwargs.pop("batch_idx", None)
+        return tuple(kwargs.values())
 
     def _verify_dataloader_idx_requirement(self) -> None:
         trainer = self.trainer
