@@ -13,10 +13,10 @@ from lightning.app.storage import Path
 from lightning.app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
 from lightning.app.testing.testing import LightningTestApp
 from lightning.app.utilities.enum import make_status, WorkStageStatus
-from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.app.utilities.exceptions import LightningWorkException
 from lightning.app.utilities.packaging.build_config import BuildConfig
 from lightning.app.utilities.proxies import ProxyWorkRun, WorkRunner
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 
 
 def test_lightning_work_run_method_required():
