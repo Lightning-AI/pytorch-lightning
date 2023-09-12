@@ -1,6 +1,6 @@
 import sys
 from types import ModuleType
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 import pytest
 
@@ -33,12 +33,12 @@ def wandb_mock(monkeypatch):
     class RunType:  # to make isinstance checks pass
         pass
 
-    run_mock = MagicMock(
+    run_mock = Mock(
         spec=RunType, log=Mock(), config=Mock(), watch=Mock(), log_artifact=Mock(), use_artifact=Mock(), id="run_id"
     )
 
     wandb = ModuleType("wandb")
-    wandb.init = MagicMock(return_value=run_mock)
+    wandb.init = Mock(return_value=run_mock)
     wandb.run = Mock()
     wandb.require = Mock()
     wandb.Api = Mock()
