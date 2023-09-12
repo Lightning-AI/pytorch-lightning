@@ -162,7 +162,9 @@ def test_mlflow_log_dir(_, mlflow_mock, tmp_path):
     assert logger.name == "exp-id"
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmp_path, logger=logger, max_epochs=1, limit_train_batches=1, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmp_path, logger=logger, max_epochs=1, limit_train_batches=1, limit_val_batches=3
+    )
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
     assert trainer.checkpoint_callback.dirpath == str(tmp_path / "exp-id" / "run-id" / "checkpoints")

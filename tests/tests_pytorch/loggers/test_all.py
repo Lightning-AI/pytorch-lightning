@@ -313,7 +313,8 @@ def test_logger_with_prefix_all(mlflow_mock, monkeypatch, tmpdir):
 
     # MLflow
     with mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
-        "lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()):
+        "lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()
+    ):
         Metric = mlflow_mock.entities.Metric
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
@@ -372,7 +373,8 @@ def test_logger_default_name(mlflow_mock, monkeypatch, tmpdir):
 
     # MLflow
     with mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
-            "lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()):
+        "lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()
+    ):
         client = mlflow_mock.tracking.MlflowClient()
         client.get_experiment_by_name.return_value = None
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir)
