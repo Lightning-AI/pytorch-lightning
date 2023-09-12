@@ -35,7 +35,7 @@ from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.pytorch.tuner.tuning import Tuner
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
-from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation, mlflow_mock
+from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
 from tests_pytorch.loggers.test_neptune import create_neptune_mock
 
 LOGGER_CTX_MANAGERS = (
@@ -313,7 +313,8 @@ def test_logger_with_prefix_all(mlflow_mock, monkeypatch, tmpdir):
 
     # MLflow
     with mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
-        "lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()):
+        "lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()
+    ):
         Metric = mlflow_mock.entities.Metric
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
@@ -372,7 +373,8 @@ def test_logger_default_name(mlflow_mock, monkeypatch, tmpdir):
 
     # MLflow
     with mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
-            "lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()):
+        "lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()
+    ):
         client = mlflow_mock.tracking.MlflowClient()
         client.get_experiment_by_name.return_value = None
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir)
