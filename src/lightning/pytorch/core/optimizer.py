@@ -44,15 +44,13 @@ class LightningOptimizer:
     """
 
     def __init__(self, optimizer: Optimizer):
-        self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
-
         self._optimizer = optimizer
         self._strategy: Optional[pl.strategies.Strategy] = None
         # to inject logic around the optimizer step, particularly useful with manual optimization
         self._on_before_step = do_nothing_closure
         self._on_after_step = do_nothing_closure
-
-        self.refresh()
+        # imitate the class of the wrapped object to make isinstance checks work
+        self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
     @property
     def optimizer(self) -> Optimizer:
@@ -80,15 +78,6 @@ class LightningOptimizer:
             lightning_module.toggle_optimizer(self)
             yield
             lightning_module.untoggle_optimizer(self)
-
-    def refresh(self) -> None:
-        """Refreshes the ``__dict__`` so that it matches the internal states in the wrapped optimizer.
-
-        This is only needed to present the user with an updated view in case they inspect the state of this wrapper.
-        """
-        # copy most of the `Optimizer` methods into this instance. `__del__` is skipped in case the optimizer has
-        # implemented custom logic which we would not want to call on destruction of the `LightningOptimizer`
-        self.__dict__.update({k: v for k, v in self.optimizer.__dict__.items() if k not in ("step", "__del__")})
 
     def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> Any:
         """Performs a single optimization step (parameter update).
@@ -174,6 +163,9 @@ class LightningOptimizer:
         lightning_optimizer = optimizer if isinstance(optimizer, LightningOptimizer) else cls(optimizer)
         lightning_optimizer._strategy = proxy(strategy)
         return lightning_optimizer
+
+    def __getattr__(self, item: Any) -> Any:
+        return getattr(self._optimizer, item)
 
 
 def _init_optimizers_and_lr_schedulers(

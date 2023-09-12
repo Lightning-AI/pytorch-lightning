@@ -33,6 +33,7 @@ from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
+from lightning.fabric.utilities.load import _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
@@ -486,7 +487,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " states, call the load method for each model checkpoint separately."
             )
         engine = engines[0]
-        optimzer_state_requested = bool(len([item for item in state.values() if isinstance(item, Optimizer)]))
+
+        from deepspeed.runtime import DeepSpeedOptimizer
+
+        optimzer_state_requested = any(isinstance(item, (Optimizer, DeepSpeedOptimizer)) for item in state.values())
 
         torch.cuda.empty_cache()
         _, client_state = engine.load_checkpoint(
@@ -503,10 +507,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
 
-        for k in client_state.copy():
-            if k not in state:
-                continue
-            state[k] = client_state.pop(k)
+        # `Engine.load_checkpoint` adds useless keys 'optimizer' and 'lr_scheduler' to the client state; remove
+        # them to avoid name collision with user state
+        keys = set(client_state) & set(state) - {"optimizer", "lr_scheduler"}
+        _move_state_into(source=client_state, destination=state, keys=keys)
         return client_state
 
     def clip_gradients_norm(

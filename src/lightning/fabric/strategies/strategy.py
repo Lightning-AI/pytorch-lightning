@@ -268,7 +268,7 @@ class Strategy(ABC):
                 state key, where its filter will be applied to the ``state_dict`` generated.
 
         """
-        state = self._convert_stateful_objects_in_state(state, filter=filter or {})
+        state = self._convert_stateful_objects_in_state(state, filter=(filter or {}))
         if self.is_global_zero:
             self.checkpoint_io.save_checkpoint(checkpoint=state, path=path, storage_options=storage_options)
 
@@ -399,6 +399,8 @@ class Strategy(ABC):
                 converted = self.get_module_state_dict(module=obj)
             elif isinstance(obj, Optimizer):
                 converted = self.get_optimizer_state(optimizer=obj)
+            elif isinstance(obj, _Stateful):
+                converted = obj.state_dict()
             else:
                 converted = obj
             _apply_filter(key, filter, converted, converted_state)

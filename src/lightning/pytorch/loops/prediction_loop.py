@@ -166,7 +166,8 @@ class _PredictionLoop(_Loop):
         """Resets the internal state of the loop for a new run."""
         self.batch_progress.reset_on_run()
 
-        data_fetcher = _select_data_fetcher(self.trainer)
+        assert self.trainer.state.stage is not None
+        data_fetcher = _select_data_fetcher(self.trainer, self.trainer.state.stage)
         combined_loader = self._combined_loader
         assert combined_loader is not None
         if combined_loader._mode != "sequential":

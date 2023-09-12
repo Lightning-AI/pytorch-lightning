@@ -19,8 +19,7 @@ import torch
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.strategies import SingleDeviceStrategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from torch import nn
-
+from lightning.fabric.utilities.types import _Stateful
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -57,16 +56,46 @@ def test_save_checkpoint_convert_stateful_objects(tmp_path):
 
     model = nn.Linear(3, 3)
     optimizer = torch.optim.Adam(model.parameters())
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.99)
 
     anything = {"cocofruit": 1}
-    state = {"model": model, "optimizer": optimizer, "anything": anything}
-    expected = {"model": model.state_dict(), "optimizer": optimizer.state_dict(), "anything": anything}
+    state = {"model": model, "optimizer": optimizer, "scheduler": scheduler, "anything": anything}
+    expected = {
+        "model": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "scheduler": scheduler.state_dict(),
+        "anything": anything,
+    }
     strategy.save_checkpoint(tmp_path, state)
     assert save_checkpoint_mock.call_args[1]["checkpoint"].keys() == expected.keys()
     saved_model_state = save_checkpoint_mock.call_args[1]["checkpoint"]["model"]
     assert all(torch.equal(p0, p1) for p0, p1 in zip(saved_model_state.values(), expected["model"].values()))
     assert save_checkpoint_mock.call_args[1]["checkpoint"]["optimizer"] == expected["optimizer"]
+    assert save_checkpoint_mock.call_args[1]["checkpoint"]["scheduler"] == expected["scheduler"]
     assert save_checkpoint_mock.call_args[1]["checkpoint"]["anything"] == expected["anything"]
+
+
+def test_save_load_stateful_objects(tmp_path):
+    """Test that stateful objects other than modules and optimizers get converted and loaded correctly."""
+
+    class Fruit:
+        count = 1
+
+        def state_dict(self):
+            return {"count": self.count}
+
+        def load_state_dict(self, state_dict):
+            self.count = state_dict["count"]
+
+    state = Fruit()
+    state.count = 100
+    assert isinstance(state, _Stateful)
+    strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
+    strategy.save_checkpoint(tmp_path / "checkpoint.ckpt", {"state": state})
+    state = Fruit()
+    assert state.count == 1
+    strategy.load_checkpoint(tmp_path / "checkpoint.ckpt", {"state": state})
+    assert state.count == 100
 
 
 def test_load_module_state_dict():
