@@ -18,6 +18,8 @@ from torch.nn.modules import MultiheadAttention
 from torch.utils.data import Dataset, DataLoader
 from lightning.pytorch import LightningModule
 
+import lightning.pytorch as pl
+
 if hasattr(MultiheadAttention, "_reset_parameters") and not hasattr(MultiheadAttention, "reset_parameters"):
     # See https://github.com/pytorch/pytorch/issues/107909
     MultiheadAttention.reset_parameters = MultiheadAttention._reset_parameters
@@ -45,15 +47,15 @@ class Transformer(nn.Module):
         self.vocab_size = vocab_size
         self.src_mask = None
 
-    def forward(self, input: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
-        b, t = input.shape
+    def forward(self, inputs: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
+        b, t = inputs.shape
 
-        # we assume target is already shifted w.r.t. input
+        # we assume target is already shifted w.r.t. inputs
         if mask is None:
-            mask = torch.tril(torch.ones(t, t, device=input.device)) == 1
+            mask = torch.tril(torch.ones(t, t, device=inputs.device)) == 1
             mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
 
-        src = self.pos_encoder(self.embedding(input) * math.sqrt(self.ninp))
+        src = self.pos_encoder(self.embedding(inputs) * math.sqrt(self.ninp))
         target = self.pos_encoder(self.embedding(target) * math.sqrt(self.ninp))
         output = self.transformer(src, target, tgt_mask=mask)
         output = self.decoder(output)
@@ -111,9 +113,9 @@ class WikiText2(Dataset):
     def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
         start = index * self.block_size
         end = start + self.block_size
-        input = self.data[start:end]
+        inputs = self.data[start:end]
         target = self.data[(start + 1) : (end + 1)]
-        return input, target
+        return inputs, target
 
     @staticmethod
     def download(destination: Path) -> None:
