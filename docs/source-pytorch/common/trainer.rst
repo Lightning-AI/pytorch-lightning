@@ -33,8 +33,6 @@ This is the basic use of the trainer:
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
-
     model = MyLightningModule()
 
     trainer = Trainer()
@@ -92,7 +90,7 @@ In Python scripts, it's recommended you use a main function to call the Trainer.
 
 
     def main(hparams):
-        model = LightningTransformer(vocab_size=dataset.vocab_size)
+        model = LightningModule()
         trainer = Trainer(accelerator=hparams.accelerator, devices=hparams.devices)
         trainer.fit(model)
 
@@ -1071,15 +1069,15 @@ With :func:`torch.inference_mode` disabled, you can enable the grad of your mode
 
 .. code-block:: python
 
-    class LightningTransformer(pl.LightningModule):
+    class LitModel(LightningModule):
         def validation_step(self, batch, batch_idx):
-            preds = self.model(inputs, target)
+            preds = self.layer1(batch)
             with torch.enable_grad():
                 grad_preds = preds.requires_grad_()
-                preds2 = self.model(grad_preds)
+                preds2 = self.layer2(grad_preds)
 
 
-    model = LightningTransformer(vocab_size=dataset.vocab_size)
+    model = LitModel()
     trainer = Trainer(inference_mode=False)
     trainer.validate(model)
 
@@ -1264,52 +1262,52 @@ both conditions are met. If any of these arguments is not set, it won't be consi
 .. code-block:: python
 
     # setting `trainer.should_stop` at any point of training will terminate it
-    class LightningTransformer(pl.LightningModule):
+    class LitModel(LightningModule):
         def training_step(self, *args, **kwargs):
             self.trainer.should_stop = True
 
 
-    trainer = pl.Trainer()
-    model = LightningTransformer(vocab_size=dataset.vocab_size)
+    trainer = Trainer()
+    model = LitModel()
     trainer.fit(model)
 
 .. code-block:: python
 
     # setting `trainer.should_stop` will stop training only after at least 5 epochs have run
-    class LightningTransformer(pl.LightningModule):
+    class LitModel(LightningModule):
         def training_step(self, *args, **kwargs):
             if self.current_epoch == 2:
                 self.trainer.should_stop = True
 
 
     trainer = Trainer(min_epochs=5, max_epochs=100)
-    model = LightningTransformer(vocab_size=dataset.vocab_size)
+    model = LitModel()
     trainer.fit(model)
 
 .. code-block:: python
 
     # setting `trainer.should_stop` will stop training only after at least 5 steps have run
-    class LightningTransformer(pl.LightningModule):
+    class LitModel(LightningModule):
         def training_step(self, *args, **kwargs):
             if self.global_step == 2:
                 self.trainer.should_stop = True
 
 
     trainer = Trainer(min_steps=5, max_epochs=100)
-    model = LightningTransformer(vocab_size=dataset.vocab_size)
+    model = LitModel()
     trainer.fit(model)
 
 .. code-block:: python
 
     # setting `trainer.should_stop` at any until both min_steps and min_epochs are satisfied
-    class LightningTransformer(pl.LightningModule):
+    class LitModel(LightningModule):
         def training_step(self, *args, **kwargs):
             if self.global_step == 7:
                 self.trainer.should_stop = True
 
 
     trainer = Trainer(min_steps=5, min_epochs=5, max_epochs=100)
-    model = LightningTransformer(vocab_size=dataset.vocab_size)
+    model = LitModel()
     trainer.fit(model)
 
 sanity_checking
