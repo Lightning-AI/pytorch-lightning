@@ -128,20 +128,20 @@ def test_mlflow_run_name_setting(tmp_path):
 
     logger = mock_mlflow_run_creation(logger, experiment_id="exp-id")
     _ = logger.experiment
-    client.return_value.create_run.assert_called_with(experiment_id="exp-id", tags=tags)
+    client.create_run.assert_called_with(experiment_id="exp-id", tags=tags)
 
     # run_name overrides tags[MLFLOW_RUN_NAME]
     logger = MLFlowLogger("test", run_name="run-name-1", tags={MLFLOW_RUN_NAME: "run-name-2"}, save_dir=str(tmp_path))
     logger = mock_mlflow_run_creation(logger, experiment_id="exp-id")
     _ = logger.experiment
-    client.return_value.create_run.assert_called_with(experiment_id="exp-id", tags=tags)
+    client.create_run.assert_called_with(experiment_id="exp-id", tags=tags)
 
     # default run_name (= None) does not append new tag
     logger = MLFlowLogger("test", save_dir=str(tmp_path))
     logger = mock_mlflow_run_creation(logger, experiment_id="exp-id")
     _ = logger.experiment
     default_tags = resolve_tags(None)
-    client.return_value.create_run.assert_called_with(experiment_id="exp-id", tags=default_tags)
+    client.create_run.assert_called_with(experiment_id="exp-id", tags=default_tags)
 
 
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
@@ -201,7 +201,7 @@ def test_mlflow_logger_dirs_creation(tmp_path):
 
     assert not os.listdir(tmp_path)
     logger = MLFlowLogger("test", save_dir=str(tmp_path))
-    assert logger.save_dir == tmp_path
+    assert logger.save_dir == str(tmp_path)
     assert set(os.listdir(tmp_path)) == {".trash"}
     run_id = logger.run_id
     exp_id = logger.experiment_id
@@ -229,7 +229,7 @@ def test_mlflow_logger_dirs_creation(tmp_path):
     assert set(os.listdir(tmp_path / exp_id)) == {run_id, "meta.yaml"}
     assert "epoch" in os.listdir(tmp_path / exp_id / run_id / "metrics")
     assert set(os.listdir(tmp_path / exp_id / run_id / "params")) == model.hparams.keys()
-    assert trainer.checkpoint_callback.dirpath == (tmp_path / exp_id / run_id / "checkpoints")
+    assert trainer.checkpoint_callback.dirpath == str(tmp_path / exp_id / run_id / "checkpoints")
     assert os.listdir(trainer.checkpoint_callback.dirpath) == [f"epoch=0-step={limit_batches}.ckpt"]
 
 
