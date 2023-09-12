@@ -18,7 +18,7 @@ Weights and Biases Logger
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Mapping, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Literal, Mapping, Optional, TYPE_CHECKING, Union
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
@@ -343,6 +343,7 @@ class WandbLogger(Logger):
 
     def __getstate__(self) -> Dict[str, Any]:
         import wandb
+
         # Hack: If the 'spawn' launch method is used, the logger will get pickled and this `__getstate__` gets called.
         # We create an experiment here in the main process, and attach to it in the worker process.
         # Using wandb-service, we persist the same experiment even if multiple `Trainer.fit/test/validate` calls
