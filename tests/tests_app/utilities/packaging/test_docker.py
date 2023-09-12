@@ -11,7 +11,7 @@ from lightning.app.utilities.packaging.docker import DockerRunner
 from lightning.app.utilities.redis import check_if_redis_running
 
 
-@pytest.mark.skip(reason="FIXME (tchaton)")
+@pytest.mark.xfail(strict=False, reason="FIXME (tchaton)")
 @pytest.mark.skipif(not _is_docker_available(), reason="docker is required for this test.")
 @pytest.mark.skipif(not check_if_redis_running(), reason="redis is required for this test.")
 @_RunIf(skip_windows=True)

@@ -32,7 +32,7 @@ def test_valid_org_app_name():
     assert "Press enter to continue:" in result.output
 
 
-@pytest.mark.skip(reason="need to figure out how to authorize git clone from the private repo")
+@pytest.mark.xfail(strict=False, reason="need to figure out how to authorize git clone from the private repo")
 def test_valid_unpublished_app_name():
     runner = CliRunner()
 
@@ -55,7 +55,7 @@ def test_valid_unpublished_app_name():
     assert "Press enter to continue:" in result.output
 
 
-@pytest.mark.skip(reason="need to figure out how to authorize git clone from the private repo")
+@pytest.mark.xfail(strict=False, reason="need to figure out how to authorize git clone from the private repo")
 def test_app_install(tmpdir, monkeypatch):
     """Tests unpublished app install."""
     monkeypatch.chdir(tmpdir)
@@ -104,7 +104,7 @@ def test_unpublished_component_url_parsing():
     assert "Press enter to continue:" in result.output
 
 
-@pytest.mark.skip(reason="need to figure out how to authorize pip install from the private repo")
+@pytest.mark.xfail(strict=False, reason="need to figure out how to authorize pip install from the private repo")
 @pytest.mark.parametrize(
     ("real_component", "test_component_pip_name"),
     [
