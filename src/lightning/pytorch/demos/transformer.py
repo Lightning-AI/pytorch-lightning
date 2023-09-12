@@ -15,10 +15,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch.nn.modules import MultiheadAttention
-from torch.utils.data import Dataset, DataLoader
-from lightning.pytorch import LightningModule
+from torch.utils.data import DataLoader, Dataset
 
-import lightning.pytorch as pl
+from lightning.pytorch import LightningModule
 
 if hasattr(MultiheadAttention, "_reset_parameters") and not hasattr(MultiheadAttention, "reset_parameters"):
     # See https://github.com/pytorch/pytorch/issues/107909
