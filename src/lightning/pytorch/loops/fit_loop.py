@@ -253,11 +253,7 @@ class _FitLoop(_Loop):
 
         combined_loader.limits = limits
 
-        training = trainer.training
-        trainer.training = True
-        self._data_fetcher = _select_data_fetcher(trainer)
-        trainer.training = training
-
+        self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         self._data_fetcher.setup(combined_loader)
         iter(self._data_fetcher)  # creates the iterator inside the fetcher
         max_batches = sized_len(combined_loader)
