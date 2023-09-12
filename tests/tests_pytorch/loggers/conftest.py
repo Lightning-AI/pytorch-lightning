@@ -30,19 +30,24 @@ def mlflow_mock(monkeypatch):
 @pytest.fixture()
 def wandb_mock(monkeypatch):
     wandb = ModuleType("wandb")
-    wandb.init = Mock()
+    # Run = Mock()
+    wandb.init = MagicMock()
     wandb.run = Mock()
+    wandb.require = Mock()
+    wandb.Api = Mock()
+    wandb.Artifact = Mock()
+    wandb.Table = Mock()
     monkeypatch.setitem(sys.modules, "wandb", wandb)
 
     wandb_sdk = ModuleType("sdk")
     monkeypatch.setitem(sys.modules, "wandb.sdk", wandb_sdk)
 
     wandb_sdk_lib = ModuleType("lib")
-    wandb_sdk_lib.RunDisabled = Mock(spec=object)
+    wandb_sdk_lib.RunDisabled = Mock()
     monkeypatch.setitem(sys.modules, "wandb.sdk.lib", wandb_sdk_lib)
 
-    wandb_wandb_run = ModuleType("sdk")
-    wandb_wandb_run.Run = Mock(spec=object)
+    wandb_wandb_run = ModuleType("wandb_run")
+    wandb_wandb_run.Run = Mock()
     monkeypatch.setitem(sys.modules, "wandb.wandb_run", wandb_wandb_run)
 
     wandb.sdk = wandb_sdk

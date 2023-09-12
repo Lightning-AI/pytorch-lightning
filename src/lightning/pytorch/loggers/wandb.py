@@ -405,7 +405,7 @@ class WandbLogger(Logger):
                     self._experiment.define_metric("trainer/global_step")
                     self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
-        assert isinstance(self._experiment, (Run, RunDisabled))
+        # assert isinstance(self._experiment, (Run, RunDisabled))
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True) -> None:

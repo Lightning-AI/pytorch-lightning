@@ -126,9 +126,7 @@ def test_wandb_logger_init(wandb_mock):
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("lightning.pytorch.loggers.wandb.wandb")
-def test_wandb_logger_init_before_spawn(_, monkeypatch):
+def test_wandb_logger_init_before_spawn(wandb_mock):
     logger = WandbLogger()
     assert logger._experiment is None
     logger.__getstate__()
@@ -136,8 +134,7 @@ def test_wandb_logger_init_before_spawn(_, monkeypatch):
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.wandb.wandb")
-def test_wandb_pickle(wandb, tmpdir):
+def test_wandb_pickle(wandb_mock, tmpdir):
     """Verify that pickling trainer with wandb logger works.
 
     Wandb doesn't work well with pytest so we have to mock it out here.
@@ -153,39 +150,38 @@ def test_wandb_pickle(wandb, tmpdir):
         def name(self):
             return "the_run_name"
 
-    with mock.patch("lightning.pytorch.loggers.wandb.Run", new=Experiment):
-        wandb.run = None
-        wandb.init.return_value = Experiment()
-        logger = WandbLogger(id="the_id", offline=True)
+    wandb_mock.wandb_run = Experiment
 
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger)
-        # Access the experiment to ensure it's created
-        assert trainer.logger.experiment, "missing experiment"
-        assert trainer.log_dir == logger.save_dir
-        pkl_bytes = pickle.dumps(trainer)
-        trainer2 = pickle.loads(pkl_bytes)
+    wandb_mock.run = None
+    wandb_mock.init.return_value = Experiment()
+    logger = WandbLogger(id="the_id", offline=True)
 
-        assert os.environ["WANDB_MODE"] == "dryrun"
-        assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
-        assert trainer2.logger.experiment, "missing experiment"
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger)
+    # Access the experiment to ensure it's created
+    assert trainer.logger.experiment, "missing experiment"
+    assert trainer.log_dir == logger.save_dir
+    pkl_bytes = pickle.dumps(trainer)
+    trainer2 = pickle.loads(pkl_bytes)
 
-    wandb.init.assert_called()
-    assert "id" in wandb.init.call_args[1]
-    assert wandb.init.call_args[1]["id"] == "the_id"
+    assert os.environ["WANDB_MODE"] == "dryrun"
+    assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
+    assert trainer2.logger.experiment, "missing experiment"
+
+    wandb_mock.init.assert_called()
+    assert "id" in wandb_mock.init.call_args[1]
+    assert wandb_mock.init.call_args[1]["id"] == "the_id"
 
     del os.environ["WANDB_MODE"]
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("lightning.pytorch.loggers.wandb.wandb")
-def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
+def test_wandb_logger_dirs_creation(wandb_mock, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-    wandb.run = None
+    wandb_mock.run = None
     logger = WandbLogger(project="project", save_dir=str(tmpdir), offline=True)
 
     # mock return values of experiment
-    wandb.run = None
+    wandb_mock.run = None
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
 
@@ -209,11 +205,9 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("lightning.pytorch.loggers.wandb.wandb")
-def test_wandb_log_model(wandb, monkeypatch, tmpdir):
+def test_wandb_log_model(wandb_mock, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-    wandb.run = None
+    wandb_mock.run = None
     model = BoringModel()
 
     # test log_model=True
@@ -222,38 +216,38 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
-    wandb.init().log_artifact.assert_called_once()
+    wandb_mock.init().log_artifact.assert_called_once()
 
     # test log_model='all'
-    wandb.init().log_artifact.reset_mock()
-    wandb.init.reset_mock()
+    wandb_mock.init().log_artifact.reset_mock()
+    wandb_mock.init.reset_mock()
     logger = WandbLogger(save_dir=tmpdir, log_model="all")
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
-    assert wandb.init().log_artifact.call_count == 2
+    assert wandb_mock.init().log_artifact.call_count == 2
 
     # test log_model=False
-    wandb.init().log_artifact.reset_mock()
-    wandb.init.reset_mock()
+    wandb_mock.init().log_artifact.reset_mock()
+    wandb_mock.init.reset_mock()
     logger = WandbLogger(save_dir=tmpdir, log_model=False)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
-    assert not wandb.init().log_artifact.called
+    assert not wandb_mock.init().log_artifact.called
 
     # test correct metadata
-    wandb.init().log_artifact.reset_mock()
-    wandb.init.reset_mock()
-    wandb.Artifact.reset_mock()
+    wandb_mock.init().log_artifact.reset_mock()
+    wandb_mock.init.reset_mock()
+    wandb_mock.Artifact.reset_mock()
     logger = WandbLogger(save_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
-    wandb.Artifact.assert_called_once_with(
+    wandb_mock.Artifact.assert_called_once_with(
         name="model-1",
         type="model",
         metadata={
@@ -271,15 +265,15 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     )
 
     # Test wandb custom artifact name
-    wandb.init().log_artifact.reset_mock()
-    wandb.init().reset_mock()
-    wandb.Artifact.reset_mock()
+    wandb_mock.init().log_artifact.reset_mock()
+    wandb_mock.init().reset_mock()
+    wandb_mock.Artifact.reset_mock()
     logger = WandbLogger(save_dir=tmpdir, log_model=True, checkpoint_name="my-test-model")
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
-    wandb.Artifact.assert_called_once_with(
+    wandb_mock.Artifact.assert_called_once_with(
         name="my-test-model",
         type="model",
         metadata={
@@ -297,9 +291,9 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     )
 
     # Test wandb artifact with checkpoint_callback top_k logging latest
-    wandb.init().log_artifact.reset_mock()
-    wandb.init.reset_mock()
-    wandb.Artifact.reset_mock()
+    wandb_mock.init().log_artifact.reset_mock()
+    wandb_mock.init.reset_mock()
+    wandb_mock.Artifact.reset_mock()
     logger = WandbLogger(save_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
@@ -312,7 +306,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
         callbacks=[ModelCheckpoint(monitor="step", save_top_k=2)],
     )
     trainer.fit(model)
-    wandb.Artifact.assert_called_with(
+    wandb_mock.Artifact.assert_called_with(
         name="model-1",
         type="model",
         metadata={
@@ -328,12 +322,12 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
             },
         },
     )
-    wandb.init().log_artifact.assert_called_with(wandb.Artifact(), aliases=["latest"])
+    wandb_mock.init().log_artifact.assert_called_with(wandb_mock.Artifact(), aliases=["latest"])
 
     # Test wandb artifact with checkpoint_callback top_k logging latest and best
-    wandb.init().log_artifact.reset_mock()
-    wandb.init.reset_mock()
-    wandb.Artifact.reset_mock()
+    wandb_mock.init().log_artifact.reset_mock()
+    wandb_mock.init.reset_mock()
+    wandb_mock.Artifact.reset_mock()
     logger = WandbLogger(save_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
@@ -350,7 +344,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
         ],
     )
     trainer.fit(model)
-    wandb.Artifact.assert_called_with(
+    wandb_mock.Artifact.assert_called_with(
         name="model-1",
         type="model",
         metadata={
@@ -366,20 +360,18 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
             },
         },
     )
-    wandb.init().log_artifact.assert_called_with(wandb.Artifact(), aliases=["latest", "best"])
+    wandb_mock.init().log_artifact.assert_called_with(wandb_mock.Artifact(), aliases=["latest", "best"])
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("lightning.pytorch.loggers.wandb.wandb")
-def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
+def test_wandb_log_model_with_score(wandb_mock, tmpdir):
     """Test to prevent regression on #15543, ensuring the score is logged as a Python number, not a scalar tensor."""
-    wandb.run = None
+    wandb_mock.run = None
     model = BoringModel()
 
-    wandb.init().log_artifact.reset_mock()
-    wandb.init.reset_mock()
-    wandb.Artifact.reset_mock()
+    wandb_mock.init().log_artifact.reset_mock()
+    wandb_mock.init.reset_mock()
+    wandb_mock.Artifact.reset_mock()
     logger = WandbLogger(save_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
@@ -394,7 +386,7 @@ def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
     )
     trainer.fit(model)
 
-    calls = wandb.Artifact.call_args_list
+    calls = wandb_mock.Artifact.call_args_list
     assert len(calls) == 1
     score = calls[0][1]["metadata"]["score"]
     # model checkpoint monitors scalar tensors, but wandb can't serializable them - expect Python scalars in metadata
@@ -403,54 +395,52 @@ def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("lightning.pytorch.loggers.wandb.wandb")
-def test_wandb_log_media(wandb, tmpdir):
+def test_wandb_log_media(wandb_mock, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-    wandb.run = None
+    wandb_mock.run = None
 
     # test log_text with columns and data
     columns = ["input", "label", "prediction"]
     data = [["cheese", "english", "english"], ["fromage", "french", "spanish"]]
     logger = WandbLogger()
     logger.log_text(key="samples", columns=columns, data=data)
-    wandb.Table.assert_called_once_with(
+    wandb_mock.Table.assert_called_once_with(
         columns=["input", "label", "prediction"],
         data=[["cheese", "english", "english"], ["fromage", "french", "spanish"]],
         dataframe=None,
     )
-    wandb.init().log.assert_called_once_with({"samples": wandb.Table()})
+    wandb_mock.init().log.assert_called_once_with({"samples": wandb_mock.Table()})
 
     # test log_text with dataframe
-    wandb.Table.reset_mock()
-    wandb.init().log.reset_mock()
+    wandb_mock.Table.reset_mock()
+    wandb_mock.init().log.reset_mock()
     df = 'pandas.DataFrame({"col1": [1, 2], "col2": [3, 4]})'  # TODO: incompatible numpy/pandas versions in test env
     logger.log_text(key="samples", dataframe=df)
-    wandb.Table.assert_called_once_with(
+    wandb_mock.Table.assert_called_once_with(
         columns=None,
         data=None,
         dataframe=df,
     )
-    wandb.init().log.assert_called_once_with({"samples": wandb.Table()})
+    wandb_mock.init().log.assert_called_once_with({"samples": wandb_mock.Table()})
 
     # test log_image
-    wandb.init().log.reset_mock()
+    wandb_mock.init().log.reset_mock()
     logger.log_image(key="samples", images=["1.jpg", "2.jpg"])
-    wandb.Image.assert_called_with("2.jpg")
-    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
+    wandb_mock.Image.assert_called_with("2.jpg")
+    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Image(), wandb_mock.Image()]})
 
     # test log_image with step
-    wandb.init().log.reset_mock()
+    wandb_mock.init().log.reset_mock()
     logger.log_image(key="samples", images=["1.jpg", "2.jpg"], step=5)
-    wandb.Image.assert_called_with("2.jpg")
-    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()], "trainer/global_step": 5})
+    wandb_mock.Image.assert_called_with("2.jpg")
+    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Image(), wandb_mock.Image()], "trainer/global_step": 5})
 
     # test log_image with captions
-    wandb.init().log.reset_mock()
-    wandb.Image.reset_mock()
+    wandb_mock.init().log.reset_mock()
+    wandb_mock.Image.reset_mock()
     logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1", "caption 2"])
-    wandb.Image.assert_called_with("2.jpg", caption="caption 2")
-    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
+    wandb_mock.Image.assert_called_with("2.jpg", caption="caption 2")
+    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Image(), wandb_mock.Image()]})
 
     # test log_image without a list
     with pytest.raises(TypeError, match="""Expected a list as "images", found <class 'str'>"""):
@@ -461,46 +451,42 @@ def test_wandb_log_media(wandb, tmpdir):
         logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1"])
 
     # test log_table
-    wandb.Table.reset_mock()
-    wandb.init().log.reset_mock()
+    wandb_mock.Table.reset_mock()
+    wandb_mock.init().log.reset_mock()
     logger.log_table(key="samples", columns=columns, data=data, dataframe=df, step=5)
-    wandb.Table.assert_called_once_with(
+    wandb_mock.Table.assert_called_once_with(
         columns=columns,
         data=data,
         dataframe=df,
     )
-    wandb.init().log.assert_called_once_with({"samples": wandb.Table(), "trainer/global_step": 5})
+    wandb_mock.init().log.assert_called_once_with({"samples": wandb_mock.Table(), "trainer/global_step": 5})
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.wandb.wandb")
-def test_wandb_logger_offline_log_model(wandb, tmpdir):
+def test_wandb_logger_offline_log_model(wandb_mock, tmpdir):
     """Test that log_model=True raises an error in offline mode."""
     with pytest.raises(MisconfigurationException, match="checkpoints cannot be uploaded in offline mode"):
         _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.wandb.Run", object)
-@mock.patch("lightning.pytorch.loggers.wandb.wandb")
-def test_wandb_logger_download_artifact(wandb, tmpdir):
+def test_wandb_logger_download_artifact(wandb_mock, tmpdir):
     """Test that download_artifact works."""
-    wandb.run = wandb.init()
+    wandb_mock.run = wandb_mock.init()
     logger = WandbLogger()
     logger.download_artifact("test_artifact", str(tmpdir), "model", True)
-    wandb.run.use_artifact.assert_called_once_with("test_artifact")
+    wandb_mock.run.use_artifact.assert_called_once_with("test_artifact")
 
-    wandb.run = None
+    wandb_mock.run = None
 
     WandbLogger.download_artifact("test_artifact", str(tmpdir), "model", True)
 
-    wandb.Api().artifact.assert_called_once_with("test_artifact", type="model")
+    wandb_mock.Api().artifact.assert_called_once_with("test_artifact", type="model")
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.wandb.wandb", mock.Mock())
 @pytest.mark.parametrize(("log_model", "expected"), [("True", True), ("False", False), ("all", "all")])
-def test_wandb_logger_cli_integration(log_model, expected, monkeypatch, tmp_path):
+def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypatch, tmp_path):
     """Test that the WandbLogger can be used with the LightningCLI."""
     monkeypatch.chdir(tmp_path)
 
