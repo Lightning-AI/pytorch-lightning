@@ -22,7 +22,7 @@ from lightning.app.storage.requests import _ExistsResponse, _GetResponse
 from lightning.app.testing.helpers import EmptyWork, _MockQueue, _RunIf
 from lightning.app.utilities.app_helpers import LightningJSONEncoder
 from lightning.app.utilities.component import _context
-from lightning.app.utilities.imports import _is_s3fs_available, _IS_WINDOWS
+from lightning.app.utilities.imports import _IS_WINDOWS, _is_s3fs_available
 
 
 def test_path_instantiation():

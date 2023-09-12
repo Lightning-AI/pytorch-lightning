@@ -12,6 +12,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
+
 from tests_fabric.helpers.runif import RunIf
 
 if TorchCollective.is_available():
