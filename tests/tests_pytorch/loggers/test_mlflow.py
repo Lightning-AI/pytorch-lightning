@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
-from types import ModuleType
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -23,28 +21,6 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
 from lightning.pytorch.loggers.mlflow import _get_resolve_tags
-
-
-@pytest.fixture()
-def mlflow_mock(monkeypatch):
-    mlflow = ModuleType("mlflow")
-    mlflow.set_tracking_uri = Mock()
-    monkeypatch.setitem(sys.modules, "mlflow", mlflow)
-
-    mlflow_tracking = ModuleType("tracking")
-    mlflow_tracking.MlflowClient = Mock()
-    mlflow_tracking.artifact_utils = Mock()
-    monkeypatch.setitem(sys.modules, "mlflow.tracking", mlflow_tracking)
-
-    mlflow_entities = ModuleType("entities")
-    mlflow_entities.Metric = Mock()
-    mlflow_entities.Param = Mock()
-    mlflow_entities.time = Mock()
-    monkeypatch.setitem(sys.modules, "mlflow.entities", mlflow_entities)
-
-    mlflow.tracking = mlflow_tracking
-    mlflow.entities = mlflow_entities
-    return mlflow
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):

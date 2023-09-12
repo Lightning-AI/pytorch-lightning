@@ -35,7 +35,7 @@ from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.pytorch.tuner.tuning import Tuner
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
-from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation, mlflow_mock
+from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
 from tests_pytorch.loggers.test_neptune import create_neptune_mock
 
 LOGGER_CTX_MANAGERS = (
