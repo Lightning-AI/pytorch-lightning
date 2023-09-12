@@ -3,7 +3,7 @@
 
 colossalai >=0.2.0, <=0.2.4
 fairscale >=0.4.5, <0.4.13
-deepspeed >=0.6.0, <0.8.0  # TODO: Include 0.8.x after https://github.com/microsoft/DeepSpeed/commit/b587c7e85470329ac25df7c7c2521ff9b2833db7 gets released
+deepspeed >=0.6.0, <=0.9.1; platform_system != "Windows"
 # no need to install with [pytorch] as pytorch is already installed
 horovod >=0.21.2, !=0.24.0, <=0.26.1
 hivemind ==1.1.5; sys_platform == 'linux'
