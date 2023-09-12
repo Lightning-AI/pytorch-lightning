@@ -16,17 +16,14 @@ import os
 from lightning.pytorch.loggers.comet import _COMET_AVAILABLE, CometLogger  # noqa: F401
 from lightning.pytorch.loggers.csv_logs import CSVLogger
 from lightning.pytorch.loggers.logger import Logger
-from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE, MLFlowLogger  # noqa: F401
+from lightning.pytorch.loggers.mlflow import MLFlowLogger
 from lightning.pytorch.loggers.neptune import NeptuneLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.loggers.wandb import WandbLogger
 
-__all__ = ["CSVLogger", "Logger", "TensorBoardLogger", "WandbLogger", "NeptuneLogger"]
+__all__ = ["CSVLogger", "Logger", "MLFlowLogger", "TensorBoardLogger", "WandbLogger", "NeptuneLogger"]
 
 if _COMET_AVAILABLE:
     __all__.append("CometLogger")
     # needed to prevent ModuleNotFoundError and duplicated logs.
     os.environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
-
-if _MLFLOW_AVAILABLE:
-    __all__.append("MLFlowLogger")
