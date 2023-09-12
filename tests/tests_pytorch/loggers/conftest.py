@@ -29,7 +29,6 @@ def mlflow_mock(monkeypatch):
 
 @pytest.fixture()
 def wandb_mock(monkeypatch):
-
     class RunType:  # to make isinstance checks pass
         pass
 

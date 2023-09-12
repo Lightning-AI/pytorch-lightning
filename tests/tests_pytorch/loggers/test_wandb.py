@@ -195,7 +195,9 @@ def test_wandb_logger_dirs_creation(wandb_mock, tmp_path):
 
     version = logger.version
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmp_path, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmp_path, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3
+    )
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 
@@ -214,7 +216,9 @@ def test_wandb_log_model(wandb_mock, tmp_path):
     logger = WandbLogger(save_dir=tmp_path, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
-    trainer = Trainer(default_root_dir=tmp_path, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmp_path, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3
+    )
     trainer.fit(model)
     wandb_mock.init().log_artifact.assert_called_once()
 
@@ -224,7 +228,9 @@ def test_wandb_log_model(wandb_mock, tmp_path):
     logger = WandbLogger(save_dir=tmp_path, log_model="all")
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
-    trainer = Trainer(default_root_dir=tmp_path, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmp_path, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3
+    )
     trainer.fit(model)
     assert wandb_mock.init().log_artifact.call_count == 2
 
@@ -234,7 +240,9 @@ def test_wandb_log_model(wandb_mock, tmp_path):
     logger = WandbLogger(save_dir=tmp_path, log_model=False)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
-    trainer = Trainer(default_root_dir=tmp_path, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmp_path, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3
+    )
     trainer.fit(model)
     assert not wandb_mock.init().log_artifact.called
 
@@ -245,7 +253,9 @@ def test_wandb_log_model(wandb_mock, tmp_path):
     logger = WandbLogger(save_dir=tmp_path, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
-    trainer = Trainer(default_root_dir=tmp_path, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmp_path, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3
+    )
     trainer.fit(model)
     wandb_mock.Artifact.assert_called_once_with(
         name="model-1",
@@ -271,7 +281,9 @@ def test_wandb_log_model(wandb_mock, tmp_path):
     logger = WandbLogger(save_dir=tmp_path, log_model=True, checkpoint_name="my-test-model")
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
-    trainer = Trainer(default_root_dir=tmp_path, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmp_path, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3
+    )
     trainer.fit(model)
     wandb_mock.Artifact.assert_called_once_with(
         name="my-test-model",
@@ -433,7 +445,9 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.reset_mock()
     logger.log_image(key="samples", images=["1.jpg", "2.jpg"], step=5)
     wandb_mock.Image.assert_called_with("2.jpg")
-    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Image(), wandb_mock.Image()], "trainer/global_step": 5})
+    wandb_mock.init().log.assert_called_once_with(
+        {"samples": [wandb_mock.Image(), wandb_mock.Image()], "trainer/global_step": 5}
+    )
 
     # test log_image with captions
     wandb_mock.init().log.reset_mock()
