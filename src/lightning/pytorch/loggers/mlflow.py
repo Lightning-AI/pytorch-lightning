@@ -114,7 +114,7 @@ class MLFlowLogger(Logger):
             back to `file:<save_dir>`.
         tags: A dictionary tags for the experiment.
         save_dir: A path to a local directory where the MLflow runs get saved.
-            Defaults to `./mlflow` if `tracking_uri` is not provided.
+            Defaults to `./mlruns` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
         log_model: Log checkpoints created by :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint`
             as MLFlow artifacts.
