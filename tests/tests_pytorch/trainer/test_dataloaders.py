@@ -341,7 +341,6 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset):
     assert epoch_cb.val_batches_seen == limit_val_batches * max_epochs
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize(
     "dataset",
     [
@@ -385,7 +384,6 @@ def test_datasets_dataloaders_with_limit_num_batches(tmpdir, dataset):
     assert epoch_cb.test_epoch_count == 1
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize(
     ("limit_train_batches", "limit_val_batches", "limit_test_batches"),
     [(1.0, 1.0, 1.0), (0.2, 0.4, 0.4)],
