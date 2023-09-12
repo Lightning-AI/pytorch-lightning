@@ -218,6 +218,6 @@ All they need to do is drop a datamodule into the Trainer and not worry about wh
 This is true for both academic and corporate settings where data cleaning and ad-hoc instructions slow down the progress
 of iterating through ideas.
 
-- Checkout the live examples to get your hands dirty:
+- Check out the live examples to get your hands dirty:
 - `Introduction to PyTorch Lightning <https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/mnist-hello-world.html>`_
 - `Introduction to DataModules <https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/datamodules.html>`_

@@ -509,7 +509,7 @@ class StatusChecker:
         self.finalize()
 
 
-@pytest.mark.skip(reason="Flaky test")  # See also: https://github.com/Lightning-AI/lightning/pull/17774
+@pytest.mark.xfail(strict=False, reason="Flaky test")  # See also: https://github.com/Lightning-AI/lightning/pull/17774
 @RunIf(min_torch="2.0.0", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not RequirementCache("psutil"), reason="psutil is needed to help prevent deadlocks.")
 @pytest.mark.parametrize(
