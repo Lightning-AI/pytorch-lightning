@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import DEFAULT, patch, Mock
+from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
 from torch import tensor
@@ -150,7 +150,9 @@ def test_comet_logger_dirs_creation(comet_mock, tmp_path, monkeypatch):
     logger.experiment.project_name = "test"
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmp_path, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmp_path, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3
+    )
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 

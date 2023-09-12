@@ -48,7 +48,7 @@ from lightning.pytorch.cli import (
     SaveConfigCallback,
 )
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.loggers import TensorBoardLogger, CSVLogger
+from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.loggers.comet import _COMET_AVAILABLE
 from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
 from lightning.pytorch.loggers.wandb import _WANDB_AVAILABLE

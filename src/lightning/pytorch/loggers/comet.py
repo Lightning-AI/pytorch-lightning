@@ -19,7 +19,7 @@ Comet Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -31,7 +31,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 if TYPE_CHECKING:
-    from comet_ml import Experiment, ExistingExperiment, OfflineExperiment
+    from comet_ml import ExistingExperiment, Experiment, OfflineExperiment
 else:
     # needed for Sphinx auto-documentation
     Experiment, ExistingExperiment, OfflineExperiment = None, None, None
@@ -277,14 +277,12 @@ class CometLogger(Logger):
         if self._future_experiment_key is not None:
             os.environ["COMET_EXPERIMENT_KEY"] = self._future_experiment_key
 
-        from comet_ml import Experiment, ExistingExperiment, OfflineExperiment
+        from comet_ml import ExistingExperiment, Experiment, OfflineExperiment
 
         try:
             if self.mode == "online":
                 if self._experiment_key is None:
-                    self._experiment = Experiment(
-                        api_key=self.api_key, project_name=self._project_name, **self._kwargs
-                    )
+                    self._experiment = Experiment(api_key=self.api_key, project_name=self._project_name, **self._kwargs)
                     self._experiment_key = self._experiment.get_key()
                 else:
                     self._experiment = ExistingExperiment(
