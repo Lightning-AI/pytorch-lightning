@@ -22,7 +22,7 @@ import tempfile
 from argparse import Namespace
 from pathlib import Path
 from time import time
-from typing import Any, Dict, List, Literal, Mapping, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Literal, Mapping, Optional, Union, TYPE_CHECKING, Callable
 
 import yaml
 from lightning_utilities.core.imports import RequirementCache
@@ -34,25 +34,13 @@ from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
-log = logging.getLogger(__name__)
-LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0", "mlflow")
-
-
 if TYPE_CHECKING:
     from mlflow.tracking import MlflowClient
 
-# if _MLFLOW_AVAILABLE:
-    # import mlflow
-    # from mlflow.entities import Metric, Param
-    # from mlflow.tracking import context, MlflowClient
-    # from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
-# else:
 
-mlflow = None
-MlflowClient, context = None, None
-Metric, Param = None, None
-MLFLOW_RUN_NAME = "mlflow.runName"
+log = logging.getLogger(__name__)
+LOCAL_FILE_URI_PREFIX = "file:"
+_MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0", "mlflow")
 
 
 class MLFlowLogger(Logger):
@@ -203,17 +191,7 @@ class MLFlowLogger(Logger):
                     )
                 self.tags[MLFLOW_RUN_NAME] = self._run_name
 
-            from mlflow.tracking import context
-
-            # before v1.1.0
-            if hasattr(context, "resolve_tags"):
-                from mlflow.tracking.context import resolve_tags
-            # since v1.1.0
-            elif hasattr(context, "registry"):
-                from mlflow.tracking.context.registry import resolve_tags
-            else:
-                resolve_tags = _resolve_tags_legacy
-
+            resolve_tags = _get_resolve_tags()
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
             self._run_id = run.info.run_id
         self._initialized = True
@@ -391,15 +369,16 @@ class MLFlowLogger(Logger):
             self._logged_model_time[p] = t
 
 
-def _resolve_tags_legacy(tags: Optional[Dict] = None) -> Optional[Dict]:
-    """
-    Args:
-        tags: A dictionary of tags to override. If specified, tags passed in this argument will
-             override those inferred from the context.
+def _get_resolve_tags() -> Callable:
+    from mlflow.tracking import context
 
-    Returns: A dictionary of resolved tags.
+    # before v1.1.0
+    if hasattr(context, "resolve_tags"):
+        from mlflow.tracking.context import resolve_tags
+    # since v1.1.0
+    elif hasattr(context, "registry"):
+        from mlflow.tracking.context.registry import resolve_tags
+    else:
+        resolve_tags = lambda tags: tags
 
-    Note:
-        See ``mlflow.tracking.context.registry`` for more details.
-    """
-    return tags
+    return resolve_tags
