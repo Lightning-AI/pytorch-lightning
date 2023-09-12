@@ -490,9 +490,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         from deepspeed.runtime import DeepSpeedOptimizer
 
-        optimzer_state_requested = bool(
-            len([item for item in state.values() if isinstance(item, (Optimizer, DeepSpeedOptimizer))])
-        )
+        optimzer_state_requested = any(isinstance(item, (Optimizer, DeepSpeedOptimizer)) for item in state.values())
 
         torch.cuda.empty_cache()
         _, client_state = engine.load_checkpoint(
