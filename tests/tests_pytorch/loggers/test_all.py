@@ -13,6 +13,7 @@
 # limitations under the License.
 import contextlib
 import inspect
+import os
 import pickle
 from unittest import mock
 from unittest.mock import ANY, Mock
@@ -39,8 +40,6 @@ from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
 from tests_pytorch.loggers.test_neptune import create_neptune_mock
 
 LOGGER_CTX_MANAGERS = (
-    mock.patch("lightning.pytorch.loggers.comet.comet_ml"),
-    mock.patch("lightning.pytorch.loggers.comet.CometOfflineExperiment"),
     mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True),
     mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()),
     mock.patch("lightning.pytorch.loggers.neptune.neptune", new_callable=create_neptune_mock),
@@ -81,9 +80,11 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
     return logger_class(**args)
 
 
+@mock.patch.dict(os.environ, {})
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
+@mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
-def test_loggers_fit_test_all(logger_class, mlflow_mock, tmpdir):
+def test_loggers_fit_test_all(logger_class, mlflow_mock, comet_mock, tmpdir):
     """Verify that basic functionality of all loggers."""
     with contextlib.ExitStack() as stack:
         for mgr in LOGGER_CTX_MANAGERS:
@@ -162,6 +163,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         assert log_metric_names == expected
 
 
+@mock.patch.dict(os.environ, {})
 @pytest.mark.parametrize(
     "logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE
 )  # WandbLogger and NeptuneLogger get tested separately
@@ -267,6 +269,7 @@ class CustomLoggerWithoutExperiment(Logger):
         pass
 
 
+@mock.patch.dict(os.environ, {})
 @pytest.mark.parametrize("logger_class", [*ALL_LOGGER_CLASSES_WO_NEPTUNE, CustomLoggerWithoutExperiment])
 @RunIf(skip_windows=True)
 def test_logger_initialization(tmpdir, monkeypatch, logger_class):
@@ -298,14 +301,13 @@ def _test_logger_initialization(tmpdir, logger_class):
     trainer.fit(model)
 
 
-def test_logger_with_prefix_all(mlflow_mock, monkeypatch, tmpdir):
+@mock.patch.dict(os.environ, {})
+def test_logger_with_prefix_all(mlflow_mock, comet_mock, monkeypatch, tmpdir):
     """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
 
     # Comet
-    with mock.patch("lightning.pytorch.loggers.comet.comet_ml"), mock.patch(
-        "lightning.pytorch.loggers.comet.CometOfflineExperiment"
-    ):
+    with mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", return_value=True):
         _patch_comet_atexit(monkeypatch)
         logger = _instantiate_logger(CometLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)

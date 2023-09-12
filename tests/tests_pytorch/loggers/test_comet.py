@@ -32,6 +32,7 @@ def _patch_comet_atexit(monkeypatch):
 
 
 @mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
 def test_comet_logger_online(comet_mock):
     """Test comet online with mocks."""
     # Test api_key given
@@ -68,6 +69,7 @@ def test_comet_logger_online(comet_mock):
 
 
 @mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
 def test_comet_logger_no_api_key_given(comet_mock):
     """Test that CometLogger fails to initialize if both api key and save_dir are missing."""
     with pytest.raises(MisconfigurationException, match="requires either api_key or save_dir"):
@@ -76,6 +78,7 @@ def test_comet_logger_no_api_key_given(comet_mock):
 
 
 @mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
 def test_comet_logger_experiment_name(comet_mock):
     """Test that Comet Logger experiment name works correctly."""
     api_key = "key"
@@ -92,6 +95,7 @@ def test_comet_logger_experiment_name(comet_mock):
 
 
 @mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
 def test_comet_logger_manual_experiment_key(comet_mock):
     """Test that Comet Logger respects manually set COMET_EXPERIMENT_KEY."""
     api_key = "key"
@@ -121,6 +125,7 @@ def test_comet_logger_manual_experiment_key(comet_mock):
 
 
 @mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
 def test_comet_logger_dirs_creation(comet_mock, tmp_path, monkeypatch):
     """Test that the logger creates the folders and files in the right place."""
     _patch_comet_atexit(monkeypatch)
@@ -155,6 +160,7 @@ def test_comet_logger_dirs_creation(comet_mock, tmp_path, monkeypatch):
 
 
 @mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
 def test_comet_name_default(comet_mock):
     """Test that CometLogger.name don't create an Experiment and returns a default value."""
     api_key = "key"
@@ -165,6 +171,7 @@ def test_comet_name_default(comet_mock):
 
 
 @mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
 def test_comet_name_project_name(comet_mock):
     """Test that CometLogger.name does not create an Experiment and returns project name if passed."""
     api_key = "key"
@@ -176,6 +183,7 @@ def test_comet_name_project_name(comet_mock):
 
 
 @mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
 def test_comet_version_without_experiment(comet_mock):
     """Test that CometLogger.version does not create an Experiment."""
     api_key = "key"
@@ -201,6 +209,7 @@ def test_comet_version_without_experiment(comet_mock):
 
 
 @mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
 def test_comet_epoch_logging(comet_mock, tmp_path, monkeypatch):
     """Test that CometLogger removes the epoch key from the metrics dict and passes it as argument."""
     _patch_comet_atexit(monkeypatch)
@@ -210,6 +219,7 @@ def test_comet_epoch_logging(comet_mock, tmp_path, monkeypatch):
 
 
 @mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
 def test_comet_metrics_safe(comet_mock, tmp_path, monkeypatch):
     """Test that CometLogger.log_metrics doesn't do inplace modification of metrics."""
     _patch_comet_atexit(monkeypatch)
