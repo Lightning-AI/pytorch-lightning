@@ -18,7 +18,7 @@ Weights and Biases Logger
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Mapping, Optional, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Union, TYPE_CHECKING
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
@@ -32,13 +32,9 @@ from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
-try:
-    import wandb
+if TYPE_CHECKING:
     from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
-except ModuleNotFoundError:
-    # needed for test mocks, these tests shall be updated
-    wandb, Run, RunDisabled = None, None, None
 
 _WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
 
@@ -296,12 +292,12 @@ class WandbLogger(Logger):
         anonymous: Optional[bool] = None,
         project: Optional[str] = None,
         log_model: Union[Literal["all"], bool] = False,
-        experiment: Union[Run, RunDisabled, None] = None,
+        experiment: Union["Run", "RunDisabled", None] = None,
         prefix: str = "",
         checkpoint_name: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
-        if wandb is None or not _WANDB_AVAILABLE:
+        if not _WANDB_AVAILABLE:
             raise ModuleNotFoundError(str(_WANDB_AVAILABLE))
 
         if offline and log_model:
@@ -345,6 +341,7 @@ class WandbLogger(Logger):
         self._checkpoint_name = checkpoint_name
 
     def __getstate__(self) -> Dict[str, Any]:
+        import wandb
         # Hack: If the 'spawn' launch method is used, the logger will get pickled and this `__getstate__` gets called.
         # We create an experiment here in the main process, and attach to it in the worker process.
         # Using wandb-service, we persist the same experiment even if multiple `Trainer.fit/test/validate` calls
@@ -365,7 +362,7 @@ class WandbLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Union[Run, RunDisabled]:
+    def experiment(self) -> Union["Run", "RunDisabled"]:
         r"""
 
         Actual wandb object. To use wandb features in your
@@ -378,6 +375,10 @@ class WandbLogger(Logger):
             self.logger.experiment.some_wandb_function()
 
         """
+        import wandb
+        from wandb.sdk.lib import RunDisabled
+        from wandb.wandb_run import Run
+
         if self._experiment is None:
             if self._offline:
                 os.environ["WANDB_MODE"] = "dryrun"
@@ -440,6 +441,7 @@ class WandbLogger(Logger):
         Can be defined either with `columns` and `data` or with `dataframe`.
 
         """
+        import wandb
 
         metrics = {key: wandb.Table(columns=columns, data=data, dataframe=dataframe)}
         self.log_metrics(metrics, step)
@@ -475,6 +477,9 @@ class WandbLogger(Logger):
             if len(v) != n:
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
         kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
+
+        import wandb
+
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
         self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
@@ -537,6 +542,8 @@ class WandbLogger(Logger):
             The path to the downloaded artifact.
 
         """
+        import wandb
+
         if wandb.run is not None and use_artifact:
             artifact = wandb.run.use_artifact(artifact)
         else:
@@ -569,6 +576,8 @@ class WandbLogger(Logger):
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
     def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
+        import wandb
+
         # get checkpoints to be saved with associated score
         checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
 

@@ -28,9 +28,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("lightning.pytorch.loggers.wandb.wandb")
-def test_wandb_project_name(*_):
+def test_wandb_project_name(wandb_mock):
     with mock.patch.dict(os.environ, {}):
         logger = WandbLogger()
     assert logger.name == "lightning_logs"
@@ -49,53 +47,51 @@ def test_wandb_project_name(*_):
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock)
-@mock.patch("lightning.pytorch.loggers.wandb.wandb")
-def test_wandb_logger_init(wandb, monkeypatch):
+def test_wandb_logger_init(wandb_mock):
     """Verify that basic functionality of wandb logger works.
 
     Wandb doesn't work well with pytest so we have to mock it out here.
 
     """
     # test wandb.init called when there is no W&B run
-    wandb.run = None
+    wandb_mock.run = None
     logger = WandbLogger(
         name="test_name", save_dir="test_save_dir", version="test_id", project="test_project", resume="never"
     )
     logger.log_metrics({"acc": 1.0})
-    wandb.init.assert_called_once_with(
+    wandb_mock.init.assert_called_once_with(
         name="test_name", dir="test_save_dir", id="test_id", project="test_project", resume="never", anonymous=None
     )
-    wandb.init().log.assert_called_once_with({"acc": 1.0})
+    wandb_mock.init().log.assert_called_once_with({"acc": 1.0})
 
     # test wandb.init called with project as name if name not provided
-    wandb.run = None
-    wandb.init.reset_mock()
+    wandb_mock.run = None
+    wandb_mock.init.reset_mock()
     WandbLogger(project="test_project").experiment
-    wandb.init.assert_called_once_with(
+    wandb_mock.init.assert_called_once_with(
         name=None, dir=".", id=None, project="test_project", resume="allow", anonymous=None
     )
 
     # test wandb.init set save_dir correctly after created
-    wandb.run = None
-    wandb.init.reset_mock()
+    wandb_mock.run = None
+    wandb_mock.init.reset_mock()
     logger = WandbLogger()
     assert logger.save_dir is not None
-    wandb.run = None
-    wandb.init.reset_mock()
+    wandb_mock.run = None
+    wandb_mock.init.reset_mock()
     logger = WandbLogger(save_dir=".", dir=None)
     assert logger.save_dir is not None
 
     # test wandb.init and setting logger experiment externally
-    wandb.run = None
-    run = wandb.init()
+    wandb_mock.run = None
+    run = wandb_mock.init()
     logger = WandbLogger(experiment=run)
     assert logger.experiment
 
     # test wandb.init not called if there is a W&B run
-    wandb.init().log.reset_mock()
-    wandb.init.reset_mock()
-    wandb.run = wandb.init()
+    wandb_mock.init().log.reset_mock()
+    wandb_mock.init.reset_mock()
+    wandb_mock.run = wandb_mock.init()
 
     logger = WandbLogger()
     with pytest.warns(UserWarning, match="There is a wandb run already in progress"):
@@ -109,24 +105,24 @@ def test_wandb_logger_init(wandb, monkeypatch):
     assert logger._wandb_init["resume"] == "allow"
 
     logger.log_metrics({"acc": 1.0}, step=3)
-    wandb.init.assert_called_once()
-    wandb.init().log.assert_called_once_with({"acc": 1.0, "trainer/global_step": 3})
+    wandb_mock.init.assert_called_once()
+    wandb_mock.init().log.assert_called_once_with({"acc": 1.0, "trainer/global_step": 3})
 
     # continue training on same W&B run and offset step
     logger.finalize("success")
     logger.log_metrics({"acc": 1.0}, step=6)
-    wandb.init().log.assert_called_with({"acc": 1.0, "trainer/global_step": 6})
+    wandb_mock.init().log.assert_called_with({"acc": 1.0, "trainer/global_step": 6})
 
     # log hyper parameters
     hparams = {"test": None, "nested": {"a": 1}, "b": [2, 3, 4]}
     logger.log_hyperparams(hparams)
-    wandb.init().config.update.assert_called_once_with(hparams, allow_val_change=True)
+    wandb_mock.init().config.update.assert_called_once_with(hparams, allow_val_change=True)
 
     # watch a model
     logger.watch("model", "log", 10, False)
-    wandb.init().watch.assert_called_once_with("model", log="log", log_freq=10, log_graph=False)
+    wandb_mock.init().watch.assert_called_once_with("model", log="log", log_freq=10, log_graph=False)
 
-    assert logger.version == wandb.init().id
+    assert logger.version == wandb_mock.init().id
 
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
