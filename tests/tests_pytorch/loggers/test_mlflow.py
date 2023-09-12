@@ -19,7 +19,7 @@ import pytest
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers.mlflow import MLFlowLogger, _MLFLOW_AVAILABLE, _get_resolve_tags
+from lightning.pytorch.loggers.mlflow import _get_resolve_tags, _MLFLOW_AVAILABLE, MLFlowLogger
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
