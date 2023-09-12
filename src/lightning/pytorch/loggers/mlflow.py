@@ -34,7 +34,6 @@ from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
-
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
 _MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0", "mlflow")
