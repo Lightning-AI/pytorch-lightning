@@ -36,6 +36,8 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from mlflow.tracking import MlflowClient
+else:
+    MlflowClient = object
 
 
 log = logging.getLogger(__name__)
@@ -146,7 +148,7 @@ class MLFlowLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> "MlflowClient":
+    def experiment(self) -> MlflowClient:
         r"""
         Actual MLflow object. To use MLflow features in your
         :class:`~lightning.pytorch.core.module.LightningModule` do the following.
