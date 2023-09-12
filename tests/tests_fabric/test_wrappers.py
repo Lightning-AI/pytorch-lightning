@@ -358,6 +358,8 @@ def test_fabric_optimizer_wraps():
     fabric_optimizer = _FabricOptimizer(optimizer, Mock())
     assert fabric_optimizer.optimizer is optimizer
     assert isinstance(fabric_optimizer, optimizer_cls)
+    assert isinstance(fabric_optimizer, _FabricOptimizer)
+    assert type(fabric_optimizer).__name__ == "FabricSGD"
 
 
 def test_fabric_optimizer_state_dict():
