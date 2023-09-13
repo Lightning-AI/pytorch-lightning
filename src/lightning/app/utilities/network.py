@@ -18,6 +18,8 @@ from typing import Any, Callable, Dict, Optional
 from urllib.parse import urljoin
 
 import requests
+
+# for backwards compatibility
 from lightning_cloud.rest_client import (  # noqa: F401
     _DEFAULT_BACKOFF_MAX,
     _get_next_backoff_time,
