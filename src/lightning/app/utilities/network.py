@@ -21,6 +21,7 @@ import requests
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
+from lightning_cloud.rest_client import create_swagger_client, GridRestClient, LightningClient, _retry_wrapper, _DEFAULT_BACKOFF_MAX, _get_next_backoff_time  # noqa: F401
 from urllib3.util.retry import Retry
 
 from lightning.app.core import constants
