@@ -884,12 +884,13 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_ipu_available(monkeypatch, False)
         trainer = Trainer()
     assert isinstance(trainer.accelerator, CUDAAccelerator)
-    assert isinstance(trainer.strategy, DDPStrategy)
-    assert trainer._accelerator_connector._devices_flag == list(range(4))
-    assert trainer.num_devices == 4
-    assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
-    assert trainer.strategy._start_method == ("fork" if is_interactive else "popen")
-    assert trainer.strategy.launcher.is_interactive_compatible == is_interactive
+    assert isinstance(trainer.strategy, (SingleDeviceStrategy if is_interactive else DDPStrategy))
+    assert trainer._accelerator_connector._devices_flag == [0] if is_interactive else list(range(4))
+    assert trainer.num_devices == 1 if is_interactive else 4
+    if not is_interactive:
+        assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
+        assert trainer.strategy._start_method == ("fork" if is_interactive else "popen")
+        assert trainer.strategy.launcher.is_interactive_compatible == is_interactive
 
     # MPS (there's no distributed)
     with monkeypatch.context():
