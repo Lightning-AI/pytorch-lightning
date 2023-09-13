@@ -65,6 +65,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
+    _TORCH_GREATER_EQUAL_2_2,
 )
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _move_state_into
@@ -744,8 +745,9 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
         CheckpointImpl,
     )
 
-    wrapper = partial(checkpoint_wrapper, checkpoint_impl=CheckpointImpl.NO_REENTRANT)
-    apply_activation_checkpointing(module, checkpoint_wrapper_fn=wrapper, **activation_checkpointing_kwargs)
+    if not _TORCH_GREATER_EQUAL_2_2:
+        checkpoint_wrapper = partial(checkpoint_wrapper, checkpoint_impl=CheckpointImpl.NO_REENTRANT)
+    apply_activation_checkpointing(module, checkpoint_wrapper_fn=checkpoint_wrapper, **activation_checkpointing_kwargs)
 
 
 class _FSDPBackwardSyncControl(_BackwardSyncControl):
