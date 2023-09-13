@@ -21,9 +21,6 @@ import requests
 
 # for backwards compatibility
 from lightning_cloud.rest_client import (  # noqa: F401
-    _DEFAULT_BACKOFF_MAX,
-    _get_next_backoff_time,
-    _retry_wrapper,
     create_swagger_client,
     GridRestClient,
     LightningClient,
