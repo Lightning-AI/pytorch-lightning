@@ -48,8 +48,6 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("lightning.pytorch.loggers.neptune.Run", new=mock.Mock),
     mock.patch("lightning.pytorch.loggers.neptune.Handler", new=mock.Mock),
     mock.patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock()),
-    mock.patch("lightning.pytorch.loggers.wandb.wandb"),
-    mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock),
 )
 ALL_LOGGER_CLASSES = (
     CometLogger,
@@ -83,7 +81,7 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
 
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
-def test_loggers_fit_test_all(logger_class, mlflow_mock, tmpdir):
+def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, tmpdir):
     """Verify that basic functionality of all loggers."""
     with contextlib.ExitStack() as stack:
         for mgr in LOGGER_CTX_MANAGERS:
@@ -298,7 +296,7 @@ def _test_logger_initialization(tmpdir, logger_class):
     trainer.fit(model)
 
 
-def test_logger_with_prefix_all(mlflow_mock, monkeypatch, tmpdir):
+def test_logger_with_prefix_all(mlflow_mock, wandb_mock, monkeypatch, tmpdir):
     """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
 
@@ -345,12 +343,10 @@ def test_logger_with_prefix_all(mlflow_mock, monkeypatch, tmpdir):
     logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
     # WandB
-    with mock.patch("lightning.pytorch.loggers.wandb.wandb") as wandb, mock.patch(
-        "lightning.pytorch.loggers.wandb.Run", new=mock.Mock
-    ), mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True):
+    with mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True):
         logger = _instantiate_logger(WandbLogger, save_dir=tmpdir, prefix=prefix)
-        wandb.run = None
-        wandb.init().step = 0
+        wandb_mock.run = None
+        wandb_mock.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
 
