@@ -217,10 +217,10 @@ class CometLogger(Logger):
         self._save_dir: Optional[str]
         self.rest_api_key: Optional[str]
 
-        import comet_ml
-
-        # needed to prevent ModuleNotFoundError and duplicated logs.
+        # needs to be set before the first `comet_ml` import
         os.environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
+
+        import comet_ml
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
         api_key = api_key or comet_ml.config.get_api_key(None, comet_ml.config.get_config())
