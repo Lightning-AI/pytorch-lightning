@@ -102,10 +102,9 @@ def _get_logger_with_mocks(**kwargs):
 
 
 @mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
-@mock.patch("lightning.pytorch.loggers.neptune.Run", Run)
-@mock.patch("lightning.pytorch.loggers.neptune.Handler", Run)
-@mock.patch("lightning.pytorch.loggers.neptune.neptune", new_callable=create_neptune_mock)
-def test_neptune_online(neptune):
+# @mock.patch("lightning.pytorch.loggers.neptune.neptune", new_callable=create_neptune_mock)
+def test_neptune_online(neptune_mock):
+    neptune_mock.init_run = MagicMock(side_effect=create_run_mock)
     logger = NeptuneLogger(api_key="test", project="project")
     created_run_mock = logger.run
 
@@ -113,7 +112,7 @@ def test_neptune_online(neptune):
     created_run_mock.exists.assert_called_once_with("sys/id")
     assert logger.name == "Run test name"
     assert logger.version == "TEST-1"
-    assert neptune.init_run.call_count == 1
+    assert neptune_mock.init_run.call_count == 1
     assert created_run_mock.__getitem__.call_count == 2
     assert created_run_mock.__setitem__.call_count == 1
     created_run_mock.__getitem__.assert_has_calls([call("sys/id"), call("sys/name")], any_order=True)

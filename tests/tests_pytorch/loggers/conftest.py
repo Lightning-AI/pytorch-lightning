@@ -74,3 +74,40 @@ def wandb_mock(monkeypatch):
     wandb.sdk.lib = wandb_sdk_lib
     wandb.wandb_run = wandb_wandb_run
     return wandb
+
+
+@pytest.fixture()
+def neptune_mock(monkeypatch):
+    # class HandlerType:  # to make isinstance checks pass
+    #     pass
+    #
+    # handler_mock = Mock(
+    #     spec=HandlerType,
+    # )
+
+    neptune = ModuleType("neptune")
+    # wandb.init = Mock(return_value=run_mock)
+    neptune.Run = Mock()
+    # wandb.require = Mock()
+    # wandb.Api = Mock()
+    # wandb.Artifact = Mock()
+    # wandb.Image = Mock()
+    # wandb.Table = Mock()
+    monkeypatch.setitem(sys.modules, "neptune", neptune)
+
+    neptune_handler = ModuleType("handler")
+    neptune_handler.Handler = Mock()
+    monkeypatch.setitem(sys.modules, "neptune.handler", neptune_handler)
+    #
+    # wandb_sdk_lib = ModuleType("lib")
+    # wandb_sdk_lib.RunDisabled = RunType
+    # monkeypatch.setitem(sys.modules, "wandb.sdk.lib", wandb_sdk_lib)
+    #
+    # wandb_wandb_run = ModuleType("wandb_run")
+    # wandb_wandb_run.Run = RunType
+    # monkeypatch.setitem(sys.modules, "wandb.wandb_run", wandb_wandb_run)
+    #
+    neptune.handler = neptune_handler
+    # wandb.sdk.lib = wandb_sdk_lib
+    # wandb.wandb_run = wandb_wandb_run
+    return neptune
