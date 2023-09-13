@@ -13,13 +13,11 @@
 # limitations under the License.
 
 import socket
-import time
 from functools import wraps
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import urljoin
 
 import requests
-from lightning_cloud.rest_client import create_swagger_client, GridRestClient, LightningClient, _retry_wrapper, _DEFAULT_BACKOFF_MAX, _get_next_backoff_time  # noqa: E402
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
@@ -114,6 +112,7 @@ def _check_service_url_is_ready(url: str, timeout: float = 5, metadata="") -> bo
     except (ConnectionError, ConnectTimeout, ReadTimeout):
         logger.debug(f"The url {url} is not ready. {metadata}")
         return False
+
 
 class CustomRetryAdapter(HTTPAdapter):
     def __init__(self, *args: Any, **kwargs: Any):
