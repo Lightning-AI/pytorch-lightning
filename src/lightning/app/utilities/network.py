@@ -18,10 +18,8 @@ from functools import wraps
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import urljoin
 
-import lightning_cloud
 import requests
-import urllib3
-from lightning_cloud.rest_client import create_swagger_client, GridRestClient
+from lightning_cloud.rest_client import create_swagger_client, GridRestClient, LightningClient, _retry_wrapper, _DEFAULT_BACKOFF_MAX, _get_next_backoff_time  # noqa: E402
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
@@ -87,7 +85,6 @@ def _find_free_network_port_cloudspace():
 
 _CONNECTION_RETRY_TOTAL = 2880
 _CONNECTION_RETRY_BACKOFF_FACTOR = 0.5
-_DEFAULT_BACKOFF_MAX = 5 * 60  # seconds
 _DEFAULT_REQUEST_TIMEOUT = 30  # seconds
 
 
@@ -117,76 +114,6 @@ def _check_service_url_is_ready(url: str, timeout: float = 5, metadata="") -> bo
     except (ConnectionError, ConnectTimeout, ReadTimeout):
         logger.debug(f"The url {url} is not ready. {metadata}")
         return False
-
-
-def _get_next_backoff_time(num_retries: int, backoff_value: float = 0.5) -> float:
-    next_backoff_value = backoff_value * (2 ** (num_retries - 1))
-    return min(_DEFAULT_BACKOFF_MAX, next_backoff_value)
-
-
-def _retry_wrapper(self, func: Callable, max_tries: Optional[int] = None) -> Callable:
-    """Returns the function decorated by a wrapper that retries the call several times if a connection error occurs.
-
-    The retries follow an exponential backoff.
-
-    """
-
-    @wraps(func)
-    def wrapped(*args: Any, **kwargs: Any) -> Any:
-        consecutive_errors = 0
-
-        while True:
-            try:
-                return func(self, *args, **kwargs)
-            except (lightning_cloud.openapi.rest.ApiException, urllib3.exceptions.HTTPError) as ex:
-                # retry if the backend fails with all errors except 4xx but not 408 - (Request Timeout)
-                if (
-                    isinstance(ex, urllib3.exceptions.HTTPError)
-                    or ex.status in (408, 409)
-                    or not str(ex.status).startswith("4")
-                ):
-                    consecutive_errors += 1
-                    backoff_time = _get_next_backoff_time(consecutive_errors)
-
-                    msg = (
-                        f"error: {str(ex)}"
-                        if isinstance(ex, urllib3.exceptions.HTTPError)
-                        else f"response: {ex.status}"
-                    )
-                    logger.debug(
-                        f"The {func.__name__} request failed to reach the server, {msg}."
-                        f" Retrying after {backoff_time} seconds."
-                    )
-
-                    if max_tries is not None and consecutive_errors == max_tries:
-                        raise Exception(f"The {func.__name__} request failed to reach the server, {msg}.")
-
-                    time.sleep(backoff_time)
-                else:
-                    raise ex
-
-    return wrapped
-
-
-class LightningClient(GridRestClient):
-    """The LightningClient is a wrapper around the GridRestClient.
-
-    It wraps all methods to monitor connection exceptions and employs a retry strategy.
-
-    Args:
-        retry: Whether API calls should follow a retry mechanism with exponential backoff.
-        max_tries: Maximum number of attempts (or -1 to retry forever).
-
-    """
-
-    def __init__(self, retry: bool = True, max_tries: Optional[int] = None) -> None:
-        super().__init__(api_client=create_swagger_client())
-        if retry:
-            for base_class in GridRestClient.__mro__:
-                for name, attribute in base_class.__dict__.items():
-                    if callable(attribute) and attribute.__name__ != "__init__":
-                        setattr(self, name, _retry_wrapper(self, attribute, max_tries=max_tries))
-
 
 class CustomRetryAdapter(HTTPAdapter):
     def __init__(self, *args: Any, **kwargs: Any):
