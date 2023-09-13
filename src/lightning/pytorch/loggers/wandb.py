@@ -32,14 +32,6 @@ from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
-if TYPE_CHECKING:
-    from wandb import Artifact
-    from wandb.sdk.lib import RunDisabled
-    from wandb.wandb_run import Run
-else:
-    # Required for docs generation
-    Artifact, Run, RunDisabled = None, None, None
-
 _WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
 
 
@@ -296,7 +288,7 @@ class WandbLogger(Logger):
         anonymous: Optional[bool] = None,
         project: Optional[str] = None,
         log_model: Union[Literal["all"], bool] = False,
-        experiment: Union["Run", "RunDisabled", None] = None,
+        experiment: Optional[Any] = None,
         prefix: str = "",
         checkpoint_name: Optional[str] = None,
         **kwargs: Any,
@@ -367,7 +359,7 @@ class WandbLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Union[Run, RunDisabled]:
+    def experiment(self) -> Any:
         r"""
 
         Actual wandb object. To use wandb features in your
@@ -557,7 +549,7 @@ class WandbLogger(Logger):
         save_dir = None if save_dir is None else os.fspath(save_dir)
         return artifact.download(root=save_dir)
 
-    def use_artifact(self, artifact: str, artifact_type: Optional[str] = None) -> Artifact:
+    def use_artifact(self, artifact: str, artifact_type: Optional[str] = None) -> Any:
         """Logs to the wandb dashboard that the mentioned artifact is used by the run.
 
         Args:
