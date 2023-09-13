@@ -20,11 +20,7 @@ from urllib.parse import urljoin
 import requests
 
 # for backwards compatibility
-from lightning_cloud.rest_client import (  # noqa: F401
-    create_swagger_client,
-    GridRestClient,
-    LightningClient,
-)
+from lightning_cloud.rest_client import create_swagger_client, GridRestClient, LightningClient  # noqa: F401
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
