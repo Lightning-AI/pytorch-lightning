@@ -52,10 +52,10 @@ class _DataFetcher(Iterator):
         return self
 
     def __next__(self) -> Any:
-        assert (iterator := self.iterator) is not None
+        assert self.iterator is not None
         self._start_profiler()
         try:
-            batch = next(iterator)
+            batch = next(self.iterator)
         except StopIteration:
             self.done = True
             raise
