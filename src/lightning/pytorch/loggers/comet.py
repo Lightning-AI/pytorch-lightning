@@ -33,7 +33,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only
 if TYPE_CHECKING:
     from comet_ml import ExistingExperiment, Experiment, OfflineExperiment
 else:
-    # needed for Sphinx auto-documentation
+    # Required for docs generation
     Experiment, ExistingExperiment, OfflineExperiment = None, None, None
 
 log = logging.getLogger(__name__)
