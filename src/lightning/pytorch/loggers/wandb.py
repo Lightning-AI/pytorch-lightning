@@ -36,6 +36,9 @@ if TYPE_CHECKING:
     from wandb import Artifact
     from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
+else:
+    # Required for docs generation
+    Artifact, Run, RunDisabled = None, None, None
 
 _WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
 
@@ -364,7 +367,7 @@ class WandbLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Union["Run", "RunDisabled"]:
+    def experiment(self) -> Union[Run, RunDisabled]:
         r"""
 
         Actual wandb object. To use wandb features in your
@@ -554,7 +557,7 @@ class WandbLogger(Logger):
         save_dir = None if save_dir is None else os.fspath(save_dir)
         return artifact.download(root=save_dir)
 
-    def use_artifact(self, artifact: str, artifact_type: Optional[str] = None) -> "Artifact":
+    def use_artifact(self, artifact: str, artifact_type: Optional[str] = None) -> Artifact:
         """Logs to the wandb dashboard that the mentioned artifact is used by the run.
 
         Args:
