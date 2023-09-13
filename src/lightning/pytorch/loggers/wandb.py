@@ -18,7 +18,7 @@ Weights and Biases Logger
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Mapping, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Union
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
