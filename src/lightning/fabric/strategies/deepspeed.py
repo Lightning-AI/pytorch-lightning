@@ -38,10 +38,9 @@ from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
-if TYPE_CHECKING:
-    import deepspeed
-
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
+if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
+    import deepspeed
 
 
 # TODO(fabric): Links in the docstrings to PL-specific deepspeed user docs need to be replaced.

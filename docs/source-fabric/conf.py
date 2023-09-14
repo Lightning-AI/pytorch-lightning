@@ -306,11 +306,8 @@ PACKAGE_MAPPING = {
 }
 MOCK_PACKAGES = []
 if _SPHINX_MOCK_REQUIREMENTS:
-    _path_require = lambda fname: os.path.join(_PATH_ROOT, "requirements", "fabric", fname)
     # mock also base packages when we are on RTD since we don't install them there
-    # MOCK_PACKAGES += _package_list_from_file(_path_require("base.txt"))
-    MOCK_PACKAGES += _package_list_from_file(_path_require("strategies.txt"))
-    MOCK_PACKAGES += ["tensorboard", "torch_xla"]
+    MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_ROOT, "requirements.txt"))
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES

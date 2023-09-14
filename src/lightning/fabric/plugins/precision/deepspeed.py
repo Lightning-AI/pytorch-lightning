@@ -25,7 +25,10 @@ from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.types import Steppable
 
 if TYPE_CHECKING:
-    import deepspeed
+    from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+
+    if _DEEPSPEED_AVAILABLE:  # type: ignore[has-type]
+        import deepspeed
 
 _PRECISION_INPUT = Literal["32-true", "16-true", "bf16-true", "16-mixed", "bf16-mixed"]
 
