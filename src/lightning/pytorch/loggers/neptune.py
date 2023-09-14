@@ -35,24 +35,16 @@ from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.utilities.model_summary import ModelSummary
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
-# neptune is available with two names on PyPI : `neptune` and `neptune-client`
+# neptune is available with two names on PyPI : `neptune` and `neptune-client` (legacy)
 _NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
 _NEPTUNE_CLIENT_AVAILABLE = RequirementCache("neptune-client")
 
 if _NEPTUNE_AVAILABLE:
-    # >1.0 package structure
     import neptune
     from neptune import Run
     from neptune.handler import Handler
     from neptune.types import File
     from neptune.utils import stringify_unsupported
-elif _NEPTUNE_CLIENT_AVAILABLE:
-    # <1.0 package structure
-    import neptune.new as neptune
-    from neptune.new import Run
-    from neptune.new.handler import Handler
-    from neptune.new.types import File
-    from neptune.new.utils import stringify_unsupported
 else:
     # needed for tests, mocks and function signatures
     neptune, Run, Handler, File, stringify_unsupported = None, None, None, None, None
@@ -241,7 +233,12 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
-        if not _NEPTUNE_AVAILABLE and not _NEPTUNE_CLIENT_AVAILABLE:
+        if _NEPTUNE_CLIENT_AVAILABLE:
+            raise ImportError(
+                "The `neptune-client` package is no longer supported in `NeptuneLogger`. Please install the new"
+                " `neptune` package instead."
+            )
+        if not _NEPTUNE_AVAILABLE:
             raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
