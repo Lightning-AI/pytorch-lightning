@@ -19,7 +19,7 @@ Comet Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -31,7 +31,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 if TYPE_CHECKING:
-    from comet_ml import Experiment, ExistingExperiment, OfflineExperiment
+    from comet_ml import ExistingExperiment, Experiment, OfflineExperiment
 
 log = logging.getLogger(__name__)
 _COMET_AVAILABLE = RequirementCache("comet-ml>=3.31.0", module="comet_ml")
