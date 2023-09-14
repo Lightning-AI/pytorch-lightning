@@ -21,7 +21,7 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Mapping, Optional, Union
 
-from lightning_utilities.core.imports import module_available
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
 
@@ -31,24 +31,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 log = logging.getLogger(__name__)
-_COMET_AVAILABLE = module_available("comet_ml")
-
-if _COMET_AVAILABLE:
-    import comet_ml
-    from comet_ml import ExistingExperiment as CometExistingExperiment
-    from comet_ml import Experiment as CometExperiment
-    from comet_ml import OfflineExperiment as CometOfflineExperiment
-
-    try:
-        from comet_ml.api import API
-    except ModuleNotFoundError:
-        # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
-        from comet_ml.papi import API
-else:
-    # needed for test mocks, these tests shall be updated
-    comet_ml = None
-    CometExperiment, CometExistingExperiment, CometOfflineExperiment = None, None, None
-    API = None
+_COMET_AVAILABLE = RequirementCache("comet-ml>=3.31.0", module="comet_ml")
 
 
 class CometLogger(Logger):
@@ -221,14 +204,17 @@ class CometLogger(Logger):
         prefix: str = "",
         **kwargs: Any,
     ):
-        if comet_ml is None:
-            raise ModuleNotFoundError(
-                "You want to use `comet_ml` logger which is not installed yet, install it with `pip install comet-ml`."
-            )
+        if not _COMET_AVAILABLE:
+            raise ModuleNotFoundError(str(_COMET_AVAILABLE))
         super().__init__()
         self._experiment = None
         self._save_dir: Optional[str]
         self.rest_api_key: Optional[str]
+
+        # needs to be set before the first `comet_ml` import
+        os.environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
+
+        import comet_ml
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
         api_key = api_key or comet_ml.config.get_api_key(None, comet_ml.config.get_config())
@@ -258,6 +244,8 @@ class CometLogger(Logger):
         self._future_experiment_key: Optional[str] = None
 
         if rest_api_key is not None:
+            from comet_ml.api import API
+
             # Comet.ml rest API, used to determine version number
             self.rest_api_key = rest_api_key
             self.comet_api = API(self.rest_api_key)
@@ -267,7 +255,7 @@ class CometLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]:
+    def experiment(self) -> Any:
         r"""
         Actual Comet object. To use Comet features in your
         :class:`~lightning.pytorch.core.module.LightningModule` do the following.
@@ -283,22 +271,22 @@ class CometLogger(Logger):
         if self._future_experiment_key is not None:
             os.environ["COMET_EXPERIMENT_KEY"] = self._future_experiment_key
 
+        from comet_ml import ExistingExperiment, Experiment, OfflineExperiment
+
         try:
             if self.mode == "online":
                 if self._experiment_key is None:
-                    self._experiment = CometExperiment(
-                        api_key=self.api_key, project_name=self._project_name, **self._kwargs
-                    )
+                    self._experiment = Experiment(api_key=self.api_key, project_name=self._project_name, **self._kwargs)
                     self._experiment_key = self._experiment.get_key()
                 else:
-                    self._experiment = CometExistingExperiment(
+                    self._experiment = ExistingExperiment(
                         api_key=self.api_key,
                         project_name=self._project_name,
                         previous_experiment=self._experiment_key,
                         **self._kwargs,
                     )
             else:
-                self._experiment = CometOfflineExperiment(
+                self._experiment = OfflineExperiment(
                     offline_directory=self.save_dir, project_name=self._project_name, **self._kwargs
                 )
             self._experiment.log_other("Created from", "pytorch-lightning")
@@ -406,6 +394,8 @@ class CometLogger(Logger):
 
         if self._future_experiment_key is not None:
             return self._future_experiment_key
+
+        import comet_ml
 
         # Pre-generate an experiment key
         self._future_experiment_key = comet_ml.generate_guid()
