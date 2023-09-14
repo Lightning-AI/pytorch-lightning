@@ -13,13 +13,14 @@
 # limitations under the License.
 import os
 import threading
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager, ExitStack
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from typing import (
     Any,
     Callable,
+    ContextManager,
     Dict,
     Generator,
     Iterable,
@@ -323,23 +324,20 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def module_to_device(self, module: Module) -> None:
         pass
 
-    @contextmanager
-    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
-        empty_init_context: Union[torch.device, _EmptyInit, nullcontext]
+    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+        stack = ExitStack()
         if _TORCH_GREATER_EQUAL_2_1 and empty_init:
             # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
-            empty_init_context = torch.device("meta")
+            stack.enter_context(torch.device("meta"))
         elif _TORCH_GREATER_EQUAL_1_13:
-            empty_init_context = _EmptyInit(enabled=bool(empty_init))
-        else:
-            empty_init_context = nullcontext()
-        with empty_init_context, self.precision.init_context(), self.module_sharded_context():
-            yield
+            stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
+        stack.enter_context(self.precision.init_context())
+        stack.enter_context(self.module_sharded_context())
+        return stack
 
-    @contextmanager
-    def module_sharded_context(self) -> Generator:
+    def module_sharded_context(self) -> ContextManager:
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
 
@@ -751,7 +749,6 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
 
 
 class _FSDPBackwardSyncControl(_BackwardSyncControl):
-    @contextmanager
     def no_backward_sync(self, module: Module) -> Generator:
         """Blocks gradient synchronization inside the
         :class:`~torch.distributed.fsdp.FullyShardedDataParallel` wrapper."""
@@ -764,8 +761,7 @@ class _FSDPBackwardSyncControl(_BackwardSyncControl):
                 f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `FullyShardedDataParallel`."
                 f" Got: {module.__class__.__name__}."
             )
-        with module.no_sync():
-            yield
+        return module.no_sync()
 
 
 def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUOffload":

@@ -16,10 +16,10 @@ import json
 import logging
 import os
 import platform
-from contextlib import contextmanager, nullcontext
+from contextlib import ExitStack
 from itertools import chain
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, ContextManager, Dict, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -344,30 +344,29 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         """
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
-    @contextmanager
-    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
         if self.zero_stage_3 and empty_init is False:
             raise NotImplementedError(
                 f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
             )
-        base_context = super().module_init_context(empty_init=empty_init) if not self.zero_stage_3 else nullcontext()
-        with base_context, self.module_sharded_context():
-            yield
+        stack = ExitStack()
+        if not self.zero_stage_3:
+            stack.enter_context(super().module_init_context(empty_init=empty_init))
+        stack.enter_context(self.module_sharded_context())
+        return stack
 
-    @contextmanager
-    def module_sharded_context(self) -> Generator[None, None, None]:
+    def module_sharded_context(self) -> ContextManager:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
         # manager. Later modifications through e.g. `Fabric.setup()` won't have an effect here.
 
         import deepspeed
 
         assert self._config_initialized
-        with deepspeed.zero.Init(
+        return deepspeed.zero.Init(
             enabled=self.zero_stage_3,
             remote_device=self.remote_device,
             config_dict_or_path=self.config,
-        ):
-            yield
+        )
 
     def save_checkpoint(
         self,

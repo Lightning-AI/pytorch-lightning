@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from contextlib import contextmanager, ExitStack
+from contextlib import ExitStack
 from typing import Any, ContextManager, Literal, Mapping, Optional, TYPE_CHECKING, Union
 
 import torch
@@ -97,7 +97,6 @@ class TransformerEnginePrecision(Precision):
         module = module.to(dtype=self.dtype)
         return module
 
-    @contextmanager
     def init_context(self) -> ContextManager:
         stack = ExitStack()
         stack.enter_context(_DtypeContextManager(self.dtype))
