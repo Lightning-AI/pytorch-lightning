@@ -18,6 +18,14 @@ import lightning.pytorch
 import numpy
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import RandomSampler
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import SequentialSampler
+
+import lightning.pytorch
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
 from lightning.pytorch import Callback, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -683,6 +691,10 @@ def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
         trainer = Trainer(
             default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=2, limit_train_batches=1, logger=CSVLogger(".")
         )
+        trainer.fit(model)
+
+    with no_warning_call(UserWarning, match="The number of training batches"):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, log_every_n_steps=2)
         trainer.fit(model)
 
 
