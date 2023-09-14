@@ -253,6 +253,7 @@ intersphinx_mapping = {
     "torch": ("https://pytorch.org/docs/stable/", None),
     "pytorch_lightning": ("https://lightning.ai/docs/pytorch/stable/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
+    "deepspeed": ("https://deepspeed.readthedocs.io/en/stable/", None),
 }
 nitpicky = True
 
@@ -271,6 +272,9 @@ nitpick_ignore = [
     # These seem to be missing in reference generated API
     ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
     ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
+    # Mocked optional packages
+    ("py:class", "deepspeed.DeepSpeedEngine"),
+    ("py:class", "deepspeed.initialize"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
