@@ -5,11 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2023-08-DD
+## [2.0.9] - 2023-09-14
 
 ### Fixed
 
--
+- Fixed an issue that wouldn't prevent the user to set the `log_model` parameter in `WandbLogger` via the LightningCLI ([#18458](https://github.com/Lightning-AI/lightning/pull/18458))
+- Fixed the display of `v_num` in the progress bar when running with `Trainer(fast_dev_run=True)` ([#18491](https://github.com/Lightning-AI/lightning/pull/18491))
+- Fixed `UnboundLocalError` when running with `python -O` ([#18496](https://github.com/Lightning-AI/lightning/pull/18496))
+- Fixed visual glitch with the TQDM progress bar leaving the validation bar incomplete before switching back to the training display ([#18503](https://github.com/Lightning-AI/lightning/pull/18503))
+- Fixed false positive warning about logging interval when running with `Trainer(fast_dev_run=True)` ([#18550](https://github.com/Lightning-AI/lightning/pull/18550))
 
 
 ## [2.0.8] - 2023-08-29
@@ -27,21 +31,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed redundant `iter()` call to dataloader when checking dataloading configuration ([#18415](https://github.com/Lightning-AI/lightning/pull/18415))
 - Fixed model parameters getting shared between processes when running with `strategy="ddp_spawn"` and `accelerator="cpu"`; this has a necessary memory impact, as parameters are replicated for each process now ([#18238](https://github.com/Lightning-AI/lightning/pull/18238))
 - Properly manage `fetcher.done` with `dataloader_iter` ([#18376](https://github.com/Lightning-AI/lightning/pull/18376))
-
-
-- Fixed an issue that wouldn't prevent the user to set the `log_model` parameter in `WandbLogger` via the LightningCLI ([#18458](https://github.com/Lightning-AI/lightning/pull/18458))
-
-
-- Fixed the display of `v_num` in the progress bar when running with `Trainer(fast_dev_run=True)` ([#18491](https://github.com/Lightning-AI/lightning/pull/18491))
-
-
-- Fixed `UnboundLocalError` when running with `python -O` ([#18496](https://github.com/Lightning-AI/lightning/pull/18496))
-
-
-- Fixed visual glitch with the TQDM progress bar leaving the validation bar incomplete before switching back to the training display ([#18503](https://github.com/Lightning-AI/lightning/pull/18503))
-
-
-- Fixed false positive warning about logging interval when running with `Trainer(fast_dev_run=True)` ([#18550](https://github.com/Lightning-AI/lightning/pull/18550))
 
 
 ## [2.0.7] - 2023-08-14
