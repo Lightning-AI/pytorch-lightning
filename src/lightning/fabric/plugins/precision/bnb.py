@@ -16,13 +16,12 @@ import os
 import warnings
 from contextlib import contextmanager
 from typing import Literal, TYPE_CHECKING
-import torch
-from lightning_utilities.core.imports import RequirementCache
-from lightning.fabric.plugins.precision.precision import Precision
-
 
 import torch
 import torch.utils._device
+from lightning_utilities.core.imports import RequirementCache
+
+from lightning.fabric.plugins.precision.precision import Precision
 
 _TRITON_AVAILABLE = RequirementCache("triton")
 if _TRITON_AVAILABLE:
@@ -120,7 +119,9 @@ def linear_kernel_4bit_weight(
     GROUP_SIZE_M: tl.constexpr,
 ):
     """Kernel for computing the matmul C = A x B.T.
+
     A has shape (M, K), B has shape (N, K) and C has shape (M, N)
+
     """
     # -----------------------------------------------------------
     # Map program ids `pid` to the block of C it should compute.
