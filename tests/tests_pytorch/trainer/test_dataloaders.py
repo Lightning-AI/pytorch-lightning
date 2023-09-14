@@ -17,6 +17,7 @@ from unittest.mock import call, Mock, patch
 import numpy
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import RandomSampler
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
@@ -24,7 +25,6 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
 import lightning.pytorch
-from lightning_utilities.test.warning import no_warning_call
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
 from lightning.pytorch import Callback, seed_everything, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
