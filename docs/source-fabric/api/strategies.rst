@@ -21,6 +21,7 @@ Strategies
     FSDPStrategy
     DeepSpeedStrategy
     XLAStrategy
+    XLAFSDPStrategy
     ParallelStrategy
     SingleDeviceStrategy
     SingleDeviceXLAStrategy
