@@ -36,10 +36,11 @@ if importlib.util.find_spec("ipywidgets") is not None:
 else:
     from tqdm import tqdm
 
-_MATPLOTLIB_AVAILABLE = RequirementCache("matplotlib")
-if TYPE_CHECKING and _MATPLOTLIB_AVAILABLE:
+if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     from matplotlib.axes import Axes
+
+_MATPLOTLIB_AVAILABLE = RequirementCache("matplotlib")
 log = logging.getLogger(__name__)
 
 
