@@ -8,7 +8,7 @@ lightning.fabric.strategies
 Strategies
 ^^^^^^^^^^
 
-.. TODO(fabric): include DeepSpeedStrategy, XLAStrategy
+.. TODO(fabric): include XLAStrategy
 
 .. currentmodule:: lightning.fabric.strategies
 
@@ -21,6 +21,7 @@ Strategies
     DDPStrategy
     DataParallelStrategy
     FSDPStrategy
+    DeepSpeedStrategy
     ParallelStrategy
     SingleDeviceStrategy
     SingleDeviceXLAStrategy
