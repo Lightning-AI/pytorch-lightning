@@ -42,15 +42,12 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("lightning.pytorch.loggers.comet.comet_ml"),
     mock.patch("lightning.pytorch.loggers.comet.CometOfflineExperiment"),
     mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True),
-    mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient"),
-    mock.patch("lightning.pytorch.loggers.mlflow.Metric"),
+    mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()),
     mock.patch("lightning.pytorch.loggers.neptune.neptune", new_callable=create_neptune_mock),
     mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True),
     mock.patch("lightning.pytorch.loggers.neptune.Run", new=mock.Mock),
     mock.patch("lightning.pytorch.loggers.neptune.Handler", new=mock.Mock),
     mock.patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock()),
-    mock.patch("lightning.pytorch.loggers.wandb.wandb"),
-    mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock),
 )
 ALL_LOGGER_CLASSES = (
     CometLogger,
@@ -82,10 +79,9 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
     return logger_class(**args)
 
 
-@mock.patch("lightning.pytorch.loggers.mlflow.mlflow", Mock())
 @mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
-def test_loggers_fit_test_all(tmpdir, monkeypatch, logger_class):
+def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, tmpdir):
     """Verify that basic functionality of all loggers."""
     with contextlib.ExitStack() as stack:
         for mgr in LOGGER_CTX_MANAGERS:
@@ -300,7 +296,7 @@ def _test_logger_initialization(tmpdir, logger_class):
     trainer.fit(model)
 
 
-def test_logger_with_prefix_all(tmpdir, monkeypatch):
+def test_logger_with_prefix_all(mlflow_mock, wandb_mock, monkeypatch, tmpdir):
     """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
 
@@ -315,10 +311,9 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
 
     # MLflow
     with mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
-        "lightning.pytorch.loggers.mlflow.Metric"
-    ) as Metric, mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient"), mock.patch(
-        "lightning.pytorch.loggers.mlflow.mlflow"
+        "lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()
     ):
+        Metric = mlflow_mock.entities.Metric
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log_batch.assert_called_once_with(
@@ -348,17 +343,15 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
     # WandB
-    with mock.patch("lightning.pytorch.loggers.wandb.wandb") as wandb, mock.patch(
-        "lightning.pytorch.loggers.wandb.Run", new=mock.Mock
-    ), mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True):
+    with mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True):
         logger = _instantiate_logger(WandbLogger, save_dir=tmpdir, prefix=prefix)
-        wandb.run = None
-        wandb.init().step = 0
+        wandb_mock.run = None
+        wandb_mock.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
 
 
-def test_logger_default_name(tmpdir, monkeypatch):
+def test_logger_default_name(mlflow_mock, monkeypatch, tmpdir):
     """Test that the default logger name is lightning_logs."""
     # CSV
     logger = CSVLogger(save_dir=tmpdir)
@@ -376,9 +369,10 @@ def test_logger_default_name(tmpdir, monkeypatch):
 
     # MLflow
     with mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
-        "lightning.pytorch.loggers.mlflow.MlflowClient"
-    ) as mlflow_client, mock.patch("lightning.pytorch.loggers.mlflow.mlflow"):
-        mlflow_client().get_experiment_by_name.return_value = None
+        "lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock()
+    ):
+        client = mlflow_mock.tracking.MlflowClient()
+        client.get_experiment_by_name.return_value = None
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir)
 
         _ = logger.experiment

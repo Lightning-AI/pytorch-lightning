@@ -49,7 +49,7 @@ def test_prepare_lightning_wheels_and_requirement_for_packages_installed_in_edit
     assert cleanup_handle is None
 
 
-@pytest.mark.skip(reason="TODO: Find a way to check for the latest version")
+@pytest.mark.xfail(strict=False, reason="TODO: Find a way to check for the latest version")
 @_RunIf(skip_windows=True)
 def test_verify_lightning_version(monkeypatch):
     monkeypatch.setattr(lightning_utils, "__version__", "0.0.1")
