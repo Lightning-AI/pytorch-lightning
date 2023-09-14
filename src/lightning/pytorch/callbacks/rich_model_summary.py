@@ -70,7 +70,6 @@ class RichModelSummary(ModelSummary):
         model_size: float,
         **summarize_kwargs: Any,
     ) -> None:
-
         from rich import get_console
         from rich.table import Table
 

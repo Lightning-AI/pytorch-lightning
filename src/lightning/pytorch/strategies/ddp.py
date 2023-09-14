@@ -14,7 +14,7 @@
 import logging
 from contextlib import nullcontext
 from datetime import timedelta
-from typing import Any, Callable, Dict, List, Literal, Optional, Union, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Literal, Optional, TYPE_CHECKING, Union
 
 import torch
 import torch.distributed
