@@ -496,3 +496,34 @@ def test_evaluation_loop_non_sequential_mode_supprt(tmp_path, mode, expected, fn
     actual = trainer.num_val_batches if fn == "validate" else trainer.num_test_batches
     assert actual == [3, 2]
     assert seen == expected
+
+
+def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmpdir):
+    class TestModel(BoringModel):
+        def __init__(self) -> None:
+            super().__init__()
+            self.validation_step_called = False
+            self.test_step_called = False
+
+        def validation_step(self, batch):
+            self.validation_step_called = True
+            return {"x": self.step(batch)}
+
+        def test_step(self, batch):
+            self.test_step_called = True
+            return {"y": self.step(batch)}
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=1,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    model = TestModel()
+
+    trainer.validate(model)
+    assert model.validation_step_called
+
+    trainer.test(model)
+    assert model.test_step_called

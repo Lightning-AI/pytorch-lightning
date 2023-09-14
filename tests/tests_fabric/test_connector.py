@@ -984,11 +984,12 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_tpu_available(monkeypatch, False)
         connector = _Connector()
     assert isinstance(connector.accelerator, CUDAAccelerator)
-    assert isinstance(connector.strategy, DDPStrategy)
-    assert connector._devices_flag == list(range(4))
-    assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
-    assert connector.strategy._start_method == "fork" if is_interactive else "popen"
-    assert connector.strategy.launcher.is_interactive_compatible == is_interactive
+    assert isinstance(connector.strategy, (SingleDeviceStrategy if is_interactive else DDPStrategy))
+    assert connector._devices_flag == [0] if is_interactive else list(range(4))
+    if not is_interactive:
+        assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
+        assert connector.strategy._start_method == "fork" if is_interactive else "popen"
+        assert connector.strategy.launcher.is_interactive_compatible == is_interactive
 
     # MPS (there's no distributed)
     with no_cuda, single_mps, monkeypatch.context():

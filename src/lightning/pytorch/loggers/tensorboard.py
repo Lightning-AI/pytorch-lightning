@@ -37,9 +37,6 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
-if _OMEGACONF_AVAILABLE:
-    from omegaconf import Container, OmegaConf
-
 # Skip doctests if requirements aren't available
 if not (_TENSORBOARD_AVAILABLE or _TENSORBOARDX_AVAILABLE):
     __doctest_skip__ = ["TensorBoardLogger", "TensorBoardLogger.*"]
@@ -178,6 +175,9 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             metrics: Dictionary with metric names as keys and measured quantities as values
 
         """
+        if _OMEGACONF_AVAILABLE:
+            from omegaconf import Container, OmegaConf
+
         params = _convert_params(params)
 
         # store params to output

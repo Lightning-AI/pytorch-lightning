@@ -179,7 +179,7 @@ class AppStageTestingApp(LightningApp):
 
 
 # FIXME: This test doesn't assert anything
-@pytest.mark.skip(reason="TODO: Resolve flaky test.")
+@pytest.mark.xfail(strict=False, reason="TODO: Resolve flaky test.")
 def test_app_stage_from_frontend():
     """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would start
     and stop the app."""

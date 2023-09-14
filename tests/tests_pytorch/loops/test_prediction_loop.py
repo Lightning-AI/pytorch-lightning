@@ -300,3 +300,26 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
     model = IgnoringModel2()
     with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.on_predict_batch_end"):
         trainer.predict(model)
+
+
+def test_prediction_loop_when_batch_idx_argument_is_not_given(tmpdir):
+    class TestModel(BoringModel):
+        def __init__(self) -> None:
+            super().__init__()
+            self.predict_step_called = False
+
+        def predict_step(self, batch):
+            self.predict_step_called = True
+            return self.step(batch)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=1,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    model = TestModel()
+
+    trainer.predict(model)
+    assert model.predict_step_called
