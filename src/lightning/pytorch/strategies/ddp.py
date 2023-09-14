@@ -14,7 +14,7 @@
 import logging
 from contextlib import nullcontext
 from datetime import timedelta
-from typing import Any, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, TYPE_CHECKING, Union
 
 import torch
 import torch.distributed
@@ -47,7 +47,7 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import _augment_message
 from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only
 
-if torch.distributed.is_available():
+if TYPE_CHECKING:
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
 
 log = logging.getLogger(__name__)

@@ -23,13 +23,6 @@ import torch
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 
-if _DEEPSPEED_AVAILABLE:
-    from deepspeed.utils.zero_to_fp32 import (
-        get_fp32_state_dict_from_zero_checkpoint,
-        get_model_state_file,
-        get_optim_files,
-    )
-
 CPU_DEVICE = torch.device("cpu")
 
 
@@ -75,6 +68,14 @@ def convert_zero_checkpoint_to_fp32_state_dict(
             "lightning_model.pt"
         )
     """
+    if not _DEEPSPEED_AVAILABLE:
+        raise ModuleNotFoundError(str(_DEEPSPEED_AVAILABLE))
+
+    from deepspeed.utils.zero_to_fp32 import (
+        get_fp32_state_dict_from_zero_checkpoint,
+        get_model_state_file,
+        get_optim_files,
+    )
 
     state_dict = get_fp32_state_dict_from_zero_checkpoint(checkpoint_dir, tag)
 

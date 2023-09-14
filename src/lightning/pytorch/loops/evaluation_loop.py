@@ -44,10 +44,6 @@ from lightning.pytorch.utilities.exceptions import SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
-if _RICH_AVAILABLE:
-    from rich import get_console
-    from rich.table import Column, Table
-
 
 class _EvaluationLoop(_Loop):
     """Top-level loop where validation/testing starts."""
@@ -531,6 +527,9 @@ class _EvaluationLoop(_Loop):
             table_headers.insert(0, f"{stage} Metric".capitalize())
 
             if _RICH_AVAILABLE:
+                from rich import get_console
+                from rich.table import Column, Table
+
                 columns = [Column(h, justify="center", style="magenta", width=max_length) for h in table_headers]
                 columns[0].style = "cyan"
 
