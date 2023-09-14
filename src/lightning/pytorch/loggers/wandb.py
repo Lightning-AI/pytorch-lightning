@@ -18,7 +18,7 @@ Weights and Biases Logger
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Mapping, Optional, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Union, TYPE_CHECKING
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
@@ -31,6 +31,11 @@ from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
+
+if TYPE_CHECKING:
+    from wandb import Artifact
+    from wandb.sdk.lib import RunDisabled
+    from wandb.wandb_run import Run
 
 _WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
 
@@ -288,7 +293,7 @@ class WandbLogger(Logger):
         anonymous: Optional[bool] = None,
         project: Optional[str] = None,
         log_model: Union[Literal["all"], bool] = False,
-        experiment: Optional[Any] = None,
+        experiment: Union["Run", "RunDisabled", None] = None,
         prefix: str = "",
         checkpoint_name: Optional[str] = None,
         **kwargs: Any,
@@ -359,7 +364,7 @@ class WandbLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Any:
+    def experiment(self) -> Union["Run", "RunDisabled"]:
         r"""
 
         Actual wandb object. To use wandb features in your
@@ -549,7 +554,7 @@ class WandbLogger(Logger):
         save_dir = None if save_dir is None else os.fspath(save_dir)
         return artifact.download(root=save_dir)
 
-    def use_artifact(self, artifact: str, artifact_type: Optional[str] = None) -> Any:
+    def use_artifact(self, artifact: str, artifact_type: Optional[str] = None) -> "Artifact":
         """Logs to the wandb dashboard that the mentioned artifact is used by the run.
 
         Args:
