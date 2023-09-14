@@ -15,7 +15,7 @@ import logging
 import os
 import warnings
 from contextlib import contextmanager
-from typing import Any, Generator, Literal, Optional, TYPE_CHECKING
+from typing import Literal, TYPE_CHECKING
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from lightning.fabric.plugins.precision.precision import Precision
@@ -23,6 +23,11 @@ from lightning.fabric.plugins.precision.precision import Precision
 
 import torch
 import torch.utils._device
+
+_TRITON_AVAILABLE = RequirementCache("triton")
+if _TRITON_AVAILABLE:
+    import triton
+    import triton.language as tl
 
 os.environ["BITSANDBYTES_NOWELCOME"] = "1"
 warnings.filterwarnings("ignore", message=r".*bitsandbytes was compiled without GPU support.*")
@@ -36,6 +41,147 @@ if TYPE_CHECKING and _BITSANDBYTES_AVAILABLE:
 
 
 log = logging.getLogger(__name__)
+
+
+def qlinear_4bit_weight(inp, weight, scales, zeros):
+    weight = weight.t().contiguous()
+    c_shape = inp.shape[:-1] + weight.shape[-1:]
+    inp = inp.reshape(-1, inp.shape[-1]).contiguous()
+    # we pad the input to amortize triton compilation cost better
+    PAD_TO = 256
+    if inp.shape[0] % PAD_TO != 0:
+        c_crop = inp.shape[0]
+        new_inp_shape0 = inp.shape[0] + PAD_TO - inp.shape[0] % PAD_TO
+        inp2 = inp.new_empty((new_inp_shape0, inp.shape[1]))
+        inp2[: inp.shape[0]] = inp
+        inp2[inp.shape[0] :].zero_()
+        inp = inp2
+    else:
+        c_crop = None
+
+    assert inp.shape[1] == weight.shape[0] * 2, "incompatible dimensions"
+
+    assert scales.shape == (weight.shape[1], 1)
+    assert zeros.shape == (weight.shape[1], 1)
+    scales = scales.contiguous()
+    zeros = zeros.contiguous()
+    K, N = weight.shape
+    M, K = inp.shape
+    assert K % 32 == 0, "We don't check memory-out-of-bounds with K so K must be divisible by BLOCK_SIZE_K"
+    # allocates output
+    c = torch.empty((M, N), device=inp.device, dtype=inp.dtype)
+    # 1D launch kernel where each block gets its own program.
+    grid = lambda META: (triton.cdiv(M, META["BLOCK_SIZE_M"]) * triton.cdiv(N, META["BLOCK_SIZE_N"]),)
+    linear_kernel_4bit_weight[grid](
+        inp,
+        weight,
+        c,
+        scales,
+        zeros,
+        M,
+        N,
+        K,
+        inp.stride(0),
+        inp.stride(1),
+        weight.stride(0),
+        weight.stride(1),
+        c.stride(0),
+        c.stride(1),
+    )
+    return c[:c_crop].reshape(c_shape)
+
+
+@triton.jit
+def linear_kernel_4bit_weight(
+    # Pointers to matrices
+    a_ptr,
+    b_ptr,
+    c_ptr,
+    bscales_ptr,
+    bzeros_ptr,
+    # bdequant,
+    # Matrix dimensions
+    M,
+    N,
+    K,
+    # The stride variables represent how much to increase the ptr by when moving by 1
+    # element in a particular dimension. E.g. stride_am is how much to increase a_ptr
+    # by to get the element one row down (A has M rows)
+    stride_am,
+    stride_ak,
+    stride_bk,
+    stride_bn,
+    stride_cm,
+    stride_cn,
+    # Meta-parameters
+    BLOCK_SIZE_M: tl.constexpr,
+    BLOCK_SIZE_N: tl.constexpr,
+    BLOCK_SIZE_K: tl.constexpr,
+    GROUP_SIZE_M: tl.constexpr,
+):
+    """Kernel for computing the matmul C = A x B.T.
+    A has shape (M, K), B has shape (N, K) and C has shape (M, N)
+    """
+    # -----------------------------------------------------------
+    # Map program ids `pid` to the block of C it should compute.
+    # This is done in a grouped ordering to promote L2 data reuse
+    # See above `L2 Cache Optimizations` section for details
+    pid = tl.program_id(axis=0)
+    num_pid_m = tl.cdiv(M, BLOCK_SIZE_M)
+    num_pid_n = tl.cdiv(N, BLOCK_SIZE_N)
+    num_pid_in_group = GROUP_SIZE_M * num_pid_n
+    group_id = pid // num_pid_in_group
+    first_pid_m = group_id * GROUP_SIZE_M
+    group_size_m = min(num_pid_m - first_pid_m, GROUP_SIZE_M)
+    pid_m = first_pid_m + (pid % group_size_m)
+    pid_n = (pid % num_pid_in_group) // group_size_m
+
+    # ----------------------------------------------------------
+    # Create pointers for the first blocks of A and B.
+    # We will advance this pointer as we move in the K direction
+    # and accumulate
+    # a_ptrs is a block of [BLOCK_SIZE_M, BLOCK_SIZE_K] pointers
+    # b_ptrs is a block of [BLOCK_SIZE_K, BLOCK_SIZE_n] pointers
+    # see above `Pointer Arithmetics` section for details
+    offs_am = pid_m * BLOCK_SIZE_M + tl.arange(0, BLOCK_SIZE_M)
+    offs_bn = pid_n * BLOCK_SIZE_N + tl.arange(0, BLOCK_SIZE_N)
+    a_mask = offs_am[:, None] < M
+    b_mask = offs_bn[None, :] < N
+    offs_k = tl.arange(0, BLOCK_SIZE_K)
+    a_ptrs = a_ptr + (offs_am[:, None] * stride_am + offs_k[None, :] * stride_ak)
+    b_ptrs = b_ptr + ((offs_k[:, None] // 2) * stride_bk + offs_bn[None, :] * stride_bn)
+
+    bscales_ptrs = bscales_ptr + offs_bn[None, :]
+    bzeros_ptrs = bzeros_ptr + offs_bn[None, :]
+
+    scale = tl.load(bscales_ptrs)
+    zero = tl.load(bzeros_ptrs)
+    # -----------------------------------------------------------
+    # Iterate to compute a block of the C matrix
+    # We accumulate into a `[BLOCK_SIZE_M, BLOCK_SIZE_N]` block
+    # of fp32 values for higher accuracy.
+    # `accumulator` will be converted back to fp16 after the loop
+    accumulator = tl.zeros((BLOCK_SIZE_M, BLOCK_SIZE_N), dtype=tl.float32)
+    for k in range(0, K, BLOCK_SIZE_K):
+        # wasteful as it is to load everything twice, my attempts at avoiding it lead to slower code
+        b12 = tl.load(b_ptrs, mask=b_mask)
+        # Note that for simplicity, we don't apply a mask in K here.
+        a = tl.load(a_ptrs, mask=a_mask).to(tl.float32)
+        b = (((b12.to(tl.uint8) >> ((offs_k[:, None] % 2) * 4)) & 0xF).to(tl.float32) - zero) * scale
+        accumulator += tl.dot(a, b)
+
+        # Advance the ptrs to the next K block
+        a_ptrs += BLOCK_SIZE_K * stride_ak
+        b_ptrs += (BLOCK_SIZE_K // 2) * stride_bk
+    c = accumulator
+
+    # -----------------------------------------------------------
+    # Write back the block of the output matrix C
+    offs_cm = pid_m * BLOCK_SIZE_M + tl.arange(0, BLOCK_SIZE_M)
+    offs_cn = pid_n * BLOCK_SIZE_N + tl.arange(0, BLOCK_SIZE_N)
+    c_ptrs = c_ptr + stride_cm * offs_cm[:, None] + stride_cn * offs_cn[None, :]
+    c_mask = (offs_cm[:, None] < M) & (offs_cn[None, :] < N)
+    tl.store(c_ptrs, c, mask=c_mask)
 
 
 class ColBlockQuantizedLinear(torch.nn.Module):
@@ -203,7 +349,7 @@ class BitsandbytesPrecision(Precision):
 
             quantized_linear_cls = QuantizedLinear
         else:
-            raise ValueError(f"Unknown quantization mode: {mode}")
+            raise ValueError(f"Unknown quantization mode: {self.mode}")
 
         torch_linear_cls = torch.nn.Linear
         torch.nn.Linear = quantized_linear_cls
