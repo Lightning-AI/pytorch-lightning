@@ -8,8 +8,6 @@ lightning.fabric.strategies
 Strategies
 ^^^^^^^^^^
 
-.. TODO(fabric): include XLAStrategy
-
 .. currentmodule:: lightning.fabric.strategies
 
 .. autosummary::
@@ -22,6 +20,7 @@ Strategies
     DataParallelStrategy
     FSDPStrategy
     DeepSpeedStrategy
+    XLAStrategy
     ParallelStrategy
     SingleDeviceStrategy
     SingleDeviceXLAStrategy

@@ -257,7 +257,7 @@ intersphinx_mapping = {
 }
 nitpicky = True
 
-nitpick_ignore = [
+nitpick_ignore_regex = [
     ("py:class", "typing.Self"),
     # these are not generated with docs API ref
     ("py:class", "lightning.fabric.utilities.types.Optimizable"),
@@ -273,8 +273,8 @@ nitpick_ignore = [
     ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
     ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
     # Mocked optional packages
-    ("py:class", "deepspeed.DeepSpeedEngine"),
-    ("py:class", "deepspeed.initialize"),
+    ("py:class", "deepspeed.*"),
+    ("py:.*", "torch_xla.*"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
@@ -312,7 +312,7 @@ MOCK_PACKAGES = []
 if _SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_ROOT, "requirements.txt"))
-    MOCK_PACKAGES += ["deepspeed"]
+    MOCK_PACKAGES += ["deepspeed", "torch_xla"]
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES
