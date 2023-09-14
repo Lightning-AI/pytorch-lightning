@@ -651,9 +651,7 @@ class Fabric:
                 category=PossibleUserWarning,
             )
             return nullcontext()
-        return self._strategy._backward_sync_control.no_backward_sync(  # type: ignore[assignment]
-            module._forward_module
-        )
+        return self._strategy._backward_sync_control.no_backward_sync(module._forward_module)
 
     def sharded_model(self) -> ContextManager:
         r"""Instantiate a model under this context manager to prepare it for model-parallel sharding.

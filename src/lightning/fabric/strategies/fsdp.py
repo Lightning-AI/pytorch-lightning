@@ -341,15 +341,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
 
-        with enable_wrap(
+        return enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
             sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
             **self._fsdp_kwargs,
-        ):
-            yield
+        )
 
     def all_reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
@@ -749,7 +748,7 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
 
 
 class _FSDPBackwardSyncControl(_BackwardSyncControl):
-    def no_backward_sync(self, module: Module) -> Generator:
+    def no_backward_sync(self, module: Module) -> ContextManager:
         """Blocks gradient synchronization inside the
         :class:`~torch.distributed.fsdp.FullyShardedDataParallel` wrapper."""
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
