@@ -47,24 +47,24 @@ ps aux | grep start.sh
 
 # Machine maintenance
 
-As most of our jobs/checks are running in a docker container the OS/machine get polluted soon d fails to run anymore with error such as
+Since most of our jobs/checks are running in a Docker container, the OS/machine can become polluted and fail to run with errors such as:
 
 ```
 No space left on device : '/azp/agent-litGPU-21_0,1/_diag/pages/8bb191f4-a8c2-419a-8788-66e3f0522bea_1.log'
 ```
 
-in such case you need to login to the machine and run `docker system prune`
+In such cases, you need to log in to the machine and run `docker system prune`.
 
 ## Automated ways
 
-Let's explore adding cron for periodical nuke all docker caches:
+Let's explore adding a cron job for periodically removing all Docker caches:
 
 1. Open your user's cron tab for editing: `crontab -e`
-1. Schedule/add the command with `--force` flag to force the pruning without interactive confirmation:
+1. Schedule/add the command with the `--force` flag to force pruning without interactive confirmation:
    ```bash
    # every day at 2:00 AM clean docker caches
    0 2 * * * docker system prune --force
    ```
-1. Verify the Entry: `crontab -l`
+1. Verify the entry: `crontab -l`
 
-Note, you may need yourself to the docker group `sudo usermod -aG docker <your_username>` to have permission to execute this command without needing `sudo` and inserting password.
+Note: You may need to add yourself to the Docker group by running `sudo usermod -aG docker <your_username>` to have permission to execute this command without needing `sudo` and entering the password.
