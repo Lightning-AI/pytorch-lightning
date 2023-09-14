@@ -277,7 +277,7 @@ class _FitLoop(_Loop):
                 trainer.val_check_batch = int(self.max_batches * trainer.val_check_interval)
                 trainer.val_check_batch = max(1, trainer.val_check_batch)
 
-        if trainer.loggers and self.max_batches < trainer.log_every_n_steps:
+        if trainer.loggers and self.max_batches < trainer.log_every_n_steps and not trainer.fast_dev_run:
             rank_zero_warn(
                 f"The number of training batches ({self.max_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={trainer.log_every_n_steps}). Set a lower value for log_every_n_steps if"
