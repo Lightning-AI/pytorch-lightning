@@ -274,6 +274,8 @@ nitpick_ignore_regex = [
     ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
     ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
     # Mocked optional packages
+    ("py:class", "deepspeed.*"),
+    ("py:.*", "torch_xla.*"),
     ("py:class", "transformer_engine.*"),
 ]
 
