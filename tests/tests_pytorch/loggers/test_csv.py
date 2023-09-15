@@ -138,24 +138,38 @@ def test_flush_n_steps(tmpdir):
     logger.save.assert_called_once()
 
 
+def test_append_metrics_file(tmp_path):
+    """Test that the logger appends to the file instead of rewriting it on every save."""
+    logger = CSVLogger(tmp_path, name="test", version=0, flush_logs_every_n_steps=1)
+
+    # initial metrics
+    logger.log_metrics({"a": 1, "b": 2})
+    logger.log_metrics({"a": 3, "b": 4})
+
+    # create a new logger to show we append to the existing file
+    logger = CSVLogger(tmp_path, name="test", version=0, flush_logs_every_n_steps=1)
+    logger.log_metrics({"a": 100, "b": 200})
+
+    with open(logger.experiment.metrics_file_path) as file:
+        lines = file.readlines()
+    assert len(lines) == 4  # 1 header + 3 lines of metrics
+
+
 def test_append_columns(tmp_path):
     """Test that the CSV file gets rewritten with new headers if the columns change."""
     logger = CSVLogger(tmp_path, flush_logs_every_n_steps=1)
 
     # initial metrics
-    metrics = {"a": 1, "b": 2}
-    logger.log_metrics(metrics)
+    logger.log_metrics({"a": 1, "b": 2})
 
     # new key appears
-    metrics = {"a": 1, "b": 2, "c": 3}
-    logger.log_metrics(metrics)
+    logger.log_metrics({"a": 1, "b": 2, "c": 3})
     with open(logger.experiment.metrics_file_path, "r") as file:
         header = file.readline().strip()
         assert set(header.split(",")) == {"step", "a", "b", "c"}
 
     # key disappears
-    metrics = {"a": 1, "c": 3}
-    logger.log_metrics(metrics)
+    logger.log_metrics({"a": 1, "c": 3})
     with open(logger.experiment.metrics_file_path, "r") as file:
         header = file.readline().strip()
         assert set(header.split(",")) == {"step", "a", "b", "c"}

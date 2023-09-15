@@ -225,20 +225,24 @@ class _ExperimentWriter:
         new_keys = current_keys - set(self.metrics_keys)
         self.metrics_keys.extend(new_keys)
 
-        if new_keys and self._fs.isfile(self.metrics_file_path):
+        file_exists = self._fs.isfile(self.metrics_file_path)
+
+        if new_keys and file_exists:
             # we need to re-write the file if the keys (header) change
             self._rewrite_with_new_header(self.metrics_keys)
 
-        with self._fs.open(self.metrics_file_path, "a", newline="") as file:
+        with self._fs.open(self.metrics_file_path, mode=("a" if file_exists else "w"), newline="") as file:
             writer = csv.DictWriter(file, fieldnames=self.metrics_keys)
-            writer.writeheader()
+            if not file_exists:
+                # only write the header if we're writing a fresh file
+                writer.writeheader()
             writer.writerows(self.metrics)
 
         self.metrics = []  # reset
 
     def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
         with self._fs.open(self.metrics_file_path, "r", newline="") as file:
-            metrics = list(csv.DictReader(file))[1:]
+            metrics = list(csv.DictReader(file))
 
         with self._fs.open(self.metrics_file_path, "w", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
