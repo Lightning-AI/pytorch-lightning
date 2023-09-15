@@ -89,6 +89,7 @@ if TYPE_CHECKING:
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 _METADATA_FILENAME = "meta.pt"
+_PROCESS_GROUP = Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]
 
 
 class FSDPStrategy(ParallelStrategy, _Sharded):
@@ -156,6 +157,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "sharded",
+        process_group: Optional[_PROCESS_GROUP] = None,
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -168,8 +170,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             precision=precision,
         )
         self._num_nodes = 1
-        self._process_group: Optional[Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]] = None
         self._process_group_backend: Optional[str] = process_group_backend
+        self._process_group: Optional[_PROCESS_GROUP] = process_group
         self._timeout: Optional[timedelta] = timeout
         self._backward_sync_control = _FSDPBackwardSyncControl()
         self._fsdp_kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
@@ -214,16 +216,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
-
-    @property
-    def process_group(self) -> Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]:
-        if self._process_group is None:
-            self._process_group = _get_process_group(
-                sharding_strategy=self.sharding_strategy,
-                node_rank=self.node_rank,
-                local_world_size=self.num_processes,
-            )
-        return self._process_group
 
     @property
     def process_group_backend(self) -> Optional[str]:
@@ -294,7 +286,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 mixed_precision=self.mixed_precision_config,
                 sharding_strategy=self.sharding_strategy,
                 device_id=self.root_device.index,
-                process_group=self.process_group,
+                process_group=self._process_group,
                 **self._fsdp_kwargs,
             )
 
@@ -361,7 +353,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             mixed_precision=self.mixed_precision_config,
             sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
-            process_group=self.process_group,
+            process_group=self._process_group,
             **self._fsdp_kwargs,
         ):
             yield
@@ -677,6 +669,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        if self._process_group is None:
+            self._process_group = _get_process_group(
+                sharding_strategy=self.sharding_strategy,
+                node_rank=self.node_rank,
+                local_world_size=self.num_processes
+            )
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -893,11 +891,7 @@ def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
     raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
 
 
-def _get_process_group(
-    sharding_strategy: "ShardingStrategy",
-    node_rank: int,
-    local_world_size: int,
-) -> Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]:
+def _get_process_group(sharding_strategy: "ShardingStrategy", node_rank: int, local_world_size: int) -> _PROCESS_GROUP:
     from torch.distributed.distributed_c10d import _get_default_group
     from torch.distributed.fsdp.fully_sharded_data_parallel import ShardingStrategy
 
