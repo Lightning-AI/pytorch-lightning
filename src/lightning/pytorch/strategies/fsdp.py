@@ -16,8 +16,21 @@ import os
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, TYPE_CHECKING, Union, \
-    Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
 
 import torch
 from torch import Tensor
@@ -32,6 +45,7 @@ from lightning.fabric.strategies.fsdp import (
     _activation_checkpointing_kwargs,
     _auto_wrap_policy_kwargs,
     _get_full_state_dict_context,
+    _get_process_group,
     _get_sharded_state_dict_context,
     _has_meta_device_parameters,
     _init_cpu_offload,
@@ -42,7 +56,6 @@ from lightning.fabric.strategies.fsdp import (
     _METADATA_FILENAME,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
-    _get_process_group,
 )
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
