@@ -51,7 +51,7 @@ from lightning.pytorch.utilities.types import LRSchedulerConfig
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
-if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
+if TYPE_CHECKING:
     import deepspeed
 
 

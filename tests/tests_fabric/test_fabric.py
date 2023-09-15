@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
@@ -1195,3 +1196,40 @@ def test_verify_launch_called():
     fabric.launch()
     assert fabric._launched
     fabric._validate_launched()
+
+
+@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+@RunIf(dynamo=True)
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        pytest.param({"precision": "16-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
+        pytest.param({"precision": "64-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
+    ],
+)
+def test_fabric_with_torchdynamo_fullgraph(kwargs):
+    class MyModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l = torch.nn.Linear(10, 10)
+
+        def forward(self, x):
+            # forward gets compiled
+            assert torch._dynamo.is_compiling()
+            return self.l(x)
+
+    def fn(model, x):
+        assert torch._dynamo.is_compiling()
+        a = x * 10
+        return model(a)
+
+    fabric = Fabric(devices=1, **kwargs)
+    model = MyModel()
+    fmodel = fabric.setup(model)
+    # we are compiling a function that calls model.forward() inside
+    cfn = torch.compile(fn, fullgraph=True)
+    x = torch.randn(10, 10, device=fabric.device)
+    # pass the fabric wrapped model to the compiled function, so that it gets compiled too
+    out = cfn(fmodel, x)
+    assert isinstance(out, torch.Tensor)

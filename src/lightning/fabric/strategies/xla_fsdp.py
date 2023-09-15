@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-from contextlib import contextmanager, nullcontext
+from contextlib import ExitStack, nullcontext
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Literal, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, ContextManager, Dict, List, Literal, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -24,7 +24,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
+from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
@@ -32,21 +32,26 @@ from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
 from lightning.fabric.strategies.fsdp import _apply_filter
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
-from lightning.fabric.strategies.strategy import TBroadcast, _BackwardSyncControl, _validate_keys_for_strict_loading
+from lightning.fabric.strategies.strategy import (
+    _BackwardSyncControl,
+    _Sharded,
+    _validate_keys_for_strict_loading,
+    TBroadcast,
+)
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
 
-if TYPE_CHECKING and _XLA_AVAILABLE:
+if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 _POLICY_SET = Set[Type[Module]]
 _POLICY = Union[_POLICY_SET, Callable[[Module, bool, int], bool]]
 
 
-class XLAFSDPStrategy(ParallelStrategy):
+class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     r"""Strategy for training multiple XLA devices using the
     :func:`torch_xla.distributed.xla_fully_sharded_data_parallel.XlaFullyShardedDataParallel` method.
 
@@ -187,17 +192,16 @@ class XLAFSDPStrategy(ParallelStrategy):
     def module_to_device(self, module: Module) -> None:
         pass
 
-    @contextmanager
-    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
-        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
-        # is resolved. For now, the module will get moved to the device in `setup_module`.
-        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
-        with empty_init_context, self.precision.init_context(), self.module_sharded_context():
-            yield
+    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+        stack = ExitStack()
+        if _TORCH_GREATER_EQUAL_1_13:
+            stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
+        stack.enter_context(self.precision.init_context())
+        stack.enter_context(self.module_sharded_context())
+        return stack
 
-    @contextmanager
-    def module_sharded_context(self) -> Generator:
-        yield
+    def module_sharded_context(self) -> ContextManager:
+        return nullcontext()
 
     def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -639,8 +643,7 @@ def _activation_checkpointing_kwargs(policy: Optional[_POLICY_SET], kwargs: Dict
 
 
 class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
-    @contextmanager
-    def no_backward_sync(self, module: Module) -> Generator:
+    def no_backward_sync(self, module: Module) -> ContextManager:
         """Blocks gradient synchronization inside the
         :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel` wrapper."""
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
@@ -651,5 +654,4 @@ class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
                 f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `XlaFullyShardedDataParallel`."
                 f" Got: {module.__class__.__name__}."
             )
-        with module.no_sync():
-            yield
+        return module.no_sync()

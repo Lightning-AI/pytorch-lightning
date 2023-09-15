@@ -35,10 +35,8 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
-if TYPE_CHECKING and _XLA_AVAILABLE:
+if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
-else:
-    MpDeviceLoader = None
 
 
 class XLAStrategy(DDPStrategy):

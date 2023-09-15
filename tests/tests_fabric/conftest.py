@@ -59,6 +59,8 @@ def restore_env_variables():
         # set by XLA FSDP on XRT
         "XRT_TORCH_DIST_ROOT",
         "XRT_MESH_SERVICE_ADDRESS",
+        # set by torchdynamo
+        "TRITON_CACHE_DIR",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -93,7 +95,6 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.plugins.precision.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.single_xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
