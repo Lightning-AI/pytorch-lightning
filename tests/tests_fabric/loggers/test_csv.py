@@ -163,3 +163,21 @@ def test_append_columns(tmp_path):
     with open(logger.experiment.metrics_file_path) as file:
         header = file.readline().strip()
         assert set(header.split(",")) == {"step", "a", "b", "c"}
+
+
+def test_rewrite_with_new_header(tmp_path):
+    # write a csv file manually
+    with open(tmp_path / "metrics.csv", "w") as file:
+        file.write("step,metric1,metric2\n")
+        file.write("0,1,22\n")
+
+    writer = _ExperimentWriter(log_dir=str(tmp_path))
+    new_columns = ["step", "metric1", "metric2", "metric3"]
+    writer._rewrite_with_new_header(new_columns)
+
+    # the rewritten file should have the new columns
+    with open(tmp_path / "metrics.csv") as file:
+        header = file.readline().strip().split(",")
+        assert header == new_columns
+        logs = file.readline().strip().split(",")
+        assert logs == ["0", "1", "22", ""]
