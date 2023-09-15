@@ -169,7 +169,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             precision=precision,
         )
         self._num_nodes = 1
-        self._process_group = None
+        self._process_group: Optional[Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]] = None
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._backward_sync_control = _FSDPBackwardSyncControl()

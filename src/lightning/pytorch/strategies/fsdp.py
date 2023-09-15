@@ -170,7 +170,7 @@ class FSDPStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         self.num_nodes = 1
-        self._process_group = None
+        self._process_group: Optional[Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]] = None
         self._process_group_backend = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
