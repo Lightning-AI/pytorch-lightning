@@ -16,7 +16,6 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
-import csv
 
 from lightning.fabric.loggers import CSVLogger
 from lightning.fabric.loggers.csv_logs import _ExperimentWriter
@@ -146,12 +145,12 @@ def test_append_columns(tmp_path):
 
     # new key appears
     logger.log_metrics({"a": 1, "b": 2, "c": 3})
-    with open(logger.experiment.metrics_file_path, "r") as file:
+    with open(logger.experiment.metrics_file_path) as file:
         header = file.readline().strip()
         assert set(header.split(",")) == {"step", "a", "b", "c"}
 
     # key disappears
     logger.log_metrics({"a": 1, "c": 3})
-    with open(logger.experiment.metrics_file_path, "r") as file:
+    with open(logger.experiment.metrics_file_path) as file:
         header = file.readline().strip()
         assert set(header.split(",")) == {"step", "a", "b", "c"}
