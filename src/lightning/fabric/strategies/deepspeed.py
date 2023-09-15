@@ -38,9 +38,10 @@ from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
+if TYPE_CHECKING:
+    from deepspeed import DeepSpeedEngine
+
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
-if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
-    import deepspeed
 
 
 # TODO(fabric): Links in the docstrings to PL-specific deepspeed user docs need to be replaced.
@@ -289,7 +290,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-        self._deepspeed_engine: Optional["deepspeed.DeepSpeedEngine"] = None
+        self._deepspeed_engine: Optional["DeepSpeedEngine"] = None
 
     @property
     def zero_stage_3(self) -> bool:
@@ -302,12 +303,12 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
-    def model(self) -> "deepspeed.DeepSpeedEngine":
+    def model(self) -> "DeepSpeedEngine":
         return self._deepspeed_engine
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
-    ) -> Tuple["deepspeed.DeepSpeedEngine", List[Optimizer]]:
+    ) -> Tuple["DeepSpeedEngine", List[Optimizer]]:
         """Set up a model and multiple optimizers together.
 
         Currently, only a single optimizer is supported.
@@ -327,7 +328,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self._set_deepspeed_activation_checkpointing()
         return self._deepspeed_engine, [optimizer]
 
-    def setup_module(self, module: Module) -> "deepspeed.DeepSpeedEngine":
+    def setup_module(self, module: Module) -> "DeepSpeedEngine":
         """Set up a module for inference (no optimizers).
 
         For training, see :meth:`setup_module_and_optimizers`.
@@ -514,7 +515,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def clip_gradients_norm(
         self,
-        module: "deepspeed.DeepSpeedEngine",
+        module: "DeepSpeedEngine",
         optimizer: Optimizer,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
@@ -526,7 +527,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
 
     def clip_gradients_value(
-        self, module: "deepspeed.DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
+        self, module: "DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
     ) -> None:
         raise NotImplementedError(
             "DeepSpeed handles gradient clipping automatically within the optimizer. "
@@ -570,7 +571,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self,
         model: Module,
         optimizer: Optional[Optimizer] = None,
-    ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
+    ) -> Tuple["DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
         This calls :func:`deepspeed.initialize` internally.
@@ -789,7 +790,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return config
 
 
-def _get_deepspeed_engines_from_state(state: Dict[str, Any]) -> List["deepspeed.DeepSpeedEngine"]:
+def _get_deepspeed_engines_from_state(state: Dict[str, Any]) -> List["DeepSpeedEngine"]:
     from deepspeed import DeepSpeedEngine
 
     modules = chain(*(module.modules() for module in state.values() if isinstance(module, Module)))
