@@ -16,7 +16,7 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Set
 
 from torch import Tensor
 
@@ -188,6 +188,7 @@ class _ExperimentWriter:
 
     def __init__(self, log_dir: str) -> None:
         self.metrics: List[Dict[str, float]] = []
+        self.metrics_keys = []
 
         self._fs = get_filesystem(log_dir)
         self.log_dir = log_dir
@@ -220,12 +221,21 @@ class _ExperimentWriter:
         if not self.metrics:
             return
 
-        last_m = {}
-        for m in self.metrics:
-            last_m.update(m)
-        metrics_keys = list(last_m.keys())
+        current_keys = _get_keys_from_metrics(self.metrics)
+        new_keys = current_keys - set(self.metrics_keys)
+        if new_keys:
+            # we need to re-write the header if the keys changed
+            pass
+            self.metrics_keys = list(current_keys)
 
-        with self._fs.open(self.metrics_file_path, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=metrics_keys)
+        with self._fs.open(self.metrics_file_path, "a", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=self.metrics_keys)
             writer.writeheader()
             writer.writerows(self.metrics)
+
+        self.metrics = []  # reset
+
+
+def _get_keys_from_metrics(metrics: List[Dict[str, Any]]) -> Set[str]:
+    key_sets = [metric_dict.keys() for metric_dict in metrics]
+    return set().union(*key_sets)
