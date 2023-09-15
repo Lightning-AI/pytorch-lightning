@@ -275,6 +275,7 @@ nitpick_ignore_regex = [
     # Mocked optional packages
     ("py:class", "deepspeed.*"),
     ("py:.*", "torch_xla.*"),
+    ("py:class", "transformer_engine.*"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
@@ -312,7 +313,7 @@ MOCK_PACKAGES = []
 if _SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_ROOT, "requirements.txt"))
-    MOCK_PACKAGES += ["deepspeed", "torch_xla"]
+    MOCK_PACKAGES += ["deepspeed", "torch_xla", "transformer_engine"]
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES
