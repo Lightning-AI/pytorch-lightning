@@ -15,7 +15,7 @@ import io
 from contextlib import ExitStack, nullcontext
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, ContextManager, Dict, List, Literal, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Literal, Optional, Set, Tuple, Type, Union
 
 import torch
 from torch import Tensor
@@ -33,10 +33,10 @@ from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
 from lightning.fabric.strategies.fsdp import _apply_filter
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import (
+    TBroadcast,
     _BackwardSyncControl,
     _Sharded,
     _validate_keys_for_strict_loading,
-    TBroadcast,
 )
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0

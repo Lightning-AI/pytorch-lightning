@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 import threading
-from contextlib import contextmanager, ExitStack
+from contextlib import ExitStack, contextmanager
 from datetime import timedelta
 from functools import partial
 from pathlib import Path

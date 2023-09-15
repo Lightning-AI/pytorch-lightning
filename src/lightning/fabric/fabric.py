@@ -19,17 +19,17 @@ from pathlib import Path
 from typing import (
     Any,
     Callable,
-    cast,
     ContextManager,
     Dict,
     Generator,
     List,
     Mapping,
     Optional,
-    overload,
     Sequence,
     Tuple,
     Union,
+    cast,
+    overload,
 )
 
 import torch
