@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from typing import Any, Generator, Literal, TYPE_CHECKING
+from contextlib import nullcontext
+from typing import Any, ContextManager, Literal, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -21,7 +21,7 @@ from torch.nn import Module
 from typing_extensions import get_args
 
 from lightning.fabric.plugins.precision.precision import Precision
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.types import Steppable
 
 if TYPE_CHECKING:
@@ -69,18 +69,10 @@ class DeepSpeedPrecision(Precision):
             return module.to(dtype=self._desired_dtype)
         return module
 
-    @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
+    def init_context(self) -> ContextManager:
         if "true" not in self.precision:
-            yield
-            return
-
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self._desired_dtype)
-        try:
-            yield
-        finally:
-            torch.set_default_dtype(default_dtype)
+            return nullcontext()
+        return _DtypeContextManager(self._desired_dtype)
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)

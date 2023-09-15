@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager, nullcontext
+from contextlib import nullcontext
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Literal, Optional, Union
+from typing import Any, ContextManager, Dict, List, Literal, Optional, Union
 
 import torch
 import torch.distributed
@@ -208,8 +208,7 @@ class DDPStrategy(ParallelStrategy):
 
 
 class _DDPBackwardSyncControl(_BackwardSyncControl):
-    @contextmanager
-    def no_backward_sync(self, module: Module) -> Generator:
+    def no_backward_sync(self, module: Module) -> ContextManager:
         """Blocks gradient synchronization inside the
         :class:`~torch.nn.parallel.distributed.DistributedDataParallel` wrapper."""
         if not isinstance(module, DistributedDataParallel):
@@ -218,5 +217,4 @@ class _DDPBackwardSyncControl(_BackwardSyncControl):
                 f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `DistributedDataParallel`."
                 f" Got: {module.__class__.__name__}."
             )
-        with module.no_sync():
-            yield
+        return module.no_sync()

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from contextlib import contextmanager
-from typing import Any, Generator, Literal, Mapping, Optional, TYPE_CHECKING, Union
+from contextlib import ExitStack
+from typing import Any, ContextManager, Literal, Mapping, Optional, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -21,7 +21,11 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
 from lightning.fabric.plugins.precision.precision import Precision
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.plugins.precision.utils import (
+    _ClassReplacementContextManager,
+    _convert_fp_tensor,
+    _DtypeContextManager,
+)
 from lightning.fabric.utilities.rank_zero import rank_zero_warn
 
 _TRANSFORMER_ENGINE_AVAILABLE = RequirementCache("transformer_engine>=0.11.0")
@@ -93,40 +97,30 @@ class TransformerEnginePrecision(Precision):
         module = module.to(dtype=self.dtype)
         return module
 
-    @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
-        import transformer_engine.pytorch as te
+    def init_context(self) -> ContextManager:
+        stack = ExitStack()
+        stack.enter_context(_DtypeContextManager(self.dtype))
 
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self.dtype)
-
-        replace_layers = self.replace_layers
-        try:
-            if replace_layers:
-                original_linear = torch.nn.Linear
-                original_layer_norm = torch.nn.LayerNorm
-                torch.nn.Linear = te.Linear  # type: ignore[misc]
-                torch.nn.LayerNorm = te.LayerNorm  # type: ignore[misc]
-            yield
-        finally:
-            if replace_layers:
-                torch.nn.Linear = original_linear  # type: ignore[misc]
-                torch.nn.LayerNorm = original_layer_norm  # type: ignore[misc]
-
-            torch.set_default_dtype(default_dtype)
-
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self.dtype)
-
-        try:
+        if self.replace_layers:
             import transformer_engine.pytorch as te
 
-            with te.fp8_autocast(enabled=True, fp8_recipe=self.recipe):
-                yield
-        finally:
-            torch.set_default_dtype(default_dtype)
+            context_manager = _ClassReplacementContextManager(
+                {
+                    "torch.nn.Linear": te.Linear,
+                    "torch.nn.LayerNorm": te.LayerNorm,
+                }
+            )
+            stack.enter_context(context_manager)
+        return stack
+
+    def forward_context(self) -> ContextManager:
+        stack = ExitStack()
+        stack.enter_context(_DtypeContextManager(self.dtype))
+
+        import transformer_engine.pytorch as te
+
+        stack.enter_context(te.fp8_autocast(enabled=True, fp8_recipe=self.recipe))
+        return stack
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self.dtype)

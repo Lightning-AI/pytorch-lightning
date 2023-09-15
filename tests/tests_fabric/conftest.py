@@ -60,6 +60,8 @@ def restore_env_variables():
         # set by XLA FSDP on XRT
         "XRT_TORCH_DIST_ROOT",
         "XRT_MESH_SERVICE_ADDRESS",
+        # set by torchdynamo
+        "TRITON_CACHE_DIR",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
