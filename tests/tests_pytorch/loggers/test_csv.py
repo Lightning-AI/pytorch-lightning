@@ -27,7 +27,7 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-def test_file_logger_automatic_versioning(tmpdir):
+def test_automatic_versioning(tmpdir):
     """Verify that automatic versioning works."""
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
@@ -38,7 +38,7 @@ def test_file_logger_automatic_versioning(tmpdir):
     assert logger.version == 2
 
 
-def test_file_logger_manual_versioning(tmpdir):
+def test_manual_versioning(tmpdir):
     """Verify that manual versioning works."""
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
@@ -50,7 +50,7 @@ def test_file_logger_manual_versioning(tmpdir):
     assert logger.version == 1
 
 
-def test_file_logger_named_version(tmpdir):
+def test_named_version(tmpdir):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
     exp_name = "exp"
     tmpdir.mkdir(exp_name)
@@ -65,7 +65,7 @@ def test_file_logger_named_version(tmpdir):
 
 
 @pytest.mark.parametrize("name", ["", None])
-def test_file_logger_no_name(tmpdir, name):
+def test_no_name(tmpdir, name):
     """Verify that None or empty name works."""
     logger = CSVLogger(save_dir=tmpdir, name=name)
     logger.save()
@@ -74,7 +74,7 @@ def test_file_logger_no_name(tmpdir, name):
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
-def test_file_logger_log_metrics(tmpdir, step_idx):
+def test_log_metrics(tmpdir, step_idx):
     logger = CSVLogger(tmpdir)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
@@ -87,7 +87,7 @@ def test_file_logger_log_metrics(tmpdir, step_idx):
     assert all(n in lines[0] for n in metrics)
 
 
-def test_file_logger_log_hyperparams(tmpdir):
+def test_log_hyperparams(tmpdir):
     logger = CSVLogger(tmpdir)
     hparams = {
         "float": 0.3,
