@@ -16,7 +16,8 @@ import os
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, TYPE_CHECKING, Union, \
+    Tuple
 
 import torch
 from torch import Tensor
@@ -41,6 +42,7 @@ from lightning.fabric.strategies.fsdp import (
     _METADATA_FILENAME,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
+    _get_process_group,
 )
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
@@ -167,8 +169,8 @@ class FSDPStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-        self._process_group = None
         self.num_nodes = 1
+        self._process_group = None
         self._process_group_backend = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
@@ -202,20 +204,13 @@ class FSDPStrategy(ParallelStrategy):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def process_group(self) -> Optional[ProcessGroup]:
+    def process_group(self) -> Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]:
         if self._process_group is None:
-            from torch.distributed.distributed_c10d import _get_default_group
-
-            # The strategy should have already initilized process group in setup_environment()
-            self._process_group = _get_default_group()
-        
-        from torch.distributed.fsdp.fully_sharded_data_parallel import ShardingStrategy
-
-        if self.sharding_strategy in (ShardingStrategy.HYBRID_SHARD, ):
-            start = self.node_rank * self.num_processes
-            local_ranks = list(range(start, start + self.num_processes))
-            group = torch.distributed.new_group(ranks=local_ranks, backend=self._process_group_backend)
-            return (self._process_group, group)
+            self._process_group = _get_process_group(
+                sharding_strategy=self.sharding_strategy,
+                node_rank=self.node_rank,
+                local_world_size=self.num_processes,
+            )
         return self._process_group
 
     @property
@@ -291,11 +286,11 @@ class FSDPStrategy(ParallelStrategy):
             log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
             model = FullyShardedDataParallel(
                 module=model,
-                process_group=self.process_group,
                 cpu_offload=self.cpu_offload,
                 mixed_precision=self.mixed_precision_config,
                 sharding_strategy=self.sharding_strategy,
                 device_id=self.root_device.index,
+                process_group=self.process_group,
                 **self.kwargs,
             )
 
@@ -379,11 +374,11 @@ class FSDPStrategy(ParallelStrategy):
 
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
-            process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
             sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
+            process_group=self.process_group,
             **self.kwargs,
         ):
             yield

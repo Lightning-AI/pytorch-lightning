@@ -71,7 +71,8 @@ from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
-from lightning.fabric.utilities.types import _PATH, _Stateful
+from lightning.fabric.utilities.types import _PATH, _Stateful, ProcessGroup
+
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
@@ -168,6 +169,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             precision=precision,
         )
         self._num_nodes = 1
+        self._process_group = None
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._backward_sync_control = _FSDPBackwardSyncControl()
@@ -213,6 +215,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
+
+    @property
+    def process_group(self) -> Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]:
+        if self._process_group is None:
+            self._process_group = _get_process_group(
+                sharding_strategy=self.sharding_strategy,
+                node_rank=self.node_rank,
+                local_world_size=self.num_processes,
+            )
+        return self._process_group
 
     @property
     def process_group_backend(self) -> Optional[str]:
@@ -283,6 +295,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 mixed_precision=self.mixed_precision_config,
                 sharding_strategy=self.sharding_strategy,
                 device_id=self.root_device.index,
+                process_group=self.process_group,
                 **self._fsdp_kwargs,
             )
 
@@ -349,6 +362,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             mixed_precision=self.mixed_precision_config,
             sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
+            process_group=self.process_group,
             **self._fsdp_kwargs,
         ):
             yield
@@ -878,6 +892,25 @@ def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
     if isinstance(obj, Module):
         return any(t.is_meta for t in obj.parameters())
     raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
+
+
+def _get_process_group(
+    sharding_strategy: "ShardingStrategy",
+    node_rank: int,
+    local_world_size: int,
+) -> Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]:
+    from torch.distributed.distributed_c10d import _get_default_group
+    from torch.distributed.fsdp.fully_sharded_data_parallel import ShardingStrategy
+
+    main_pg = _get_default_group()
+
+    if sharding_strategy not in (ShardingStrategy.HYBRID_SHARD, ShardingStrategy._HYBRID_SHARD_ZERO2):
+        return main_pg
+
+    start = node_rank * local_world_size
+    local_ranks = list(range(start, start + local_world_size))
+    local_pg = torch.distributed.new_group(ranks=local_ranks)
+    return main_pg, local_pg
 
 
 def _no_op() -> None:
