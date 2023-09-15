@@ -208,6 +208,14 @@ class FSDPStrategy(ParallelStrategy):
 
             # The strategy should have already initilized process group in setup_environment()
             self._process_group = _get_default_group()
+        
+        from torch.distributed.fsdp.fully_sharded_data_parallel import ShardingStrategy
+
+        if self.sharding_strategy in (ShardingStrategy.HYBRID_SHARD, ):
+            start = self.node_rank * self.num_processes
+            local_ranks = list(range(start, start + self.num_processes))
+            group = torch.distributed.new_group(ranks=local_ranks, backend=self._process_group_backend)
+            return (self._process_group, group)
         return self._process_group
 
     @property
