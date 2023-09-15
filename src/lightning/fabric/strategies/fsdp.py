@@ -73,7 +73,6 @@ from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zer
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, _Stateful, ProcessGroup
 
-
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
 
