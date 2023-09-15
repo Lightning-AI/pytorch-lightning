@@ -263,6 +263,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed false positive warning about logging interval when running with `Trainer(fast_dev_run=True)` ([#18550](https://github.com/Lightning-AI/lightning/pull/18550))
 
 
+- Fixed redunant file writes in `CSVLogger` ([#18567](https://github.com/Lightning-AI/lightning/pull/18567))
+
+
 ## [2.0.7] - 2023-08-14
 
 ### Added

@@ -206,6 +206,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed issue where unexpected exceptions would leave the default torch dtype modified when using true precision settings ([#18500](https://github.com/Lightning-AI/lightning/pull/18500))
 
+
+- Fixed redunant file writes in `CSVLogger` ([#18567](https://github.com/Lightning-AI/lightning/pull/18567))
+
+
+
 ## [2.0.7] - 2023-08-14
 
 ### Changed
