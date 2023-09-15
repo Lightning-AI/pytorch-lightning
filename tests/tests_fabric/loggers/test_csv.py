@@ -16,6 +16,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
+import csv
 
 from lightning.fabric.loggers import CSVLogger
 from lightning.fabric.loggers.csv_logs import _ExperimentWriter
@@ -117,3 +118,26 @@ def test_automatic_step_tracking(tmp_path):
     logger.log_metrics(metrics, step=None)
     logger.save.assert_called_once()
     assert logger.experiment.metrics[2]["step"] == 2
+
+
+def test_append_columns(tmp_path):
+    """Test that the CSV file gets rewritten with new headers if the columns change."""
+    logger = CSVLogger(tmp_path, flush_logs_every_n_steps=1)
+
+    # initial metrics
+    metrics = {"a": 1, "b": 2}
+    logger.log_metrics(metrics)
+
+    # new key appears
+    metrics = {"a": 1, "b": 2, "c": 3}
+    logger.log_metrics(metrics)
+    with open(logger.experiment.metrics_file_path, "r") as file:
+        header = file.readline().strip()
+        assert set(header.split(",")) == {"step", "a", "b", "c"}
+
+    # key disappears
+    metrics = {"a": 1, "c": 3}
+    logger.log_metrics(metrics)
+    with open(logger.experiment.metrics_file_path, "r") as file:
+        header = file.readline().strip()
+        assert set(header.split(",")) == {"step", "a", "b", "c"}
