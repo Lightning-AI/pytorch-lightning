@@ -103,6 +103,15 @@ def test_flush_n_steps(tmpdir):
     logger.save.assert_called_once()
 
 
+def test_metrics_reset_after_save(tmp_path):
+    logger = CSVLogger(tmp_path, flush_logs_every_n_steps=2)
+    metrics = {"test": 1}
+    logger.log_metrics(metrics, step=0)
+    assert logger.experiment.metrics
+    logger.log_metrics(metrics, step=1)  # flush triggered
+    assert not logger.experiment.metrics
+
+
 def test_automatic_step_tracking(tmp_path):
     """Test that the logger keeps track of the step value if it isn't passed in explicitly."""
     logger = CSVLogger(tmp_path, flush_logs_every_n_steps=3)
