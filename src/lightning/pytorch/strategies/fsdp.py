@@ -205,7 +205,7 @@ class FSDPStrategy(ParallelStrategy):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def process_group(self) -> _PROCESS_GROUP:
+    def process_group(self) -> Optional[_PROCESS_GROUP]:
         return self._process_group
 
     @property

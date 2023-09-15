@@ -218,7 +218,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
-    def process_group(self) -> _PROCESS_GROUP:
+    def process_group(self) -> Optional[_PROCESS_GROUP]:
         return self._process_group
 
     @property
