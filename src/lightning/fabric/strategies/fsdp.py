@@ -675,9 +675,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
         if self._process_group is None:
             self._process_group = _get_process_group(
-                sharding_strategy=self.sharding_strategy,
-                node_rank=self.node_rank,
-                local_world_size=self.num_processes
+                sharding_strategy=self.sharding_strategy, node_rank=self.node_rank, local_world_size=self.num_processes
             )
 
     def _get_process_group_backend(self) -> str:
