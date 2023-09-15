@@ -55,7 +55,7 @@ from lightning.fabric.strategies.fsdp import (
     _load_raw_module_state,
     _METADATA_FILENAME,
     _optimizer_has_flat_params,
-    _setup_activation_checkpointing,
+    _setup_activation_checkpointing, _PROCESS_GROUP,
 )
 from lightning.fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
@@ -170,6 +170,7 @@ class FSDPStrategy(ParallelStrategy):
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "full",
+        process_group: Optional[_PROCESS_GROUP] = None,
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -183,7 +184,7 @@ class FSDPStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         self.num_nodes = 1
-        self._process_group: Optional[Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]] = None
+        self._process_group: Optional[_PROCESS_GROUP] = process_group
         self._process_group_backend = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
@@ -217,13 +218,7 @@ class FSDPStrategy(ParallelStrategy):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def process_group(self) -> Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]:
-        if self._process_group is None:
-            self._process_group = _get_process_group(
-                sharding_strategy=self.sharding_strategy,
-                node_rank=self.node_rank,
-                local_world_size=self.num_processes,
-            )
+    def process_group(self) -> _PROCESS_GROUP:
         return self._process_group
 
     @property
@@ -261,6 +256,12 @@ class FSDPStrategy(ParallelStrategy):
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        if self._process_group is None:
+            self._process_group = _get_process_group(
+                sharding_strategy=self.sharding_strategy,
+                node_rank=self.node_rank,
+                local_world_size=self.num_processes,
+            )
         super().setup_environment()
 
     def _get_process_group_backend(self) -> str:
