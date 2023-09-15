@@ -16,7 +16,7 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Union, Set
+from typing import Any, Dict, List, Optional, Set, Union
 
 from torch import Tensor
 
@@ -249,4 +249,3 @@ class _ExperimentWriter:
 def _get_keys_from_metrics(metrics: List[Dict[str, Any]]) -> Set[str]:
     key_sets = [metric_dict.keys() for metric_dict in metrics]
     return set().union(*key_sets)
-
