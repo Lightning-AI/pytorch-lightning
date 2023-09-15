@@ -124,6 +124,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for saving and loading stateful objects other than modules and optimizers ([#18513](https://github.com/Lightning-AI/lightning/pull/18513))
 
 
+- Added support for passing the process group to the `FSDPStrategy` ([#18562](https://github.com/Lightning-AI/lightning/pull/18562))
+
+
+- Added default process group configuration for `FSDPStrategy(sharding_strategy="HYBRID_SHARD")` ([#18562](https://github.com/Lightning-AI/lightning/pull/18562))
+
+
 ### Changed
 
 - Allow using iterable-style datasets with TPUs ([#17331](https://github.com/Lightning-AI/lightning/pull/17331))

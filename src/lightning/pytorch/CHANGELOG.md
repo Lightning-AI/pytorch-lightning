@@ -124,6 +124,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for mixed 8-bit precision as `Trainer(precision="transformer-engine")` using [Nvidia's Transformer Engine](https://docs.nvidia.com/deeplearning/transformer-engine) ([#18459](https://github.com/Lightning-AI/lightning/pull/18459))
 
+
+- Added support for passing the process group to the `FSDPStrategy` ([#18562](https://github.com/Lightning-AI/lightning/pull/18562))
+
+
+- Added default process group configuration for `FSDPStrategy(sharding_strategy="HYBRID_SHARD")` ([#18562](https://github.com/Lightning-AI/lightning/pull/18562))
+
+
 ### Changed
 
 - Removed the limitation to call `self.trainer.model.parameters()` in `LightningModule.configure_optimizers()` ([#17309](https://github.com/Lightning-AI/lightning/pull/17309))
