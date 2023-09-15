@@ -221,10 +221,7 @@ class _ExperimentWriter:
         if not self.metrics:
             return
 
-        current_keys = _get_keys_from_metrics(self.metrics)
-        new_keys = current_keys - set(self.metrics_keys)
-        self.metrics_keys.extend(new_keys)
-
+        new_keys = self._record_new_keys()
         file_exists = self._fs.isfile(self.metrics_file_path)
 
         if new_keys and file_exists:
@@ -240,6 +237,13 @@ class _ExperimentWriter:
 
         self.metrics = []  # reset
 
+    def _record_new_keys(self) -> Set[str]:
+        """Records new keys that have not been logged before."""
+        current_keys = set().union(*self.metrics)
+        new_keys = current_keys - set(self.metrics_keys)
+        self.metrics_keys.extend(new_keys)
+        return new_keys
+
     def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
         with self._fs.open(self.metrics_file_path, "r", newline="") as file:
             metrics = list(csv.DictReader(file))
@@ -248,8 +252,3 @@ class _ExperimentWriter:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(metrics)
-
-
-def _get_keys_from_metrics(metrics: List[Dict[str, Any]]) -> Set[str]:
-    key_sets = [metric_dict.keys() for metric_dict in metrics]
-    return set().union(*key_sets)
