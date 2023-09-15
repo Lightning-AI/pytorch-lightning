@@ -74,3 +74,22 @@ def wandb_mock(monkeypatch):
     wandb.sdk.lib = wandb_sdk_lib
     wandb.wandb_run = wandb_wandb_run
     return wandb
+
+
+@pytest.fixture()
+def comet_mock(monkeypatch):
+    comet = ModuleType("comet_ml")
+    monkeypatch.setitem(sys.modules, "comet_ml", comet)
+
+    comet.Experiment = Mock()
+    comet.ExistingExperiment = Mock()
+    comet.OfflineExperiment = Mock()
+    comet.API = Mock()
+    comet.config = Mock()
+
+    comet_api = ModuleType("api")
+    comet_api.API = Mock()
+    monkeypatch.setitem(sys.modules, "comet_ml.api", comet_api)
+
+    comet.api = comet_api
+    return comet
