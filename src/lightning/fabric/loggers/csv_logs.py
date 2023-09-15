@@ -226,7 +226,7 @@ class _ExperimentWriter:
         self.metrics_keys.extend(new_keys)
 
         if new_keys and self._fs.isfile(self.metrics_file_path):
-            # we need to re-write the file if the keys (header) changes
+            # we need to re-write the file if the keys (header) change
             self._rewrite_with_new_header(self.metrics_keys)
 
         with self._fs.open(self.metrics_file_path, "a", newline="") as file:
