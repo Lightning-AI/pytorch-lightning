@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, call, MagicMock, Mock, PropertyMock
@@ -1197,6 +1198,8 @@ def test_verify_launch_called():
     fabric._validate_launched()
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+@RunIf(dynamo=True)
 @pytest.mark.parametrize(
     "kwargs",
     [
