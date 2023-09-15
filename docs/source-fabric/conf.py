@@ -254,6 +254,7 @@ intersphinx_mapping = {
     "pytorch_lightning": ("https://lightning.ai/docs/pytorch/stable/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
     "deepspeed": ("https://deepspeed.readthedocs.io/en/stable/", None),
+    "torch_xla": ("https://pytorch.org/xla/release/2.0/", None),
 }
 nitpicky = True
 
