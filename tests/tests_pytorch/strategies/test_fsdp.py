@@ -487,6 +487,7 @@ def test_fsdp_use_orig_params():
         assert not strategy.kwargs["use_orig_params"]
 
 
+@RunIf(min_torch="1.12")
 @mock.patch("lightning.pytorch.strategies.fsdp._get_process_group")
 @mock.patch("torch.distributed.init_process_group")
 def test_set_timeout(init_process_group_mock, _):
