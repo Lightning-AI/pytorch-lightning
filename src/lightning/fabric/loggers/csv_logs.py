@@ -223,19 +223,30 @@ class _ExperimentWriter:
 
         current_keys = _get_keys_from_metrics(self.metrics)
         new_keys = current_keys - set(self.metrics_keys)
-        if new_keys:
-            # we need to re-write the header if the keys changed
-            pass
-            self.metrics_keys = list(current_keys)
+        self.metrics_keys.extend(new_keys)
 
-        with self._fs.open(self.metrics_file_path, "a", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=self.metrics_keys)
+        if new_keys and self._fs.isfile(self.metrics_file_path):
+            # we need to re-write the file if the keys (header) changes
+            self._rewrite_with_new_header(self.metrics_keys)
+
+        with self._fs.open(self.metrics_file_path, "a", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=self.metrics_keys)
             writer.writeheader()
             writer.writerows(self.metrics)
 
         self.metrics = []  # reset
 
+    def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
+        with self._fs.open(self.metrics_file_path, "r", newline="") as file:
+            metrics = list(csv.DictReader(file))[1:]
+
+        with self._fs.open(self.metrics_file_path, "w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(metrics)
+
 
 def _get_keys_from_metrics(metrics: List[Dict[str, Any]]) -> Set[str]:
     key_sets = [metric_dict.keys() for metric_dict in metrics]
     return set().union(*key_sets)
+
