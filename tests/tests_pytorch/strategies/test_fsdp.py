@@ -487,9 +487,9 @@ def test_fsdp_use_orig_params():
         assert not strategy.kwargs["use_orig_params"]
 
 
-@RunIf(min_torch="1.12")
+@mock.patch("lightning.pytorch.strategies.fsdp._get_process_group")
 @mock.patch("torch.distributed.init_process_group")
-def test_set_timeout(init_process_group_mock):
+def test_set_timeout(init_process_group_mock, _):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
     test_timedelta = timedelta(seconds=30)
     strategy = FSDPStrategy(timeout=test_timedelta, parallel_devices=[torch.device("cpu")])
@@ -502,6 +502,41 @@ def test_set_timeout(init_process_group_mock):
     init_process_group_mock.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
+
+
+@RunIf(min_torch="2.0")
+@mock.patch("torch.distributed.init_process_group", Mock())
+@mock.patch("torch.distributed.distributed_c10d._get_default_group")
+@mock.patch("torch.distributed.new_group")
+def test_process_group(new_group_mock, get_default_group_mock):
+    """Test that the default process group gets set up according to the requested sharding strategy."""
+    parallel_devices = [torch.device("cpu")] * 4
+    cluster_environment = Mock(
+        node_rank=Mock(return_value=1),
+        local_rank=Mock(return_value=1),
+        global_rank=Mock(return_value=4),
+        world_size=Mock(return_value=8),
+        main_address="test",
+        main_port=1234,
+    )
+
+    # Default sharding strategy
+    strategy = FSDPStrategy(parallel_devices=parallel_devices)
+    strategy.cluster_environment = cluster_environment
+    strategy.accelerator = Mock()
+    assert strategy.process_group is None
+    strategy.setup_environment()
+    assert strategy.process_group == get_default_group_mock()
+
+    # Hybrid shard
+    strategy = FSDPStrategy(parallel_devices=parallel_devices, sharding_strategy="HYBRID_SHARD")
+    strategy.cluster_environment = cluster_environment
+    strategy.accelerator = Mock()
+    assert strategy.process_group is None
+    strategy.setup_environment()
+    new_group_mock.assert_called_with(ranks=[4, 5, 6, 7])
+    assert isinstance(strategy.process_group, tuple)
+    assert strategy.process_group == (get_default_group_mock(), new_group_mock())
 
 
 @RunIf(min_torch="2.0")
