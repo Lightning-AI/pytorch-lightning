@@ -77,6 +77,25 @@ def wandb_mock(monkeypatch):
 
 
 @pytest.fixture()
+def comet_mock(monkeypatch):
+    comet = ModuleType("comet_ml")
+    monkeypatch.setitem(sys.modules, "comet_ml", comet)
+
+    comet.Experiment = Mock()
+    comet.ExistingExperiment = Mock()
+    comet.OfflineExperiment = Mock()
+    comet.API = Mock()
+    comet.config = Mock()
+
+    comet_api = ModuleType("api")
+    comet_api.API = Mock()
+    monkeypatch.setitem(sys.modules, "comet_ml.api", comet_api)
+
+    comet.api = comet_api
+    return comet
+
+
+@pytest.fixture()
 def neptune_mock(monkeypatch):
     # class HandlerType:  # to make isinstance checks pass
     #     pass
