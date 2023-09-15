@@ -19,7 +19,7 @@ Comet Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -29,6 +29,9 @@ from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _fla
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
+
+if TYPE_CHECKING:
+    from comet_ml import ExistingExperiment, Experiment, OfflineExperiment
 
 log = logging.getLogger(__name__)
 _COMET_AVAILABLE = RequirementCache("comet-ml>=3.31.0", module="comet_ml")
@@ -255,7 +258,7 @@ class CometLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Any:
+    def experiment(self) -> Union["Experiment", "ExistingExperiment", "OfflineExperiment"]:
         r"""
         Actual Comet object. To use Comet features in your
         :class:`~lightning.pytorch.core.module.LightningModule` do the following.

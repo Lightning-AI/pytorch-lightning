@@ -28,14 +28,10 @@ from lightning.fabric.plugins.precision.utils import (
 )
 from lightning.fabric.utilities.rank_zero import rank_zero_warn
 
-_TRANSFORMER_ENGINE_AVAILABLE = RequirementCache("transformer_engine>=0.11.0")
-
-if TYPE_CHECKING and _TRANSFORMER_ENGINE_AVAILABLE:
+if TYPE_CHECKING:
     from transformer_engine.common.recipe import DelayedScaling
-else:
-    DelayedScaling = None
 
-
+_TRANSFORMER_ENGINE_AVAILABLE = RequirementCache("transformer_engine>=0.11.0")
 log = logging.getLogger(__name__)
 
 

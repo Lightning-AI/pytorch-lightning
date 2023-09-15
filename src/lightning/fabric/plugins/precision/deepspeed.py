@@ -25,10 +25,7 @@ from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeC
 from lightning.fabric.utilities.types import Steppable
 
 if TYPE_CHECKING:
-    from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-
-    if _DEEPSPEED_AVAILABLE:  # type: ignore[has-type]
-        import deepspeed
+    from deepspeed import DeepSpeedEngine
 
 _PRECISION_INPUT = Literal["32-true", "16-true", "bf16-true", "16-mixed", "bf16-mixed"]
 
@@ -80,7 +77,7 @@ class DeepSpeedPrecision(Precision):
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
-    def backward(self, tensor: Tensor, model: "deepspeed.DeepSpeedEngine", *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, model: "DeepSpeedEngine", *args: Any, **kwargs: Any) -> None:
         """Performs back-propagation using DeepSpeed's engine."""
         model.backward(tensor, *args, **kwargs)
 
