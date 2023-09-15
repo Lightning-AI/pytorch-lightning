@@ -46,6 +46,50 @@ def apply_to_collection(
     Returns:
         The resulting collection
     """
+    if include_none is False or wrong_dtype is not None or allow_frozen is True:
+        # not worth implementing these on the fast path: go with the slower option
+        return _apply_to_collection_slow(
+            data,
+            dtype,
+            function,
+            *args,
+            wrong_dtype=wrong_dtype,
+            include_none=include_none,
+            allow_frozen=allow_frozen,
+            **kwargs,
+        )
+    # fast path for the most common cases:
+    if isinstance(data, dtype):  # single element
+        return function(data, *args, **kwargs)
+    if isinstance(data, list) and all(isinstance(x, dtype) for x in data):  # 1d homogeneous list
+        return [function(x, *args, **kwargs) for x in data]
+    if isinstance(data, tuple) and all(isinstance(x, dtype) for x in data):  # 1d homogeneous tuple
+        return tuple(function(x, *args, **kwargs) for x in data)
+    if isinstance(data, dict) and all(isinstance(x, dtype) for x in data.values()):  # 1d homogeneous dict
+        return {k: function(v, *args, **kwargs) for k, v in data.items()}
+    # slow path for everything else
+    return _apply_to_collection_slow(
+        data,
+        dtype,
+        function,
+        *args,
+        wrong_dtype=wrong_dtype,
+        include_none=include_none,
+        allow_frozen=allow_frozen,
+        **kwargs,
+    )
+
+
+def _apply_to_collection_slow(
+    data: Any,
+    dtype: Union[type, Any, Tuple[Union[type, Any]]],
+    function: Callable,
+    *args: Any,
+    wrong_dtype: Optional[Union[type, Tuple[type, ...]]] = None,
+    include_none: bool = True,
+    allow_frozen: bool = False,
+    **kwargs: Any,
+) -> Any:
     # Breaking condition
     if isinstance(data, dtype) and (wrong_dtype is None or not isinstance(data, wrong_dtype)):
         return function(data, *args, **kwargs)
@@ -56,7 +100,7 @@ def apply_to_collection(
     if isinstance(data, Mapping):
         out = []
         for k, v in data.items():
-            v = apply_to_collection(
+            v = _apply_to_collection_slow(
                 v,
                 dtype,
                 function,
@@ -77,7 +121,7 @@ def apply_to_collection(
     if is_namedtuple_ or is_sequence:
         out = []
         for d in data:
-            v = apply_to_collection(
+            v = _apply_to_collection_slow(
                 d,
                 dtype,
                 function,
@@ -106,7 +150,7 @@ def apply_to_collection(
         for field_name, (field_value, field_init) in fields.items():
             v = None
             if field_init:
-                v = apply_to_collection(
+                v = _apply_to_collection_slow(
                     field_value,
                     dtype,
                     function,
