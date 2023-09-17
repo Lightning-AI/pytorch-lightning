@@ -13,7 +13,7 @@
 # limitations under the License.
 import sys
 from types import ModuleType
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock
 
 import pytest
 
@@ -97,36 +97,37 @@ def comet_mock(monkeypatch):
 
 @pytest.fixture()
 def neptune_mock(monkeypatch):
-    # class HandlerType:  # to make isinstance checks pass
-    #     pass
-    #
-    # handler_mock = Mock(
-    #     spec=HandlerType,
-    # )
+    class HandlerType:  # to make isinstance checks pass
+        def get_root_object(self):
+            pass
+
+        def __getitem__(self, item):
+            pass
+
+        def __setitem__(self, key, value):
+            pass
+
+    handler_mock = MagicMock(spec=HandlerType, exists=Mock(), wait=Mock())
+    handler_mock.get_root_object.return_value = handler_mock
 
     neptune = ModuleType("neptune")
-    # wandb.init = Mock(return_value=run_mock)
-    neptune.Run = Mock()
-    # wandb.require = Mock()
-    # wandb.Api = Mock()
-    # wandb.Artifact = Mock()
-    # wandb.Image = Mock()
-    # wandb.Table = Mock()
+    neptune.init_run = Mock(return_value=handler_mock)
+    neptune.Run = HandlerType
     monkeypatch.setitem(sys.modules, "neptune", neptune)
 
     neptune_handler = ModuleType("handler")
-    neptune_handler.Handler = Mock()
+    neptune_handler.Handler = HandlerType
     monkeypatch.setitem(sys.modules, "neptune.handler", neptune_handler)
-    #
-    # wandb_sdk_lib = ModuleType("lib")
-    # wandb_sdk_lib.RunDisabled = RunType
-    # monkeypatch.setitem(sys.modules, "wandb.sdk.lib", wandb_sdk_lib)
-    #
-    # wandb_wandb_run = ModuleType("wandb_run")
-    # wandb_wandb_run.Run = RunType
-    # monkeypatch.setitem(sys.modules, "wandb.wandb_run", wandb_wandb_run)
-    #
+
+    neptune_types = ModuleType("types")
+    neptune_types.File = Mock()
+    monkeypatch.setitem(sys.modules, "neptune.types", neptune_types)
+
+    neptune_utils = ModuleType("utils")
+    neptune_utils.stringify_unsupported = Mock()
+    monkeypatch.setitem(sys.modules, "neptune.utils", neptune_utils)
+
     neptune.handler = neptune_handler
-    # wandb.sdk.lib = wandb_sdk_lib
-    # wandb.wandb_run = wandb_wandb_run
+    neptune.types = neptune_types
+    neptune.utils = neptune_utils
     return neptune
