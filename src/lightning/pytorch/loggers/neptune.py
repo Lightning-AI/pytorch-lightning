@@ -19,7 +19,7 @@ import contextlib
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Generator, List, Optional, Set, Union, TYPE_CHECKING
+from typing import Any, Dict, Generator, List, Optional, Set, TYPE_CHECKING, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -481,10 +481,8 @@ class NeptuneLogger(Logger):
     @rank_zero_only
     def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
         if _NEPTUNE_AVAILABLE:
-            import neptune
             from neptune.types import File
         else:
-            import neptune.new as neptune
             from neptune.new.types import File
 
         model_str = str(ModelSummary(model=model, max_depth=max_depth))

@@ -13,7 +13,7 @@
 # limitations under the License.
 import sys
 from types import ModuleType
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
