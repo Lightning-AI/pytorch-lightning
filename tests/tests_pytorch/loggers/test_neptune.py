@@ -54,6 +54,7 @@ def _get_logger_with_mocks(**kwargs):
 
 
 def test_neptune_online(neptune_mock):
+    neptune_mock.init_run.return_value.exists.return_value = True
     neptune_mock.init_run.return_value.__getitem__.side_effect = _fetchable_paths
 
     logger = NeptuneLogger(api_key="test", project="project")
@@ -83,6 +84,7 @@ def test_neptune_offline(neptune_mock):
 
 
 def test_online_with_custom_run(neptune_mock):
+    neptune_mock.init_run.return_value.exists.return_value = True
     neptune_mock.init_run.return_value.__getitem__.side_effect = _fetchable_paths
 
     created_run = neptune_mock.init_run()
@@ -96,6 +98,7 @@ def test_online_with_custom_run(neptune_mock):
 
 
 def test_neptune_pickling(neptune_mock):
+    neptune_mock.init_run.return_value.exists.return_value = True
     neptune_mock.init_run.return_value.__getitem__.side_effect = _fetchable_paths
 
     unpickleable_run = neptune_mock.init_run()

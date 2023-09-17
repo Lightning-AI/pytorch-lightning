@@ -113,7 +113,7 @@ def neptune_mock(monkeypatch):
         def __setitem__(self, key, value):
             pass
 
-    run_mock = MagicMock(spec=RunType, exists=Mock(), wait=Mock(), get_structure=MagicMock())
+    run_mock = MagicMock(spec=RunType, exists=Mock(return_value=False), wait=Mock(), get_structure=MagicMock())
     run_mock.get_root_object.return_value = run_mock
 
     neptune = ModuleType("neptune")
