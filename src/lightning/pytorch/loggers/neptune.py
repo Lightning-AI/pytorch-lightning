@@ -32,11 +32,8 @@ from lightning.pytorch.utilities.model_summary import ModelSummary
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 if TYPE_CHECKING:
-    import neptune
     from neptune import Run
     from neptune.handler import Handler
-else:
-    neptune, Run, Handler = None, None, None
 
 log = logging.getLogger(__name__)
 
@@ -346,7 +343,7 @@ class NeptuneLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Run:
+    def experiment(self) -> "Run":
         r"""
         Actual Neptune run object. Allows you to use neptune logging features in your
         :class:`~lightning.pytorch.core.module.LightningModule`.
@@ -376,7 +373,7 @@ class NeptuneLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def run(self) -> Run:
+    def run(self) -> "Run":
         if _NEPTUNE_AVAILABLE:
             import neptune
         else:
