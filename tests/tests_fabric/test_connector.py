@@ -50,6 +50,7 @@ from lightning.fabric.plugins.environments import (
 )
 from lightning.fabric.plugins.io import TorchCheckpointIO
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
+from lightning.fabric.plugins.precision.bnb import BitsandbytesPrecision
 from lightning.fabric.strategies import (
     DataParallelStrategy,
     DDPStrategy,
@@ -1153,3 +1154,15 @@ def test_connector_transformer_engine(monkeypatch):
     assert isinstance(model.l1, TELinearMock)
     assert isinstance(model.l2, TELayerNormMock)
     assert isinstance(model.l3.l, TELinearMock)
+
+
+def test_connect_bnb_precision(monkeypatch):
+    monkeypatch.setattr(lightning.fabric.plugins.precision.bnb, "_BITSANDBYTES_AVAILABLE")
+    bnb_precision_mock = Mock()
+    monkeypatch.setitem(sys.modules, "bnb_precision", bnb_precision_mock)
+    recipe_mock = Mock()
+
+    precision = BitsandbytesPrecision()
+    connector = _Connector(plugins=precision)
+    assert connector.precision is precision
+    recipe_mock.reset_mock()
