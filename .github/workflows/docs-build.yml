@@ -79,7 +79,6 @@ jobs:
         if: ${{ matrix.check == 'doctest' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         env:
-          SPHINX_MOCK_REQUIREMENTS: 0
           FAST_DOCS_DEV: 1
         run: |
           make doctest
