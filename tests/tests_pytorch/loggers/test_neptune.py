@@ -53,7 +53,6 @@ def _get_logger_with_mocks(**kwargs):
     return logger, run_instance_mock, run_attr_mock
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_neptune_online(neptune_mock):
     neptune_mock.init_run.return_value.__getitem__.side_effect = _fetchable_paths
 
@@ -71,7 +70,6 @@ def test_neptune_online(neptune_mock):
     created_run_mock.__setitem__.assert_called_once_with("source_code/integrations/pytorch-lightning", pl.__version__)
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_neptune_offline(neptune_mock):
     neptune_mock.init_run.return_value.exists.return_value = False
 
@@ -84,7 +82,6 @@ def test_neptune_offline(neptune_mock):
     assert logger._run_name == "offline-name"
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_online_with_custom_run(neptune_mock):
     neptune_mock.init_run.return_value.__getitem__.side_effect = _fetchable_paths
 
@@ -98,7 +95,6 @@ def test_online_with_custom_run(neptune_mock):
     assert neptune_mock.init_run.call_count == 0
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_neptune_pickling(neptune_mock):
     neptune_mock.init_run.return_value.__getitem__.side_effect = _fetchable_paths
 
@@ -117,7 +113,6 @@ def test_neptune_pickling(neptune_mock):
     assert unpickled.experiment is not None
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_online_with_wrong_kwargs(neptune_mock):
     """Tests combinations of kwargs together with `run` kwarg which makes some of other parameters unavailable in
     init."""
@@ -144,7 +139,6 @@ def test_online_with_wrong_kwargs(neptune_mock):
     NeptuneLogger(foo="bar")
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_neptune_additional_methods(neptune_mock):
     logger, run_instance_mock, _ = _get_logger_with_mocks(api_key="test", project="project")
 
@@ -153,7 +147,6 @@ def test_neptune_additional_methods(neptune_mock):
     run_instance_mock.__getitem__().log.assert_called_once_with(torch.ones(1))
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_neptune_leave_open_experiment_after_fit(neptune_mock, tmp_path):
     """Verify that neptune experiment was NOT closed after training."""
     logger, run_instance_mock, _ = _get_logger_with_mocks(api_key="test", project="project")
@@ -161,7 +154,6 @@ def test_neptune_leave_open_experiment_after_fit(neptune_mock, tmp_path):
     assert run_instance_mock.stop.call_count == 0
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_neptune_log_metrics_on_trained_model(neptune_mock, tmp_path):
     """Verify that trained models do log data."""
 
@@ -175,7 +167,6 @@ def test_neptune_log_metrics_on_trained_model(neptune_mock, tmp_path):
     run_instance_mock.__getitem__.return_value.append.assert_has_calls([call(42)])
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_log_hyperparams(neptune_mock):
     neptune_mock.utils.stringify_unsupported = lambda x: x
 
@@ -193,7 +184,6 @@ def test_log_hyperparams(neptune_mock):
         run_instance_mock.__setitem__.assert_called_once_with(hyperparams_key, params)
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_log_metrics(neptune_mock):
     metrics = {
         "foo": 42,
@@ -215,7 +205,6 @@ def test_log_metrics(neptune_mock):
         run_attr_mock.append.assert_has_calls([call(42), call(555)])
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_log_model_summary(neptune_mock):
     model = BoringModel()
     test_variants = [
@@ -235,7 +224,6 @@ def test_log_model_summary(neptune_mock):
         run_instance_mock.__setitem__.assert_called_once_with(model_summary_key, file_from_content_mock)
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 @mock.patch("builtins.open", mock.mock_open(read_data="test"))
 def test_after_save_checkpoint(neptune_mock):
     test_variants = [
@@ -280,13 +268,11 @@ def test_after_save_checkpoint(neptune_mock):
         )
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_save_dir(neptune_mock):
     logger = NeptuneLogger(api_key="test", project="project")
     assert logger.save_dir == os.path.join(os.getcwd(), ".neptune")
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_get_full_model_name():
     SimpleCheckpoint = namedtuple("SimpleCheckpoint", ["dirpath"])
     test_input_data = [
@@ -302,7 +288,6 @@ def test_get_full_model_name():
         assert NeptuneLogger._get_full_model_name(*key_and_path) == expected_model_name
 
 
-@mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
 def test_get_full_model_names_from_exp_structure():
     input_dict = {
         "foo": {
