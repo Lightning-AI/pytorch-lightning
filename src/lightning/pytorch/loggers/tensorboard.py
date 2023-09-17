@@ -37,10 +37,6 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
-# Skip doctests if requirements aren't available
-if not (_TENSORBOARD_AVAILABLE or _TENSORBOARDX_AVAILABLE):
-    __doctest_skip__ = ["TensorBoardLogger", "TensorBoardLogger.*"]
-
 
 class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     r"""Log to local or remote file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
@@ -55,6 +51,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     Example:
 
     .. testcode::
+        :skipif: not _TENSORBOARD_AVAILABLE or not _TENSORBOARDX_AVAILABLE
 
         from lightning.pytorch import Trainer
         from lightning.pytorch.loggers import TensorBoardLogger
@@ -83,17 +80,6 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
-
-    Example:
-        >>> import shutil, tempfile
-        >>> tmp = tempfile.mkdtemp()
-        >>> tbl = TensorBoardLogger(tmp)
-        >>> tbl.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
-        >>> tbl.log_metrics({"acc": 0.75})
-        >>> tbl.log_metrics({"acc": 0.9})
-        >>> tbl.finalize("success")
-        >>> shutil.rmtree(tmp)
-
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
 
