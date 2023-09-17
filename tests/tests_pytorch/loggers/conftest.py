@@ -97,7 +97,7 @@ def comet_mock(monkeypatch):
 
 @pytest.fixture()
 def neptune_mock(monkeypatch):
-    class HandlerType:  # to make isinstance checks pass
+    class RunType:  # to make isinstance checks pass
         def get_root_object(self):
             pass
 
@@ -107,16 +107,16 @@ def neptune_mock(monkeypatch):
         def __setitem__(self, key, value):
             pass
 
-    handler_mock = MagicMock(spec=HandlerType, exists=Mock(), wait=Mock())
-    handler_mock.get_root_object.return_value = handler_mock
+    run_mock = MagicMock(spec=RunType, exists=Mock(), wait=Mock(), get_structure=MagicMock())
+    run_mock.get_root_object.return_value = run_mock
 
     neptune = ModuleType("neptune")
-    neptune.init_run = Mock(return_value=handler_mock)
-    neptune.Run = HandlerType
+    neptune.init_run = Mock(return_value=run_mock)
+    neptune.Run = RunType
     monkeypatch.setitem(sys.modules, "neptune", neptune)
 
     neptune_handler = ModuleType("handler")
-    neptune_handler.Handler = HandlerType
+    neptune_handler.Handler = RunType
     monkeypatch.setitem(sys.modules, "neptune.handler", neptune_handler)
 
     neptune_types = ModuleType("types")
