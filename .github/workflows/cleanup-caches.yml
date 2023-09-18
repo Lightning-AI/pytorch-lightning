@@ -1,0 +1,68 @@
+name: Cleaning caches
+
+on:
+  workflow_call:
+    inputs:
+      scripts-ref:
+        description: 'Version of script, normally the same as workflow'
+        required: true
+        type: string
+      #gh-token:
+      #  description: 'PAT which is authorized to delete caches for given repo'
+      #  required: true
+      #  type: string
+      dry-run:
+        description: 'allow just listing and not delete any, options yes|no'
+        required: true
+        type: string
+      age-days:
+        description: 'setting the age of caches in days to be dropped'
+        required: true
+        type: number
+        default: 7
+      pattern:
+        description: 'string to grep cache keys with'
+        required: false
+        type: string
+        default: ""
+
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  cleanup-caches:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AGE_DAYS: ${{ inputs.age-days }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Pull re-usable 🤖 actions️
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.scripts-ref }}
+          path: .cicd
+          repository: Lightning-AI/utilities
+      - name: install requirements
+        run: pip install -U -r ./.cicd/.github/scripts/find-unused-caches.txt
+
+      - name: List and Filer 🔍 caches
+        run: |
+          python ./.cicd/.github/scripts/find-unused-caches.py \
+            --repository="${{ github.repository }}" --token=${GH_TOKEN} --age_days=${AGE_DAYS}
+          cat unused-cashes.txt
+
+      - name: Delete 🗑️ caches
+        if: inputs.dry-run != 'true'
+        run: |
+          # Use a while loop to read each line from the file
+          while read -r line || [ -n "$line" ]; do
+              echo "$line";
+              # delete each cache based on file...
+              gh api --method DELETE  -H "Accept: application/vnd.github+json" /repos/${{ github.repository }}/actions/caches/ $line;
+          done < "unused-cashes.txt"

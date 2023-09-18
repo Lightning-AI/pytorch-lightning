@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated/Extended the `requires` wrapper ([#146](https://github.com/Lightning-AI/utilities/pull/146))
 
 
+- CI: updated/extended cleaning old and/or specific caches ([#159](https://github.com/Lightning-AI/utilities/pull/159))
+
+
 - CI: unified/extended docs makes flows ([#162](https://github.com/Lightning-AI/utilities/pull/162))
 
 

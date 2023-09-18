@@ -1,0 +1,6 @@
+# Requirements for running equally named scrit,
+#  having it in extra file to prevent version discrepancy if hardcoded in workflow
+
+fire
+requests
+pandas

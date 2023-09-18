@@ -2,8 +2,14 @@ name: Clear cache weekly
 
 on:
   schedule:
-    # on Sundays
-    - cron: "0 0 * * 0"
+    # on Sunday's night 2am
+    - cron: "0 2 * * 0"
+  pull_request:
+    paths:
+      - ".github/scripts/find-unused-caches.py"
+      - ".github/scripts/find-unused-caches.txt"
+      - ".github/workflows/cleanup-caches.yml"
+      - ".github/workflows/cron-clear-cache.yml"
   workflow_dispatch:
     inputs:
       pattern:
@@ -13,15 +19,11 @@ on:
         type: string
 
 jobs:
-
-  cron-clear:
-    if: github.event_name == 'schedule'
-    uses: ./.github/workflows/clear-cache.yml
+  drop-unused-caches:
+    uses: ./.github/workflows/cleanup-caches.yml
     with:
-      pattern: 'pip|conda'
-
-  direct-clear:
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/clear-cache.yml
-    with:
-      pattern: ${{ inputs.pattern }}
+      scripts-ref: ${{ github.sha }}  # use local version
+      dry-run: ${{ github.event_name == 'pull_request' }}
+      # ise input if set of default...
+      pattern: ${{ inputs.pattern || 'pip|conda' }}
+      age-days: 2
