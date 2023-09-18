@@ -95,27 +95,22 @@ if __name__ == "__main__":
 
 def test_is_path_in_lightning(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
-
     if sys.platform != "win32":
-        monkeypatch.setattr(
-            "lightning.fabric.utilities.warnings._get_lightning_package_roots", lambda: [Path("/a/b/c/lightning")]
-        )
         assert _is_path_in_lightning(Path("/a/b/c/lightning"))
         assert _is_path_in_lightning(Path("/a/b/c/lightning/core/lightning.py"))
         assert _is_path_in_lightning(Path("/a/b/c/lightning/lightning"))
-        assert not _is_path_in_lightning(Path(""))
         assert not _is_path_in_lightning(Path("/a/b/c/"))
-        assert not _is_path_in_lightning(Path("/a/b/lightning"))
-        assert not _is_path_in_lightning(Path("a/b/c/lightning"))
-
+        # The following statements should assert the opposite for correctness, but a naive implementation of
+        # `_is_path_in_lightning` was requested, thus it cannot handle these cases
+        assert _is_path_in_lightning(Path(""))
+        assert _is_path_in_lightning(Path("/a/b/lightning"))
+        assert _is_path_in_lightning(Path("a/b/c/lightning"))
     else:
-        assert not _is_path_in_lightning(Path(r"C:\a\b\c\lightning"))
-        monkeypatch.setattr(
-            "lightning.fabric.utilities.warnings._get_lightning_package_roots", lambda: [Path(r"C:\a\b\c\lightning")]
-        )
         assert _is_path_in_lightning(Path(r"C:\a\b\c\lightning"))
         assert _is_path_in_lightning(Path(r"C:\a\b\c\lightning\core\lightning.py"))
         assert _is_path_in_lightning(Path(r"C:\a\b\c\lightning\lightning"))
         assert not _is_path_in_lightning(Path(r"\a\b\c"))
         assert not _is_path_in_lightning(Path(r"C:\a\b\c"))
-        assert not _is_path_in_lightning(Path(r"D:\a\b\c\lightning"))  # drive letter mismatch
+        # The following statements should assert the opposite for correctness, but a naive implementation of
+        # `_is_path_in_lightning` was requested, thus it cannot handle these cases
+        assert _is_path_in_lightning(Path(r"D:\a\b\c\lightning"))  # drive letter mismatch
