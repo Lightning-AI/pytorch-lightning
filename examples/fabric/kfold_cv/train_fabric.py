@@ -97,7 +97,7 @@ def validate_dataloader(model, data_loader, fabric, hparams, fold, acc_metric):
             if hparams.dry_run:
                 break
 
-    # all_gather is used to aggregated the value across processes
+    # all_gather is used to aggregate the value across processes
     loss = fabric.all_gather(loss).sum() / len(data_loader.dataset)
 
     # compute acc
