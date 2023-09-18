@@ -3,7 +3,6 @@ import re
 
 import pytest
 from lightning_utilities.core.imports import (
-    ModuleAvailableCache,
     RequirementCache,
     compare_version,
     get_dependency_min_version_spec,
@@ -64,9 +63,9 @@ def test_requirement_cache():
 
 
 def test_module_available_cache():
-    assert ModuleAvailableCache("pytest")
-    assert not ModuleAvailableCache("this_module_is_not_installed")
-    assert "pip install -U this_module_is_not_installed" in str(ModuleAvailableCache("this_module_is_not_installed"))
+    assert RequirementCache(module="pytest")
+    assert not RequirementCache(module="this_module_is_not_installed")
+    assert "pip install -U this_module_is_not_installed" in str(RequirementCache(module="this_module_is_not_installed"))
 
 
 def test_get_dependency_min_version_spec():

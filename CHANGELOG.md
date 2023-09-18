@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: unified/extended docs makes flows ([#162](https://github.com/Lightning-AI/utilities/pull/162))
 
 
+### Deprecated
+
+- Deprecated `ModuleAvailableCache` in favor of `RequirementCache` ([#147](https://github.com/Lightning-AI/utilities/pull/147))
+
+
 ### Fixed
 
 - Fixed issue with `is_overridden` falsely returning True when the parent method is wrapped ([#149](https://github.com/Lightning-AI/utilities/pull/149))

@@ -107,15 +107,22 @@ class RequirementCache:
     True
     >>> bool(RequirementCache("unknown_package"))
     False
+    >>> bool(RequirementCache(module="torch.utils"))
+    True
+    >>> bool(RequirementCache(module="unknown_package"))
+    False
+    >>> bool(RequirementCache(module="unknown.module.path"))
+    False
     """
 
-    def __init__(self, requirement: str, module: Optional[str] = None) -> None:
+    def __init__(self, requirement: Optional[str] = None, module: Optional[str] = None) -> None:
+        if not (requirement or module):
+            raise ValueError("At least one arguments need to be set.")
         self.requirement = requirement
         self.module = module
 
     def _check_requirement(self) -> None:
-        if hasattr(self, "available"):
-            return
+        assert self.requirement  # noqa: S101; needed for typing
         try:
             # first try the pkg_resources requirement
             pkg_resources.require(self.requirement)
@@ -124,22 +131,38 @@ class RequirementCache:
         except Exception as ex:
             self.available = False
             self.message = f"{ex.__class__.__name__}: {ex}. HINT: Try running `pip install -U {self.requirement!r}`"
-            requirement_contains_version_specifier = any(c in self.requirement for c in "=<>")
-            if not requirement_contains_version_specifier or self.module is not None:
+            req_include_version = any(c in self.requirement for c in "=<>")
+            if not req_include_version or self.module is not None:
                 module = self.requirement if self.module is None else self.module
                 # sometimes `pkg_resources.require()` fails but the module is importable
                 self.available = module_available(module)
                 if self.available:
                     self.message = f"Module {module!r} available"
 
+    def _check_module(self) -> None:
+        assert self.module  # noqa: S101; needed for typing
+        self.available = module_available(self.module)
+        if self.available:
+            self.message = f"Module {self.module!r} available"
+        else:
+            self.message = f"Module not found: {self.module!r}. HINT: Try running `pip install -U {self.module}`"
+
+    def _check_available(self) -> None:
+        if hasattr(self, "available"):
+            return
+        if self.requirement:
+            self._check_requirement()
+        if getattr(self, "available", True) and self.module:
+            self._check_module()
+
     def __bool__(self) -> bool:
         """Format as bool."""
-        self._check_requirement()
+        self._check_available()
         return self.available
 
     def __str__(self) -> str:
         """Format as string."""
-        self._check_requirement()
+        self._check_available()
         return self.message
 
     def __repr__(self) -> str:
@@ -147,7 +170,7 @@ class RequirementCache:
         return self.__str__()
 
 
-class ModuleAvailableCache:
+class ModuleAvailableCache(RequirementCache):
     """Boolean-like class for check of module availability.
 
     >>> ModuleAvailableCache("torch")
@@ -161,31 +184,13 @@ class ModuleAvailableCache:
     """
 
     def __init__(self, module: str) -> None:
-        self.module = module
-
-    def _check_requirement(self) -> None:
-        if hasattr(self, "available"):
-            return
-
-        self.available = module_available(self.module)
-        if self.available:
-            self.message = f"Module {self.module!r} available"
-        else:
-            self.message = f"Module not found: {self.module!r}. HINT: Try running `pip install -U {self.module}`"
-
-    def __bool__(self) -> bool:
-        """Format as bool."""
-        self._check_requirement()
-        return self.available
-
-    def __str__(self) -> str:
-        """Format as string."""
-        self._check_requirement()
-        return self.message
-
-    def __repr__(self) -> str:
-        """Format as string."""
-        return self.__str__()
+        warnings.warn(
+            "`ModuleAvailableCache` is a special case of `RequirementCache`."
+            " Please use `RequirementCache(module=...)` instead.",
+            DeprecationWarning,
+            stacklevel=4,
+        )
+        super().__init__(module=module)
 
 
 def get_dependency_min_version_spec(package_name: str, dependency_name: str) -> str:

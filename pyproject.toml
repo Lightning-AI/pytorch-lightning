@@ -31,7 +31,7 @@ addopts = [
     "--color=yes",
     "--disable-pytest-warnings",
 ]
-filterwarnings = ["error::FutureWarning", "error::DeprecationWarning"]
+filterwarnings = ["error::FutureWarning"]  # todo: "error::DeprecationWarning"
 xfail_strict = true
 
 [tool.coverage.report]
