@@ -107,7 +107,3 @@ jobs:
 
     - name: Run pre-commit
       uses: pre-commit/action@v3.0.0
-      # this action also provides an additional behaviour when used in private repositories
-      # when configured with a github token, the action will push back fixes to the pull request branch
-      # with:
-      #   token: ${{ secrets.GITHUB_TOKEN }}

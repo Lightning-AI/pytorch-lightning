@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issue with `is_overridden` falsely returning True when the parent method is wrapped ([#149](https://github.com/Lightning-AI/utilities/pull/149))
 
 
+- CI: optional freeze version of schema check ([148](https://github.com/Lightning-AI/utilities/pull/148))
+
+
 ## [0.9.0] - 2023-06-29
 
 ### Added

@@ -17,10 +17,23 @@ jobs:
       actions-ref: ${{ github.sha }}  # use local version
       extra-typing: 'typing'
 
-  check-schema:
+  check-schema-latest:
     uses: ./.github/workflows/check-schema.yml
     with:
       azure-dir: ""
+
+  check-schema-fixed:
+    uses: ./.github/workflows/check-schema.yml
+    with:
+      actions-ref: ${{ github.sha }}  # use local version
+      azure-dir: ""
+
+  check-schema:
+    runs-on: ubuntu-latest
+    # just aggregation of the previous two jobs
+    needs: ["check-schema-latest", "check-schema-fixed"]
+    steps:
+      - run: echo "done"
 
   check-package:
     uses: ./.github/workflows/check-package.yml
