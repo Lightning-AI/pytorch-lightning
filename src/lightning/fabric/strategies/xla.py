@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
+from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
@@ -32,7 +32,7 @@ from lightning.fabric.strategies.strategy import TBroadcast
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
-if TYPE_CHECKING and _XLA_AVAILABLE:
+if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 
