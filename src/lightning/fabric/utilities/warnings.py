@@ -13,32 +13,27 @@
 # limitations under the License.
 """Warning-related utilities."""
 import warnings
-from functools import wraps
 from pathlib import Path
-from typing import Callable, Optional, Type, Union
+from typing import Optional, Type, Union
 
 from lightning.fabric.utilities.rank_zero import LightningDeprecationWarning
 
 # enable our warnings
 warnings.simplefilter("default", category=LightningDeprecationWarning)
+_default_format_warning = warnings.formatwarning
 
 
-def _wrap_formatwarning(default_format_warning: Callable) -> Callable:
+def _custom_format_warning(
+    message: Union[Warning, str], category: Type[Warning], filename: str, lineno: int, line: Optional[str] = None
+) -> str:
     """Custom formatting that avoids an extra line in case warnings are emitted from the `rank_zero`-functions."""
-
-    @wraps(default_format_warning)
-    def wrapper(
-        message: Union[Warning, str], category: Type[Warning], filename: str, lineno: int, line: Optional[str] = None
-    ) -> str:
-        if _is_path_in_lightning(Path(filename)):
-            # The warning originates from the Lightning package
-            return f"{filename}:{lineno}: {message}\n"
-        return default_format_warning(message, category, filename, lineno, line)
-
-    return wrapper
+    if _is_path_in_lightning(Path(filename)):
+        # The warning originates from the Lightning package
+        return f"{filename}:{lineno}: {message}\n"
+    return _default_format_warning(message, category, filename, lineno, line)
 
 
-warnings.formatwarning = _wrap_formatwarning(warnings.formatwarning)
+warnings.formatwarning = _custom_format_warning
 
 
 class PossibleUserWarning(UserWarning):
