@@ -13,13 +13,14 @@
 # limitations under the License.
 import os
 import threading
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager, ExitStack
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from typing import (
     Any,
     Callable,
+    ContextManager,
     Dict,
     Generator,
     Iterable,
@@ -65,12 +66,13 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
+    _TORCH_GREATER_EQUAL_2_2,
 )
 from lightning.fabric.utilities.init import _EmptyInit
-from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
+from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
-from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.utilities.types import _PATH, _Stateful
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
@@ -322,35 +324,31 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def module_to_device(self, module: Module) -> None:
         pass
 
-    @contextmanager
-    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
-        empty_init_context: Union[torch.device, _EmptyInit, nullcontext]
+    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+        stack = ExitStack()
         if _TORCH_GREATER_EQUAL_2_1 and empty_init:
             # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
-            empty_init_context = torch.device("meta")
+            stack.enter_context(torch.device("meta"))
         elif _TORCH_GREATER_EQUAL_1_13:
-            empty_init_context = _EmptyInit(enabled=bool(empty_init))
-        else:
-            empty_init_context = nullcontext()
-        with empty_init_context, self.precision.init_context(), self.module_sharded_context():
-            yield
+            stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
+        stack.enter_context(self.precision.init_context())
+        stack.enter_context(self.module_sharded_context())
+        return stack
 
-    @contextmanager
-    def module_sharded_context(self) -> Generator:
+    def module_sharded_context(self) -> ContextManager:
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
 
-        with enable_wrap(
+        return enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
             sharding_strategy=self.sharding_strategy,
             device_id=self.root_device.index,
             **self._fsdp_kwargs,
-        ):
-            yield
+        )
 
     def all_reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
@@ -475,7 +473,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                         converted = FSDP.optim_state_dict(module, obj)
                         target_dict = converted_state
                     else:  # everything not a module or optimizer is considered metadata
-                        converted = obj
+                        converted = obj.state_dict() if isinstance(obj, _Stateful) else obj
                         target_dict = metadata
                     _apply_filter(key, filter or {}, converted, target_dict)
 
@@ -496,7 +494,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                     elif isinstance(obj, Optimizer):
                         converted = FSDP.optim_state_dict(module, obj)
                     else:  # everything not a module or optimizer is considered metadata
-                        converted = obj
+                        converted = obj.state_dict() if isinstance(obj, _Stateful) else obj
                     _apply_filter(key, filter or {}, converted, full_state)
 
             if self.global_rank == 0:
@@ -630,10 +628,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
 
             # Load metadata (anything not a module or optimizer)
-            for key in requested_metadata_keys:
-                if key not in checkpoint:
-                    continue
-                state[key] = checkpoint.pop(key)
+            _move_state_into(source=checkpoint, destination=state, keys=requested_metadata_keys)
 
             # return the remaining metadata that wasn't requested as part of `state`
             return checkpoint
@@ -747,13 +742,13 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
         CheckpointImpl,
     )
 
-    wrapper = partial(checkpoint_wrapper, checkpoint_impl=CheckpointImpl.NO_REENTRANT)
-    apply_activation_checkpointing(module, checkpoint_wrapper_fn=wrapper, **activation_checkpointing_kwargs)
+    if not _TORCH_GREATER_EQUAL_2_2:
+        checkpoint_wrapper = partial(checkpoint_wrapper, checkpoint_impl=CheckpointImpl.NO_REENTRANT)
+    apply_activation_checkpointing(module, checkpoint_wrapper_fn=checkpoint_wrapper, **activation_checkpointing_kwargs)
 
 
 class _FSDPBackwardSyncControl(_BackwardSyncControl):
-    @contextmanager
-    def no_backward_sync(self, module: Module) -> Generator:
+    def no_backward_sync(self, module: Module) -> ContextManager:
         """Blocks gradient synchronization inside the
         :class:`~torch.distributed.fsdp.FullyShardedDataParallel` wrapper."""
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
@@ -765,8 +760,7 @@ class _FSDPBackwardSyncControl(_BackwardSyncControl):
                 f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `FullyShardedDataParallel`."
                 f" Got: {module.__class__.__name__}."
             )
-        with module.no_sync():
-            yield
+        return module.no_sync()
 
 
 def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUOffload":

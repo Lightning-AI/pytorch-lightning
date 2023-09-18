@@ -83,7 +83,7 @@ def test_hpc_restore_attempt(_, tmpdir):
     # case 2: explicit resume path provided, file not found
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
 
-    with pytest.raises(FileNotFoundError, match="Checkpoint at not existing not found. Aborting training."):
+    with pytest.raises(FileNotFoundError, match="Checkpoint file not found: not existing"):
         trainer.fit(model, ckpt_path="not existing")
 
 

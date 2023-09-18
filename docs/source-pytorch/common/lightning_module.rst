@@ -111,9 +111,10 @@ Which you can train by doing:
 
 .. code-block:: python
 
+    from lightning.pytorch.demos import WikiText2
     from torch.utils.data import DataLoader
 
-    dataset = pl.demos.WikiText2()
+    dataset = WikiText2()
     dataloader = DataLoader(dataset)
     model = LightningTransformer(vocab_size=dataset.vocab_size)
 
@@ -454,7 +455,7 @@ There are two ways to call ``predict()``:
 
     # or call with pretrained model
     model = LightningTransformer.load_from_checkpoint(PATH)
-    dataset = pl.demos.WikiText2()
+    dataset = WikiText2()
     test_dataloader = DataLoader(dataset)
     trainer = pl.Trainer()
     predictions = trainer.predict(model, dataloaders=test_dataloader)

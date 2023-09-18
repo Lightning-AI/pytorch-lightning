@@ -34,6 +34,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 
+## [2.0.9] - 2023-09-14
+
+### Fixed
+
+- Replace LightningClient with import from lightning_cloud ([#18544](https://github.com/Lightning-AI/lightning/pull/18544))
+
+
+## [2.0.8] - 2023-08-29
+
+## Changed
+
+- Change top folder ([#18212](https://github.com/Lightning-AI/lightning/pull/18212))
+- Remove `_handle_is_headless` calls in app run loop ([#18362](https://github.com/Lightning-AI/lightning/pull/18362))
+
+
 ## [2.0.7] - 2023-08-14
 
 ### Changed

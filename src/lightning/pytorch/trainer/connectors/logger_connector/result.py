@@ -300,13 +300,12 @@ class _ResultCollection(dict):
     """Collection (dictionary) of
     :class:`~lightning.pytorch.trainer.connectors.logger_connector.result._ResultMetric`
 
-    Example:
-
-        # `device` needs to be provided before logging
-        result = _ResultCollection(training=True, torch.device("cpu"))
+    Example::
 
         # you can log to a specific collection.
         # arguments: fx, key, value, metadata
+
+        result = _ResultCollection(training=True)
         result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
         result.log('validation_step', 'recall', torch.tensor(...), on_step=True, on_epoch=True)
     """

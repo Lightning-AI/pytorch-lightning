@@ -75,7 +75,7 @@ class TorchCheckpointIO(CheckpointIO):
         # Try to read the checkpoint at `path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(path)
         if not fs.exists(path):
-            raise FileNotFoundError(f"Checkpoint at {path} not found. Aborting training.")
+            raise FileNotFoundError(f"Checkpoint file not found: {path}")
 
         return pl_load(path, map_location=map_location)
 
