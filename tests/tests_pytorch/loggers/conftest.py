@@ -13,7 +13,7 @@
 # limitations under the License.
 import sys
 from types import ModuleType
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -37,6 +37,8 @@ def mlflow_mock(monkeypatch):
 
     mlflow.tracking = mlflow_tracking
     mlflow.entities = mlflow_entities
+
+    monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", True),
     return mlflow
 
 
@@ -73,6 +75,8 @@ def wandb_mock(monkeypatch):
     wandb.sdk = wandb_sdk
     wandb.sdk.lib = wandb_sdk_lib
     wandb.wandb_run = wandb_wandb_run
+
+    monkeypatch.setattr("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
     return wandb
 
 
@@ -92,4 +96,46 @@ def comet_mock(monkeypatch):
     monkeypatch.setitem(sys.modules, "comet_ml.api", comet_api)
 
     comet.api = comet_api
+
+    monkeypatch.setattr("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
     return comet
+
+
+@pytest.fixture()
+def neptune_mock(monkeypatch):
+    class RunType:  # to make isinstance checks pass
+        def get_root_object(self):
+            pass
+
+        def __getitem__(self, item):
+            pass
+
+        def __setitem__(self, key, value):
+            pass
+
+    run_mock = MagicMock(spec=RunType, exists=Mock(return_value=False), wait=Mock(), get_structure=MagicMock())
+    run_mock.get_root_object.return_value = run_mock
+
+    neptune = ModuleType("neptune")
+    neptune.init_run = Mock(return_value=run_mock)
+    neptune.Run = RunType
+    monkeypatch.setitem(sys.modules, "neptune", neptune)
+
+    neptune_handler = ModuleType("handler")
+    neptune_handler.Handler = RunType
+    monkeypatch.setitem(sys.modules, "neptune.handler", neptune_handler)
+
+    neptune_types = ModuleType("types")
+    neptune_types.File = Mock()
+    monkeypatch.setitem(sys.modules, "neptune.types", neptune_types)
+
+    neptune_utils = ModuleType("utils")
+    neptune_utils.stringify_unsupported = Mock()
+    monkeypatch.setitem(sys.modules, "neptune.utils", neptune_utils)
+
+    neptune.handler = neptune_handler
+    neptune.types = neptune_types
+    neptune.utils = neptune_utils
+
+    monkeypatch.setattr("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
+    return neptune
