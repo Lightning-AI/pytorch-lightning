@@ -40,7 +40,7 @@ jobs:
       AGE_DAYS: ${{ inputs.age-days }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Pull re-usable 🤖 actions️
         uses: actions/checkout@v4
