@@ -147,6 +147,7 @@ def run(hparams):
             train_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(train_ids))
             val_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(val_ids))
 
+            # set up dataloaders to move data to the correct device
             train_loader, val_loader = fabric.setup_dataloaders(train_loader, val_loader)
 
             # get model and optimizer for the current fold
