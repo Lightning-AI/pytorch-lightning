@@ -40,7 +40,7 @@ warning_cache = WarningCache()
 
 
 def suggested_max_num_workers(local_world_size: int) -> int:
-    """Suggests an upper bound of num_workers to use in a PyTorch :class:`~torch.utils.data.DataLoader` based on
+    """Suggests an upper bound of ``num_workers`` to use in a PyTorch :class:`~torch.utils.data.DataLoader` based on
     the number of CPU cores available on the system and the number of distributed processes in the current machine.
 
     Args:
