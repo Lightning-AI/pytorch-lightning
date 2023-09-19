@@ -428,7 +428,7 @@ def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
         # TODO
         # if changed, update the `filterwarnings` snippet in 'speed.html#num-workers'
         rank_zero_warn(
-            f"The '{name}', does not have many workers which may be a bottleneck. Consider increasing the value of the"
+            f"The '{name}' does not have many workers which may be a bottleneck. Consider increasing the value of the"
             f" `num_workers` argument` to `num_workers={upper_bound}` in the `DataLoader` to improve performance.",
             category=PossibleUserWarning,
         )
