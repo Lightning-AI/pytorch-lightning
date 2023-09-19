@@ -71,16 +71,14 @@ You can also pass a custom Logger to the :class:`~lightning.pytorch.trainer.trai
 
 Choose from any of the others such as MLflow, Comet, Neptune, WandB, etc.
 
-.. testcode::
-    :skipif: not _COMET_AVAILABLE
+.. code-block:: python
 
     comet_logger = pl_loggers.CometLogger(save_dir="logs/")
     trainer = Trainer(logger=comet_logger)
 
 To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
-.. testcode::
-    :skipif: (not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE) or not _COMET_AVAILABLE
+.. code-block:: python
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
     comet_logger = pl_loggers.CometLogger(save_dir="logs/")
