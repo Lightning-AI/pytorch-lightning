@@ -90,7 +90,7 @@ def test_fsdp_sharding_strategy():
     assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
 
 
-@RunIf(min_torch="1.12")
+@RunIf(min_torch="2.0")
 @pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
 def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
     """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
