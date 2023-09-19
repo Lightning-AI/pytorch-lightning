@@ -16,7 +16,8 @@ import os
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, TYPE_CHECKING, Union, \
+    Tuple
 
 import torch
 from torch import Tensor
@@ -172,6 +173,11 @@ class FSDPStrategy(ParallelStrategy):
         self._timeout: Optional[timedelta] = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
+        if "HYBRID" in self.sharding_strategy.name and auto_wrap_policy is None:
+            raise RuntimeError(
+                "The hybrid sharding strategy requires you to either set the `auto_wrap_policy` or pass a"
+                "process group tuple to the `process_group` parameter."
+            )
         self.mixed_precision = mixed_precision
         self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
 
@@ -201,7 +207,7 @@ class FSDPStrategy(ParallelStrategy):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def process_group(self) -> Optional[ProcessGroup]:
+    def process_group(self) -> Optional[Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]]:
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
         return self.model.process_group if isinstance(self.model, FSDP) else None
