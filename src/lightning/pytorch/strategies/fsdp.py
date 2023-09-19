@@ -58,7 +58,7 @@ from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
-from lightning.fabric.utilities.types import _PATH, ProcessGroup, ReduceOp
+from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
@@ -199,12 +199,6 @@ class FSDPStrategy(ParallelStrategy):
     @property
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
-
-    @property
-    def process_group(self) -> Optional[ProcessGroup]:
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-
-        return self.model.process_group if isinstance(self.model, FSDP) else None
 
     @property
     def process_group_backend(self) -> Optional[str]:
