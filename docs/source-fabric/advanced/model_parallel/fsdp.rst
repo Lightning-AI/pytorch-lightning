@@ -216,6 +216,8 @@ You can configure the following options to trade-off memory for speed:
         sharding_strategy="FULL_SHARD",
         # Shard gradients, optimizer state (2 + 3)
         sharding_strategy="SHARD_GRAD_OP",
+        # Full-shard within a machine, replicate across machines
+        sharding_strategy="HYBRID_SHARD",
         # Don't shard anything (similar to DDP)
         sharding_strategy="NO_SHARD",
     )
@@ -226,6 +228,7 @@ You can configure the following options to trade-off memory for speed:
 
 1. Try the default settings first (FULL_SHARD). This is the slowest but will save you the most memory.
 2. Try SHARD_GRAD_OP. If you run out of memory, revert back to the default (FULL_SHARD). Otherwise you should expect to see an increase in iteration speed.
+3. If you are training across many machines, try HYBRID_SHARD.
 
 |
 

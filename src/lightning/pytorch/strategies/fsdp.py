@@ -167,14 +167,13 @@ class FSDPStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-        self._process_group = None
         self.num_nodes = 1
         self._process_group_backend = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
-        self.sharding_strategy = _init_sharding_strategy(sharding_strategy)
         self.mixed_precision = mixed_precision
         self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
+        self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self.kwargs)
 
         if _TORCH_GREATER_EQUAL_2_0:
             # Avoids the need for user to reference params in `configure_optimizers` via
@@ -203,12 +202,9 @@ class FSDPStrategy(ParallelStrategy):
 
     @property
     def process_group(self) -> Optional[ProcessGroup]:
-        if self._process_group is None:
-            from torch.distributed.distributed_c10d import _get_default_group
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-            # The strategy should have already initilized process group in setup_environment()
-            self._process_group = _get_default_group()
-        return self._process_group
+        return self.model.process_group if isinstance(self.model, FSDP) else None
 
     @property
     def process_group_backend(self) -> Optional[str]:
@@ -283,7 +279,6 @@ class FSDPStrategy(ParallelStrategy):
             log.debug(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
             model = FullyShardedDataParallel(
                 module=model,
-                process_group=self.process_group,
                 cpu_offload=self.cpu_offload,
                 mixed_precision=self.mixed_precision_config,
                 sharding_strategy=self.sharding_strategy,
@@ -371,7 +366,6 @@ class FSDPStrategy(ParallelStrategy):
 
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
-            process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             mixed_precision=self.mixed_precision_config,
             sharding_strategy=self.sharding_strategy,
