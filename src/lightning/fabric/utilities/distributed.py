@@ -1,7 +1,9 @@
 import logging
 import os
 import sys
+import time
 from contextlib import nullcontext
+from pathlib import Path
 from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
@@ -10,10 +12,11 @@ from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
+from lightning.fabric.strategies.strategy import Strategy
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.fabric.utilities.rank_zero import rank_zero_info
-from lightning.fabric.utilities.types import ReduceOp
+from lightning.fabric.utilities.types import ReduceOp, _PATH
 
 if torch.distributed.is_available():
     from torch.distributed import group
@@ -24,6 +27,34 @@ else:
 
 
 log = logging.getLogger(__name__)
+
+
+def is_shared_filesystem(strategy: Strategy, path: Optional[_PATH] = None, timeout: int = 3) -> bool:
+    path = Path(Path.cwd() if path is None else path)
+
+    rank_zero_path = strategy.broadcast(path)
+    if not strategy.reduce_boolean_decision(rank_zero_path == path, all=True):
+        return False
+
+    check_file = path / ".shared_fs_check"
+    check_file.unlink(missing_ok=True)
+
+    strategy.barrier()
+    if strategy.is_global_zero:
+        # Rank 0 creates the file
+        check_file.touch()
+        found = True
+    else:
+        # All other ranks will wait until they find the file or timeout
+        start = time.perf_counter()
+        found = False
+        while not found and time.perf_counter() - start < timeout:
+            found = check_file.exists()
+    strategy.barrier()
+
+    check_file.unlink(missing_ok=True)
+    all_found = strategy.reduce_boolean_decision(found, all=True)
+    return all_found
 
 
 def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
