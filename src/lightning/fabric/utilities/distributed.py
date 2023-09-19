@@ -12,6 +12,7 @@ from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
+import lightning as L
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.strategies.strategy import Strategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
@@ -29,7 +30,11 @@ else:
 log = logging.getLogger(__name__)
 
 
-def is_shared_filesystem(strategy: Strategy, path: Optional[_PATH] = None, timeout: int = 3) -> bool:
+def is_shared_filesystem(fabric: "L.Fabric", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
+    return _is_shared_filesystem(fabric.strategy, path=path, timeout=timeout)
+
+
+def _is_shared_filesystem(strategy: Strategy, path: Optional[_PATH] = None, timeout: int = 3) -> bool:
     path = Path(Path.cwd() if path is None else path).resolve()
 
     # Fast path: Only distributed strategies can detect shared filesystems
