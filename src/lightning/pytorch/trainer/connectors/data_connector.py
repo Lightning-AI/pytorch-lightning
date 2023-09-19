@@ -425,26 +425,7 @@ def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
         return
 
     upper_bound = suggested_max_num_workers(trainer.num_devices)
-
-    # # ddp_spawn + num_workers > 0 don't mix! tell the user
-    # if dataloader.num_workers > 0 and using_spawn:
-    #     if not dataloader.persistent_workers:
-    #         rank_zero_warn(
-    #             "num_workers>0, persistent_workers=False, and strategy=ddp_spawn"
-    #             " may result in data loading bottlenecks."
-    #             " Consider setting persistent_workers=True"
-    #             " (this is a limitation of Python .spawn() and PyTorch)"
-    #         )
-
-    # elif dataloader.num_workers == 0 and using_spawn:
-    #     if not dataloader.persistent_workers:
-    #         rank_zero_warn(
-    #             "strategy=ddp_spawn and num_workers=0 may result in data loading bottlenecks."
-    #             " Consider setting num_workers>0 and persistent_workers=True"
-    #         )
-
     if dataloader.num_workers <= 2 < upper_bound:
-        # TODO: find filterwarnings
         # if changed, update the `filterwarnings` snippet in 'speed.html#num-workers'
         rank_zero_warn(
             f"The dataloader, {name}, does not have many workers which may be a bottleneck."
