@@ -20,6 +20,7 @@ def validate_app_functionalities(app_page: "Page") -> None:
     https://github.com/Lightning-AI/LAI-Flashy-App/blob/main/tests/test_app_gallery.py#L205
 
     app_page: The UI page of the app to be validated.
+
     """
     while True:
         with contextlib.suppress(playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):

@@ -72,3 +72,10 @@ class TorchElasticEnvironment(ClusterEnvironment):
 
     def node_rank(self) -> int:
         return int(os.environ.get("GROUP_RANK", 0))
+
+    def validate_settings(self, num_devices: int, num_nodes: int) -> None:
+        if num_devices * num_nodes != self.world_size():
+            raise ValueError(
+                f"You set `devices={num_devices}` and `num_nodes={num_nodes}` in Lightning, but the product"
+                f" ({num_devices} * {num_nodes}) does not match the world size ({self.world_size()})."
+            )

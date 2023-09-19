@@ -79,7 +79,6 @@ def _update_dataloader(dataloader: DataLoader, sampler: Union[Sampler, Iterable]
 def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
-    disallow_batch_sampler: bool = False,
 ) -> Tuple[Tuple[Any], Dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
@@ -131,7 +130,7 @@ def _get_dataloader_init_args_and_kwargs(
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
     else:
-        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, disallow_batch_sampler))
+        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler))
 
     required_args = {
         p.name
@@ -173,73 +172,72 @@ def _get_dataloader_init_args_and_kwargs(
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
-    disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:
-    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
-    re-instantiation."""
+    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its re-
+    instantiation."""
     batch_sampler = getattr(dataloader, "batch_sampler")
 
-    if batch_sampler is not None:
-        if disallow_batch_sampler:
-            # Check that we don't have a PyTorch default batch sampler that was instantiated in DataLoader __init__
-            if not (
-                type(batch_sampler) is BatchSampler
-                and batch_sampler.sampler == sampler
-                and dataloader.batch_size == batch_sampler.batch_size
-            ):
-                raise MisconfigurationException(
-                    "It is not possible to have a batch sampler in your dataloader, "
-                    "when running on multiple IPU devices."
+    if batch_sampler is not None and type(batch_sampler) is not BatchSampler:
+        batch_sampler_cls = type(batch_sampler)
+        if hasattr(batch_sampler, "__pl_saved_args"):
+            # This is a PyTorch `BatchSampler` subclass for which we captured the init args
+            args = batch_sampler.__pl_saved_args
+            kwargs = batch_sampler.__pl_saved_kwargs
+            default_kwargs = batch_sampler.__pl_saved_default_kwargs
+            arg_names = batch_sampler.__pl_saved_arg_names
+
+            success, args, kwargs = _replace_value_in_saved_args(
+                "sampler", sampler, args, kwargs, default_kwargs, arg_names
+            )
+            if not success:
+                raise TypeError(
+                    "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
+                    f"`{batch_sampler_cls.__qualname__}` does not have an argument called `sampler.` To mitigate "
+                    "this, expose an argument `sampler` in the `__init__` method of your custom class."
                 )
-        elif type(batch_sampler) is not BatchSampler:
-            batch_sampler_cls = type(batch_sampler)
-            if hasattr(batch_sampler, "__pl_saved_args"):
-                args = batch_sampler.__pl_saved_args
-                kwargs = batch_sampler.__pl_saved_kwargs
-                default_kwargs = batch_sampler.__pl_saved_default_kwargs
-                arg_names = batch_sampler.__pl_saved_arg_names
 
-                success, args, kwargs = _replace_value_in_saved_args(
-                    "sampler", sampler, args, kwargs, default_kwargs, arg_names
+            batch_sampler = _reinstantiate_wrapped_cls(batch_sampler, *args, **kwargs)
+        elif hasattr(batch_sampler, "batch_size") and hasattr(batch_sampler, "drop_last"):
+            # This is a sampler for which we could not capture the init args, but it kinda looks like a batch sampler
+            # even if it does not inherit from PyTorch's interface.
+            try:
+                batch_sampler = batch_sampler_cls(
+                    sampler,
+                    batch_size=batch_sampler.batch_size,
+                    drop_last=batch_sampler.drop_last,
                 )
-                if not success:
-                    raise TypeError(
-                        "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
-                        f"`{batch_sampler_cls.__qualname__}` does not have an argument called `sampler.` To mitigate "
-                        "this, expose an argument `sampler` in the `__init__` method of your custom class."
-                    )
+            except TypeError as ex:
+                import re
 
-                batch_sampler = _reinstantiate_wrapped_cls(batch_sampler, *args, **kwargs)
-            else:
-                try:
-                    batch_sampler = batch_sampler_cls(
-                        sampler,
-                        batch_size=batch_sampler.batch_size,
-                        drop_last=batch_sampler.drop_last,
-                    )
-                except TypeError as ex:
-                    import re
+                match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(ex))
+                if not match:
+                    # an unexpected `TypeError`, continue failure
+                    raise
 
-                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(ex))
-                    if not match:
-                        # an unexpected `TypeError`, continue failure
-                        raise
+                # There could either be too few or too many arguments. Customizing the message based on this doesn't
+                # make much sense since our MisconfigurationException is going to be raised from the original one.
+                raise TypeError(
+                    " Lightning can't inject a (distributed) sampler into your batch sampler, because it doesn't"
+                    " subclass PyTorch's `BatchSampler`. To mitigate this, either follow the API of `BatchSampler`"
+                    " or set`.setup_dataloaders(..., use_distributed_sampler=False)`. If you choose the latter, you"
+                    " will be responsible for handling the distributed sampling within your batch sampler."
+                ) from ex
+        else:
+            # The sampler is not a PyTorch `BatchSampler`, we don't know how to inject a custom sampler
+            raise TypeError(
+                " Lightning can't inject a (distributed) sampler into your batch sampler, because it doesn't"
+                " subclass PyTorch's `BatchSampler`. To mitigate this, either follow the API of `BatchSampler`"
+                " or set`.setup_dataloaders(..., use_distributed_sampler=False)`. If you choose the latter, you"
+                " will be responsible for handling the distributed sampling within your batch sampler."
+            )
 
-                    # There could either be too few or too many arguments. Customizing the message based on this doesn't
-                    # make much sense since our MisconfigurationException is going to be raised from the original one.
-                    raise TypeError(
-                        "We tried to re-instantiate your custom batch sampler and failed. "
-                        "To mitigate this, either follow the API of `BatchSampler` or instantiate "
-                        "your custom batch sampler inside `*_dataloader` hooks of your module."
-                    ) from ex
-
-            return {
-                "sampler": None,
-                "shuffle": False,
-                "batch_sampler": batch_sampler,
-                "batch_size": 1,
-                "drop_last": False,
-            }
+        return {
+            "sampler": None,
+            "shuffle": False,
+            "batch_sampler": batch_sampler,
+            "batch_size": 1,
+            "drop_last": False,
+        }
 
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
@@ -362,6 +360,7 @@ def _replace_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = 
     """This context manager is used to add support for re-instantiation of custom (subclasses) of `base_cls`.
 
     It patches the ``__init__``, ``__setattr__`` and ``__delattr__`` methods.
+
     """
     classes = get_all_subclasses(base_cls) | {base_cls}
     for cls in classes:
@@ -399,6 +398,7 @@ def _replace_value_in_saved_args(
     """Tries to replace an argument value in a saved list of args and kwargs.
 
     Returns a tuple indicating success of the operation and modified saved args and kwargs
+
     """
 
     if replace_key in arg_names:

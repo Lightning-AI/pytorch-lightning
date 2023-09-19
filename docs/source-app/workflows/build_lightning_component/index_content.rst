@@ -3,7 +3,7 @@
    :hidden:
 
    basic
-   ../add_components/index
+   ../add_components
 
 .. toctree::
    :maxdepth: 1

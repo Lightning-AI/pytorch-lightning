@@ -1,8 +1,8 @@
-import lightning as L
+from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.storage import Payload
 
 
-class SourceFileWriterWork(L.LightningWork):
+class SourceFileWriterWork(LightningWork):
     def __init__(self):
         super().__init__()
         self.value = None
@@ -11,12 +11,12 @@ class SourceFileWriterWork(L.LightningWork):
         self.value = Payload(42)
 
 
-class DestinationWork(L.LightningWork):
+class DestinationWork(LightningWork):
     def run(self, payload):
         assert payload.value == 42
 
 
-class RootFlow(L.LightningFlow):
+class RootFlow(LightningFlow):
     def __init__(self):
         super().__init__()
         self.src = SourceFileWriterWork()
@@ -28,4 +28,4 @@ class RootFlow(L.LightningFlow):
         self.stop("Application End!")
 
 
-app = L.LightningApp(RootFlow())
+app = LightningApp(RootFlow())

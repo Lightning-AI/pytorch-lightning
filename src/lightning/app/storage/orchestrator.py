@@ -26,7 +26,7 @@ from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.enum import WorkStageStatus
 
 if TYPE_CHECKING:
-    from lightning.app import LightningApp
+    from lightning.app.core.app import LightningApp
 
 
 _PathRequest = Union[_GetRequest, _ExistsRequest]
@@ -47,6 +47,7 @@ class StorageOrchestrator(Thread):
             put requests on this queue for the file-transfer thread to complete.
         copy_response_queues: A dictionary of Queues where each Queue connects to one Work. The queue is expected to
             contain the completion response from the file-transfer thread running in the Work process.
+
     """
 
     def __init__(
@@ -106,6 +107,11 @@ class StorageOrchestrator(Thread):
             request_queue = self.request_queues[work_name]
             try:
                 request: _PathRequest = request_queue.get(timeout=0)  # this should not block
+                # This should not happen under normal conditions, but it has occurred.
+                # For now we are tolerant with respect to requests being None in the queue
+                # and just move on.
+                if request is None:
+                    raise Empty
             except Empty:
                 pass
             else:

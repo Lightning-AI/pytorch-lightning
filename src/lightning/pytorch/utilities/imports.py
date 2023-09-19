@@ -15,7 +15,6 @@
 import functools
 import sys
 
-import torch
 from lightning_utilities.core.imports import package_available, RequirementCache
 from lightning_utilities.core.rank_zero import rank_zero_warn
 
@@ -23,7 +22,6 @@ _PYTHON_GREATER_EQUAL_3_11_0 = (sys.version_info.major, sys.version_info.minor) 
 _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
 _TORCHMETRICS_GREATER_EQUAL_0_11 = RequirementCache("torchmetrics>=0.11.0")  # using new API with task
 
-_KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 _LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
@@ -41,5 +39,15 @@ def _try_import_module(module_name: str) -> bool:
         return False
 
 
-_LIGHTNING_GRAPHCORE_AVAILABLE = RequirementCache("lightning-graphcore") and _try_import_module("lightning_graphcore")
-_LIGHTNING_HABANA_AVAILABLE = RequirementCache("lightning-habana") and _try_import_module("lightning_habana")
+@functools.lru_cache(maxsize=1)
+def _lightning_graphcore_available() -> bool:
+    # This is defined as a function instead of a constant to avoid circular imports, because `lightning_graphcore`
+    # also imports Lightning
+    return bool(RequirementCache("lightning-graphcore")) and _try_import_module("lightning_graphcore")
+
+
+@functools.lru_cache(maxsize=1)
+def _lightning_habana_available() -> bool:
+    # This is defined as a function instead of a constant to avoid circular imports, because `lightning_habana`
+    # also imports Lightning
+    return bool(RequirementCache("lightning-habana")) and _try_import_module("lightning_habana")

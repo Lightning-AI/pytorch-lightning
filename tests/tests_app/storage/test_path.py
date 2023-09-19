@@ -23,7 +23,7 @@ from lightning.app.storage.requests import _ExistsResponse, _GetResponse
 from lightning.app.testing.helpers import _MockQueue, _RunIf, EmptyWork
 from lightning.app.utilities.app_helpers import LightningJSONEncoder
 from lightning.app.utilities.component import _context
-from lightning.app.utilities.imports import _is_s3fs_available
+from lightning.app.utilities.imports import _is_s3fs_available, _IS_WINDOWS
 
 
 def test_path_instantiation():
@@ -400,7 +400,8 @@ class DynamicSourceToDestFlow(LightningFlow):
 
 
 # FIXME(alecmerdler): This test is failing...
-@pytest.mark.skip(reason="hanging...")
+@pytest.mark.skipif(_IS_WINDOWS, reason="strange TimeOut exception")
+@pytest.mark.xfail(strict=False, reason="hanging...")
 def test_multiprocess_path_in_work_and_flow_dynamic(tmpdir):
     root = DynamicSourceToDestFlow(tmpdir)
     app = LightningApp(root)
@@ -483,8 +484,8 @@ class RunPathWork(LightningWork):
 
 
 def test_path_as_argument_to_run_method():
-    """Test that Path objects can be passed as arguments to the run() method of a Work in various ways such that
-    the origin, consumer and queues get automatically attached."""
+    """Test that Path objects can be passed as arguments to the run() method of a Work in various ways such that the
+    origin, consumer and queues get automatically attached."""
     root = RunPathFlow()
     app = LightningApp(root)
     MultiProcessRuntime(app, start_server=False).dispatch()
@@ -621,8 +622,8 @@ def test_path_response_not_matching_reqeuest(tmpdir):
 
 
 def test_path_exists(tmpdir):
-    """Test that the Path.exists() behaves as expected: First it should check if the file exists locally, and if
-    not, send a message to the orchestrator to eventually check the existenc on the origin Work."""
+    """Test that the Path.exists() behaves as expected: First it should check if the file exists locally, and if not,
+    send a message to the orchestrator to eventually check the existenc on the origin Work."""
     # Local Path (no Work queues attached)
     assert not Path("file").exists()
     assert Path(tmpdir).exists()

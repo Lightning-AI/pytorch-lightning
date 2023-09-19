@@ -14,7 +14,7 @@
 import math
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, cast, Dict, Optional, Union
+from typing import Any, cast, Dict, Generator, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -136,12 +136,20 @@ if _RICH_AVAILABLE:
     class MetricsTextColumn(ProgressColumn):
         """A column containing text."""
 
-        def __init__(self, trainer: "pl.Trainer", style: Union[str, "Style"]):
+        def __init__(
+            self,
+            trainer: "pl.Trainer",
+            style: Union[str, "Style"],
+            text_delimiter: str,
+            metrics_format: str,
+        ):
             self._trainer = trainer
             self._tasks: Dict[Union[int, TaskID], Any] = {}
             self._current_task_id = 0
             self._metrics: Dict[Union[str, "Style"], Any] = {}
             self._style = style
+            self._text_delimiter = text_delimiter
+            self._metrics_format = metrics_format
             super().__init__()
 
         def update(self, metrics: Dict[Any, Any]) -> None:
@@ -167,10 +175,15 @@ if _RICH_AVAILABLE:
             if self._trainer.training and task.id != self._current_task_id:
                 return self._tasks[task.id]
 
-            text = ""
-            for k, v in self._metrics.items():
-                text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
+            metrics_texts = self._generate_metrics_texts()
+            text = self._text_delimiter.join(metrics_texts)
             return Text(text, justify="left", style=self._style)
+
+        def _generate_metrics_texts(self) -> Generator[str, None, None]:
+            for name, value in self._metrics.items():
+                if not isinstance(value, str):
+                    value = f"{value:{self._metrics_format}}"
+                yield f"{name}: {value}"
 
 else:
     Task, Style = Any, Any  # type: ignore[assignment, misc]
@@ -191,6 +204,7 @@ class RichProgressBarTheme:
         metrics: Style for the metrics
 
     https://rich.readthedocs.io/en/stable/style.html
+
     """
 
     description: Union[str, Style] = "white"
@@ -201,6 +215,8 @@ class RichProgressBarTheme:
     time: Union[str, Style] = "grey54"
     processing_speed: Union[str, Style] = "grey70"
     metrics: Union[str, Style] = "white"
+    metrics_text_delimiter: str = " "
+    metrics_format: str = ".3f"
 
 
 class RichProgressBar(ProgressBar):
@@ -234,6 +250,7 @@ class RichProgressBar(ProgressBar):
         PyCharm users will need to enable “emulate terminal” in output console option in
         run/debug configuration to see styled output.
         Reference: https://rich.readthedocs.io/en/latest/introduction.html#requirements
+
     """
 
     def __init__(
@@ -321,7 +338,12 @@ class RichProgressBar(ProgressBar):
             reconfigure(**self._console_kwargs)
             self._console = get_console()
             self._console.clear_live()
-            self._metric_component = MetricsTextColumn(trainer, self.theme.metrics)
+            self._metric_component = MetricsTextColumn(
+                trainer,
+                self.theme.metrics,
+                self.theme.metrics_text_delimiter,
+                self.theme.metrics_format,
+            )
             self.progress = CustomProgress(
                 *self.configure_columns(trainer),
                 self._metric_component,
@@ -372,7 +394,10 @@ class RichProgressBar(ProgressBar):
                 self.train_progress_bar_id = self._add_task(total_batches, train_description)
             else:
                 self.progress.reset(
-                    self.train_progress_bar_id, total=total_batches, description=train_description, visible=True
+                    self.train_progress_bar_id,
+                    total=total_batches,
+                    description=train_description,
+                    visible=True,
                 )
 
         self.refresh()
@@ -395,7 +420,9 @@ class RichProgressBar(ProgressBar):
                 self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
 
             self.val_sanity_progress_bar_id = self._add_task(
-                self.total_val_batches_current_dataloader, self.sanity_check_description, visible=False
+                self.total_val_batches_current_dataloader,
+                self.sanity_check_description,
+                visible=False,
             )
         else:
             if self.val_progress_bar_id is not None:
@@ -403,14 +430,20 @@ class RichProgressBar(ProgressBar):
 
             # TODO: remove old tasks when new onces are created
             self.val_progress_bar_id = self._add_task(
-                self.total_val_batches_current_dataloader, self.validation_description, visible=False
+                self.total_val_batches_current_dataloader,
+                self.validation_description,
+                visible=False,
             )
 
         self.refresh()
 
     def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> "TaskID":
         assert self.progress is not None
-        return self.progress.add_task(f"[{self.theme.description}]{description}", total=total_batches, visible=visible)
+        return self.progress.add_task(
+            f"[{self.theme.description}]{description}",
+            total=total_batches,
+            visible=visible,
+        )
 
     def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
         if self.progress is not None and self.is_enabled:
@@ -482,7 +515,12 @@ class RichProgressBar(ProgressBar):
         self.refresh()
 
     def on_train_batch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs: STEP_OUTPUT,
+        batch: Any,
+        batch_idx: int,
     ) -> None:
         self._update(self.train_progress_bar_id, batch_idx + 1)
         self._update_metrics(trainer, pl_module)
@@ -495,7 +533,7 @@ class RichProgressBar(ProgressBar):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -512,7 +550,7 @@ class RichProgressBar(ProgressBar):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -569,7 +607,12 @@ class RichProgressBar(ProgressBar):
     def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self._stop_progress()
 
-    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
+    def on_exception(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        exception: BaseException,
+    ) -> None:
         self._stop_progress()
 
     def configure_columns(self, trainer: "pl.Trainer") -> list:

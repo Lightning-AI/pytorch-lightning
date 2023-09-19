@@ -8,8 +8,7 @@ To use `Comet.ml <https://www.comet.ml/site/>`_ first install the comet package:
 
 Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.trainer.Trainer`:
 
-.. testcode::
-    :skipif: not _COMET_AVAILABLE
+.. code-block:: python
 
     from lightning.pytorch.loggers import CometLogger
 
@@ -40,8 +39,7 @@ To use `MLflow <https://mlflow.org/>`_ first install the MLflow package:
 
 Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.trainer.Trainer`:
 
-.. testcode::
-    :skipif: not _MLFLOW_AVAILABLE
+.. code-block:: python
 
     from lightning.pytorch.loggers import MLFlowLogger
 

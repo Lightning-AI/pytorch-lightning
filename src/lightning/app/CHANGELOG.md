@@ -27,12 +27,66 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
--
+- Remove cluster commands from the CLI ([#18151](https://github.com/Lightning-AI/lightning/pull/18151))
+
 
 
 ### Fixed
 
--
+
+## [2.0.9] - 2023-09-14
+
+### Fixed
+
+- Replace LightningClient with import from lightning_cloud ([#18544](https://github.com/Lightning-AI/lightning/pull/18544))
+
+
+## [2.0.8] - 2023-08-29
+
+## Changed
+
+- Change top folder ([#18212](https://github.com/Lightning-AI/lightning/pull/18212))
+- Remove `_handle_is_headless` calls in app run loop ([#18362](https://github.com/Lightning-AI/lightning/pull/18362))
+
+
+## [2.0.7] - 2023-08-14
+
+### Changed
+
+- Removed the top-level import `lightning.pdb`; import `lightning.app.pdb` instead ([#18177](https://github.com/Lightning-AI/lightning/pull/18177))
+- Client retries forever ([#18065](https://github.com/Lightning-AI/lightning/pull/18065))
+
+### Fixed
+
+- Fixed an issue that would prevent the user to set the multiprocessing start method after importing lightning ([#18177](https://github.com/Lightning-AI/lightning/pull/18177))
+
+
+## [2.0.6] - 2023-07-20
+
+### Fixed
+
+- Fixed handling a `None` request in the file orchestration queue ([#18111](https://github.com/Lightning-AI/lightning/pull/18111))
+
+
+## [2.0.5] - 2023-07-07
+
+### Added
+
+- plugin: store source app ([#17892](https://github.com/Lightning-AI/lightning/pull/17892))
+- added colocation identifier ([#16796](https://github.com/Lightning-AI/lightning/pull/16796))
+- Added exponential backoff to HTTPQueue put ([#18013](https://github.com/Lightning-AI/lightning/pull/18013))
+- Content for plugins ([#17243](https://github.com/Lightning-AI/lightning/pull/17243))
+
+### Changed
+
+- Save a reference to created tasks, to avoid tasks disappearing ([#17946](https://github.com/Lightning-AI/lightning/pull/17946))
+
+
+## [2.0.4] - 2023-06-22
+
+### Fixed
+
+- bumped several dependencies to address security vulnerabilities.
 
 
 ## [2.0.3] - 2023-06-07

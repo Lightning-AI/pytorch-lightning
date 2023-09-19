@@ -47,17 +47,18 @@ class _FastApiMockRequest:
 
     Example:
 
-        import lightning as L
+        from lightning.app import LightningFlow
         from fastapi import Request
         from lightning.app.api import Post
 
-        class Flow(L.LightningFlow):
+        class Flow(LightningFlow):
 
             def request(self, request: Request) -> OutputRequestModel:
                 ...
 
             def configure_api(self):
                 return [Post("/api/v1/request", self.request)]
+
     """
 
     _body: Optional[str] = None
@@ -116,6 +117,7 @@ class _HttpMethod:
             route: The path used to route the requests
             method: The associated flow method
             timeout: The time in seconds taken before raising a timeout exception.
+
         """
         self.route = route
         self.attached_to_flow = hasattr(method, "__self__")

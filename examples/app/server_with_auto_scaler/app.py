@@ -5,18 +5,18 @@ import torch
 import torchvision
 from pydantic import BaseModel
 
-import lightning as L
+from lightning.app import CloudCompute, LightningApp
 
 
 class BatchRequestModel(BaseModel):
-    inputs: List[L.app.components.Image]
+    inputs: List[app.components.Image]
 
 
 class BatchResponse(BaseModel):
-    outputs: List[L.app.components.Number]
+    outputs: List[app.components.Number]
 
 
-class PyTorchServer(L.app.components.PythonServer):
+class PyTorchServer(app.components.PythonServer):
     def __init__(self, *args, **kwargs):
         super().__init__(
             input_type=BatchRequestModel,
@@ -26,7 +26,12 @@ class PyTorchServer(L.app.components.PythonServer):
         )
 
     def setup(self):
-        self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            self._device = torch.device("cuda:0")
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            self._device = torch.device("mps")
+        else:
+            self._device = torch.device("cpu")
         self._model = torchvision.models.resnet18(pretrained=True).to(self._device)
 
     def predict(self, requests: BatchRequestModel):
@@ -39,7 +44,7 @@ class PyTorchServer(L.app.components.PythonServer):
         )
         images = []
         for request in requests.inputs:
-            image = L.app.components.serve.types.image.Image.deserialize(request.image)
+            image = app.components.serve.types.image.Image.deserialize(request.image)
             image = transforms(image).unsqueeze(0)
             images.append(image)
         images = torch.cat(images)
@@ -49,7 +54,7 @@ class PyTorchServer(L.app.components.PythonServer):
         return BatchResponse(outputs=[{"prediction": pred} for pred in results])
 
 
-class MyAutoScaler(L.app.components.AutoScaler):
+class MyAutoScaler(app.components.AutoScaler):
     def scale(self, replicas: int, metrics: dict) -> int:
         pending_requests = metrics["pending_requests"]
         active_or_pending_works = replicas + metrics["pending_works"]
@@ -72,19 +77,19 @@ class MyAutoScaler(L.app.components.AutoScaler):
         return replicas
 
 
-app = L.LightningApp(
+app = LightningApp(
     MyAutoScaler(
         # work class and args
         PyTorchServer,
-        cloud_compute=L.CloudCompute("gpu"),
+        cloud_compute=CloudCompute("gpu"),
         # autoscaler specific args
         min_replicas=1,
         max_replicas=4,
         scale_out_interval=10,
         scale_in_interval=10,
         endpoint="predict",
-        input_type=L.app.components.Image,
-        output_type=L.app.components.Number,
+        input_type=app.components.Image,
+        output_type=app.components.Number,
         timeout_batching=1,
         max_batch_size=8,
     )

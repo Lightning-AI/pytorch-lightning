@@ -204,7 +204,7 @@ Once you've trained the model you can export to onnx, torchscript and put it int
     encoder.eval()
 
     # embed 4 fake images!
-    fake_image_batch = Tensor(4, 28 * 28)
+    fake_image_batch = torch.rand(4, 28 * 28, device=autoencoder.device)
     embeddings = encoder(fake_image_batch)
     print("⚡" * 20, "\nPredictions (4 image embeddings):\n", embeddings, "\n", "⚡" * 20)
 

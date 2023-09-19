@@ -69,7 +69,7 @@ def test_num_stepping_batches_iterable_dataset():
     max_steps = 1000
     trainer = Trainer(max_steps=max_steps)
     model = BoringModel()
-    train_dl = DataLoader(RandomIterableDataset(size=7, count=1e10))
+    train_dl = DataLoader(RandomIterableDataset(size=7, count=int(1e10)))
     trainer._data_connector.attach_data(model, train_dataloaders=train_dl)
     trainer.strategy.connect(model)
     assert trainer.estimated_stepping_batches == max_steps
@@ -142,12 +142,10 @@ def test_num_stepping_batches_with_tpu_single():
 
 class MultiprocessModel(BoringModel):
     def on_train_start(self):
-        device_count = self.trainer.accelerator.auto_device_count()
-        assert self.trainer.world_size == device_count
-        assert self.trainer.estimated_stepping_batches == len(self.train_dataloader()) // device_count
+        assert self.trainer.estimated_stepping_batches == len(self.train_dataloader()) // self.trainer.world_size
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_num_stepping_batches_with_tpu_multi():
     """Test stepping batches with the TPU strategy across multiple devices."""

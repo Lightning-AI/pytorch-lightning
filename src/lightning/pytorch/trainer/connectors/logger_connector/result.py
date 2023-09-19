@@ -237,7 +237,7 @@ class _ResultMetric(Metric):
 
     def compute(self) -> Tensor:
         if self.is_tensor:
-            value = self.meta.sync(self.value)
+            value = self.meta.sync(self.value.clone())  # `clone` because `sync` is in-place
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
                 return value / cumulated_batch_size
@@ -300,13 +300,12 @@ class _ResultCollection(dict):
     """Collection (dictionary) of
     :class:`~lightning.pytorch.trainer.connectors.logger_connector.result._ResultMetric`
 
-    Example:
-
-        # `device` needs to be provided before logging
-        result = _ResultCollection(training=True, torch.device("cpu"))
+    Example::
 
         # you can log to a specific collection.
         # arguments: fx, key, value, metadata
+
+        result = _ResultCollection(training=True)
         result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
         result.log('validation_step', 'recall', torch.tensor(...), on_step=True, on_epoch=True)
     """
@@ -403,6 +402,7 @@ class _ResultCollection(dict):
         """Create one _ResultMetric object per value.
 
         Value can be provided as a nested collection
+
         """
         metric = _ResultMetric(meta, isinstance(value, Tensor)).to(value.device)
         self[key] = metric
@@ -493,6 +493,7 @@ class _ResultCollection(dict):
                 if False, only ``torch.Tensors`` are reset,
                 if ``None``, both are.
             fx: Function to reset
+
         """
         for item in self.values():
             requested_type = metrics is None or metrics ^ item.is_tensor

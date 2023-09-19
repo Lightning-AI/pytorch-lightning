@@ -17,6 +17,7 @@ from unittest.mock import call, Mock, patch
 import numpy
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import RandomSampler
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
@@ -158,8 +159,6 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     assert trainer.num_training_batches == 2
     assert trainer.train_dataloader == train_loader
 
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
 
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 @pytest.mark.parametrize("n", [1, 2])
@@ -263,7 +262,7 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir):
             assert sum(1 for _ in dl) == num_batches
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
     assert trainer.num_training_batches == float("inf")
     assert epoch_cb.train_epoch_count == 1
 
@@ -301,7 +300,7 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
     val_dl = DataLoader(dataset=dataset, batch_size=batch_size)
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
     assert trainer.num_training_batches == limit_train_batches
     assert epoch_cb.train_epoch_count == max_epochs
     assert epoch_cb.train_batches_seen == limit_train_batches * max_epochs
@@ -338,13 +337,11 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset):
     val_dl = DataLoader(dataset=dataset, batch_size=batch_size)
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.num_val_batches[0] == limit_val_batches
     assert epoch_cb.val_epoch_count == max_epochs
     assert epoch_cb.val_batches_seen == limit_val_batches * max_epochs
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize(
     "dataset",
     [
@@ -375,7 +372,7 @@ def test_datasets_dataloaders_with_limit_num_batches(tmpdir, dataset):
     test_dl = DataLoader(dataset=dataset, batch_size=batch_size)
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
     assert trainer.num_training_batches == limit_batches
     assert trainer.num_val_batches[0] == limit_batches
     assert epoch_cb.train_epoch_count == max_epochs
@@ -388,7 +385,6 @@ def test_datasets_dataloaders_with_limit_num_batches(tmpdir, dataset):
     assert epoch_cb.test_epoch_count == 1
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize(
     ("limit_train_batches", "limit_val_batches", "limit_test_batches"),
     [(1.0, 1.0, 1.0), (0.2, 0.4, 0.4)],
@@ -675,8 +671,7 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
 
 
 def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
-    """Test that a warning message is shown if the dataloader length is too short for the chosen logging
-    interval."""
+    """Test that a warning message is shown if the dataloader length is too short for the chosen logging interval."""
     model = BoringModel()
     dataloader = DataLoader(RandomDataset(32, length=10))
     model.train_dataloader = lambda: dataloader
@@ -689,6 +684,10 @@ def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
         trainer = Trainer(
             default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=2, limit_train_batches=1, logger=CSVLogger(".")
         )
+        trainer.fit(model)
+
+    with no_warning_call(UserWarning, match="The number of training batches"):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, log_every_n_steps=2)
         trainer.fit(model)
 
 
@@ -847,8 +846,7 @@ class ModelWithDataLoaderDistributedSampler(BoringModel):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler_already_attached(tmpdir):
-    """Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on
-    dataloader."""
+    """Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader."""
     seed_everything(123)
     model = ModelWithDataLoaderDistributedSampler()
     trainer = Trainer(
@@ -919,7 +917,6 @@ def test_train_dataloader_not_implemented_error(tmpdir, check_interval, dataload
     trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, val_check_interval=check_interval)
     trainer.fit(model)
     # verify training completed
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize(
@@ -1209,8 +1206,8 @@ def test_dataloaders_load_only_once_passed_loaders(tmp_path, monkeypatch, sanity
 
 
 def test_dataloaders_reset_and_attach(tmpdir):
-    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset dataloaders before attaching
-    the new one."""
+    """Test that repeated calls to Trainer.{fit,validate,test,predict} properly reset dataloaders before attaching the
+    new one."""
     # the assertions compare the datasets and not dataloaders since we patch and replace the samplers
     dataloader_0 = DataLoader(dataset=RandomDataset(32, 64))
     dataloader_1 = DataLoader(dataset=RandomDataset(32, 64))

@@ -15,7 +15,7 @@ You can easily embed other tools and services (like a GitHub repo, a `FastAPI Se
 To get started, you can use built-in templates for the following frameworks:
 
 * `React.js <https://github.com/Lightning-AI/lightning-template-react>`_
-* `StreamLit <https://github.com/Lightning-AI/lightning-template-streamlit>`_
+* `StreamLit <https://github.com/Lightning-Universe/StreamLit_demo>`_
 
 
 

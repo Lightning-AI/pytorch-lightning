@@ -240,8 +240,8 @@ class TQDMProgressBar(ProgressBar):
         self.train_progress_bar = Tqdm(disable=True)  # dummy progress bar
 
     def on_sanity_check_end(self, *_: Any) -> None:
-        self.train_progress_bar.close()
         self.val_progress_bar.close()
+        self.train_progress_bar.close()
 
     def on_train_start(self, *_: Any) -> None:
         self.train_progress_bar = self.init_train_tqdm()
@@ -290,7 +290,7 @@ class TQDMProgressBar(ProgressBar):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -300,10 +300,10 @@ class TQDMProgressBar(ProgressBar):
             _update_n(self.val_progress_bar, n)
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if self._train_progress_bar is not None and trainer.state.fn == "fit":
-            self.train_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
         self.val_progress_bar.close()
         self.reset_dataloader_idx_tracker()
+        if self._train_progress_bar is not None and trainer.state.fn == "fit":
+            self.train_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.test_progress_bar = self.init_test_tqdm()
@@ -327,7 +327,7 @@ class TQDMProgressBar(ProgressBar):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -407,6 +407,7 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
     """The tqdm doesn't support inf/nan values.
 
     We have to convert it to None.
+
     """
     if x is None or math.isinf(x) or math.isnan(x):
         return None

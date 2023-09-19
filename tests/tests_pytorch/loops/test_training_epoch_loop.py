@@ -63,8 +63,7 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
 def test_should_stop_early_stopping_conditions_not_met(
     caplog, min_epochs, min_steps, current_epoch, global_step, early_stop, epoch_loop_done, raise_info_msg
 ):
-    """Test that checks that info message is logged when users sets `should_stop` but min conditions are not
-    met."""
+    """Test that checks that info message is logged when users sets `should_stop` but min conditions are not met."""
     trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
     trainer.fit_loop.max_batches = 10
     trainer.should_stop = True
@@ -86,6 +85,7 @@ def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, 
 
     Test that the request for `should_stop=True` only triggers validation when Trainer is allowed to stop
     (min_epochs/steps is satisfied).
+
     """
     model = BoringModel()
     trainer = Trainer(
@@ -103,3 +103,37 @@ def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, 
     trainer.fit_loop.epoch_loop.val_loop.run = Mock()
     trainer.fit(model)
     assert trainer.fit_loop.epoch_loop.val_loop.run.call_count == val_count
+
+
+def test_training_loop_dataloader_iter_multiple_dataloaders(tmp_path):
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=3,
+        limit_val_batches=0,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+        devices=1,
+    )
+
+    class MyModel(BoringModel):
+        batch_start_ins = []
+        step_outs = []
+        batch_end_ins = []
+
+        def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+            self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
+
+        def training_step(self, dataloader_iter):
+            self.step_outs.append(next(dataloader_iter))
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
+            self.batch_end_ins.append((batch, batch_idx, dataloader_idx))
+
+    model = MyModel()
+    trainer.fit(model, {"a": [0, 1], "b": [2, 3]})
+
+    assert model.batch_start_ins == [(None, 0, 0)] + model.step_outs[:-1]
+    assert model.step_outs == [({"a": 0, "b": 2}, 0, 0), ({"a": 1, "b": 3}, 1, 0)]
+    assert model.batch_end_ins == model.step_outs

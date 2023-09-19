@@ -25,7 +25,7 @@ Explore Intel Habana Processing Unit (HPU) for model scaling.
 
 .. displayitem::
    :header: Optimize models training on HPUs
-   :description: Enable state-of-the-art scaling with advanced mix-precision settings.
+   :description: Enable state-of-the-art scaling with advanced mixed-precision settings.
    :col_css: col-md-6
    :button_link: ../integrations/hpu/intermediate.html
    :height: 150

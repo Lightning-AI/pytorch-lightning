@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Tuple, Type, TYPE_CHECKING, Union
 from lightning.app.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
-    from lightning.app import LightningApp, LightningFlow, LightningWork
+    from lightning.app.core import LightningFlow, LightningWork, LightningApp
     from lightning.app.plugin.plugin import LightningPlugin
 
 from lightning.app.utilities.app_helpers import _mock_missing_imports, Logger
@@ -61,6 +61,7 @@ def _load_objects_from_file(
         raise_exception: If ``True`` exceptions will be raised, otherwise exceptions will trigger system exit.
         mock_imports: If ``True`` imports of missing packages will be replaced with a mock. This can allow the object to
             be loaded without installing dependencies.
+
     """
 
     # Taken from StreamLit: https://github.com/streamlit/streamlit/blob/develop/lib/streamlit/script_runner.py#L313
@@ -110,6 +111,7 @@ def load_app_from_file(
     Arguments:
         filepath:  The path to the file containing the LightningApp.
         raise_exception: If True, raise an exception if the app cannot be loaded.
+
     """
     from lightning.app.core.app import LightningApp
 
@@ -142,6 +144,7 @@ def open_python_file(filename):
 
     In Python 3, we would like all files to be opened with utf-8 encoding. However, some author like to specify PEP263
     headers in their source files with their own encodings. In that case, we should respect the author's encoding.
+
     """
     import tokenize
 
@@ -204,6 +207,7 @@ def _patch_sys_path(append):
 
     Args:
         append: The value to append to the path.
+
     """
     if append in sys.path:
         yield
@@ -273,7 +277,7 @@ def _patch_sys_argv():
 
 
 def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:
-    from lightning.app import LightningWork
+    from lightning.app.core import LightningWork
 
     extras = {}
 

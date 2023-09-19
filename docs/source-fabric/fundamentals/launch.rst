@@ -20,7 +20,7 @@ Simple Launch
     :autoplay:
     :loop:
     :muted:
-
+    :nocontrols:
 
 You can configure and launch processes on your machine directly with Fabric's :meth:`~lightning.fabric.fabric.Fabric.launch` method:
 
@@ -61,6 +61,7 @@ Launch with the CLI
     :autoplay:
     :loop:
     :muted:
+    :nocontrols:
 
 An alternative way to launch your Python script in multiple processes is to use the dedicated command line interface (CLI):
 

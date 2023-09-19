@@ -21,6 +21,7 @@ from torch import nn
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.strategies import SingleDeviceStrategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.types import _Stateful
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -57,16 +58,75 @@ def test_save_checkpoint_convert_stateful_objects(tmp_path):
 
     model = nn.Linear(3, 3)
     optimizer = torch.optim.Adam(model.parameters())
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.99)
 
     anything = {"cocofruit": 1}
-    state = {"model": model, "optimizer": optimizer, "anything": anything}
-    expected = {"model": model.state_dict(), "optimizer": optimizer.state_dict(), "anything": anything}
+    state = {"model": model, "optimizer": optimizer, "scheduler": scheduler, "anything": anything}
+    expected = {
+        "model": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "scheduler": scheduler.state_dict(),
+        "anything": anything,
+    }
     strategy.save_checkpoint(tmp_path, state)
     assert save_checkpoint_mock.call_args[1]["checkpoint"].keys() == expected.keys()
     saved_model_state = save_checkpoint_mock.call_args[1]["checkpoint"]["model"]
     assert all(torch.equal(p0, p1) for p0, p1 in zip(saved_model_state.values(), expected["model"].values()))
     assert save_checkpoint_mock.call_args[1]["checkpoint"]["optimizer"] == expected["optimizer"]
+    assert save_checkpoint_mock.call_args[1]["checkpoint"]["scheduler"] == expected["scheduler"]
     assert save_checkpoint_mock.call_args[1]["checkpoint"]["anything"] == expected["anything"]
+
+
+def test_save_load_stateful_objects(tmp_path):
+    """Test that stateful objects other than modules and optimizers get converted and loaded correctly."""
+
+    class Fruit:
+        count = 1
+
+        def state_dict(self):
+            return {"count": self.count}
+
+        def load_state_dict(self, state_dict):
+            self.count = state_dict["count"]
+
+    state = Fruit()
+    state.count = 100
+    assert isinstance(state, _Stateful)
+    strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
+    strategy.save_checkpoint(tmp_path / "checkpoint.ckpt", {"state": state})
+    state = Fruit()
+    assert state.count == 1
+    strategy.load_checkpoint(tmp_path / "checkpoint.ckpt", {"state": state})
+    assert state.count == 100
+
+
+def test_load_module_state_dict():
+    """Test that `Strategy.load_module_state_dict()` calls `.load_state_dict()` on the module."""
+    strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
+    module = Mock()
+    state_dict = Mock()
+    strategy.load_module_state_dict(module, state_dict)
+    module.load_state_dict.assert_called_with(state_dict, strict=True)
+    strategy.load_module_state_dict(module, state_dict, strict=False)
+    module.load_state_dict.assert_called_with(state_dict, strict=False)
+
+
+def test_load_checkpoint_model_optimizer_from_raw_checkpoint(tmp_path):
+    """Test that the `load_checkpoint` can load raw state dict checkpoints too."""
+    strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
+
+    model = nn.Linear(3, 3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1.0)
+    torch.save(model.state_dict(), tmp_path / "model.ckpt")
+    torch.save(optimizer.state_dict(), tmp_path / "optimizer.ckpt")
+
+    new_model = nn.Linear(3, 3)
+    new_optimizer = torch.optim.Adam(new_model.parameters(), lr=2.0)
+
+    strategy.load_checkpoint(tmp_path / "model.ckpt", state=new_model, strict=False)
+    assert torch.equal(new_model.weight, model.weight)
+    strategy.load_checkpoint(tmp_path / "optimizer.ckpt", state=new_optimizer, strict=False)
+    assert new_optimizer.state_dict()["param_groups"][0]["lr"] == 1.0
 
 
 def test_load_checkpoint_out_of_place(tmp_path):
@@ -126,8 +186,7 @@ def test_load_checkpoint_strict_loading(tmp_path):
 
 
 def test_load_checkpoint_non_strict_loading(tmp_path):
-    """Test that no error is raised if `strict=False` and state is requested that does not exist in the
-    checkpoint."""
+    """Test that no error is raised if `strict=False` and state is requested that does not exist in the checkpoint."""
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
 
     # objects with initial state

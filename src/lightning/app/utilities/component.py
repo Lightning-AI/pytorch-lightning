@@ -25,7 +25,7 @@ from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 from lightning.app.utilities.tree import breadth_first
 
 if TYPE_CHECKING:
-    from lightning.app import LightningFlow
+    from lightning.app.core import LightningFlow
 
 COMPONENT_CONTEXT: Optional[ComponentContext] = None
 
@@ -36,8 +36,9 @@ def _convert_paths_after_init(root: "LightningFlow"):
     This is necessary because at the time of instantiating the component, its full affiliation is not known and Paths
     that get passed to other componenets during ``__init__`` are otherwise not able to reference their origin or
     consumer.
+
     """
-    from lightning.app import LightningFlow, LightningWork
+    from lightning.app.core import LightningFlow, LightningWork
     from lightning.app.storage import Path
 
     for component in breadth_first(root, types=(LightningFlow, LightningWork)):
@@ -52,6 +53,7 @@ def _sanitize_state(state: Dict[str, Any]) -> Dict[str, Any]:
     """Utility function to sanitize the state of a component.
 
     Sanitization enables the state to be deep-copied and hashed.
+
     """
     from lightning.app.storage import Drive, Path
     from lightning.app.storage.payload import _BasePayload
@@ -132,6 +134,7 @@ def _context(ctx: str) -> Generator[None, None, None]:
 
     The context is used to determine whether the current process is running for a LightningFlow or for a LightningWork.
     See also :func:`_get_context`, :func:`_set_context`. For internal use only.
+
     """
     prev = _get_context()
     _set_context(ctx)

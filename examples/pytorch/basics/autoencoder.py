@@ -14,6 +14,7 @@
 """MNIST autoencoder example.
 
 To run: python autoencoder.py --trainer.max_epochs=50
+
 """
 from os import path
 from typing import Optional, Tuple
@@ -81,7 +82,7 @@ class ImageSampler(callbacks.Callback):
             nrow=self.nrow,
             padding=self.padding,
             normalize=self.normalize,
-            range=self.norm_range,
+            value_range=self.norm_range,
             scale_each=self.scale_each,
             pad_value=self.pad_value,
         )

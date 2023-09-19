@@ -78,6 +78,7 @@ def test_sanitize_callable_params():
     """Callback function are not serializiable.
 
     Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
+
     """
 
     def return_something():

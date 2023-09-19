@@ -171,6 +171,7 @@ class HookedModel(BoringModel):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
         pl_module_hooks.difference_update({"log", "log_dict"})
+        pl_module_hooks.discard("configure_sharded_model")
         # remove `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         pl_module_hooks.difference_update(module_hooks)
@@ -195,7 +196,7 @@ def test_fx_validator_integration(tmpdir):
     not_supported = {
         None: "`self.trainer` reference is not registered",
         "setup": "You can't",
-        "configure_sharded_model": "You can't",
+        "configure_model": "You can't",
         "configure_optimizers": "You can't",
         "on_fit_start": "You can't",
         "train_dataloader": "You can't",
@@ -265,7 +266,7 @@ def test_fx_validator_integration(tmpdir):
 
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
 def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
-    """test that auto_add_dataloader_idx argument works."""
+    """Test that auto_add_dataloader_idx argument works."""
 
     class TestModel(BoringModel):
         def val_dataloader(self):
@@ -310,7 +311,7 @@ def test_metrics_reset(tmpdir):
             return acc, ap
 
         def setup(self, stage):
-            fn = stage
+            fn = stage.value
             if fn == "fit":
                 for stage in ("train", "validate"):
                     acc, ap = self._create_metrics()
@@ -318,7 +319,7 @@ def test_metrics_reset(tmpdir):
                     self.add_module(f"ap_{fn}_{stage}", ap)
             else:
                 acc, ap = self._create_metrics()
-                stage = self.trainer.state.stage
+                stage = self.trainer.state.stage.value
                 self.add_module(f"acc_{fn}_{stage}", acc)
                 self.add_module(f"ap_{fn}_{stage}", ap)
 
@@ -326,7 +327,7 @@ def test_metrics_reset(tmpdir):
             return self.layer(x)
 
         def _step(self, batch):
-            fn, stage = self.trainer.state.fn, self.trainer.state.stage
+            fn, stage = self.trainer.state.fn.value, self.trainer.state.stage.value
 
             logits = self(batch)
             loss = logits.sum()

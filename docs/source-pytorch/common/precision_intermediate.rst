@@ -53,22 +53,6 @@ delivers all of these benefits while ensuring that no task-specific accuracy is 
 
 ----
 
-********************
-FP16 Mixed Precision
-********************
-
-In most cases, mixed precision uses FP16. Supported `PyTorch operations <https://pytorch.org/docs/stable/amp.html#op-specific-behavior>`__ automatically run in FP16, saving memory and improving throughput on the supported accelerators.
-Since computation happens in FP16, there is a chance of numerical instability during training. This is handled internally by a dynamic grad scaler which skips invalid steps and adjusts the scaler to ensure subsequent steps fall within a finite range. For more information `see the autocast docs <https://pytorch.org/docs/stable/amp.html#gradient-scaling>`__.
-
-
-.. note::
-
-    When using TPUs, setting ``precision='16-mixed'`` will enable bfloat16, the only supported half precision type on TPUs.
-
-.. testcode::
-    :skipif: not torch.cuda.is_available()
-
-    Trainer(accelerator="gpu", devices=1, precision=16)
 
 ************************
 BFloat16 Mixed Precision
@@ -77,7 +61,7 @@ BFloat16 Mixed Precision
 .. warning::
 
     BFloat16 may not provide significant speedups or memory improvements or offer better numerical stability.
-    Do note for GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`__ based GPUs, such as A100s or 3090s.
+    For GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`__ based GPUs or newer, such as A100s or 3090s.
 
 BFloat16 Mixed precision is similar to FP16 mixed precision, however, it maintains more of the "dynamic range" that FP32 offers. This means it is able to improve numerical stability than FP16 mixed precision. For more information, see `this TPU performance blogpost <https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus>`__.
 
@@ -86,22 +70,100 @@ Under the hood, we use `torch.autocast <https://pytorch.org/docs/stable/amp.html
 .. testcode::
     :skipif: not torch.cuda.is_available()
 
-    Trainer(accelerator="gpu", devices=1, precision="bf16")
+    Trainer(accelerator="gpu", devices=1, precision="bf16-mixed")
 
 It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDNN under the hood.
 
 .. testcode::
 
-    Trainer(precision="bf16")
+    Trainer(precision="bf16-mixed")
+
 
 ----
+
+
+*******************
+True Half Precision
+*******************
+
+As mentioned before, for numerical stability mixed precision keeps the model weights in full float32 precision while casting only supported operations to lower bit precision.
+However, in some cases it is indeed possible to train completely in half precision. Similarly, for inference the model weights can often be cast to half precision without a loss in accuracy (even when trained with mixed precision).
+
+.. code-block:: python
+
+    # Select FP16 precision
+    trainer = Trainer(precision="16-true")
+    trainer.fit(model)  # model gets cast to torch.float16
+
+    # Select BF16 precision
+    trainer = Trainer(precision="bf16-true")
+    trainer.fit(model)  # model gets cast to torch.bfloat16
+
+Tip: For faster initialization, you can create model parameters with the desired dtype directly on the device:
+
+.. code-block:: python
+
+    trainer = Trainer(precision="bf16-true")
+
+    # init the model directly on the device and with parameters in half-precision
+    with trainer.init_module():
+        model = MyModel()
+
+    trainer.fit(model)
+
+
+See also: :doc:`../advanced/model_init`
+
+
+----
+
+
+*****************************************************
+Float8 Mixed Precision via Nvidia's TransformerEngine
+*****************************************************
+
+`Transformer Engine <https://github.com/NVIDIA/TransformerEngine>`__ (TE) is a library for accelerating models on the
+latest NVIDIA GPUs using 8-bit floating point (FP8) precision on Hopper GPUs, to provide better performance with lower
+memory utilization in both training and inference. It offers improved performance over half precision with no degradation in accuracy.
+
+Using TE requires replacing some of the layers in your model. Fabric automatically replaces the :class:`torch.nn.Linear`
+and :class:`torch.nn.LayerNorm` layers in your model with their TE alternatives, however, TE also offers
+`fused layers <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html>`__
+to squeeze out all the possible performance. If Fabric detects that any layer has been replaced already, automatic
+replacement is not done.
+
+This plugin is a combination of "mixed" and "true" precision. The computation is downcasted to FP8 precision on the fly, but
+the model and inputs can be kept in true full or half precision.
+
+.. code-block:: python
+
+    # Select 8bit mixed precision via TransformerEngine
+    fabric = Trainer(precision="transformer-engine")
+
+    # Customize the fp8 recipe or set a different base precision:
+    from lightning.trainer.plugins import TransformerEnginePrecision
+
+    recipe = {"fp8_format": "HYBRID", "amax_history_len": 16, "amax_compute_algo": "max"}
+    precision = TransformerEnginePrecision(dtype=torch.bfloat16, recipe=recipe)
+    fabric = Trainer(plugins=precision)
+
+
+Under the hood, we use `transformer_engine.pytorch.fp8_autocast <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html#transformer_engine.pytorch.fp8_autocast>`__ with the default fp8 recipe.
+
+.. note::
+
+    This requires `Hopper <https://en.wikipedia.org/wiki/Hopper_(microarchitecture)>`_ based GPUs or newer, such the H100.
+
+
+----
+
 
 ***************
 8-bit Optimizer
 ***************
 
-It is possible to further reduce the precision using third-party libraries like `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`_. Although,
-Lightning doesn't support it out of the box yet but you can still use it by configuring it in your LightningModule and setting ``Trainer(precision=32)``.
+It is possible to further reduce the memory usage of the optimizer states by using third-party libraries like `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`_.
+You can configure it in your LightningModule by overriding ``configure_optimizers``.
 
 .. code-block:: python
 

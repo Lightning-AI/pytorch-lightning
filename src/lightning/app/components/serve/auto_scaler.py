@@ -114,8 +114,8 @@ def _create_fastapi(title: str) -> _TrackableFastAPI:
 
 
 class _LoadBalancer(LightningWork):
-    r"""The LoadBalancer is a LightningWork component that collects the requests and sends them to the prediciton
-    API asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
+    r"""The LoadBalancer is a LightningWork component that collects the requests and sends them to the prediciton API
+    asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
 
     After enabling you will require to send username and password from the request header for the private endpoints.
 
@@ -131,6 +131,7 @@ class _LoadBalancer(LightningWork):
         api_name: The name to be displayed on the UI. Normally, it is the name of the work class
         cold_start_proxy: The proxy service to use while the work is cold starting.
         **kwargs: Arguments passed to :func:`LightningWork.init` like ``CloudCompute``, ``BuildConfig``, etc.
+
     """
 
     @requires(["aiohttp"])
@@ -236,6 +237,7 @@ class _LoadBalancer(LightningWork):
 
         Two instances of this function should not be running with shared `_state_server` as that would create race
         conditions
+
         """
         while True:
             await asyncio.sleep(0.05)
@@ -293,6 +295,7 @@ class _LoadBalancer(LightningWork):
         """This function checks if we have processing capacity for one more request or not.
 
         Depends on the value from here, we decide whether we should proxy the request or not
+
         """
         if not self._fastapi_app:
             return False
@@ -385,6 +388,7 @@ class _LoadBalancer(LightningWork):
         """Updates works that load balancer distributes requests to.
 
         AutoScaler uses this method to increase/decrease the number of works.
+
         """
         old_server_urls = set(self.servers)
         current_server_urls = {
@@ -501,11 +505,12 @@ class AutoScaler(LightningFlow):
 
     .. testcode::
 
-        import lightning as L
+        from lightning.app import LightningApp
+        from lightning.app.components import AutoScaler
 
         # Example 1: Auto-scaling serve component out-of-the-box
-        app = L.LightningApp(
-            L.app.components.AutoScaler(
+        app = LightningApp(
+            app.components.AutoScaler(
                 MyPythonServer,
                 min_replicas=1,
                 max_replicas=8,
@@ -516,7 +521,7 @@ class AutoScaler(LightningFlow):
 
 
         # Example 2: Customizing the scaling logic
-        class MyAutoScaler(L.app.components.AutoScaler):
+        class MyAutoScaler(AutoScaler):
             def scale(self, replicas: int, metrics: dict) -> int:
                 pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
                     replicas + metrics["pending_works"]
@@ -535,7 +540,7 @@ class AutoScaler(LightningFlow):
                 return replicas
 
 
-        app = L.LightningApp(
+        app = LightningApp(
             MyAutoScaler(
                 MyPythonServer,
                 min_replicas=1,
@@ -623,6 +628,7 @@ class AutoScaler(LightningFlow):
 
         Returns:
             The name of the new work attribute.
+
         """
         work_attribute = uuid.uuid4().hex
         work_attribute = f"worker_{self.num_replicas}_{str(work_attribute)}"
@@ -665,6 +671,7 @@ class AutoScaler(LightningFlow):
         Returns:
             The target number of running works. The value will be adjusted after this method runs
             so that it satisfies ``min_replicas<=replicas<=max_replicas``.
+
         """
         pending_requests = metrics["pending_requests"]
         active_or_pending_works = replicas + metrics["pending_works"]

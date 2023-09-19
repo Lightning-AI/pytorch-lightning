@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from typing import Any, cast, Dict, Generator, Literal, Optional
+from typing import Any, ContextManager, Dict, Literal, Optional
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -47,7 +46,7 @@ class MixedPrecision(Precision):
                 " Precision must be '16-mixed' or 'bf16-mixed'."
             )
 
-        self.precision = cast(Literal["16-mixed", "bf16-mixed"], str(precision))
+        self.precision = precision
         if scaler is None and self.precision == "16-mixed":
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
@@ -59,10 +58,8 @@ class MixedPrecision(Precision):
 
         self._desired_input_dtype = torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16
 
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        with self._autocast_context_manager():
-            yield
+    def forward_context(self) -> ContextManager:
+        return self._autocast_context_manager()
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)

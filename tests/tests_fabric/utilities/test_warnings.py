@@ -14,18 +14,29 @@
 """Test that the warnings actually appear and they have the correct `stacklevel`
 
 Needs to be run outside of `pytest` as it captures all the warnings.
+
 """
+import inspect
+import sys
 from contextlib import redirect_stderr
 from io import StringIO
+from pathlib import Path
 
 from lightning_utilities.core.rank_zero import _warn, WarningCache
 
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from lightning.fabric.utilities.warnings import _is_path_in_lightning
+
+
+def line_number():
+    return inspect.currentframe().f_back.f_lineno
+
 
 if __name__ == "__main__":
     stderr = StringIO()
     # recording
     with redirect_stderr(stderr):
+        base_line = line_number() + 1
         _warn("test1")
         _warn("test2", category=DeprecationWarning)
 
@@ -39,16 +50,19 @@ if __name__ == "__main__":
         cache.deprecation("test7")
 
     output = stderr.getvalue()
-    assert "test_warnings.py:29: UserWarning: test1" in output
-    assert "test_warnings.py:30: DeprecationWarning: test2" in output
+    expected_lines = [
+        f"test_warnings.py:{base_line}: test1",
+        f"test_warnings.py:{base_line+1}: test2",
+        f"test_warnings.py:{base_line+3}: test3",
+        f"test_warnings.py:{base_line+4}: test4",
+        f"test_warnings.py:{base_line+6}: test5",
+        f"test_warnings.py:{base_line+9}: test6",
+        f"test_warnings.py:{base_line+10}: test7",
+    ]
 
-    assert "test_warnings.py:32: UserWarning: test3" in output
-    assert "test_warnings.py:33: DeprecationWarning: test4" in output
-
-    assert "test_warnings.py:35: LightningDeprecationWarning: test5" in output
-
-    assert "test_warnings.py:38: UserWarning: test6" in output
-    assert "test_warnings.py:39: LightningDeprecationWarning: test7" in output
+    for ln in expected_lines:
+        assert ln in output, f"Missing line {ln!r} in:\n{output}"
+        assert "rank_zero_warn(" not in output, "customized warning wrapper is not used"
 
     # check that logging is properly configured
     import logging
@@ -77,3 +91,26 @@ if __name__ == "__main__":
 
     output = stderr.getvalue()
     assert output == "test2\n", repr(output)
+
+
+def test_is_path_in_lightning(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    if sys.platform != "win32":
+        assert _is_path_in_lightning(Path("/a/b/c/lightning"))
+        assert _is_path_in_lightning(Path("/a/b/c/lightning/core/lightning.py"))
+        assert _is_path_in_lightning(Path("/a/b/c/lightning/lightning"))
+        assert not _is_path_in_lightning(Path("/a/b/c/"))
+        # The following statements should assert the opposite for correctness, but a naive implementation of
+        # `_is_path_in_lightning` was requested, thus it cannot handle these cases
+        assert _is_path_in_lightning(Path(""))
+        assert _is_path_in_lightning(Path("/a/b/lightning"))
+        assert _is_path_in_lightning(Path("a/b/c/lightning"))
+    else:
+        assert _is_path_in_lightning(Path(r"C:\a\b\c\lightning"))
+        assert _is_path_in_lightning(Path(r"C:\a\b\c\lightning\core\lightning.py"))
+        assert _is_path_in_lightning(Path(r"C:\a\b\c\lightning\lightning"))
+        assert not _is_path_in_lightning(Path(r"\a\b\c"))
+        assert not _is_path_in_lightning(Path(r"C:\a\b\c"))
+        # The following statements should assert the opposite for correctness, but a naive implementation of
+        # `_is_path_in_lightning` was requested, thus it cannot handle these cases
+        assert _is_path_in_lightning(Path(r"D:\a\b\c\lightning"))  # drive letter mismatch

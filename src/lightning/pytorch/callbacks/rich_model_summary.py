@@ -17,14 +17,10 @@ from lightning.pytorch.callbacks import ModelSummary
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.utilities.model_summary import get_human_readable_count
 
-if _RICH_AVAILABLE:  # type: ignore[has-type]
-    from rich import get_console
-    from rich.table import Table
-
 
 class RichModelSummary(ModelSummary):
-    r"""Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule` with `rich
-    text formatting <https://github.com/Textualize/rich>`_.
+    r"""Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule` with `rich text
+    formatting <https://github.com/Textualize/rich>`_.
 
     Install it with pip:
 
@@ -56,6 +52,7 @@ class RichModelSummary(ModelSummary):
     Raises:
         ModuleNotFoundError:
             If required `rich` package is not installed on the device.
+
     """
 
     def __init__(self, max_depth: int = 1, **summarize_kwargs: Any) -> None:
@@ -73,6 +70,9 @@ class RichModelSummary(ModelSummary):
         model_size: float,
         **summarize_kwargs: Any,
     ) -> None:
+        from rich import get_console
+        from rich.table import Table
+
         console = get_console()
 
         header_style: str = summarize_kwargs.get("header_style", "bold magenta")

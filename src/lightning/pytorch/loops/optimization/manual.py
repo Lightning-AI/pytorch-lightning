@@ -14,7 +14,7 @@
 from collections import OrderedDict
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from torch import Tensor
 
@@ -41,7 +41,7 @@ class ManualResult(OutputResult):
     extra: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ManualResult":
+    def from_training_step_output(cls, training_step_output: STEP_OUTPUT) -> "ManualResult":
         extra = {}
         if isinstance(training_step_output, dict):
             extra = training_step_output.copy()
@@ -72,6 +72,7 @@ class _ManualOptimization(_Loop):
 
     This loop is a trivial case because it performs only a single iteration (calling directly into the module's
     :meth:`~lightning.pytorch.core.module.LightningModule.training_step`) and passing through the output(s).
+
     """
 
     output_result_cls = ManualResult
@@ -102,6 +103,7 @@ class _ManualOptimization(_Loop):
 
         Args:
             kwargs: The kwargs passed down to the hooks.
+
         """
         trainer = self.trainer
 

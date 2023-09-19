@@ -22,30 +22,27 @@ from typing import Any, Callable, ContextManager, Dict, List, Optional, Type, TY
 import torch
 from torch import nn, Tensor
 from torch.autograd.profiler import EventList, record_function
+from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
+from torch.utils.hooks import RemovableHandle
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.pytorch.profilers.profiler import Profiler
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 
 if TYPE_CHECKING:
-    from torch.utils.hooks import RemovableHandle
-
     from lightning.pytorch.core.module import LightningModule
 
-if _KINETO_AVAILABLE:
-    from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 _PROFILER = Union[torch.profiler.profile, torch.autograd.profiler.profile, torch.autograd.profiler.emit_nvtx]
+_KINETO_AVAILABLE = torch.profiler.kineto_available()
 
 
 class RegisterRecordFunction:
-    """While profiling autograd operations, this class will add labels for module names around the forward
-    function.
+    """While profiling autograd operations, this class will add labels for module names around the forward function.
 
     The Lightning PyTorch Profiler will activate this feature automatically. It can be deactivated as follows:
 
@@ -60,12 +57,13 @@ class RegisterRecordFunction:
         from lightning.pytorch import Trainer, seed_everything
         with RegisterRecordFunction(model):
             out = model(batch)
+
     """
 
     def __init__(self, model: nn.Module) -> None:
         self._model = model
         self._records: Dict[str, record_function] = {}
-        self._handles: Dict[str, List["RemovableHandle"]] = {}
+        self._handles: Dict[str, List[RemovableHandle]] = {}
 
     def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
         # Add [pl][module] in name for pytorch profiler to recognize
@@ -288,6 +286,7 @@ class PyTorchProfiler(Profiler):
                 If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``.
                 If arg ``schedule`` is not a ``Callable``.
                 If arg ``schedule`` does not return a ``torch.profiler.ProfilerAction``.
+
         """
         super().__init__(dirpath=dirpath, filename=filename)
 

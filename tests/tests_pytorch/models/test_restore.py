@@ -105,8 +105,7 @@ def test_model_properties_fit_ckpt_path(tmpdir):
 
 @RunIf(sklearn=True)
 def test_trainer_properties_restore_ckpt_path(tmpdir):
-    """Test that required trainer properties are set correctly when resuming from checkpoint in different
-    phases."""
+    """Test that required trainer properties are set correctly when resuming from checkpoint in different phases."""
 
     class CustomClassifModel(ClassificationModel):
         def configure_optimizers(self):
@@ -261,7 +260,7 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
     model = BoringModel()
     trainer = Trainer()
 
-    with pytest.raises(FileNotFoundError, match="Aborting training"):
+    with pytest.raises(FileNotFoundError, match="Checkpoint file not found"):
         trainer.fit(model, ckpt_path=str(tmpdir / "non_existing.ckpt"))
 
 

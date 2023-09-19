@@ -8,6 +8,7 @@ Accelerate your code with Fabric
     :autoplay:
     :loop:
     :muted:
+    :nocontrols:
 
 
 ***************************

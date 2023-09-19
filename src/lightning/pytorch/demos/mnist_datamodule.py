@@ -28,9 +28,6 @@ from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import LightningDataModule
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 
-if _TORCHVISION_AVAILABLE:
-    from torchvision import transforms as transform_lib
-
 _DATASETS_PATH = "./data"
 
 
@@ -149,6 +146,7 @@ class MNISTDataModule(LightningDataModule):
 
     >>> MNISTDataModule()  # doctest: +ELLIPSIS
     <...mnist_datamodule.MNISTDataModule object at ...>
+
     """
 
     name = "mnist"
@@ -243,11 +241,14 @@ class MNISTDataModule(LightningDataModule):
     def default_transforms(self) -> Optional[Callable]:
         if not _TORCHVISION_AVAILABLE:
             return None
+
+        from torchvision import transforms
+
         if self.normalize:
-            mnist_transforms = transform_lib.Compose(
-                [transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5,), std=(0.5,))]
+            mnist_transforms = transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize(mean=(0.5,), std=(0.5,))]
             )
         else:
-            mnist_transforms = transform_lib.ToTensor()
+            mnist_transforms = transforms.ToTensor()
 
         return mnist_transforms

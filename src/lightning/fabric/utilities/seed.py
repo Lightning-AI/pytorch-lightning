@@ -17,20 +17,21 @@ min_seed_value = np.iinfo(np.uint32).min
 
 
 def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
-    """Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random In addition,
+    r"""Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random In addition,
     sets the following environment variables:
 
-    - `PL_GLOBAL_SEED`: will be passed to spawned subprocesses (e.g. ddp_spawn backend).
-    - `PL_SEED_WORKERS`: (optional) is set to 1 if ``workers=True``.
+    - ``PL_GLOBAL_SEED``: will be passed to spawned subprocesses (e.g. ddp_spawn backend).
+    - ``PL_SEED_WORKERS``: (optional) is set to 1 if ``workers=True``.
 
     Args:
         seed: the integer value seed for global random state in Lightning.
-            If `None`, will read seed from `PL_GLOBAL_SEED` env variable
+            If ``None``, will read seed from ``PL_GLOBAL_SEED`` env variable
             or select it randomly.
         workers: if set to ``True``, will properly configure all dataloaders passed to the
             Trainer with a ``worker_init_fn``. If the user already provides such a function
             for their dataloaders, setting this argument will have no influence. See also:
             :func:`~lightning.fabric.utilities.seed.pl_worker_init_function`.
+
     """
     if seed is None:
         env_seed = os.environ.get("PL_GLOBAL_SEED")
@@ -67,9 +68,10 @@ def _select_seed_randomly(min_seed_value: int = min_seed_value, max_seed_value: 
 
 
 def reset_seed() -> None:
-    """Reset the seed to the value that :func:`lightning.fabric.utilities.seed.seed_everything` previously set.
+    r"""Reset the seed to the value that :func:`~lightning.fabric.utilities.seed.seed_everything` previously set.
 
-    If :func:`lightning.fabric.utilities.seed.seed_everything` is unused, this function will do nothing.
+    If :func:`~lightning.fabric.utilities.seed.seed_everything` is unused, this function will do nothing.
+
     """
     seed = os.environ.get("PL_GLOBAL_SEED", None)
     if seed is None:
@@ -79,7 +81,7 @@ def reset_seed() -> None:
 
 
 def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:  # pragma: no cover
-    """The worker_init_fn that Lightning automatically adds to your dataloader if you previously set the seed with
+    r"""The worker_init_fn that Lightning automatically adds to your dataloader if you previously set the seed with
     ``seed_everything(seed, workers=True)``.
 
     See also the PyTorch documentation on
@@ -105,7 +107,7 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
 
 
 def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
-    """Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
+    r"""Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
     states = {
         "torch": torch.get_rng_state(),
         "numpy": np.random.get_state(),
@@ -117,7 +119,7 @@ def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
 
 
 def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
-    """Set the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python in the current
+    r"""Set the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python in the current
     process."""
     torch.set_rng_state(rng_state_dict["torch"])
     # torch.cuda rng_state is only included since v1.8.

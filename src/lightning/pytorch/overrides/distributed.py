@@ -17,11 +17,13 @@ from typing import Any, Callable, cast, Dict, Iterable, Iterator, List, Optional
 import torch
 from torch import Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.utils.data import BatchSampler, DistributedSampler, Sampler
+from torch.utils.data import DistributedSampler, Sampler
+from typing_extensions import Self
 
 from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
+from lightning.pytorch.utilities.types import _SizedIterable
 
 
 def _find_tensors(
@@ -142,6 +144,7 @@ def _register_ddp_comm_hook(
             ddp_comm_hook=powerSGD.powerSGD_hook,
             ddp_comm_wrapper=default.fp16_compress_wrapper,
         )
+
     """
     if ddp_comm_hook is None:
         return
@@ -191,15 +194,16 @@ def _sync_module_states(module: torch.nn.Module) -> None:
 
 
 class UnrepeatedDistributedSampler(DistributedSampler):
-    """A fork of the PyTorch DistributedSampler that doesn't repeat data, instead allowing the number of batches
-    per process to be off-by-one from each other. This makes this sampler usable for predictions (it's
-    deterministic and doesn't require shuffling). It is potentially unsafe to use this sampler for training,
-    because during training the DistributedDataParallel syncs buffers on each forward pass, so it could freeze if
-    one of the processes runs one fewer batch. During prediction, buffers are only synced on the first batch, so
-    this is safe to use as long as each process runs at least one batch. We verify this in an assert.
+    """A fork of the PyTorch DistributedSampler that doesn't repeat data, instead allowing the number of batches per
+    process to be off-by-one from each other. This makes this sampler usable for predictions (it's deterministic and
+    doesn't require shuffling). It is potentially unsafe to use this sampler for training, because during training the
+    DistributedDataParallel syncs buffers on each forward pass, so it could freeze if one of the processes runs one
+    fewer batch. During prediction, buffers are only synced on the first batch, so this is safe to use as long as each
+    process runs at least one batch. We verify this in an assert.
 
     Taken from https://github.com/jpuigcerver/PyLaia/blob/v1.0.0/laia/data/unpadded_distributed_sampler.py and
     https://github.com/pytorch/pytorch/issues/25162#issuecomment-634146002
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -243,10 +247,10 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
         return (self.dataset[index] for index in super().__iter__())
 
 
-class _IndexBatchSamplerWrapper(BatchSampler):
+class _IndexBatchSamplerWrapper:
     """This class is used to wrap a :class:`torch.utils.data.BatchSampler` and capture its indices."""
 
-    def __init__(self, batch_sampler: BatchSampler) -> None:
+    def __init__(self, batch_sampler: _SizedIterable) -> None:
         # do not call super().__init__() on purpose
         self.seen_batch_indices: List[List[int]] = []
 
@@ -264,7 +268,7 @@ class _IndexBatchSamplerWrapper(BatchSampler):
         self.seen_batch_indices.append(batch)
         return batch
 
-    def __iter__(self) -> Iterator[List[int]]:
+    def __iter__(self) -> Self:
         self.seen_batch_indices = []
         self._iterator = iter(self._batch_sampler)
         return self
