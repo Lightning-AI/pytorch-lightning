@@ -27,9 +27,8 @@ from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from lightning.pytorch.profilers.pytorch import RegisterRecordFunction, warning_cache
+from lightning.pytorch.profilers.pytorch import _KINETO_AVAILABLE, RegisterRecordFunction, warning_cache
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005

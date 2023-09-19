@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from typing import Any, cast, Dict, Generator, Literal, Optional, TYPE_CHECKING
+from typing import Any, cast, ContextManager, Dict, Literal, Optional, TYPE_CHECKING
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -23,7 +22,7 @@ from typing_extensions import get_args
 
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.precision import Precision
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
 
@@ -107,28 +106,13 @@ class FSDPPrecision(Precision):
             buffer_dtype=buffer_dtype,
         )
 
-    @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type when initializing module parameters or tensors.
+    def init_context(self) -> ContextManager:
+        return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
 
-        See: :func:`torch.set_default_dtype`
-
-        """
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self.mixed_precision_config.param_dtype or torch.float32)
-        yield
-        torch.set_default_dtype(default_dtype)
-
-    @contextmanager
-    def forward_context(self) -> Generator:
+    def forward_context(self) -> ContextManager:
         if "mixed" in self.precision:
-            with self._autocast_context_manager():
-                yield
-        else:
-            default_dtype = torch.get_default_dtype()
-            torch.set_default_dtype(self._desired_input_dtype)
-            yield
-            torch.set_default_dtype(default_dtype)
+            return self._autocast_context_manager()
+        return _DtypeContextManager(self._desired_input_dtype)
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
