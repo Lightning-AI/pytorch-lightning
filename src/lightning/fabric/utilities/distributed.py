@@ -4,7 +4,7 @@ import sys
 import time
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union, TYPE_CHECKING
+from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, TYPE_CHECKING, Union
 
 import torch
 import torch.nn.functional as F
@@ -23,6 +23,7 @@ else:
 
     class group:  # type: ignore
         WORLD = None
+
 
 if TYPE_CHECKING:
     from lightning.fabric import Fabric
