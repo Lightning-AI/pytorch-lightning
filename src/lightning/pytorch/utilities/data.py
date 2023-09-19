@@ -40,6 +40,8 @@ warning_cache = WarningCache()
 
 
 def suggested_max_num_workers(local_world_size: int) -> int:
+    if local_world_size < 1:
+        raise ValueError(f"`local_world_size` should be >= 1, got {local_world_size}.")
     cpu_count = _num_cpus_available()
     return max(1, cpu_count // local_world_size)
 

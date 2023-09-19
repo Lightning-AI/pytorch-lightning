@@ -1,4 +1,6 @@
+import os
 from dataclasses import dataclass
+from unittest import mock
 from unittest.mock import Mock
 
 import numpy as np
@@ -19,6 +21,7 @@ from lightning.pytorch.utilities.data import (
     extract_batch_size,
     has_len_all_ranks,
     warning_cache,
+    suggested_max_num_workers,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
@@ -326,3 +329,49 @@ def test_dataloader_kwargs_replacement_with_array_default_comparison():
     dataloader = ArrayAttributeDataloader(dataset)
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
     assert dl_kwargs["indices"] is dataloader.indices
+
+
+@pytest.mark.parametrize(
+    "cpu_count, local_world_size, expected",
+    [
+        (0, 1, 1),
+        (1, 1, 1),
+        (2, 1, 2),
+        (1, 2, 1),
+        (1, 2, 1),
+        (2, 2, 1),
+        (3, 2, 1),
+        (4, 2, 2),
+        (4, 3, 1),
+        (4, 1, 4),
+    ],
+)
+@pytest.mark.parametrize(
+    "affinity",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                not hasattr(os, "sched_getaffinity"), reason="OS does not support restricting CPU cores"
+            ),
+        ),
+    ],
+)
+@mock.patch("lightning.pytorch.utilities.data.os.cpu_count")
+def test_suggested_max_num_workers(cpu_count_mock, affinity, cpu_count, local_world_size, expected, monkeypatch):
+    if affinity:
+        monkeypatch.setattr(
+            "lightning.pytorch.utilities.data.os", "sched_getaffinity", lambda _: list(range(cpu_count))
+        )
+    else:
+        monkeypatch.delattr("lightning.pytorch.utilities.data.os", "sched_getaffinity", raising=False)
+        cpu_count_mock.return_value = cpu_count
+
+    assert suggested_max_num_workers(local_world_size) == expected
+
+
+@pytest.mark.parametrize("invalid", [-1, 0])
+def test_suggested_max_num_workers_input_validation(invalid):
+    with pytest.raises(ValueError, match="should be >= 1"):
+        suggested_max_num_workers(invalid)
