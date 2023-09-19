@@ -425,7 +425,7 @@ def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
         return
 
     upper_bound = suggested_max_num_workers(trainer.num_devices)
-    if dataloader.num_workers <= 2 < upper_bound:
+    if dataloader.num_workers <= 2 < upper_bound or dataloader.num_workers < 2 <= upper_bound:
         # TODO
         # if changed, update the `filterwarnings` snippet in 'speed.html#num-workers'
         rank_zero_warn(

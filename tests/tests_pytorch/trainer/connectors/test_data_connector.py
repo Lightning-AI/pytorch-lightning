@@ -109,7 +109,16 @@ def test_replace_distributed_sampler(tmpdir, mode):
 
 @pytest.mark.parametrize("num_devices, num_workers, cpu_count, expected_warning", [
     (1, 0, 1, False),
-    (1, 0, 1, False),
+    (8, 0, 1, False),
+    (8, 0, None, False),
+    (1, 1, None, False),
+    (1, 2, 2, False),
+    (1, 1, 8, True),
+    (1, 2, 8, True),
+    (1, 3, 8, False),
+    (4, 1, 8, True),
+    (4, 2, 8, False),
+    (8, 2, 8, False),
 ])
 @mock.patch("lightning.pytorch.utilities.data.os.cpu_count")
 def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expected_warning, monkeypatch):
