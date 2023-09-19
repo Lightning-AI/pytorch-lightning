@@ -16,8 +16,7 @@ import os
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, TYPE_CHECKING, Union, \
-    Tuple
+from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -207,7 +206,7 @@ class FSDPStrategy(ParallelStrategy):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def process_group(self) -> Optional[Union[ProcessGroup, Tuple[ProcessGroup, ProcessGroup]]]:
+    def process_group(self) -> Optional[ProcessGroup]:
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
         return self.model.process_group if isinstance(self.model, FSDP) else None
