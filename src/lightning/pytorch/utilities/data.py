@@ -54,7 +54,7 @@ def suggested_max_num_workers(local_world_size: int) -> int:
 
 
 def _num_cpus_available() -> int:
-    if hasattr(os, 'sched_getaffinity'):
+    if hasattr(os, "sched_getaffinity"):
         return len(os.sched_getaffinity(0))
 
     cpu_count = os.cpu_count()
