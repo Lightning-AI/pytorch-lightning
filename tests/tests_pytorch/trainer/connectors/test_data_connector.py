@@ -15,6 +15,7 @@ from contextlib import redirect_stderr
 from io import StringIO
 from re import escape
 from typing import Sized
+from unittest import mock
 from unittest.mock import Mock
 
 import pytest
@@ -30,7 +31,7 @@ from lightning.pytorch.trainer.connectors.data_connector import (
     _check_dataloader_iterable,
     _DataHookSelector,
     _DataLoaderSource,
-    warning_cache,
+    warning_cache, _worker_check,
 )
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
@@ -106,44 +107,26 @@ def test_replace_distributed_sampler(tmpdir, mode):
     trainer.test(model)
 
 
-class TestSpawnBoringModel(BoringModel):
-    def __init__(self, num_workers):
-        super().__init__()
-        self.num_workers = num_workers
+@pytest.mark.parametrize("num_devices, num_workers, cpu_count, expected_warning", [
+    (1, 0, 1, False),
+    (1, 0, 1, False),
+])
+@mock.patch("lightning.pytorch.utilities.data.os.cpu_count")
+def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expected_warning, monkeypatch):
+    monkeypatch.delattr("lightning.pytorch.utilities.data.os", "sched_getaffinity", raising=False)
+    trainer = Mock(spec=Trainer)
+    dataloader = Mock(spec=DataLoader)
+    trainer.num_devices = num_devices
+    dataloader.num_workers = num_workers
+    cpu_count_mock.return_value = cpu_count
 
-    def train_dataloader(self):
-        return DataLoader(RandomDataset(32, 64), num_workers=self.num_workers)
+    if expected_warning:
+        ctx = pytest.warns(UserWarning, match=f"Consider increasing the value of the `num_workers` argument`")
+    else:
+        ctx = no_warning_call(UserWarning)
 
-    def on_fit_start(self):
-        self._resout = StringIO()
-        self.ctx = redirect_stderr(self._resout)
-        self.ctx.__enter__()
-
-    def on_train_end(self):
-        def _get_warning_msg():
-            dl = self.trainer.train_dataloader
-            if hasattr(dl, "persistent_workers"):
-                if self.num_workers == 0:
-                    warn_str = "Consider setting num_workers>0 and persistent_workers=True"
-                else:
-                    warn_str = "Consider setting persistent_workers=True"
-            else:
-                warn_str = "Consider setting strategy=ddp"
-
-            return warn_str
-
-        if self.trainer.is_global_zero:
-            self.ctx.__exit__(None, None, None)
-            msg = self._resout.getvalue()
-            warn_str = _get_warning_msg()
-            assert warn_str in msg
-
-
-@RunIf(skip_windows=True)
-@pytest.mark.parametrize("num_workers", [0, 1])
-def test_dataloader_warnings(tmpdir, num_workers):
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
-    trainer.fit(TestSpawnBoringModel(num_workers))
+    with ctx:
+        _worker_check(trainer, dataloader, "train_dataloader")
 
 
 def test_update_dataloader_raises():

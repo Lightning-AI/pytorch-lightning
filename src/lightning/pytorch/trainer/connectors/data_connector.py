@@ -426,12 +426,12 @@ def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
 
     upper_bound = suggested_max_num_workers(trainer.num_devices)
     if dataloader.num_workers <= 2 < upper_bound:
+        # TODO
         # if changed, update the `filterwarnings` snippet in 'speed.html#num-workers'
         rank_zero_warn(
-            f"The dataloader, {name}, does not have many workers which may be a bottleneck."
-            " Consider increasing the value of the `num_workers` argument`"
-            f" (try {upper_bound} which is the number of cpus on this machine)"
-            " in the `DataLoader` init to improve performance.",
+            f"The dataloader, {name}, does not have many workers which may be a bottleneck. Consider increasing the"
+            f" value of the `num_workers` argument` to `num_workers={upper_bound}` in the `DataLoader` to improve "
+            " performance.",
             category=PossibleUserWarning,
         )
 
