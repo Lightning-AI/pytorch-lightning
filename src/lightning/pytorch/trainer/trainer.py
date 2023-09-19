@@ -287,7 +287,7 @@ class Trainer:
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
                 Default: ``False``.
 
-            reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
+            reload_dataloaders_every_n_epochs: Set to a positive integer to reload dataloaders every n epochs.
                 Default: ``0``.
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
