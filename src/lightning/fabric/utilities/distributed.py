@@ -12,11 +12,11 @@ from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
-from lightning.fabric.strategies.strategy import Strategy
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning.fabric.strategies.strategy import Strategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.fabric.utilities.rank_zero import rank_zero_info
-from lightning.fabric.utilities.types import ReduceOp, _PATH
+from lightning.fabric.utilities.types import _PATH, ReduceOp
 
 if torch.distributed.is_available():
     from torch.distributed import group
