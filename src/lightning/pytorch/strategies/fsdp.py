@@ -171,9 +171,9 @@ class FSDPStrategy(ParallelStrategy):
         self._process_group_backend = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self.cpu_offload = _init_cpu_offload(cpu_offload)
-        self.sharding_strategy = _init_sharding_strategy(sharding_strategy, auto_wrap_policy)
         self.mixed_precision = mixed_precision
         self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
+        self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self.kwargs)
 
         if _TORCH_GREATER_EQUAL_2_0:
             # Avoids the need for user to reference params in `configure_optimizers` via

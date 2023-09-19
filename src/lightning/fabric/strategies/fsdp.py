@@ -182,7 +182,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             activation_checkpointing, activation_checkpointing_policy
         )
         self._state_dict_type = state_dict_type
-        self.sharding_strategy = _init_sharding_strategy(sharding_strategy, auto_wrap_policy)
+        self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self._fsdp_kwargs)
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
 
@@ -769,13 +769,11 @@ def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUO
     return cpu_offload if isinstance(cpu_offload, CPUOffload) else CPUOffload(offload_params=bool(cpu_offload))
 
 
-def _init_sharding_strategy(
-    sharding_strategy: "_SHARDING_STRATEGY", auto_wrap_policy: Optional["_POLICY"]
-) -> "ShardingStrategy":
+def _init_sharding_strategy(sharding_strategy: "_SHARDING_STRATEGY", kwargs: Dict) -> "ShardingStrategy":
     from torch.distributed.fsdp import ShardingStrategy
 
     strategy = ShardingStrategy[sharding_strategy.upper()] if isinstance(sharding_strategy, str) else sharding_strategy
-    if "HYBRID" in sharding_strategy.name and auto_wrap_policy is None:
+    if "HYBRID" in strategy.name and kwargs.get("auto_wrap_policy") is None and kwargs.get("process_group") is None:
         raise RuntimeError(
             "The hybrid sharding strategy requires you to either set the `auto_wrap_policy` or pass a process"
             " group tuple to the `process_group` parameter."
