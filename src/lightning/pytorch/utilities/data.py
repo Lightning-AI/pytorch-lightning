@@ -14,7 +14,7 @@
 import inspect
 import os
 from dataclasses import fields
-from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Sized, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Sized, Tuple, Union, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.apply_func import is_dataclass_instance
@@ -30,9 +30,11 @@ from lightning.fabric.utilities.data import (
     sized_len,
 )
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
-from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+
+if TYPE_CHECKING:
+    from lightning.pytorch.trainer.states import RunningStage
 
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
@@ -150,7 +152,7 @@ def has_len_all_ranks(
 
 
 def _update_dataloader(
-    dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
+    dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional["RunningStage"] = None
 ) -> DataLoader:
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode)
     return _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
@@ -159,7 +161,7 @@ def _update_dataloader(
 def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
-    mode: Optional[RunningStage] = None,
+    mode: Optional["RunningStage"] = None,
 ) -> Tuple[Tuple[Any], Dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
@@ -253,7 +255,7 @@ def _get_dataloader_init_args_and_kwargs(
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
-    mode: Optional[RunningStage] = None,
+    mode: Optional["RunningStage"] = None,
 ) -> Dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its re-
     instantiation.
@@ -262,6 +264,8 @@ def _dataloader_init_kwargs_resolve_sampler(
     Lightning can keep track of its indices.
 
     """
+    from lightning.pytorch.trainer.states import RunningStage
+
     is_predicting = mode == RunningStage.PREDICTING
     batch_sampler = getattr(dataloader, "batch_sampler")
     batch_sampler_cls = type(batch_sampler)
