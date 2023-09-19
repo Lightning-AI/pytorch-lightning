@@ -117,7 +117,7 @@ jobs:
       run: |
         #python -m pip install -q pip -U
         pip install -e ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --prefer-binary \
-          "pytest-timeout" --find-links="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
+          --find-links="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
         pip list
     - name: Dump handy wheels
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'

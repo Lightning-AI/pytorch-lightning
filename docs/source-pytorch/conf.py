@@ -18,7 +18,7 @@ import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
 
-import pt_lightning_sphinx_theme
+import lai_sphinx_theme
 from lightning_utilities.docs import fetch_external_assets
 from lightning_utilities.docs.formatting import _transform_changelog
 
@@ -27,8 +27,8 @@ import lightning
 # -----------------------
 # VARIABLES WHEN WORKING ON DOCS... MAKE THIS TRUE TO BUILD FASTER
 # -----------------------
-_SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", 1))
-_FAST_DOCS_DEV = bool(int(os.getenv("FAST_DOCS_DEV", 0)))
+_SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
+_FAST_DOCS_DEV = int(os.getenv("FAST_DOCS_DEV", True))
 
 # -----------------------
 # BUILD stuff
@@ -146,7 +146,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
-    "pt_lightning_sphinx_theme.extensions.lightning",
+    "lai_sphinx_theme.extensions.lightning",
 ]
 
 # Suppress warnings about duplicate labels (needed for PL tutorials)
@@ -215,8 +215,8 @@ pygments_style = None
 # http://www.sphinx-doc.org/en/master/usage/theming.html#builtin-themes
 # html_theme = 'bizstyle'
 # https://sphinx-themes.org
-html_theme = "pt_lightning_sphinx_theme"
-html_theme_path = [os.environ.get("LIT_SPHINX_PATH", pt_lightning_sphinx_theme.get_html_theme_path())]
+html_theme = "lai_sphinx_theme"
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", lai_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -385,6 +385,9 @@ if _SPHINX_MOCK_REQUIREMENTS:
     MOCK_PACKAGES += package_list_from_file(_path_require("base.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("extra.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("strategies.txt"))
+    MOCK_PACKAGES += package_list_from_file(_path_require("loggers.info"))
+    MOCK_PACKAGES += ["comet_ml", "torch_xla", "transformer_engine"]
+    MOCK_PACKAGES.remove("jsonargparse")
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES

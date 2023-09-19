@@ -25,7 +25,7 @@ With Lightning, running on GPUs, TPUs, IPUs on multiple nodes is a simple switch
 GPU Training
 ============
 
-Lightning supports a variety of plugins to speed up distributed GPU training. Most notably:
+Lightning supports a variety of strategies to speed up distributed GPU training. Most notably:
 
 * :class:`~lightning.pytorch.strategies.DDPStrategy`
 * :class:`~lightning.pytorch.strategies.FSDPStrategy`
@@ -113,7 +113,7 @@ your script has to be callable like so:
 
     python my_program.py
 
-However, using ``strategy="ddp_spawn"`` enables to reduce memory usage with In-Memory Dataset and shared memory tensors. For more info, checkout
+However, using ``strategy="ddp_spawn"`` enables to reduce memory usage with In-Memory Dataset and shared memory tensors. For more info, check out
 :ref:`Sharing Datasets Across Process Boundaries <ddp_spawn_shared_memory>` section.
 
 Persistent Workers
@@ -148,7 +148,7 @@ Example::
     --tpu=$TPU_POD_NAME
     --conda-env=torch-xla-nightly
     --env=XLA_USE_BF16=1
-    -- python your_trainer_file.py
+    --python your_trainer_file.py
 
 
 Read more in our :ref:`training-speedup` and :ref:`plugins` guides.
