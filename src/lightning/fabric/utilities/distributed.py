@@ -30,17 +30,18 @@ log = logging.getLogger(__name__)
 
 
 def is_shared_filesystem(strategy: Strategy, path: Optional[_PATH] = None, timeout: int = 3) -> bool:
-    path = Path(Path.cwd() if path is None else path)
+    path = Path(Path.cwd() if path is None else path).resolve()
 
     # Fast path: Only distributed strategies can detect shared filesystems
     if not hasattr(strategy, "world_size") or strategy.world_size == 1:
         return True
 
-    # Fast path: If the path is not the same on all ranks, we know it's not a shared filesystem
+    # Fast path: If the path is not the same on all ranks or does not exist, we know it's not a shared filesystem
     rank_zero_path = strategy.broadcast(path)
-    if not strategy.reduce_boolean_decision(rank_zero_path == path, all=True):
+    if not strategy.reduce_boolean_decision(rank_zero_path == path and path.exists(), all=True):
         return False
 
+    path = path.parent if path.is_file() else path
     check_file = path / ".shared_fs_check"
     check_file.unlink(missing_ok=True)
 
