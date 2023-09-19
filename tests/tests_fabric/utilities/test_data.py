@@ -18,7 +18,8 @@ from lightning.fabric.utilities.data import (
     _update_dataloader,
     _WrapAttrTag,
     has_iterable_dataset,
-    has_len, suggested_max_num_workers,
+    has_len,
+    suggested_max_num_workers,
 )
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
@@ -609,9 +610,7 @@ def test_set_sampler_epoch():
 @mock.patch("lightning.fabric.utilities.data.os.cpu_count")
 def test_suggested_max_num_workers(cpu_count_mock, affinity, cpu_count, local_world_size, expected, monkeypatch):
     if affinity:
-        monkeypatch.setattr(
-            "lightning.fabric.utilities.data.os", "sched_getaffinity", lambda _: list(range(cpu_count))
-        )
+        monkeypatch.setattr("lightning.fabric.utilities.data.os", "sched_getaffinity", lambda _: list(range(cpu_count)))
     else:
         monkeypatch.delattr("lightning.pytorch.utilities.data.os", "sched_getaffinity", raising=False)
         cpu_count_mock.return_value = cpu_count

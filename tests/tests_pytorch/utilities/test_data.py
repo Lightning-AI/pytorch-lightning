@@ -1,6 +1,4 @@
-import os
 from dataclasses import dataclass
-from unittest import mock
 from unittest.mock import Mock
 
 import numpy as np
@@ -20,7 +18,6 @@ from lightning.pytorch.utilities.data import (
     _update_dataloader,
     extract_batch_size,
     has_len_all_ranks,
-    suggested_max_num_workers,
     warning_cache,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
