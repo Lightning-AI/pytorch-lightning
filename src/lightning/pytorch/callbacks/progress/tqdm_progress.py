@@ -100,6 +100,8 @@ class TQDMProgressBar(ProgressBar):
             :class:`~lightning.pytorch.trainer.trainer.Trainer`.
     """
 
+    default_bar_format = "{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_noinv_fmt}{postfix}]"
+
     def __init__(self, refresh_rate: int = 1, process_position: int = 0):
         super().__init__()
         self._refresh_rate = self._resolve_refresh_rate(refresh_rate)
@@ -185,6 +187,7 @@ class TQDMProgressBar(ProgressBar):
             leave=False,
             dynamic_ncols=True,
             file=sys.stdout,
+            bar_format=self.default_bar_format,
         )
 
     def init_train_tqdm(self) -> Tqdm:
@@ -197,6 +200,7 @@ class TQDMProgressBar(ProgressBar):
             dynamic_ncols=True,
             file=sys.stdout,
             smoothing=0,
+            bar_format=self.default_bar_format,
         )
 
     def init_predict_tqdm(self) -> Tqdm:
@@ -209,6 +213,7 @@ class TQDMProgressBar(ProgressBar):
             dynamic_ncols=True,
             file=sys.stdout,
             smoothing=0,
+            bar_format=self.default_bar_format,
         )
 
     def init_validation_tqdm(self) -> Tqdm:
@@ -222,6 +227,7 @@ class TQDMProgressBar(ProgressBar):
             leave=not has_main_bar,
             dynamic_ncols=True,
             file=sys.stdout,
+            bar_format=self.default_bar_format,
         )
 
     def init_test_tqdm(self) -> Tqdm:
@@ -233,6 +239,7 @@ class TQDMProgressBar(ProgressBar):
             leave=True,
             dynamic_ncols=True,
             file=sys.stdout,
+            bar_format=self.default_bar_format,
         )
 
     def on_sanity_check_start(self, *_: Any) -> None:
