@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import multiprocessing
 import os
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional, Tuple, Union
@@ -28,7 +27,6 @@ from lightning.fabric.utilities.data import (
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
-from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader

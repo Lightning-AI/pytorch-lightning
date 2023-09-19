@@ -20,8 +20,8 @@ from lightning.pytorch.utilities.data import (
     _update_dataloader,
     extract_batch_size,
     has_len_all_ranks,
-    warning_cache,
     suggested_max_num_workers,
+    warning_cache,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
@@ -332,7 +332,7 @@ def test_dataloader_kwargs_replacement_with_array_default_comparison():
 
 
 @pytest.mark.parametrize(
-    "cpu_count, local_world_size, expected",
+    ("cpu_count", "local_world_size", "expected"),
     [
         (0, 1, 1),
         (1, 1, 1),

@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import redirect_stderr
-from io import StringIO
 from re import escape
 from typing import Sized
 from unittest import mock
@@ -31,8 +29,8 @@ from lightning.pytorch.trainer.connectors.data_connector import (
     _check_dataloader_iterable,
     _DataHookSelector,
     _DataLoaderSource,
-    warning_cache,
     _worker_check,
+    warning_cache,
 )
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
@@ -109,7 +107,7 @@ def test_replace_distributed_sampler(tmpdir, mode):
 
 
 @pytest.mark.parametrize(
-    "num_devices, num_workers, cpu_count, expected_warning",
+    ("num_devices", "num_workers", "cpu_count", "expected_warning"),
     [
         (1, 0, 1, False),
         (8, 0, 1, False),
@@ -134,7 +132,7 @@ def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expec
     cpu_count_mock.return_value = cpu_count
 
     if expected_warning:
-        ctx = pytest.warns(UserWarning, match=f"Consider increasing the value of the `num_workers` argument`")
+        ctx = pytest.warns(UserWarning, match="Consider increasing the value of the `num_workers` argument`")
     else:
         ctx = no_warning_call(UserWarning)
 
