@@ -4,7 +4,7 @@ import sys
 import time
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
+from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union, TYPE_CHECKING
 
 import torch
 import torch.nn.functional as F
@@ -12,9 +12,7 @@ from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
-import lightning as L
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning.fabric.strategies.strategy import Strategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
@@ -26,15 +24,19 @@ else:
     class group:  # type: ignore
         WORLD = None
 
+if TYPE_CHECKING:
+    from lightning.fabric import Fabric
+    from lightning.fabric.strategies import Strategy
+
 
 log = logging.getLogger(__name__)
 
 
-def is_shared_filesystem(fabric: "L.Fabric", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
+def is_shared_filesystem(fabric: "Fabric", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
     return _is_shared_filesystem(fabric.strategy, path=path, timeout=timeout)
 
 
-def _is_shared_filesystem(strategy: Strategy, path: Optional[_PATH] = None, timeout: int = 3) -> bool:
+def _is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
     path = Path(Path.cwd() if path is None else path).resolve()
 
     # Fast path: Only distributed strategies can detect shared filesystems
