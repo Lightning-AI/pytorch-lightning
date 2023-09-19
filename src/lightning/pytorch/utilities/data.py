@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-import os
 from dataclasses import fields
 from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Sized, Tuple, Union
 
@@ -37,28 +36,6 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
 warning_cache = WarningCache()
-
-
-def suggested_max_num_workers(local_world_size: int) -> int:
-    """Suggests an upper bound of ``num_workers`` to use in a PyTorch :class:`~torch.utils.data.DataLoader` based on
-    the number of CPU cores available on the system and the number of distributed processes in the current machine.
-
-    Args:
-        local_world_size: The number of distributed processes running on the current machine. Set this to the number
-            of devices configured in the Trainer (``trainer.num_devices``).
-    """
-    if local_world_size < 1:
-        raise ValueError(f"`local_world_size` should be >= 1, got {local_world_size}.")
-    cpu_count = _num_cpus_available()
-    return max(1, cpu_count // local_world_size)
-
-
-def _num_cpus_available() -> int:
-    if hasattr(os, "sched_getaffinity"):
-        return len(os.sched_getaffinity(0))
-
-    cpu_count = os.cpu_count()
-    return 1 if cpu_count is None else cpu_count
 
 
 def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:

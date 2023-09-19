@@ -24,13 +24,14 @@ from lightning.fabric.utilities.data import (
     _replace_dunder_methods,
     _set_sampler_epoch,
     has_iterable_dataset,
+    suggested_max_num_workers,
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
-from lightning.pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader, suggested_max_num_workers
+from lightning.pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _lightning_graphcore_available
 from lightning.pytorch.utilities.model_helpers import is_overridden

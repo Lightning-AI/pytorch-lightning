@@ -122,9 +122,9 @@ def test_replace_distributed_sampler(tmpdir, mode):
         (8, 2, 8, False),
     ],
 )
-@mock.patch("lightning.pytorch.utilities.data.os.cpu_count")
+@mock.patch("lightning.fabric.utilities.data.os.cpu_count")
 def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expected_warning, monkeypatch):
-    monkeypatch.delattr("lightning.pytorch.utilities.data.os", "sched_getaffinity", raising=False)
+    monkeypatch.delattr("lightning.fabric.utilities.data.os", "sched_getaffinity", raising=False)
     trainer = Mock(spec=Trainer)
     dataloader = Mock(spec=DataLoader)
     trainer.num_devices = num_devices
