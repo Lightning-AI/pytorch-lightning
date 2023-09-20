@@ -334,7 +334,7 @@ intersphinx_mapping = {
     # "neptune": ("https://docs.neptune.ai/", None),
     # "wandb": ("https://docs.wandb.ai//", None),
 }
-nitpicky = True  # TODO: to be continued
+nitpicky = True
 
 
 nitpick_ignore = [
