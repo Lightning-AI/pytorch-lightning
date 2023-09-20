@@ -183,7 +183,7 @@ class LightningModule(
 
         Returns:
             A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
-            schedulers were returned in :meth:`configure_optimizers`.
+            schedulers were returned in :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
 
         """
         if not self.trainer.lr_scheduler_configs:
@@ -857,9 +857,9 @@ class LightningModule(
 
     def predict_step(self, *args: Any, **kwargs: Any) -> Any:
         """Step function called during :meth:`~lightning.pytorch.trainer.trainer.Trainer.predict`. By default, it calls
-        :meth:`~lightning.pytorch.core.module.LightningModule.forward`. Override to add any processing logic.
+        :meth:`~lightning.pytorch.core.LightningModule.forward`. Override to add any processing logic.
 
-        The :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` is used
+        The :meth:`~lightning.pytorch.core.LightningModule.predict_step` is used
         to scale inference on multi-devices.
 
         To prevent an OOM error, it is possible to use :class:`~lightning.pytorch.callbacks.BasePredictionWriter`
@@ -999,7 +999,7 @@ class LightningModule(
                 )
 
         Metrics can be made available to monitor by simply logging it using
-        ``self.log('metric_to_track', metric_val)`` in your :class:`~lightning.pytorch.core.module.LightningModule`.
+        ``self.log('metric_to_track', metric_val)`` in your :class:`~lightning.pytorch.core.LightningModule`.
 
         Note:
             Some things to know:
@@ -1405,7 +1405,7 @@ class LightningModule(
 
         Note:
             - Requires the implementation of the
-              :meth:`~lightning.pytorch.core.module.LightningModule.forward` method.
+              :meth:`~lightning.pytorch.core.LightningModule.forward` method.
             - The exported script will be set to evaluation mode.
             - It is recommended that you install the latest supported version of PyTorch
               to use this feature without limitations. See also the :mod:`torch.jit`

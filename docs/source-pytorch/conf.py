@@ -325,6 +325,13 @@ intersphinx_mapping = {
     "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
     "habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
 }
+nitpicky = False  # TODO: to be continued
+
+nitpick_ignore = [
+    ("py:class", "typing.Self"),
+    # missing in generated API
+    ("py:exc", "MisconfigurationException"),
+]
 
 # -- Options for todo extension ----------------------------------------------
 

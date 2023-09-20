@@ -52,7 +52,7 @@ def _parse_gpu_ids(
 ) -> Optional[List[int]]:
     """
     Parses the GPU IDs given in the format as accepted by the
-    :class:`~lightning.pytorch.trainer.Trainer`.
+    :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
     Args:
         gpus: An int -1 or string '-1' indicate that all available GPUs should be used.

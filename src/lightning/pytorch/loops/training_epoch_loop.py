@@ -36,7 +36,7 @@ _BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_
 class _TrainingEpochLoop(loops._Loop):
     """
     Iterates over all batches in the dataloader (one epoch) that the user returns in their
-    :meth:`~lightning.pytorch.core.module.LightningModule.train_dataloader` method.
+    :meth:`~lightning.pytorch.core.LightningModule.train_dataloader` method.
 
     Its main responsibilities are calling the ``*_epoch_{start,end}`` hooks, accumulating outputs if the user request
     them in one of these hooks, and running validation at the requested interval.
