@@ -323,11 +323,19 @@ intersphinx_mapping = {
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
     "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
-    "habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
+    "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
+    "neptune": ("https://docs.neptune.ai/", None),
+    "wandb": ("https://docs.wandb.ai//", None),
+    "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
+    # needed for referencing App from lightning scope
+    "lightning.app": ("https://lightning.ai/docs/app/stable/", None),
+    # needed for referencing Fabric from lightning scope
+    "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),
 }
 nitpicky = True  # TODO: to be continued
 
-nitpick_ignore = [
+
+nitpick_ignore_regex = [
     ("py:class", "typing.Self"),
     # missing in generated API
     ("py:exc", "MisconfigurationException"),
