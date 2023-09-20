@@ -3,6 +3,7 @@ import os
 import sys
 import time
 from contextlib import nullcontext
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, TYPE_CHECKING, Union
 
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+@lru_cache(maxsize=128)
 def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
     """Checks whether the filesystem under the given path is shared across all processes.
 
