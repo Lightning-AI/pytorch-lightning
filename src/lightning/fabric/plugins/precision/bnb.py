@@ -11,6 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Based on original implementation in Lit-GPT by
+# Thomas Viehmann, Carlos Mocholí, and Adrian Wälchli
+
 import logging
 import os
 import warnings
@@ -298,6 +302,17 @@ class Linear4bit(bnb.modules.Linear4bit):
 
 
 class BitsandbytesPrecision(Precision):
+    """Plugin for training with bitsandbytes quantized weights.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
+    Args:
+        mode: the bitsandbytes quantization dtype to use.
+
+    .. note:: bitsandbytes only supports Linux environments.
+
+    """
+
     precision: Literal["bnb.nf4", "bnb.nf4-dq", "bnb.fp4", "bnb.fp4-dq", "bnb.int8", "gptq.int4"]
 
     def __init__(self, mode: Literal):
@@ -305,6 +320,10 @@ class BitsandbytesPrecision(Precision):
             raise ModuleNotFoundError(str(_BITSANDBYTES_AVAILABLE))
 
         self.mode = mode
+
+    def convert_module(self) -> None:
+        # TODO check if bitsandbytes already handles conversion
+        ...
 
     @contextmanager
     def init_context(self):
@@ -357,5 +376,7 @@ class BitsandbytesPrecision(Precision):
         yield
         torch.nn.Linear = torch_linear_cls
 
-    def init_model(self):
-        ...
+
+def _convert_layers(module: torch.nn.Module) -> None:
+    # TODO check if bitsandbytes already handles conversion
+    ...

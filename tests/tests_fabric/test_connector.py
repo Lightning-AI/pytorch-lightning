@@ -1160,9 +1160,28 @@ def test_connect_bnb_precision(monkeypatch):
     monkeypatch.setattr(lightning.fabric.plugins.precision.bnb, "_BITSANDBYTES_AVAILABLE")
     bnb_precision_mock = Mock()
     monkeypatch.setitem(sys.modules, "bnb_precision", bnb_precision_mock)
-    recipe_mock = Mock()
+    mode_mock = Mock()
 
     precision = BitsandbytesPrecision()
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
-    recipe_mock.reset_mock()
+
+    class SubModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l = torch.nn.Linear(1, 3)
+
+    class MyModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(16, 48)
+            self.l2 = torch.nn.LayerNorm(1)
+            self.l3 = SubModule()
+
+    model = MyModule()
+
+    mode_mock.reset_mock()
+    mode = "bnb.int8"
+    precision = BitsandbytesPrecision(mode=mode)
+    connector = _Connector(plugins=precision)
+    assert connector.precision is precision
