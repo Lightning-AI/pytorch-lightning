@@ -225,7 +225,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         """
         loaded = _load_from_checkpoint(
-            cls,
+            cls,  # type: ignore[arg-type]
             checkpoint_path,
             map_location=map_location,
             hparams_file=hparams_file,

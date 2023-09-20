@@ -1547,7 +1547,7 @@ class LightningModule(
             y_hat = pretrained_model(x)
         """
         loaded = _load_from_checkpoint(
-            cls,
+            cls,  # type: ignore[arg-type]
             checkpoint_path,
             map_location,
             hparams_file,
