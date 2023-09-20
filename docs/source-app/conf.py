@@ -254,6 +254,16 @@ intersphinx_mapping = {
     # "numpy": ("https://docs.scipy.org/doc/numpy/", None),
 }
 
+nitpicky = True
+
+
+nitpick_ignore = [
+    ("py:class", "typing.Self"),
+    # missing in generated API
+    ("py:exc", "MisconfigurationException"),
+    # TODO: generated list of all existing ATM, need to be fixed
+]
+
 # -- Options for todo extension ----------------------------------------------
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
