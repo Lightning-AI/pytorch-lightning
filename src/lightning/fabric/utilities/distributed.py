@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import sys
@@ -81,11 +82,8 @@ def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, tim
 
     all_found = strategy.reduce_boolean_decision(found, all=True)
 
-    try:
+    with contextlib.suppress(OSError, PermissionError, FileNotFoundError):  # handle race condition on deletion
         check_file.unlink()
-    except (OSError, PermissionError, FileNotFoundError):
-        # Ignore deletion errors raised by race condition
-        pass
 
     return all_found
 
