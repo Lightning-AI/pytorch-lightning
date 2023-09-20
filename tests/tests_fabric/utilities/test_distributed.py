@@ -1,5 +1,7 @@
 import functools
+import os
 from functools import partial
+from pathlib import Path
 
 import pytest
 import torch
@@ -110,15 +112,15 @@ def test_collective_operations(devices, process):
     spawn_launch(process, devices)
 
 
-def test_is_shared_filesystem(tmp_path):
+def test_is_shared_filesystem(tmp_path, monkeypatch):
     # In the non-distributed case, every location is interpreted as 'shared'
     assert _is_shared_filesystem(SingleDeviceStrategy(torch.device("cpu")))
 
-    test_fn = functools.partial(_test_is_shared_filesystem, tmp_path=tmp_path)
+    test_fn = functools.partial(_test_is_shared_filesystem, tmp_path=tmp_path, monkeypatch=monkeypatch)
     spawn_launch(test_fn, [torch.device("cpu"), torch.device("cpu")])
 
 
-def _test_is_shared_filesystem(strategy, tmp_path):
+def _test_is_shared_filesystem(strategy, tmp_path, monkeypatch):
     # Path doesn't exist
     assert not _is_shared_filesystem(strategy, path="not/exist")
     # Path exists but not the same on all ranks
@@ -128,3 +130,27 @@ def _test_is_shared_filesystem(strategy, tmp_path):
     folder.mkdir()
     assert not _is_shared_filesystem(strategy, path=file)
     assert not _is_shared_filesystem(strategy, path=folder)
+
+    # Path exists
+    folder = tmp_path / "folder"
+    file = folder / "file"
+    if strategy.global_rank == 0:
+        folder.mkdir()
+        file.touch()
+    strategy.barrier()
+    assert folder.exists()
+    assert _is_shared_filesystem(strategy, path=folder)
+    assert _is_shared_filesystem(strategy, path=file)
+    assert os.listdir(folder) == ["file"]  # rank test files got cleaned up
+
+    # Path defaults to CWD
+    monkeypatch.chdir(tmp_path)
+    assert Path.cwd() == tmp_path
+    assert _is_shared_filesystem(strategy)
+    monkeypatch.undo()
+
+    # Path is a symlink
+    linked = Path(tmp_path / "linked")
+    if strategy.global_rank == 0:
+        linked.symlink_to(tmp_path / "folder", target_is_directory=True)
+    assert _is_shared_filesystem(strategy, path=folder)
