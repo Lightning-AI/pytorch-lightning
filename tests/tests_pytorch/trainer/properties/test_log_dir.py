@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 
 import pytest
 
@@ -61,7 +60,9 @@ def test_log_dir_no_logger(tmp_path):
     expected = str(tmp_path)
     model = TestModel(expected)
 
-    trainer = Trainer(default_root_dir=tmp_path, max_steps=2, logger=False, callbacks=[ModelCheckpoint(dirpath=tmp_path)])
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_steps=2, logger=False, callbacks=[ModelCheckpoint(dirpath=tmp_path)]
+    )
 
     assert trainer.log_dir == expected
     trainer.fit(model)
@@ -85,9 +86,7 @@ def test_log_dir_custom_callback(tmp_path):
     expected = str(tmp_path / "lightning_logs" / "version_0")
     model = TestModel(expected)
 
-    trainer = Trainer(
-        default_root_dir=tmp_path, max_steps=2, callbacks=[ModelCheckpoint(dirpath=(tmp_path / "ckpts"))]
-    )
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=2, callbacks=[ModelCheckpoint(dirpath=(tmp_path / "ckpts"))])
 
     assert trainer.log_dir == expected
     trainer.fit(model)
