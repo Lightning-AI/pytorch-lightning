@@ -279,8 +279,8 @@ class Trainer:
                 :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run`,
                 :paramref:`~lightning.pytorch.trainer.trainer.Trainer.detect_anomaly`,
                 :paramref:`~lightning.pytorch.trainer.trainer.Trainer.profiler`,
-                :meth:`~lightning.pytorch.core.module.LightningModule.log`,
-                :meth:`~lightning.pytorch.core.module.LightningModule.log_dict`.
+                :meth:`~lightning.pytorch.core.LightningModule.log`,
+                :meth:`~lightning.pytorch.core.LightningModule.log_dict`.
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
                 Default: ``None``.
 
@@ -529,8 +529,8 @@ class Trainer:
 
         Raises:
             TypeError:
-                If ``model`` is not :class:`~lightning.pytorch.core.module.LightningModule` for torch version less than
-                2.0.0 and if ``model`` is not :class:`~lightning.pytorch.core.module.LightningModule` or
+                If ``model`` is not :class:`~lightning.pytorch.core.LightningModule` for torch version less than
+                2.0.0 and if ``model`` is not :class:`~lightning.pytorch.core.LightningModule` or
                 :class:`torch._dynamo.OptimizedModule` for torch versions greater than or equal to 2.0.0 .
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
@@ -1631,8 +1631,8 @@ class Trainer:
     def logged_metrics(self) -> _OUT_DICT:
         """The metrics sent to the loggers.
 
-        This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
-        :paramref:`~lightning.pytorch.core.module.LightningModule.log.logger` argument set.
+        This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
+        :paramref:`~lightning.pytorch.core.LightningModule.log.logger` argument set.
 
         """
         return self._logger_connector.logged_metrics
@@ -1641,8 +1641,8 @@ class Trainer:
     def progress_bar_metrics(self) -> _PBAR_DICT:
         """The metrics sent to the progress bar.
 
-        This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
-        :paramref:`~lightning.pytorch.core.module.LightningModule.log.prog_bar` argument set.
+        This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
+        :paramref:`~lightning.pytorch.core.LightningModule.log.prog_bar` argument set.
 
         """
         return self._logger_connector.progress_bar_metrics

@@ -205,9 +205,10 @@ class MyCustomTrainer:
             optimizer: the optimizer, optimizing the LightningModule.
             train_loader: The dataloader yielding the training batches.
             limit_batches: Limits the batches during this training epoch.
-                If greater then the number of batches in the ``train_loader``, this has no effect.
+                If greater than the number of batches in the ``train_loader``, this has no effect.
             scheduler_cfg: The learning rate scheduler configuration.
-                Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
+                Have a look at :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`
+                for supported values.
 
         """
         self.fabric.call("on_train_epoch_start")
@@ -269,7 +270,7 @@ class MyCustomTrainer:
             model: the LightningModule to evaluate
             val_loader: The dataloader yielding the validation batches.
             limit_batches: Limits the batches during this validation epoch.
-                If greater then the number of batches in the ``val_loader``, this has no effect.
+                If greater than the number of batches in the ``val_loader``, this has no effect.
 
         """
         # no validation if val_loader wasn't passed

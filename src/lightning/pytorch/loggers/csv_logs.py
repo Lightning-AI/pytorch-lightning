@@ -148,7 +148,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         r"""
 
         Actual _ExperimentWriter object. To use _ExperimentWriter features in your
-        :class:`~lightning.pytorch.core.module.LightningModule` do the following.
+        :class:`~lightning.pytorch.core.LightningModule` do the following.
 
         Example::
 
