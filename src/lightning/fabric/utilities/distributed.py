@@ -34,6 +34,15 @@ log = logging.getLogger(__name__)
 
 
 def is_shared_filesystem(fabric: "Fabric", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
+    """Checks whether the filesystem under the given path is shared across all processes.
+
+    Args:
+        fabric: The current :class:`~lightning.fabric.fabric.Fabric` instance
+        path: The path to check. Defaults to the current working directory. The user must have permissions to write
+            to this path or the parent folder, and the filesystem must be writable.
+        timeout: If any of the processes can't list the file created by rank 0 within this timeout in seconds, the
+            filesystem is determined to be not shared.
+    """
     return _is_shared_filesystem(fabric.strategy, path=path, timeout=timeout)
 
 
