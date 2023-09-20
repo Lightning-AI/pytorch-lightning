@@ -64,8 +64,8 @@ from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
-from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
+from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import _METRIC, LRSchedulerPLType, LRSchedulerTypeUnion, STEP_OUTPUT
 

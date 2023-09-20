@@ -80,9 +80,8 @@ _R_co = TypeVar("_R_co", covariant=True)  # return type of the decorated method
 
 
 class _restricted_classmethod_impl(Generic[_T, _P, _R_co]):
-    """Drop-in replacement for @classmethod, but raises an exception when the decorated method is called on an
-    instance instead of a class type.
-    """
+    """Drop-in replacement for @classmethod, but raises an exception when the decorated method is called on an instance
+    instead of a class type."""
 
     def __init__(self, method: Callable[Concatenate[_T, _P], _R_co]) -> None:
         self.method = method
