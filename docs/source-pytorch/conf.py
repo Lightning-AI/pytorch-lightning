@@ -94,7 +94,9 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="tags/1.0.0",
+    # todo: update after release
+    # checkout="tags/1.0.0",
+    checkout="d91d8496ff22301840e70becc21d484ff3f63e4d",
 )
 
 if not _FAST_DOCS_DEV:
