@@ -359,6 +359,8 @@ nitpick_ignore = [
     ("py:class", "comet_ml.OfflineExperiment"),
     ("py:meth", "deepspeed.DeepSpeedEngine.backward"),
     ("py:attr", "example_input_array"),
+    ("py:class", "jsonargparse._core.ArgumentParser"),
+    ("py:class", "jsonargparse._namespace.Namespace"),
     ("py:class", "jsonargparse.core.ArgumentParser"),
     ("py:class", "jsonargparse.namespace.Namespace"),
     ("py:class", "lightning.fabric.accelerators.xla.XLAAccelerator"),
@@ -436,6 +438,7 @@ nitpick_ignore = [
     ("py:meth", "optimizer_step"),
     ("py:class", "out_dict"),
     ("py:meth", "prepare_data"),
+    ("py:class", "pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor"),
     ("py:meth", "setup"),
     ("py:meth", "test_step"),
     ("py:meth", "toggle_optimizer"),
@@ -465,7 +468,6 @@ nitpick_ignore = [
     ("py:func", "wandb.init"),
     ("py:class", "wandb.sdk.lib.RunDisabled"),
     ("py:class", "wandb.wandb_run.Run"),
-    ("py:class", "HPUAccelerator"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
