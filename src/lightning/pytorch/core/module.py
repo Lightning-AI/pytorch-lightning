@@ -154,7 +154,8 @@ class LightningModule(
         Args:
             use_pl_optimizer: If ``True``, will wrap the optimizer(s) in a
                 :class:`~lightning.pytorch.core.optimizer.LightningOptimizer` for automatic handling of precision,
-                profiling, and counting of step calls for proper logging and checkpointing.
+                profiling, and counting of step calls for proper logging and checkpointing. It specifically wraps the
+                ``step`` method and custom optimizers that don't have this method are not supported.
 
         Returns:
             A single optimizer, or a list of optimizers in case multiple ones are present.
