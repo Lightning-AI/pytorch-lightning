@@ -26,28 +26,24 @@ else:
 
 
 if TYPE_CHECKING:
-    from lightning.fabric import Fabric
     from lightning.fabric.strategies import Strategy
 
 
 log = logging.getLogger(__name__)
 
 
-def is_shared_filesystem(fabric: "Fabric", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
+def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
     """Checks whether the filesystem under the given path is shared across all processes.
 
     Args:
-        fabric: The current :class:`~lightning.fabric.fabric.Fabric` instance
+        strategy: The strategy being used, either from Fabric (``fabric.strategy``) or from Trainer
+            (``trainer.strategy``).
         path: The path to check. Defaults to the current working directory. The user must have permissions to write
             to this path or the parent folder, and the filesystem must be writable.
-        timeout: If any of the processes can't list the file created by rank 0 within this timeout in seconds, the
+        timeout: If any of the processes can't list the file created by rank 0 within this many seconds, the
             filesystem is determined to be not shared.
 
     """
-    return _is_shared_filesystem(fabric.strategy, path=path, timeout=timeout)
-
-
-def _is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
     path = Path(Path.cwd() if path is None else path).resolve()
 
     # Fast path: Only distributed strategies can detect shared filesystems
