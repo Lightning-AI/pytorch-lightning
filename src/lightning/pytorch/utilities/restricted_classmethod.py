@@ -29,6 +29,6 @@ class _restricted_classmethod_impl(Generic[_T, _P, _R_co]):
         return MethodType(self.method, cls)
 
 
-# trick static type checkers into thinking its a @classmethod
+# trick static type checkers into thinking it's a @classmethod
 # https://github.com/microsoft/pyright/issues/5865
 _restricted_classmethod = classmethod if TYPE_CHECKING else _restricted_classmethod_impl
