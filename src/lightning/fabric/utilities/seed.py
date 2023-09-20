@@ -51,7 +51,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
-    log.info(rank_prefixed_message(f"Global seed set to {seed}", _get_rank()))
+    log.info(rank_prefixed_message(f"Seed set to {seed}", _get_rank()))
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
