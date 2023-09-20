@@ -72,7 +72,7 @@ def _is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, ti
         # All other ranks will wait until they find the file or timeout
         start = time.perf_counter()
         found = False
-        while not found and time.perf_counter() - start < timeout:
+        while not found and (time.perf_counter() - start) < timeout:
             found = check_file.exists()
     strategy.barrier()
 
