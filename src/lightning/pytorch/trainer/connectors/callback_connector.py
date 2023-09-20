@@ -176,10 +176,10 @@ class _CallbackConnector:
         trainer_callback_types.discard(Callback)
         # exclude trainer callbacks of the same class or subclass
         override_types = set()
-        for m in model_callback_types:
-            for c in trainer_callback_types:
-                if issubclass(m, c):
-                    override_types.add(c)
+        for model_cb in model_callback_types:
+            for trainer_cb in trainer_callback_types:
+                if issubclass(model_cb, trainer_cb):
+                    override_types.add(trainer_cb)
                     break
         if override_types:
             rank_zero_info(
