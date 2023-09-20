@@ -277,7 +277,6 @@ nitpick_ignore = [
     ('py:func', 'lightning.app.pdb.set_trace'),
     ('py:class', 'lightning.app.runners.runtime.Runtime'),
     ('py:class', 'lightning.app.source_code.local.LocalSourceCodeDir'),
-    ('py:class', 'lightning.app.storage.Path'),
     ('py:class', 'lightning.app.storage.payload._BasePayload'),
     ('py:class', 'lightning.app.structures.Dict'),
     ('py:class', 'lightning.app.structures.List'),
