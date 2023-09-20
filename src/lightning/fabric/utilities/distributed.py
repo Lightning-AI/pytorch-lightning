@@ -60,7 +60,7 @@ def _is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, ti
         return False
 
     path = path.parent if path.is_file() else path
-    check_file = path / ".shared_fs_check"
+    check_file = path / ".lightning_shared_fs_check"
     check_file.unlink(missing_ok=True)
 
     strategy.barrier()
