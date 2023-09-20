@@ -112,6 +112,13 @@ repos:
               README.md
           )$
 
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.3
+    hooks:
+      - id: prettier
+        # https://prettier.io/docs/en/options.html#print-width
+        args: ["--print-width=120"]
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 'v0.0.276'
     hooks:
