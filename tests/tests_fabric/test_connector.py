@@ -318,7 +318,7 @@ def test_num_nodes_input_validation():
     with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
         _Connector(num_nodes=0)
     with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
-        _Connector(num_nodes="string")
+        _Connector(num_nodes=-1)
 
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0)
