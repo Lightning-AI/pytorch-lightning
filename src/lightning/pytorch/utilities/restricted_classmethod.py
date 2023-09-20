@@ -3,6 +3,8 @@ Implements a decorator @_restricted_classmethod that is a drop-in replacement fo
 @classmethod, but raises an exception when the decorated method is called on an instance
 instead of a class type.
 """
+import inspect
+import os
 from types import MethodType
 from typing import Callable, Concatenate, Generic, ParamSpec, TYPE_CHECKING, TypeVar
 
@@ -21,7 +23,9 @@ class _restricted_classmethod_impl(Generic[_T, _P, _R_co]):
         self.method = method
 
     def __get__(self, instance: _T | None, cls: type[_T]) -> Callable[_P, _R_co]:
-        if instance is not None:
+        # Workaround for https://github.com/pytorch/pytorch/issues/67146
+        is_scripting = any(os.path.join("torch", "jit") in frameinfo.filename for frameinfo in inspect.stack())
+        if instance is not None and not is_scripting:
             raise TypeError(
                 f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be called on an instance. "
                 f"Please call it on the class type and make sure the return value is used."
