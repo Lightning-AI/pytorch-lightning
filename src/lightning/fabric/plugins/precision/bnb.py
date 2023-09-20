@@ -301,7 +301,7 @@ class Linear4bit(bnb.modules.Linear4bit):
             warnings.filterwarnings("ignore", message=r".*Fabric.setup\(\)` has parameters on different devices.*")
 
 
-class BitsandbytesPrecision(Precision):
+class BitsandbytesQuantization(Precision):
     """Plugin for training with bitsandbytes quantized weights.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.

@@ -49,7 +49,7 @@ from lightning.fabric.plugins.environments import (
     XLAEnvironment,
 )
 from lightning.fabric.plugins.io import TorchCheckpointIO
-from lightning.fabric.plugins.precision.bnb import BitsandbytesPrecision
+from lightning.fabric.plugins.precision.bnb import BitsandbytesQuantization
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
     DataParallelStrategy,
@@ -1169,7 +1169,7 @@ def test_connect_bnb_precision(monkeypatch):
     monkeypatch.setitem(sys.modules, "bnb_precision", bnb_precision_mock)
     mode_mock = Mock()
 
-    precision = BitsandbytesPrecision()
+    precision = BitsandbytesQuantization()
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
 
@@ -1189,6 +1189,6 @@ def test_connect_bnb_precision(monkeypatch):
 
     mode_mock.reset_mock()
     mode = "bnb.int8"
-    precision = BitsandbytesPrecision(mode=mode)
+    precision = BitsandbytesQuantization(mode=mode)
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
