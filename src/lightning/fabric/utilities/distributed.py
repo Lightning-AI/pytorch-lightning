@@ -42,6 +42,7 @@ def is_shared_filesystem(fabric: "Fabric", path: Optional[_PATH] = None, timeout
             to this path or the parent folder, and the filesystem must be writable.
         timeout: If any of the processes can't list the file created by rank 0 within this timeout in seconds, the
             filesystem is determined to be not shared.
+
     """
     return _is_shared_filesystem(fabric.strategy, path=path, timeout=timeout)
 
