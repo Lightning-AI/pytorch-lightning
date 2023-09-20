@@ -29,8 +29,8 @@ class _restricted_classmethod_impl(Generic[_T, _P, _R_co]):
         is_scripting = any(os.path.join("torch", "jit") in frameinfo.filename for frameinfo in inspect.stack())
         if instance is not None and not is_scripting:
             raise TypeError(
-                f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be called on an instance. "
-                f"Please call it on the class type and make sure the return value is used."
+                f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be called on an instance."
+                " Please call it on the class type and make sure the return value is used."
             )
         return MethodType(self.method, cls)
 

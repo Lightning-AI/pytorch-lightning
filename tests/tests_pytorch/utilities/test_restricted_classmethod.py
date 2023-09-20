@@ -6,12 +6,12 @@ from lightning.pytorch.utilities.restricted_classmethod import _restricted_class
 class RestrictedClass:
     @_restricted_classmethod
     def restricted_cmethod(cls):
-        "Can only be called on the class type."
+        # Can only be called on the class type
         pass
 
     @classmethod
     def cmethod(cls):
-        "Can be called on instance or class type."
+        # Can be called on instance or class type
         pass
 
 
