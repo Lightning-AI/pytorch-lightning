@@ -1178,7 +1178,7 @@ def test_connect_bnb_precision(monkeypatch):
             self.l2 = torch.nn.LayerNorm(1)
             self.l3 = SubModule()
 
-    model = MyModule()
+    MyModule()
 
     mode_mock.reset_mock()
     mode = "bnb.int8"

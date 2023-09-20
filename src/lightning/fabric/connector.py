@@ -39,6 +39,7 @@ from lightning.fabric.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from lightning.fabric.plugins.precision.bnb import BitsandbytesPrecision
 from lightning.fabric.plugins.precision.double import DoublePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.plugins.precision.precision import (
@@ -49,7 +50,6 @@ from lightning.fabric.plugins.precision.precision import (
     _PRECISION_INPUT_STR_ALIAS_CONVERSION,
 )
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
-from lightning.fabric.plugins.precision.bnb import BitsandbytesPrecision
 from lightning.fabric.strategies import (
     DeepSpeedStrategy,
     ParallelStrategy,
