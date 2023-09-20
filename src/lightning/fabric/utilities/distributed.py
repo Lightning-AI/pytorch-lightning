@@ -7,6 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, TYPE_CHECKING, Union
 
+import fsspec.utils
 import torch
 import torch.nn.functional as F
 from lightning_utilities.core.imports import package_available
@@ -46,6 +47,10 @@ def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, tim
             filesystem is determined to be not shared.
 
     """
+    # Fast path: Any non-local filesystem is considered shared (e.g., S3)
+    if path is not None and fsspec.utils.get_protocol(str(path)) != "file":
+        return True
+
     path = Path(Path.cwd() if path is None else path).resolve()
 
     # Fast path: Only distributed strategies can detect shared filesystems

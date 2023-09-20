@@ -153,3 +153,6 @@ def _test_is_shared_filesystem(strategy, tmp_path, monkeypatch):
     if strategy.global_rank == 0:
         linked.symlink_to(tmp_path / "folder", target_is_directory=True)
     assert is_shared_filesystem(strategy, path=folder)
+
+    # Remote path is considered shared
+    assert is_shared_filesystem(strategy, path="s3://my-bucket/data")
