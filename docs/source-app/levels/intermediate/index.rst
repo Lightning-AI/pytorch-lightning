@@ -36,7 +36,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
 .. displayitem::
    :header: Level 5: Debug a Lightning App
    :description: Learn to debug a lightning app.
-   :button_link: debug_a_lightning_app.html
+   :button_link: debug_a_lightning.app.html
    :col_css: col-md-6
    :height: 170
    :tag: 2 minutes

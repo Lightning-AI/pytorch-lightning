@@ -85,7 +85,7 @@ Lightning App API
    :header: LightningApp API
    :description: Look into the Lightning API reference.
    :col_css: col-md-4
-   :button_link: lightning_app.html
+   :button_link: lightning.app.html
    :height: 180
 
 .. raw:: html
