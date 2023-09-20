@@ -1013,6 +1013,13 @@ def test_connector_sets_num_nodes(strategy, cuda_count_2):
     assert trainer.strategy.num_nodes == 2
 
 
+def test_connector_num_nodes_input_validation():
+    with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
+        _AcceleratorConnector(num_nodes=0)
+    with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
+        _AcceleratorConnector(num_nodes=-1)
+
+
 @pytest.mark.parametrize(
     ("precision_str", "strategy_str", "expected_precision_cls"),
     [
