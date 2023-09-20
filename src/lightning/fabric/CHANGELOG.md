@@ -124,6 +124,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for saving and loading stateful objects other than modules and optimizers ([#18513](https://github.com/Lightning-AI/lightning/pull/18513))
 
 
+- Enabled the default process group configuration for FSDP's hybrid sharding ([#18583](https://github.com/Lightning-AI/lightning/pull/18583))
+
+
 - Added `lightning.fabric.utilities.is_shared_filesystem` utility function to automatically check whether the filesystem is shared between machines ([#18586](https://github.com/Lightning-AI/lightning/pull/18586))
 
 

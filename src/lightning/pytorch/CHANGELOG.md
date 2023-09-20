@@ -125,6 +125,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for mixed 8-bit precision as `Trainer(precision="transformer-engine")` using [Nvidia's Transformer Engine](https://docs.nvidia.com/deeplearning/transformer-engine) ([#18459](https://github.com/Lightning-AI/lightning/pull/18459))
 
 
+- Added support for passing the process group to the `FSDPStrategy` ([#18583](https://github.com/Lightning-AI/lightning/pull/18583))
+
+
+- Enabled the default process group configuration for FSDP's hybrid sharding ([#18583](https://github.com/Lightning-AI/lightning/pull/18583))
+
+
+
 - Added `lightning.pytorch.utilities.is_shared_filesystem` utility function to automatically check whether the filesystem is shared between machines ([#18586](https://github.com/Lightning-AI/lightning/pull/18586))
 
 
@@ -192,6 +199,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Made the `batch_idx` argument optional in `validation_step`, `test_step` and `predict_step` to maintain consistency with `training_step` ([#18512](https://github.com/Lightning-AI/lightning/pull/18512))
 
 
+- The `TQDMProgressBar` now consistently shows it/s for the speed even when the iteration time becomes larger than one second ([#18593](https://github.com/Lightning-AI/lightning/pull/18593))
+
+
+
+- The `LightningDataModule.load_from_checkpoint` and `LightningModule.load_from_checkpoint` methods now raise an error if they are called on an instance instead of the class ([#18432](https://github.com/Lightning-AI/lightning/pull/18432))
+
+
 ### Deprecated
 
 - Deprecated the `SingleTPUStrategy` (`strategy="single_tpu"`) in favor of `SingleDeviceXLAStrategy` (`strategy="single_xla"`) ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
@@ -235,6 +249,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed issue where unexpected exceptions would leave the default torch dtype modified when using true precision settings ([#18500](https://github.com/Lightning-AI/lightning/pull/18500))
+
+
+- Fixed the replacement of callbacks returned in `LightningModule.configure_callbacks` when the callback was a subclass of an existing Trainer callback ([#18508](https://github.com/Lightning-AI/lightning/pull/18508))
 
 
 ## [2.0.9] - 2023-09-14
