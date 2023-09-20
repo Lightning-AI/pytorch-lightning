@@ -44,6 +44,7 @@ from lightning.pytorch.plugins import (
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
+    TransformerEnginePrecisionPlugin,
     XLAPrecisionPlugin,
 )
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
@@ -316,11 +317,10 @@ class _AcceleratorConnector:
                     self._accelerator_flag = "cuda"
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
-    def _check_device_config_and_set_final_flags(
-        self,
-        devices: Union[List[int], str, int],
-        num_nodes: int,
-    ) -> None:
+    def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
+        if not isinstance(num_nodes, int) or num_nodes < 1:
+            raise ValueError(f"`num_nodes` must be a positive integer, but got {num_nodes}.")
+
         self._num_nodes_flag = num_nodes
         self._devices_flag = devices
 
@@ -389,7 +389,21 @@ class _AcceleratorConnector:
             self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
-        if self._devices_flag == "auto":
+        if self._devices_flag != "auto":
+            return
+        if (
+            _IS_INTERACTIVE
+            and isinstance(self.accelerator, CUDAAccelerator)
+            and self.accelerator.auto_device_count() > 1
+        ):
+            self._devices_flag = 1
+            rank_zero_info(
+                f"Trainer will use only 1 of {self.accelerator.auto_device_count()} GPUs because it is running inside"
+                " an interactive / notebook environment. You may try to set `Trainer(devices="
+                f"{self.accelerator.auto_device_count()})` but please note that multi-GPU inside interactive /"
+                " notebook environments is considered experimental and unstable. Your mileage may vary."
+            )
+        else:
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
@@ -525,6 +539,8 @@ class _AcceleratorConnector:
             return PrecisionPlugin()
         if self._precision_flag == "64-true":
             return DoublePrecisionPlugin()
+        if self._precision_flag == "transformer-engine":
+            return TransformerEnginePrecisionPlugin()
 
         if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(

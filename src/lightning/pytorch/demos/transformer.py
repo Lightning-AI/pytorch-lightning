@@ -15,7 +15,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch.nn.modules import MultiheadAttention
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset
+
+from lightning.pytorch import LightningModule
 
 if hasattr(MultiheadAttention, "_reset_parameters") and not hasattr(MultiheadAttention, "reset_parameters"):
     # See https://github.com/pytorch/pytorch/issues/107909
@@ -44,15 +46,15 @@ class Transformer(nn.Module):
         self.vocab_size = vocab_size
         self.src_mask = None
 
-    def forward(self, input: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
-        b, t = input.shape
+    def forward(self, inputs: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
+        b, t = inputs.shape
 
-        # we assume target is already shifted w.r.t. input
+        # we assume target is already shifted w.r.t. inputs
         if mask is None:
-            mask = torch.tril(torch.ones(t, t, device=input.device)) == 1
+            mask = torch.tril(torch.ones(t, t, device=inputs.device)) == 1
             mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
 
-        src = self.pos_encoder(self.embedding(input) * math.sqrt(self.ninp))
+        src = self.pos_encoder(self.embedding(inputs) * math.sqrt(self.ninp))
         target = self.pos_encoder(self.embedding(target) * math.sqrt(self.ninp))
         output = self.transformer(src, target, tgt_mask=mask)
         output = self.decoder(output)
@@ -110,9 +112,9 @@ class WikiText2(Dataset):
     def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
         start = index * self.block_size
         end = start + self.block_size
-        input = self.data[start:end]
+        inputs = self.data[start:end]
         target = self.data[(start + 1) : (end + 1)]
-        return input, target
+        return inputs, target
 
     @staticmethod
     def download(destination: Path) -> None:
@@ -161,3 +163,28 @@ def tokenize(path: Path) -> Tuple[Tensor, Dictionary]:
             idss.append(torch.tensor(ids).type(torch.int64))
 
     return torch.cat(idss), dictionary
+
+
+class LightningTransformer(LightningModule):
+    def __init__(self, vocab_size: int = 33278) -> None:
+        super().__init__()
+        self.model = Transformer(vocab_size=vocab_size)
+
+    def forward(self, inputs: Tensor, target: Tensor) -> Tensor:
+        return self.model(inputs, target)
+
+    def training_step(self, batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+        inputs, target = batch
+        output = self(inputs, target)
+        loss = torch.nn.functional.nll_loss(output, target.view(-1))
+        return loss
+
+    def configure_optimizers(self) -> torch.optim.Optimizer:
+        return torch.optim.SGD(self.model.parameters(), lr=0.1)
+
+    def prepare_data(self) -> None:
+        WikiText2(download=True)
+
+    def train_dataloader(self) -> DataLoader:
+        dataset = WikiText2()
+        return DataLoader(dataset)

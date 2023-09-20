@@ -24,6 +24,7 @@ from lightning.pytorch.callbacks import ProgressBar, RichProgressBar
 from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.loggers.logger import DummyLogger
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -49,7 +50,7 @@ def test_rich_progress_bar_refresh_rate_enabled():
 
 @RunIf(rich=True)
 @pytest.mark.parametrize("dataset", [RandomDataset(32, 64), RandomIterableDataset(32, 64)])
-def test_rich_progress_bar(tmpdir, dataset):
+def test_rich_progress_bar(tmp_path, dataset):
     class TestModel(BoringModel):
         def train_dataloader(self):
             return DataLoader(dataset=dataset)
@@ -64,7 +65,7 @@ def test_rich_progress_bar(tmpdir, dataset):
             return DataLoader(dataset=dataset)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         num_sanity_val_steps=0,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -132,7 +133,7 @@ def test_rich_progress_bar_custom_theme():
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_keyboard_interrupt(tmpdir):
+def test_rich_progress_bar_keyboard_interrupt(tmp_path):
     """Test to ensure that when the user keyboard interrupts, we close the progress bar."""
 
     class TestModel(BoringModel):
@@ -146,7 +147,7 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
     ) as mock_progress_stop:
         progress_bar = RichProgressBar()
         trainer = Trainer(
-            default_root_dir=tmpdir,
+            default_root_dir=tmp_path,
             fast_dev_run=True,
             callbacks=progress_bar,
         )
@@ -175,7 +176,7 @@ def test_rich_progress_bar_configure_columns():
 
 @RunIf(rich=True)
 @pytest.mark.parametrize(("leave", "reset_call_count"), ([(True, 0), (False, 3)]))
-def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
+def test_rich_progress_bar_leave(tmp_path, leave, reset_call_count):
     # Calling `reset` means continuing on the same progress bar.
     model = BoringModel()
 
@@ -184,7 +185,7 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
     ) as mock_progress_reset:
         progress_bar = RichProgressBar(leave=leave)
         trainer = Trainer(
-            default_root_dir=tmpdir,
+            default_root_dir=tmp_path,
             num_sanity_val_steps=0,
             limit_train_batches=1,
             limit_val_batches=0,
@@ -200,9 +201,9 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
 
 @RunIf(rich=True)
 @mock.patch("lightning.pytorch.callbacks.progress.rich_progress.Progress.update")
-def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
+def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmp_path):
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=4,
         callbacks=RichProgressBar(refresh_rate=0),
     )
@@ -227,10 +228,10 @@ def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
         (6, 5, 2, 1 + 1 + 1),
     ],
 )
-def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, train_batches, val_batches, expected_call_count):
+def test_rich_progress_bar_with_refresh_rate(tmp_path, refresh_rate, train_batches, val_batches, expected_call_count):
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         num_sanity_val_steps=0,
         limit_train_batches=train_batches,
         limit_val_batches=val_batches,
@@ -259,14 +260,14 @@ def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, train_batches
 
 @RunIf(rich=True)
 @pytest.mark.parametrize("limit_val_batches", [1, 5])
-def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches):
+def test_rich_progress_bar_num_sanity_val_steps(tmp_path, limit_val_batches):
     model = BoringModel()
 
     progress_bar = RichProgressBar()
     num_sanity_val_steps = 3
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         num_sanity_val_steps=num_sanity_val_steps,
         limit_train_batches=1,
         limit_val_batches=limit_val_batches,
@@ -280,12 +281,12 @@ def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches):
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
+def test_rich_progress_bar_counter_with_val_check_interval(tmp_path):
     """Test the completed and total counter for rich progress bar when using val_check_interval."""
     progress_bar = RichProgressBar()
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         val_check_interval=2,
         max_epochs=1,
         limit_train_batches=7,
@@ -323,7 +324,7 @@ def test_rich_progress_bar_colab_light_theme_update(*_):
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_metric_display_task_id(tmpdir):
+def test_rich_progress_bar_metric_display_task_id(tmp_path):
     class CustomModel(BoringModel):
         def training_step(self, *args, **kwargs):
             res = super().training_step(*args, **kwargs)
@@ -332,7 +333,15 @@ def test_rich_progress_bar_metric_display_task_id(tmpdir):
 
     progress_bar = RichProgressBar()
     model = CustomModel()
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=progress_bar, fast_dev_run=True, logger=CSVLogger(tmpdir))
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        callbacks=progress_bar,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+    )
 
     trainer.fit(model)
     train_progress_bar_id = progress_bar.train_progress_bar_id
@@ -344,8 +353,22 @@ def test_rich_progress_bar_metric_display_task_id(tmpdir):
         assert key not in rendered[val_progress_bar_id][1]
 
 
+def test_rich_progress_bar_metrics_fast_dev_run(tmp_path):
+    """Test that `v_num` does not appear in the progress bar when a dummy logger is used (fast-dev-run)."""
+    progress_bar = RichProgressBar()
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True, callbacks=progress_bar)
+    model = BoringModel()
+    trainer.fit(model)
+    assert isinstance(trainer.logger, DummyLogger)
+    train_progress_bar_id = progress_bar.train_progress_bar_id
+    val_progress_bar_id = progress_bar.val_progress_bar_id
+    rendered = progress_bar.progress.columns[-1]._renderable_cache
+    assert "v_num" not in rendered[train_progress_bar_id][1]
+    assert "v_num" not in rendered[val_progress_bar_id][1]
+
+
 @RunIf(rich=True)
-def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
+def test_rich_progress_bar_correct_value_epoch_end(tmp_path):
     """Rich counterpart to test_tqdm_progress_bar::test_tqdm_progress_bar_correct_value_epoch_end."""
 
     class MockedProgressBar(RichProgressBar):
@@ -376,7 +399,7 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
     model = MyModel()
     pbar = MockedProgressBar()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         limit_test_batches=2,
@@ -385,7 +408,7 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
         enable_checkpointing=False,
         log_every_n_steps=1,
         callbacks=pbar,
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
 
     trainer.fit(model)
@@ -481,7 +504,7 @@ def test_rich_progress_bar_reset_bars():
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_disabled(tmpdir):
+def test_rich_progress_bar_disabled(tmp_path):
     """Test that in a disabled bar there are no updates and no internal progress objects."""
     bar = RichProgressBar()
     bar.disable()
@@ -489,7 +512,7 @@ def test_rich_progress_bar_disabled(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_train_batches=2,
         limit_val_batches=2,
         limit_test_batches=2,
@@ -512,3 +535,46 @@ def test_rich_progress_bar_disabled(tmpdir):
     assert bar.val_progress_bar_id is None
     assert bar.test_progress_bar_id is None
     assert bar.predict_progress_bar_id is None
+
+
+@RunIf(rich=True)
+@pytest.mark.parametrize("metrics_format", [".3f", ".3e"])
+def test_rich_progress_bar_metrics_format(tmpdir, metrics_format):
+    metric_name = "train_loss"
+
+    class CustomModel(BoringModel):
+        def training_step(self, *args, **kwargs):
+            res = super().training_step(*args, **kwargs)
+            self.log(metric_name, res["loss"], prog_bar=True)
+            return res
+
+    progress_bar = RichProgressBar(theme=RichProgressBarTheme(metrics_format=metrics_format))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        callbacks=progress_bar,
+    )
+    model = CustomModel()
+    trainer.fit(model)
+
+    def extract_rendered_value():
+        rendered = progress_bar.progress.columns[-1]._renderable_cache
+        train_progress_bar_id = progress_bar.train_progress_bar_id
+        rendered_text = str(rendered[train_progress_bar_id][1])
+        return rendered_text.split(f"{metric_name}: ")[1]
+
+    rendered_value = extract_rendered_value()
+    value = trainer.logged_metrics[metric_name]
+    formatted_value = f"{value:{metrics_format}}"
+    assert rendered_value == formatted_value
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_metrics_theme_update(*_):
+    theme = RichProgressBar().theme
+    assert theme.metrics_format == ".3f"
+    assert theme.metrics_text_delimiter == " "
+
+    theme = RichProgressBar(theme=RichProgressBarTheme(metrics_format=".3e", metrics_text_delimiter="\n")).theme
+    assert theme.metrics_format == ".3e"
+    assert theme.metrics_text_delimiter == "\n"

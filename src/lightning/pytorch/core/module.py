@@ -67,7 +67,13 @@ from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
-from lightning.pytorch.utilities.types import _METRIC, LRSchedulerPLType, LRSchedulerTypeUnion, STEP_OUTPUT
+from lightning.pytorch.utilities.types import (
+    _METRIC,
+    LRSchedulerPLType,
+    LRSchedulerTypeUnion,
+    OptimizerLRScheduler,
+    STEP_OUTPUT,
+)
 
 _ONNX_AVAILABLE = RequirementCache("onnx")
 
@@ -148,8 +154,9 @@ class LightningModule(
 
         Args:
             use_pl_optimizer: If ``True``, will wrap the optimizer(s) in a
-                :class:`~lightning.pytorch.core.optimizer.LightningOptimizer` for automatic handling of precision and
-                profiling.
+                :class:`~lightning.pytorch.core.optimizer.LightningOptimizer` for automatic handling of precision,
+                profiling, and counting of step calls for proper logging and checkpointing. It specifically wraps the
+                ``step`` method and custom optimizers that don't have this method are not supported.
 
         Returns:
             A single optimizer, or a list of optimizers in case multiple ones are present.
@@ -159,8 +166,6 @@ class LightningModule(
             opts: MODULE_OPTIMIZERS = self._fabric_optimizers
         elif use_pl_optimizer:
             opts = self.trainer.strategy._lightning_optimizers
-            for opt in opts:
-                opt.refresh()
         else:
             opts = self.trainer.optimizers
 
@@ -911,7 +916,7 @@ class LightningModule(
         """
         return []
 
-    def configure_optimizers(self) -> Any:
+    def configure_optimizers(self) -> OptimizerLRScheduler:
         r"""Choose what optimizers and learning-rate schedulers to use in your optimization. Normally you'd need one.
         But in the case of GANs or similar you might have multiple. Optimization with multiple optimizers only works in
         the manual optimization mode.
@@ -1084,7 +1089,7 @@ class LightningModule(
 
         # Then iterate over the current optimizer's parameters and set its `requires_grad`
         # properties accordingly
-        for group in optimizer.param_groups:  # type: ignore[union-attr]
+        for group in optimizer.param_groups:
             for param in group["params"]:
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state

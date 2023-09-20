@@ -16,12 +16,14 @@ from unittest import mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
+import torch.nn
 import torch.nn as nn
 from torch.optim import Adam
 
 from lightning.fabric.accelerators import XLAAccelerator
+from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.strategies import XLAFSDPStrategy
-from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
+from lightning.fabric.strategies.xla_fsdp import _activation_checkpointing_auto_wrapper, _XLAFSDPBackwardSyncControl
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -109,3 +111,40 @@ def test_rank_properties_access(xla_available):
     assert strategy.local_rank == strategy.cluster_environment.local_rank()
     assert strategy.node_rank == strategy.cluster_environment.node_rank()
     assert strategy.world_size == strategy.cluster_environment.world_size()
+
+
+def test_xla_fsdp_policy(xla_available):
+    strategy = XLAFSDPStrategy(foo=1)
+    assert strategy._fsdp_kwargs == {"foo": 1}
+
+    strategy = XLAFSDPStrategy(auto_wrap_policy={torch.nn.Linear})
+    kwargs = strategy._parse_fsdp_kwargs()
+    assert set(kwargs) == {"auto_wrap_policy"}
+    assert kwargs["auto_wrap_policy"].func._mock_name == "transformer_auto_wrap_policy"
+
+    strategy = XLAFSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
+    kwargs = strategy._parse_fsdp_kwargs()
+    kwargs = strategy._parse_fsdp_kwargs()  # ensure it's idempotent
+    assert set(kwargs) == {"auto_wrapper_callable"}
+    assert kwargs["auto_wrapper_callable"].func is _activation_checkpointing_auto_wrapper
+
+    strategy = XLAFSDPStrategy(
+        accelerator=Mock(),
+        auto_wrap_policy={torch.nn.Linear},
+        activation_checkpointing_policy={torch.nn.Linear},
+        precision=XLAPrecision("bf16-true"),
+    )
+    kwargs = strategy._parse_fsdp_kwargs()
+    assert set(kwargs) == {"auto_wrap_policy", "auto_wrapper_callable", "compute_dtype"}
+    assert kwargs["auto_wrap_policy"].func._mock_name == "transformer_auto_wrap_policy"
+    assert kwargs["auto_wrapper_callable"].func is _activation_checkpointing_auto_wrapper
+    assert kwargs["compute_dtype"] is torch.bfloat16
+    strategy.teardown()
+
+    strategy = XLAFSDPStrategy(activation_checkpointing_policy={torch.nn.Linear}, auto_wrapper_callable="foo")
+    with pytest.raises(ValueError, match="cannot set both"):
+        strategy._parse_fsdp_kwargs()
+
+    strategy = XLAFSDPStrategy(activation_checkpointing_policy="foo")
+    with pytest.raises(TypeError, match="must be a set"):
+        strategy._parse_fsdp_kwargs()

@@ -20,7 +20,7 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import BatchSampler, RandomSampler
 
 from lightning.fabric.accelerators.cuda import _clear_cuda_memory
-from lightning.pytorch import Trainer
+from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.utilities import CombinedLoader
 from tests_pytorch.helpers.runif import RunIf
@@ -169,15 +169,31 @@ def test_evaluation_loop_dataloader_iter_multiple_dataloaders(tmp_path):
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
+        devices=1,
     )
 
-    class MyModel(BoringModel):
-        def validation_step(self, dataloader_iter, batch_idx, dataloader_idx=0):
-            ...
+    class MyModel(LightningModule):
+        batch_start_ins = []
+        step_outs = []
+        batch_end_ins = []
+
+        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
+            self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
+
+        def validation_step(self, dataloader_iter):
+            self.step_outs.append(next(dataloader_iter))
+
+        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+            self.batch_end_ins.append((batch, batch_idx, dataloader_idx))
 
     model = MyModel()
-    with pytest.raises(NotImplementedError, match="dataloader_iter.*is not supported with multiple dataloaders"):
-        trainer.validate(model, {"a": [0, 1], "b": [2, 3]})
+    trainer.validate(model, {"a": [0, 1], "b": [2, 3]})
+
+    # in on_*_batch_start, the dataloader_idx and batch_idx are not yet known
+    # we only get the updated indices once we fetch from the iterator in the step-method
+    assert model.batch_start_ins == [(None, 0, 0), (0, 0, 0)]
+    assert model.step_outs == [(0, 0, 0), (2, 0, 1)]
+    assert model.batch_end_ins == model.step_outs
 
 
 def test_invalid_dataloader_idx_raises_step(tmp_path):
@@ -478,5 +494,36 @@ def test_evaluation_loop_non_sequential_mode_supprt(tmp_path, mode, expected, fn
 
     assert trainer.num_sanity_val_batches == []  # this is fit-only
     actual = trainer.num_val_batches if fn == "validate" else trainer.num_test_batches
-    assert actual == (3 if mode != "min_size" else 2)
+    assert actual == [3, 2]
     assert seen == expected
+
+
+def test_evaluation_loop_when_batch_idx_argument_is_not_given(tmpdir):
+    class TestModel(BoringModel):
+        def __init__(self) -> None:
+            super().__init__()
+            self.validation_step_called = False
+            self.test_step_called = False
+
+        def validation_step(self, batch):
+            self.validation_step_called = True
+            return {"x": self.step(batch)}
+
+        def test_step(self, batch):
+            self.test_step_called = True
+            return {"y": self.step(batch)}
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=1,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    model = TestModel()
+
+    trainer.validate(model)
+    assert model.validation_step_called
+
+    trainer.test(model)
+    assert model.test_step_called

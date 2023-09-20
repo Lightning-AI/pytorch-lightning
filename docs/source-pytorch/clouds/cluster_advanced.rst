@@ -7,7 +7,7 @@ Run on an on-prem cluster (advanced)
 ----
 
 ******************************
-Run on a SLURM managed cluster
+Run on a SLURM-managed cluster
 ******************************
 Lightning automates the details behind training on a SLURM-powered cluster. In contrast to the general purpose
 cluster above, the user does not start the jobs manually on each node and instead submits it to SLURM which
@@ -79,7 +79,7 @@ To train a model using multiple nodes, do the following:
         # run script from above
         srun python3 train.py
 
-5.  If you want auto-resubmit (read below), add this line to the submit.sh script
+5.  If you want to auto-resubmit (read below), add this line to the submit.sh script
 
     .. code-block:: bash
 
@@ -93,9 +93,9 @@ To train a model using multiple nodes, do the following:
 
 ----
 
-**********************************
-Enable auto wall-time resubmitions
-**********************************
+***********************************
+Enable auto wall-time resubmissions
+***********************************
 When you use Lightning in a SLURM cluster, it automatically detects when it is about
 to run into the wall time and does the following:
 
@@ -169,9 +169,9 @@ You are seeing a message like this in the logs but nothing happens:
 The most likely reasons and how to fix it:
 
 - You forgot to run the ``python train.py`` command with ``srun``:
-  Please have a look at the SLURM template script above which includes the ``srun`` at the botton of the script.
+  Please have a look at the SLURM template script above which includes the ``srun`` at the bottom of the script.
 
 - The number of nodes or number of devices per node is configured incorrectly:
-  There are two parametres in the SLURM submission script that determine how many processes will run your training, the ``#SBATCH --nodes=X`` setting and ``#SBATCH --ntasks-per-node=Y`` settings.
+  There are two parameters in the SLURM submission script that determine how many processes will run your training, the ``#SBATCH --nodes=X`` setting and ``#SBATCH --ntasks-per-node=Y`` settings.
   The numbers there need to match what is configured in your Trainer in the code: ``Trainer(num_nodes=X, devices=Y)``.
   If you change the numbers, update them in BOTH places.

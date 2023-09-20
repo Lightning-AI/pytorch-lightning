@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
 import inspect
+import os
 import pickle
 from unittest import mock
 from unittest.mock import ANY, Mock
@@ -36,22 +36,7 @@ from lightning.pytorch.tuner.tuning import Tuner
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
 from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
-from tests_pytorch.loggers.test_neptune import create_neptune_mock
 
-LOGGER_CTX_MANAGERS = (
-    mock.patch("lightning.pytorch.loggers.comet.comet_ml"),
-    mock.patch("lightning.pytorch.loggers.comet.CometOfflineExperiment"),
-    mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True),
-    mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient"),
-    mock.patch("lightning.pytorch.loggers.mlflow.Metric"),
-    mock.patch("lightning.pytorch.loggers.neptune.neptune", new_callable=create_neptune_mock),
-    mock.patch("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True),
-    mock.patch("lightning.pytorch.loggers.neptune.Run", new=mock.Mock),
-    mock.patch("lightning.pytorch.loggers.neptune.Handler", new=mock.Mock),
-    mock.patch("lightning.pytorch.loggers.neptune.File", new=mock.Mock()),
-    mock.patch("lightning.pytorch.loggers.wandb.wandb"),
-    mock.patch("lightning.pytorch.loggers.wandb.Run", new=mock.Mock),
-)
 ALL_LOGGER_CLASSES = (
     CometLogger,
     CSVLogger,
@@ -82,18 +67,12 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
     return logger_class(**args)
 
 
-@mock.patch("lightning.pytorch.loggers.mlflow.mlflow", Mock())
-@mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
+@mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
-def test_loggers_fit_test_all(tmpdir, monkeypatch, logger_class):
+def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock, neptune_mock, tmp_path):
     """Verify that basic functionality of all loggers."""
-    with contextlib.ExitStack() as stack:
-        for mgr in LOGGER_CTX_MANAGERS:
-            stack.enter_context(mgr)
-        _test_loggers_fit_test(tmpdir, logger_class)
 
-
-def _test_loggers_fit_test(tmpdir, logger_class):
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
             loss = self.step(batch)
@@ -115,7 +94,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
             super().log_metrics(metrics, step)
             self.history.append((step, metrics))
 
-    logger_args = _get_logger_args(logger_class, tmpdir)
+    logger_args = _get_logger_args(logger_class, tmp_path)
     logger = StoreHistoryLogger(**logger_args)
 
     if logger_class == WandbLogger:
@@ -142,7 +121,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         limit_train_batches=1,
         limit_val_batches=1,
         log_every_n_steps=1,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
     )
     trainer.fit(model)
     trainer.test()
@@ -164,10 +143,11 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         assert log_metric_names == expected
 
 
+@mock.patch.dict(os.environ, {})
 @pytest.mark.parametrize(
     "logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE
 )  # WandbLogger and NeptuneLogger get tested separately
-def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
+def test_loggers_pickle_all(tmp_path, monkeypatch, logger_class):
     """Test that the logger objects can be pickled.
 
     This test only makes sense if the packages are installed.
@@ -175,16 +155,16 @@ def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
     """
     _patch_comet_atexit(monkeypatch)
     try:
-        _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
+        _test_loggers_pickle(tmp_path, monkeypatch, logger_class)
     except (ImportError, ModuleNotFoundError):
         pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
 
 
-def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
+def _test_loggers_pickle(tmp_path, monkeypatch, logger_class):
     """Verify that pickling trainer with logger works."""
     _patch_comet_atexit(monkeypatch)
 
-    logger_args = _get_logger_args(logger_class, tmpdir)
+    logger_args = _get_logger_args(logger_class, tmp_path)
     logger = logger_class(**logger_args)
 
     # this can cause pickle error if the experiment object is not picklable
@@ -210,7 +190,7 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
 
 
 @pytest.mark.parametrize("tuner_method", ["lr_find", "scale_batch_size"])
-def test_logger_reset_correctly(tmpdir, tuner_method):
+def test_logger_reset_correctly(tmp_path, tuner_method):
     """Test that the tuners do not alter the logger reference."""
 
     class CustomModel(BoringModel):
@@ -219,7 +199,7 @@ def test_logger_reset_correctly(tmpdir, tuner_method):
             self.save_hyperparameters()
 
     model = CustomModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
     tuner = Tuner(trainer)
 
     logger1 = trainer.logger
@@ -269,20 +249,21 @@ class CustomLoggerWithoutExperiment(Logger):
         pass
 
 
+@mock.patch.dict(os.environ, {})
 @pytest.mark.parametrize("logger_class", [*ALL_LOGGER_CLASSES_WO_NEPTUNE, CustomLoggerWithoutExperiment])
 @RunIf(skip_windows=True)
-def test_logger_initialization(tmpdir, monkeypatch, logger_class):
+def test_logger_initialization(tmp_path, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is available
     at the right time in Trainer."""
     _patch_comet_atexit(monkeypatch)
     try:
-        _test_logger_initialization(tmpdir, logger_class)
+        _test_logger_initialization(tmp_path, logger_class)
     except (ImportError, ModuleNotFoundError):
         pytest.xfail(f"multi-process test requires {logger_class.__class__} dependencies to be installed.")
 
 
-def _test_logger_initialization(tmpdir, logger_class):
-    logger_args = _get_logger_args(logger_class, tmpdir)
+def _test_logger_initialization(tmp_path, logger_class):
+    logger_args = _get_logger_args(logger_class, tmp_path)
     logger = logger_class(**logger_args)
     callbacks = [LazyInitExperimentCheck()]
     if not isinstance(logger, CustomLoggerWithoutExperiment):
@@ -290,7 +271,7 @@ def _test_logger_initialization(tmpdir, logger_class):
     model = BoringModel()
     trainer = Trainer(
         logger=logger,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         strategy="ddp_spawn",
         accelerator="cpu",
         devices=2,
@@ -300,41 +281,33 @@ def _test_logger_initialization(tmpdir, logger_class):
     trainer.fit(model)
 
 
-def test_logger_with_prefix_all(tmpdir, monkeypatch):
+@mock.patch.dict(os.environ, {})
+@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_mock, monkeypatch, tmp_path):
     """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
 
     # Comet
-    with mock.patch("lightning.pytorch.loggers.comet.comet_ml"), mock.patch(
-        "lightning.pytorch.loggers.comet.CometOfflineExperiment"
-    ):
-        _patch_comet_atexit(monkeypatch)
-        logger = _instantiate_logger(CometLogger, save_dir=tmpdir, prefix=prefix)
-        logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
+    _patch_comet_atexit(monkeypatch)
+    logger = _instantiate_logger(CometLogger, save_dir=tmp_path, prefix=prefix)
+    logger.log_metrics({"test": 1.0}, step=0)
+    logger.experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
 
     # MLflow
-    with mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
-        "lightning.pytorch.loggers.mlflow.Metric"
-    ) as Metric, mock.patch("lightning.pytorch.loggers.mlflow.MlflowClient"), mock.patch(
-        "lightning.pytorch.loggers.mlflow.mlflow"
-    ):
-        logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
-        logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log_batch.assert_called_once_with(
-            run_id=ANY, metrics=[Metric(key="tmp-test", value=1.0, timestamp=ANY, step=0)]
-        )
+    Metric = mlflow_mock.entities.Metric
+    logger = _instantiate_logger(MLFlowLogger, save_dir=tmp_path, prefix=prefix)
+    logger.log_metrics({"test": 1.0}, step=0)
+    logger.experiment.log_batch.assert_called_once_with(
+        run_id=ANY, metrics=[Metric(key="tmp-test", value=1.0, timestamp=ANY, step=0)]
+    )
 
     # Neptune
-    with mock.patch("lightning.pytorch.loggers.neptune.neptune"), mock.patch(
-        "lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True
-    ), mock.patch("lightning.pytorch.loggers.neptune.Handler", new=mock.Mock):
-        logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", save_dir=tmpdir, prefix=prefix)
-        assert logger.experiment.__getitem__.call_count == 0
-        logger.log_metrics({"test": 1.0}, step=0)
-        assert logger.experiment.__getitem__.call_count == 1
-        logger.experiment.__getitem__.assert_called_with("tmp/test")
-        logger.experiment.__getitem__().append.assert_called_once_with(1.0)
+    logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", save_dir=tmp_path, prefix=prefix)
+    assert logger.experiment.__getitem__.call_count == 0
+    logger.log_metrics({"test": 1.0}, step=0)
+    assert logger.experiment.__getitem__.call_count == 1
+    logger.experiment.__getitem__.assert_called_with("tmp/test")
+    logger.experiment.__getitem__().append.assert_called_once_with(1.0)
 
     # TensorBoard
     if _TENSORBOARD_AVAILABLE:
@@ -343,25 +316,23 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         import tensorboardX as tb
 
     monkeypatch.setattr(tb, "SummaryWriter", Mock())
-    logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir, prefix=prefix)
+    logger = _instantiate_logger(TensorBoardLogger, save_dir=tmp_path, prefix=prefix)
     logger.log_metrics({"test": 1.0}, step=0)
     logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
     # WandB
-    with mock.patch("lightning.pytorch.loggers.wandb.wandb") as wandb, mock.patch(
-        "lightning.pytorch.loggers.wandb.Run", new=mock.Mock
-    ), mock.patch("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True):
-        logger = _instantiate_logger(WandbLogger, save_dir=tmpdir, prefix=prefix)
-        wandb.run = None
-        wandb.init().step = 0
-        logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
+    logger = _instantiate_logger(WandbLogger, save_dir=tmp_path, prefix=prefix)
+    wandb_mock.run = None
+    wandb_mock.init().step = 0
+    logger.log_metrics({"test": 1.0}, step=0)
+    logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
 
 
-def test_logger_default_name(tmpdir, monkeypatch):
+@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+def test_logger_default_name(mlflow_mock, monkeypatch, tmp_path):
     """Test that the default logger name is lightning_logs."""
     # CSV
-    logger = CSVLogger(save_dir=tmpdir)
+    logger = CSVLogger(save_dir=tmp_path)
     assert logger.name == "lightning_logs"
 
     # TensorBoard
@@ -371,17 +342,15 @@ def test_logger_default_name(tmpdir, monkeypatch):
         import tensorboardX as tb
 
     monkeypatch.setattr(tb, "SummaryWriter", Mock())
-    logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir)
+    logger = _instantiate_logger(TensorBoardLogger, save_dir=tmp_path)
     assert logger.name == "lightning_logs"
 
     # MLflow
-    with mock.patch("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
-        "lightning.pytorch.loggers.mlflow.MlflowClient"
-    ) as mlflow_client, mock.patch("lightning.pytorch.loggers.mlflow.mlflow"):
-        mlflow_client().get_experiment_by_name.return_value = None
-        logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir)
+    client = mlflow_mock.tracking.MlflowClient()
+    client.get_experiment_by_name.return_value = None
+    logger = _instantiate_logger(MLFlowLogger, save_dir=tmp_path)
 
-        _ = logger.experiment
-        logger._mlflow_client.create_experiment.assert_called_with(name="lightning_logs", artifact_location=ANY)
-        # on MLFLowLogger `name` refers to the experiment id
-        # assert logger.experiment.get_experiment(logger.name).name == "lightning_logs"
+    _ = logger.experiment
+    logger._mlflow_client.create_experiment.assert_called_with(name="lightning_logs", artifact_location=ANY)
+    # on MLFLowLogger `name` refers to the experiment id
+    # assert logger.experiment.get_experiment(logger.name).name == "lightning_logs"
