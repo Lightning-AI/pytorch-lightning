@@ -6,7 +6,9 @@ instead of a class type.
 import inspect
 import os
 from types import MethodType
-from typing import Callable, Concatenate, Generic, ParamSpec, TYPE_CHECKING, TypeVar
+from typing import Callable, Generic, ParamSpec, TYPE_CHECKING, TypeVar
+
+from typing_extensions import Concatenate
 
 _T = TypeVar("_T")  # type of the method owner
 _P = ParamSpec("_P")  # parameters of the decorated method
