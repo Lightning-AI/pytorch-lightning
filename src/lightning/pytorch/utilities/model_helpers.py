@@ -86,7 +86,7 @@ class _restricted_classmethod_impl(Generic[_T, _P, _R_co]):
     def __init__(self, method: Callable[Concatenate[_T, _P], _R_co]) -> None:
         self.method = method
 
-    def __get__(self, instance: Optional[_T], cls: type[_T]) -> Callable[_P, _R_co]:
+    def __get__(self, instance: Optional[_T], cls: Type[_T]) -> Callable[_P, _R_co]:
         # Workaround for https://github.com/pytorch/pytorch/issues/67146
         is_scripting = any(os.path.join("torch", "jit") in frameinfo.filename for frameinfo in inspect.stack())
         if instance is not None and not is_scripting:
