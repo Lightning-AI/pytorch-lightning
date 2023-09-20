@@ -6,12 +6,11 @@ from pathlib import Path
 import pytest
 import torch
 
-from lightning.fabric.strategies import SingleDeviceStrategy
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.environments import LightningEnvironment
-from lightning.fabric.strategies import DDPStrategy
+from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning.fabric.utilities.distributed import _gather_all_tensors, _sync_ddp, _is_shared_filesystem
+from lightning.fabric.utilities.distributed import _gather_all_tensors, _is_shared_filesystem, _sync_ddp
 from tests_fabric.helpers.runif import RunIf
 
 
