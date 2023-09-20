@@ -105,7 +105,7 @@ The next levels does a 2 minute review to make sure you know how to debug a Ligh
 .. displayitem::
    :header: Level 5: Debug a Lightning App
    :description: Learn to debug a lightning app.
-   :button_link: debug_a_lightning.app.html
+   :button_link: debug_a_lightning_app.html
    :col_css: col-md-12
    :height: 170
    :tag: 10 minutes
