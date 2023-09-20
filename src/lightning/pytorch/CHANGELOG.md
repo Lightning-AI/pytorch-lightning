@@ -195,6 +195,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Made the `batch_idx` argument optional in `validation_step`, `test_step` and `predict_step` to maintain consistency with `training_step` ([#18512](https://github.com/Lightning-AI/lightning/pull/18512))
 
 
+- The `TQDMProgressBar` now consistently shows it/s for the speed even when the iteration time becomes larger than one second ([#18593](https://github.com/Lightning-AI/lightning/pull/18593))
+
+
+
 ### Deprecated
 
 - Deprecated the `SingleTPUStrategy` (`strategy="single_tpu"`) in favor of `SingleDeviceXLAStrategy` (`strategy="single_xla"`) ([#17383](https://github.com/Lightning-AI/lightning/pull/17383))
