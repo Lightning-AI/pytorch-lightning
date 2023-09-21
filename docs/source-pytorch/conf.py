@@ -80,12 +80,13 @@ if _SHOULD_COPY_NOTEBOOKS:
             os.remove(file)
 else:
     # create empty notebooks juts tu satisfy the gallery constructor
-    import nbformat as nbf
+    import nbformat
 
-    nb_fname = os.path.join(_PATH_HERE, "notebooks", "empty_notebook.ipynb")
-    os.makedirs(os.path.dirname(nb_fname), exist_ok=True)
-    # Create an empty notebook and save the notebook to a file
-    nbf.write(nbf.v4.new_notebook(), nb_fname)
+    os.makedirs(os.path.join(_PATH_HERE, "notebooks"), exist_ok=True)
+    for i in range(3):
+        nb_fname = os.path.join(_PATH_HERE, "notebooks", f"empty_notebook_{i}.ipynb")
+        # Create an empty notebook and save the notebook to a file
+        nbformat.write(nbformat.v4.new_notebook(), nb_fname)
 
 
 os.makedirs(os.path.join(_PATH_HERE, _FOLDER_GENERATED), exist_ok=True)
