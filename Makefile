@@ -53,15 +53,15 @@ pull-template:
 	aws s3 sync --no-sign-request s3://sphinx-packages/ dist/
 
 docs-app: clean pull-template
-	pip install -e . --quiet -r requirements/app/docs.txt -f dist/
+	pip install -e .[all] --quiet -r requirements/app/docs.txt -f dist/
 	cd docs/source-app && $(MAKE) html --jobs $(nproc)
 
 docs-fabric: clean pull-template
-	pip install -e . --quiet -r requirements/fabric/docs.txt -f dist/
+	pip install -e .[all] --quiet -r requirements/fabric/docs.txt -f dist/
 	cd docs/source-fabric && $(MAKE) html --jobs $(nproc)
 
 docs-pytorch: clean pull-template
-	pip install -e . --quiet -r requirements/pytorch/docs.txt -f dist/
+	pip install -e .[all] --quiet -r requirements/pytorch/docs.txt -f dist/
 	cd docs/source-pytorch && $(MAKE) html --jobs $(nproc)
 
 update:

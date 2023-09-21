@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader, random_split
 from torchvision import transforms as T
 from torchvision.datasets import MNIST
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 
 
 class LitAutoEncoder(pl.LightningModule):
