@@ -82,7 +82,7 @@ else:
     # create empty notebooks juts tu satisfy the gallery constructor
     from notebook.services.contents.filemanager import FileContentsManager
 
-    notebook_fname = os.path.join(_PATH_RAW_NB, 'dummy.ipynb')
+    notebook_fname = os.path.join(_PATH_RAW_NB, "dummy.ipynb")
     FileContentsManager().new(path=notebook_fname)
 
 
