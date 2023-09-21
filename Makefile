@@ -49,7 +49,7 @@ test: clean
 docs: clean
 	pip install -q awscli
 	aws s3 sync --no-sign-request s3://sphinx-packages/ dist/
-	pip install -e .[all] --quiet -r requirements/pytorch/docs.txt -f dist/
+	pip install -e .[all] --quiet -r requirements/pytorch/docs.txt -r _notebooks/.actions/requires.txt -f dist/
 	cd docs/source-pytorch && $(MAKE) html --jobs $(nproc)
 
 update:

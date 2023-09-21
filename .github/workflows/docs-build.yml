@@ -96,7 +96,9 @@ jobs:
       - name: Make Documentation
         if: ${{ matrix.check == 'html' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        run: |
+          pip install -q -r _notebooks/.actions/requires.txt
+          make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Keep artifact
         id: keep-artifact
