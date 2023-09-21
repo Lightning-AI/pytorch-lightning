@@ -36,7 +36,8 @@ _FAST_DOCS_DEV = int(os.getenv("FAST_DOCS_DEV", True))
 _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.join(_PATH_HERE, "..", "..")
 _PATH_RAW_NB = os.path.join(_PATH_ROOT, "_notebooks")
-_SHOULD_COPY_NOTEBOOKS = True
+_PATH_RAW_NB_ACTIONS = os.path.join(_PATH_RAW_NB, ".actions")
+_SHOULD_COPY_NOTEBOOKS = not _FAST_DOCS_DEV
 _FOLDER_GENERATED = "generated"
 
 
@@ -48,9 +49,8 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 
 assist_local = _load_py_module("assistant", os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
-
-if os.path.isdir(os.path.join(_PATH_RAW_NB, ".actions")):
-    assist_nb = _load_py_module("assistant", os.path.join(_PATH_RAW_NB, ".actions", "assistant.py"))
+if os.path.isdir(_PATH_RAW_NB_ACTIONS):
+    assist_nb = _load_py_module("assistant", os.path.join(_PATH_RAW_NB_ACTIONS, "assistant.py"))
 else:
     _SHOULD_COPY_NOTEBOOKS = False
     warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
@@ -65,7 +65,7 @@ if _SHOULD_COPY_NOTEBOOKS:
         "notebooks",
         patterns=[".", "course_UvA-DL", "lightning_examples"],
     )
-    # TODO: Complete converting the missing items and add them back
+    # TODO(@aniketmaurya): Complete converting the missing items and add them back
     ignore = [
         "course_UvA-DL/13-contrastive-learning",
         "lightning_examples/augmentation_kornia",
@@ -200,7 +200,7 @@ exclude_patterns = [
     "notebooks/sample-template*",
 ]
 
-if _FAST_DOCS_DEV:
+if _FAST_DOCS_DEV or not _SHOULD_COPY_NOTEBOOKS:
     exclude_patterns.append("notebooks/*")
     exclude_patterns.append("tutorials.rst")
 
