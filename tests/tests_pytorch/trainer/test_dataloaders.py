@@ -532,7 +532,7 @@ def test_warning_on_zero_len_dataloader():
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 @pytest.mark.parametrize("stage", ["train", "test", "val"])
-@patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
+@patch("lightning.fabric.utilities.data._num_cpus_available", return_value=4)
 def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
     model = BoringModel()
@@ -545,10 +545,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
 
-    with pytest.warns(
-        UserWarning,
-        match=f"The dataloader, {stage}_dataloader, does not have many workers",
-    ):
+    with pytest.warns(UserWarning, match=f"The '{stage}_dataloader' does not have many workers"):
         if stage == "test":
             if ckpt_path in ("specific", "best"):
                 trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
