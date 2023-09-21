@@ -7,9 +7,9 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler
-from lightning_utilities.test.warning import no_warning_call
 
 import lightning.fabric
 from lightning.fabric.utilities.data import (
