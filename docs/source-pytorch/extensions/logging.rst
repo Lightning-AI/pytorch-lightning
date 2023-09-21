@@ -135,7 +135,7 @@ The :meth:`~lightning.pytorch.core.LightningModule.log` method has a few options
 * ``on_epoch``: Automatically accumulates and logs at the end of the epoch.
 * ``prog_bar``: Logs to the progress bar (Default: ``False``).
 * ``logger``: Logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~lightning.pytorch.trainer.trainer.Trainer` (Default: ``True``).
-* ``reduce_fx``: Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
+* ``reduce_fx``: Reduction function over step values for end of epoch. Uses :func:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
 * ``enable_graph``: If True, will not auto detach the graph.
 * ``sync_dist``: If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
 * ``sync_dist_group``: The DDP group to sync across.
