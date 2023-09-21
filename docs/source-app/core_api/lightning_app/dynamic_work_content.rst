@@ -26,7 +26,7 @@ Add a Dynamic Work
 There are a couple of ways you can add a dynamic Work:
 
 - Option 1: Attach your components in the **run** method using the Python functions.
-- Option 2: Use the Lightning built-in classes :class:`~lightning.structures.Dict` or :class:`~lightning.structures.List`.
+- Option 2: Use the Lightning built-in classes :class:`~lightning.app.structures.Dict` or :class:`~lightning.app.structures.List`.
 
 .. note:: Using the Lightning built-in classes is usually easier to read.
 
