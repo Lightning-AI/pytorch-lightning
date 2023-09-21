@@ -93,12 +93,13 @@ jobs:
       - name: Full build for deployment
         if: github.event_name == 'push'
         run: echo "FAST_DOCS_DEV=0" >> $GITHUB_ENV
+      - name: Install req. for Notebooks/tutorials
+        if: matrix.check == 'html' && matrix.pkg-name == 'pytorch'
+        run: pip install -q -r _notebooks/.actions/requires.txt
       - name: Make Documentation
         if: ${{ matrix.check == 'html' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: |
-          pip install -q -r _notebooks/.actions/requires.txt
-          make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Keep artifact
         id: keep-artifact
