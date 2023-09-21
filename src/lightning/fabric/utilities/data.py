@@ -441,7 +441,7 @@ def suggested_max_num_workers(local_world_size: int) -> int:
 
     Args:
         local_world_size: The number of distributed processes running on the current machine. Set this to the number
-            of devices configured in the Fabric/Trainer.
+            of devices configured in Fabric/Trainer.
     """
     if local_world_size < 1:
         raise ValueError(f"`local_world_size` should be >= 1, got {local_world_size}.")
