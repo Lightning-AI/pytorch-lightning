@@ -78,6 +78,12 @@ if _SHOULD_COPY_NOTEBOOKS:
         file = os.path.join(_PATH_HERE, "notebooks", file)
         if os.path.exists(file):
             os.remove(file)
+else:
+    # create empty notebooks juts tu satisfy the gallery constructor
+    from notebook.services.contents.filemanager import FileContentsManager
+
+    notebook_fname = os.path.join(_PATH_RAW_NB, 'dummy.ipynb')
+    FileContentsManager().new(path=notebook_fname)
 
 
 os.makedirs(os.path.join(_PATH_HERE, _FOLDER_GENERATED), exist_ok=True)
@@ -201,10 +207,6 @@ exclude_patterns = [
     f"{_FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md",
     "notebooks/sample-template*",
 ]
-
-if _FAST_DOCS_DEV or not _SHOULD_COPY_NOTEBOOKS:
-    exclude_patterns.append("notebooks/*")
-    # exclude_patterns.append("tutorials.rst")
 
 
 # The name of the Pygments (syntax highlighting) style to use.
