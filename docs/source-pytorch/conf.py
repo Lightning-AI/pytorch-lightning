@@ -83,6 +83,7 @@ else:
     from notebook.services.contents.filemanager import FileContentsManager
 
     notebook_fname = os.path.join(_PATH_RAW_NB, "dummy.ipynb")
+    os.makedirs(_PATH_RAW_NB, exist_ok=True)
     FileContentsManager().new(path=notebook_fname)
 
 
