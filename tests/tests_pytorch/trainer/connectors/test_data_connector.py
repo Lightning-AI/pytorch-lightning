@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from contextlib import redirect_stderr
+from io import StringIO
 from re import escape
 from typing import Sized
 from unittest import mock
@@ -104,6 +106,46 @@ def test_replace_distributed_sampler(tmpdir, mode):
         strategy="ddp_find_unused_parameters_false",
     )
     trainer.test(model)
+
+
+class TestSpawnBoringModel(BoringModel):
+    def __init__(self, num_workers):
+        super().__init__()
+        self.num_workers = num_workers
+
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(32, 64), num_workers=self.num_workers)
+
+    def on_fit_start(self):
+        self._resout = StringIO()
+        self.ctx = redirect_stderr(self._resout)
+        self.ctx.__enter__()
+
+    def on_train_end(self):
+        def _get_warning_msg():
+            dl = self.trainer.train_dataloader
+            if hasattr(dl, "persistent_workers"):
+                if self.num_workers == 0:
+                    warn_str = "Consider setting num_workers>0 and persistent_workers=True"
+                else:
+                    warn_str = "Consider setting persistent_workers=True"
+            else:
+                warn_str = "Consider setting strategy=ddp"
+
+            return warn_str
+
+        if self.trainer.is_global_zero:
+            self.ctx.__exit__(None, None, None)
+            msg = self._resout.getvalue()
+            warn_str = _get_warning_msg()
+            assert warn_str in msg
+
+
+@RunIf(skip_windows=True)
+@pytest.mark.parametrize("num_workers", [0, 1])
+def test_dataloader_warnings(tmpdir, num_workers):
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
+    trainer.fit(TestSpawnBoringModel(num_workers))
 
 
 @pytest.mark.parametrize(

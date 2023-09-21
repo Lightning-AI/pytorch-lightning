@@ -28,6 +28,7 @@ from lightning.fabric.utilities.data import (
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
+from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
@@ -419,13 +420,29 @@ def _check_dataloader_iterable(
         )
 
 
-def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
+def _worker_check(trainer: "pl.Trainer", using_spawn: bool, dataloader: object, name: str) -> None:
     if not isinstance(dataloader, DataLoader):
         return
 
     upper_bound = suggested_max_num_workers(trainer.num_devices)
-    if dataloader.num_workers <= 2 < upper_bound or dataloader.num_workers < 2 <= upper_bound:
-        # TODO
+
+    # ddp_spawn + num_workers > 0 don't mix! tell the user
+    if dataloader.num_workers > 0 and using_spawn:
+        if not dataloader.persistent_workers:
+            rank_zero_warn(
+                "num_workers>0, persistent_workers=False, and strategy=ddp_spawn"
+                " may result in data loading bottlenecks."
+                " Consider setting persistent_workers=True"
+                " (this is a limitation of Python .spawn() and PyTorch)"
+            )
+
+    elif dataloader.num_workers == 0 and using_spawn:
+        if not dataloader.persistent_workers:
+            rank_zero_warn(
+                "strategy=ddp_spawn and num_workers=0 may result in data loading bottlenecks."
+                " Consider setting num_workers>0 and persistent_workers=True"
+            )
+    elif dataloader.num_workers <= 2 < upper_bound or dataloader.num_workers < 2 <= upper_bound:
         # if changed, update the `filterwarnings` snippet in 'speed.html#num-workers'
         rank_zero_warn(
             f"The '{name}' does not have many workers which may be a bottleneck. Consider increasing the value of the"
@@ -486,7 +503,12 @@ def _process_dataloader(
     dataloader = strategy.process_dataloader(dataloader)
 
     # check the workers
-    _worker_check(trainer, dataloader, f"{stage.dataloader_prefix}_dataloader")
+    _worker_check(
+        trainer=trainer,
+        using_spawn=isinstance(strategy, DDPStrategy) and strategy._start_method == "spawn",
+        dataloader=dataloader,
+        name=f"{stage.dataloader_prefix}_dataloader",
+    )
 
     # add worker_init_fn for correct seeding in worker processes
     _auto_add_worker_init_fn(dataloader, trainer.global_rank)
