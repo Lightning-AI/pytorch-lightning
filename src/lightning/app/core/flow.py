@@ -23,7 +23,7 @@ from deepdiff import DeepHash
 
 from lightning.app.core.work import LightningWork
 from lightning.app.frontend import Frontend
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 from lightning.app.storage.drive import _maybe_create_drive, Drive
 from lightning.app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, _set_child_name, is_overridden
 from lightning.app.utilities.component import _sanitize_state

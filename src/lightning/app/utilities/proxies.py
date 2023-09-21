@@ -33,7 +33,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning.app.core import constants
 from lightning.app.core.queues import MultiProcessQueue
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 from lightning.app.storage.copier import _Copier, _copy_files
 from lightning.app.storage.drive import _maybe_create_drive, Drive
 from lightning.app.storage.path import _path_to_work_artifact
