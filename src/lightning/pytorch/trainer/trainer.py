@@ -40,6 +40,7 @@ from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
 from lightning.pytorch.core.datamodule import LightningDataModule
 from lightning.pytorch.loggers import Logger
+from lightning.pytorch.loggers.csv_logs import CSVLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.loggers.utilities import _log_hyperparams
 from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
@@ -279,15 +280,15 @@ class Trainer:
                 :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run`,
                 :paramref:`~lightning.pytorch.trainer.trainer.Trainer.detect_anomaly`,
                 :paramref:`~lightning.pytorch.trainer.trainer.Trainer.profiler`,
-                :meth:`~lightning.pytorch.core.module.LightningModule.log`,
-                :meth:`~lightning.pytorch.core.module.LightningModule.log_dict`.
+                :meth:`~lightning.pytorch.core.LightningModule.log`,
+                :meth:`~lightning.pytorch.core.LightningModule.log_dict`.
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
                 Default: ``None``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
                 Default: ``False``.
 
-            reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
+            reload_dataloaders_every_n_epochs: Set to a positive integer to reload dataloaders every n epochs.
                 Default: ``0``.
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
@@ -529,8 +530,8 @@ class Trainer:
 
         Raises:
             TypeError:
-                If ``model`` is not :class:`~lightning.pytorch.core.module.LightningModule` for torch version less than
-                2.0.0 and if ``model`` is not :class:`~lightning.pytorch.core.module.LightningModule` or
+                If ``model`` is not :class:`~lightning.pytorch.core.LightningModule` for torch version less than
+                2.0.0 and if ``model`` is not :class:`~lightning.pytorch.core.LightningModule` or
                 :class:`torch._dynamo.OptimizedModule` for torch versions greater than or equal to 2.0.0 .
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
@@ -1239,7 +1240,7 @@ class Trainer:
 
         """
         if len(self.loggers) > 0:
-            if not isinstance(self.loggers[0], TensorBoardLogger):
+            if not isinstance(self.loggers[0], (TensorBoardLogger, CSVLogger)):
                 dirpath = self.loggers[0].save_dir
             else:
                 dirpath = self.loggers[0].log_dir
@@ -1631,8 +1632,8 @@ class Trainer:
     def logged_metrics(self) -> _OUT_DICT:
         """The metrics sent to the loggers.
 
-        This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
-        :paramref:`~lightning.pytorch.core.module.LightningModule.log.logger` argument set.
+        This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
+        :paramref:`~lightning.pytorch.core.LightningModule.log.logger` argument set.
 
         """
         return self._logger_connector.logged_metrics
@@ -1641,8 +1642,8 @@ class Trainer:
     def progress_bar_metrics(self) -> _PBAR_DICT:
         """The metrics sent to the progress bar.
 
-        This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
-        :paramref:`~lightning.pytorch.core.module.LightningModule.log.prog_bar` argument set.
+        This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
+        :paramref:`~lightning.pytorch.core.LightningModule.log.prog_bar` argument set.
 
         """
         return self._logger_connector.progress_bar_metrics

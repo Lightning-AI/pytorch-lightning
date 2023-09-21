@@ -282,7 +282,7 @@ class _DataLoaderSource:
 
     The source can be
 
-    1. from a ``*_dataloader()`` method on the :class:`~lightning.pytorch.core.module.LightningModule`,
+    1. from a ``*_dataloader()`` method on the :class:`~lightning.pytorch.core.LightningModule`,
     2. from a ``*_dataloader()`` method on the :class:`~lightning.pytorch.core.datamodule.LightningDataModule`,
     3. a direct instance of a :class:`~torch.utils.data.DataLoader` or supported collections thereof.
 
@@ -348,7 +348,7 @@ class _DataHookSelector:
 
     The hook source can be:
 
-    1. the :class:`~lightning.pytorch.core.module.LightningModule`,
+    1. the :class:`~lightning.pytorch.core.LightningModule`,
     2. the :class:`~lightning.pytorch.core.datamodule.LightningDataModule`,
 
     Arguments:

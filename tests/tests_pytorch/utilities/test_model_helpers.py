@@ -16,7 +16,7 @@ from lightning_utilities import module_available
 
 from lightning.pytorch import LightningDataModule
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning.pytorch.utilities.model_helpers import _restricted_classmethod, is_overridden
 
 
 def test_is_overridden():
@@ -49,3 +49,22 @@ def test_mixed_imports_unified():
 
     with pytest.raises(TypeError, match=r"`pytorch_lightning` object \(EarlyStopping\) to a `lightning.pytorch`"):
         new_is_overridden("on_fit_start", OldEarlyStopping("foo"))
+
+
+class RestrictedClass:
+    @_restricted_classmethod
+    def restricted_cmethod(cls):
+        # Can only be called on the class type
+        pass
+
+    @classmethod
+    def cmethod(cls):
+        # Can be called on instance or class type
+        pass
+
+
+def test_restricted_classmethod():
+    with pytest.raises(TypeError, match="cannot be called on an instance"):
+        RestrictedClass().restricted_cmethod()
+
+    RestrictedClass.restricted_cmethod()  # no exception
