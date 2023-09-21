@@ -4,7 +4,6 @@ import os
 import sys
 import time
 from contextlib import nullcontext
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, TYPE_CHECKING, Union
 
@@ -35,9 +34,10 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-@lru_cache(maxsize=128)
 def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
     """Checks whether the filesystem under the given path is shared across all processes.
+
+    This function should only be used in a context where distributed is initialized.
 
     Args:
         strategy: The strategy being used, either from Fabric (``fabric.strategy``) or from Trainer
