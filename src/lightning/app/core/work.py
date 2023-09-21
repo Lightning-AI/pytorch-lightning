@@ -22,8 +22,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKI
 from deepdiff import DeepHash, Delta
 
 from lightning.app.core.queues import BaseQueue
-from lightning.app.storage.path import Path
 from lightning.app.storage.drive import _maybe_create_drive, Drive
+from lightning.app.storage.path import Path
 from lightning.app.storage.payload import Payload
 from lightning.app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
 from lightning.app.utilities.app_status import WorkStatus
