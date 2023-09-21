@@ -90,7 +90,7 @@ jobs:
         run: make linkcheck SPHINXOPTS="--keep-going"
 
       - name: Full build for deployment
-        if: github.repository_owner == 'Lightning-AI' && github.event_name == 'push'
+        if: github.event_name == 'push'
         run: echo "FAST_DOCS_DEV=0" >> $GITHUB_ENV
       - name: Make Documentation
         if: ${{ matrix.check == 'html' }}
