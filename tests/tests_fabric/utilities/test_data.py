@@ -9,7 +9,9 @@ import pytest
 import torch
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler
+from lightning_utilities.test.warning import no_warning_call
 
+import lightning.fabric
 from lightning.fabric.utilities.data import (
     _get_dataloader_init_args_and_kwargs,
     _replace_dunder_methods,
@@ -610,9 +612,9 @@ def test_set_sampler_epoch():
 @mock.patch("lightning.fabric.utilities.data.os.cpu_count")
 def test_suggested_max_num_workers(cpu_count_mock, affinity, cpu_count, local_world_size, expected, monkeypatch):
     if affinity:
-        monkeypatch.setattr("lightning.fabric.utilities.data.os", "sched_getaffinity", lambda _: list(range(cpu_count)))
+        monkeypatch.setattr(lightning.fabric.utilities.data.os, "sched_getaffinity", lambda _: list(range(cpu_count)))
     else:
-        monkeypatch.delattr("lightning.pytorch.utilities.data.os", "sched_getaffinity", raising=False)
+        monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
         cpu_count_mock.return_value = cpu_count
 
     assert suggested_max_num_workers(local_world_size) == expected
@@ -622,3 +624,15 @@ def test_suggested_max_num_workers(cpu_count_mock, affinity, cpu_count, local_wo
 def test_suggested_max_num_workers_input_validation(invalid):
     with pytest.raises(ValueError, match="should be >= 1"):
         suggested_max_num_workers(invalid)
+
+
+@pytest.mark.parametrize("cpu_count", [1, 2, 3])
+@pytest.mark.parametrize("local_world_size", [1, 2, 3])
+def test_suggested_max_num_workers_not_triggering_torch_warning(local_world_size, cpu_count, monkeypatch):
+    """Test that our suggestion for num workers doesn't trigger a warning in the DataLoader for too many workers."""
+    monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
+    monkeypatch.delattr(torch.utils.data.dataloader.os, "sched_getaffinity", raising=False)
+    monkeypatch.setattr(lightning.fabric.utilities.data.os, "cpu_count", lambda: cpu_count)
+    monkeypatch.setattr(torch.utils.data.dataloader.os, "cpu_count", lambda: cpu_count)
+    with no_warning_call():
+        DataLoader(range(2), num_workers=suggested_max_num_workers(local_world_size))
