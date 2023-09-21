@@ -635,4 +635,5 @@ def test_suggested_max_num_workers_not_triggering_torch_warning(local_world_size
     monkeypatch.setattr(lightning.fabric.utilities.data.os, "cpu_count", lambda: cpu_count)
     monkeypatch.setattr(torch.utils.data.dataloader.os, "cpu_count", lambda: cpu_count)
     with no_warning_call():
+        # The dataloader runs a check in `DataLoader.check_worker_number_rationality`
         DataLoader(range(2), num_workers=suggested_max_num_workers(local_world_size))
