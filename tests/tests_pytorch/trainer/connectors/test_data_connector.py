@@ -23,6 +23,7 @@ from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
+import lightning.fabric
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
@@ -166,7 +167,7 @@ def test_dataloader_warnings(tmpdir, num_workers):
 )
 @mock.patch("lightning.fabric.utilities.data.os.cpu_count")
 def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expected_warning, monkeypatch):
-    monkeypatch.delattr("lightning.fabric.utilities.data.os", "sched_getaffinity", raising=False)
+    monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
     trainer = Mock(spec=Trainer)
     dataloader = Mock(spec=DataLoader)
     trainer.num_devices = num_devices
@@ -179,7 +180,7 @@ def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expec
         ctx = no_warning_call(UserWarning)
 
     with ctx:
-        _worker_check(trainer, dataloader, "train_dataloader")
+        _worker_check(trainer, using_spawn=False, dataloader=dataloader, name="train_dataloader")
 
 
 def test_update_dataloader_raises():
