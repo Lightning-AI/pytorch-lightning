@@ -420,30 +420,12 @@ def _check_dataloader_iterable(
         )
 
 
-def _worker_check(dataloader: object, using_spawn: bool, name: str) -> None:
+def _worker_check(dataloader: object, name: str) -> None:
     if not isinstance(dataloader, DataLoader):
         return
 
     num_cpus = multiprocessing.cpu_count()
-
-    # ddp_spawn + num_workers > 0 don't mix! tell the user
-    if dataloader.num_workers > 0 and using_spawn:
-        if not dataloader.persistent_workers:
-            rank_zero_warn(
-                "num_workers>0, persistent_workers=False, and strategy=ddp_spawn"
-                " may result in data loading bottlenecks."
-                " Consider setting persistent_workers=True"
-                " (this is a limitation of Python .spawn() and PyTorch)"
-            )
-
-    elif dataloader.num_workers == 0 and using_spawn:
-        if not dataloader.persistent_workers:
-            rank_zero_warn(
-                "strategy=ddp_spawn and num_workers=0 may result in data loading bottlenecks."
-                " Consider setting num_workers>0 and persistent_workers=True"
-            )
-
-    elif dataloader.num_workers <= 2 < num_cpus and not using_spawn:
+    if dataloader.num_workers <= 2 < num_cpus:
         # if changed, update the `filterwarnings` snippet in 'speed.html#num-workers'
         rank_zero_warn(
             f"The dataloader, {name}, does not have many workers which may be a bottleneck."
@@ -506,11 +488,7 @@ def _process_dataloader(
     dataloader = strategy.process_dataloader(dataloader)
 
     # check the workers
-    _worker_check(
-        dataloader,
-        isinstance(strategy, DDPStrategy) and strategy._start_method == "spawn",
-        f"{stage.dataloader_prefix}_dataloader",
-    )
+    _worker_check(dataloader, f"{stage.dataloader_prefix}_dataloader")
 
     # add worker_init_fn for correct seeding in worker processes
     _auto_add_worker_init_fn(dataloader, trainer.global_rank)
