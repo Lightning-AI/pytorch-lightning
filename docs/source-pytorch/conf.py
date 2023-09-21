@@ -202,7 +202,7 @@ exclude_patterns = [
 
 if _FAST_DOCS_DEV or not _SHOULD_COPY_NOTEBOOKS:
     exclude_patterns.append("notebooks/*")
-    exclude_patterns.append("tutorials.rst")
+    #exclude_patterns.append("tutorials.rst")
 
 
 # The name of the Pygments (syntax highlighting) style to use.
