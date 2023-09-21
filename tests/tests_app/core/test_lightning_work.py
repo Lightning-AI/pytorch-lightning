@@ -9,7 +9,7 @@ from lightning.app import LightningApp
 from lightning.app.core.flow import LightningFlow
 from lightning.app.core.work import LightningWork
 from lightning.app.runners import MultiProcessRuntime
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 from lightning.app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
 from lightning.app.testing.testing import LightningTestApp
 from lightning.app.utilities.enum import make_status, WorkStageStatus

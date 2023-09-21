@@ -16,8 +16,7 @@ from lightning.app import CloudCompute, LightningApp
 from lightning.app.core.flow import _RootFlow, LightningFlow
 from lightning.app.core.work import LightningWork
 from lightning.app.runners import MultiProcessRuntime
-from lightning.app.storage import Path
-from lightning.app.storage.path import _storage_root_dir
+from lightning.app.storage.path import _storage_root_dir, Path
 from lightning.app.structures import Dict as LDict
 from lightning.app.structures import List as LList
 from lightning.app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
