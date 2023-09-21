@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import multiprocessing
 import os
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional, Tuple, Union
@@ -25,6 +24,7 @@ from lightning.fabric.utilities.data import (
     _replace_dunder_methods,
     _set_sampler_epoch,
     has_iterable_dataset,
+    suggested_max_num_workers,
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
@@ -420,11 +420,11 @@ def _check_dataloader_iterable(
         )
 
 
-def _worker_check(dataloader: object, using_spawn: bool, name: str) -> None:
+def _worker_check(trainer: "pl.Trainer", using_spawn: bool, dataloader: object, name: str) -> None:
     if not isinstance(dataloader, DataLoader):
         return
 
-    num_cpus = multiprocessing.cpu_count()
+    upper_bound = suggested_max_num_workers(trainer.num_devices)
 
     # ddp_spawn + num_workers > 0 don't mix! tell the user
     if dataloader.num_workers > 0 and using_spawn:
@@ -442,14 +442,11 @@ def _worker_check(dataloader: object, using_spawn: bool, name: str) -> None:
                 "strategy=ddp_spawn and num_workers=0 may result in data loading bottlenecks."
                 " Consider setting num_workers>0 and persistent_workers=True"
             )
-
-    elif dataloader.num_workers <= 2 < num_cpus and not using_spawn:
+    elif dataloader.num_workers <= 2 < upper_bound or dataloader.num_workers < 2 <= upper_bound:
         # if changed, update the `filterwarnings` snippet in 'speed.html#num-workers'
         rank_zero_warn(
-            f"The dataloader, {name}, does not have many workers which may be a bottleneck."
-            " Consider increasing the value of the `num_workers` argument`"
-            f" (try {num_cpus} which is the number of cpus on this machine)"
-            " in the `DataLoader` init to improve performance.",
+            f"The '{name}' does not have many workers which may be a bottleneck. Consider increasing the value of the"
+            f" `num_workers` argument` to `num_workers={upper_bound}` in the `DataLoader` to improve performance.",
             category=PossibleUserWarning,
         )
 
@@ -507,9 +504,10 @@ def _process_dataloader(
 
     # check the workers
     _worker_check(
-        dataloader,
-        isinstance(strategy, DDPStrategy) and strategy._start_method == "spawn",
-        f"{stage.dataloader_prefix}_dataloader",
+        trainer=trainer,
+        using_spawn=isinstance(strategy, DDPStrategy) and strategy._start_method == "spawn",
+        dataloader=dataloader,
+        name=f"{stage.dataloader_prefix}_dataloader",
     )
 
     # add worker_init_fn for correct seeding in worker processes
