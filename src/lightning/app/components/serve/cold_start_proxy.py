@@ -51,8 +51,8 @@ class ColdStartProxy:
         can override this method to handle the request in any way.
 
         Args:
-            request (BaseModel): The request body, a pydantic model that is being
-            forwarded by load balancer which is a FastAPI service
+            request:
+                The request body, a pydantic model that is being forwarded by load balancer which is a FastAPI service
 
         """
         try:
