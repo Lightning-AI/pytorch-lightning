@@ -52,7 +52,7 @@ class ColdStartProxy:
 
         Args:
             request: The request body, a pydantic model that is being forwarded by load balancer which
-            	is a FastAPI service
+                is a FastAPI service
 
         """
         try:
