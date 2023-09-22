@@ -36,7 +36,6 @@ from typing import (
 
 import torch
 from torch import Tensor
-from torch.distributed.fsdp import StateDictType
 from torch.nn import Module, Parameter
 from torch.optim import Optimizer
 from typing_extensions import TypeGuard
@@ -812,7 +811,7 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
 def _get_full_state_dict_context(
     module: Module, world_size: int, rank0_only: bool = True
 ) -> Generator[None, None, None]:
-    from torch.distributed.fsdp import FullStateDictConfig
+    from torch.distributed.fsdp import FullStateDictConfig, StateDictType
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
     # In PyTorch <= 2.0, offload to CPU in combination with `world_size=1` is not possible
