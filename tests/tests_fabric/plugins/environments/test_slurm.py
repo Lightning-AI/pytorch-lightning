@@ -129,6 +129,13 @@ def test_detect():
     with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "interactive"}):
         assert not SLURMEnvironment.detect()
 
+    with mock.patch(
+        "lightning.fabric.plugins.environments.torchelastic.torch.distributed.is_available", return_value=True
+    ), mock.patch(
+        "lightning.fabric.plugins.environments.torchelastic.torch.distributed.is_torchelastic_launched", return_value=True
+    ):
+        assert not SLURMEnvironment.detect()
+
 
 @RunIf(skip_windows=True)
 @pytest.mark.skipif(shutil.which("srun") is not None, reason="must run on a machine where srun is not available")
