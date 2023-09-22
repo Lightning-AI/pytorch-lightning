@@ -48,20 +48,22 @@ test: clean
 
 docs: docs-pytorch
 
-pull-template:
+sphinx-theme:
 	pip install -q awscli
+	mkdir -p dist/
 	aws s3 sync --no-sign-request s3://sphinx-packages/ dist/
+	pip install lai-sphinx-theme -f dist/
 
-docs-app: clean pull-template
-	pip install -e .[all] --quiet -r requirements/app/docs.txt -f dist/
+docs-app: clean sphinx-theme
+	pip install -e .[all] --quiet -r requirements/app/docs.txt
 	cd docs/source-app && $(MAKE) html --jobs $(nproc)
 
-docs-fabric: clean pull-template
-	pip install -e .[all] --quiet -r requirements/fabric/docs.txt -f dist/
+docs-fabric: clean sphinx-theme
+	pip install -e .[all] --quiet -r requirements/fabric/docs.txt
 	cd docs/source-fabric && $(MAKE) html --jobs $(nproc)
 
-docs-pytorch: clean pull-template
-	pip install -e .[all] --quiet -r requirements/pytorch/docs.txt -f dist/
+docs-pytorch: clean sphinx-theme
+	pip install -e .[all] --quiet -r requirements/pytorch/docs.txt -r _notebooks/.actions/requires.txt
 	cd docs/source-pytorch && $(MAKE) html --jobs $(nproc)
 
 update:
