@@ -37,7 +37,7 @@ _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.join(_PATH_HERE, "..", "..")
 _PATH_RAW_NB = os.path.join(_PATH_ROOT, "_notebooks")
 _PATH_RAW_NB_ACTIONS = os.path.join(_PATH_RAW_NB, ".actions")
-_SHOULD_COPY_NOTEBOOKS = not _FAST_DOCS_DEV
+_COPY_NOTEBOOKS = not _FAST_DOCS_DEV
 _FOLDER_GENERATED = "generated"
 
 
@@ -52,13 +52,17 @@ assist_local = _load_py_module("assistant", os.path.join(_PATH_ROOT, ".actions",
 if os.path.isdir(_PATH_RAW_NB_ACTIONS):
     assist_nb = _load_py_module("assistant", os.path.join(_PATH_RAW_NB_ACTIONS, "assistant.py"))
 else:
-    _SHOULD_COPY_NOTEBOOKS = False
-    warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
+    _COPY_NOTEBOOKS = False
+    warnings.warn(
+        "To build full docs you need to include also tutorials/notebooks from submodule code."
+        " Please run: `git submodule update --init --recursive`",
+        stacklevel=2,
+    )
 
 
 # -- Project documents -------------------------------------------------------
 
-if _SHOULD_COPY_NOTEBOOKS:
+if _COPY_NOTEBOOKS:
     assist_nb.AssistantCLI.copy_notebooks(
         _PATH_RAW_NB,
         _PATH_HERE,
@@ -78,15 +82,6 @@ if _SHOULD_COPY_NOTEBOOKS:
         file = os.path.join(_PATH_HERE, "notebooks", file)
         if os.path.exists(file):
             os.remove(file)
-else:
-    # create empty notebooks juts tu satisfy the gallery constructor
-    import nbformat
-
-    os.makedirs(os.path.join(_PATH_HERE, "notebooks"), exist_ok=True)
-    for i in range(3):
-        nb_fname = os.path.join(_PATH_HERE, "notebooks", f"empty_notebook_{i}.ipynb")
-        # Create an empty notebook and save the notebook to a file
-        nbformat.write(nbformat.v4.new_notebook(), nb_fname)
 
 
 os.makedirs(os.path.join(_PATH_HERE, _FOLDER_GENERATED), exist_ok=True)
@@ -210,6 +205,11 @@ exclude_patterns = [
     f"{_FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md",
     "notebooks/sample-template*",
 ]
+
+# todo: checking cross link will fail because `tutorials.rst` is referred in `common/notebooks.rst`
+if not _COPY_NOTEBOOKS:
+    exclude_patterns.append("notebooks/*")
+    exclude_patterns.append("tutorials.rst")
 
 
 # The name of the Pygments (syntax highlighting) style to use.

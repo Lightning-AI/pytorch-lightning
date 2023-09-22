@@ -47,8 +47,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          # only HTML target need to pull notebooks
-          submodules: ${{ matrix.check == 'html' }}
+          # only Pytorch has/uses notebooks
+          submodules: ${{ matrix.pkg-name == 'pytorch' }}
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
@@ -94,7 +94,7 @@ jobs:
         if: github.event_name == 'push'
         run: echo "FAST_DOCS_DEV=0" >> $GITHUB_ENV
       - name: Install req. for Notebooks/tutorials
-        if: matrix.check == 'html' && matrix.pkg-name == 'pytorch'
+        if: matrix.pkg-name == 'pytorch'
         run: pip install -q -r _notebooks/.actions/requires.txt
       - name: Make Documentation
         if: ${{ matrix.check == 'html' }}
