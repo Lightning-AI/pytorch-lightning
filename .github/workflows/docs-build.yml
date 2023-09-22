@@ -77,6 +77,9 @@ jobs:
           pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
             -f ${PYPI_LOCAL_DIR} -f ${PYPI_CACHE_DIR} -f ${TORCH_URL}
           pip list
+      - name: Install req. for Notebooks/tutorials
+        if: matrix.pkg-name == 'pytorch'
+        run: pip install -q -r _notebooks/.actions/requires.txt
 
       - name: Test Examples in Docs
         if: ${{ matrix.check == 'doctest' }}
@@ -93,9 +96,6 @@ jobs:
       - name: Full build for deployment
         if: github.event_name == 'push'
         run: echo "FAST_DOCS_DEV=0" >> $GITHUB_ENV
-      - name: Install req. for Notebooks/tutorials
-        if: matrix.pkg-name == 'pytorch'
-        run: pip install -q -r _notebooks/.actions/requires.txt
       - name: Make Documentation
         if: ${{ matrix.check == 'html' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}

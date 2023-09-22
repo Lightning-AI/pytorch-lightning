@@ -37,7 +37,7 @@ _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.join(_PATH_HERE, "..", "..")
 _PATH_RAW_NB = os.path.join(_PATH_ROOT, "_notebooks")
 _PATH_RAW_NB_ACTIONS = os.path.join(_PATH_RAW_NB, ".actions")
-_COPY_NOTEBOOKS = not _FAST_DOCS_DEV
+_COPY_NOTEBOOKS = int(os.getenv("DOCS_COPY_NOTEBOOKS", True))
 _FOLDER_GENERATED = "generated"
 
 
