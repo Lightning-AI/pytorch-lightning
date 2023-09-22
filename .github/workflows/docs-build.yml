@@ -42,10 +42,13 @@ jobs:
       matrix:
         pkg-name: ["app", "fabric", "pytorch"]
         check: ["html", "doctest", "linkcheck"]
+    env:
+      FAST_DOCS_DEV: 1
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: true
+          # only Pytorch has/uses notebooks
+          submodules: ${{ matrix.pkg-name == 'pytorch' }}
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
@@ -74,12 +77,13 @@ jobs:
           pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
             -f ${PYPI_LOCAL_DIR} -f ${PYPI_CACHE_DIR} -f ${TORCH_URL}
           pip list
+      - name: Install req. for Notebooks/tutorials
+        if: matrix.pkg-name == 'pytorch'
+        run: pip install -q -r _notebooks/.actions/requires.txt
 
       - name: Test Examples in Docs
         if: ${{ matrix.check == 'doctest' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        env:
-          FAST_DOCS_DEV: 1
         run: |
           make doctest
           make coverage
@@ -87,15 +91,14 @@ jobs:
       - name: Check External Links
         if: ${{ matrix.check == 'linkcheck' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        env:
-          FAST_DOCS_DEV: 1
         run: make linkcheck SPHINXOPTS="--keep-going"
 
+      - name: Full build for deployment
+        if: github.event_name == 'push'
+        run: echo "FAST_DOCS_DEV=0" >> $GITHUB_ENV
       - name: Make Documentation
         if: ${{ matrix.check == 'html' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        env:
-          FAST_DOCS_DEV: 0
         run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Keep artifact

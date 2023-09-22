@@ -183,7 +183,7 @@ class _LightningAppOpenAPIRetriever:
         project = _get_project(client)
         list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
-        app_names = [_get_app_display_name(lightningapp) for lightningapp in list_apps.lightningapps]
+        app_names = [_get_app_display_name(lit_app) for lit_app in list_apps.lightningapps]
 
         if not self.app_id_or_name_or_url:
             print(f"ERROR: Provide an application name, id or url with --app_id=X. Found {app_names}")
