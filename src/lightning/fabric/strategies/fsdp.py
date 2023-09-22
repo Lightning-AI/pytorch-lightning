@@ -36,6 +36,7 @@ from typing import (
 
 import torch
 from torch import Tensor
+from torch.distributed.fsdp import StateDictType
 from torch.nn import Module, Parameter
 from torch.optim import Optimizer
 from typing_extensions import TypeGuard

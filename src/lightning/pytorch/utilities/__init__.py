@@ -15,10 +15,10 @@
 
 import numpy
 
-from lightning.fabric.utilities import (
-    LightningEnum,  # noqa: F401
-    move_data_to_device,  # noqa: F401
-    suggested_max_num_workers,  # noqa: F401
+from lightning.fabric.utilities import (  # noqa: F401
+    LightningEnum,
+    move_data_to_device,
+    suggested_max_num_workers,
 )
 from lightning.pytorch.utilities.combined_loader import CombinedLoader  # noqa: F401
 from lightning.pytorch.utilities.enums import GradClipAlgorithmType  # noqa: F401

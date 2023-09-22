@@ -55,7 +55,7 @@ def test_save_checkpoint_convert_stateful_objects(tmp_path):
     save_checkpoint_mock = Mock()
     strategy.checkpoint_io.save_checkpoint = save_checkpoint_mock
 
-    model = nn.Linear(3, 3)
+    model = torch.nn.Linear(3, 3)
     optimizer = torch.optim.Adam(model.parameters())
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.99)
 
@@ -114,12 +114,12 @@ def test_load_checkpoint_model_optimizer_from_raw_checkpoint(tmp_path):
     """Test that the `load_checkpoint` can load raw state dict checkpoints too."""
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
 
-    model = nn.Linear(3, 3)
+    model = torch.nn.Linear(3, 3)
     optimizer = torch.optim.Adam(model.parameters(), lr=1.0)
     torch.save(model.state_dict(), tmp_path / "model.ckpt")
     torch.save(optimizer.state_dict(), tmp_path / "optimizer.ckpt")
 
-    new_model = nn.Linear(3, 3)
+    new_model = torch.nn.Linear(3, 3)
     new_optimizer = torch.optim.Adam(new_model.parameters(), lr=2.0)
 
     strategy.load_checkpoint(tmp_path / "model.ckpt", state=new_model, strict=False)
@@ -146,13 +146,13 @@ def test_load_checkpoint_in_place(tmp_path):
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
 
     # objects with initial state
-    saved_model = nn.Linear(2, 2)
+    saved_model = torch.nn.Linear(2, 2)
     saved_optimizer = torch.optim.Adam(saved_model.parameters(), lr=0.1)
     saved_state = {"model": saved_model, "optimizer": saved_optimizer, "int": 1, "dict": {"cocofruit": 2}}
     strategy.save_checkpoint(tmp_path / "checkpoint", state=saved_state)
 
     # same objects with different state
-    model = nn.Linear(2, 2)
+    model = torch.nn.Linear(2, 2)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.3)
     state = {"model": model, "optimizer": optimizer, "int": 10, "dict": {"cocofruit": 20}}
     assert not torch.equal(model.weight, saved_model.weight)
@@ -166,7 +166,7 @@ def test_load_checkpoint_in_place(tmp_path):
     assert not remainder
 
     # partial load - only model, no optimizer
-    model = nn.Linear(2, 2)
+    model = torch.nn.Linear(2, 2)
     state = {"model": model}
     remainder = strategy.load_checkpoint(tmp_path / "checkpoint", state)
     assert torch.equal(model.weight, saved_model.weight)
@@ -189,13 +189,13 @@ def test_load_checkpoint_non_strict_loading(tmp_path):
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
 
     # objects with initial state
-    saved_model = nn.Linear(2, 2)
+    saved_model = torch.nn.Linear(2, 2)
     saved_optimizer = torch.optim.Adam(saved_model.parameters(), lr=0.1)
     saved_state = {"model": saved_model, "optimizer": saved_optimizer, "int": 1, "str": "test"}
     strategy.save_checkpoint(tmp_path / "checkpoint.ckpt", state=saved_state)
 
     # same objects with different state
-    model = nn.Linear(2, 2)
+    model = torch.nn.Linear(2, 2)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.3)
     state = {"model": model, "optimizer": optimizer, "int": 2, "new": "not_present_in_saved_state"}
     assert not torch.equal(model.weight, saved_model.weight)
