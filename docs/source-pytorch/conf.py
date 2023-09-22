@@ -36,7 +36,8 @@ _FAST_DOCS_DEV = int(os.getenv("FAST_DOCS_DEV", True))
 _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.join(_PATH_HERE, "..", "..")
 _PATH_RAW_NB = os.path.join(_PATH_ROOT, "_notebooks")
-_SHOULD_COPY_NOTEBOOKS = True
+_PATH_RAW_NB_ACTIONS = os.path.join(_PATH_RAW_NB, ".actions")
+_COPY_NOTEBOOKS = int(os.getenv("DOCS_COPY_NOTEBOOKS", True))
 _FOLDER_GENERATED = "generated"
 
 
@@ -48,24 +49,27 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 
 assist_local = _load_py_module("assistant", os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
-
-if os.path.isdir(os.path.join(_PATH_RAW_NB, ".actions")):
-    assist_nb = _load_py_module("assistant", os.path.join(_PATH_RAW_NB, ".actions", "assistant.py"))
+if os.path.isdir(_PATH_RAW_NB_ACTIONS):
+    assist_nb = _load_py_module("assistant", os.path.join(_PATH_RAW_NB_ACTIONS, "assistant.py"))
 else:
-    _SHOULD_COPY_NOTEBOOKS = False
-    warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
+    _COPY_NOTEBOOKS = False
+    warnings.warn(
+        "To build full docs you need to include also tutorials/notebooks from submodule code."
+        " Please run: `git submodule update --init --recursive`",
+        stacklevel=2,
+    )
 
 
 # -- Project documents -------------------------------------------------------
 
-if _SHOULD_COPY_NOTEBOOKS:
+if _COPY_NOTEBOOKS:
     assist_nb.AssistantCLI.copy_notebooks(
         _PATH_RAW_NB,
         _PATH_HERE,
         "notebooks",
         patterns=[".", "course_UvA-DL", "lightning_examples"],
     )
-    # TODO: Complete converting the missing items and add them back
+    # TODO(@aniketmaurya): Complete converting the missing items and add them back
     ignore = [
         "course_UvA-DL/13-contrastive-learning",
         "lightning_examples/augmentation_kornia",
@@ -94,7 +98,9 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="tags/1.0.0",
+    # todo: update after release
+    # checkout="tags/1.0.0",
+    checkout="tags/1.1.0.dev",
 )
 
 if not _FAST_DOCS_DEV:
@@ -200,7 +206,8 @@ exclude_patterns = [
     "notebooks/sample-template*",
 ]
 
-if _FAST_DOCS_DEV:
+# todo: checking cross link will fail because `tutorials.rst` is referred in `common/notebooks.rst`
+if not _COPY_NOTEBOOKS:
     exclude_patterns.append("notebooks/*")
     exclude_patterns.append("tutorials.rst")
 
@@ -323,14 +330,151 @@ intersphinx_mapping = {
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
     "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
-    "habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
+    "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
+    "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
+    # needed for referencing App from lightning scope
+    "lightning.app": ("https://lightning.ai/docs/app/stable/", None),
+    # needed for referencing Fabric from lightning scope
+    "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),
+    # TODO: these are missing objects.inv
+    # "comet_ml": ("https://www.comet.com/docs/v2/", None),
+    # "neptune": ("https://docs.neptune.ai/", None),
+    # "wandb": ("https://docs.wandb.ai//", None),
 }
-nitpicky = False  # TODO: to be continued
+nitpicky = True
+
 
 nitpick_ignore = [
     ("py:class", "typing.Self"),
     # missing in generated API
     ("py:exc", "MisconfigurationException"),
+    # TODO: generated list of all existing ATM, need to be fixed
+    ("py:class", "AveragedModel"),
+    ("py:class", "CometExperiment"),
+    ("py:meth", "DataModule.__init__"),
+    ("py:class", "HPUAccelerator"),
+    ("py:class", "Tensor"),
+    ("py:class", "_PATH"),
+    ("py:func", "add_argument"),
+    ("py:func", "add_class_arguments"),
+    ("py:meth", "apply_to_collection"),
+    ("py:attr", "best_model_path"),
+    ("py:attr", "best_model_score"),
+    ("py:attr", "checkpoint_path"),
+    ("py:class", "comet_ml.ExistingExperiment"),
+    ("py:class", "comet_ml.Experiment"),
+    ("py:class", "comet_ml.OfflineExperiment"),
+    ("py:meth", "deepspeed.DeepSpeedEngine.backward"),
+    ("py:attr", "example_input_array"),
+    ("py:class", "jsonargparse._core.ArgumentParser"),
+    ("py:class", "jsonargparse._namespace.Namespace"),
+    ("py:class", "jsonargparse.core.ArgumentParser"),
+    ("py:class", "jsonargparse.namespace.Namespace"),
+    ("py:class", "lightning.fabric.accelerators.xla.XLAAccelerator"),
+    ("py:class", "lightning.fabric.loggers.csv_logs._ExperimentWriter"),
+    ("py:class", "lightning.fabric.loggers.logger._DummyExperiment"),
+    ("py:class", "lightning.fabric.plugins.precision.transformer_engine.TransformerEnginePrecision"),
+    ("py:class", "lightning.fabric.utilities.device_dtype_mixin._DeviceDtypeModuleMixin"),
+    ("py:func", "lightning.fabric.utilities.seed.seed_everything"),
+    ("py:class", "lightning.fabric.utilities.types.LRScheduler"),
+    ("py:class", "lightning.fabric.utilities.types.ReduceLROnPlateau"),
+    ("py:class", "lightning.fabric.utilities.types.Steppable"),
+    ("py:class", "lightning.fabric.wrappers._FabricOptimizer"),
+    ("py:meth", "lightning.pytorch.Callback.on_exception"),
+    ("py:class", "lightning.pytorch.LightningModule"),
+    ("py:meth", "lightning.pytorch.LightningModule.on_train_epoch_end"),
+    ("py:meth", "lightning.pytorch.LightningModule.on_validation_epoch_end"),
+    ("py:meth", "lightning.pytorch.LightningModule.save_hyperparameters"),
+    ("py:meth", "lightning.pytorch.LightningModule.test_step"),
+    ("py:meth", "lightning.pytorch.LightningModule.training_step"),
+    ("py:meth", "lightning.pytorch.LightningModule.validation_step"),
+    ("py:obj", "lightning.pytorch.accelerators.MPSAccelerator"),
+    ("py:meth", "lightning.pytorch.accelerators.accelerator.Accelerator.register_accelerators"),
+    ("py:paramref", "lightning.pytorch.callbacks.Checkpoint._sphinx_paramlinks_save_top_k"),
+    ("py:func", "lightning.pytorch.callbacks.RichProgressBar.configure_columns"),
+    ("py:meth", "lightning.pytorch.callbacks.callback.Callback.on_load_checkpoint"),
+    ("py:meth", "lightning.pytorch.callbacks.callback.Callback.on_save_checkpoint"),
+    ("py:class", "lightning.pytorch.callbacks.checkpoint.Checkpoint"),
+    ("py:meth", "lightning.pytorch.callbacks.progress.progress_bar.ProgressBar.get_metrics"),
+    ("py:class", "lightning.pytorch.callbacks.progress.rich_progress.RichProgressBarTheme"),
+    ("py:class", "lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm"),
+    ("py:class", "lightning.pytorch.cli.ReduceLROnPlateau"),
+    ("py:meth", "lightning.pytorch.core.LightningDataModule.setup"),
+    ("py:meth", "lightning.pytorch.core.LightningModule.configure_model"),
+    ("py:meth", "lightning.pytorch.core.LightningModule.save_hyperparameters"),
+    ("py:meth", "lightning.pytorch.core.LightningModule.setup"),
+    ("py:meth", "lightning.pytorch.core.hooks.ModelHooks.on_after_batch_transfer"),
+    ("py:meth", "lightning.pytorch.core.hooks.ModelHooks.setup"),
+    ("py:meth", "lightning.pytorch.core.hooks.ModelHooks.transfer_batch_to_device"),
+    ("py:meth", "lightning.pytorch.core.mixins.hparams_mixin.HyperparametersMixin.save_hyperparameters"),
+    ("py:class", "lightning.pytorch.loggers.Logger"),
+    ("py:func", "lightning.pytorch.loggers.logger.rank_zero_experiment"),
+    ("py:class", "lightning.pytorch.plugins.environments.cluster_environment.ClusterEnvironment"),
+    ("py:class", "lightning.pytorch.plugins.environments.slurm_environment.SLURMEnvironment"),
+    ("py:class", "lightning.pytorch.plugins.io.wrapper._WrappingCheckpointIO"),
+    ("py:func", "lightning.pytorch.seed_everything"),
+    ("py:class", "lightning.pytorch.serve.servable_module.ServableModule"),
+    ("py:class", "lightning.pytorch.serve.servable_module_validator.ServableModuleValidator"),
+    ("py:mod", "lightning.pytorch.strategies"),
+    ("py:class", "lightning.pytorch.strategies.SingleXLAStrategy"),
+    ("py:meth", "lightning.pytorch.strategies.ddp.DDPStrategy.configure_ddp"),
+    ("py:meth", "lightning.pytorch.strategies.ddp.DDPStrategy.setup_distributed"),
+    ("py:meth", "lightning.pytorch.trainer.trainer.Trainer.lightning_module"),
+    ("py:class", "lightning.pytorch.tuner.lr_finder._LRFinder"),
+    ("py:class", "lightning.pytorch.utilities.CombinedLoader"),
+    ("py:obj", "lightning.pytorch.utilities.deepspeed.ds_checkpoint_dir"),
+    ("py:obj", "lightning.pytorch.utilities.memory.is_cuda_out_of_memory"),
+    ("py:obj", "lightning.pytorch.utilities.memory.is_cudnn_snafu"),
+    ("py:obj", "lightning.pytorch.utilities.memory.is_oom_error"),
+    ("py:obj", "lightning.pytorch.utilities.memory.is_out_of_cpu_memory"),
+    ("py:func", "lightning.pytorch.utilities.rank_zero.rank_zero_only"),
+    ("py:class", "lightning.pytorch.utilities.types.LRSchedulerConfig"),
+    ("py:class", "lightning.pytorch.utilities.types.OptimizerLRSchedulerConfig"),
+    ("py:class", "lightning_habana.pytorch.plugins.precision.HPUPrecisionPlugin"),
+    ("py:class", "lightning_habana.pytorch.strategies.HPUParallelStrategy"),
+    ("py:class", "lightning_habana.pytorch.strategies.SingleHPUStrategy"),
+    ("py:obj", "logger.experiment"),
+    ("py:class", "mlflow.tracking.MlflowClient"),
+    ("py:attr", "model"),
+    ("py:meth", "move_data_to_device"),
+    ("py:class", "neptune.Run"),
+    ("py:class", "neptune.handler.Handler"),
+    ("py:meth", "on_after_batch_transfer"),
+    ("py:meth", "on_before_batch_transfer"),
+    ("py:meth", "on_save_checkpoint"),
+    ("py:meth", "optimizer_step"),
+    ("py:class", "out_dict"),
+    ("py:meth", "prepare_data"),
+    ("py:class", "pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor"),
+    ("py:meth", "setup"),
+    ("py:meth", "test_step"),
+    ("py:meth", "toggle_optimizer"),
+    ("py:class", "torch.ScriptModule"),
+    ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.CPUOffload"),
+    ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.MixedPrecision"),
+    ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.ShardingStrategy"),
+    ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
+    ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
+    ("py:func", "torch.inference_mode"),
+    ("py:meth", "torch.mean"),
+    ("py:func", "torch.nn.Module.eval"),
+    ("py:func", "torch.no_grad"),
+    ("py:class", "torch.optim.lr_scheduler.LRScheduler"),
+    ("py:meth", "torch.set_default_tensor_type"),
+    ("py:class", "torch.utils.data.DistributedSampler"),
+    ("py:class", "torch_xla.distributed.parallel_loader.MpDeviceLoader"),
+    ("py:func", "torch_xla.distributed.xla_multiprocessing.spawn"),
+    ("py:mod", "tqdm"),
+    ("py:meth", "training_step"),
+    ("py:meth", "transfer_batch_to_device"),
+    ("py:class", "types.FrameType"),
+    ("py:class", "typing.TypeGuard"),
+    ("py:meth", "untoggle_optimizer"),
+    ("py:meth", "validation_step"),
+    ("py:class", "wandb.Artifact"),
+    ("py:func", "wandb.init"),
+    ("py:class", "wandb.sdk.lib.RunDisabled"),
+    ("py:class", "wandb.wandb_run.Run"),
 ]
 
 # -- Options for todo extension ----------------------------------------------

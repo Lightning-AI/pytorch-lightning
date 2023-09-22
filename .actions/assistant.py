@@ -450,7 +450,10 @@ class AssistantCLI:
 
         with tempfile.TemporaryDirectory() as tmp:
             zip_file = os.path.join(tmp, "repo.zip")
-            urllib.request.urlretrieve(zip_url, zip_file)
+            try:
+                urllib.request.urlretrieve(zip_url, zip_file)
+            except urllib.error.HTTPError:
+                raise urllib.error.HTTPError(f"Requesting file '{zip_url}' does not exist or it is just unavailable.")
 
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
                 zip_ref.extractall(tmp)

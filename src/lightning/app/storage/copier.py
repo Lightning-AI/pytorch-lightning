@@ -79,7 +79,7 @@ class _Copier(Thread):
 
         t0 = time()
 
-        obj: Optional[lightning.app.storage.Path] = _find_matching_path(self._work, request)
+        obj: Optional[lightning.app.storage.path.Path] = _find_matching_path(self._work, request)
         if obj is None:
             # If it's not a path, it must be a payload
             obj: lightning.app.storage.Payload = getattr(self._work, request.name)
@@ -98,9 +98,9 @@ class _Copier(Thread):
         self.copy_response_queue.put(response)
 
 
-def _find_matching_path(work, request: _GetRequest) -> Optional["lightning.app.storage.Path"]:
+def _find_matching_path(work, request: _GetRequest) -> Optional["lightning.app.storage.path.Path"]:
     for name in work._paths:
-        candidate: lightning.app.storage.Path = getattr(work, name)
+        candidate: lightning.app.storage.path.Path = getattr(work, name)
         if candidate.hash == request.hash:
             return candidate
     return None
