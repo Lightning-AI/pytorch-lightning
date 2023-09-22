@@ -1,5 +1,6 @@
 import pytest
-from lightning.app.storage import Path
+
+from lightning.app.storage.path import Path
 from lightning.app.testing.helpers import EmptyFlow, EmptyWork
 from lightning.app.utilities.component import (
     _context,

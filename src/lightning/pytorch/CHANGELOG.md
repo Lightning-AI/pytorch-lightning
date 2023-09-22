@@ -124,6 +124,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for mixed 8-bit precision as `Trainer(precision="transformer-engine")` using [Nvidia's Transformer Engine](https://docs.nvidia.com/deeplearning/transformer-engine) ([#18459](https://github.com/Lightning-AI/lightning/pull/18459))
 
+
+- Added support for passing the process group to the `FSDPStrategy` ([#18583](https://github.com/Lightning-AI/lightning/pull/18583))
+
+
+- Enabled the default process group configuration for FSDP's hybrid sharding ([#18583](https://github.com/Lightning-AI/lightning/pull/18583))
+
+
+
+- Added `lightning.pytorch.utilities.suggested_max_num_workers` to assist with setting a good value in distributed settings ([#18591](https://github.com/Lightning-AI/lightning/pull/18591))
+
+
+- Improved the `num_workers` warning to give a more accurate upper limit on the `num_workers` suggestion ([#18591](https://github.com/Lightning-AI/lightning/pull/18591))
+
+
 ### Changed
 
 - Removed the limitation to call `self.trainer.model.parameters()` in `LightningModule.configure_optimizers()` ([#17309](https://github.com/Lightning-AI/lightning/pull/17309))
@@ -133,9 +147,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Allow using iterable-style datasets with TPUs ([#17331](https://github.com/Lightning-AI/lightning/pull/17331))
-
-
-- On XLA, avoid setting the global rank before processes have been launched as this will initialize the PJRT computation client in the main process ([#16966](https://github.com/Lightning-AI/lightning/pull/16966))
 
 
 - Increased the minimum XLA requirement to 1.13 ([#17368](https://github.com/Lightning-AI/lightning/pull/17368))
@@ -165,6 +176,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The input tensors now get cast to the right precision type before transfer to the device ([#18264](https://github.com/Lightning-AI/lightning/pull/18264))
 
 
+- Improved the formatting of emitted warnings ([#18288](https://github.com/Lightning-AI/lightning/pull/18288))
+
+
 - Broadcast and reduction of tensors with XLA-based strategies now preserve the input's device ([#18275](https://github.com/Lightning-AI/lightning/pull/18275))
 
 
@@ -186,6 +200,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Made the `batch_idx` argument optional in `validation_step`, `test_step` and `predict_step` to maintain consistency with `training_step` ([#18512](https://github.com/Lightning-AI/lightning/pull/18512))
+
+
+- The `TQDMProgressBar` now consistently shows it/s for the speed even when the iteration time becomes larger than one second ([#18593](https://github.com/Lightning-AI/lightning/pull/18593))
+
+
+
+- The `LightningDataModule.load_from_checkpoint` and `LightningModule.load_from_checkpoint` methods now raise an error if they are called on an instance instead of the class ([#18432](https://github.com/Lightning-AI/lightning/pull/18432))
 
 
 ### Deprecated
@@ -221,9 +242,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed FSDP full-precision `param_dtype` training (`16-mixed`, `bf16-mixed` and `32-true` configurations) to avoid FSDP assertion errors with PyTorch < 2.0 ([#18278](https://github.com/Lightning-AI/lightning/pull/18278))
-
-
 - Fixed an issue with reusing the same model across multiple trainer stages when using the `DeepSpeedStrategy` ([#17531](https://github.com/Lightning-AI/lightning/pull/17531))
 
 
@@ -233,34 +251,45 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed FSDP re-applying activation checkpointing when the user had manually applied it already ([#18006](https://github.com/Lightning-AI/lightning/pull/18006))
 
 
-- Fixed an issue that prevented the use of custom logger classes without an `experiment` property defined ([#18093](https://github.com/Lightning-AI/lightning/pull/18093))
-
-
-- Fixed model parameters getting shared between processes when running with `strategy="ddp_spawn"` and `accelerator="cpu"`; this has a necessary memory impact, as parameters are replicated for each process now ([#18238](https://github.com/Lightning-AI/lightning/pull/18238))
-
-
-- Fixed setting the tracking uri in `MLFlowLogger` for logging artifacts to the MLFlow server ([#18395](https://github.com/Lightning-AI/lightning/pull/18395))
-
-
-- Fixed redundant `iter()` call to dataloader when checking dataloading configuration ([#18415](https://github.com/Lightning-AI/lightning/pull/18415))
-
-
-- Fixed an issue that wouldn't prevent the user to set the `log_model` parameter in `WandbLogger` via the LightningCLI ([#18458](https://github.com/Lightning-AI/lightning/pull/18458))
-
-
-- Fixed the display of `v_num` in the progress bar when running with `Trainer(fast_dev_run=True)` ([#18491](https://github.com/Lightning-AI/lightning/pull/18491))
-
-
 - Fixed issue where unexpected exceptions would leave the default torch dtype modified when using true precision settings ([#18500](https://github.com/Lightning-AI/lightning/pull/18500))
 
 
+- Fixed the replacement of callbacks returned in `LightningModule.configure_callbacks` when the callback was a subclass of an existing Trainer callback ([#18508](https://github.com/Lightning-AI/lightning/pull/18508))
+
+
+- Fixed `Trainer.log_dir` not returning the correct directory for the `CSVLogger` ([#18548](https://github.com/Lightning-AI/lightning/pull/18548))
+
+
+
+## [2.0.9] - 2023-09-14
+
+### Fixed
+
+- Fixed an issue that wouldn't prevent the user to set the `log_model` parameter in `WandbLogger` via the LightningCLI ([#18458](https://github.com/Lightning-AI/lightning/pull/18458))
+- Fixed the display of `v_num` in the progress bar when running with `Trainer(fast_dev_run=True)` ([#18491](https://github.com/Lightning-AI/lightning/pull/18491))
 - Fixed `UnboundLocalError` when running with `python -O` ([#18496](https://github.com/Lightning-AI/lightning/pull/18496))
-
-
 - Fixed visual glitch with the TQDM progress bar leaving the validation bar incomplete before switching back to the training display ([#18503](https://github.com/Lightning-AI/lightning/pull/18503))
-
-
 - Fixed false positive warning about logging interval when running with `Trainer(fast_dev_run=True)` ([#18550](https://github.com/Lightning-AI/lightning/pull/18550))
+
+
+## [2.0.8] - 2023-08-29
+
+### Changed
+
+- On XLA, avoid setting the global rank before processes have been launched as this will initialize the PJRT computation client in the main process ([#16966](https://github.com/Lightning-AI/lightning/pull/16966))
+- Fix inefficiency in rich progress bar ([#18369](https://github.com/Lightning-AI/lightning/pull/18369))
+
+### Fixed
+
+- Fixed FSDP full-precision `param_dtype` training (`16-mixed` and `bf16-mixed` configurations) to avoid FSDP assertion errors with PyTorch < 2.0 ([#18278](https://github.com/Lightning-AI/lightning/pull/18278))
+- Fixed an issue that prevented the use of custom logger classes without an `experiment` property defined ([#18093](https://github.com/Lightning-AI/lightning/pull/18093))
+- Fixed setting the tracking uri in `MLFlowLogger` for logging artifacts to the MLFlow server ([#18395](https://github.com/Lightning-AI/lightning/pull/18395))
+- Fixed redundant `iter()` call to dataloader when checking dataloading configuration ([#18415](https://github.com/Lightning-AI/lightning/pull/18415))
+- Fixed model parameters getting shared between processes when running with `strategy="ddp_spawn"` and `accelerator="cpu"`; this has a necessary memory impact, as parameters are replicated for each process now ([#18238](https://github.com/Lightning-AI/lightning/pull/18238))
+- Properly manage `fetcher.done` with `dataloader_iter` ([#18376](https://github.com/Lightning-AI/lightning/pull/18376))
+
+
+- Fixed redundant file writes in `CSVLogger` ([#18567](https://github.com/Lightning-AI/lightning/pull/18567))
 
 
 ## [2.0.7] - 2023-08-14

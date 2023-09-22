@@ -95,7 +95,7 @@ def validate_dataloader(model, data_loader, fabric, hparams, fold, acc_metric):
             if hparams.dry_run:
                 break
 
-    # all_gather is used to aggregated the value across processes
+    # all_gather is used to aggregate the value across processes
     loss = fabric.all_gather(loss).sum() / len(data_loader.dataset)
 
     # compute acc
@@ -116,7 +116,7 @@ def run(hparams):
 
     # Let rank 0 download the data first, then everyone will load MNIST
     with fabric.rank_zero_first():
-        dataset = MNIST(DATASETS_PATH, train=True, transform=transform)
+        dataset = MNIST(DATASETS_PATH, train=True, download=True, transform=transform)
 
     # Loop over different folds (shuffle = False by default so reproducible)
     folds = hparams.folds
@@ -144,6 +144,9 @@ def run(hparams):
             batch_size = hparams.batch_size
             train_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(train_ids))
             val_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(val_ids))
+
+            # set up dataloaders to move data to the correct device
+            train_loader, val_loader = fabric.setup_dataloaders(train_loader, val_loader)
 
             # get model and optimizer for the current fold
             model, optimizer = models[fold], optimizers[fold]

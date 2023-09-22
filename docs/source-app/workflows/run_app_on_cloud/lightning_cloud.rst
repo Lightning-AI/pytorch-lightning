@@ -54,7 +54,7 @@ Alternatively, you can change the name of the app in the ``.lightning`` file:
     name: my-awesome-app
 
 The ``.lightning`` file is a general configuration file.
-To learn more about optional configuration file parameters, see :class:`~lightning.utilities.packaging.app_config.AppConfig`.
+To learn more about optional configuration file parameters, see :class:`~lightning.app.utilities.packaging.app_config.AppConfig`.
 
 ------
 
@@ -62,6 +62,6 @@ To learn more about optional configuration file parameters, see :class:`~lightni
 Choose Cloud Compute
 ********************
 
-You can configure the hardware your app is running on by setting a :class:`~lightning.utilities.packaging.cloud_compute.CloudCompute` object onto the ``cloud_compute`` property of your work's.
+You can configure the hardware your app is running on by setting a :class:`~lightning.app.utilities.packaging.cloud_compute.CloudCompute` object onto the ``cloud_compute`` property of your work's.
 
 Learn more with the :ref:`cloud_compute` guide

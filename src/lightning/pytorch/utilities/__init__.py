@@ -15,9 +15,11 @@
 
 import numpy
 
-from lightning.fabric.utilities.apply_func import move_data_to_device  # noqa: F401
+from lightning.fabric.utilities import LightningEnum  # noqa: F401
+from lightning.fabric.utilities import move_data_to_device  # noqa: F401
+from lightning.fabric.utilities import suggested_max_num_workers  # noqa: F401
 from lightning.pytorch.utilities.combined_loader import CombinedLoader  # noqa: F401
-from lightning.pytorch.utilities.enums import GradClipAlgorithmType, LightningEnum  # noqa: F401
+from lightning.pytorch.utilities.enums import GradClipAlgorithmType  # noqa: F401
 from lightning.pytorch.utilities.grads import grad_norm  # noqa: F401
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _TORCHVISION_AVAILABLE  # noqa: F401
 from lightning.pytorch.utilities.parameter_tying import find_shared_parameters, set_shared_parameters  # noqa: F401

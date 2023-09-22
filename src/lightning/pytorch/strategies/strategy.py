@@ -369,7 +369,7 @@ class Strategy(ABC):
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual training step.
 
-        See :meth:`~lightning.pytorch.core.module.LightningModule.training_step` for more details
+        See :meth:`~lightning.pytorch.core.LightningModule.training_step` for more details
 
         """
         assert self.lightning_module is not None
@@ -390,7 +390,7 @@ class Strategy(ABC):
     def validation_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual validation step.
 
-        See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
+        See :meth:`~lightning.pytorch.core.LightningModule.validation_step` for more details
 
         """
         assert self.lightning_module is not None
@@ -403,7 +403,7 @@ class Strategy(ABC):
     def test_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual test step.
 
-        See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
+        See :meth:`~lightning.pytorch.core.LightningModule.test_step` for more details
 
         """
         assert self.lightning_module is not None
@@ -416,7 +416,7 @@ class Strategy(ABC):
     def predict_step(self, *args: Any, **kwargs: Any) -> Any:
         """The actual predict step.
 
-        See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
+        See :meth:`~lightning.pytorch.core.LightningModule.predict_step` for more details
 
         """
         assert self.lightning_module is not None

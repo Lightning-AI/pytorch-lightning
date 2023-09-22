@@ -293,6 +293,9 @@ class _Connector:
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
+        if not isinstance(num_nodes, int) or num_nodes < 1:
+            raise ValueError(f"`num_nodes` must be a positive integer, but got {num_nodes}.")
+
         self._num_nodes_flag = num_nodes
         self._devices_flag = devices
 

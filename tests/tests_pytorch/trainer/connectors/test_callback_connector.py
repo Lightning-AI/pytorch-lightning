@@ -224,6 +224,19 @@ def test_attach_model_callbacks():
     )
     assert trainer.callbacks == [progress_bar, early_stopping1, lr_monitor, grad_accumulation, early_stopping2]
 
+    class CustomProgressBar(TQDMProgressBar):
+        ...
+
+    custom_progress_bar = CustomProgressBar()
+    # a custom callback that overrides ours
+    trainer = _attach_callbacks(trainer_callbacks=[progress_bar], model_callbacks=[custom_progress_bar])
+    assert trainer.callbacks == [custom_progress_bar]
+
+    # edge case
+    bare_callback = Callback()
+    trainer = _attach_callbacks(trainer_callbacks=[bare_callback], model_callbacks=[custom_progress_bar])
+    assert trainer.callbacks == [bare_callback, custom_progress_bar]
+
 
 def test_attach_model_callbacks_override_info(caplog):
     """Test that the logs contain the info about overriding callbacks returned by configure_callbacks."""

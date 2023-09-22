@@ -24,6 +24,7 @@ from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.pytorch.core.hooks import DataHooks
 from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.saving import _load_from_checkpoint
+from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
@@ -157,7 +158,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         """
         pass
 
-    @classmethod
+    @_restricted_classmethod
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[_PATH, IO],
@@ -200,8 +201,9 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             :class:`LightningDataModule` instance with loaded weights and hyperparameters (if available).
 
         Note:
-            ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningDataModule`
-            **class** to call it instead of the :class:`LightningDataModule` instance.
+            ``load_from_checkpoint`` is a **class** method. You must use your :class:`LightningDataModule`
+            **class** to call it instead of the :class:`LightningDataModule` instance, or a
+            ``TypeError`` will be raised.
 
         Example::
 
@@ -223,7 +225,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         """
         loaded = _load_from_checkpoint(
-            cls,
+            cls,  # type: ignore[arg-type]
             checkpoint_path,
             map_location=map_location,
             hparams_file=hparams_file,

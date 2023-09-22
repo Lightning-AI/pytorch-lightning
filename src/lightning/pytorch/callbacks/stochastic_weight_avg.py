@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""Stochastic Weight Averaging Callback ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"""
+r"""
+Stochastic Weight Averaging Callback
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Union, cast
 

@@ -322,8 +322,8 @@ class LightningCLI:
         For more info, read :ref:`the CLI docs <lightning-cli>`.
 
         Args:
-            model_class: An optional :class:`~lightning.pytorch.core.module.LightningModule` class to train on or a
-                callable which returns a :class:`~lightning.pytorch.core.module.LightningModule` instance when
+            model_class: An optional :class:`~lightning.pytorch.core.LightningModule` class to train on or a
+                callable which returns a :class:`~lightning.pytorch.core.LightningModule` instance when
                 called. If ``None``, you can pass a registered model with ``--model=MyModel``.
             datamodule_class: An optional :class:`~lightning.pytorch.core.datamodule.LightningDataModule` class or a
                 callable which returns a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` instance when
@@ -582,7 +582,7 @@ class LightningCLI:
     def configure_optimizers(
         lightning_module: LightningModule, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
     ) -> Any:
-        """Override to customize the :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`
+        """Override to customize the :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`
         method.
 
         Args:
@@ -601,7 +601,7 @@ class LightningCLI:
         return [optimizer], [lr_scheduler]
 
     def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
-        """Overrides the model's :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers` method if
+        """Overrides the model's :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` method if
         a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
         if not self.auto_configure_optimizers:
             return

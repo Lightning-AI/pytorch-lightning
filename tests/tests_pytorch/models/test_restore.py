@@ -260,7 +260,7 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
     model = BoringModel()
     trainer = Trainer()
 
-    with pytest.raises(FileNotFoundError, match="Aborting training"):
+    with pytest.raises(FileNotFoundError, match="Checkpoint file not found"):
         trainer.fit(model, ckpt_path=str(tmpdir / "non_existing.ckpt"))
 
 

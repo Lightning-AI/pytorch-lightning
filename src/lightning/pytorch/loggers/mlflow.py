@@ -59,7 +59,7 @@ class MLFlowLogger(Logger):
         mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
         trainer = Trainer(logger=mlf_logger)
 
-    Use the logger anywhere in your :class:`~lightning.pytorch.core.module.LightningModule` as follows:
+    Use the logger anywhere in your :class:`~lightning.pytorch.core.LightningModule` as follows:
 
     .. code-block:: python
 
@@ -148,7 +148,7 @@ class MLFlowLogger(Logger):
     def experiment(self) -> "MlflowClient":
         r"""
         Actual MLflow object. To use MLflow features in your
-        :class:`~lightning.pytorch.core.module.LightningModule` do the following.
+        :class:`~lightning.pytorch.core.LightningModule` do the following.
 
         Example::
 

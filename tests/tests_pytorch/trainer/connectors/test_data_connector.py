@@ -15,9 +15,15 @@ from contextlib import redirect_stderr
 from io import StringIO
 from re import escape
 from typing import Sized
+from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
+
+import lightning.fabric
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
@@ -26,16 +32,13 @@ from lightning.pytorch.trainer.connectors.data_connector import (
     _check_dataloader_iterable,
     _DataHookSelector,
     _DataLoaderSource,
+    _worker_check,
     warning_cache,
 )
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor
-from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -144,6 +147,40 @@ class TestSpawnBoringModel(BoringModel):
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
     trainer.fit(TestSpawnBoringModel(num_workers))
+
+
+@pytest.mark.parametrize(
+    ("num_devices", "num_workers", "cpu_count", "expected_warning"),
+    [
+        (1, 0, 1, False),
+        (8, 0, 1, False),
+        (8, 0, None, False),
+        (1, 1, None, False),
+        (1, 2, 2, False),
+        (1, 1, 8, True),
+        (1, 2, 8, True),
+        (1, 3, 8, False),
+        (4, 1, 8, True),
+        (4, 2, 8, False),
+        (8, 2, 8, False),
+    ],
+)
+@mock.patch("lightning.fabric.utilities.data.os.cpu_count")
+def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expected_warning, monkeypatch):
+    monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
+    trainer = Mock(spec=Trainer)
+    dataloader = Mock(spec=DataLoader)
+    trainer.num_devices = num_devices
+    dataloader.num_workers = num_workers
+    cpu_count_mock.return_value = cpu_count
+
+    if expected_warning:
+        ctx = pytest.warns(UserWarning, match="Consider increasing the value of the `num_workers` argument`")
+    else:
+        ctx = no_warning_call(UserWarning)
+
+    with ctx:
+        _worker_check(trainer, using_spawn=False, dataloader=dataloader, name="train_dataloader")
 
 
 def test_update_dataloader_raises():

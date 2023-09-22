@@ -112,7 +112,7 @@ To build your own progress bar, subclass :class:`~lightning.pytorch.callbacks.Pr
 *******************************
 Integrate an experiment manager
 *******************************
-To create an integration between a custom logger and Lightning, subclass :class:`~lightning.pytorch.loggers.base.LightningLoggerBase`
+To create an integration between a custom logger and Lightning, subclass :class:`~lightning.pytorch.loggers.Logger`
 
 .. code-block:: python
 

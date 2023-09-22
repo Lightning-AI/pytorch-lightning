@@ -271,7 +271,7 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
     filepath = str(tmpdir / "foo.ckpt")
     trainer.save_checkpoint(filepath)
 
-    model.load_from_checkpoint(filepath, strict=False)
+    model.load_state_dict(torch.load(filepath), strict=False)
     has_pruning = hasattr(model.layer.mlp_1, "weight_orig")
     assert not has_pruning if make_pruning_permanent else has_pruning
 
@@ -326,7 +326,7 @@ def test_permanent_when_model_is_saved_multiple_times(
     # removed on_train_end
     assert not hasattr(model.layer.mlp_3, "weight_orig")
 
-    model.load_from_checkpoint(trainer.checkpoint_callback.kth_best_model_path)
+    model = TestModel.load_from_checkpoint(trainer.checkpoint_callback.kth_best_model_path)
     assert not hasattr(model.layer.mlp_3, "weight_orig")
-    model.load_from_checkpoint(trainer.checkpoint_callback.last_model_path)
+    model = TestModel.load_from_checkpoint(trainer.checkpoint_callback.last_model_path)
     assert not hasattr(model.layer.mlp_3, "weight_orig")

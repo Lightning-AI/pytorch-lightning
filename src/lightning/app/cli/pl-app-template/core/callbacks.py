@@ -2,7 +2,7 @@ import inspect
 from typing import TYPE_CHECKING, Any, Dict, Union
 
 import lightning.pytorch as pl
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 from lightning.app.utilities.app_helpers import Logger
 from lightning.pytorch import Callback
 from lightning.pytorch.callbacks.progress.progress_bar import get_standard_metrics
