@@ -20,6 +20,7 @@ from unittest import mock
 import pytest
 from lightning_utilities.test.warning import no_warning_call
 
+from fabric.plugins.environments import TorchElasticEnvironment
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from tests_fabric.helpers.runif import RunIf
@@ -129,11 +130,13 @@ def test_detect():
     with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "interactive"}):
         assert not SLURMEnvironment.detect()
 
-    with mock.patch(
+    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}), mock.patch(
         "lightning.fabric.plugins.environments.torchelastic.torch.distributed.is_available", return_value=True
     ), mock.patch(
-        "lightning.fabric.plugins.environments.torchelastic.torch.distributed.is_torchelastic_launched", return_value=True
+        "lightning.fabric.plugins.environments.torchelastic.torch.distributed.is_torchelastic_launched",
+        return_value=True,
     ):
+        assert TorchElasticEnvironment.detect()
         assert not SLURMEnvironment.detect()
 
 
