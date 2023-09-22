@@ -21,7 +21,6 @@ import sys
 from typing import Optional
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning.fabric.plugins.environments.torchelastic import TorchElasticEnvironment
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.rank_zero import rank_zero_warn
 from lightning.fabric.utilities.warnings import PossibleUserWarning
@@ -104,7 +103,7 @@ class SLURMEnvironment(ClusterEnvironment):
         detected automatically.
         """
         SLURMEnvironment._validate_srun_used()
-        return _is_srun_used() and not TorchElasticEnvironment.detect()
+        return _is_srun_used()
 
     @staticmethod
     def job_name() -> Optional[str]:
