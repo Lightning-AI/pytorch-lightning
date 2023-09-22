@@ -19,7 +19,7 @@ from lightning.app.core.constants import (
 from lightning.app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue
 from lightning.app.frontend import StreamlitFrontend
 from lightning.app.runners import MultiProcessRuntime
-from lightning.app.storage.path import _storage_root_dir, Path
+from lightning.app.storage.path import Path, _storage_root_dir
 from lightning.app.testing.helpers import _RunIf
 from lightning.app.testing.testing import LightningTestApp
 from lightning.app.utilities.app_helpers import affiliation
