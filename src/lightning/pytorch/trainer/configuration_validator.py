@@ -158,6 +158,7 @@ def __warn_dataloader_iter_limitations(model: "pl.LightningModule") -> None:
     if any(
         is_param_in_hook_signature(step_fn, "dataloader_iter", explicit=True)
         for step_fn in (model.training_step, model.validation_step, model.predict_step, model.test_step)
+        if step_fn is not None
     ):
         rank_zero_warn(
             "You are using the `dataloader_iter` step flavor. If you consume the iterator more than once per step, the"
