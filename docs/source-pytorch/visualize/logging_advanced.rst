@@ -208,9 +208,9 @@ Whether the value will be logged only on rank 0. This will prevent synchronizati
 
 reduce_fx
 =========
-**Default:** :meth:`torch.mean`
+**Default:** :func:`torch.mean`
 
-Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
+Reduction function over step values for end of epoch. Uses :func:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
 
 .. code-block:: python
 

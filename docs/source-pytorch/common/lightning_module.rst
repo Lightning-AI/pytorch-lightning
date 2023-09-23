@@ -7,17 +7,17 @@
 LightningModule
 ###############
 
-A :class:`~lightning.pytorch.core.module.LightningModule` organizes your PyTorch code into 6 sections:
+A :class:`~lightning.pytorch.core.LightningModule` organizes your PyTorch code into 6 sections:
 
 - Initialization (``__init__`` and :meth:`~lightning.pytorch.core.hooks.ModelHooks.setup`).
-- Train Loop (:meth:`~lightning.pytorch.core.module.LightningModule.training_step`)
-- Validation Loop (:meth:`~lightning.pytorch.core.module.LightningModule.validation_step`)
-- Test Loop (:meth:`~lightning.pytorch.core.module.LightningModule.test_step`)
-- Prediction Loop (:meth:`~lightning.pytorch.core.module.LightningModule.predict_step`)
-- Optimizers and LR Schedulers (:meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`)
+- Train Loop (:meth:`~lightning.pytorch.core.LightningModule.training_step`)
+- Validation Loop (:meth:`~lightning.pytorch.core.LightningModule.validation_step`)
+- Test Loop (:meth:`~lightning.pytorch.core.LightningModule.test_step`)
+- Prediction Loop (:meth:`~lightning.pytorch.core.LightningModule.predict_step`)
+- Optimizers and LR Schedulers (:meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`)
 
 When you convert to use Lightning, the code IS NOT abstracted - just organized.
-All the other code that's not in the :class:`~lightning.pytorch.core.module.LightningModule`
+All the other code that's not in the :class:`~lightning.pytorch.core.LightningModule`
 has been automated for you by the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
 |
@@ -61,7 +61,7 @@ When running under a distributed strategy, Lightning handles the distributed sam
         data = MNIST(...)
         DataLoader(data)
 
-A :class:`~lightning.pytorch.core.module.LightningModule` is a :class:`torch.nn.Module` but with added functionality. Use it as such!
+A :class:`~lightning.pytorch.core.LightningModule` is a :class:`torch.nn.Module` but with added functionality. Use it as such!
 
 |
 
@@ -131,17 +131,17 @@ The LightningModule has many convenient methods, but the core ones you need to k
      - Description
    * - ``__init__`` and :meth:`~lightning.pytorch.core.hooks.ModelHooks.setup`
      - Define initialization here
-   * - :meth:`~lightning.pytorch.core.module.LightningModule.forward`
+   * - :meth:`~lightning.pytorch.core.LightningModule.forward`
      - To run data through your model only (separate from ``training_step``)
-   * - :meth:`~lightning.pytorch.core.module.LightningModule.training_step`
+   * - :meth:`~lightning.pytorch.core.LightningModule.training_step`
      - the complete training step
-   * - :meth:`~lightning.pytorch.core.module.LightningModule.validation_step`
+   * - :meth:`~lightning.pytorch.core.LightningModule.validation_step`
      - the complete validation step
-   * - :meth:`~lightning.pytorch.core.module.LightningModule.test_step`
+   * - :meth:`~lightning.pytorch.core.LightningModule.test_step`
      - the complete test step
-   * - :meth:`~lightning.pytorch.core.module.LightningModule.predict_step`
+   * - :meth:`~lightning.pytorch.core.LightningModule.predict_step`
      - the complete prediction step
-   * - :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`
+   * - :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`
      - define optimizers and LR schedulers
 
 ----------
@@ -153,7 +153,7 @@ Training
 Training Loop
 =============
 
-To activate the training loop, override the :meth:`~lightning.pytorch.core.module.LightningModule.training_step` method.
+To activate the training loop, override the :meth:`~lightning.pytorch.core.LightningModule.training_step` method.
 
 .. code-block:: python
 
@@ -192,7 +192,7 @@ Under the hood, Lightning does the following (pseudocode):
 Train Epoch-level Metrics
 =========================
 
-If you want to calculate epoch-level metrics and log them, use :meth:`~lightning.pytorch.core.module.LightningModule.log`.
+If you want to calculate epoch-level metrics and log them, use :meth:`~lightning.pytorch.core.LightningModule.log`.
 
 .. code-block:: python
 
@@ -206,7 +206,7 @@ If you want to calculate epoch-level metrics and log them, use :meth:`~lightning
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
-The :meth:`~lightning.pytorch.core.module.LightningModule.log` method automatically reduces the
+The :meth:`~lightning.pytorch.core.LightningModule.log` method automatically reduces the
 requested metrics across a complete epoch and devices. Here's the pseudocode of what it does under the hood:
 
 .. code-block:: python
@@ -265,7 +265,7 @@ Validation
 Validation Loop
 ===============
 
-To activate the validation loop while training, override the :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` method.
+To activate the validation loop while training, override the :meth:`~lightning.pytorch.core.LightningModule.validation_step` method.
 
 .. code-block:: python
 
@@ -300,7 +300,7 @@ Under the hood, Lightning does the following (pseudocode):
             torch.set_grad_enabled(True)
             model.train()
 
-You can also run just the validation loop on your validation dataloaders by overriding :meth:`~lightning.pytorch.core.module.LightningModule.validation_step`
+You can also run just the validation loop on your validation dataloaders by overriding :meth:`~lightning.pytorch.core.LightningModule.validation_step`
 and calling :meth:`~lightning.pytorch.trainer.trainer.Trainer.validate`.
 
 .. code-block:: python
@@ -358,7 +358,7 @@ Test Loop
 =========
 
 The process for enabling a test loop is the same as the process for enabling a validation loop. Please refer to
-the section above for details. For this you need to override the :meth:`~lightning.pytorch.core.module.LightningModule.test_step` method.
+the section above for details. For this you need to override the :meth:`~lightning.pytorch.core.LightningModule.test_step` method.
 
 The only difference is that the test loop is only called when :meth:`~lightning.pytorch.trainer.trainer.Trainer.test` is used.
 
@@ -412,9 +412,9 @@ Inference
 Prediction Loop
 ===============
 
-By default, the :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` method runs the
-:meth:`~lightning.pytorch.core.module.LightningModule.forward` method. In order to customize this behaviour,
-simply override the :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` method.
+By default, the :meth:`~lightning.pytorch.core.LightningModule.predict_step` method runs the
+:meth:`~lightning.pytorch.core.LightningModule.forward` method. In order to customize this behaviour,
+simply override the :meth:`~lightning.pytorch.core.LightningModule.predict_step` method.
 
 For the example let's override ``predict_step``:
 
@@ -510,7 +510,7 @@ such as text generation:
             return decoded
 
 In the case where you want to scale your inference, you should be using
-:meth:`~lightning.pytorch.core.module.LightningModule.predict_step`.
+:meth:`~lightning.pytorch.core.LightningModule.predict_step`.
 
 .. code-block:: python
 
@@ -636,8 +636,8 @@ improve readability and reproducibility.
 save_hyperparameters
 ====================
 
-Use :meth:`~lightning.pytorch.core.module.LightningModule.save_hyperparameters` within your
-:class:`~lightning.pytorch.core.module.LightningModule`'s ``__init__`` method. It will enable Lightning to store all the
+Use :meth:`~lightning.pytorch.core.LightningModule.save_hyperparameters` within your
+:class:`~lightning.pytorch.core.LightningModule`'s ``__init__`` method. It will enable Lightning to store all the
 provided arguments under the ``self.hparams`` attribute. These hyperparameters will also be stored within the model
 checkpoint, which simplifies model re-instantiation after training.
 
@@ -684,8 +684,8 @@ load_from_checkpoint
 ====================
 
 LightningModules that have hyperparameters automatically saved with
-:meth:`~lightning.pytorch.core.module.LightningModule.save_hyperparameters` can conveniently be loaded and instantiated
-directly from a checkpoint with :meth:`~lightning.pytorch.core.module.LightningModule.load_from_checkpoint`:
+:meth:`~lightning.pytorch.core.LightningModule.save_hyperparameters` can conveniently be loaded and instantiated
+directly from a checkpoint with :meth:`~lightning.pytorch.core.LightningModule.load_from_checkpoint`:
 
 .. code-block:: python
 
@@ -1060,7 +1060,7 @@ Set and access example_input_array, which basically represents a single batch.
 Hooks
 =====
 
-This is the pseudocode to describe the structure of :meth:`~lightning.pytorch.trainer.Trainer.fit`.
+This is the pseudocode to describe the structure of :meth:`~lightning.pytorch.trainer.trainer.Trainer.fit`.
 The inputs and outputs of each function are not represented for simplicity. Please check each function's API reference
 for more information.
 

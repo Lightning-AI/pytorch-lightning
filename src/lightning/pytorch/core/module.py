@@ -64,6 +64,7 @@ from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import (
@@ -153,8 +154,9 @@ class LightningModule(
 
         Args:
             use_pl_optimizer: If ``True``, will wrap the optimizer(s) in a
-                :class:`~lightning.pytorch.core.optimizer.LightningOptimizer` for automatic handling of precision and
-                profiling.
+                :class:`~lightning.pytorch.core.optimizer.LightningOptimizer` for automatic handling of precision,
+                profiling, and counting of step calls for proper logging and checkpointing. It specifically wraps the
+                ``step`` method and custom optimizers that don't have this method are not supported.
 
         Returns:
             A single optimizer, or a list of optimizers in case multiple ones are present.
@@ -182,7 +184,7 @@ class LightningModule(
 
         Returns:
             A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
-            schedulers were returned in :meth:`configure_optimizers`.
+            schedulers were returned in :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
 
         """
         if not self.trainer.lr_scheduler_configs:
@@ -856,9 +858,9 @@ class LightningModule(
 
     def predict_step(self, *args: Any, **kwargs: Any) -> Any:
         """Step function called during :meth:`~lightning.pytorch.trainer.trainer.Trainer.predict`. By default, it calls
-        :meth:`~lightning.pytorch.core.module.LightningModule.forward`. Override to add any processing logic.
+        :meth:`~lightning.pytorch.core.LightningModule.forward`. Override to add any processing logic.
 
-        The :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` is used
+        The :meth:`~lightning.pytorch.core.LightningModule.predict_step` is used
         to scale inference on multi-devices.
 
         To prevent an OOM error, it is possible to use :class:`~lightning.pytorch.callbacks.BasePredictionWriter`
@@ -998,7 +1000,7 @@ class LightningModule(
                 )
 
         Metrics can be made available to monitor by simply logging it using
-        ``self.log('metric_to_track', metric_val)`` in your :class:`~lightning.pytorch.core.module.LightningModule`.
+        ``self.log('metric_to_track', metric_val)`` in your :class:`~lightning.pytorch.core.LightningModule`.
 
         Note:
             Some things to know:
@@ -1404,7 +1406,7 @@ class LightningModule(
 
         Note:
             - Requires the implementation of the
-              :meth:`~lightning.pytorch.core.module.LightningModule.forward` method.
+              :meth:`~lightning.pytorch.core.LightningModule.forward` method.
             - The exported script will be set to evaluation mode.
             - It is recommended that you install the latest supported version of PyTorch
               to use this feature without limitations. See also the :mod:`torch.jit`
@@ -1463,7 +1465,7 @@ class LightningModule(
 
         return torchscript_module
 
-    @classmethod
+    @_restricted_classmethod
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[_PATH, IO],
@@ -1511,7 +1513,8 @@ class LightningModule(
 
         Note:
             ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningModule`
-            **class** to call it instead of the :class:`LightningModule` instance.
+            **class** to call it instead of the :class:`LightningModule` instance, or a
+            ``TypeError`` will be raised.
 
         Example::
 
@@ -1544,7 +1547,7 @@ class LightningModule(
             y_hat = pretrained_model(x)
         """
         loaded = _load_from_checkpoint(
-            cls,
+            cls,  # type: ignore[arg-type]
             checkpoint_path,
             map_location,
             hparams_file,

@@ -259,7 +259,7 @@ class ModelHooks:
         """Called before ``optimizer.step()``.
 
         If using gradient accumulation, the hook is called once the gradients have been accumulated.
-        See: :paramref:`~lightning.pytorch.trainer.Trainer.accumulate_grad_batches`.
+        See: :paramref:`~lightning.pytorch.trainer.trainer.Trainer.accumulate_grad_batches`.
 
         If using AMP, the loss will be unscaled before calling this hook.
         See these `docs <https://pytorch.org/docs/stable/notes/amp_examples.html#working-with-unscaled-gradients>`__
@@ -416,7 +416,7 @@ class DataHooks:
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         The dataloader you return will not be reloaded unless you set
-        :paramref:`~lightning.pytorch.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        :paramref:`~lightning.pytorch.trainer.trainer.Trainer.reload_dataloaders_every_n_epochs` to
         a positive integer.
 
         For data processing use the following pattern:
@@ -475,7 +475,7 @@ class DataHooks:
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         The dataloader you return will not be reloaded unless you set
-        :paramref:`~lightning.pytorch.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        :paramref:`~lightning.pytorch.trainer.trainer.Trainer.reload_dataloaders_every_n_epochs` to
         a positive integer.
 
         It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
