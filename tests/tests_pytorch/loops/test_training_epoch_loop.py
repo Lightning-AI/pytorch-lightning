@@ -144,13 +144,17 @@ def test_no_batch_idx_gradient_accumulation():
     accumulation."""
 
     class MyModel(BoringModel):
+        last_batch_idx = -1
+
         def training_step(self, batch):  # no batch_idx
             return self.step(batch)
 
         def optimizer_step(self, epoch, batch_idx, *args, **kwargs):
             assert batch_idx in (1, 3)
+            self.last_batch_idx = batch_idx
             return super().optimizer_step(epoch, batch_idx, *args, **kwargs)
 
     trainer = Trainer(fast_dev_run=4, accumulate_grad_batches=2, limit_val_batches=0)
     model = MyModel()
     trainer.fit(model)
+    assert model.last_batch_idx == 3
