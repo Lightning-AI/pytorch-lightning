@@ -29,10 +29,11 @@ repos:
       - id: trailing-whitespace
         # ignoring Wills's wild changes
         exclude: README.md
+      - id: check-json
       - id: check-yaml
+      - id: check-toml
       - id: check-docstring-first
       - id: check-executables-have-shebangs
-      - id: check-toml
       - id: check-case-conflict
       - id: check-added-large-files
         args: ["--maxkb=350", "--enforce-all"]
