@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       pattern:
-        description: "patter for cleaning cache"
+        description: "pattern for cleaning cache"
         default: "pip-|conda"
         required: false
         type: string
