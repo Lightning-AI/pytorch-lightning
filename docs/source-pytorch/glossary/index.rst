@@ -147,7 +147,7 @@ Glossary
 
 .. displayitem::
    :header: Half precision
-   :description: Using different numerical formats to save memory and run fatser
+   :description: Using different numerical formats to save memory and run faster
    :col_css: col-md-12
    :button_link: ../common/precision.html
    :height: 100
@@ -301,7 +301,7 @@ Glossary
 
 .. displayitem::
    :header: Style guide
-   :description: Best practices to improve readability and reproducability
+   :description: Best practices to improve readability and reproducibility
    :col_css: col-md-12
    :button_link: ../starter/style_guide.html
    :height: 100

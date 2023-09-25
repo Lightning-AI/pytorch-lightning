@@ -142,7 +142,7 @@ jobs:
       matrix:
         name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
-    - uses: actions/checkout@v3  # needed for local action bellow
+    - uses: actions/checkout@v3  # needed for local action below
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
@@ -168,7 +168,7 @@ jobs:
       matrix:
         name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
-    - uses: actions/checkout@v3  # needed for local action bellow
+    - uses: actions/checkout@v3  # needed for local action below
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
