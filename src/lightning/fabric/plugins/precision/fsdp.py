@@ -111,7 +111,7 @@ class FSDPPrecision(Precision):
 
     def forward_context(self) -> ContextManager:
         if "mixed" in self.precision:
-            return self._autocast_context_manager()
+            return torch.autocast("cuda", dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
         return _DtypeContextManager(self._desired_input_dtype)
 
     def convert_input(self, data: Any) -> Any:
@@ -153,8 +153,3 @@ class FSDPPrecision(Precision):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
-
-    def _autocast_context_manager(self) -> torch.autocast:
-        # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
-        # https://github.com/pytorch/pytorch/issues/67233
-        return torch.autocast("cuda", dtype=self._desired_input_dtype)

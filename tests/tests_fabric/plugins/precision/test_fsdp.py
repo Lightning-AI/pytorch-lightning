@@ -18,6 +18,7 @@ import pytest
 import torch
 
 from lightning.fabric.plugins import FSDPPrecision
+from lightning.fabric.plugins.precision.utils import _DtypeContextManager
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -88,25 +89,30 @@ def test_fsdp_precision_forward_context():
     assert torch.get_default_dtype() == torch.float32
     with precision.forward_context():
         assert torch.get_autocast_gpu_dtype() == torch.float32
+    assert isinstance(precision.forward_context(), torch.autocast)
+    assert precision.forward_context().fast_dtype == torch.float16
 
     precision = FSDPPrecision(precision="16-true")
     assert precision.scaler is None
     assert torch.get_default_dtype() == torch.float32
-    with precision.forward_context():  # forward context is not using autocast ctx manager
+    with precision.forward_context():
         assert torch.get_default_dtype() == torch.float16
+    assert isinstance(precision.forward_context(), _DtypeContextManager)
+    assert precision.forward_context()._new_type == torch.float16
 
     precision = FSDPPrecision(precision="bf16-mixed")
     assert precision.scaler is None
     with precision.forward_context():
         assert torch.get_autocast_gpu_dtype() == torch.float32
-    context_manager = precision._autocast_context_manager()
-    assert isinstance(context_manager, torch.autocast)
-    assert context_manager.fast_dtype == torch.bfloat16
+    assert isinstance(precision.forward_context(), torch.autocast)
+    assert precision.forward_context().fast_dtype == torch.bfloat16
 
     precision = FSDPPrecision(precision="bf16-true")
     assert precision.scaler is None
     with precision.forward_context():  # forward context is not using autocast ctx manager
         assert torch.get_default_dtype() == torch.bfloat16
+    assert isinstance(precision.forward_context(), _DtypeContextManager)
+    assert precision.forward_context()._new_type == torch.bfloat16
 
 
 @RunIf(min_torch="1.12")
