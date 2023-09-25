@@ -104,13 +104,13 @@ jobs:
       run: |
         import os
         fname = f'tests/tests_${{ matrix.pkg-name }}/run_tpu_tests.sh'
-        with open(fname) as fo:
-            data = fo.read()
+        with open(fname) as fopen:
+            data = fopen.read()
         data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
         data = data.replace('{RUNTIME}', '${{ matrix.runtime }}')
         print(data)
-        with open(fname, "w") as fw:
-            fw.write(data)
+        with open(fname, "w") as fopen:
+            fopen.write(data)
       shell: python
 
     - name: Create node

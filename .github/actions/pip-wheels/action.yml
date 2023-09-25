@@ -33,11 +33,11 @@ runs:
     run: |
       import os
       fp = 'requirements.dump'
-      with open(fp) as fo:
-        lines = [ln.strip() for ln in fo.readlines()]
+      with open(fp) as fopen:
+        lines = [ln.strip() for ln in fopen.readlines()]
       lines = [ln.split('+')[0] for ln in lines if '-e ' not in ln]
-      with open(fp, 'w') as fw:
-        fw.writelines([ln + os.linesep for ln in lines])
+      with open(fp, 'w') as fopen:
+        fopen.writelines([ln + os.linesep for ln in lines])
     shell: python
 
   - name: Dump wheels

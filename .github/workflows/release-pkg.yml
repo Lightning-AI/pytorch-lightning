@@ -87,11 +87,11 @@ jobs:
       run: |
         import json, os
         fname = "versions.json"
-        with open(fname, encoding="utf-8") as fo:
-            vers = json.load(fo)
+        with open(fname, encoding="utf-8") as fopen:
+            vers = json.load(fopen)
         vers["lightning_version"] = os.getenv('TAG')
-        with open(fname, "w", encoding="utf-8") as fw:
-            json.dump(vers, fw, indent=2)
+        with open(fname, "w", encoding="utf-8") as fopen:
+            json.dump(vers, fopen, indent=2)
       shell: python
     - run: cat versions.json
     - name: GIT commit & push

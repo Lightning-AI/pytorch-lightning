@@ -196,7 +196,7 @@ Glossary
 
 .. displayitem::
    :header: Log
-   :description: Outpus or results used for visualization and tracking
+   :description: Outputs or results used for visualization and tracking
    :col_css: col-md-12
    :button_link: ../visualize/loggers.html
    :height: 100
