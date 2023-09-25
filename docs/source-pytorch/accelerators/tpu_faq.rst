@@ -98,7 +98,7 @@ Example Metrics report:
 
 .. code-block::
 
-    Metric: compile time
+    Metric: CompileTime
         TotalSamples: 202
         Counter: 06m09s401ms746.001us
         ValueRate: 778ms572.062us / second
