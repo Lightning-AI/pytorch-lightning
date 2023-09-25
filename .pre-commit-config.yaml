@@ -17,7 +17,7 @@ default_language_version:
 
 ci:
   autofix_prs: true
-  autoupdate_commit_msg: '[pre-commit.ci] pre-commit suggestions'
+  autoupdate_commit_msg: "[pre-commit.ci] pre-commit suggestions"
   autoupdate_schedule: quarterly
   # submodules: true
 
@@ -35,18 +35,18 @@ repos:
       - id: check-toml
       - id: check-case-conflict
       - id: check-added-large-files
-        args: ['--maxkb=350', '--enforce-all']
+        args: ["--maxkb=350", "--enforce-all"]
         exclude: |
-            (?x)^(
-                docs/source-pytorch/_static/images/general/fast_2.gif|
-                docs/source-pytorch/_static/images/mnist_imgs/pt_to_pl.jpg|
-                docs/source-pytorch/_static/images/lightning_module/pt_to_pl.png|
-                docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif|
-                docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
-                docs/source-pytorch/_static/images/general/pl_overview.gif|
-                src/lightning/fabric/CHANGELOG.md|
-                src/lightning/pytorch/CHANGELOG.md
-            )$
+          (?x)^(
+              docs/source-pytorch/_static/images/general/fast_2.gif|
+              docs/source-pytorch/_static/images/mnist_imgs/pt_to_pl.jpg|
+              docs/source-pytorch/_static/images/lightning_module/pt_to_pl.png|
+              docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif|
+              docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
+              docs/source-pytorch/_static/images/general/pl_overview.gif|
+              src/lightning/fabric/CHANGELOG.md|
+              src/lightning/pytorch/CHANGELOG.md
+          )$
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
@@ -112,8 +112,15 @@ repos:
               README.md
           )$
 
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.3
+    hooks:
+      - id: prettier
+        # https://prettier.io/docs/en/options.html#print-width
+        args: ["--print-width=120"]
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 'v0.0.276'
+    rev: "v0.0.276"
     hooks:
       - id: ruff
         args: ["--fix"]
