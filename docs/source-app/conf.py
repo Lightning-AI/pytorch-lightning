@@ -49,7 +49,9 @@ github_repo = project
 
 if not _FAST_DOCS_DEV:
     fetch_external_assets(
-        docs_folder=_PATH_HERE, assets_folder="_static/fetched-s3-assets", retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
+        docs_folder=_PATH_HERE,
+        assets_folder="_static/fetched-s3-assets",
+        retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
     )
 
 # -- General configuration ---------------------------------------------------
@@ -253,6 +255,54 @@ intersphinx_mapping = {
     "torch": ("https://pytorch.org/docs/stable/", None),
     # "numpy": ("https://docs.scipy.org/doc/numpy/", None),
 }
+
+nitpicky = True
+
+
+nitpick_ignore = [
+    ("py:class", "typing.Self"),
+    # missing in generated API
+    ("py:exc", "MisconfigurationException"),
+    # TODO: generated list of all existing ATM, need to be fixed
+    ('py:exc', 'ApiException'),
+    ('py:class', 'BaseModel'),
+    ('py:exc', 'LightningPlatformException'),
+    ('py:class', 'forwarded'),
+    ('py:class', 'lightning.app.api.http_methods.Delete'),
+    ('py:class', 'lightning.app.api.http_methods.Get'),
+    ('py:class', 'lightning.app.api.http_methods.HttpMethod'),
+    ('py:class', 'lightning.app.api.http_methods.Post'),
+    ('py:class', 'lightning.app.api.http_methods.Put'),
+    ('py:class', 'lightning.app.components.python.TracerPythonScript'),
+    ('py:func', 'lightning.app.pdb.set_trace'),
+    ('py:class', 'lightning.app.runners.runtime.Runtime'),
+    ('py:class', 'lightning.app.source_code.local.LocalSourceCodeDir'),
+    ('py:class', 'lightning.app.storage.payload._BasePayload'),
+    ('py:class', 'lightning.app.structures.Dict'),
+    ('py:class', 'lightning.app.structures.List'),
+    ('py:class', 'lightning.app.testing.testing.LightningTestApp'),
+    ('py:class', 'lightning.app.utilities.app_status.WorkStatus'),
+    ('py:class', 'lightning.app.utilities.frontend.AppInfo'),
+    ('py:class', 'lightning.app.utilities.packaging.app_config.AppConfig'),
+    ('py:class', 'lightning.app.utilities.packaging.build_config.BuildConfig'),
+    ('py:class', 'lightning.app.utilities.packaging.cloud_compute.CloudCompute'),
+    ('py:class', 'lightning.app.utilities.proxies.WorkRunExecutor'),
+    ('py:class', 'lightning.app.utilities.tracer.Tracer'),
+    ('py:class', 'lightning_cloud.openapi.models.cloudspace_id_runs_body.CloudspaceIdRunsBody'),
+    ('py:class', 'lightning_cloud.openapi.models.externalv1_lightningapp_instance.Externalv1LightningappInstance'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_cloud_space.V1CloudSpace'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_env_var.V1EnvVar'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_flowserver.V1Flowserver'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_lightning_auth.V1LightningAuth'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_lightning_run.V1LightningRun'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_lightningwork_drives.V1LightningworkDrives'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_membership.V1Membership'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_network_config.V1NetworkConfig'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_queue_server_type.V1QueueServerType'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_work.V1Work'),
+    ('py:class', 'pydantic.main.BaseModel'),
+    ('py:meth', 'transfer'),
+]
 
 # -- Options for todo extension ----------------------------------------------
 

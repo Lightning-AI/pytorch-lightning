@@ -1,6 +1,5 @@
 custom_service_name: "Lightning CI required checker"
 subprojects:
-
   # SECTION: pytorch_lightning
 
   - id: "pytorch_lightning: Tests workflow"
@@ -15,7 +14,7 @@ subprojects:
       - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
       - "tests/legacy/**"
-      - "pyproject.toml"  # includes pytest config
+      - "pyproject.toml" # includes pytest config
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -60,7 +59,7 @@ subprojects:
       - "src/lightning/pytorch/**"
       - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
-      - "pyproject.toml"  # includes pytest config
+      - "pyproject.toml" # includes pytest config
       - "requirements/fabric/**"
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
@@ -95,8 +94,8 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_pytorch/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (pytorch, xrt)"
-      - "test-on-tpus (pytorch, pjrt)"
+      - "test-on-tpus (pytorch, xrt, v4-8)"
+      - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   - id: "fabric: Docs"
     paths:
@@ -107,7 +106,7 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/fabric/**"
       - "setup.py"
-      - "pyproject.toml"  # includes metadata used in the package creation
+      - "pyproject.toml" # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -124,7 +123,7 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/pytorch/**"
       - "setup.py"
-      - "pyproject.toml"  # includes metadata used in the package creation
+      - "pyproject.toml" # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -165,7 +164,7 @@ subprojects:
       - "src/lightning_data/*"
       - "tests/tests_data/**"
       - "examples/data/**"
-      - "pyproject.toml"  # includes pytest config
+      - "pyproject.toml" # includes pytest config
       - ".github/workflows/ci-tests-data.yml"
       - "!requirements/*/docs.txt"
       - "!*.md"
@@ -184,7 +183,7 @@ subprojects:
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "tests/tests_fabric/**"
-      - "pyproject.toml"  # includes pytest config
+      - "pyproject.toml" # includes pytest config
       - ".github/workflows/ci-tests-fabric.yml"
       - "!requirements/*/docs.txt"
       - "!*.md"
@@ -219,7 +218,7 @@ subprojects:
       - "examples/fabric/**"
       - "examples/run_fabric_examples.sh"
       - "tests/tests_fabric/run_standalone_*.sh"
-      - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Fabric through a symlink
+      - "tests/tests_pytorch/run_standalone_tests.sh" # used by Fabric through a symlink
       - "requirements/fabric/**"
       - "src/lightning/__about__.py"
       - "src/lightning/__init__.py"
@@ -229,7 +228,7 @@ subprojects:
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "tests/tests_fabric/**"
-      - "pyproject.toml"  # includes pytest config
+      - "pyproject.toml" # includes pytest config
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -244,8 +243,8 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_fabric/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (fabric, xrt)"
-      - "test-on-tpus (pytorch, pjrt)"
+      - "test-on-tpus (fabric, xrt, v4-8)"
+      - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   # SECTION: lightning_app
 
@@ -357,7 +356,7 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/app/**"
       - "setup.py"
-      - "pyproject.toml"  # includes metadata used in the package creation
+      - "pyproject.toml" # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -372,7 +371,7 @@ subprojects:
       - ".github/workflows/code-checks.yml"
       - "requirements/**"
       - "src/**"
-      - "pyproject.toml"  # includes mypy config
+      - "pyproject.toml" # includes mypy config
       - "!requirements/docs.txt"
       - "!requirements/*/docs.txt"
       - "!*.md"

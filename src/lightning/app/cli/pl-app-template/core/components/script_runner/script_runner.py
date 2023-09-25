@@ -3,7 +3,7 @@ import traceback
 from typing import Any, Dict, List, Optional, Tuple
 
 from lightning.app.components.python import TracerPythonScript
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 from lightning.app.utilities.packaging.build_config import BuildConfig, load_requirements
 from lightning.app.utilities.tracer import Tracer
 

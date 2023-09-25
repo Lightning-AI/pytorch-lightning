@@ -9,3 +9,5 @@ lightning.fabric.utilities
 .. autofunction:: lightning.fabric.utilities.seed.seed_everything
 
 .. autofunction:: lightning.fabric.utilities.seed.pl_worker_init_function
+
+.. autofunction:: lightning.fabric.utilities.data.suggested_max_num_workers

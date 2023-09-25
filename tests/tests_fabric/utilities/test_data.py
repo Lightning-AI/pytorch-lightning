@@ -1,13 +1,17 @@
 import contextlib
+import os
 import random
+from unittest import mock
 from unittest.mock import Mock
 
 import numpy as np
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
+import lightning.fabric
 from lightning.fabric.utilities.data import (
     _get_dataloader_init_args_and_kwargs,
     _replace_dunder_methods,
@@ -17,6 +21,7 @@ from lightning.fabric.utilities.data import (
     _WrapAttrTag,
     has_iterable_dataset,
     has_len,
+    suggested_max_num_workers,
 )
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
@@ -575,3 +580,63 @@ def test_set_sampler_epoch():
     _set_sampler_epoch(dataloader, 55)
     dataloader.sampler.set_epoch.assert_called_once_with(55)
     dataloader.batch_sampler.sampler.set_epoch.assert_called_once_with(55)
+
+
+@pytest.mark.parametrize(
+    ("cpu_count", "local_world_size", "expected"),
+    [
+        (0, 1, 1),
+        (1, 1, 1),
+        (2, 1, 2),
+        (1, 2, 1),
+        (1, 2, 1),
+        (2, 2, 1),
+        (3, 2, 1),
+        (4, 2, 2),
+        (4, 3, 1),
+        (4, 1, 4),
+    ],
+)
+@pytest.mark.parametrize(
+    "affinity",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                not hasattr(os, "sched_getaffinity"), reason="OS does not support restricting CPU cores"
+            ),
+        ),
+    ],
+)
+@mock.patch("lightning.fabric.utilities.data.os.cpu_count")
+def test_suggested_max_num_workers(cpu_count_mock, affinity, cpu_count, local_world_size, expected, monkeypatch):
+    if affinity:
+        monkeypatch.setattr(lightning.fabric.utilities.data.os, "sched_getaffinity", lambda _: list(range(cpu_count)))
+    else:
+        monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
+        cpu_count_mock.return_value = cpu_count
+
+    assert suggested_max_num_workers(local_world_size) == expected
+
+
+@pytest.mark.parametrize("invalid", [-1, 0])
+def test_suggested_max_num_workers_input_validation(invalid):
+    with pytest.raises(ValueError, match="should be >= 1"):
+        suggested_max_num_workers(invalid)
+
+
+@pytest.mark.parametrize("cpu_count", [1, 2, 3])
+@pytest.mark.parametrize("local_world_size", [1, 2, 3])
+def test_suggested_max_num_workers_not_triggering_torch_warning(local_world_size, cpu_count, monkeypatch):
+    """Test that our suggestion for num workers doesn't trigger a warning in the DataLoader for too many workers."""
+    monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
+    monkeypatch.delattr(torch.utils.data.dataloader.os, "sched_getaffinity", raising=False)
+    monkeypatch.setattr(lightning.fabric.utilities.data.os, "cpu_count", lambda: cpu_count)
+    monkeypatch.setattr(torch.utils.data.dataloader.os, "cpu_count", lambda: cpu_count)
+
+    # The dataloader runs a check in `DataLoader.check_worker_number_rationality`
+    with pytest.warns(UserWarning, match="This DataLoader will create"):
+        DataLoader(range(2), num_workers=(cpu_count + 1))
+    with no_warning_call():
+        DataLoader(range(2), num_workers=suggested_max_num_workers(local_world_size))
