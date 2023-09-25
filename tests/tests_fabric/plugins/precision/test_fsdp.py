@@ -92,22 +92,21 @@ def test_fsdp_precision_forward_context():
     precision = FSDPPrecision(precision="16-true")
     assert precision.scaler is None
     assert torch.get_default_dtype() == torch.float32
-    with precision.forward_context():
-        assert torch.get_autocast_gpu_dtype() == torch.float16
+    with precision.forward_context():  # forward context is not using autocast ctx manager
+        assert torch.get_default_dtype() == torch.float16
 
     precision = FSDPPrecision(precision="bf16-mixed")
     assert precision.scaler is None
     with precision.forward_context():
         assert torch.get_autocast_gpu_dtype() == torch.float32
-
-    precision = FSDPPrecision(precision="bf16-true")
-    assert precision.scaler is None
-    with precision.forward_context():
-        assert torch.get_autocast_gpu_dtype() == torch.bfloat16
-
     context_manager = precision._autocast_context_manager()
     assert isinstance(context_manager, torch.autocast)
     assert context_manager.fast_dtype == torch.bfloat16
+
+    precision = FSDPPrecision(precision="bf16-true")
+    assert precision.scaler is None
+    with precision.forward_context():  # forward context is not using autocast ctx manager
+        assert torch.get_default_dtype() == torch.bfloat16
 
 
 @RunIf(min_torch="1.12")
