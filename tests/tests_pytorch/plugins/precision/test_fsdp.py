@@ -83,23 +83,31 @@ def test_fsdp_precision_scaler_with_bf16():
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
 def test_fsdp_precision_forward_context():
     """Test to ensure that the context manager correctly is set to bfloat16."""
-    precision = FSDPPrecisionPlugin(precision="16-true")
+    precision = FSDPPrecisionPlugin(precision="16-mixed")
     assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
     assert torch.get_default_dtype() == torch.float32
     with precision.forward_context():
-        # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
-        assert str(torch.get_autocast_gpu_dtype()) in ("torch.float16", "torch.half")
+        assert torch.get_autocast_gpu_dtype() == torch.float32
+
+    precision = FSDPPrecisionPlugin(precision="16-true")
+    assert precision.scaler is None
+    assert torch.get_default_dtype() == torch.float32
+    with precision.forward_context():
+        assert torch.get_autocast_gpu_dtype() == torch.float16
+
+    precision = FSDPPrecisionPlugin(precision="bf16-mixed")
+    assert precision.scaler is None
+    with precision.forward_context():
+        assert torch.get_autocast_gpu_dtype() == torch.bfloat16
 
     precision = FSDPPrecisionPlugin(precision="bf16-true")
     assert precision.scaler is None
     with precision.forward_context():
-        # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
-        assert str(torch.get_autocast_gpu_dtype()) == str(torch.bfloat16)
+        assert torch.get_autocast_gpu_dtype() == torch.bfloat16
 
     context_manager = precision._autocast_context_manager()
     assert isinstance(context_manager, torch.autocast)
-    # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
-    assert str(context_manager.fast_dtype) == str(torch.bfloat16)
+    assert context_manager.fast_dtype == torch.bfloat16
 
 
 @RunIf(min_torch="1.12")
