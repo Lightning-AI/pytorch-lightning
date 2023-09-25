@@ -63,6 +63,10 @@ jobs:
         run: |
           mkdir -p tests/_flagships
           mkdir -p $VIDEO_LOCATION
+          pip --version
+          pip list
+          # for some reason the python package playwright is missing
+          pip install -r requirements/app/test.txt
           python -m playwright install  # --with-deps
 
       - name: Clone the Repo/App
