@@ -69,8 +69,8 @@ class FSDPPrecision(Precision):
         self.precision = precision
 
         precision_to_type = {
-            "bf16-mixed": torch.bfloat16,
-            "16-mixed": torch.float16,
+            "bf16-mixed": torch.float32,
+            "16-mixed": torch.float32,
             "bf16-true": torch.bfloat16,
             "16-true": torch.float16,
             "32-true": torch.float32,
