@@ -14,7 +14,7 @@ runs:
   using: "composite"
   steps:
     - name: install dev. env
-      run: pip install "twine==4.0.1" setuptools wheel flake8
+      run: pip install "twine==4.0.1" setuptools wheel build
       shell: bash
 
     - name: Set PACKAGE_NAME envvar
@@ -27,7 +27,7 @@ runs:
       shell: bash
 
     - name: Create package
-      run: python setup.py sdist bdist_wheel
+      run: python -m build
       shell: bash
 
     - name: Check package

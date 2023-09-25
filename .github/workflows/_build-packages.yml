@@ -53,7 +53,7 @@ jobs:
 
       - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
       - name: Build & check package
-        uses: ./.github/actions/pkg-check
+        uses: ./.github/actions/pkg-build
         with:
           pkg-name: ${{ matrix.pkg-name }}
           nb-dirs: ${{ env.NB_DIRS }}
