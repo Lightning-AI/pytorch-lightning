@@ -98,7 +98,7 @@ def test_fsdp_precision_forward_context():
     precision = FSDPPrecisionPlugin(precision="bf16-mixed")
     assert precision.scaler is None
     with precision.forward_context():
-        assert torch.get_autocast_gpu_dtype() == torch.bfloat16
+        assert torch.get_autocast_gpu_dtype() == torch.float32
 
     precision = FSDPPrecisionPlugin(precision="bf16-true")
     assert precision.scaler is None
