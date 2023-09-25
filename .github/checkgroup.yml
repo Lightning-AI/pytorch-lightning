@@ -243,8 +243,8 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_fabric/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (fabric, xrt)"
-      - "test-on-tpus (pytorch, pjrt)"
+      - "test-on-tpus (fabric, xrt, v4-8)"
+      - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   # SECTION: lightning_app
 
