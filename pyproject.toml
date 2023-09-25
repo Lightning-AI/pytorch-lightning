@@ -58,11 +58,12 @@ wrap-descriptions = 120
 blank = true
 
 [tool.codespell]
+# Todo: enable also python files in a next step
 skip = '*.py'
 quiet-level = 3
-# Todo: comma separated list of words; waiting for:
+# comma separated list of words; waiting for:
 #  https://github.com/codespell-project/codespell/issues/2839#issuecomment-1731601603
-# Todo: also adding links until they ignored by its: nature
+# also adding links until they ignored by its: nature
 #  https://github.com/codespell-project/codespell/issues/2243#issuecomment-1732019960
 #ignore-words-list = ""
 
