@@ -82,7 +82,7 @@ def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, tim
 
     all_found = strategy.reduce_boolean_decision(found, all=True)
 
-    with contextlib.suppress(OSError, PermissionError, FileNotFoundError):  # handle race condition on deletion
+    with contextlib.suppress(OSError):  # handle race condition on deletion
         check_file.unlink()
 
     return all_found
