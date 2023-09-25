@@ -7,7 +7,7 @@ on:
     tags: ["*"]
   pull_request:
     branches: ["master", "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
+    types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/*"
       - ".github/workflows/docs-build.yml"
@@ -15,7 +15,7 @@ on:
       - "docs/**"
       - "src/**"
       - "setup.py"
-      - "pyproject.toml"  # includes metadata used in the package creation
+      - "pyproject.toml" # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
 
