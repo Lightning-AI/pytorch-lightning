@@ -5,7 +5,7 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
+    types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/*"
       - ".github/workflows/docker-build.yml"
@@ -18,7 +18,7 @@ on:
       - "!*.md"
       - "!**/*.md"
   schedule:
-    - cron: "0 0 * * *"  # at the end of every day
+    - cron: "0 0 * * *" # at the end of every day
   release:
     types: [published]
   workflow_dispatch: {}
@@ -43,11 +43,11 @@ jobs:
         include:
           # We only release one docker image per PyTorch version.
           # The matrix here is the same as the one in release-docker.yml.
-          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.7.1"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.8.0"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "12.0.1"}
-          - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.8.0"}
-          - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "12.0.1"}
+          - { python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.7.1" }
+          - { python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.8.0" }
+          - { python_version: "3.9", pytorch_version: "1.13", cuda_version: "12.0.1" }
+          - { python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.8.0" }
+          - { python_version: "3.10", pytorch_version: "2.0", cuda_version: "12.0.1" }
     steps:
       - uses: actions/checkout@v3
         with:
@@ -91,7 +91,7 @@ jobs:
             CUDA_VERSION=${{ matrix.cuda_version }}
             LIGHTNING_VERSION=${{ env.RELEASE_VERSION }}
           file: dockers/release/Dockerfile
-          push: ${{ env.PUSH_RELEASE }}  # pushed in release-docker.yml only when PL is released
+          push: ${{ env.PUSH_RELEASE }} # pushed in release-docker.yml only when PL is released
           tags: ${{ env.DOCKER_TAGS }}
         timeout-minutes: 35
 
@@ -104,11 +104,11 @@ jobs:
         include:
           # These are the base images for PL release docker images,
           # so include at least all of the combinations in release-dockers.yml.
-          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.7.1"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.8.0"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "12.0.1"}
-          - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.8.0"}
-          - {python_version: "3.10", pytorch_version: "2.0", cuda_version: "12.0.1"}
+          - { python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.7.1" }
+          - { python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.8.0" }
+          - { python_version: "3.9", pytorch_version: "1.13", cuda_version: "12.0.1" }
+          - { python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.8.0" }
+          - { python_version: "3.10", pytorch_version: "2.0", cuda_version: "12.0.1" }
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v3
@@ -133,7 +133,7 @@ jobs:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
           notification_title: ${{ format('CUDA; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.pytorch_version) }}
-          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01A5T7EY9M>'  # akihironitta
+          message_format: "{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01A5T7EY9M>" # akihironitta
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
