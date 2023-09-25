@@ -615,7 +615,7 @@ class ModelCheckpoint(Checkpoint):
         ckpt_path = self.__resolve_ckpt_dir(trainer)
         if self._fs.exists(ckpt_path):
             return {
-                self._fs.fs.unstrip_protocol(os.path.normpath(p))
+                self._fs.unstrip_protocol(os.path.normpath(p))
                 for p in self._fs.ls(ckpt_path, detail=False)
                 if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
             }
