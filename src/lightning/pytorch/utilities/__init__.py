@@ -17,6 +17,7 @@ import numpy
 
 from lightning.fabric.utilities import (  # noqa: F401
     LightningEnum,
+    is_shared_filesystem,
     move_data_to_device,
     suggested_max_num_workers,
 )
