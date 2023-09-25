@@ -10,6 +10,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.distributed import _gather_all_tensors, _sync_ddp, is_shared_filesystem
+
 from tests_fabric.helpers.runif import RunIf
 
 

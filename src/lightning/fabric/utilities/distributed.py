@@ -5,7 +5,7 @@ import sys
 import time
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import fsspec.utils
 import torch
