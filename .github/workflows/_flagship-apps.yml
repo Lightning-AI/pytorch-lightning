@@ -63,6 +63,7 @@ jobs:
         run: |
           mkdir -p tests/_flagships
           mkdir -p $VIDEO_LOCATION
+          pip list | grep playwright
           python -m playwright install  # --with-deps
 
       - name: Clone the Repo/App
