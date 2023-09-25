@@ -121,7 +121,9 @@ def test_is_shared_filesystem(tmp_path, monkeypatch):
 
 def _test_is_shared_filesystem(strategy, tmp_path, monkeypatch):
     # Path doesn't exist
-    assert not is_shared_filesystem(strategy, path="not/exist")
+    with pytest.raises(FileNotFoundError, match="Unable to determine if the path belongs to a shared filesystem"):
+        is_shared_filesystem(strategy, path="not/exist")
+
     # Path exists but not the same on all ranks
     file = tmp_path / f"file-rank-{strategy.global_rank}"
     file.touch()

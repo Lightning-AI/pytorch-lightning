@@ -58,10 +58,15 @@ def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, tim
     if not hasattr(strategy, "world_size") or strategy.world_size == 1:
         return True
 
-    # Fast path: If the path is not the same on all ranks or does not exist, we know it's not a shared filesystem
+    # Fast path: If the path is not the same on all ranks we know it's not a shared filesystem
     rank_zero_path = strategy.broadcast(path)
-    if not strategy.reduce_boolean_decision(rank_zero_path == path and path.exists(), all=True):
+    if not strategy.reduce_boolean_decision(rank_zero_path == path, all=True):
         return False
+
+    if not strategy.reduce_boolean_decision(path.exists(), all=True):
+        raise FileNotFoundError(
+            f"Unable to determine if the path belongs to a shared filesystem. The path does not exist: {path}"
+        )
 
     path = path.parent if path.is_file() else path
     check_file = path / ".lightning_shared_fs_check"
