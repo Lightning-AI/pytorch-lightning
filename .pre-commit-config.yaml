@@ -29,10 +29,11 @@ repos:
       - id: trailing-whitespace
         # ignoring Wills's wild changes
         exclude: README.md
+      - id: check-json
       - id: check-yaml
+      - id: check-toml
       - id: check-docstring-first
       - id: check-executables-have-shebangs
-      - id: check-toml
       - id: check-case-conflict
       - id: check-added-large-files
         args: ["--maxkb=350", "--enforce-all"]
@@ -55,6 +56,13 @@ repos:
       - id: pyupgrade
         args: [--py38-plus]
         name: Upgrade code
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.5
+    hooks:
+      - id: codespell
+        additional_dependencies: [tomli]
+        #args: ["--write-changes"] # uncomment if you want to get automatic fixing
 
   - repo: https://github.com/PyCQA/docformatter
     rev: v1.7.3

@@ -119,7 +119,7 @@ To implement a LightningWork, simply subclass ``LightningWork`` and define the r
                 sleep(2.0)
                 print(f"{i} LightningWork: work that is long running or may never end (like a server)")
 
-A LightningWork must always be attached to a LightningFlow and explicitely asked to ``run()``:
+A LightningWork must always be attached to a LightningFlow and explicitly asked to ``run()``:
 
 .. code:: python
     :emphasize-lines: 13, 16
