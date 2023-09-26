@@ -15,7 +15,7 @@ click <8.2
 python-multipart >=0.0.5, <=0.0.6
 backoff >=2.2.1, <2.3.0
 
-fastapi >=0.92.0, <0.100.0
+fastapi >=0.92.0, <0.104.0
 starlette  # https://fastapi.tiangolo.com/deployment/versions/#about-starlette
 pydantic >=1.7.4, <2.2.0  # strict # https://fastapi.tiangolo.com/deployment/versions/#about-pydantic
 
