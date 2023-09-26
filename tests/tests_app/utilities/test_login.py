@@ -3,7 +3,6 @@ from unittest import mock
 
 import pytest
 import requests
-
 from lightning.app.utilities import login
 
 LIGHTNING_CLOUD_URL = os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")

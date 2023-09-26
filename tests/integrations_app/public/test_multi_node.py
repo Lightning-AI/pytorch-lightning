@@ -2,11 +2,11 @@ import os
 from unittest import mock
 
 import pytest
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.testing.testing import LightningTestApp, application_testing
 from lightning_utilities.core.imports import package_available
 
 from integrations_app.public import _PATH_EXAMPLES
-from lightning.app.testing.helpers import _RunIf
-from lightning.app.testing.testing import application_testing, LightningTestApp
 
 
 class LightningTestMultiNodeApp(LightningTestApp):

@@ -72,29 +72,29 @@ from lightning.app.core.constants import (
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
     ENABLE_APP_COMMENT_COMMAND_EXECUTION,
-    enable_interruptible_works,
-    enable_multiple_works_in_default_container,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
-    get_cloud_queue_type,
-    get_lightning_cloud_url,
     LIGHTNING_CLOUD_PRINT_SPECS,
     SYS_CUSTOMIZATIONS_SYNC_ROOT,
+    enable_interruptible_works,
+    enable_multiple_works_in_default_container,
+    get_cloud_queue_type,
+    get_lightning_cloud_url,
 )
 from lightning.app.core.work import LightningWork
 from lightning.app.runners.backends.cloud import CloudBackend
 from lightning.app.runners.runtime import Runtime
 from lightning.app.source_code import LocalSourceCodeDir
-from lightning.app.source_code.copytree import _filter_ignored, _IGNORE_FUNCTION, _parse_lightningignore
+from lightning.app.source_code.copytree import _IGNORE_FUNCTION, _filter_ignored, _parse_lightningignore
 from lightning.app.storage import Drive, Mount
-from lightning.app.utilities.app_helpers import _is_headless, Logger
+from lightning.app.utilities.app_helpers import Logger, _is_headless
 from lightning.app.utilities.auth import _credential_string_to_basic_auth_params
 from lightning.app.utilities.cloud import _get_project
 from lightning.app.utilities.clusters import _ensure_cluster_project_binding, _get_default_cluster
 from lightning.app.utilities.dependency_caching import get_hash
 from lightning.app.utilities.load_app import load_app_from_file
-from lightning.app.utilities.packaging.app_config import _get_config_file, AppConfig
+from lightning.app.utilities.packaging.app_config import AppConfig, _get_config_file
 from lightning.app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning.app.utilities.secrets import _names_to_ids
 

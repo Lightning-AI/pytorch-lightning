@@ -3,9 +3,9 @@ from subprocess import Popen
 from time import sleep
 
 import pytest
+from lightning.app.testing.testing import run_app_in_cloud
 
 from integrations_app.public import _PATH_EXAMPLES
-from lightning.app.testing.testing import run_app_in_cloud
 
 
 @pytest.mark.timeout(300)

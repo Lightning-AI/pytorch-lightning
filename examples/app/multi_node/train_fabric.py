@@ -1,5 +1,4 @@
 import torch
-
 from lightning.app import CloudCompute, LightningApp, LightningWork
 from lightning.app.components import FabricMultiNode
 from lightning.fabric import Fabric

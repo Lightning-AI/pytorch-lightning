@@ -14,9 +14,8 @@
 import os
 import sys
 
-import torch
-
 import lightning.pytorch as pl
+import torch
 from lightning.pytorch import seed_everything
 from lightning.pytorch.callbacks import EarlyStopping
 from tests_pytorch.helpers.datamodules import ClassifDataModule

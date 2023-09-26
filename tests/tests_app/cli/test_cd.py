@@ -3,7 +3,6 @@ import sys
 from unittest import mock
 
 import pytest
-
 from lightning.app.cli.commands import cd
 from lightning.app.cli.commands.pwd import pwd
 

@@ -3,7 +3,6 @@ import sys
 from unittest.mock import ANY
 
 import pytest
-
 from lightning.app.utilities.exceptions import MisconfigurationException
 from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file
 

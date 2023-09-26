@@ -20,7 +20,7 @@ from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
-from lightning.fabric.utilities.distributed import _all_gather_ddp_if_available, ReduceOp
+from lightning.fabric.utilities.distributed import ReduceOp, _all_gather_ddp_if_available
 from lightning.pytorch.plugins import LayerSync
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.strategy import Strategy

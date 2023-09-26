@@ -2,7 +2,7 @@ import argparse
 import math
 import os
 from distutils.util import strtobool
-from typing import Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import gymnasium as gym
 import torch

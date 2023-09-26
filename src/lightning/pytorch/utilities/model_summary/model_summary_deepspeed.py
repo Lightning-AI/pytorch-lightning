@@ -21,11 +21,11 @@ from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Parameter
 
 from lightning.pytorch.utilities.model_summary.model_summary import (
-    _is_lazy_weight_tensor,
-    get_human_readable_count,
+    NOT_APPLICABLE,
     LayerSummary,
     ModelSummary,
-    NOT_APPLICABLE,
+    _is_lazy_weight_tensor,
+    get_human_readable_count,
 )
 
 

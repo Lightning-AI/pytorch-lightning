@@ -26,9 +26,8 @@ from typing import Any, Dict, List, Tuple, Union
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
-from lightning.pytorch.utilities.model_summary import DeepSpeedSummary
+from lightning.pytorch.utilities.model_summary import DeepSpeedSummary, summarize
 from lightning.pytorch.utilities.model_summary import ModelSummary as Summary
-from lightning.pytorch.utilities.model_summary import summarize
 from lightning.pytorch.utilities.model_summary.model_summary import _format_summary_table
 
 log = logging.getLogger(__name__)

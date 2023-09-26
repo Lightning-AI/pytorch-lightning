@@ -18,17 +18,17 @@ from re import escape
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.fabric
 import pytest
 import torch
-
-import lightning.fabric
 from lightning.fabric.accelerators.cuda import (
-    _check_cuda_matmul_precision,
     CUDAAccelerator,
+    _check_cuda_matmul_precision,
     find_usable_cuda_devices,
     is_cuda_available,
     num_cuda_devices,
 )
+
 from tests_fabric.helpers.runif import RunIf
 
 

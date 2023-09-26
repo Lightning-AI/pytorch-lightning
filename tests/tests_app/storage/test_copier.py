@@ -3,9 +3,8 @@ import pathlib
 from unittest import mock
 from unittest.mock import Mock
 
-import pytest
-
 import lightning.app
+import pytest
 from lightning.app.storage.copier import _Copier, _copy_files
 from lightning.app.storage.path import Path
 from lightning.app.storage.requests import _ExistsRequest, _GetRequest

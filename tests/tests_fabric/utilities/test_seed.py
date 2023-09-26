@@ -1,10 +1,9 @@
 import os
 from unittest import mock
 
+import lightning.fabric.utilities
 import pytest
 import torch
-
-import lightning.fabric.utilities
 from lightning.fabric.utilities import seed as seed_utils
 from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
 
