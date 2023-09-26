@@ -12,14 +12,18 @@
 # limitations under the License.
 
 import os
-from typing import Union, Dict, Optional
+import numpy as np
+from typing import Union, Dict, Optional, Iterable, Iterator
 from lightning.data.builder.writer import Writer
 from lightning.data.builder.reader import Reader
-from torch.utils.data import get_worker_info
+from torch.utils.data import get_worker_info, IterableDataset
 import torch
 from torch.distributed import is_initialized, is_available, get_world_size 
 from lightning.data.datasets.env import _WorkerEnv, _DistributedEnv
 from torch.utils.data.dataloader import DataLoader, _SingleProcessDataLoaderIter, _MultiProcessingDataLoaderIter
+from torch.utils.data.sampler import BatchSampler, RandomSampler, SequentialSampler, Sampler, Sized
+from torch.utils.data.distributed import DistributedSampler
+
 
 class Cache:
 
@@ -54,6 +58,12 @@ class Cache:
     def done(self):
         self._writer.done(self.rank)
 
+    def __len__(self):
+        return self._reader.get_length()
+
+    def get_chunk_interval(self):
+        return self._reader.get_chunk_interval()
+
 
 class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
 
@@ -66,10 +76,95 @@ class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
                     v.done()
             raise StopIteration()
 
+
+class CacheSampler(Sampler):
+
+    def __init__(self, dataset, generator, shuffle):
+        super().__init__(dataset)
+
+        if shuffle:
+            self._sampler = RandomSampler(dataset, generator=generator)  # type: ignore[arg-type]
+        else:
+            self._sampler = SequentialSampler(dataset)  # type: ignore[arg-type]
+
+    def __iter__(self):
+        return iter(self._sampler)
+
+    def __len__(self) -> int:
+        return len(self._sampler)
+
+
+class IteratorSampler(Sampler[int]):
+    r"""Samples elements sequentially, always in the same order.
+
+    Args:
+        data_source (Dataset): dataset to sample from
+    """
+    data_source: Sized
+
+    def __init__(self, data_source: Sized) -> None:
+        self.data_source = data_source
+
+    def __iter__(self) -> Iterator[int]:
+        return iter(self.data_source)
+
+    def __len__(self) -> int:
+        return len(self.data_source)
+
+
+class CacheBatchSampler(BatchSampler):
+
+    def __init__(self, sampler: Union[Sampler[int], Iterable[int]], batch_size: int, drop_last: bool, shuffle: bool, cache: Cache):
+        super().__init__(sampler, batch_size, drop_last)
+        self._cache = cache
+        self._shuffle = shuffle
+
+    def __iter__(self):
+        if self._cache.filled and self._shuffle:
+            return self.__iter__cache__()
+        return super().__iter__()
+
+    def __iter__cache__(self):
+        chunk_intervals = self._cache.get_chunk_interval()[:-1]
+        shuffled_chunk_intervals = np.random.permutation(chunk_intervals)
+
+        dataset = []
+        for interval in shuffled_chunk_intervals:
+            interval_indices = np.arange(interval[0], interval[1])
+            shuffled_interval_indices = np.random.permutation(interval_indices)
+            dataset.extend(shuffled_interval_indices.tolist())
+
+        if len(dataset) != len(self.sampler):
+            raise Exception("The generated indices don't match the initial length of the sampler.")
+
+        self.sampler = IteratorSampler(dataset)
+
+        return super().__iter__()
+
+    def __len__(self) -> int:
+        return super().__len__()
+
+
 class CacheDataLoader(DataLoader):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, dataset, *args, sampler=None, batch_sampler=None, shuffle: bool = False, generator=None, batch_size=None, drop_last=False, **kwargs):
+        if sampler:
+            raise Exception("Passing a sampler isn't supoprt with the CacheDataLoader yet.")
+
+        if batch_sampler:
+            raise Exception("Passing a batch_sampler isn't supoprt with the CacheDataLoader yet.")
+
+        if isinstance(dataset, IterableDataset):
+            raise Exception("Only map-based dataset are supported by the CacheDataLoader for now.")
+
+        cache = [v for v in dataset.__dict__.values() if isinstance(v, Cache)]
+
+        if not cache or len(cache) > 1:
+            raise Exception("The CacheDataloader should be used with a dataset using a single cache. Found {cache}.")
+
+        cache = cache[0]
+        batch_sampler = CacheBatchSampler(CacheSampler(dataset, generator, shuffle), batch_size, drop_last, shuffle, cache)
+        super().__init__(dataset, *args, sampler=None, batch_sampler=batch_sampler, generator=generator, **kwargs)
 
     def _get_iterator(self) -> '_BaseDataLoaderIter':
         if self.num_workers == 0:
