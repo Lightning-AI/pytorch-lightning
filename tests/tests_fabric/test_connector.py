@@ -1182,6 +1182,7 @@ def test_connector_transformer_engine(monkeypatch):
     assert isinstance(model.l2, TELayerNormMock)
     assert isinstance(model.l3.l, TELinearMock)
 
+
 @pytest.mark.parametrize("mode", ["bnb.nf4", "bnb.nf4-dq", "bnb.fp4", "bnb.fp4-dq", "bnb.int8", "gptq.int4"])
 def test_connect_bnb_quantization(monkeypatch, mode):
     monkeypatch.setattr(lightning.fabric.plugins.precision.bnb, "_BITSANDBYTES_AVAILABLE", True)
