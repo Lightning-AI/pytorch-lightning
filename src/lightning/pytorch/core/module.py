@@ -594,7 +594,9 @@ class LightningModule(
             )
         return None
 
-    def _log_dict_through_fabric(self, dictionary: Mapping[str, Any], logger: Optional[bool] = None) -> None:
+    def _log_dict_through_fabric(
+        self, dictionary: Union[Mapping[str, _METRIC], MetricCollection], logger: Optional[bool] = None
+    ) -> None:
         if logger is False:
             # Passing `logger=False` with Fabric does not make much sense because there is no other destination to
             # log to, but we support it in case the original code was written for Trainer use
