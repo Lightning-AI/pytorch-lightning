@@ -128,7 +128,7 @@ jobs:
       - name: Set parallel for Unix
         if: ${{ runner.os != 'windows' }}
         # on Win, tests takes even loner then with normal single thread
-        run: echo 'PYTEST_XDIST_ARGS="-n auto --dist=loadfile"' >> $GITHUB_ENV
+        run: echo "PYTEST_XDIST_ARGS=-n auto --dist=loadfile" >> $GITHUB_ENV
       - name: Tests
         working-directory: ./tests
         run: |
