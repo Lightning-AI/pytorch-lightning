@@ -47,8 +47,7 @@ from lightning.fabric.plugins.environments import (
     XLAEnvironment,
 )
 from lightning.fabric.plugins.io import TorchCheckpointIO
-from lightning.fabric.plugins.precision.bnb import Bitsandbytes
-from lightning.fabric.plugins.precision.bnb import _BITSANDBYTES_AVAILABLE
+from lightning.fabric.plugins.precision.bnb import _BITSANDBYTES_AVAILABLE, Bitsandbytes
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
     DataParallelStrategy,

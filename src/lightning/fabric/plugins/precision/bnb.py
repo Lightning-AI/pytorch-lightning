@@ -18,13 +18,12 @@
 import logging
 import os
 import warnings
-from contextlib import contextmanager
 from typing import Literal
 
 import torch
-from torch.nn import Module
 import torch.utils._device
 from lightning_utilities.core.imports import RequirementCache
+from torch.nn import Module
 
 from lightning.fabric.plugins.precision.precision import Precision
 
