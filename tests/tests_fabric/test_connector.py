@@ -600,6 +600,26 @@ def test_strategy_choice_ddp_torchelastic(*_):
 @mock.patch.dict(
     os.environ,
     {
+        "TORCHELASTIC_RUN_ID": "1",
+        "SLURM_NTASKS": "2",
+        "WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+    },
+)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_torchelastic_priority_over_slurm(*_):
+    """Test that the TorchElastic cluster environment is chosen over SLURM when both are detected."""
+    assert TorchElasticEnvironment.detect()
+    assert SLURMEnvironment.detect()
+    connector = _Connector(strategy="ddp")
+    assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
+
+
+@mock.patch.dict(
+    os.environ,
+    {
         "CUDA_VISIBLE_DEVICES": "0",
         "KUBERNETES_PORT": "tcp://127.0.0.1:443",
         "MASTER_ADDR": "1.2.3.4",
