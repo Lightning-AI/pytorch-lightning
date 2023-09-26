@@ -157,7 +157,6 @@ jobs:
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false
-
 # TODO: figure out why we clone and install quick-start
 #      - name: Clone Quick Start Example Repo
 #        uses: actions/checkout@v3
