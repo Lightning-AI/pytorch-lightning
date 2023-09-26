@@ -36,7 +36,7 @@ os.environ["BITSANDBYTES_NOWELCOME"] = "1"
 warnings.filterwarnings("ignore", message=r".*bitsandbytes was compiled without GPU support.*")
 _BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes>=0.40.0")
 
-if TYPE_CHECKING and _BITSANDBYTES_AVAILABLE:
+if _BITSANDBYTES_AVAILABLE:
     warnings.filterwarnings(
         "ignore", message=r"MatMul8bitLt: inputs will be cast from .* to float16 during quantization"
     )
@@ -301,7 +301,7 @@ class Linear4bit(bnb.modules.Linear4bit):
             warnings.filterwarnings("ignore", message=r".*Fabric.setup\(\)` has parameters on different devices.*")
 
 
-class BitsandbytesQuantization(Precision):
+class Bitsandbytes(Precision):
     """Plugin for training with bitsandbytes quantized weights.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -315,7 +315,7 @@ class BitsandbytesQuantization(Precision):
 
     precision: Literal["bnb.nf4", "bnb.nf4-dq", "bnb.fp4", "bnb.fp4-dq", "bnb.int8", "gptq.int4"]
 
-    def __init__(self, mode: Literal):
+    def __init__(self, mode: Literal = "bnb.int8"):
         if not _BITSANDBYTES_AVAILABLE:
             raise ModuleNotFoundError(str(_BITSANDBYTES_AVAILABLE))
 
@@ -375,8 +375,3 @@ class BitsandbytesQuantization(Precision):
         torch.nn.Linear = quantized_linear_cls
         yield
         torch.nn.Linear = torch_linear_cls
-
-
-def _convert_layers(module: torch.nn.Module) -> None:
-    # TODO check if bitsandbytes already handles conversion
-    ...

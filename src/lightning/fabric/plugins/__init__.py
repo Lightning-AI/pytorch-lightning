@@ -16,7 +16,7 @@ from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.plugins.precision.amp import MixedPrecision
-from lightning.fabric.plugins.precision.bnb import BitsandbytesQuantization
+from lightning.fabric.plugins.precision.bnb import Bitsandbytes
 from lightning.fabric.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning.fabric.plugins.precision.double import DoublePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
@@ -36,7 +36,7 @@ __all__ = [
     "HalfPrecision",
     "MixedPrecision",
     "TransformerEnginePrecision",
-    "BitsandbytesQuantization",
+    "Bitsandbytes",
     "XLAPrecision",
     "FSDPPrecision",
 ]

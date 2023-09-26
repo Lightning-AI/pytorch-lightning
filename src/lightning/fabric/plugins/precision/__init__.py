@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.fabric.plugins.precision.amp import MixedPrecision
-from lightning.fabric.plugins.precision.bnb import BitsandbytesQuantization
+from lightning.fabric.plugins.precision.bnb import Bitsandbytes
 from lightning.fabric.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning.fabric.plugins.precision.double import DoublePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
@@ -30,5 +30,5 @@ __all__ = [
     "XLAPrecision",
     "FSDPPrecision",
     "TransformerEnginePrecision",
-    "BitsandbytesQuantization",
+    "Bitsandbytes",
 ]
