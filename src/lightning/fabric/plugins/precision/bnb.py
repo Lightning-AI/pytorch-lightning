@@ -22,6 +22,7 @@ from contextlib import contextmanager
 from typing import Literal
 
 import torch
+from torch.nn import Module
 import torch.utils._device
 from lightning_utilities.core.imports import RequirementCache
 
@@ -259,7 +260,7 @@ class InferenceLinear8bitLt(bnb.nn.Linear8bitLt):
     This should only be used for inference. For training, use `bnb.nn.Linear8bitLt` directly.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, module, *args, **kwargs):
         super().__init__(
             *args,
             **kwargs,
@@ -321,57 +322,56 @@ class Bitsandbytes(Precision):
 
         self.mode = mode
 
-    def convert_module(self) -> None:
-        # TODO check if bitsandbytes already handles conversion
-        ...
+    def convert_module(self, module: Module) -> Module:
+        self.init_context()
+        return module
 
-    @contextmanager
     def init_context(self):
         if self.mode is None:
             yield
             return
 
         if self.mode == "bnb.int8":
-            quantized_linear_cls = InferenceLinear8bitLt
+            self.quantized_linear_cls = InferenceLinear8bitLt
         elif self.mode == "bnb.fp4":
             # Use a class instead `functools.partial` to respect `isinstance` checks and attribute accesses
             class QuantizedLinear(Linear4bit):
                 def __init__(self, *args, **kwargs):
                     super().__init__(*args, quant_type="fp4", compress_statistics=False, **kwargs)
 
-            quantized_linear_cls = QuantizedLinear
+            self.quantized_linear_cls = QuantizedLinear
         elif self.mode == "bnb.fp4-dq":
 
             class QuantizedLinear(Linear4bit):
                 def __init__(self, *args, **kwargs):
                     super().__init__(*args, quant_type="fp4", compress_statistics=True, **kwargs)
 
-            quantized_linear_cls = QuantizedLinear
+            self.quantized_linear_cls = QuantizedLinear
         elif self.mode == "bnb.nf4":
 
             class QuantizedLinear(Linear4bit):
                 def __init__(self, *args, **kwargs):
                     super().__init__(*args, quant_type="nf4", compress_statistics=False, **kwargs)
 
-            quantized_linear_cls = QuantizedLinear
+            self.quantized_linear_cls = QuantizedLinear
         elif self.mode == "bnb.nf4-dq":
 
             class QuantizedLinear(Linear4bit):
                 def __init__(self, *args, **kwargs):
                     super().__init__(*args, quant_type="nf4", compress_statistics=True, **kwargs)
 
-            quantized_linear_cls = QuantizedLinear
+            self.quantized_linear_cls = QuantizedLinear
         elif self.mode == "gptq.int4":
 
             class QuantizedLinear(ColBlockQuantizedLinear):
                 def __init__(self, *args, **kwargs):
                     super().__init__(*args, bits=4, tile_cols=-1, **kwargs)
 
-            quantized_linear_cls = QuantizedLinear
+            self.quantized_linear_cls = QuantizedLinear
         else:
             raise ValueError(f"Unknown quantization mode: {self.mode}")
 
         torch_linear_cls = torch.nn.Linear
-        torch.nn.Linear = quantized_linear_cls
+        torch.nn.Linear = self.quantized_linear_cls
         yield
         torch.nn.Linear = torch_linear_cls

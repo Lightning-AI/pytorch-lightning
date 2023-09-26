@@ -48,6 +48,7 @@ from lightning.fabric.plugins.environments import (
 )
 from lightning.fabric.plugins.io import TorchCheckpointIO
 from lightning.fabric.plugins.precision.bnb import Bitsandbytes
+from lightning.fabric.plugins.precision.bnb import _BITSANDBYTES_AVAILABLE
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
     DataParallelStrategy,
@@ -1184,13 +1185,42 @@ def test_connector_transformer_engine(monkeypatch):
 
 
 @pytest.mark.parametrize("mode", ["bnb.nf4", "bnb.nf4-dq", "bnb.fp4", "bnb.fp4-dq", "bnb.int8", "gptq.int4"])
-def test_connect_bnb_quantization(monkeypatch, mode):
+def test_connect_bnb_mode(monkeypatch, mode):
     monkeypatch.setattr(lightning.fabric.plugins.precision.bnb, "_BITSANDBYTES_AVAILABLE", True)
     bnb_precision_mock = Mock()
-    monkeypatch.setitem(sys.modules, "bnb_precision", bnb_precision_mock)
+    monkeypatch.setitem(sys.modules, "bnb_quantization", bnb_precision_mock)
     mode_mock = Mock()
 
-    mode_mock.reset_mock()
     precision = Bitsandbytes(mode=mode)
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
+    mode_mock.reset_mock()
+
+
+@pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes not available")
+def test_connect_bnb_quantization():
+    import bitsandbytes as bnb
+
+    expected = "Linear8bitLt"
+    mode = "bnb.int8"
+    precision = Bitsandbytes(mode=mode)
+    fabric = Fabric(plugins=precision, devices=1)
+
+    class SubModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l = torch.nn.Linear(1, 3)
+
+    class MyModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(16, 48)
+            self.l2 = torch.nn.LayerNorm(1)
+            self.l3 = SubModule()
+
+    model = MyModule()
+    assert model.l1.weight.dtype == torch.float32, model.l1.weight.dtype
+
+    model = fabric.setup_module(model)
+    expected = getattr(bnb.modules, expected)
+    assert isinstance(model, expected)
