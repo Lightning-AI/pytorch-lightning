@@ -49,7 +49,7 @@ from lightning.fabric.plugins.environments import (
     XLAEnvironment,
 )
 from lightning.fabric.plugins.io import TorchCheckpointIO
-from lightning.fabric.plugins.precision.bnb import BitsandbytesQuantization
+from lightning.fabric.plugins.precision.bnb import Bitsandbytes
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
     DataParallelStrategy,
@@ -1182,33 +1182,14 @@ def test_connector_transformer_engine(monkeypatch):
     assert isinstance(model.l2, TELayerNormMock)
     assert isinstance(model.l3.l, TELinearMock)
 
-
-def test_connect_bnb_precision(monkeypatch):
-    monkeypatch.setattr(lightning.fabric.plugins.precision.bnb, "_BITSANDBYTES_AVAILABLE")
+@pytest.mark.parametrize("mode", ["bnb.nf4", "bnb.nf4-dq", "bnb.fp4", "bnb.fp4-dq", "bnb.int8", "gptq.int4"])
+def test_connect_bnb_quantization(monkeypatch, mode):
+    monkeypatch.setattr(lightning.fabric.plugins.precision.bnb, "_BITSANDBYTES_AVAILABLE", True)
     bnb_precision_mock = Mock()
     monkeypatch.setitem(sys.modules, "bnb_precision", bnb_precision_mock)
     mode_mock = Mock()
 
-    precision = BitsandbytesQuantization()
-    connector = _Connector(plugins=precision)
-    assert connector.precision is precision
-
-    class SubModule(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.l = torch.nn.Linear(1, 3)
-
-    class MyModule(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.l1 = torch.nn.Linear(16, 48)
-            self.l2 = torch.nn.LayerNorm(1)
-            self.l3 = SubModule()
-
-    MyModule()
-
     mode_mock.reset_mock()
-    mode = "bnb.int8"
-    precision = BitsandbytesQuantization(mode=mode)
+    precision = Bitsandbytes(mode=mode)
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
