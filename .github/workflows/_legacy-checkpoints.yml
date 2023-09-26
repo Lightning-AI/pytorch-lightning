@@ -105,7 +105,9 @@ jobs:
         with:
           name: checkpoints-${{ github.sha }}
           path: ${{ env.legacy_dir }}/checkpoints/
-          retention-days: ${{ env.KEEP_DAYS }}to S3
+          retention-days: ${{ env.KEEP_DAYS }}
+
+      - name: Upload checkpoints to S3
         working-directory: ${{ env.legacy_dir }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PUB_ACCESS_KEY }}
