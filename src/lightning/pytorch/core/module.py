@@ -608,7 +608,7 @@ class LightningModule(
             apply_to_collection(value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Tensor))
 
         assert self._fabric is not None
-        self._fabric.log_dict(metrics=dictionary)
+        self._fabric.log_dict(metrics=dictionary)  # type: ignore[arg-type]
 
     @staticmethod
     def __check_not_nested(value: dict, name: str) -> None:
