@@ -62,16 +62,23 @@ class TestFSDPModel(BoringModel):
         # There is some issue with SGD optimizer state in FSDP
         return torch.optim.AdamW(self.layer.parameters(), lr=0.1)
 
-    def on_train_batch_end(self, *_) -> None:
+    def on_train_batch_start(self, batch, batch_idx):
+        assert batch.dtype == torch.float32
+
+    def on_train_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_test_batch_end(self, *_) -> None:
+    def on_test_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_validation_batch_end(self, *_) -> None:
+    def on_validation_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_predict_batch_end(self, *_) -> None:
+    def on_predict_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
     def _assert_layer_fsdp_instance(self) -> None:
@@ -118,16 +125,23 @@ class TestBoringModel(BoringModel):
 
 
 class TestFSDPModelAutoWrapped(TestBoringModel):
-    def on_train_batch_end(self, *_) -> None:
+    def on_train_batch_start(self, batch, batch_idx):
+        assert batch.dtype == torch.float32
+
+    def on_train_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_test_batch_end(self, *_) -> None:
+    def on_test_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_validation_batch_end(self, *_) -> None:
+    def on_validation_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_predict_batch_end(self, *_) -> None:
+    def on_predict_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
     def _assert_layer_fsdp_instance(self) -> None:
