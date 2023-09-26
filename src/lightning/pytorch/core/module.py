@@ -519,7 +519,7 @@ class LightningModule(
 
     def log_dict(
         self,
-        dictionary: Mapping[str, _METRIC],
+        dictionary: Union[Mapping[str, _METRIC], MetricCollection],
         prog_bar: bool = False,
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
