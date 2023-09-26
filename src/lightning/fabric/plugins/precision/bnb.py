@@ -19,7 +19,7 @@ import logging
 import os
 import warnings
 from contextlib import contextmanager
-from typing import Literal, TYPE_CHECKING
+from typing import Literal
 
 import torch
 import torch.utils._device
