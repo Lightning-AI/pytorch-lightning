@@ -30,14 +30,14 @@ from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessi
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
-from lightning.fabric.strategies.strategy import _BackwardSyncControl, TBroadcast
+from lightning.fabric.strategies.strategy import TBroadcast, _BackwardSyncControl
 from lightning.fabric.utilities.distributed import (
+    ReduceOp,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 
 _DDP_FORK_ALIASES = (

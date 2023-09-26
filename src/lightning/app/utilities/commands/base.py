@@ -32,7 +32,7 @@ from pydantic import BaseModel
 from lightning.app.api.http_methods import Post
 from lightning.app.api.request_types import _APIRequest, _CommandRequest, _RequestResponse
 from lightning.app.utilities import frontend
-from lightning.app.utilities.app_helpers import is_overridden, Logger
+from lightning.app.utilities.app_helpers import Logger, is_overridden
 from lightning.app.utilities.cloud import _get_project
 from lightning.app.utilities.network import LightningClient
 from lightning.app.utilities.state import AppState

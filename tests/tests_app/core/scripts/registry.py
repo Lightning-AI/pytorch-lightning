@@ -2,10 +2,9 @@ from lightning.app.utilities.imports import _is_pytorch_lightning_available
 
 if _is_pytorch_lightning_available():
     import torch
-    from torch.utils.data import DataLoader, Dataset
-
     from pytorch_lightning import LightningDataModule, LightningModule
     from pytorch_lightning.cli import LightningCLI
+    from torch.utils.data import DataLoader, Dataset
 
     class RandomDataset(Dataset):
         def __init__(self, size, length):

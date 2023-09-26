@@ -1,12 +1,12 @@
 import pytest
 import torch
-
 from lightning.pytorch.plugins import (
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
     FSDPPrecisionPlugin,
     HalfPrecisionPlugin,
 )
+
 from tests_pytorch.helpers.runif import RunIf
 
 

@@ -19,7 +19,7 @@ import platform
 from contextlib import ExitStack
 from itertools import chain
 from pathlib import Path
-from typing import Any, Callable, ContextManager, Dict, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache

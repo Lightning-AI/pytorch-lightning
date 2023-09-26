@@ -1,9 +1,9 @@
 import os
 
 from click.testing import CliRunner
+from lightning.app.cli.lightning_cli import run_app
 
 from integrations_app.local import _PATH_APPS
-from lightning.app.cli.lightning_cli import run_app
 
 
 def test_core_features_app_example():

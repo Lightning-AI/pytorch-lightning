@@ -2,11 +2,10 @@ from functools import partial
 
 import pytest
 import torch
-from torch.utils.data import get_worker_info
-
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv, Environment
+from lightning.data.datasets.env import Environment, _DistributedEnv, _WorkerEnv
 from lightning.fabric import Fabric
 from tests_fabric.helpers.runif import RunIf
+from torch.utils.data import get_worker_info
 
 
 @pytest.mark.parametrize(

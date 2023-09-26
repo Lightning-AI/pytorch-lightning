@@ -6,11 +6,10 @@ from unittest import mock
 
 import pytest
 import requests_mock
-
 from lightning.app import LightningFlow
 from lightning.app.core import queues
 from lightning.app.core.constants import HTTP_QUEUE_URL
-from lightning.app.core.queues import BaseQueue, QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
+from lightning.app.core.queues import READINESS_QUEUE_CONSTANT, BaseQueue, QueuingSystem, RedisQueue
 from lightning.app.utilities.imports import _is_redis_available
 from lightning.app.utilities.redis import check_if_redis_running
 

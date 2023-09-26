@@ -4,8 +4,7 @@ import tarfile
 from pathlib import Path
 
 import pytest
-
-from lightning.app.source_code.tar import _get_dir_size_and_count, _get_split_size, _tar_path, MAX_SPLIT_COUNT
+from lightning.app.source_code.tar import MAX_SPLIT_COUNT, _get_dir_size_and_count, _get_split_size, _tar_path
 
 
 def _create_files(basedir: Path):

@@ -2,15 +2,14 @@ import os
 from re import escape
 from unittest import mock
 
+import lightning.app
 import pytest
 import requests
-from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceStatus
-
-import lightning.app
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.structures import Dict, List
 from lightning.app.utilities.app_helpers import AppStatePlugin, BaseStatePlugin
 from lightning.app.utilities.state import AppState
+from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceStatus
 
 
 @mock.patch("lightning.app.utilities.state._configure_session", return_value=requests)

@@ -16,9 +16,8 @@ import os
 from unittest import mock
 from unittest.mock import MagicMock
 
-import pytest
-
 import lightning.fabric.plugins.environments.mpi
+import pytest
 from lightning.fabric.plugins.environments import MPIEnvironment
 
 

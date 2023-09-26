@@ -35,7 +35,7 @@ from rich import print
 from rich.color import ANSI_COLOR_NAMES
 
 from lightning.app.cli.lightning_cli import run_app
-from lightning.app.core import constants, LightningApp, LightningFlow
+from lightning.app.core import LightningApp, LightningFlow, constants
 from lightning.app.runners.multiprocess import MultiProcessRuntime
 from lightning.app.testing.config import _Config
 from lightning.app.utilities.app_logs import _app_logs_reader
@@ -44,7 +44,7 @@ from lightning.app.utilities.enum import CacheCallsKeys
 from lightning.app.utilities.imports import _is_playwright_available, requires
 from lightning.app.utilities.log import get_logfile
 from lightning.app.utilities.logs_socket_api import _LightningLogsSocketAPI
-from lightning.app.utilities.network import _configure_session, LightningClient
+from lightning.app.utilities.network import LightningClient, _configure_session
 from lightning.app.utilities.packaging.lightning_utils import get_dist_path_if_editable_install
 from lightning.app.utilities.proxies import ProxyWorkRun
 
