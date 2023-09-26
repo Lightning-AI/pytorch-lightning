@@ -125,6 +125,10 @@ jobs:
       - name: Switch coverage scope
         run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV
 
+      - name: Set parallel for Unix
+        if: ${{ runner.os != 'windows' }}
+        # on Win, tests takes even loner then with normal single thread
+        run: echo 'PYTEST_XDIST_ARGS="-n auto --dist=loadfile"' >> $GITHUB_ENV
       - name: Tests
         working-directory: ./tests
         run: |
@@ -132,8 +136,7 @@ jobs:
           python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
             -m pytest -m "not cloud" -vvvv tests_app \
               --ignore="tests_app/components/python/test_python.py" \
-              --timeout=120 --durations=50 \
-              -n auto --dist=loadscope
+              --timeout=120 --durations=50 ${PYTEST_XDIST_ARGS}
           pytest -m "not cloud" -v \
             tests_app/components/python/test_python.py \
             --timeout=120 --durations=50
