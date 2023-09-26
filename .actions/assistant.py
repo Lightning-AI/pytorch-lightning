@@ -236,7 +236,7 @@ def _download_frontend(pkg_path: str, version: str = "v0.0.0"):
         file = tarfile.open(fileobj=response, mode="r|gz")
         file.extractall(path=download_dir)
 
-        shutil.move(os.path.join(download_dir, "build"), frontend_dir)
+        shutil.move(download_dir, frontend_dir)
         print("The Lightning UI has successfully been downloaded!")
 
     # If installing from source without internet connection, we don't want to break the installation
