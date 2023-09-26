@@ -538,8 +538,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
 
         from torch.distributed.checkpoint import FileSystemReader, load_state_dict
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
 
         modules = {key: module for key, module in state.items() if _has_fsdp_modules(module)}
@@ -867,6 +867,7 @@ def _load_raw_module_state_from_path(path: Path, module: Module, world_size: int
 def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, world_size: int, strict: bool = True) -> None:
     """Loads the state dict into the module by gathering all weights first and then and writing back to each shard."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
     if not isinstance(module, FSDP):
         module.load_state_dict(state_dict, strict=strict)
     else:
