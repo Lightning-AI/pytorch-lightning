@@ -11,13 +11,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, Optional
-from lightning_utilities.core.imports import RequirementCache
-from lightning.data.builder.serializers import _SERIALIZERS
-from lightning.data.builder.base import BaseWriter
-import numpy as np
 import json
-import os
+from typing import Any, Dict, Optional
+
+import numpy as np
+from lightning_utilities.core.imports import RequirementCache
+
+from lightning.data.builder.base import BaseWriter
+from lightning.data.builder.serializers import _SERIALIZERS
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 
@@ -26,8 +27,8 @@ if _PIL_AVAILABLE:
 else:
     Image = Any
 
+
 class Writer(BaseWriter):
-    
     def __init__(
         self,
         out_dir: str,
@@ -48,11 +49,13 @@ class Writer(BaseWriter):
         available_serializers = set(self._serializers.keys())
         selected_serializers = set(self._dict_format.values())
         if selected_serializers.difference(available_serializers):
-            raise Exception(f"The provided dict_format don't match the provided serializers. Should be selected from {available_serializers}.")
-        
+            raise Exception(
+                f"The provided dict_format don't match the provided serializers. Should be selected from {available_serializers}."
+            )
+
         obj = self.get_config()
         text = json.dumps(obj, sort_keys=True)
-        self._config_data = text.encode('utf-8')
+        self._config_data = text.encode("utf-8")
 
     def get_config(self) -> Dict[str, Any]:
         out = super().get_config()
@@ -66,7 +69,9 @@ class Writer(BaseWriter):
         keys = sorted(items.keys())
 
         if keys != self._dict_format_keys:
-            raise Exception(f"The provided keys don't match the provided format. Found {keys} instead of {self._dict_format_keys}.")
+            raise Exception(
+                f"The provided keys don't match the provided format. Found {keys} instead of {self._dict_format_keys}."
+            )
 
         sizes = []
         data = []
@@ -80,26 +85,28 @@ class Writer(BaseWriter):
             data.append(serialized_data)
 
         head = np.array(sizes, np.uint32).tobytes()
-        body = b''.join(data)
+        body = b"".join(data)
         return head + body
-    
+
     def _create_chunk(self, filename: str) -> bytes:
         num_items = np.uint32(len(self._serialized_items))
         sizes = list(map(len, self._serialized_items))
         offsets = np.array([0] + sizes).cumsum().astype(np.uint32)
         offsets += len(num_items.tobytes()) + len(offsets.tobytes()) + len(self._config_data)
-        sample_data = b''.join(self._serialized_items)
+        sample_data = b"".join(self._serialized_items)
 
-        self._chunks.append({
-            'samples': len(self._serialized_items),
-            "config": self.get_config(),
-            "filename": filename,
-        })
+        self._chunks.append(
+            {
+                "samples": len(self._serialized_items),
+                "config": self.get_config(),
+                "filename": filename,
+            }
+        )
 
         return num_items.tobytes() + offsets.tobytes() + self._config_data + sample_data
 
     def write_chunk(self, rank: int):
-        filename =  f"chunk-{rank}-{self._counter}.bin"
+        filename = f"chunk-{rank}-{self._counter}.bin"
         self.write_file(self._create_chunk(filename), filename)
 
     def reset(self):

@@ -11,14 +11,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any
-import json
+from typing import Any, Dict, Optional
 
 
 class BaseWriter(ABC):
-
     def __init__(
         self,
         out_dir: str,
@@ -46,10 +45,7 @@ class BaseWriter(ABC):
         return os.path.exists(os.path.join(self._out_dir, "index.json"))
 
     def get_config(self) -> Dict[str, Any]:
-        return {
-            'compression': self._compression,
-            'chunk_size': self._chunk_size
-        }
+        return {"compression": self._compression, "chunk_size": self._chunk_size}
 
     @property
     def available_serializers(self):
@@ -57,14 +53,14 @@ class BaseWriter(ABC):
 
     @abstractmethod
     def serialize(self, data: any) -> bytes:
-        """Convert a given data type into its bytes format"""
+        """Convert a given data type into its bytes format."""
 
     @abstractmethod
     def write_chunk(self, rank: int) -> None:
-        """Write the current chunk to the filesystem"""
+        """Write the current chunk to the filesystem."""
 
     def reset(self) -> None:
-        """Reset the writer to handle the next chunk"""
+        """Reset the writer to handle the next chunk."""
         self._serialized_items = []
         self._current_chunk_size = 0
 
@@ -76,29 +72,32 @@ class BaseWriter(ABC):
             self.write_chunk(rank)
             self.reset()
             self._counter += 1
-            
+
         self._serialized_items.append(serialized_items)
         self._current_chunk_size += serialized_items_size
 
-    def write_file(self, raw_data: bytes, filename: str,) -> None:
+    def write_file(
+        self,
+        raw_data: bytes,
+        filename: str,
+    ) -> None:
         filepath = os.path.join(self._out_dir, filename)
-        with open(filepath, 'wb') as out:
+        with open(filepath, "wb") as out:
             out.write(raw_data)
 
     def write_chunks_index(self, rank: int):
         filepath = os.path.join(self._out_dir, f"{rank}.index.json")
-        with open(filepath, 'w') as out:
-            json.dump({'chunks': self._chunks}, out, sort_keys=True)
+        with open(filepath, "w") as out:
+            json.dump({"chunks": self._chunks}, out, sort_keys=True)
 
     def done(self, rank: int):
-        if  self._serialized_items:
+        if self._serialized_items:
             self.write_chunk(rank)
             self.write_chunks_index(rank)
             self.reset()
 
 
 class Serializer(ABC):
-
     @abstractmethod
     def serialize(self, data: any) -> bytes:
         pass

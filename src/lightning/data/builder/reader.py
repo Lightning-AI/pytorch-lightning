@@ -11,17 +11,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, Optional, List
-from lightning_utilities.core.imports import RequirementCache
-from lightning.data.builder.serializers import _SERIALIZERS
-from lightning.data.builder.base import BaseWriter
-import numpy as np
 import json
 import os
 
+import numpy as np
+
 
 class Reader:
-    
     def __init__(self, _cache_dir: str):
         super().__init__()
 
@@ -38,14 +34,14 @@ class Reader:
 
         index = {"chunks": []}
         for path in indexes_filepath:
-            with open(path, "r") as f:
+            with open(path) as f:
                 data = json.load(f)
-                index['chunks'].extend(data["chunks"])
+                index["chunks"].extend(data["chunks"])
 
         self._index = index
 
         self._intervals = []
-        cumsum_samples = np.cumsum([0] + [v["samples"] for v in self._index['chunks']] + [1])
+        cumsum_samples = np.cumsum([0] + [v["samples"] for v in self._index["chunks"]] + [1])
         for i in range(len(cumsum_samples) - 1):
             self._intervals.append([cumsum_samples[i], cumsum_samples[i + 1]])
 
@@ -66,24 +62,24 @@ class Reader:
             raise Exception("The reader index isn't defined.")
 
         chunk_id = self._map_index_to_chunk_id(index)
-        chunk_config = self._index['chunks'][chunk_id]
-        chunk_path = os.path.join(self._cache_dir, chunk_config['filename'])
+        chunk_config = self._index["chunks"][chunk_id]
+        chunk_path = os.path.join(self._cache_dir, chunk_config["filename"])
         if not os.path.exists(chunk_path):
             download_chunk(chunk_path)
 
         return self.load_data_from_chunk(chunk_path)
-        
+
     def load_data_from_chunk(self, chunk_path):
         pass
 
     def get_length(self) -> int:
         if self._index is None:
             self._try_read_index()
-        
+
         if self._index is None:
             raise Exception("The reader index isn't defined.")
 
-        return sum([v["samples"] for v in self._index['chunks']])
+        return sum([v["samples"] for v in self._index["chunks"]])
 
     def get_chunk_interval(self):
         if self._index is None:

@@ -11,17 +11,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict
-from lightning_utilities.core.imports import RequirementCache
-from lightning.data.builder.base import Serializer
-from enum import Enum
 import numpy as np
+
+from lightning.data.builder.base import Serializer
 
 
 class PILSerializer(Serializer):
-
     def serialize(self, item: any) -> bytes:
-        mode = item.mode.encode('utf-8')
+        mode = item.mode.encode("utf-8")
         width, height = item.size
         raw = item.tobytes()
         ints = np.array([width, height, len(mode)], np.uint32)
@@ -31,7 +28,7 @@ class PILSerializer(Serializer):
         idx = 3 * 4
         width, height, mode_size = np.frombuffer(data[:idx], np.uint32)
         idx2 = idx + mode_size
-        mode = data[idx:idx2].decode('utf-8')
+        mode = data[idx:idx2].decode("utf-8")
         size = width, height
         raw = data[idx2:]
         return Image.frombytes(mode, size, raw)  # pyright: ignore
@@ -39,10 +36,11 @@ class PILSerializer(Serializer):
 
 class IntSerializer(Serializer):
     def serialize(self, item: int) -> bytes:
-        return str(item).encode('utf-8')
+        return str(item).encode("utf-8")
 
     def deserialize(self, data: bytes) -> int:
-        return int(data.decode('utf-8'))
+        return int(data.decode("utf-8"))
+
 
 _SERIALIZERS = {
     "pil": PILSerializer(),

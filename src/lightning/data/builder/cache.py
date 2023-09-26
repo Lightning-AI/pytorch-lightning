@@ -12,22 +12,26 @@
 # limitations under the License.
 
 import os
+from typing import Dict, Iterable, Iterator, Optional, Union
+
 import numpy as np
-from typing import Union, Dict, Optional, Iterable, Iterator
-from lightning.data.builder.writer import Writer
+from torch.utils.data import IterableDataset
+from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter, _SingleProcessDataLoaderIter
+from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, Sized
+
 from lightning.data.builder.reader import Reader
-from torch.utils.data import get_worker_info, IterableDataset
-import torch
-from torch.distributed import is_initialized, is_available, get_world_size 
-from lightning.data.datasets.env import _WorkerEnv, _DistributedEnv
-from torch.utils.data.dataloader import DataLoader, _SingleProcessDataLoaderIter, _MultiProcessingDataLoaderIter
-from torch.utils.data.sampler import BatchSampler, RandomSampler, SequentialSampler, Sampler, Sized
-from torch.utils.data.distributed import DistributedSampler
+from lightning.data.builder.writer import Writer
+from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
 
 class Cache:
-
-    def __init__(self, cache_dir: str, data_format: Union[Dict[str, any], str], compression: Optional[str] = None, chunk_size: int = 2 << 26):
+    def __init__(
+        self,
+        cache_dir: str,
+        data_format: Union[Dict[str, any], str],
+        compression: Optional[str] = None,
+        chunk_size: int = 2 << 26,
+    ):
         super().__init__()
         self._writer = Writer(cache_dir, data_format, chunk_size)
         self._reader = Reader(cache_dir)
@@ -66,7 +70,6 @@ class Cache:
 
 
 class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
-
     def _next_data(self):
         try:
             return super()._next_data()
@@ -78,7 +81,6 @@ class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
 
 
 class CacheSampler(Sampler):
-
     def __init__(self, dataset, generator, shuffle):
         super().__init__(dataset)
 
@@ -99,6 +101,7 @@ class IteratorSampler(Sampler[int]):
 
     Args:
         data_source (Dataset): dataset to sample from
+
     """
     data_source: Sized
 
@@ -113,8 +116,9 @@ class IteratorSampler(Sampler[int]):
 
 
 class CacheBatchSampler(BatchSampler):
-
-    def __init__(self, sampler: Union[Sampler[int], Iterable[int]], batch_size: int, drop_last: bool, shuffle: bool, cache: Cache):
+    def __init__(
+        self, sampler: Union[Sampler[int], Iterable[int]], batch_size: int, drop_last: bool, shuffle: bool, cache: Cache
+    ):
         super().__init__(sampler, batch_size, drop_last)
         self._cache = cache
         self._shuffle = shuffle
@@ -146,8 +150,18 @@ class CacheBatchSampler(BatchSampler):
 
 
 class CacheDataLoader(DataLoader):
-
-    def __init__(self, dataset, *args, sampler=None, batch_sampler=None, shuffle: bool = False, generator=None, batch_size=None, drop_last=False, **kwargs):
+    def __init__(
+        self,
+        dataset,
+        *args,
+        sampler=None,
+        batch_sampler=None,
+        shuffle: bool = False,
+        generator=None,
+        batch_size=None,
+        drop_last=False,
+        **kwargs
+    ):
         if sampler:
             raise Exception("Passing a sampler isn't supoprt with the CacheDataLoader yet.")
 
@@ -163,10 +177,12 @@ class CacheDataLoader(DataLoader):
             raise Exception("The CacheDataloader should be used with a dataset using a single cache. Found {cache}.")
 
         cache = cache[0]
-        batch_sampler = CacheBatchSampler(CacheSampler(dataset, generator, shuffle), batch_size, drop_last, shuffle, cache)
+        batch_sampler = CacheBatchSampler(
+            CacheSampler(dataset, generator, shuffle), batch_size, drop_last, shuffle, cache
+        )
         super().__init__(dataset, *args, sampler=None, batch_sampler=batch_sampler, generator=generator, **kwargs)
 
-    def _get_iterator(self) -> '_BaseDataLoaderIter':
+    def _get_iterator(self) -> "_BaseDataLoaderIter":
         if self.num_workers == 0:
             return _SingleProcessDataLoaderIterPatch(self)
         else:
