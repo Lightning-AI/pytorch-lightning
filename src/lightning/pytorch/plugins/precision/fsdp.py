@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Literal, Optional
+from typing import Any, Callable, ContextManager, Dict, Generator, Literal, Optional, TYPE_CHECKING
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -22,7 +22,7 @@ from typing_extensions import get_args
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.fsdp import _PRECISION_INPUT
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
 from lightning.fabric.utilities.types import Optimizable
@@ -70,8 +70,8 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
         self.precision = precision
 
         precision_to_type = {
-            "bf16-mixed": torch.bfloat16,
-            "16-mixed": torch.float16,
+            "bf16-mixed": torch.float32,
+            "16-mixed": torch.float32,
             "bf16-true": torch.bfloat16,
             "16-true": torch.float16,
             "32-true": torch.float32,
@@ -130,18 +130,10 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
         finally:
             torch.set_default_dtype(default_dtype)
 
-    @contextmanager
-    def forward_context(self) -> Generator:
+    def forward_context(self) -> ContextManager:
         if "mixed" in self.precision:
-            with self._autocast_context_manager():
-                yield
-        else:
-            default_dtype = torch.get_default_dtype()
-            torch.set_default_dtype(self._desired_input_dtype)
-            try:
-                yield
-            finally:
-                torch.set_default_dtype(default_dtype)
+            return torch.autocast("cuda", dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
+        return _DtypeContextManager(self._desired_input_dtype)
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
@@ -190,11 +182,6 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
-
-    def _autocast_context_manager(self) -> torch.autocast:
-        # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
-        # https://github.com/pytorch/pytorch/issues/67233
-        return torch.autocast("cuda", dtype=self._desired_input_dtype)
 
 
 class FSDPMixedPrecisionPlugin(FSDPPrecisionPlugin):
