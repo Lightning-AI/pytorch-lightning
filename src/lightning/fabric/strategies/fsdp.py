@@ -13,11 +13,12 @@
 # limitations under the License.
 import os
 import threading
-from contextlib import contextmanager, ExitStack
+from contextlib import ExitStack, contextmanager
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     ContextManager,
@@ -30,7 +31,6 @@ from typing import (
     Set,
     Tuple,
     Type,
-    TYPE_CHECKING,
     Union,
 )
 
@@ -48,19 +48,19 @@ from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessS
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import (
+    TBroadcast,
     _apply_filter,
     _BackwardSyncControl,
     _Sharded,
     _validate_keys_for_strict_loading,
-    TBroadcast,
 )
 from lightning.fabric.utilities.distributed import (
+    ReduceOp,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_12,
     _TORCH_GREATER_EQUAL_1_13,
@@ -737,9 +737,9 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
         return
 
     from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+        CheckpointImpl,
         apply_activation_checkpointing,
         checkpoint_wrapper,
-        CheckpointImpl,
     )
 
     if not _TORCH_GREATER_EQUAL_2_2:
@@ -811,9 +811,8 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
 def _get_full_state_dict_context(
     module: Module, world_size: int, rank0_only: bool = True
 ) -> Generator[None, None, None]:
-    from torch.distributed.fsdp import FullStateDictConfig
+    from torch.distributed.fsdp import FullStateDictConfig, StateDictType
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-    from torch.distributed.fsdp import StateDictType
 
     # In PyTorch <= 2.0, offload to CPU in combination with `world_size=1` is not possible
     offload_to_cpu = world_size > 1 or _TORCH_GREATER_EQUAL_2_1

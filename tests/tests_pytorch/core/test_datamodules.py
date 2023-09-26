@@ -16,18 +16,18 @@ from argparse import Namespace
 from dataclasses import dataclass
 from typing import Any, Dict
 from unittest import mock
-from unittest.mock import call, Mock, PropertyMock
+from unittest.mock import Mock, PropertyMock, call
 
 import pytest
 import torch
-
-from lightning.pytorch import LightningDataModule, seed_everything, Trainer
+from lightning.pytorch import LightningDataModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.profilers.simple import SimpleProfiler
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel

@@ -26,12 +26,12 @@ from typing import (
     Mapping,
     Optional,
     Protocol,
-    runtime_checkable,
     Sequence,
     Tuple,
     Type,
     TypedDict,
     Union,
+    runtime_checkable,
 )
 
 import torch

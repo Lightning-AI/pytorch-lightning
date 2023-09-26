@@ -4,14 +4,14 @@ from pathlib import Path
 from unittest import mock
 
 import click
+import lightning.app.core.constants as constants
 import pytest
 from click.testing import CliRunner
-
-import lightning.app.core.constants as constants
 from lightning.app import LightningApp
 from lightning.app.cli.lightning_cli import _run_app, run_app
 from lightning.app.runners.runtime_type import RuntimeType
 from lightning.app.utilities.app_helpers import convert_print_to_logger_info
+
 from tests_app import _PROJECT_ROOT
 
 

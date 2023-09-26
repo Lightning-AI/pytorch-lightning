@@ -6,7 +6,6 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.runners.multiprocess import MultiProcessRuntime
 from lightning.app.storage.payload import Payload

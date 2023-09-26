@@ -32,7 +32,7 @@ _logger = Logger(__name__)
 
 
 if _is_param_available():
-    from param import ClassSelector, edit_constant, Parameterized
+    from param import ClassSelector, Parameterized, edit_constant
 else:
     Parameterized = object
     ClassSelector = dict

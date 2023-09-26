@@ -16,7 +16,7 @@ import os
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, Union
 
 import torch
 from torch import Tensor
@@ -28,6 +28,7 @@ from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.fsdp import (
+    _METADATA_FILENAME,
     _activation_checkpointing_kwargs,
     _auto_wrap_policy_kwargs,
     _get_full_state_dict_context,
@@ -38,7 +39,6 @@ from lightning.fabric.strategies.fsdp import (
     _is_full_checkpoint,
     _is_sharded_checkpoint,
     _load_raw_module_state,
-    _METADATA_FILENAME,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
 )

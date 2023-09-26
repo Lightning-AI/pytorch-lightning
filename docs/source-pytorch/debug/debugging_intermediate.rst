@@ -62,7 +62,7 @@ You can keep an eye on the gradient norm by logging it in your LightningModule:
 This will plot the 2-norm of each layer to your experiment manager.
 If you notice the norm is going up, there's a good chance your gradients will explode.
 
-One technique to stop exploding gradients is to clip the gradient when the norm is above a certain threashold:
+One technique to stop exploding gradients is to clip the gradient when the norm is above a certain threshold:
 
 .. testcode::
 

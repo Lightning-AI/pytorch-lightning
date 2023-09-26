@@ -15,12 +15,10 @@ import inspect
 import threading
 
 import pytest
-from torch.jit import ScriptModule
-
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.utilities.parsing import (
-    _get_init_args,
     AttributeDict,
+    _get_init_args,
     clean_namespace,
     collect_init_args,
     is_picklable,
@@ -29,6 +27,7 @@ from lightning.pytorch.utilities.parsing import (
     lightning_setattr,
     parse_class_init_keys,
 )
+from torch.jit import ScriptModule
 
 unpicklable_function = lambda: None
 

@@ -32,7 +32,7 @@ from lightning.app.utilities.imports import _is_sqlmodel_available
 
 if _is_sqlmodel_available():
     from sqlalchemy.inspection import inspect as sqlalchemy_inspect
-    from sqlmodel import JSON, select, Session, SQLModel, TypeDecorator
+    from sqlmodel import JSON, Session, SQLModel, TypeDecorator, select
 
 logger = Logger(__name__)
 engine = None

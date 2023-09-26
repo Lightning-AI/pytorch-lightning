@@ -17,7 +17,6 @@ import re
 from unittest import mock
 
 import pytest
-
 from lightning.fabric.plugins.environments import TorchElasticEnvironment
 
 

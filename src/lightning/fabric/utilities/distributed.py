@@ -5,7 +5,7 @@ import sys
 import time
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import fsspec.utils
 import torch
@@ -14,7 +14,6 @@ from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
-from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
@@ -28,6 +27,7 @@ else:
 
 
 if TYPE_CHECKING:
+    from lightning.fabric.plugins import ClusterEnvironment
     from lightning.fabric.strategies import Strategy
 
 
@@ -285,7 +285,7 @@ def _all_gather_ddp_if_available(
 
 
 def _init_dist_connection(
-    cluster_environment: ClusterEnvironment,
+    cluster_environment: "ClusterEnvironment",
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
