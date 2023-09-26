@@ -14,8 +14,7 @@
 from typing import Any, Dict
 
 import torch
-
-from lightning.fabric.accelerators import Accelerator, ACCELERATOR_REGISTRY
+from lightning.fabric.accelerators import ACCELERATOR_REGISTRY, Accelerator
 
 
 def test_accelerator_registry_with_new_accelerator():

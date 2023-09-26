@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol, runtime_checkable, TypeVar, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol, TypeVar, Union, runtime_checkable
 
 import torch
 from torch import Tensor

@@ -13,7 +13,7 @@ You can turn caching on or off:
     # Run only when the input arguments change (default)
     work = MyWork(cache_calls=True)
 
-    # Run everytime regardless of whether input arguments change or not
+    # Run every time regardless of whether input arguments change or not
     work = MyWork(cache_calls=False)
 
 To better understand this, imagine that every day you want to sequentially download and process some data and then train a model on that data.

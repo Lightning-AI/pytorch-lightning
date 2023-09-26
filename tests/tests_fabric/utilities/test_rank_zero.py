@@ -3,7 +3,6 @@ import sys
 from unittest import mock
 
 import pytest
-
 from lightning.fabric.utilities.rank_zero import _get_rank
 
 

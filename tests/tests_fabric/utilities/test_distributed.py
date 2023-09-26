@@ -1,13 +1,16 @@
+import functools
+import os
 from functools import partial
+from pathlib import Path
 
 import pytest
 import torch
-
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.environments import LightningEnvironment
-from lightning.fabric.strategies import DDPStrategy
+from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning.fabric.utilities.distributed import _gather_all_tensors, _sync_ddp
+from lightning.fabric.utilities.distributed import _gather_all_tensors, _sync_ddp, is_shared_filesystem
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -106,3 +109,52 @@ def _test_all_reduce(strategy):
 )
 def test_collective_operations(devices, process):
     spawn_launch(process, devices)
+
+
+def test_is_shared_filesystem(tmp_path, monkeypatch):
+    # In the non-distributed case, every location is interpreted as 'shared'
+    assert is_shared_filesystem(SingleDeviceStrategy(torch.device("cpu")))
+
+    test_fn = functools.partial(_test_is_shared_filesystem, tmp_path=tmp_path, monkeypatch=monkeypatch)
+    spawn_launch(test_fn, [torch.device("cpu"), torch.device("cpu")])
+
+
+def _test_is_shared_filesystem(strategy, tmp_path, monkeypatch):
+    # Path doesn't exist
+    with pytest.raises(FileNotFoundError, match="Unable to determine if the path belongs to a shared filesystem"):
+        is_shared_filesystem(strategy, path="not/exist")
+
+    # Path exists but not the same on all ranks
+    file = tmp_path / f"file-rank-{strategy.global_rank}"
+    file.touch()
+    folder = tmp_path / f"folder-rank-{strategy.global_rank}"
+    folder.mkdir()
+    assert not is_shared_filesystem(strategy, path=file)
+    assert not is_shared_filesystem(strategy, path=folder)
+
+    # Path exists
+    folder = tmp_path / "folder"
+    file = folder / "file"
+    if strategy.global_rank == 0:
+        folder.mkdir()
+        file.touch()
+    strategy.barrier()
+    assert folder.exists()
+    assert is_shared_filesystem(strategy, path=folder)
+    assert is_shared_filesystem(strategy, path=file)
+    assert os.listdir(folder) == ["file"]  # rank test files got cleaned up
+
+    # Path defaults to CWD
+    monkeypatch.chdir(tmp_path)
+    assert Path.cwd() == tmp_path
+    assert is_shared_filesystem(strategy)
+    monkeypatch.undo()
+
+    # Path is a symlink
+    linked = Path(tmp_path / "linked")
+    if strategy.global_rank == 0:
+        linked.symlink_to(tmp_path / "folder", target_is_directory=True)
+    assert is_shared_filesystem(strategy, path=folder)
+
+    # Remote path is considered shared
+    assert is_shared_filesystem(strategy, path="s3://my-bucket/data")

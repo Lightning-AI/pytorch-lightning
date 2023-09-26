@@ -23,16 +23,16 @@ from unittest.mock import call
 import numpy as np
 import pytest
 import torch
-from torch import Tensor
-
 from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
-from lightning.pytorch import callbacks, Trainer
+from lightning.pytorch import Trainer, callbacks
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.loops import _EvaluationLoop
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from torch import Tensor
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _RICH_AVAILABLE:

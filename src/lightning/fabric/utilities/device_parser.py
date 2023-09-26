@@ -13,8 +13,8 @@
 # limitations under the License.
 from typing import List, MutableSequence, Optional, Tuple, Union
 
-import lightning.fabric.accelerators as accelerators  # avoid circular dependency
-from lightning.fabric.plugins.environments.torchelastic import TorchElasticEnvironment
+import torch
+
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.types import _DEVICE
 
@@ -89,7 +89,8 @@ def _parse_gpu_ids(
         raise MisconfigurationException("GPUs requested but none are available.")
 
     if (
-        TorchElasticEnvironment.detect()
+        torch.distributed.is_available()
+        and torch.distributed.is_torchelastic_launched()
         and len(gpus) != 1
         and len(_get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)) == 1
     ):
@@ -159,8 +160,11 @@ def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = Fals
     Returns:
         A list of all available GPUs
     """
-    cuda_gpus = accelerators.cuda._get_all_visible_cuda_devices() if include_cuda else []
-    mps_gpus = accelerators.mps._get_all_available_mps_gpus() if include_mps else []
+    from lightning.fabric.accelerators.cuda import _get_all_visible_cuda_devices
+    from lightning.fabric.accelerators.mps import _get_all_available_mps_gpus
+
+    cuda_gpus = _get_all_visible_cuda_devices() if include_cuda else []
+    mps_gpus = _get_all_available_mps_gpus() if include_mps else []
     return cuda_gpus + mps_gpus
 
 

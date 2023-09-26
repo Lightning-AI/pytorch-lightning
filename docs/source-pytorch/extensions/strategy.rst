@@ -34,7 +34,7 @@ Built-in strategies can be selected in two ways.
 1. Pass the shorthand name to the ``strategy`` Trainer argument
 2. Import a Strategy from :mod:`lightning.pytorch.strategies`, instantiate it and pass it to the ``strategy`` Trainer argument
 
-The latter allows you to configure further options on the specifc strategy.
+The latter allows you to configure further options on the specific strategy.
 Here are some examples:
 
 .. code-block:: python

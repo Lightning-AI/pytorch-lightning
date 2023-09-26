@@ -14,11 +14,11 @@
 from unittest.mock import Mock
 
 import torch
-
 from lightning.fabric import seed_everything
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision import MixedPrecisionPlugin
+
 from tests_pytorch.helpers.runif import RunIf
 
 

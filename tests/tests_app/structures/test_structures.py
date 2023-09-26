@@ -2,7 +2,6 @@ import os
 from copy import deepcopy
 
 import pytest
-
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.runners import MultiProcessRuntime
 from lightning.app.storage.payload import Payload

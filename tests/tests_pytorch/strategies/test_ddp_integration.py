@@ -16,14 +16,9 @@ import os
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.pytorch as pl
 import pytest
 import torch
-from torch.distributed.optim import ZeroRedundancyOptimizer
-from torch.multiprocessing import ProcessRaisedException
-from torch.nn.parallel.distributed import DistributedDataParallel
-
-import lightning.pytorch as pl
-import tests_pytorch.helpers.pipelines as tpipes
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
@@ -33,6 +28,11 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer import seed_everything
+from torch.distributed.optim import ZeroRedundancyOptimizer
+from torch.multiprocessing import ProcessRaisedException
+from torch.nn.parallel.distributed import DistributedDataParallel
+
+import tests_pytorch.helpers.pipelines as tpipes
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel

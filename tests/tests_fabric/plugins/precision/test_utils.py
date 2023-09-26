@@ -1,6 +1,5 @@
 import pytest
 import torch
-
 from lightning.fabric.plugins.precision.utils import _ClassReplacementContextManager, _DtypeContextManager
 
 

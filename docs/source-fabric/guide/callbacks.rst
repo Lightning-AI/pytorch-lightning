@@ -44,7 +44,7 @@ Here is how that gets done in Fabric:
         optimizer.step()
 
         # Let a callback add some arbitrary processing at the appropriate place
-        # Give the callback access to some varibles
+        # Give the callback access to some variables
         fabric.call("on_train_batch_end", loss=loss, output=...)
 
 

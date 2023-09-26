@@ -17,11 +17,11 @@ import pathlib
 import pickle
 from abc import ABC, abstractmethod
 from time import sleep
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from lightning.app.core.constants import REMOTE_STORAGE_WAIT
 from lightning.app.core.queues import BaseQueue
-from lightning.app.storage.path import _filesystem, _shared_storage_path, Path
+from lightning.app.storage.path import Path, _filesystem, _shared_storage_path
 from lightning.app.storage.requests import _ExistsRequest, _ExistsResponse, _GetRequest, _GetResponse
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.component import _is_flow_context

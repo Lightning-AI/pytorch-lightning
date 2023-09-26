@@ -17,7 +17,7 @@ import pathlib
 import threading
 from threading import Thread
 from time import time
-from typing import Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
