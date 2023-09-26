@@ -165,6 +165,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
             chunk: The chunk that should be currently loaded
 
         """
+        
 
     @abstractmethod
     def load_sample_from_chunk(self, chunk: Any, index: int) -> Any:
