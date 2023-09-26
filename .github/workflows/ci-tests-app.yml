@@ -128,10 +128,15 @@ jobs:
       - name: Tests
         working-directory: ./tests
         run: |
+          set -e
           python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-            -m pytest -m "not cloud" tests_app \
-              --timeout=120 -vvvv --durations=50 \
+            -m pytest -m "not cloud" -vvvv tests_app \
+              --ignore="tests_app/components/python/test_python.py"
+              --timeout=120 --durations=50 \
               -n auto --dist=loadscope
+          pytest -m "not cloud" -v \
+            tests_app/components/python/test_python.py \
+            --timeout=120 --durations=50
 
       - name: Statistics
         if: success()
