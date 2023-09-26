@@ -4,7 +4,7 @@ Configure hyperparameters from the CLI
 --------------------------------------
 
 You can use any CLI tool you want with Lightning.
-For beginners, we recommand using Python's built-in argument parser.
+For beginners, we recommend using Python's built-in argument parser.
 
 
 ----

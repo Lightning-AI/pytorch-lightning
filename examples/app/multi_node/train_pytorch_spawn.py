@@ -1,8 +1,7 @@
 import torch
-from torch.nn.parallel.distributed import DistributedDataParallel
-
 from lightning.app import CloudCompute, LightningApp, LightningWork
 from lightning.app.components import PyTorchSpawnMultiNode
+from torch.nn.parallel.distributed import DistributedDataParallel
 
 
 class PyTorchDistributed(LightningWork):

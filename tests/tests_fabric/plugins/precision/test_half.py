@@ -13,7 +13,6 @@
 # limitations under the License.
 import pytest
 import torch
-
 from lightning.fabric.plugins.precision import HalfPrecision
 
 

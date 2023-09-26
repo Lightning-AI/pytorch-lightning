@@ -59,7 +59,7 @@ You can run Lightning Apps for free on the Public Lightning cloud with a single 
    :tag: Intermediate
 
 .. displayitem::
-   :header: Manage App Dependancies
+   :header: Manage App Dependencies
    :description: Configure your python requirements or use a custom docker image
    :col_css: col-md-4
    :button_link: ../../glossary/build_config/build_config.html
@@ -68,7 +68,7 @@ You can run Lightning Apps for free on the Public Lightning cloud with a single 
 
 .. displayitem::
    :header: Share Files Between Works
-   :description: Learn more about data transfering
+   :description: Learn more about data transferring
    :col_css: col-md-4
    :button_link: ../../glossary/storage/storage.html
    :height: 150

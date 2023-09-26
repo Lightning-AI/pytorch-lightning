@@ -23,10 +23,6 @@ from unittest.mock import ANY
 import pytest
 import torch
 import torch.nn.functional as F
-from torch import nn, Tensor
-from torch.utils.data import DataLoader
-from torchmetrics import Accuracy
-
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.accelerators import CUDAAccelerator
 from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
@@ -36,6 +32,10 @@ from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE, DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from torch import Tensor, nn
+from torch.utils.data import DataLoader
+from torchmetrics import Accuracy
+
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 

@@ -455,7 +455,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Renamed `TQDMProgressBar.main_progress_bar` to `TQDMProgressBar.train_progress_bar` ([#16695](https://github.com/Lightning-AI/lightning/pull/16695))
 - Marked the progress tracking classes as protected ([#17009](https://github.com/Lightning-AI/lightning/pull/17009))
 - Marked the `lightning.pytorch.trainer.configuration_validator.verify_loop_configurations` function as protected ([#17009](https://github.com/Lightning-AI/lightning/pull/17009))
-- Marked the `lightning.pytorch.utiltiies.distirbuted.register_ddp_comm_hook` function as protected ([#17009](https://github.com/Lightning-AI/lightning/pull/17009))
+- Marked the `lightning.pytorch.utiltiies.distributed.register_ddp_comm_hook` function as protected ([#17009](https://github.com/Lightning-AI/lightning/pull/17009))
 - Marked `lightning.pytorch.utilities.supporters.CombinedDataset` as protected ([#16714](https://github.com/Lightning-AI/lightning/pull/16714))
 - Marked the `{Accelerator,Signal,Callback,Checkpoint,Data,Logger}Connector` classes as protected ([#17008](https://github.com/Lightning-AI/lightning/pull/17008))
 - Marked the `lightning.pytorch.trainer.connectors.signal_connector.HandlersCompose` class as protected ([#17008](https://github.com/Lightning-AI/lightning/pull/17008))
@@ -864,7 +864,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - The `Trainer.{fit,validate,test,predict,tune}` methods now raise a useful error message if the input is not a `LightningModule` ([#13892](https://github.com/Lightning-AI/lightning/pull/13892))
-- Raised a `MisconfigurationException` if batch transfer hooks are overriden with `IPUAccelerator` ([#13961](https://github.com/Lightning-AI/lightning/pull/13961))
+- Raised a `MisconfigurationException` if batch transfer hooks are overridden with `IPUAccelerator` ([#13961](https://github.com/Lightning-AI/lightning/pull/13961))
 - Replaced the unwrapping logic in strategies with direct access to unwrapped `LightningModule` ([#13738](https://github.com/Lightning-AI/lightning/pull/13738))
 - Enabled `on_before_batch_transfer` for `DPStrategy` and `IPUAccelerator` ([#14023](https://github.com/Lightning-AI/lightning/pull/14023))
 - When resuming training with Apex enabled, the `Trainer` will now raise an error ([#14341](https://github.com/Lightning-AI/lightning/pull/14341))
@@ -891,7 +891,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Deprecated
 
 - Deprecated `LightningDeepSpeedModule` ([#14000](https://github.com/Lightning-AI/lightning/pull/14000))
-- Deprecated `amp_level` from `Trainer` in favour of passing it explictly via precision plugin ([#13898](https://github.com/Lightning-AI/lightning/pull/13898))
+- Deprecated `amp_level` from `Trainer` in favour of passing it explicitly via precision plugin ([#13898](https://github.com/Lightning-AI/lightning/pull/13898))
 - Deprecated the calls to `pl.utiltiies.meta` functions in favor of built-in https://github.com/pytorch/torchdistx support ([#13868](https://github.com/Lightning-AI/lightning/pull/13868))
 - Deprecated the `unwrap_lightning_module` and `unwrap_lightning_module_sharded` utility functions in favor of accessing the unwrapped `LightningModule` on the strategy directly ([#13738](https://github.com/Lightning-AI/lightning/pull/13738))
 - Deprecated the `pl_module` argument in `LightningParallelModule`, `LightningDistributedModule`, `LightningShardedDataParallel`, `LightningBaguaModule` and `LightningDeepSpeedModule` wrapper classes ([#13738](https://github.com/Lightning-AI/lightning/pull/13738))
@@ -4619,7 +4619,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added supoort for multiple validation dataloaders
+- Added support for multiple validation dataloaders
 - Added support for latest test-tube logger (optimised for `torch==1.2.0`)
 
 ### Changed

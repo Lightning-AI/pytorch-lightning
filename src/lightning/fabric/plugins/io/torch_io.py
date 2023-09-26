@@ -16,9 +16,8 @@ import os
 from typing import Any, Callable, Dict, Optional
 
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
-from lightning.fabric.utilities.cloud_io import _atomic_save
+from lightning.fabric.utilities.cloud_io import _atomic_save, get_filesystem
 from lightning.fabric.utilities.cloud_io import _load as pl_load
-from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _PATH
 
 log = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
 import pathlib
 
-from lightning.app.utilities.packaging.app_config import _get_config_file, AppConfig
+from lightning.app.utilities.packaging.app_config import AppConfig, _get_config_file
 
 
 def _make_empty_config_file(folder):
