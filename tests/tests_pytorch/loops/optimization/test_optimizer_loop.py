@@ -67,7 +67,7 @@ class OutputMapping(Generic[T], Mapping[str, T]):
     [
         (5.0, "must return a Tensor, a Mapping, or None"),
         ({"a": 5}, "the 'loss' key needs to be present"),
-        (OutputMapping[str, int]({"a": 5}), "the 'loss' key needs to be present"),
+        (OutputMapping[int]({"a": 5}), "the 'loss' key needs to be present"),
     ],
 )
 def test_warning_invalid_trainstep_output(tmpdir, case):
