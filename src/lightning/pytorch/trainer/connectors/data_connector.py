@@ -15,6 +15,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional, Tuple, Union
 
+import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
@@ -28,7 +29,6 @@ from lightning.fabric.utilities.data import (
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
-from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
@@ -425,10 +425,7 @@ def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
         return
 
     upper_bound = suggested_max_num_workers(trainer.num_devices)
-    using_spawn = (
-        isinstance(trainer.strategy.launcher, _MultiProcessingLauncher)
-        and trainer.strategy.launcher._start_method == "spawn"
-    )
+    using_spawn = mp.get_start_method() == "spawn"
 
     if dataloader.num_workers > 0 and using_spawn and not dataloader.persistent_workers:
         rank_zero_warn(

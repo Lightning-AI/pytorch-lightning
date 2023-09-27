@@ -128,7 +128,8 @@ class TestSpawnBoringModel(BoringModel):
 
 
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
-def test_dataloader_warnings(num_workers, tmp_path):
+def test_dataloader_persistent_workers_performance_warning(num_workers, tmp_path):
+    """Test that when the multiprocessing start-method is 'spawn', we recommend setting `persistent_workers=True`."""
     trainer = Trainer(
         default_root_dir=tmp_path,
         accelerator="cpu",
