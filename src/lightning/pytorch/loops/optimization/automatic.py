@@ -13,7 +13,7 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, Optional, OrderedDict
+from typing import Any, Callable, Dict, Optional, OrderedDict, Mapping
 
 import torch
 from torch import Tensor
@@ -59,11 +59,11 @@ class ClosureResult(OutputResult):
     def from_training_step_output(cls, training_step_output: STEP_OUTPUT, normalize: int = 1) -> "ClosureResult":
         closure_loss, extra = None, {}
 
-        if isinstance(training_step_output, dict):
+        if isinstance(training_step_output, Mapping):
             closure_loss = training_step_output.get("loss")
             if closure_loss is None:
                 raise MisconfigurationException(
-                    "In automatic_optimization, when `training_step` returns a dict, the 'loss' key needs to be present"
+                    "In automatic_optimization, when `training_step` returns a Mapping, the 'loss' key needs to be present"
                 )
             extra = {k: v for k, v in training_step_output.items() if k != "loss"}
         elif isinstance(training_step_output, Tensor):

@@ -19,6 +19,8 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops.optimization.automatic import ClosureResult
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
+from typing import Mapping, Iterator, Generic, TypeVar, Dict
+
 
 def test_closure_result_deepcopy():
     closure_loss = torch.tensor(123.45)
@@ -42,10 +44,25 @@ def test_closure_result_apply_accumulation():
     result = ClosureResult.from_training_step_output(closure_loss, 5)
     assert result.loss == 5
 
+T = TypeVar('T')
+class OutputMapping(Generic[T],  Mapping[str, T]):
+    def __init__(self, d: Dict[str, T]) -> None:
+        self.d: Dict[str, T] = d
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.d)
+
+    def __len__(self) -> int:
+        return len(self.d)
+
+    def __getitem__(self, key: str) -> T:
+        return self.d[key]
+
 
 @pytest.mark.parametrize(
-    "case", [(5.0, "must return a Tensor, a dict, or None"), ({"a": 5}, "the 'loss' key needs to be present")]
-)
+    "case", [(5.0, "must return a Tensor, a dict, or None"), 
+             ({"a": 5}, "the 'loss' key needs to be present"),
+             ( OutputMapping[str, int]({"a": 5}), "the 'loss' key needs to be present")])
 def test_warning_invalid_trainstep_output(tmpdir, case):
     output, match = case
 
