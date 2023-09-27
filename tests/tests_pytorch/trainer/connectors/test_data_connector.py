@@ -110,43 +110,36 @@ def test_replace_distributed_sampler(tmpdir, mode):
 
 
 class TestSpawnBoringModel(BoringModel):
-    def __init__(self, num_workers):
+    def __init__(self, warning_expected=False):
         super().__init__()
-        self.num_workers = num_workers
-
-    def train_dataloader(self):
-        return DataLoader(RandomDataset(32, 64), num_workers=self.num_workers)
+        self.warning_expected = warning_expected
 
     def on_fit_start(self):
-        self._resout = StringIO()
-        self.ctx = redirect_stderr(self._resout)
-        self.ctx.__enter__()
+        if self.warning_expected:
+            self.ctx = pytest.warns(UserWarning, match="Consider setting `persistent_workers=True`")
+        else:
+            self.ctx = no_warning_call(UserWarning, match="Consider setting `persistent_workers=True`")
+        if self.global_rank == 0:
+            self.ctx.__enter__()
 
     def on_train_end(self):
-        def _get_warning_msg():
-            dl = self.trainer.train_dataloader
-            if hasattr(dl, "persistent_workers"):
-                if self.num_workers == 0:
-                    warn_str = "Consider setting num_workers>0 and persistent_workers=True"
-                else:
-                    warn_str = "Consider setting persistent_workers=True"
-            else:
-                warn_str = "Consider setting strategy=ddp"
-
-            return warn_str
-
-        if self.trainer.is_global_zero:
+        if self.global_rank == 0:
             self.ctx.__exit__(None, None, None)
-            msg = self._resout.getvalue()
-            warn_str = _get_warning_msg()
-            assert warn_str in msg
 
 
-@RunIf(skip_windows=True)
-@pytest.mark.parametrize("num_workers", [0, 1])
-def test_dataloader_warnings(tmpdir, num_workers):
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
-    trainer.fit(TestSpawnBoringModel(num_workers))
+@pytest.mark.parametrize("num_workers", [0, 1, 2])
+def test_dataloader_warnings(num_workers, tmp_path):
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=1,
+        strategy="ddp_spawn",
+        max_steps=1,
+        barebones=True,
+    )
+    model = TestSpawnBoringModel(warning_expected=(num_workers > 0))
+    dataloader = DataLoader(RandomDataset(32, 64), num_workers=num_workers)
+    trainer.fit(model, dataloader)
 
 
 @pytest.mark.parametrize(

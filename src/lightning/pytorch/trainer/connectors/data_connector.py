@@ -426,13 +426,13 @@ def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
 
     upper_bound = suggested_max_num_workers(trainer.num_devices)
     using_spawn = (
-        isinstance(trainer.strategy.launcher, _MultiProcessingLauncher) and trainer.strategy._start_method == "spawn"
+        isinstance(trainer.strategy.launcher, _MultiProcessingLauncher)
+        and trainer.strategy.launcher._start_method == "spawn"
     )
 
     if dataloader.num_workers > 0 and using_spawn and not dataloader.persistent_workers:
         rank_zero_warn(
-            f"Consider setting `persistent_workers=True` in '{name}' to speed up the dataloader worker process"
-            " creation under the 'spawn' start method."
+            f"Consider setting `persistent_workers=True` in '{name}' to speed up the dataloader worker initialization."
         )
     elif dataloader.num_workers <= 2 < upper_bound or dataloader.num_workers < 2 <= upper_bound:
         # if changed, update the `filterwarnings` snippet in 'speed.html#num-workers'
