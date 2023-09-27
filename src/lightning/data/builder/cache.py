@@ -12,7 +12,6 @@
 # limitations under the License.
 
 import os
-from time import sleep
 from typing import Dict, Iterable, Iterator, Optional, Union
 
 import numpy as np
@@ -180,7 +179,7 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
             return super()._next_data()
         except (KeyError, AssertionError, ValueError):
             self._shutdown_workers()
-            return
+            return None
         except Exception as e:
             raise e
 
@@ -197,7 +196,7 @@ class CacheDataLoader(DataLoader):
         generator=None,
         batch_size=None,
         drop_last=False,
-        **kwargs
+        **kwargs,
     ):
         if sampler:
             raise Exception("Passing a sampler isn't supoprt with the CacheDataLoader yet.")
@@ -225,7 +224,7 @@ class CacheDataLoader(DataLoader):
             generator=generator,
             collate_fn=CacheCollateFn(),
             num_workers=num_workers,
-            **kwargs
+            **kwargs,
         )
 
     def _get_iterator(self) -> "_BaseDataLoaderIter":
