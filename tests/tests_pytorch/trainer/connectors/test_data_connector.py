@@ -114,9 +114,10 @@ class TestSpawnBoringModel(BoringModel):
 
     def on_fit_start(self):
         if self.warning_expected:
-            self.ctx = pytest.warns(UserWarning, match="Consider setting `persistent_workers=True`")
+            self.ctx = pytest.warns
         else:
-            self.ctx = no_warning_call(UserWarning, match="Consider setting `persistent_workers=True`")
+            self.ctx = no_warning_call
+        self.ctx = ctx(UserWarning, match="Consider setting `persistent_workers=True`")
         if self.global_rank == 0:
             self.ctx.__enter__()
 
