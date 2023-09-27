@@ -11,14 +11,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from abc import ABC, abstractclassmethod, abstractmethod
 from typing import Dict, TypeVar
-from abc import ABC, abstractmethod, abstractclassmethod
+
 import zstd
 
 TCompressor = TypeVar("TCompressor", bound="Compressor")
 
-class Compressor(ABC):
 
+class Compressor(ABC):
     @abstractmethod
     def compress(self, data: bytes) -> bytes:
         pass
@@ -33,11 +34,10 @@ class Compressor(ABC):
 
 
 class ZSTDCompressor(Compressor):
-
     def __init__(self, level):
         super().__init__()
         self.level = level
-        self.extension = 'zstd'
+        self.extension = "zstd"
 
     @property
     def name(self):
@@ -50,12 +50,13 @@ class ZSTDCompressor(Compressor):
         return zstd.decompress(data)
 
     @classmethod
-    def register(cls,  compressors):
+    def register(cls, compressors):
         # default
         compressors["zstd"] = ZSTDCompressor(4)
 
         for level in list(range(1, 23)):
             compressors[f"zstd:{level}"] = ZSTDCompressor(level)
+
 
 _COMPRESSORS = {}
 

@@ -13,6 +13,7 @@
 
 import numpy as np
 from lightning_utilities.core.imports import RequirementCache
+
 from lightning.data.builder.base import Serializer
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -53,12 +54,12 @@ class IntSerializer(Serializer):
 
 class JPEGSerializer(Serializer):
     def serialize(self, obj: Image) -> bytes:
-        if isinstance(obj, JpegImageFile) and hasattr(obj, 'filename'):
-            with open(obj.filename, 'rb') as f:
+        if isinstance(obj, JpegImageFile) and hasattr(obj, "filename"):
+            with open(obj.filename, "rb") as f:
                 return f.read()
         else:
             out = BytesIO()
-            obj.save(out, format='JPEG')
+            obj.save(out, format="JPEG")
             return out.getvalue()
 
     def deserialize(self, data: bytes) -> Image:
