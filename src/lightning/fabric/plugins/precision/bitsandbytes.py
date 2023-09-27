@@ -73,7 +73,6 @@ class BitsandbytesPrecision(Precision):
         self.dtype = dtype
 
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
-        module = module.to(dtype=self.dtype)
         for m in module.modules():
             if isinstance(m, _Linear4bit):
                 m.compute_dtype = self.dtype
