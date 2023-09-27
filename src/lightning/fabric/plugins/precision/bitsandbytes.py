@@ -16,7 +16,7 @@ import os
 import warnings
 from contextlib import ExitStack
 from types import ModuleType
-from typing import Any, ContextManager, Literal, Optional
+from typing import Any, ContextManager, Dict, Literal, Optional
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -29,6 +29,7 @@ from lightning.fabric.plugins.precision.utils import (
     _convert_fp_tensor,
     _DtypeContextManager,
 )
+from lightning.fabric.utilities.types import _DEVICE
 
 log = logging.getLogger(__name__)
 
@@ -50,8 +51,6 @@ class BitsandbytesPrecision(Precision):
         dtype: The compute dtype to use.
     """
 
-    precision: Literal["bitsandbytes"] = "bitsandbytes"
-
     def __init__(
         self,
         mode: Literal["nf4", "nf4-dq", "fp4", "fp4-dq", "int8", "int8-training"],
@@ -62,37 +61,38 @@ class BitsandbytesPrecision(Precision):
 
         if dtype is None:
             dtype = torch.get_default_dtype()
-        self._linear_cls = {
+        mode_to_cls = {
             "nf4": _NF4Linear,
             "nf4-dq": _NF4DQLinear,
             "fp4": _FP4Linear,
             "fp4-dq": _FP4DQLinear,
             "int8-training": _Linear8bitLt,
             "int8": _Int8LinearInference,
-        }[mode]
-        self._dtype = dtype
+        }
+        self._linear_cls = mode_to_cls[mode]
+        self.dtype = dtype
 
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
-        module = module.to(dtype=self._dtype)
+        module = module.to(dtype=self.dtype)
         for m in module.modules():
             if isinstance(m, _Linear4bit):
-                m.compute_dtype = self._dtype
+                m.compute_dtype = self.dtype
                 m.compute_type_is_set = False
         return module
 
     def init_context(self) -> ContextManager:
         stack = ExitStack()
-        stack.enter_context(_DtypeContextManager(self._dtype))
+        stack.enter_context(_DtypeContextManager(self.dtype))
         # TODO: this could also consider replacing with `bnb.nn.Embedding`
         context_manager = _ClassReplacementContextManager({"torch.nn.Linear": self._linear_cls})
         stack.enter_context(context_manager)
         return stack
 
     def forward_context(self) -> ContextManager:
-        return _DtypeContextManager(self._dtype)
+        return _DtypeContextManager(self.dtype)
 
     def convert_input(self, data: Any) -> Any:
-        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._dtype)
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self.dtype)
 
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
@@ -120,17 +120,14 @@ if _BITSANDBYTES_AVAILABLE:
         re-quantizaton when loading the state dict.
         """
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(
-                *args,
-                **kwargs,
-                threshold=6.0,
-            )
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            kwargs.setdefault("threshold", 6.0)
+            super().__init__(*args, **kwargs)
             # We quantize the initial weight here so we don't end up filling the device
             # memory with float32 weights which could lead to OOM.
             self._quantize_weight(self.weight.data)
 
-        def _load_from_state_dict(self, local_state_dict, *args, **kwargs):
+        def _load_from_state_dict(self, local_state_dict: Dict, *args: Any, **kwargs: Any) -> None:
             # There is only one key that ends with `*.weight`, the other one is the bias
             weight_key = next((name for name in local_state_dict if name.endswith("weight")), None)
             if weight_key is None:
@@ -155,7 +152,7 @@ if _BITSANDBYTES_AVAILABLE:
             setattr(self.weight, "SCB", SCB)
 
     class _Linear4bit(bnb.modules.Linear4bit):
-        def __init__(self, *args, device=None, **kwargs):
+        def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
             super().__init__(*args, **kwargs)
             if device is None:
                 device = torch.tensor(0).device
@@ -171,21 +168,30 @@ if _BITSANDBYTES_AVAILABLE:
 
     # Use a class instead `functools.partial` to respect `isinstance` checks and attribute accesses
     class _Int8LinearInference(_Linear8bitLt):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, has_fp16_weights=False, **kwargs)
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            kwargs.setdefault("has_fp_weights", False)
+            super().__init__(*args, **kwargs)
 
     class _FP4Linear(_Linear4bit):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, quant_type="fp4", compress_statistics=False, **kwargs)
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            kwargs.setdefault("quant_type", "fp4")
+            kwargs.setdefault("compress_statistics", False)
+            super().__init__(*args, **kwargs)
 
     class _FP4DQLinear(_Linear4bit):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, quant_type="fp4", compress_statistics=True, **kwargs)
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            kwargs.setdefault("quant_type", "fp4")
+            kwargs.setdefault("compress_statistics", True)
+            super().__init__(*args, **kwargs)
 
     class _NF4Linear(_Linear4bit):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, quant_type="nf4", compress_statistics=False, **kwargs)
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            kwargs.setdefault("quant_type", "nf4")
+            kwargs.setdefault("compress_statistics", False)
+            super().__init__(*args, **kwargs)
 
     class _NF4DQLinear(_Linear4bit):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, quant_type="nf4", compress_statistics=True, **kwargs)
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            kwargs.setdefault("quant_type", "nf4")
+            kwargs.setdefault("compress_statistics", True)
+            super().__init__(*args, **kwargs)
