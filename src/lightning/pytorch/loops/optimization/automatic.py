@@ -13,7 +13,7 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, Optional, OrderedDict, Mapping
+from typing import Any, Callable, Dict, Mapping, Optional, OrderedDict
 
 import torch
 from torch import Tensor

@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Dict, Generic, Iterator, Mapping, TypeVar
+
 import pytest
 import torch
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops.optimization.automatic import ClosureResult
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-
-from typing import Mapping, Iterator, Generic, TypeVar, Dict
 
 
 def test_closure_result_deepcopy():
@@ -44,8 +44,11 @@ def test_closure_result_apply_accumulation():
     result = ClosureResult.from_training_step_output(closure_loss, 5)
     assert result.loss == 5
 
-T = TypeVar('T')
-class OutputMapping(Generic[T],  Mapping[str, T]):
+
+T = TypeVar("T")
+
+
+class OutputMapping(Generic[T], Mapping[str, T]):
     def __init__(self, d: Dict[str, T]) -> None:
         self.d: Dict[str, T] = d
 
@@ -60,9 +63,13 @@ class OutputMapping(Generic[T],  Mapping[str, T]):
 
 
 @pytest.mark.parametrize(
-    "case", [(5.0, "must return a Tensor, a dict, or None"), 
-             ({"a": 5}, "the 'loss' key needs to be present"),
-             ( OutputMapping[str, int]({"a": 5}), "the 'loss' key needs to be present")])
+    "case",
+    [
+        (5.0, "must return a Tensor, a dict, or None"),
+        ({"a": 5}, "the 'loss' key needs to be present"),
+        (OutputMapping[str, int]({"a": 5}), "the 'loss' key needs to be present"),
+    ],
+)
 def test_warning_invalid_trainstep_output(tmpdir, case):
     output, match = case
 
