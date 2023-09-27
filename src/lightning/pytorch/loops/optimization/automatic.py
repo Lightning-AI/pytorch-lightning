@@ -63,7 +63,8 @@ class ClosureResult(OutputResult):
             closure_loss = training_step_output.get("loss")
             if closure_loss is None:
                 raise MisconfigurationException(
-                    "In automatic_optimization, when `training_step` returns a Mapping, the 'loss' key needs to be present"
+                    "In automatic_optimization, when `training_step` returns a Mapping, "
+                    "the 'loss' key needs to be present"
                 )
             extra = {k: v for k, v in training_step_output.items() if k != "loss"}
         elif isinstance(training_step_output, Tensor):
@@ -71,7 +72,7 @@ class ClosureResult(OutputResult):
         elif training_step_output is not None:
             raise MisconfigurationException(
                 "In automatic optimization, `training_step` must return a Tensor, "
-                "a dict, or None (where the step will be skipped)."
+                "a Mapping, or None (where the step will be skipped)."
             )
 
         if closure_loss is not None:
