@@ -18,14 +18,14 @@ from typing import Dict, Optional
 
 import requests
 
-from lightning.app.cli.connect.app import (
+from lightning.app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
+from lightning.app.utilities.commands.base import _download_command
+from lightning.app.utilities.enum import OpenAPITags
+from lightning.cli.connect.app import (
     _clean_lightning_connection,
     _install_missing_requirements,
     _resolve_command_path,
 )
-from lightning.app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
-from lightning.app.utilities.commands.base import _download_command
-from lightning.app.utilities.enum import OpenAPITags
 
 
 def _is_running_help(argv) -> bool:

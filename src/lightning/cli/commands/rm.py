@@ -18,11 +18,11 @@ import click
 import lightning_cloud
 import rich
 
-from lightning.app.cli.commands.ls import _add_colors, _get_prefix
-from lightning.app.cli.commands.pwd import _pwd
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cli_helpers import _error_and_exit
 from lightning.app.utilities.network import LightningClient
+from lightning.cli.commands.ls import _add_colors, _get_prefix
+from lightning.cli.commands.pwd import _pwd
 
 logger = Logger(__name__)
 

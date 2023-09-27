@@ -34,7 +34,6 @@ from requests import Session
 from rich import print
 from rich.color import ANSI_COLOR_NAMES
 
-from lightning.app.cli.lightning_cli import run_app
 from lightning.app.core import LightningApp, LightningFlow, constants
 from lightning.app.runners.multiprocess import MultiProcessRuntime
 from lightning.app.testing.config import _Config
@@ -47,6 +46,7 @@ from lightning.app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning.app.utilities.network import LightningClient, _configure_session
 from lightning.app.utilities.packaging.lightning_utils import get_dist_path_if_editable_install
 from lightning.app.utilities.proxies import ProxyWorkRun
+from lightning.cli.lightning_cli import run_app
 
 if _is_playwright_available():
     from playwright.sync_api import HttpCredentials, sync_playwright

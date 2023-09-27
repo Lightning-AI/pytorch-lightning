@@ -5,10 +5,10 @@ from unittest.mock import MagicMock
 import pytest
 from click.testing import CliRunner
 from lightning.app import __version__
-from lightning.app.cli.lightning_cli import _main, login, logout, run
-from lightning.app.cli.lightning_cli_delete import delete
-from lightning.app.cli.lightning_cli_list import get_list, list_apps
 from lightning.app.utilities.exceptions import _ApiExceptionHandler
+from lightning.cli.lightning_cli import _main, login, logout, run
+from lightning.cli.lightning_cli_delete import delete
+from lightning.cli.lightning_cli_list import get_list, list_apps
 
 
 @pytest.mark.parametrize("command", [_main, run, get_list, delete])
@@ -54,7 +54,7 @@ def test_main_lightning_cli_help():
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning.app.cli.cmd_apps._AppManager.list")
+@mock.patch("lightning.cli.cmd_apps._AppManager.list")
 def test_list_apps(list_command: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(list_apps)

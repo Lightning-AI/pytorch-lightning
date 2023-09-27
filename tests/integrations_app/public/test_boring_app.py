@@ -2,8 +2,8 @@ import os
 
 import pytest
 from click.testing import CliRunner
-from lightning.app.cli.lightning_cli import show
 from lightning.app.testing.testing import run_app_in_cloud, wait_for
+from lightning.cli.lightning_cli import show
 
 from integrations_app.public import _PATH_EXAMPLES
 

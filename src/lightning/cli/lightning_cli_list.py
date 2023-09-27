@@ -16,7 +16,7 @@ from typing import Any
 
 import click
 
-from lightning.app.cli.cmd_apps import _AppManager
+from lightning.cli.cmd_apps import _AppManager
 
 
 @click.group(name="list")

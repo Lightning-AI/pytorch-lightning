@@ -5,11 +5,11 @@ from unittest import mock
 
 import pytest
 from click.testing import CliRunner
-from lightning.app.cli import cmd_install, lightning_cli
 from lightning.app.testing.helpers import _RunIf
+from lightning.cli import cmd_install, lightning_cli
 
 
-@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_app_name():
     """Valid organization name."""
     runner = CliRunner()
@@ -69,7 +69,7 @@ def test_app_install(tmpdir, monkeypatch):
     assert test_app_pip_name in str(new_env_output), f"{test_app_pip_name} should be in the env"
 
 
-@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_component_name():
     runner = CliRunner()
 
@@ -164,7 +164,7 @@ def test_prompt_actions():
     # result = runner.invoke(lightning_cli.cmd_install.install_app, [app_to_use], input='')
 
 
-@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.cli.cmd_install.subprocess", mock.MagicMock())
 def test_version_arg_component(tmpdir, monkeypatch):
     monkeypatch.chdir(tmpdir)
     runner = CliRunner()
@@ -186,8 +186,8 @@ def test_version_arg_component(tmpdir, monkeypatch):
     assert result.exit_code == 0
 
 
-@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
-@mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.cli.cmd_install.os.chdir", mock.MagicMock())
 def test_version_arg_app(tmpdir):
     # Version does not exist
     app_name = "lightning/invideo"
@@ -204,13 +204,13 @@ def test_version_arg_app(tmpdir):
     assert result.exit_code == 0
 
 
-@mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
-@mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
-@mock.patch("lightning.app.cli.cmd_install._show_install_app_prompt")
+@mock.patch("lightning.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning.cli.cmd_install._show_install_app_prompt")
 def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
     app_name = "lightning/invideo"
     runner = CliRunner()
-    with mock.patch("lightning.app.cli.cmd_install.requests.get") as get_api_mock:
+    with mock.patch("lightning.cli.cmd_install.requests.get") as get_api_mock:
         get_api_mock.return_value.json.return_value = {
             "apps": [
                 {
@@ -345,8 +345,8 @@ def test_private_component_registry():
     assert registry == "https://TODO/other_non_PL_registry"
 
 
-@mock.patch("lightning.app.cli.cmd_install.subprocess")
-@mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning.cli.cmd_install.subprocess")
+@mock.patch("lightning.cli.cmd_install.os.chdir", mock.MagicMock())
 @pytest.mark.parametrize(
     ("source_url", "git_url", "git_sha"),
     [

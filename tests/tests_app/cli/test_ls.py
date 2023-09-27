@@ -3,7 +3,7 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
-from lightning.app.cli.commands import cd, ls
+from lightning.cli.commands import cd, ls
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     V1LightningappInstanceArtifact,

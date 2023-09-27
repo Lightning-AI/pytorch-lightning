@@ -23,24 +23,6 @@ from requests.exceptions import ConnectionError
 
 import lightning.app.core.constants as constants
 from lightning.app import __version__ as ver
-from lightning.app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
-from lightning.app.cli.commands.app_commands import _run_app_command
-from lightning.app.cli.commands.cd import cd
-from lightning.app.cli.commands.cp import cp
-from lightning.app.cli.commands.logs import logs
-from lightning.app.cli.commands.ls import ls
-from lightning.app.cli.commands.pwd import pwd
-from lightning.app.cli.commands.rm import rm
-from lightning.app.cli.connect.app import (
-    _list_app_commands,
-    _retrieve_connection_to_an_app,
-    connect_app,
-    disconnect_app,
-)
-from lightning.app.cli.connect.data import connect_data
-from lightning.app.cli.lightning_cli_delete import delete
-from lightning.app.cli.lightning_cli_launch import launch
-from lightning.app.cli.lightning_cli_list import get_list
 from lightning.app.core.constants import ENABLE_APP_COMMENT_COMMAND_EXECUTION, get_lightning_cloud_url
 from lightning.app.runners.cloud import CloudRuntime
 from lightning.app.runners.runtime import dispatch
@@ -55,6 +37,24 @@ from lightning.app.utilities.cli_helpers import (
 from lightning.app.utilities.exceptions import _ApiExceptionHandler
 from lightning.app.utilities.login import Auth
 from lightning.app.utilities.port import _find_lit_app_port
+from lightning.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
+from lightning.cli.commands.app_commands import _run_app_command
+from lightning.cli.commands.cd import cd
+from lightning.cli.commands.cp import cp
+from lightning.cli.commands.logs import logs
+from lightning.cli.commands.ls import ls
+from lightning.cli.commands.pwd import pwd
+from lightning.cli.commands.rm import rm
+from lightning.cli.connect.app import (
+    _list_app_commands,
+    _retrieve_connection_to_an_app,
+    connect_app,
+    disconnect_app,
+)
+from lightning.cli.connect.data import connect_data
+from lightning.cli.lightning_cli_delete import delete
+from lightning.cli.lightning_cli_launch import launch
+from lightning.cli.lightning_cli_list import get_list
 
 logger = Logger(__name__)
 

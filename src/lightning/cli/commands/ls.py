@@ -26,10 +26,10 @@ from rich.live import Live
 from rich.spinner import Spinner
 from rich.text import Text
 
-from lightning.app.cli.connect.app import _LIGHTNING_CONNECTION_FOLDER
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.cli_helpers import _error_and_exit
 from lightning.app.utilities.network import LightningClient
+from lightning.cli.connect.app import _LIGHTNING_CONNECTION_FOLDER
 
 _FOLDER_COLOR = "sky_blue1"
 _FILE_COLOR = "white"
@@ -40,7 +40,7 @@ logger = Logger(__name__)
 @click.argument("path", required=False)
 def ls(path: Optional[str] = None, print: bool = True, use_live: bool = True) -> List[str]:
     """List the contents of a folder in the Lightning Cloud Filesystem."""
-    from lightning.app.cli.commands.cd import _CD_FILE
+    from lightning.cli.commands.cd import _CD_FILE
 
     if sys.platform == "win32":
         _error_and_exit("`ls` isn't supported on windows. Open an issue on Github.")

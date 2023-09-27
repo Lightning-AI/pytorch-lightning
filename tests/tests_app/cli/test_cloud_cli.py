@@ -9,9 +9,9 @@ from unittest.mock import ANY, MagicMock, call
 import lightning.app.runners.backends.cloud as cloud_backend
 import pytest
 from click.testing import CliRunner
-from lightning.app.cli.lightning_cli import run_app
 from lightning.app.runners import cloud
 from lightning.app.runners.cloud import CloudRuntime
+from lightning.cli.lightning_cli import run_app
 from lightning_cloud.openapi import (
     V1CloudSpace,
     V1ListCloudSpacesResponse,

@@ -2,7 +2,7 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
-from lightning.app.cli.connect import data
+from lightning.cli.connect import data
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="lightning connect data isn't supported on windows")

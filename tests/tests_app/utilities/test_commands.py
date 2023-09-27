@@ -7,13 +7,13 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 from lightning.app import LightningApp, LightningFlow
-from lightning.app.cli.commands.app_commands import _run_app_command
-from lightning.app.cli.connect.app import connect_app, disconnect_app
 from lightning.app.core.constants import APP_SERVER_PORT
 from lightning.app.runners import MultiProcessRuntime
 from lightning.app.testing.helpers import _RunIf
 from lightning.app.utilities.commands.base import ClientCommand, _download_command, _validate_client_command
 from lightning.app.utilities.state import AppState
+from lightning.cli.commands.app_commands import _run_app_command
+from lightning.cli.connect.app import connect_app, disconnect_app
 from pydantic import BaseModel
 
 

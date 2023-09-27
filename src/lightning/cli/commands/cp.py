@@ -37,13 +37,13 @@ from rich.progress import BarColumn, DownloadColumn, Progress, TaskID, TextColum
 from rich.spinner import Spinner
 from rich.text import Text
 
-from lightning.app.cli.commands.ls import _collect_artifacts, _get_prefix
-from lightning.app.cli.commands.pwd import _pwd
 from lightning.app.source_code import FileUploader
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.auth import _AuthTokenGetter
 from lightning.app.utilities.cli_helpers import _error_and_exit
 from lightning.app.utilities.network import LightningClient
+from lightning.cli.commands.ls import _collect_artifacts, _get_prefix
+from lightning.cli.commands.pwd import _pwd
 
 logger = Logger(__name__)
 

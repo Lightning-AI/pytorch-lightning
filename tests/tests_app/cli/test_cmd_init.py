@@ -5,8 +5,8 @@ import shutil
 import subprocess
 
 import pytest
-from lightning.app.cli import cmd_init
 from lightning.app.utilities.imports import _IS_MACOS, _IS_WINDOWS
+from lightning.cli import cmd_init
 
 
 def test_validate_init_name():

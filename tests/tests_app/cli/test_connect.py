@@ -6,23 +6,23 @@ import click
 import psutil
 import pytest
 from lightning.app import _PROJECT_ROOT
-from lightning.app.cli.connect.app import (
+from lightning.app.utilities import cli_helpers
+from lightning.app.utilities.commands import base
+from lightning.cli.connect.app import (
     _list_app_commands,
     _resolve_command_path,
     _retrieve_connection_to_an_app,
     connect_app,
     disconnect_app,
 )
-from lightning.app.utilities import cli_helpers
-from lightning.app.utilities.commands import base
 
 
 def monkeypatch_connection(monkeypatch, tmpdir, ppid):
     connection_path = os.path.join(tmpdir, ppid)
-    monkeypatch.setattr("lightning.app.cli.connect.app._clean_lightning_connection", MagicMock())
-    monkeypatch.setattr("lightning.app.cli.connect.app._PPID", ppid)
-    monkeypatch.setattr("lightning.app.cli.connect.app._LIGHTNING_CONNECTION", tmpdir)
-    monkeypatch.setattr("lightning.app.cli.connect.app._LIGHTNING_CONNECTION_FOLDER", connection_path)
+    monkeypatch.setattr("lightning.cli.connect.app._clean_lightning_connection", MagicMock())
+    monkeypatch.setattr("lightning.cli.connect.app._PPID", ppid)
+    monkeypatch.setattr("lightning.cli.connect.app._LIGHTNING_CONNECTION", tmpdir)
+    monkeypatch.setattr("lightning.cli.connect.app._LIGHTNING_CONNECTION_FOLDER", connection_path)
     return connection_path
 
 

@@ -2,7 +2,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest as pytest
-from lightning.app.cli.cmd_apps import _AppList, _AppManager
+from lightning.cli.cmd_apps import _AppList, _AppManager
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     V1LightningappInstanceSpec,
@@ -146,7 +146,7 @@ def test_list_apps_on_cluster(list_memberships: mock.MagicMock, list_instances: 
 @mock.patch(
     "lightning.app.utilities.network.LightningClient.lightningapp_instance_service_delete_lightningapp_instance"
 )
-@mock.patch("lightning.app.cli.cmd_apps._get_project")
+@mock.patch("lightning.cli.cmd_apps._get_project")
 def test_delete_app_on_cluster(get_project_mock: mock.MagicMock, delete_app_mock: mock.MagicMock):
     get_project_mock.return_value = V1Membership(project_id="default-project")
 

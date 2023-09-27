@@ -3,11 +3,11 @@ import sys
 from unittest import mock
 
 import pytest
-from lightning.app.cli.commands import cd
-from lightning.app.cli.commands.pwd import pwd
+from lightning.cli.commands import cd
+from lightning.cli.commands.pwd import pwd
 
 
-@mock.patch("lightning.app.cli.commands.cd.ls", mock.MagicMock())
+@mock.patch("lightning.cli.commands.cd.ls", mock.MagicMock())
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_cd(monkeypatch):
     """This test validates cd behaves as expected."""

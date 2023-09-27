@@ -4,8 +4,8 @@ from pathlib import PosixPath
 from unittest.mock import MagicMock
 
 import pytest
-from lightning.app.cli.commands import cp
-from lightning.app.cli.commands.cd import _CD_FILE, cd
+from lightning.cli.commands import cp
+from lightning.cli.commands.cd import _CD_FILE, cd
 from lightning_cloud.openapi import (
     Externalv1Cluster,
     Externalv1LightningappInstance,

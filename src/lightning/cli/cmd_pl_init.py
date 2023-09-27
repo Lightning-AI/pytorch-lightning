@@ -89,7 +89,7 @@ def pl_app(source_dir: str, script_path: str, name: str, overwrite: bool) -> Non
 
         shutil.rmtree(destination)
 
-    template_dir = Path(lightning.app.cli.__file__).parent / "pl-app-template"
+    template_dir = Path(lightning.cli.__file__).parent / "pl-app-template"
 
     with Status("[bold green]Copying app files"):
         shutil.copytree(template_dir, destination, ignore=shutil.ignore_patterns("node_modules", "build"))

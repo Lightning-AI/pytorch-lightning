@@ -242,7 +242,7 @@ def _patch_sys_argv():
     The command: ``lightning run app app.py --without-server --app_args --use_gpu --env ...`` will be converted into
     ``app.py --use_gpu``
     """
-    from lightning.app.cli.lightning_cli import run_app
+    from lightning.cli.lightning_cli import run_app
 
     original_argv = copy(sys.argv)
     # 1: Remove the CLI command

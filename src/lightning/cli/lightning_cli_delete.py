@@ -17,7 +17,7 @@ import inquirer
 from inquirer.themes import GreenPassion
 from rich.console import Console
 
-from lightning.app.cli.cmd_apps import _AppManager
+from lightning.cli.cmd_apps import _AppManager
 
 
 @click.group("delete")
