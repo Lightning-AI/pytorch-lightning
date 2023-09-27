@@ -17,9 +17,10 @@ from typing import Dict, Iterable, Iterator, Optional, Union
 from enum import Enum
 import numpy as np
 from torch.utils.data import IterableDataset
+from torch.utils.data._utils.collate import default_collate
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter, _SingleProcessDataLoaderIter
 from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, Sized
-from torch.utils.data._utils.collate import default_collate
+
 from lightning.data.builder.reader import Reader
 from lightning.data.builder.writer import Writer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
@@ -162,14 +163,13 @@ class CacheBatchSampler(BatchSampler):
 
 
 class CacheCollateFn:
-
     def __init__(self):
         self.collate_fn = default_collate
 
     def __call__(self, items):
         if all(item is None for item in items):
             return None
-        return self.collate_fn(items) 
+        return self.collate_fn(items)
 
 
 StopIterationEvent = "StopIterationEvent"
@@ -225,12 +225,12 @@ class CacheDataLoader(DataLoader):
             CacheSampler(dataset, generator, shuffle), batch_size, drop_last, shuffle, cache
         )
         super().__init__(
-            dataset, *args,
+            dataset,
+            *args,
             sampler=None,
             batch_sampler=batch_sampler,
             generator=generator,
-            num_workers=num_workers,
-            collate_fn=CacheCollateFn(), 
+            collate_fn=CacheCollateFn(),
             **kwargs
         )
 

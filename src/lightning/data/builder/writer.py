@@ -79,10 +79,7 @@ class Writer(BaseWriter):
         for key in self._dict_format_keys:
             serializer_name = self._dict_format[key]
             serializer = self._serializers[serializer_name]
-            if not isinstance(items[key], bytes):
-                serialized_data = serializer.serialize(items[key])
-            else:
-                serialized_data = items[key]
+            serialized_data = serializer.serialize(items[key]) if not isinstance(items[key], bytes) else items[key]
 
             sizes.append(len(serialized_data))
             data.append(serialized_data)
