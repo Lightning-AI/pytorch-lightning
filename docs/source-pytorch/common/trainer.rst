@@ -821,25 +821,22 @@ Automatic mixed precision settings are denoted by a ``"-mixed"`` suffix, while "
     fabric = Fabric(precision="32-true", devices=1)
 
     # the same as:
-    fabric = Trainer(precision="32", devices=1)
+    trainer = Trainer(precision="32", devices=1)
 
     # 16-bit mixed precision (model weights remain in torch.float32)
-    fabric = Trainer(precision="16-mixed", devices=1)
+    trainer = Trainer(precision="16-mixed", devices=1)
 
     # 16-bit bfloat mixed precision (model weights remain in torch.float32)
-    fabric = Trainer(precision="bf16-mixed", devices=1)
-
-    # 8-bit mixed precision via TransformerEngine (model weights remain in torch.float32)
-    fabric = Trainer(precision="transformer-engine", devices=1)
+    trainer = Trainer(precision="bf16-mixed", devices=1)
 
     # 16-bit precision (model weights get cast to torch.float16)
-    fabric = Trainer(precision="16-true", devices=1)
+    trainer = Trainer(precision="16-true", devices=1)
 
     # 16-bit bfloat precision (model weights get cast to torch.bfloat16)
-    fabric = Trainer(precision="bf16-true", devices=1)
+    trainer = Trainer(precision="bf16-true", devices=1)
 
     # 64-bit (double) precision (model weights get cast to torch.float64)
-    fabric = Trainer(precision="64-true", devices=1)
+    trainer = Trainer(precision="64-true", devices=1)
 
 
 See the :doc:`N-bit precision guide <../common/precision>` for more details.

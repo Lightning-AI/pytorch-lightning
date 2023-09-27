@@ -1077,9 +1077,6 @@ def test_connector_transformer_engine(monkeypatch):
     recipe_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
 
-    connector = _AcceleratorConnector(precision="transformer-engine")
-    assert isinstance(connector.precision_plugin, TransformerEnginePrecisionPlugin)
-
     precision = TransformerEnginePrecisionPlugin()
     connector = _AcceleratorConnector(plugins=precision)
     assert connector.precision_plugin is precision

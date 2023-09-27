@@ -52,7 +52,7 @@ class TransformerEnginePrecision(Precision):
 
     .. note::
 
-        Support for FP8 in the linear layers with ``precision='transformer-engine'`` is currently limited to tensors
+        Support for FP8 in the linear layers with this plugin is currently limited to tensors
         with shapes where the dimensions are divisible by 8 and 16 respectively. You might want to add padding to your
         inputs to conform to this restriction.
 
@@ -133,7 +133,7 @@ def _convert_layers(module: torch.nn.Module) -> None:
             if child.in_features % 8 != 0 or child.out_features % 16 != 0:
                 # https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/examples/fp8_primer.html#FP8-autocasting
                 rank_zero_warn(
-                    "Support for FP8 in the linear layers with `precision='transformer-engine'` is currently limited to"
+                    "Support for FP8 in the linear layers with this plugin is currently limited to"
                     "tensors with shapes where the dimensions are divisible by 8 and 16 respectively."
                     f"The layer {name!r} does not fit this criteria. You might want to add padding to your inputs."
                 )

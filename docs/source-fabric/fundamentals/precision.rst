@@ -49,9 +49,6 @@ This is how you select the precision in Fabric:
     # BFloat16 true half precision (Volta GPUs and later)
     fabric = Fabric(precision="bf16-true")
 
-    # 8-bit mixed precision via TransformerEngine (Hopper GPUs and later)
-    fabric = Fabric(precision="transformer-engine")
-
     # Double precision
     fabric = Fabric(precision="64-true")
 
@@ -147,9 +144,6 @@ This plugin is a combination of "mixed" and "true" precision. The computation is
 the model and inputs can be kept in true full or half precision.
 
 .. code-block:: python
-
-    # Select 8bit mixed precision via TransformerEngine
-    fabric = Fabric(precision="transformer-engine")
 
     # Customize the fp8 recipe or set a different base precision:
     from lightning.fabric.plugins import TransformerEnginePrecision

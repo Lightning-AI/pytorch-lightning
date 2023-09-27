@@ -137,15 +137,12 @@ the model and inputs can be kept in true full or half precision.
 
 .. code-block:: python
 
-    # Select 8bit mixed precision via TransformerEngine
-    fabric = Trainer(precision="transformer-engine")
-
     # Customize the fp8 recipe or set a different base precision:
     from lightning.trainer.plugins import TransformerEnginePrecision
 
     recipe = {"fp8_format": "HYBRID", "amax_history_len": 16, "amax_compute_algo": "max"}
     precision = TransformerEnginePrecision(dtype=torch.bfloat16, recipe=recipe)
-    fabric = Trainer(plugins=precision)
+    trainer = Trainer(plugins=precision)
 
 
 Under the hood, we use `transformer_engine.pytorch.fp8_autocast <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/pytorch.html#transformer_engine.pytorch.fp8_autocast>`__ with the default fp8 recipe.
