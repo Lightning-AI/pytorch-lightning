@@ -425,9 +425,13 @@ def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
         return
 
     upper_bound = suggested_max_num_workers(trainer.num_devices)
-    using_spawn = mp.get_start_method() == "spawn"
+    start_method = (
+        dataloader.multiprocessing_context.get_start_method()
+        if dataloader.multiprocessing_context is not None
+        else mp.get_start_method()
+    )
 
-    if dataloader.num_workers > 0 and using_spawn and not dataloader.persistent_workers:
+    if dataloader.num_workers > 0 and start_method == "spawn" and not dataloader.persistent_workers:
         rank_zero_warn(
             f"Consider setting `persistent_workers=True` in '{name}' to speed up the dataloader worker initialization."
         )
