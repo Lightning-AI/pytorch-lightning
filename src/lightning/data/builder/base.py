@@ -15,6 +15,7 @@ import json
 import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
+from lightning.data.builder.compression import _COMPRESSORS
 
 
 class BaseWriter(ABC):
@@ -33,6 +34,11 @@ class BaseWriter(ABC):
         self._chunk_size = chunk_size
         self._compression = compression
         self._name = name
+
+        if compression and compression not in _COMPRESSORS:
+            raise Exception(f"The provided compression {compression} isn't available in {sorted(_COMPRESSORS)}")
+
+        self._compressor = _COMPRESSORS[compression]
 
         self._current_chunk_size = 0
         self._counter = 0
@@ -81,6 +87,8 @@ class BaseWriter(ABC):
         raw_data: bytes,
         filename: str,
     ) -> None:
+        if self._compression:
+            raw_data = self._compressor.compress(raw_data)
         filepath = os.path.join(self._out_dir, filename)
         with open(filepath, "wb") as out:
             out.write(raw_data)

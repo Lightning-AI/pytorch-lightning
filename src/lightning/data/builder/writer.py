@@ -79,7 +79,10 @@ class Writer(BaseWriter):
         for key in self._dict_format_keys:
             serializer_name = self._dict_format[key]
             serializer = self._serializers[serializer_name]
-            serialized_data = serializer.serialize(items[key])
+            if not isinstance(items[key], bytes):
+                serialized_data = serializer.serialize(items[key])
+            else:
+                serialized_data = items[key]
 
             sizes.append(len(serialized_data))
             data.append(serialized_data)
@@ -106,8 +109,8 @@ class Writer(BaseWriter):
         return num_items.tobytes() + offsets.tobytes() + self._config_data + sample_data
 
     def write_chunk(self, rank: int):
-        filename = f"chunk-{rank}-{self._counter}.bin"
+        if self._compression:
+            filename = f"chunk-{rank}-{self._counter}.{self._compression}.bin"
+        else:
+            filename = f"chunk-{rank}-{self._counter}.bin"
         self.write_file(self._create_chunk(filename), filename)
-
-    def reset(self):
-        pass

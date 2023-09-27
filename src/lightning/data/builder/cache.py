@@ -18,7 +18,7 @@ import numpy as np
 from torch.utils.data import IterableDataset
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter, _SingleProcessDataLoaderIter
 from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, Sized
-
+from torch.utils.data._utils.collate import default_collate
 from lightning.data.builder.reader import Reader
 from lightning.data.builder.writer import Writer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
@@ -33,8 +33,8 @@ class Cache:
         chunk_size: int = 2 << 26,
     ):
         super().__init__()
-        self._writer = Writer(cache_dir, data_format, chunk_size)
-        self._reader = Reader(cache_dir)
+        self._writer = Writer(cache_dir, data_format, chunk_size=chunk_size, compression=compression)
+        self._reader = Reader(cache_dir, compression=compression)
         self._cache_dir = cache_dir
 
         self._env = _DistributedEnv.detect()
@@ -149,6 +149,17 @@ class CacheBatchSampler(BatchSampler):
         return super().__len__()
 
 
+class CacheCollateFn:
+
+    def __init__(self):
+        self.collate_fn = default_collate
+
+    def __call__(self, items):
+        if all(item is None for item in items):
+            return None
+        return self.collate_fn(items) 
+
+
 class CacheDataLoader(DataLoader):
     def __init__(
         self,
@@ -180,7 +191,7 @@ class CacheDataLoader(DataLoader):
         batch_sampler = CacheBatchSampler(
             CacheSampler(dataset, generator, shuffle), batch_size, drop_last, shuffle, cache
         )
-        super().__init__(dataset, *args, sampler=None, batch_sampler=batch_sampler, generator=generator, **kwargs)
+        super().__init__(dataset, *args, sampler=None, batch_sampler=batch_sampler, generator=generator, collate_fn=CacheCollateFn(), **kwargs)
 
     def _get_iterator(self) -> "_BaseDataLoaderIter":
         if self.num_workers == 0:

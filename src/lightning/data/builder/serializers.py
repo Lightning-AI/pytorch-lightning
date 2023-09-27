@@ -12,8 +12,17 @@
 # limitations under the License.
 
 import numpy as np
-
+from lightning_utilities.core.imports import RequirementCache
 from lightning.data.builder.base import Serializer
+
+_PIL_AVAILABLE = RequirementCache("PIL")
+
+if _PIL_AVAILABLE:
+    from PIL import Image
+    from PIL.JpegImagePlugin import JpegImageFile
+else:
+    Image = Any
+    JpegImageFile = None
 
 
 class PILSerializer(Serializer):
@@ -42,7 +51,23 @@ class IntSerializer(Serializer):
         return int(data.decode("utf-8"))
 
 
+class JPEGSerializer(Serializer):
+    def serialize(self, obj: Image) -> bytes:
+        if isinstance(obj, JpegImageFile) and hasattr(obj, 'filename'):
+            with open(obj.filename, 'rb') as f:
+                return f.read()
+        else:
+            out = BytesIO()
+            obj.save(out, format='JPEG')
+            return out.getvalue()
+
+    def deserialize(self, data: bytes) -> Image:
+        inp = BytesIO(data)
+        return Image.open(inp)
+
+
 _SERIALIZERS = {
     "pil": PILSerializer(),
     "int": IntSerializer(),
+    "jpeg": JPEGSerializer(),
 }

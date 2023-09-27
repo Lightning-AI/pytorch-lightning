@@ -13,15 +13,16 @@
 
 import json
 import os
-
+from typing import Optional
 import numpy as np
 
 
 class Reader:
-    def __init__(self, _cache_dir: str):
+    def __init__(self, _cache_dir: str, compression: Optional[str] = None):
         super().__init__()
 
         self._cache_dir = _cache_dir
+        self._compression = compression
         self._index = None
         self._intervals = None
         self._chunks = []
