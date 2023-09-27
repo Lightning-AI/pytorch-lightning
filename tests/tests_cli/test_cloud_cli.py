@@ -21,9 +21,9 @@ from lightning_cloud.openapi import (
 )
 from lightning_cloud.openapi.rest import ApiException
 
-from tests_app import _PROJECT_ROOT
+from tests_cli import _PROJECT_ROOT
 
-_FILE_PATH = os.path.join(_PROJECT_ROOT, "tests", "tests_app", "core", "scripts", "app_metadata.py")
+_FILE_PATH = os.path.join(_PROJECT_ROOT, "tests", "tests_cli", "core", "scripts", "app_metadata.py")
 
 
 @dataclass

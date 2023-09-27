@@ -17,7 +17,7 @@ from lightning.app.utilities.app_commands import run_app_commands
 from lightning.app.utilities.network import find_free_network_port
 from lightning.cli.lightning_cli_launch import run_flow, run_flow_and_servers, run_frontend, run_server
 
-from tests_app import _PROJECT_ROOT
+from tests_cli import _PROJECT_ROOT
 
 _FILE_PATH = os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py")
 

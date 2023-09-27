@@ -12,7 +12,7 @@ from lightning.app.runners.runtime_type import RuntimeType
 from lightning.app.utilities.app_helpers import convert_print_to_logger_info
 from lightning.cli.lightning_cli import _run_app, run_app
 
-from tests_app import _PROJECT_ROOT
+from tests_cli import _PROJECT_ROOT
 
 
 @mock.patch("click.launch")
