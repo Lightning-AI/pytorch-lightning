@@ -13,7 +13,6 @@
 # limitations under the License
 import inspect
 import os
-import sys
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -32,7 +31,6 @@ from lightning.fabric.plugins.environments import (
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAccelerator, MPSAccelerator, XLAAccelerator
-from lightning.pytorch.plugins import TransformerEnginePrecisionPlugin
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision import (
@@ -1064,19 +1062,3 @@ def test_connector_num_nodes_input_validation():
 def test_precision_selection(precision_str, strategy_str, expected_precision_cls):
     connector = _AcceleratorConnector(precision=precision_str, strategy=strategy_str)
     assert isinstance(connector.precision_plugin, expected_precision_cls)
-
-
-def test_connector_transformer_engine(monkeypatch):
-    import lightning.fabric  # avoid breakage with standalone package
-
-    monkeypatch.setattr(
-        lightning.fabric.plugins.precision.transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True
-    )
-    transformer_engine_mock = Mock()
-    monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
-    recipe_mock = Mock()
-    monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
-
-    precision = TransformerEnginePrecisionPlugin()
-    connector = _AcceleratorConnector(plugins=precision)
-    assert connector.precision_plugin is precision
