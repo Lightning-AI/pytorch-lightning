@@ -65,7 +65,7 @@ class OutputMapping(Generic[T], Mapping[str, T]):
 @pytest.mark.parametrize(
     "case",
     [
-        (5.0, "must return a Tensor, a dict, or None"),
+        (5.0, "must return a Tensor, a Mapping, or None"),
         ({"a": 5}, "the 'loss' key needs to be present"),
         (OutputMapping[str, int]({"a": 5}), "the 'loss' key needs to be present"),
     ],
