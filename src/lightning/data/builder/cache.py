@@ -42,12 +42,6 @@ class Cache:
         self._env = _DistributedEnv.detect()
         self._worker_env = None
         self._rank = None
-        self._dataset_size = None
-        self._num_workers = None
-
-    def setup(self, size, num_workers):
-        self._dataset_size = size
-        self._num_workers = num_workers
 
     @property
     def rank(self):
@@ -179,11 +173,16 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
             for worker_queue_idx in range(self._num_workers):
                 self._index_queues[worker_queue_idx].put((worker_queue_idx + self._send_idx, [StopIterationEvent]))
                 self._task_info[self._send_idx] = (worker_queue_idx,)
+            raise StopIteration
 
-            # Get enough time to receive termination event
-            sleep(1)
-
-            raise StopIteration()
+    def _next_data(self):
+        try:
+            return super()._next_data()
+        except (KeyError, AssertionError, ValueError):
+            self._shutdown_workers()
+            return
+        except Exception as e:
+            raise e
 
 
 class CacheDataLoader(DataLoader):
@@ -212,10 +211,9 @@ class CacheDataLoader(DataLoader):
         cache = [v for v in dataset.__dict__.values() if isinstance(v, Cache)]
 
         if not cache or len(cache) > 1:
-            raise Exception("The CacheDataloader should be used with a dataset using a single cache. Found {cache}.")
+            raise Exception(f"The CacheDataloader should be used with a dataset using a single cache. Found {cache}.")
 
         cache = cache[0]
-        cache.setup(len(dataset), num_workers)
         batch_sampler = CacheBatchSampler(
             CacheSampler(dataset, generator, shuffle), batch_size, drop_last, shuffle, cache
         )
@@ -226,6 +224,7 @@ class CacheDataLoader(DataLoader):
             batch_sampler=batch_sampler,
             generator=generator,
             collate_fn=CacheCollateFn(),
+            num_workers=num_workers,
             **kwargs
         )
 
