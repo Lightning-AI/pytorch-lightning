@@ -106,7 +106,7 @@ Persistent Workers
 ^^^^^^^^^^^^^^^^^^
 
 If you use a large number of ``num_workers`` in your dataloaders or your epochs are very fast, you may notice a slowdown at the beginning of every epoch due to the time it takes for the dataloader to spawn its worker processes.
-Set ``persistent_workers=True`` in your dataloader to reuse the same workers across multiple epochs.
+In this case, setting ``persistent_workers=True`` in your dataloader will significantly speed up the worker startup time across epochs.
 
 
 TPU Training
