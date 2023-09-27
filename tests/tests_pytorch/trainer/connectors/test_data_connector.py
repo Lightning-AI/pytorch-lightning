@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import redirect_stderr
-from io import StringIO
 from re import escape
 from typing import Sized
 from unittest import mock
