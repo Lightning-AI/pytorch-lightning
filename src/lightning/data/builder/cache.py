@@ -11,10 +11,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from time import sleep
 import os
+from time import sleep
 from typing import Dict, Iterable, Iterator, Optional, Union
-from enum import Enum
+
 import numpy as np
 from torch.utils.data import IterableDataset
 from torch.utils.data._utils.collate import default_collate
@@ -24,10 +24,6 @@ from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, Seque
 from lightning.data.builder.reader import Reader
 from lightning.data.builder.writer import Writer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
-import signal
-import sys
-from torch.utils.data import get_worker_info
-from torch._utils import ExceptionWrapper
 
 
 class Cache:
@@ -176,12 +172,11 @@ StopIterationEvent = "StopIterationEvent"
 
 
 class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
-
     def _next_index(self):
         try:
             return super()._next_index()
-        except StopIteration as e:
-            for worker_queue_idx in range(self._num_workers): 
+        except StopIteration:
+            for worker_queue_idx in range(self._num_workers):
                 self._index_queues[worker_queue_idx].put((worker_queue_idx + self._send_idx, [StopIterationEvent]))
                 self._task_info[self._send_idx] = (worker_queue_idx,)
 
