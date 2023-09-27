@@ -173,7 +173,7 @@ def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expec
         ctx = no_warning_call(UserWarning)
 
     with ctx:
-        _worker_check(trainer, using_spawn=False, dataloader=dataloader, name="train_dataloader")
+        _worker_check(trainer, dataloader=dataloader, name="train_dataloader")
 
 
 def test_update_dataloader_raises():
