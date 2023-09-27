@@ -11,9 +11,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from time import sleep
 import os
 from typing import Dict, Iterable, Iterator, Optional, Union
-
+from enum import Enum
 import numpy as np
 from torch.utils.data import IterableDataset
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter, _SingleProcessDataLoaderIter
@@ -22,6 +23,10 @@ from torch.utils.data._utils.collate import default_collate
 from lightning.data.builder.reader import Reader
 from lightning.data.builder.writer import Writer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
+import signal
+import sys
+from torch.utils.data import get_worker_info
+from torch._utils import ExceptionWrapper
 
 
 class Cache:
@@ -40,12 +45,19 @@ class Cache:
         self._env = _DistributedEnv.detect()
         self._worker_env = None
         self._rank = None
+        self._dataset_size = None
+        self._num_workers = None
+
+    def setup(self, size, num_workers):
+        self._dataset_size = size
+        self._num_workers = num_workers
 
     @property
     def rank(self):
         if self._rank is None:
             self._worker_env = _WorkerEnv.detect()
             self._rank = self._env.global_rank * self._worker_env.world_size + self._worker_env.rank
+
         return self._rank
 
     @property
@@ -160,6 +172,25 @@ class CacheCollateFn:
         return self.collate_fn(items) 
 
 
+StopIterationEvent = "StopIterationEvent"
+
+
+class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
+
+    def _next_index(self):
+        try:
+            return super()._next_index()
+        except StopIteration as e:
+            for worker_queue_idx in range(self._num_workers): 
+                self._index_queues[worker_queue_idx].put((worker_queue_idx + self._send_idx, [StopIterationEvent]))
+                self._task_info[self._send_idx] = (worker_queue_idx,)
+
+            # Get enough time to receive termination event
+            sleep(1)
+
+            raise StopIteration()
+
+
 class CacheDataLoader(DataLoader):
     def __init__(
         self,
@@ -167,6 +198,7 @@ class CacheDataLoader(DataLoader):
         *args,
         sampler=None,
         batch_sampler=None,
+        num_workers=1,
         shuffle: bool = False,
         generator=None,
         batch_size=None,
@@ -188,14 +220,23 @@ class CacheDataLoader(DataLoader):
             raise Exception("The CacheDataloader should be used with a dataset using a single cache. Found {cache}.")
 
         cache = cache[0]
+        cache.setup(len(dataset), num_workers)
         batch_sampler = CacheBatchSampler(
             CacheSampler(dataset, generator, shuffle), batch_size, drop_last, shuffle, cache
         )
-        super().__init__(dataset, *args, sampler=None, batch_sampler=batch_sampler, generator=generator, collate_fn=CacheCollateFn(), **kwargs)
+        super().__init__(
+            dataset, *args,
+            sampler=None,
+            batch_sampler=batch_sampler,
+            generator=generator,
+            num_workers=num_workers,
+            collate_fn=CacheCollateFn(), 
+            **kwargs
+        )
 
     def _get_iterator(self) -> "_BaseDataLoaderIter":
         if self.num_workers == 0:
             return _SingleProcessDataLoaderIterPatch(self)
         else:
             self.check_worker_number_rationality()
-            return _MultiProcessingDataLoaderIter(self)
+            return _MultiProcessingDataLoaderIterPatch(self)

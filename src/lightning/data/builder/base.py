@@ -35,10 +35,10 @@ class BaseWriter(ABC):
         self._compression = compression
         self._name = name
 
-        if compression and compression not in _COMPRESSORS:
-            raise Exception(f"The provided compression {compression} isn't available in {sorted(_COMPRESSORS)}")
-
-        self._compressor = _COMPRESSORS[compression]
+        if compression:
+            if compression not in _COMPRESSORS:
+                raise Exception(f"The provided compression {compression} isn't available in {sorted(_COMPRESSORS)}")
+            self._compressor = _COMPRESSORS[compression]
 
         self._current_chunk_size = 0
         self._counter = 0
