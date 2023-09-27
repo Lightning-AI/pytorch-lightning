@@ -113,10 +113,7 @@ class TestSpawnBoringModel(BoringModel):
         self.warning_expected = warning_expected
 
     def on_fit_start(self):
-        if self.warning_expected:
-            self.ctx = pytest.warns
-        else:
-            self.ctx = no_warning_call
+        ctx = pytest.warns if self.warning_expected else no_warning_call
         self.ctx = ctx(UserWarning, match="Consider setting `persistent_workers=True`")
         if self.global_rank == 0:
             self.ctx.__enter__()
@@ -159,10 +156,11 @@ def test_dataloader_persistent_workers_performance_warning(num_workers, tmp_path
     ],
 )
 @mock.patch("lightning.fabric.utilities.data.os.cpu_count")
-def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expected_warning, monkeypatch):
+@mock.patch("lightning.pytorch.trainer.connectors.data_connector.mp.get_start_method", return_value="not_spawn")
+def test_worker_check(_, cpu_count_mock, num_devices, num_workers, cpu_count, expected_warning, monkeypatch):
     monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
     trainer = Mock(spec=Trainer)
-    dataloader = Mock(spec=DataLoader)
+    dataloader = Mock(spec=DataLoader, persistent_workers=False)
     trainer.num_devices = num_devices
     dataloader.num_workers = num_workers
     cpu_count_mock.return_value = cpu_count
@@ -170,7 +168,7 @@ def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expec
     if expected_warning:
         ctx = pytest.warns(UserWarning, match="Consider increasing the value of the `num_workers` argument`")
     else:
-        ctx = no_warning_call(UserWarning)
+        ctx = no_warning_call()
 
     with ctx:
         _worker_check(trainer, dataloader=dataloader, name="train_dataloader")
