@@ -23,3 +23,4 @@ Precision
     FSDPPrecision
     DeepSpeedPrecision
     TransformerEnginePrecision
+    BitsandbytesPlugin

@@ -155,18 +155,60 @@ Under the hood, we use `transformer_engine.pytorch.fp8_autocast <https://docs.nv
 ----
 
 
-***************
-8-bit Optimizer
-***************
+*****************************
+Quantization via Bitsandbytes
+*****************************
 
-It is possible to further reduce the memory usage of the optimizer states by using third-party libraries like `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`_.
-You can configure it in your LightningModule by overriding ``configure_optimizers``.
+`bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__ (BNB) is a library that supports quantizing Linear weights.
+
+Both 4-bit (`paper reference <https://arxiv.org/abs/2305.14314v1>`__) and 8-bit (`paper reference <https://arxiv.org/abs/2110.02861>`__) quantization is supported.
+Specifically, we support the following modes:
+    * nf4: Uses the normalized float 4-bit data type. This is recommended over "fp4" based on the paper's experimental results and theoretical analysis.
+    * nf4-dq: "dq" stands for "Double Quantization" which reduces the average memory footprint by quantizing the quantization constants. In average, this amounts to about 0.37 bits per parameter (approximately 3 GB for a 65B model).
+    * fp4: Uses regular float 4-bit data type.
+    * fp4-dq: "dq" stands for "Double Quantization" which reduces the average memory footprint by quantizing the quantization constants. In average, this amounts to about 0.37 bits per parameter (approximately 3 GB for a 65B model).
+    * int8: Uses unsigned int8 data type.
+    * int8-training: Meant for int8 activations with fp16 precision weights.
+
+While these techniques store weights in 4 or 8 bit, the computation still happens in 16 or 32-bit (float16, bfloat16, float32).
+This is configurable via the dtype argument in the plugin.
+
+Quantizing the model will dramatically reduce the weight's memory requirements but might impact performance negatively.
+
+The Trainer automatically replaces the :class:`torch.nn.Linear` layers in your model with their BNB alternatives.
+
+.. code-block:: python
+
+    from lightning.pytorch.plugins import BitsandbytesPrecisionPlugin
+
+    # this will pick out the compute dtype automatically, by default `bfloat16`
+    precision = BitsandbytesPrecisionPlugin("nf4-dq")
+    trainer = Trainer(plugins=precision)
+
+    # choose yourself
+    precision = BitsandbytesPrecisionPlugin("int8-training", dtype=torch.float16)
+    trainer = Trainer(plugins=precision)
+
+
+    class MyModel(LightningModule):
+        def configure_model(self):
+            # instantiate your model in this hook
+            self.model = MyModel()
+
+
+This plugin does not take care of replacing your optimizer with an 8-bit optimizer e.g. `bitsandbytes.optim.Adam8bit``.
+You might want to do this for extra memory savings.
 
 .. code-block:: python
 
     import bitsandbytes as bnb
 
 
-    # in your LightningModule, return the 8-bit optimizer
-    def configure_optimizers(self):
-        return bnb.optim.Adam8bit(model.parameters(), lr=0.001, betas=(0.9, 0.995))
+    class MyModel(LightningModule):
+        def configure_optimizers(self):
+            return bnb.optim.Adam8bit(model.parameters(), lr=0.001, betas=(0.9, 0.995))
+
+.. note::
+
+    Only supports CUDA devices and the Linux operating system. Windows users should use
+    `WSL2 <https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl>`__.

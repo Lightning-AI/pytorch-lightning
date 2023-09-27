@@ -60,7 +60,17 @@ class BitsandbytesPrecision(Precision):
             raise ModuleNotFoundError(str(_BITSANDBYTES_AVAILABLE))
 
         if dtype is None:
-            dtype = torch.get_default_dtype()
+            # try to be smart about the default selection
+            if mode.startswith("int8"):
+                dtype = torch.float16
+            else:
+                dtype = (
+                    torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
+                )
+        if mode.startswith("int8") and dtype is not torch.float16:
+            # this limitation is mentioned in https://huggingface.co/blog/hf-bitsandbytes-integration#usage
+            raise ValueError(f"{mode!r} only works with `dtype=torch.bfloat16`, but you chose `{dtype}`")
+
         mode_to_cls = {
             "nf4": _NF4Linear,
             "nf4-dq": _NF4DQLinear,
@@ -194,3 +204,7 @@ if _BITSANDBYTES_AVAILABLE:
             kwargs.setdefault("quant_type", "nf4")
             kwargs.setdefault("compress_statistics", True)
             super().__init__(*args, **kwargs)
+
+
+# FIXME: disable this plugin and TE with FSDP
+# FIXME: way to skip modules

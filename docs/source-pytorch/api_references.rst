@@ -120,6 +120,7 @@ precision
     PrecisionPlugin
     XLAPrecisionPlugin
     TransformerEnginePrecisionPlugin
+    BitsandbytesPrecisionPlugin
 
 environments
 """"""""""""
