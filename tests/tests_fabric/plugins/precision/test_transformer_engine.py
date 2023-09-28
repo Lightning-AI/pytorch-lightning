@@ -33,6 +33,13 @@ def test_transformer_engine_plugin(monkeypatch):
     recipe_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
 
+    connector = _Connector(precision="transformer-engine")
+    assert isinstance(connector.precision, TransformerEnginePrecision)
+    assert connector.precision.dtype is torch.bfloat16
+    connector = _Connector(precision="transformer-engine-float16")
+    assert connector.precision.dtype is torch.float16
+
+    recipe_mock.reset_mock()
     precision = TransformerEnginePrecision()
     connector = _Connector(plugins=precision)
     assert connector.precision is precision

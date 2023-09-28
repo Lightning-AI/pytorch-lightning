@@ -15,6 +15,7 @@ import sys
 from unittest.mock import Mock
 
 import pytest
+import torch
 from lightning.pytorch.plugins import TransformerEnginePrecisionPlugin
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector
 
@@ -26,10 +27,14 @@ def test_transformer_engine_precision_plugin(monkeypatch):
     if module._TRANSFORMER_ENGINE_AVAILABLE:
         pytest.skip("Assumes transformer_engine is unavailable")
     monkeypatch.setattr(module, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True)
-    transformer_engine_mock = Mock()
-    monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
-    recipe_mock = Mock()
-    monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
+    monkeypatch.setitem(sys.modules, "transformer_engine", Mock())
+    monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", Mock())
+
+    connector = _AcceleratorConnector(precision="transformer-engine")
+    assert isinstance(connector.precision_plugin, TransformerEnginePrecisionPlugin)
+    assert connector.precision_plugin.dtype is torch.bfloat16
+    connector = _AcceleratorConnector(precision="transformer-engine-float16")
+    assert connector.precision_plugin.dtype is torch.float16
 
     precision = TransformerEnginePrecisionPlugin()
     connector = _AcceleratorConnector(plugins=precision)

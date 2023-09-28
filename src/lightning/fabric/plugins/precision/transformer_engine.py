@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 from contextlib import ExitStack
-from typing import TYPE_CHECKING, Any, ContextManager, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, ContextManager, Literal, Mapping, Optional, Union
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -57,6 +57,8 @@ class TransformerEnginePrecision(Precision):
         inputs to conform to this restriction.
 
     """
+
+    precision: Literal["transformer-engine", "transformer-engine-float16"] = "transformer-engine"
 
     def __init__(
         self,

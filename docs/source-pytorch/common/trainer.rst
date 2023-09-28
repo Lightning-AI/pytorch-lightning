@@ -829,6 +829,9 @@ Automatic mixed precision settings are denoted by a ``"-mixed"`` suffix, while "
     # 16-bit bfloat mixed precision (model weights remain in torch.float32)
     trainer = Trainer(precision="bf16-mixed", devices=1)
 
+    # 8-bit mixed precision via TransformerEngine (model weights get cast to torch.bfloat16)
+    trainer = Trainer(precision="transformer-engine", devices=1)
+
     # 16-bit precision (model weights get cast to torch.float16)
     trainer = Trainer(precision="16-true", devices=1)
 

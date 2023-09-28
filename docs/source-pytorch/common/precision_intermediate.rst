@@ -137,6 +137,12 @@ the model and inputs can be kept in true full or half precision.
 
 .. code-block:: python
 
+    # Select 8bit mixed precision via TransformerEngine, with model weights in bfloat16
+    trainer = Trainer(precision="transformer-engine")
+
+    # Select 8bit mixed precision via TransformerEngine, with model weights in float16
+    trainer = Trainer(precision="transformer-engine-float16")
+
     # Customize the fp8 recipe or set a different base precision:
     from lightning.trainer.plugins import TransformerEnginePrecision
 
