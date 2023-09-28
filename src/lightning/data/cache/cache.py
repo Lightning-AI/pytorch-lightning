@@ -47,14 +47,19 @@ class Cache:
         self._reader = BinaryReader(cache_dir, compression=compression)
         self._cache_dir = cache_dir
         self._is_done = False
+        self._distributed_env = _DistributedEnv.detect()
+        self._num_workers = None
 
     # TODO: Find a way to make this faster
     @property
     def filled(self) -> bool:
+        if self._num_workers is None:
+            raise Exception("The Cache wasn't setup properly. HINT: Did you use the CacheDataLoader ?")
         if self._is_done:
             return True
         files = os.listdir(self._cache_dir)
-        self._is_done = any(f.endswith("index.json") for f in files)
+        index_files = [f for f in files if f.endswith("index.json")]
+        self._is_done = len(index_files) == self._distributed_env.world_size * self._num_workers
         return self._is_done
 
     def __setitem__(self, index, data):
@@ -281,14 +286,31 @@ class CacheBatchSampler(BatchSampler):
         chunk_intervals = self._cache.get_chunk_interval()
         shuffled_chunk_intervals = np.random.permutation(chunk_intervals)
 
-        indices = []
-        for interval in shuffled_chunk_intervals:
-            interval_indices = np.arange(interval[0], interval[1])
-            shuffled_interval_indices = np.random.permutation(interval_indices)
-            indices.extend(shuffled_interval_indices.tolist())
+        if self._num_replicas == 1:
+            indices = []
+            for interval in shuffled_chunk_intervals:
+                interval_indices = np.arange(interval[0], interval[1])
+                shuffled_interval_indices = np.random.permutation(interval_indices)
+                indices.extend(shuffled_interval_indices.tolist())
 
-        if len(indices) != len(self.sampler):
-            raise Exception("The generated indices don't match the initial length of the sampler.")
+            if len(indices) != len(self.sampler):
+                raise Exception("The generated indices don't match the initial length of the sampler.")
+
+        else:
+            chunks_per_replica = len(shuffled_chunk_intervals) // self._num_replicas
+            for replica_idx in range(self._num_replicas):
+                if replica_idx != self._rank:
+                    continue
+                is_last_replica = replica_idx == self._num_replicas - 1
+                start_replica = replica_idx * chunks_per_replica
+                end_replica = len(chunk_intervals) if is_last_replica else (replica_idx + 1) * chunks_per_replica
+                shuffled_chunk_intervals_replica = shuffled_chunk_intervals[start_replica:end_replica]
+
+                indices = []
+                for interval in shuffled_chunk_intervals_replica:
+                    interval_indices = np.arange(interval[0], interval[1])
+                    shuffled_interval_indices = np.random.permutation(interval_indices)
+                    indices.extend(shuffled_interval_indices.tolist())
 
         self.sampler = IteratorSampler(indices)
 
@@ -348,6 +370,7 @@ class CacheDataLoader(DataLoader):
             raise Exception(f"The CacheDataloader should be used with a dataset using a single cache. Found {cache}.")
 
         cache = cache[0]
+        cache._num_workers = num_workers
         if not cache.filled and shuffle:
             logger.info("Shuffle is ignored during caching phase")
 

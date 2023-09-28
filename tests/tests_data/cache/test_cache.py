@@ -1,3 +1,4 @@
+import io
 import os
 from functools import partial
 
@@ -51,19 +52,20 @@ class ImageDataset(Dataset):
         return None
 
 
-def cache_for_image_dataset(num_workers, tmpdir):
-    import io
-
+def cache_for_image_dataset(num_workers, tmpdir, fabric=None):
     from PIL import Image
 
     dataset_size = 85
 
     cache_dir = os.path.join(tmpdir, "cache")
+    distributed_env = _DistributedEnv.detect()
 
     cache = Cache(cache_dir, data_format={"image": "jpeg", "class": "int", "index": "int"}, chunk_size=2 << 12)
     dataset = ImageDataset(tmpdir, cache, dataset_size, 10)
     dataloader = CacheDataLoader(dataset, num_workers=num_workers, batch_size=4)
-    for _ in dataloader:
+    dataloader_iter = iter(dataloader)
+
+    for _ in dataloader_iter:
         pass
 
     for i in range(len(dataset)):
@@ -73,7 +75,6 @@ def cache_for_image_dataset(num_workers, tmpdir):
         original_image = Image.open(io.BytesIO(original_data["image"]))
         assert cached_data["image"] == original_image
 
-    distributed_env = _DistributedEnv.detect()
     dataset.use_transform = True
 
     if distributed_env.world_size == 1:
@@ -86,15 +87,17 @@ def cache_for_image_dataset(num_workers, tmpdir):
     seed_everything(42)
 
     dataloader = CacheDataLoader(dataset, num_workers=num_workers, batch_size=4, shuffle=True)
+    dataloader_iter = iter(dataloader)
 
     indexes = []
-    for batch in dataloader:
+    for batch in dataloader_iter:
         indexes.extend(batch["index"].numpy().tolist())
 
-    assert len(indexes) == dataset_size
+    if distributed_env.world_size == 1:
+        assert len(indexes) == dataset_size
 
     indexes2 = []
-    for batch in dataloader:
+    for batch in dataloader_iter:
         indexes2.extend(batch["index"].numpy().tolist())
 
     assert indexes2 != indexes
@@ -111,8 +114,8 @@ def test_cache_for_image_dataset(num_workers, tmpdir):
     cache_for_image_dataset(num_workers, tmpdir)
 
 
-def fabric_cache_for_image_dataset(_, num_workers, tmpdir):
-    cache_for_image_dataset(num_workers, tmpdir)
+def fabric_cache_for_image_dataset(fabric, num_workers, tmpdir):
+    cache_for_image_dataset(num_workers, tmpdir, fabric=fabric)
 
 
 @pytest.mark.skipif(

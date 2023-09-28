@@ -72,7 +72,7 @@ class BinaryReader:
         for interval_index, internal in enumerate(self._intervals):
             if internal[0] <= index and index < internal[1]:
                 return interval_index
-        return None
+        raise Exception(f"The chunk interval weren't properly defined. Found {self._intervals} for inded {index}.")
 
     def _should_keep_in_memory(self):
         return True
@@ -85,10 +85,7 @@ class BinaryReader:
             raise Exception("The reader index isn't defined.")
 
         chunk_id = self._map_index_to_chunk_id(index)
-        try:
-            chunk_config = self._index["chunks"][chunk_id]
-        except Exception as e:
-            raise Exception(f"Found {str(self._index['chunks'])} {chunk_id}" + str(e))
+        chunk_config = self._index["chunks"][chunk_id]
         chunk_path = os.path.join(self._cache_dir, chunk_config["filename"])
         raw_item_data, item_config = self.load_item_from_chunk(
             index, chunk_path, keep_in_memory=self._should_keep_in_memory()
@@ -114,7 +111,10 @@ class BinaryReader:
 
     def load_item_from_chunk(self, index: int, chunk_path: str, keep_in_memory: bool = False):
         chunk_name = os.path.basename(chunk_path)
-        begin, end = self._chunks_data[chunk_name]["mapping"][str(index)]
+        try:
+            begin, end = self._chunks_data[chunk_name]["mapping"][str(index)]
+        except Exception as e:
+            raise Exception(f"Medata: ({self._chunks_data[chunk_name]}), Error: {e}")
         config = self._chunks_data[chunk_name]["config"]
         if self._chunks_data[chunk_name]["data"] is not None:
             return self._chunks_data[chunk_name]["data"][begin:end], config
