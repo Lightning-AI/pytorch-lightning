@@ -9,11 +9,13 @@ from lightning import seed_everything
 from lightning.data.cache import Cache, CacheDataLoader
 
 _PIL_AVAILABLE = RequirementCache("PIL")
+_TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
 
 
 class ImageDataset(Dataset):
-    def __init__(self, tmpdir, cache, size, num_classes):
+    def __init__(self, tmpdir, cache, size, num_classes, use_transform: bool = False):
         from PIL import Image
+        from torchvision import transforms as T
 
         self.data = []
         self.cache = cache
@@ -30,27 +32,37 @@ class ImageDataset(Dataset):
                 data = f.read()
             self.data.append({"image": data, "class": np.random.randint(num_classes)})
 
+        self.use_transform = use_transform
+        self.transform = T.Compose([T.ToTensor()])
+
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
         if self.cache.filled:
-            return self.cache[index]
-        self.cache[index] = self.data[index]
+            data = self.cache[index]
+            if self.use_transform:
+                data["image"] = self.transform(data["image"]).unsqueeze(0)
+            return data
+        self.cache[index] = {**self.data[index], "index": index}
         return None
 
 
-@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
+@pytest.mark.skipif(
+    condition=not _PIL_AVAILABLE or not _TORCH_VISION_AVAILABLE, reason="Requires: ['pil', 'torchvision']"
+)
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
 def test_cache_for_image_dataset(num_workers, tmpdir):
     import io
 
     from PIL import Image
 
+    dataset_size = 85
+
     cache_dir = os.path.join(tmpdir, "cache")
     os.makedirs(cache_dir)
-    cache = Cache(cache_dir, data_format={"image": "jpeg", "class": "int"}, chunk_size=2 << 12)
-    dataset = ImageDataset(tmpdir, cache, 85, 10)
+    cache = Cache(cache_dir, data_format={"image": "jpeg", "class": "int", "index": "int"}, chunk_size=2 << 12)
+    dataset = ImageDataset(tmpdir, cache, dataset_size, 10)
     for _ in CacheDataLoader(dataset, num_workers=num_workers, batch_size=4):
         pass
 
@@ -60,3 +72,27 @@ def test_cache_for_image_dataset(num_workers, tmpdir):
         assert cached_data["class"] == original_data["class"]
         original_image = Image.open(io.BytesIO(original_data["image"]))
         assert cached_data["image"] == original_image
+
+    dataset.use_transform = True
+
+    indexes = []
+    for batch in CacheDataLoader(dataset, num_workers=num_workers, batch_size=4):
+        indexes.extend(batch["index"].numpy().tolist())
+
+    assert indexes == list(range(dataset_size))
+
+    seed_everything(42)
+
+    dataloader = CacheDataLoader(dataset, num_workers=num_workers, batch_size=4, shuffle=True)
+
+    indexes = []
+    for batch in dataloader:
+        indexes.extend(batch["index"].numpy().tolist())
+
+    assert len(indexes) == dataset_size
+
+    indexes2 = []
+    for batch in dataloader:
+        indexes2.extend(batch["index"].numpy().tolist())
+
+    assert indexes2 != indexes

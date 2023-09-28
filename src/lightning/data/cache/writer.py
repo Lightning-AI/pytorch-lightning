@@ -23,6 +23,16 @@ from lightning.data.cache.serializers import _SERIALIZERS
 from lightning.data.datasets.env import _DistributedEnv
 
 
+def cloud_path(cache_dir: str) -> Optional[str]:
+    cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
+    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+    cloud_space_id = os.getenv("LIGHTNING_CLOUD_SPACE_ID", None)
+
+    if cluster_id is None or project_id is None or cloud_space_id is None:
+        return None
+    return f"s3://{cluster_id}/projects/{project_id}/cloudspaces/{cloud_space_id}/content/{cache_dir}/"
+
+
 class BinaryWriter:
     def __init__(
         self,
@@ -83,6 +93,7 @@ class BinaryWriter:
         self._env = _DistributedEnv.detect()
         self._worker_env = None
         self._rank = None
+        self._is_done = False
 
     @property
     def rank(self):
@@ -94,6 +105,10 @@ class BinaryWriter:
     def get_config(self) -> Dict[str, Any]:
         out = super().get_config()
         out.update(self._data_format)
+
+        cloud_path = self.get_cloud_path(self._cache_dir)
+        if cloud_path:
+            out["cloud_path"] = cloud_path
         return out
 
     def serialize(self, items: Dict[str, Any]) -> bytes:
@@ -209,7 +224,25 @@ class BinaryWriter:
             json.dump({"chunks": self._chunks_info}, out, sort_keys=True)
 
     def done(self):
+        if self._is_done:
+            return
         if self._serialized_items:
             self.write_chunk()
-            self.write_chunks_index()
-            self.reset()
+        self.write_chunks_index()
+        self.reset()
+        self._is_done = True
+
+    @classmethod
+    def get_cloud_path(cls, cache_dir: str) -> Optional[str]:
+        cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
+        project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+        cloud_space_id = os.getenv("LIGHTNING_CLOUD_SPACE_ID", None)
+
+        if cluster_id is None or project_id is None or cloud_space_id is None:
+            return None
+        cache_dir = cache_dir.replace("~/", "").replace("~", "").replace("/teamspace/studios/this_studio/", "")
+        if cache_dir.startswith("/"):
+            cache_dir = cache_dir[1:]
+        return os.path.join(
+            f"s3://{cluster_id}/projects/{project_id}/cloudspaces/{cloud_space_id}/code/content", cache_dir
+        )

@@ -19,12 +19,12 @@ import numpy as np
 from torch.utils.data import IterableDataset
 from torch.utils.data._utils.collate import default_collate
 from torch.utils.data.dataloader import (
-    DataLoader,
     _BaseDataLoaderIter,
     _MultiProcessingDataLoaderIter,
     _SingleProcessDataLoaderIter,
+    DataLoader,
 )
-from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler, Sized
+from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, Sized
 
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.writer import BinaryWriter
@@ -103,6 +103,7 @@ class CacheSampler(Sampler):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.indices = range(dataset_size)
+        self.dataset_size = dataset_size
         worker_size = dataset_size // self.num_workers
         self.samplers = []
         for worker_idx in range(num_workers):
@@ -116,6 +117,9 @@ class CacheSampler(Sampler):
         assert sum([len(s) for s in self.samplers]) == dataset_size
         self.worker_id = 0
         self.indice_id = 0
+
+    def __len__(self) -> int:
+        return self.dataset_size
 
     @property
     def done(self) -> bool:
@@ -149,8 +153,10 @@ class CacheBatchSampler(BatchSampler):
     def __init__(
         self, dataset_size: int, num_workers: int, batch_size: int, drop_last: bool, shuffle: bool, cache: Cache
     ):
-        if num_workers >= 1:
+        if not cache.filled and num_workers > 1:
             sampler = CacheSampler(dataset_size, num_workers, batch_size)
+        elif shuffle:
+            sampler = RandomSampler(range(dataset_size))
         else:
             sampler = SequentialSampler(range(dataset_size))
         super().__init__(sampler, batch_size, drop_last)
@@ -158,7 +164,7 @@ class CacheBatchSampler(BatchSampler):
         self._shuffle = shuffle
         self._num_workers = num_workers
 
-    def __modified_iter__(self) -> Iterator[List[int]]:
+    def __iter_ordered__(self) -> Iterator[List[int]]:
         # Implemented based on the benchmarking in https://github.com/pytorch/pytorch/pull/76951
         iterator = iter(self.sampler)
         batch = []
@@ -178,25 +184,25 @@ class CacheBatchSampler(BatchSampler):
 
     def __iter__(self):
         if self._cache.filled and self._shuffle:
-            return self.__iter__cache__()
-        if self._num_workers >= 1:
-            return self.__modified_iter__()
+            return self.__iter_from_chunks__()
+        if self._num_workers > 1 and not self._cache.filled:
+            return self.__iter_ordered__()
         return super().__iter__()
 
-    def __iter__cache__(self):
-        chunk_intervals = self._cache.get_chunk_interval()[:-1]
+    def __iter_from_chunks__(self):
+        chunk_intervals = self._cache.get_chunk_interval()
         shuffled_chunk_intervals = np.random.permutation(chunk_intervals)
 
-        dataset = []
+        indices = []
         for interval in shuffled_chunk_intervals:
             interval_indices = np.arange(interval[0], interval[1])
             shuffled_interval_indices = np.random.permutation(interval_indices)
-            dataset.extend(shuffled_interval_indices.tolist())
+            indices.extend(shuffled_interval_indices.tolist())
 
-        if len(dataset) != len(self.sampler):
+        if len(indices) != len(self.sampler):
             raise Exception("The generated indices don't match the initial length of the sampler.")
 
-        self.sampler = IteratorSampler(dataset)
+        self.sampler = IteratorSampler(indices)
 
         return super().__iter__()
 
@@ -212,9 +218,6 @@ class CacheCollateFn:
         if all(item is None for item in items):
             return None
         return self.collate_fn(items)
-
-
-StopIterationEvent = "StopIterationEvent"
 
 
 class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
