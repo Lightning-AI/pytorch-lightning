@@ -235,7 +235,7 @@ def test_fsdp_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
-@RunIf(min_torch="1.12")
+@RunIf(min_torch="1.13")
 def test_fsdp_grad_clipping_value_error():
     strategy = FSDPStrategy()
     with pytest.raises(

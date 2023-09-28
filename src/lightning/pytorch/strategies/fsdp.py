@@ -213,9 +213,13 @@ class FSDPStrategy(ParallelStrategy):
             return plugin.mixed_precision_config
         return None
 
-    @property
+    @property  # type: ignore[override]
     def precision_plugin(self) -> FSDPPrecisionPlugin:
-        return self._precision_plugin if self._precision_plugin is not None else FSDPPrecisionPlugin("32-true")
+        plugin = self._precision_plugin
+        if plugin is not None:
+            assert isinstance(plugin, FSDPPrecisionPlugin)
+            return plugin
+        return FSDPPrecisionPlugin("32-true")
 
     @precision_plugin.setter
     def precision_plugin(self, precision_plugin: Optional[FSDPPrecisionPlugin]) -> None:
