@@ -29,7 +29,6 @@ from lightning.fabric.plugins.precision.utils import (
     _convert_fp_tensor,
     _DtypeContextManager,
 )
-from lightning.fabric.utilities.types import _DEVICE
 
 log = logging.getLogger(__name__)
 
@@ -134,7 +133,7 @@ def _import_bitsandbytes() -> ModuleType:
 if _BITSANDBYTES_AVAILABLE:
     bnb = _import_bitsandbytes()
 
-    class _Linear8bitLt(bnb.nn.Linear8bitLt):
+    class _Linear8bitLt(bnb.nn.Linear8bitLt):  # type: ignore[name-defined]
         """Wraps `bnb.nn.Linear8bitLt` and enables instantiation directly on the device and
         re-quantizaton when loading the state dict.
         """
@@ -170,8 +169,8 @@ if _BITSANDBYTES_AVAILABLE:
             setattr(self.weight, "CB", CB)
             setattr(self.weight, "SCB", SCB)
 
-    class _Linear4bit(bnb.modules.Linear4bit):
-        def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
+    class _Linear4bit(bnb.nn.Linear4bit):  # type: ignore[name-defined]
+        def __init__(self, *args: Any, device: Optional[torch.device] = None, **kwargs: Any) -> None:
             super().__init__(*args, **kwargs)
             if device is None:
                 device = torch.tensor(0).device
