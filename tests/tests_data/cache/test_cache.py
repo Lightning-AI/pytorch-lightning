@@ -1,15 +1,29 @@
+# Copyright The Lightning AI team.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import io
 import os
 from functools import partial
 
 import numpy as np
 import pytest
+from lightning_utilities.core.imports import RequirementCache
+from torch.utils.data import Dataset
+
 from lightning import seed_everything
 from lightning.data.cache import Cache, CacheDataLoader
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.fabric import Fabric
-from lightning_utilities.core.imports import RequirementCache
-from torch.utils.data import Dataset
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
