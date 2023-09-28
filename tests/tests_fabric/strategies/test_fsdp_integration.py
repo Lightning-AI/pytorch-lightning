@@ -18,8 +18,6 @@ from unittest import mock
 
 import pytest
 import torch
-from torch.nn import Parameter
-
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
@@ -29,6 +27,8 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_1,
 )
 from lightning.fabric.wrappers import _FabricOptimizer
+from torch.nn import Parameter
+
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
@@ -451,8 +451,8 @@ def test_fsdp_manual_activation_checkpointing():
     fabric.launch()
 
     from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-        apply_activation_checkpointing,
         CheckpointWrapper,
+        apply_activation_checkpointing,
     )
 
     # manually apply activation checkpointing

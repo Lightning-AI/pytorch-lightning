@@ -22,7 +22,7 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, IO, Optional, Type, TYPE_CHECKING, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, Type, Union
 from warnings import warn
 
 import torch
@@ -30,9 +30,8 @@ import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.cloud_io import _is_dir
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.cloud_io import _load as pl_load
-from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE

@@ -14,7 +14,6 @@
 import os
 
 import torch
-
 from lightning.fabric.accelerators.cuda import _clear_cuda_memory
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 

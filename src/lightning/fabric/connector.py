@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from collections import Counter
-from typing import Any, cast, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import torch
 from typing_extensions import get_args
@@ -50,12 +50,12 @@ from lightning.fabric.plugins.precision.precision import (
 )
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
+    STRATEGY_REGISTRY,
     DeepSpeedStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
     Strategy,
-    STRATEGY_REGISTRY,
     XLAFSDPStrategy,
     XLAStrategy,
 )

@@ -13,14 +13,14 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1, _using_pjrt
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry

@@ -2,9 +2,9 @@ import os
 from time import sleep
 
 import pytest
+from lightning.app.testing.testing import run_app_in_cloud
 
 from integrations_app.local import _PATH_APPS
-from lightning.app.testing.testing import run_app_in_cloud
 
 
 @pytest.mark.cloud()

@@ -2,11 +2,10 @@ from typing import Dict, List
 from unittest import mock
 from unittest.mock import MagicMock
 
-import pytest
-from lightning_cloud.openapi import V1ListMembershipsResponse, V1ListSecretsResponse, V1Membership, V1Secret
-
 import lightning.app
+import pytest
 from lightning.app.utilities.secrets import _names_to_ids
+from lightning_cloud.openapi import V1ListMembershipsResponse, V1ListSecretsResponse, V1Membership, V1Secret
 
 
 @pytest.mark.parametrize(

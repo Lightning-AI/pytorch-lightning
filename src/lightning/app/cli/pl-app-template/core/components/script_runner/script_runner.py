@@ -25,9 +25,9 @@ class ScriptRunner(TracerPythonScript):
         self.logger_metadatas: List[Dict[str, str]] = []
 
     def configure_tracer(self) -> Tracer:
-        from core.callbacks import PLAppArtifactsTracker, PLAppProgressTracker, PLAppSummary, PLAppTrainerStateTracker
-
         from lightning.pytorch import Trainer
+
+        from core.callbacks import PLAppArtifactsTracker, PLAppProgressTracker, PLAppSummary, PLAppTrainerStateTracker
 
         tracer = Tracer()
         trainer_artifacts_tracker = PLAppArtifactsTracker(work=self)
