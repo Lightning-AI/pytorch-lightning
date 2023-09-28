@@ -19,10 +19,10 @@ import numpy as np
 from torch.utils.data import IterableDataset
 from torch.utils.data._utils.collate import default_collate
 from torch.utils.data.dataloader import (
+    DataLoader,
     _BaseDataLoaderIter,
     _MultiProcessingDataLoaderIter,
     _SingleProcessDataLoaderIter,
-    DataLoader,
 )
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, Sized

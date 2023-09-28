@@ -4,13 +4,12 @@ from functools import partial
 
 import numpy as np
 import pytest
-from lightning_utilities.core.imports import RequirementCache
-from torch.utils.data import Dataset
-
 from lightning import seed_everything
 from lightning.data.cache import Cache, CacheDataLoader
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.fabric import Fabric
+from lightning_utilities.core.imports import RequirementCache
+from torch.utils.data import Dataset
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
