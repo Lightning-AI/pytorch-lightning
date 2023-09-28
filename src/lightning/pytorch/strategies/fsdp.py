@@ -214,14 +214,16 @@ class FSDPStrategy(ParallelStrategy):
         return None
 
     @property
-    def precision(self) -> FSDPPrecisionPlugin:
-        return self._precision if self._precision is not None else FSDPPrecisionPlugin("32-true")
+    def precision_plugin(self) -> FSDPPrecisionPlugin:
+        return self._precision_plugin if self._precision_plugin is not None else FSDPPrecisionPlugin("32-true")
 
-    @precision.setter
-    def precision(self, precision: Optional[FSDPPrecisionPlugin]) -> None:
-        if precision is not None and not isinstance(precision, FSDPPrecisionPlugin):
-            raise TypeError(f"The FSDP strategy can only work with the `FSDPPrecisionPlugin` plugin, found {precision}")
-        self._precision = precision
+    @precision_plugin.setter
+    def precision_plugin(self, precision_plugin: Optional[FSDPPrecisionPlugin]) -> None:
+        if precision_plugin is not None and not isinstance(precision_plugin, FSDPPrecisionPlugin):
+            raise TypeError(
+                f"The FSDP strategy can only work with the `FSDPPrecisionPlugin` plugin, found {precision_plugin}"
+            )
+        self._precision_plugin = precision_plugin
 
     @property
     def distributed_sampler_kwargs(self) -> Dict:

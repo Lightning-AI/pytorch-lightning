@@ -55,7 +55,8 @@ class Strategy(ABC):
     ) -> None:
         self._accelerator: Optional["pl.accelerators.Accelerator"] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision_plugin: Optional[PrecisionPlugin] = precision_plugin
+        self._precision_plugin: PrecisionPlugin
+        self.precision_plugin = precision_plugin  # Call the precision setter for input validation
         self._lightning_module: Optional[pl.LightningModule] = None
         self._model: Optional[Module] = None
         self._launcher: Optional[_Launcher] = None

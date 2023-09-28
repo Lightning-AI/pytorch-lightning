@@ -24,6 +24,7 @@ import pytest
 import torch
 import torch.nn as nn
 from lightning.fabric import Fabric
+from lightning.fabric.plugins import HalfPrecision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import (
@@ -234,7 +235,7 @@ def test_fsdp_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
-@RunIf(min_torch="1.13")
+@RunIf(min_torch="1.12")
 def test_fsdp_grad_clipping_value_error():
     strategy = FSDPStrategy()
     with pytest.raises(
@@ -245,6 +246,16 @@ def test_fsdp_grad_clipping_value_error():
         ),
     ):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
+
+
+@RunIf(min_torch="1.13")
+def test_fsdp_forbidden_precision_raises():
+    with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
+        FSDPStrategy(precision=HalfPrecision())
+
+    strategy = FSDPStrategy()
+    with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
+        strategy.precision = HalfPrecision()
 
 
 @RunIf(min_torch="1.13")

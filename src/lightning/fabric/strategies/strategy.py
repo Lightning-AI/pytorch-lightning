@@ -50,7 +50,8 @@ class Strategy(ABC):
     ) -> None:
         self._accelerator: Optional[Accelerator] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision: Optional[Precision] = precision
+        self._precision: Precision
+        self.precision = precision  # Call the precision setter for input validation
         self._launcher: Optional[_Launcher] = None
         self._backward_sync_control: Optional[_BackwardSyncControl] = None
 
