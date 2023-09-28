@@ -63,7 +63,8 @@ def validate(fabric, model, val_dataloader):
 
 def get_dataloaders(dataset):
     n = len(dataset)
-    train_dataset, val_dataset, test_dataset = random_split(dataset, [n - 4000, 2000, 2000])
+    generator = torch.Generator().manual_seed(42)
+    train_dataset, val_dataset, test_dataset = random_split(dataset, [n - 4000, 2000, 2000], generator=generator)
     train_dataloader = DataLoader(train_dataset, batch_size=20, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=20, shuffle=False)
     test_dataloader = DataLoader(test_dataset, batch_size=20, shuffle=False)

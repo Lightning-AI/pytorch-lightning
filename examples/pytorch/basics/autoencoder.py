@@ -156,7 +156,9 @@ class MyDataModule(LightningDataModule):
         super().__init__()
         dataset = MNIST(DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
         self.mnist_test = MNIST(DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
-        self.mnist_train, self.mnist_val = random_split(dataset, [55000, 5000])
+        self.mnist_train, self.mnist_val = random_split(
+            dataset, [55000, 5000], generator=torch.Generator().manual_seed(42)
+        )
         self.batch_size = batch_size
 
     def train_dataloader(self):
