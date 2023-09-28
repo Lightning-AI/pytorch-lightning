@@ -105,10 +105,12 @@ class BinaryWriter:
     def get_config(self) -> Dict[str, Any]:
         out = super().get_config()
         out.update(self._data_format)
-
         cloud_path = self.get_cloud_path(self._cache_dir)
         if cloud_path:
             out["cloud_path"] = cloud_path
+        user_id = os.getenv("LIGHTNING_USER_ID", None)
+        if user_id:
+            out["user_id"] = user_id
         return out
 
     def serialize(self, items: Dict[str, Any]) -> bytes:
