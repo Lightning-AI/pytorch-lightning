@@ -18,12 +18,10 @@ from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.fabric
 import pytest
 import torch
 import torch.distributed
-from lightning_utilities.test.warning import no_warning_call
-
-import lightning.fabric
 from lightning.fabric import Fabric
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.accelerator import Accelerator
@@ -63,6 +61,8 @@ from lightning.fabric.strategies import (
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
+from lightning_utilities.test.warning import no_warning_call
+
 from tests_fabric.conftest import mock_tpu_available
 from tests_fabric.helpers.runif import RunIf
 
@@ -595,6 +595,26 @@ def test_strategy_choice_ddp_torchelastic(*_):
     assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
     assert connector.strategy.cluster_environment.local_rank() == 1
     assert connector.strategy.local_rank == 1
+
+
+@mock.patch.dict(
+    os.environ,
+    {
+        "TORCHELASTIC_RUN_ID": "1",
+        "SLURM_NTASKS": "2",
+        "WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+    },
+)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_torchelastic_priority_over_slurm(*_):
+    """Test that the TorchElastic cluster environment is chosen over SLURM when both are detected."""
+    assert TorchElasticEnvironment.detect()
+    assert SLURMEnvironment.detect()
+    connector = _Connector(strategy="ddp")
+    assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
 
 
 @mock.patch.dict(

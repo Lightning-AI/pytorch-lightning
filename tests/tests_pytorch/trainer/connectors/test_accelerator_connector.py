@@ -18,12 +18,10 @@ from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.pytorch
 import pytest
 import torch
 import torch.distributed
-from lightning_utilities.core.imports import package_available
-
-import lightning.pytorch
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -58,6 +56,8 @@ from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _lightning_graphcore_available, _lightning_habana_available
+from lightning_utilities.core.imports import package_available
+
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 
@@ -476,6 +476,26 @@ def test_strategy_choice_ddp_torchelastic(_, __, mps_count_0, cuda_count_2):
     assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
     assert trainer.strategy.cluster_environment.local_rank() == 1
     assert trainer.strategy.local_rank == 1
+
+
+@mock.patch.dict(
+    os.environ,
+    {
+        "TORCHELASTIC_RUN_ID": "1",
+        "SLURM_NTASKS": "2",
+        "WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+    },
+)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_torchelastic_priority_over_slurm(*_):
+    """Test that the TorchElastic cluster environment is chosen over SLURM when both are detected."""
+    assert TorchElasticEnvironment.detect()
+    assert SLURMEnvironment.detect()
+    connector = _AcceleratorConnector(strategy="ddp")
+    assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
 
 
 @mock.patch.dict(

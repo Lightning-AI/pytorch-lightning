@@ -19,7 +19,7 @@ import contextlib
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Generator, List, Optional, Set, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Set, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor

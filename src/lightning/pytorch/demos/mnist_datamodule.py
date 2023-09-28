@@ -200,7 +200,9 @@ class MNISTDataModule(LightningDataModule):
         dataset: Dataset = MNIST(self.data_dir, train=True, download=False, **extra)
         assert isinstance(dataset, Sized)
         train_length = len(dataset)
-        self.dataset_train, self.dataset_val = random_split(dataset, [train_length - self.val_split, self.val_split])
+        self.dataset_train, self.dataset_val = random_split(
+            dataset, [train_length - self.val_split, self.val_split], generator=torch.Generator().manual_seed(42)
+        )
 
     def train_dataloader(self) -> DataLoader:
         """MNIST train set removes a subset to use for validation."""

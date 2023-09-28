@@ -2,14 +2,14 @@ import contextlib
 from time import sleep
 
 import pytest
-
-from integrations_app.flagship import _PATH_INTEGRATIONS_DIR
 from lightning.app.testing.testing import run_app_in_cloud
 from lightning.app.utilities.imports import _is_playwright_available
 
+from integrations_app.flagship import _PATH_INTEGRATIONS_DIR
+
 if _is_playwright_available():
     import playwright
-    from playwright.sync_api import expect, Page
+    from playwright.sync_api import Page, expect
 
 
 # TODO: when this function is moved to the app itself we can just import it, so to keep better aligned

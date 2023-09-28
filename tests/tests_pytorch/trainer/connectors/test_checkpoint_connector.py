@@ -17,7 +17,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel

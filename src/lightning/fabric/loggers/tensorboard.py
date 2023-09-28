@@ -15,7 +15,7 @@
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor

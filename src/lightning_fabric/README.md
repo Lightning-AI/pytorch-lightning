@@ -268,8 +268,8 @@ ______________________________________________________________________
 ## When to use Fabric?
 
 - **Minimum code changes**- You want to scale your PyTorch model to use multi-GPU or use advanced strategies like DeepSpeed without having to refactor. You don’t care about structuring your code- you just want to scale it as fast as possible.
-- **Maxmium control**- Write your own training and/or inference logic down to the individual optimizer calls. You aren’t forced to conform to a standardized epoch-based training loop like the one in Lightning Trainer. You can do flexible iteration based training, meta-learning, cross-validation and other types of optimization algorithms without digging into framework internals. This also makes it super easy to adopt Fabric in existing PyTorch projects to speed-up and scale your models without the compromise on large refactors. Just remember: With great power comes a great responsibility.
-- **Maxmium flexibility**- You want to have full control over your entire training- in Fabric all features are opt-in, and it provides you with a tool box of primitives so you can build your own Trainer.
+- **Maximum control**- Write your own training and/or inference logic down to the individual optimizer calls. You aren’t forced to conform to a standardized epoch-based training loop like the one in Lightning Trainer. You can do flexible iteration based training, meta-learning, cross-validation and other types of optimization algorithms without digging into framework internals. This also makes it super easy to adopt Fabric in existing PyTorch projects to speed-up and scale your models without the compromise on large refactors. Just remember: With great power comes a great responsibility.
+- **Maximum flexibility**- You want to have full control over your entire training- in Fabric all features are opt-in, and it provides you with a tool box of primitives so you can build your own Trainer.
 
 ## When to use the [Lightning Trainer](https://lightning.ai/docs/pytorch/stable/common/trainer.html)?
 

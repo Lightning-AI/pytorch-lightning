@@ -1,10 +1,9 @@
 from pathlib import Path
 
 import optuna
-from objective import ObjectiveWork
-
 from lightning.app import CloudCompute, LightningApp, LightningFlow
 from lightning.app.structures import Dict
+from objective import ObjectiveWork
 
 
 class RootHPOFlow(LightningFlow):

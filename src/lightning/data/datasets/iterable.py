@@ -2,14 +2,14 @@ import math
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, runtime_checkable, Sequence, Tuple
+from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Sequence, Tuple, runtime_checkable
 
 import torch
 from torch.utils.data import DataLoader as _DataLoader
 from torch.utils.data import IterableDataset
 
 from lightning.data.datasets.base import _Dataset
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv, Environment
+from lightning.data.datasets.env import Environment, _DistributedEnv, _WorkerEnv
 
 
 class _StatefulIterableDataset(ABC, IterableDataset):

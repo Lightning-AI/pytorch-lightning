@@ -14,7 +14,7 @@
 
 import os
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Generator, Optional
 
 from deepdiff.helper import NotPresent
 from lightning_utilities.core.apply_func import apply_to_collection

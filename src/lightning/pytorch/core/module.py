@@ -19,25 +19,25 @@ import weakref
 from contextlib import contextmanager
 from pathlib import Path
 from typing import (
+    IO,
     Any,
     Callable,
-    cast,
     Dict,
     Generator,
-    IO,
     List,
     Literal,
     Mapping,
     Optional,
-    overload,
     Sequence,
     Tuple,
     Union,
+    cast,
+    overload,
 )
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.imports import compare_version, RequirementCache
+from lightning_utilities.core.imports import RequirementCache, compare_version
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -65,14 +65,14 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
-from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_debug, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import (
     _METRIC,
+    STEP_OUTPUT,
     LRSchedulerPLType,
     LRSchedulerTypeUnion,
     OptimizerLRScheduler,
-    STEP_OUTPUT,
 )
 
 _ONNX_AVAILABLE = RequirementCache("onnx")
@@ -519,7 +519,7 @@ class LightningModule(
 
     def log_dict(
         self,
-        dictionary: Mapping[str, _METRIC],
+        dictionary: Union[Mapping[str, _METRIC], MetricCollection],
         prog_bar: bool = False,
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
@@ -594,7 +594,9 @@ class LightningModule(
             )
         return None
 
-    def _log_dict_through_fabric(self, dictionary: Mapping[str, Any], logger: Optional[bool] = None) -> None:
+    def _log_dict_through_fabric(
+        self, dictionary: Union[Mapping[str, _METRIC], MetricCollection], logger: Optional[bool] = None
+    ) -> None:
         if logger is False:
             # Passing `logger=False` with Fabric does not make much sense because there is no other destination to
             # log to, but we support it in case the original code was written for Trainer use
@@ -606,7 +608,7 @@ class LightningModule(
             apply_to_collection(value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Tensor))
 
         assert self._fabric is not None
-        self._fabric.log_dict(metrics=dictionary)
+        self._fabric.log_dict(metrics=dictionary)  # type: ignore[arg-type]
 
     @staticmethod
     def __check_not_nested(value: dict, name: str) -> None:

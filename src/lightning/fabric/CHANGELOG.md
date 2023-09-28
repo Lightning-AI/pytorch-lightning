@@ -157,6 +157,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Due to lack of reliability, Fabric now only runs on one GPU instead of all GPUs in a Jupyter notebook if `devices="auto"` (default) ([#18291](https://github.com/Lightning-AI/lightning/pull/18291))
 
 
+- Enabled launching via `torchrun` in a SLURM environment; the `TorchElasticEnvironment` now gets chosen over the `SLURMEnvironment` if both are detected ([#18618](https://github.com/Lightning-AI/lightning/pull/18618))
+
+
 ### Deprecated
 
 - Deprecated the `DDPStrategy.is_distributed` property. This strategy is distributed by definition ([#17381](https://github.com/Lightning-AI/lightning/pull/17381))
@@ -201,6 +204,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed issue where unexpected exceptions would leave the default torch dtype modified when using true precision settings ([#18500](https://github.com/Lightning-AI/lightning/pull/18500))
+
+
+- Fixed redundant input-type casting in FSDP precision ([#18630](https://github.com/Lightning-AI/lightning/pull/18630))
 
 
 ## [2.0.9] - 2023-09-14
