@@ -19,15 +19,17 @@ import numpy as np
 from torch.utils.data import IterableDataset
 from torch.utils.data._utils.collate import default_collate
 from torch.utils.data.dataloader import (
-    DataLoader,
     _BaseDataLoaderIter,
     _MultiProcessingDataLoaderIter,
     _SingleProcessDataLoaderIter,
+    DataLoader,
 )
+from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, Sized
 
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.writer import BinaryWriter
+from lightning.data.datasets.env import _DistributedEnv
 
 logger = logging.Logger(__name__)
 
@@ -44,12 +46,16 @@ class Cache:
         self._writer = BinaryWriter(cache_dir, data_format, chunk_size=chunk_size, compression=compression)
         self._reader = BinaryReader(cache_dir, compression=compression)
         self._cache_dir = cache_dir
+        self._is_done = False
 
     # TODO: Find a way to make this faster
     @property
     def filled(self) -> bool:
+        if self._is_done:
+            return True
         files = os.listdir(self._cache_dir)
-        return any(f.endswith("index.json") for f in files)
+        self._is_done = any(f.endswith("index.json") for f in files)
+        return self._is_done
 
     def __setitem__(self, index, data):
         self._writer[index] = data
@@ -149,17 +155,99 @@ class CacheSampler(Sampler):
                 raise StopIteration
 
 
+class DistributedCacheSampler(Sampler):
+    def __init__(self, dataset_size: int, num_replicas: int, rank: int, num_workers: int, batch_size: int):
+        super().__init__(None)
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.indices = range(dataset_size)
+        self.dataset_size = dataset_size
+        replica_size = dataset_size // num_replicas
+        worker_size = dataset_size // (num_replicas * self.num_workers)
+        self.samplers = []
+        for replica_idx in range(num_replicas):
+            if replica_idx != rank:
+                continue
+
+            is_last_replica = replica_idx == num_replicas - 1
+            start_replica = replica_idx * replica_size
+            end_replica = dataset_size if is_last_replica else (replica_idx + 1) * replica_size
+            replica_indices = self.indices[start_replica:end_replica]
+
+            replica_size = len(replica_indices)
+
+            for worker_idx in range(num_workers):
+                is_last_worker = worker_idx == num_workers - 1
+                start_worker = worker_idx * worker_size
+                end_worker = replica_size if is_last_worker else (worker_idx + 1) * worker_size
+                worker_indices = replica_indices[start_worker:end_worker]
+                self.samplers.append(IteratorSampler(worker_indices))
+
+        self.iterators = []
+        self._done = set()
+
+        assert sum([len(s) for s in self.samplers]) == replica_size
+        self.worker_id = 0
+        self.indice_id = 0
+
+    def __len__(self) -> int:
+        return self.dataset_size
+
+    @property
+    def done(self) -> bool:
+        return len(self._done) == len(self.iterators)
+
+    def __iter__(self):
+        self._done = set()
+
+        for sampler in self.samplers:
+            self.iterators.append(iter(sampler))
+
+        return self
+
+    def __next__(self):
+        while len(self._done) != self.iterators:
+            try:
+                data = next(self.iterators[self.worker_id])
+                self.indice_id += 1
+                if self.indice_id == self.batch_size:
+                    self.indice_id = 0
+                    self.worker_id = (self.worker_id + 1) % self.num_workers
+                return data
+            except StopIteration:
+                self._done.add(self.worker_id)
+                self.indice_id = 0
+                self.worker_id = (self.worker_id + 1) % self.num_workers
+                raise StopIteration
+
+
 class CacheBatchSampler(BatchSampler):
     def __init__(
-        self, dataset_size: int, num_workers: int, batch_size: int, drop_last: bool, shuffle: bool, cache: Cache
+        self,
+        dataset_size: int,
+        num_replicas: int,
+        rank: int,
+        num_workers: int,
+        batch_size: int,
+        drop_last: bool,
+        shuffle: bool,
+        cache: Cache,
     ):
-        if not cache.filled and num_workers > 1:
-            sampler = CacheSampler(dataset_size, num_workers, batch_size)
-        elif shuffle:
-            sampler = RandomSampler(range(dataset_size))
+        if num_replicas == 1:
+            if not cache.filled and num_workers > 1:
+                sampler = CacheSampler(dataset_size, num_workers, batch_size)
+            elif shuffle:
+                sampler = RandomSampler(range(dataset_size))
+            else:
+                sampler = SequentialSampler(range(dataset_size))
         else:
-            sampler = SequentialSampler(range(dataset_size))
+            if not cache.filled:
+                sampler = DistributedCacheSampler(dataset_size, num_replicas, rank, num_workers, batch_size)
+            else:
+                sampler = DistributedSampler(range(dataset_size), num_replicas=num_replicas, rank=rank, shuffle=shuffle)
         super().__init__(sampler, batch_size, drop_last)
+        self._num_replicas = num_replicas
+        self._rank = rank
         self._cache = cache
         self._shuffle = shuffle
         self._num_workers = num_workers
@@ -246,10 +334,10 @@ class CacheDataLoader(DataLoader):
         **kwargs,
     ):
         if sampler:
-            raise Exception("Passing a sampler isn't supoprt with the CacheDataLoader yet.")
+            raise Exception("Passing a sampler isn't supoprt with the CacheDataLoader.")
 
         if batch_sampler:
-            raise Exception("Passing a batch_sampler isn't supoprt with the CacheDataLoader yet.")
+            raise Exception("Passing a batch_sampler isn't supoprt with the CacheDataLoader.")
 
         if isinstance(dataset, IterableDataset):
             raise Exception("Only map-based dataset are supported by the CacheDataLoader for now.")
@@ -263,11 +351,23 @@ class CacheDataLoader(DataLoader):
         if not cache.filled and shuffle:
             logger.info("Shuffle is ignored during caching phase")
 
+        distributed_env = _DistributedEnv.detect()
+        batch_sampler = CacheBatchSampler(
+            len(dataset),
+            distributed_env.world_size,
+            distributed_env.global_rank,
+            num_workers,
+            batch_size,
+            drop_last,
+            shuffle,
+            cache,
+        )
+
         super().__init__(
             dataset,
             *args,
             sampler=None,
-            batch_sampler=CacheBatchSampler(len(dataset), num_workers, batch_size, drop_last, shuffle, cache),
+            batch_sampler=batch_sampler,
             generator=generator,
             collate_fn=CacheCollateFn(),
             num_workers=num_workers,

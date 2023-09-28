@@ -1,11 +1,15 @@
 import os
+from functools import partial
 
 import numpy as np
 import pytest
-from lightning import seed_everything
-from lightning.data.cache import Cache, CacheDataLoader
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import Dataset
+
+from lightning import seed_everything
+from lightning.data.cache import Cache, CacheDataLoader
+from lightning.data.datasets.env import _DistributedEnv
+from lightning.fabric import Fabric
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
@@ -47,11 +51,7 @@ class ImageDataset(Dataset):
         return None
 
 
-@pytest.mark.skipif(
-    condition=not _PIL_AVAILABLE or not _TORCH_VISION_AVAILABLE, reason="Requires: ['pil', 'torchvision']"
-)
-@pytest.mark.parametrize("num_workers", [0, 1, 2])
-def test_cache_for_image_dataset(num_workers, tmpdir):
+def cache_for_image_dataset(num_workers, tmpdir):
     import io
 
     from PIL import Image
@@ -59,10 +59,11 @@ def test_cache_for_image_dataset(num_workers, tmpdir):
     dataset_size = 85
 
     cache_dir = os.path.join(tmpdir, "cache")
-    os.makedirs(cache_dir)
+
     cache = Cache(cache_dir, data_format={"image": "jpeg", "class": "int", "index": "int"}, chunk_size=2 << 12)
     dataset = ImageDataset(tmpdir, cache, dataset_size, 10)
-    for _ in CacheDataLoader(dataset, num_workers=num_workers, batch_size=4):
+    dataloader = CacheDataLoader(dataset, num_workers=num_workers, batch_size=4)
+    for _ in dataloader:
         pass
 
     for i in range(len(dataset)):
@@ -72,13 +73,15 @@ def test_cache_for_image_dataset(num_workers, tmpdir):
         original_image = Image.open(io.BytesIO(original_data["image"]))
         assert cached_data["image"] == original_image
 
+    distributed_env = _DistributedEnv.detect()
     dataset.use_transform = True
 
-    indexes = []
-    for batch in CacheDataLoader(dataset, num_workers=num_workers, batch_size=4):
-        indexes.extend(batch["index"].numpy().tolist())
+    if distributed_env.world_size == 1:
+        indexes = []
+        for batch in CacheDataLoader(dataset, num_workers=num_workers, batch_size=4):
+            indexes.extend(batch["index"].numpy().tolist())
 
-    assert indexes == list(range(dataset_size))
+        assert len(indexes) == dataset_size
 
     seed_everything(42)
 
@@ -95,3 +98,30 @@ def test_cache_for_image_dataset(num_workers, tmpdir):
         indexes2.extend(batch["index"].numpy().tolist())
 
     assert indexes2 != indexes
+
+
+@pytest.mark.skipif(
+    condition=not _PIL_AVAILABLE or not _TORCH_VISION_AVAILABLE, reason="Requires: ['pil', 'torchvision']"
+)
+@pytest.mark.parametrize("num_workers", [0, 1, 2])
+def test_cache_for_image_dataset(num_workers, tmpdir):
+    cache_dir = os.path.join(tmpdir, "cache")
+    os.makedirs(cache_dir)
+
+    cache_for_image_dataset(num_workers, tmpdir)
+
+
+def fabric_cache_for_image_dataset(_, num_workers, tmpdir):
+    cache_for_image_dataset(num_workers, tmpdir)
+
+
+@pytest.mark.skipif(
+    condition=not _PIL_AVAILABLE or not _TORCH_VISION_AVAILABLE, reason="Requires: ['pil', 'torchvision']"
+)
+@pytest.mark.parametrize("num_workers", [2])
+def test_cache_for_image_dataset_distributed(num_workers, tmpdir):
+    cache_dir = os.path.join(tmpdir, "cache")
+    os.makedirs(cache_dir)
+
+    fabric = Fabric(accelerator="cpu", devices=2, strategy="ddp_spawn")
+    fabric.launch(partial(fabric_cache_for_image_dataset, num_workers=num_workers, tmpdir=tmpdir))

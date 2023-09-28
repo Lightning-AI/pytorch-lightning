@@ -85,7 +85,10 @@ class BinaryReader:
             raise Exception("The reader index isn't defined.")
 
         chunk_id = self._map_index_to_chunk_id(index)
-        chunk_config = self._index["chunks"][chunk_id]
+        try:
+            chunk_config = self._index["chunks"][chunk_id]
+        except Exception as e:
+            raise Exception(f"Found {str(self._index['chunks'])} {chunk_id}" + str(e))
         chunk_path = os.path.join(self._cache_dir, chunk_config["filename"])
         raw_item_data, item_config = self.load_item_from_chunk(
             index, chunk_path, keep_in_memory=self._should_keep_in_memory()
