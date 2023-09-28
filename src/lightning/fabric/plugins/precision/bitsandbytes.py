@@ -53,6 +53,10 @@ class BitsandbytesPrecision(Precision):
         dtype: The compute dtype to use.
     """
 
+    # Note: you'll notice that the `precision` str class attribute is not defined. This is on purpose because there are
+    # many configuration options so `precision="bitsandbytes"` would be ambiguous about which one to use. Additionally,
+    # it would create backwards compatibility challenges if better modes or dtypes are added in the future
+
     # TODO: we could implement optimizer replacement with
     # - Fabric: Add `Precision.convert_optimizer` from `Strategy.setup_optimizer`
     # - Trainer: Use `PrecisionPlugin.connect`
@@ -212,5 +216,4 @@ if _BITSANDBYTES_AVAILABLE:
             super().__init__(*args, **kwargs)
 
 
-# FIXME: disable this plugin and TE with FSDP
 # FIXME: way to skip modules

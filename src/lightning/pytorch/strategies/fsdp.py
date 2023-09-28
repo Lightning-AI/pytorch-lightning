@@ -159,6 +159,8 @@ class FSDPStrategy(ParallelStrategy):
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
             raise MisconfigurationException("`FSDPStrategy` is supported from PyTorch v1.12.0 onwards.")
+        if not isinstance(precision_plugin, FSDPPrecisionPlugin):
+            raise TypeError("The FSDP strategy can only work with the `FSDPPrecision` plugin")
 
         super().__init__(
             accelerator=accelerator,
