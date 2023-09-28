@@ -16,7 +16,7 @@ import os
 import warnings
 from contextlib import ExitStack
 from types import ModuleType
-from typing import Any, ContextManager, Dict, Literal, Optional
+from typing import Any, ContextManager, Dict, Literal, Optional, Set, Type
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -41,15 +41,15 @@ class BitsandbytesPrecision(Precision):
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
-    The model needs to be instantiated under the :meth:`lightning.fabric.fabric.Fabric.init_module()` method. It does
-    not support conversion via :meth:`lightning.fabric.fabric.Fabric.setup`.
-
     .. note::
         The optimizer is not automatically replaced with ``bitsandbytes.optim.Adam8bit`` or equivalent 8-bit optimizers.
 
     Args:
         mode: The quantization mode to use.
         dtype: The compute dtype to use.
+        skips: The submodules whose Linear layers should not be replaced, for example. ``{"transformer.lm_head"}``.
+            This might be desirable for numerical stability. The string will be checked in as a prefix, so a value like
+            "transformer.blocks" will skip all linear layers in all of the transformer blocks.
     """
 
     # Note: you'll notice that the `precision` str class attribute is not defined. This is on purpose because there are
@@ -64,6 +64,7 @@ class BitsandbytesPrecision(Precision):
         self,
         mode: Literal["nf4", "nf4-dq", "fp4", "fp4-dq", "int8", "int8-training"],
         dtype: Optional[torch.dtype] = None,
+        skips: Optional[Set[str]] = None,
     ) -> None:
         if not _BITSANDBYTES_AVAILABLE:
             raise ModuleNotFoundError(str(_BITSANDBYTES_AVAILABLE))
@@ -90,8 +91,21 @@ class BitsandbytesPrecision(Precision):
         }
         self._linear_cls = mode_to_cls[mode]
         self.dtype = dtype
+        self.skips = skips or set()
 
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
+        # avoid naive users thinking they quantized their model
+        if not any(isinstance(m, torch.nn.Linear) for m in module.modules()):
+            raise TypeError(
+                "You are using the bitsandbytes precision plugin, but your model has no Linear layers. This plugin"
+                " won't work for your model."
+            )
+
+        # convert modules if they haven't been converted already
+        if not any("bitsandbytes.nn" in m.__module__ for m in module.modules()):
+            _convert_layers(module, self._linear_cls, self.skips)
+
+        # set the compute dtype if necessary
         for m in module.modules():
             if isinstance(m, _Linear4bit):
                 m.compute_dtype = self.dtype
@@ -99,8 +113,12 @@ class BitsandbytesPrecision(Precision):
         return module
 
     def init_context(self) -> ContextManager:
+        dtype_ctx = _DtypeContextManager(self.dtype)
+        if self.skips:
+            # cannot patch the Linear class if the user wants to skip some submodules
+            return dtype_ctx
         stack = ExitStack()
-        stack.enter_context(_DtypeContextManager(self.dtype))
+        stack.enter_context(dtype_ctx)
         # TODO: this could also consider replacing with `bnb.nn.Embedding`
         context_manager = _ClassReplacementContextManager({"torch.nn.Linear": self._linear_cls})
         stack.enter_context(context_manager)
@@ -215,4 +233,15 @@ if _BITSANDBYTES_AVAILABLE:
             super().__init__(*args, **kwargs)
 
 
-# FIXME: way to skip modules
+def _convert_layers(module: torch.nn.Module, linear_cls: Type[torch.nn.Linear], skips: Set[str]) -> None:
+    for name, child in module.named_children():
+        if isinstance(child, torch.nn.Linear) and not any(name.startswith(s) for s in skips):
+            has_bias = child.bias is not None
+            replacement = linear_cls(child.in_features, child.out_features, bias=has_bias)
+            replacement.weight.data = child.weight.data.clone()
+            if has_bias:
+                replacement.bias.data = child.bias.data.clone()
+            log.debug(f"Replacing layer {name!r} with bitsandbytes equivalent")
+            module.__setattr__(name, replacement)
+        else:
+            _convert_layers(child, linear_cls, skips)

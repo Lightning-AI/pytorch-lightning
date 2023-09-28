@@ -32,9 +32,8 @@ def test_bitsandbytes_plugin(monkeypatch):
     bitsandbytes_mock = Mock()
     monkeypatch.setitem(sys.modules, "bitsandbytes", bitsandbytes_mock)
 
-    class ModuleMock(torch.nn.Module):
-        def __init__(self, *_, **__):
-            super().__init__()
+    class ModuleMock(torch.nn.Linear):
+        ...
 
     class NF4LinearMock(ModuleMock):
         ...
@@ -78,3 +77,18 @@ def test_bitsandbytes_plugin(monkeypatch):
     model = precision.convert_module(model)
     assert model.l1.compute_dtype is precision.dtype
     assert model.l2.l.compute_dtype is precision.dtype
+
+    model = MyModule()
+    precision.convert_module(model)
+    assert isinstance(model.l1, NF4LinearMock)
+    assert isinstance(model.l2.l, NF4LinearMock)
+
+    precision.skips = {"l2"}
+    model = MyModule()
+    precision.convert_module(model)
+    assert isinstance(model.l1, NF4LinearMock)
+    assert isinstance(model.l2.l, torch.nn.Linear)
+
+    model = torch.nn.Conv1d(1, 1, 1)
+    with pytest.raises(TypeError, match="your model has no Linear"):
+        precision.convert_module(model)

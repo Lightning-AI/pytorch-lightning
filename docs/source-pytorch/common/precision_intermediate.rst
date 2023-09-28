@@ -191,8 +191,8 @@ The Trainer automatically replaces the :class:`torch.nn.Linear` layers in your m
     precision = BitsandbytesPrecisionPlugin("nf4-dq")
     trainer = Trainer(plugins=precision)
 
-    # choose yourself
-    precision = BitsandbytesPrecisionPlugin("int8-training", dtype=torch.float16)
+    # Customize the dtype, or skip some modules
+    precision = BitsandbytesPrecisionPlugin("int8-training", dtype=torch.float16, skips={"transformer.lm_head"})
     trainer = Trainer(plugins=precision)
 
 
@@ -220,7 +220,7 @@ You might want to do this for extra memory savings.
         def configure_optimizers(self):
             optimizer = bnb.optim.Adam8bit(model.parameters(), lr=0.001, betas=(0.9, 0.995))
 
-            # (optional) force embedding layers to use 32 bit for training stability
+            # (optional) force embedding layers to use 32 bit for numerical stability
             # https://github.com/huggingface/transformers/issues/14819#issuecomment-1003445038
             for module in model.modules():
                 if isinstance(module, torch.nn.Embedding):

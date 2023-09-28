@@ -240,13 +240,16 @@ Fabric automatically replaces the :class:`torch.nn.Linear` layers in your model 
     precision = BitsandbytesPrecision("nf4-dq")
     fabric = Fabric(plugins=precision)
 
-    # choose yourself
-    precision = BitsandbytesPrecision("int8-training", dtype=torch.float16)
+    # Customize the dtype, or skip some modules
+    precision = BitsandbytesPrecision("int8-training", dtype=torch.float16, skips={"transformer.lm_head"})
     fabric = Fabric(plugins=precision)
 
-    with fabric.init_module():
-        # instantiate your model under this context manager
-        model = MyModel()
+    model = MyModel()
+    model = fabric.setup(model)
+
+
+You can also directly initialize the model with the quantized layers if you are not setting any ``skips=...`` by
+initializing your model under the :meth:`~lightning.fabric.fabric.Fabric.init_module` context manager.
 
 
 .. note::
@@ -264,7 +267,7 @@ You might want to do this for extra memory savings.
 
     optimizer = bnb.optim.Adam8bit(model.parameters(), lr=0.001, betas=(0.9, 0.995))
 
-    # (optional) force embedding layers to use 32 bit for training stability
+    # (optional) force embedding layers to use 32 bit for numerical stability
     # https://github.com/huggingface/transformers/issues/14819#issuecomment-1003445038
     for module in model.modules():
         if isinstance(module, torch.nn.Embedding):
