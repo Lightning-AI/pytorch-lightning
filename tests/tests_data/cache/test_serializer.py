@@ -61,7 +61,6 @@ def test_jpeg_serializer(mode, tmpdir):
 
 @pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
 @pytest.mark.parametrize("mode", ["I", "L", "RGB"])
-@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
 def test_pil_serializer(mode):
     serializer = PILSerializer()
 

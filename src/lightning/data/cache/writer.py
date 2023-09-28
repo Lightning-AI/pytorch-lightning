@@ -115,9 +115,7 @@ class BinaryWriter:
         offsets = np.array([0] + sizes).cumsum().astype(np.uint32)
         offsets += len(num_items.tobytes()) + len(offsets.tobytes()) + len(self._config_data)
         sample_data = b"".join(self._serialized_items)
-
         data = num_items.tobytes() + offsets.tobytes() + self._config_data + sample_data
-
         offsets = offsets.tolist()
         mapping = {}
         for i in range(len(self._indexes)):
@@ -165,12 +163,21 @@ class BinaryWriter:
         serialized_items_size = len(serialized_items)
 
         if self._chunk_size < self._current_chunk_size + serialized_items_size:
+            if self._current_chunk_size == 0:
+                raise Exception(
+                    f"The provided chunk_size {self._chunk_size} is too small."
+                    f" You should use a multiple of {serialized_items_size} bytes."
+                )
             self.write_chunk(rank)
             self.reset()
             self._chunk_id += 1
 
         self._serialized_items.append(serialized_items)
         self._current_chunk_size += serialized_items_size
+
+        # The dataset should be indexed in a non-sorted manner
+        if self._indexes:
+            assert self._indexes[-1] + 1 == index
         self._indexes.append(index)
 
     def write_file(

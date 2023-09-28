@@ -62,7 +62,7 @@ class BinaryReader:
     def _should_keep_in_memory(self):
         return True
 
-    def read(self, index: int, rank):
+    def read(self, index: int, rank: int = 0):
         if self._index is None:
             self._try_read_index()
 
@@ -106,6 +106,7 @@ class BinaryReader:
                 data = fp.read()
             self._chunks_data[chunk_name]["data"] = data
             return data[begin:end], config
+
         with open(chunk_path, "rb", 0) as fp:
             fp.seek(begin)
             data = fp.read(end - begin)
