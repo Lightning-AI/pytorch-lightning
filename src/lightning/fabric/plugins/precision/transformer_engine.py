@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 from contextlib import ExitStack
-from typing import Any, ContextManager, Literal, Mapping, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, ContextManager, Literal, Mapping, Optional, Union
 
 import torch
 from lightning_utilities import apply_to_collection

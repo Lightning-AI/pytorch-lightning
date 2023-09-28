@@ -1,5 +1,4 @@
 from command import CustomCommand, CustomConfig
-
 from lightning import LightningFlow
 from lightning.app.api import Get, Post
 from lightning.app.core.app import LightningApp

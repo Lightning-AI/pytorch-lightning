@@ -66,7 +66,7 @@ The example below shows how to use the class-based interface:
     acc = metric.compute()
     print(f"Accuracy on all data: {acc}")
 
-    # Reseting internal state such that metric ready for new data
+    # Resetting internal state such that metric ready for new data
     metric.reset()
 
 ------------

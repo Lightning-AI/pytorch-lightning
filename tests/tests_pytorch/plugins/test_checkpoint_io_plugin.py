@@ -17,7 +17,6 @@ from typing import Any, Dict, Optional
 from unittest.mock import MagicMock, Mock
 
 import torch
-
 from lightning.fabric.plugins import CheckpointIO, TorchCheckpointIO
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch import Trainer

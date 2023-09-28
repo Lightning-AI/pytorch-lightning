@@ -1,5 +1,4 @@
 import torch
-
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 

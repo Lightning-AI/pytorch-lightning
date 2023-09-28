@@ -1,6 +1,7 @@
 import os
 from unittest import mock
 
+from lightning.store import download_model, list_models, upload_model
 from lightning_cloud.openapi import (
     V1DownloadModelResponse,
     V1GetUserResponse,
@@ -12,8 +13,6 @@ from lightning_cloud.openapi import (
     V1UploadModelRequest,
     V1UploadModelResponse,
 )
-
-from lightning.store import download_model, list_models, upload_model
 
 
 @mock.patch("lightning.store.store._Client")

@@ -1,10 +1,9 @@
 # app.py
 # ! pip install torch
 import torch
-from torch.nn.parallel.distributed import DistributedDataParallel
-
 from lightning.app import CloudCompute, LightningApp, LightningWork
 from lightning.app.components import MultiNode
+from torch.nn.parallel.distributed import DistributedDataParallel
 
 
 def distributed_train(local_rank: int, main_address: str, main_port: int, num_nodes: int, node_rank: int, nprocs: int):
