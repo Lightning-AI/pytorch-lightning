@@ -211,6 +211,8 @@ class FSDPStrategy(ParallelStrategy):
         plugin = self.precision_plugin
         if isinstance(plugin, FSDPPrecisionPlugin):
             return plugin.mixed_precision_config
+        if isinstance(plugin, PrecisionPlugin):
+            raise TypeError(f"The FSDP strategy can only work with the `FSDPPrecisionPlugin` plugin, found {plugin}")
         return None
 
     @property
