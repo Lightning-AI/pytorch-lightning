@@ -77,10 +77,14 @@ class JPEGSerializer(Serializer):
     """The JPEGSerializer serialize and deserialize JPEG image to and from bytes."""
 
     def serialize(self, obj: Image) -> bytes:
-        if isinstance(obj, JpegImageFile) and hasattr(obj, "filename"):
+        if isinstance(obj, JpegImageFile):
+            if not hasattr(obj, "filename"):
+                raise ValueError(
+                    "The JPEG Image's filename isn't defined. HINT: Open the image in your Dataset __getitem__ method."
+                )
             with open(obj.filename, "rb") as f:
                 return f.read()
-        raise TypeError(f"The provided object should be of type {JpegImageFile}")
+        raise TypeError(f"The provided object should be of type {JpegImageFile}. Found {obj}.")
 
     def deserialize(self, data: bytes) -> Image:
         inp = BytesIO(data)

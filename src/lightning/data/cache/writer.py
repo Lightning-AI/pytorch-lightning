@@ -18,7 +18,9 @@ from typing import Any, Dict, Optional
 import numpy as np
 
 from lightning.data.cache.compression import _COMPRESSORS
+from lightning.data.cache.env import _WorkerEnv
 from lightning.data.cache.serializers import _SERIALIZERS
+from lightning.data.datasets.env import _DistributedEnv
 
 
 class BinaryWriter:
@@ -78,6 +80,17 @@ class BinaryWriter:
         text = json.dumps(obj, sort_keys=True)
         self._config_data = text.encode("utf-8")
 
+        self._env = _DistributedEnv.detect()
+        self._worker_env = None
+        self._rank = None
+
+    @property
+    def rank(self):
+        if self._rank is None:
+            self._worker_env = _WorkerEnv.detect()
+            self._rank = self._env.global_rank * self._worker_env.world_size + self._worker_env.rank
+        return self._rank
+
     def get_config(self) -> Dict[str, Any]:
         out = super().get_config()
         out.update(self._data_format)
@@ -101,7 +114,6 @@ class BinaryWriter:
             serializer_name = self._data_format[key]
             serializer = self._serializers[serializer_name]
             serialized_data = serializer.serialize(items[key]) if not isinstance(items[key], bytes) else items[key]
-
             sizes.append(len(serialized_data))
             data.append(serialized_data)
 
@@ -134,11 +146,11 @@ class BinaryWriter:
 
         return data
 
-    def write_chunk(self, rank: int):
+    def write_chunk(self):
         if self._compression:
-            filename = f"chunk-{rank}-{self._chunk_id}.{self._compression}.bin"
+            filename = f"chunk-{self.rank}-{self._chunk_id}.{self._compression}.bin"
         else:
-            filename = f"chunk-{rank}-{self._chunk_id}.bin"
+            filename = f"chunk-{self.rank}-{self._chunk_id}.bin"
         self.write_file(self._create_chunk(filename), filename)
 
     @property
@@ -158,7 +170,7 @@ class BinaryWriter:
         self._indexes = []
         self._current_chunk_size = 0
 
-    def __setitem__(self, index, items: any, rank=0):
+    def __setitem__(self, index, items: any):
         serialized_items = self.serialize(items)
         serialized_items_size = len(serialized_items)
 
@@ -168,16 +180,16 @@ class BinaryWriter:
                     f"The provided chunk_size {self._chunk_size} is too small."
                     f" You should use a multiple of {serialized_items_size} bytes."
                 )
-            self.write_chunk(rank)
+            self.write_chunk()
             self.reset()
             self._chunk_id += 1
 
         self._serialized_items.append(serialized_items)
         self._current_chunk_size += serialized_items_size
 
-        # The dataset should be indexed in a non-sorted manner
         if self._indexes:
-            assert self._indexes[-1] + 1 == index
+            assert self._indexes[-1] == index - 1
+
         self._indexes.append(index)
 
     def write_file(
@@ -191,13 +203,13 @@ class BinaryWriter:
         with open(filepath, "wb") as out:
             out.write(raw_data)
 
-    def write_chunks_index(self, rank: int):
-        filepath = os.path.join(self._cache_dir, f"{rank}.index.json")
+    def write_chunks_index(self):
+        filepath = os.path.join(self._cache_dir, f"{self.rank}.index.json")
         with open(filepath, "w") as out:
             json.dump({"chunks": self._chunks_info}, out, sort_keys=True)
 
-    def done(self, rank: int = 0):
+    def done(self):
         if self._serialized_items:
-            self.write_chunk(rank)
-            self.write_chunks_index(rank)
+            self.write_chunk()
+            self.write_chunks_index()
             self.reset()

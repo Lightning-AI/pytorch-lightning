@@ -11,8 +11,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
-from typing import Dict, Iterable, Iterator, Optional, Union
+from typing import Dict, Iterator, List, Optional, Union
 
 import numpy as np
 from torch.utils.data import IterableDataset
@@ -23,11 +24,12 @@ from torch.utils.data.dataloader import (
     _SingleProcessDataLoaderIter,
     DataLoader,
 )
-from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, Sized
+from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler, Sized
 
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.writer import BinaryWriter
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
+
+logger = logging.Logger(__name__)
 
 
 class Cache:
@@ -43,31 +45,20 @@ class Cache:
         self._reader = BinaryReader(cache_dir, compression=compression)
         self._cache_dir = cache_dir
 
-        self._env = _DistributedEnv.detect()
-        self._worker_env = None
-        self._rank = None
-
-    @property
-    def rank(self):
-        if self._rank is None:
-            self._worker_env = _WorkerEnv.detect()
-            self._rank = self._env.global_rank * self._worker_env.world_size + self._worker_env.rank
-
-        return self._rank
-
+    # TODO: Find a way to make this faster
     @property
     def filled(self) -> bool:
         files = os.listdir(self._cache_dir)
         return any(f.endswith("index.json") for f in files)
 
     def __setitem__(self, index, data):
-        self._writer.write(data, self.rank)
+        self._writer[index] = data
 
     def __getitem__(self, index):
-        self._reader.read(index, self.rank)
+        return self._reader.read(index)
 
     def done(self):
-        self._writer.done(self.rank)
+        self._writer.done()
 
     def __len__(self):
         return self._reader.get_length()
@@ -85,22 +76,6 @@ class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
                 if isinstance(v, Cache):
                     v.done()
             raise StopIteration()
-
-
-class CacheSampler(Sampler):
-    def __init__(self, dataset, generator, shuffle):
-        super().__init__(dataset)
-
-        if shuffle:
-            self._sampler = RandomSampler(dataset, generator=generator)  # type: ignore[arg-type]
-        else:
-            self._sampler = SequentialSampler(dataset)  # type: ignore[arg-type]
-
-    def __iter__(self):
-        return iter(self._sampler)
-
-    def __len__(self) -> int:
-        return len(self._sampler)
 
 
 class IteratorSampler(Sampler[int]):
@@ -122,17 +97,90 @@ class IteratorSampler(Sampler[int]):
         return len(self.data_source)
 
 
+class CacheSampler(Sampler):
+    def __init__(self, dataset_size: int, num_workers: int, batch_size: int):
+        super().__init__(None)
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.indices = range(dataset_size)
+        worker_size = dataset_size // self.num_workers
+        self.samplers = []
+        for worker_idx in range(num_workers):
+            is_last = worker_idx == num_workers - 1
+            worker_indices = self.indices[
+                worker_idx * worker_size : dataset_size if is_last else (worker_idx + 1) * worker_size
+            ]
+            self.samplers.append(IteratorSampler(worker_indices))
+        self.iterators = []
+        self._done = set()
+        assert sum([len(s) for s in self.samplers]) == dataset_size
+        self.worker_id = 0
+        self.indice_id = 0
+
+    @property
+    def done(self) -> bool:
+        return len(self._done) == len(self.iterators)
+
+    def __iter__(self):
+        self._done = set()
+
+        for sampler in self.samplers:
+            self.iterators.append(iter(sampler))
+
+        return self
+
+    def __next__(self):
+        while len(self._done) != self.iterators:
+            try:
+                data = next(self.iterators[self.worker_id])
+                self.indice_id += 1
+                if self.indice_id == self.batch_size:
+                    self.indice_id = 0
+                    self.worker_id = (self.worker_id + 1) % self.num_workers
+                return data
+            except StopIteration:
+                self._done.add(self.worker_id)
+                self.indice_id = 0
+                self.worker_id = (self.worker_id + 1) % self.num_workers
+                raise StopIteration
+
+
 class CacheBatchSampler(BatchSampler):
     def __init__(
-        self, sampler: Union[Sampler[int], Iterable[int]], batch_size: int, drop_last: bool, shuffle: bool, cache: Cache
+        self, dataset_size: int, num_workers: int, batch_size: int, drop_last: bool, shuffle: bool, cache: Cache
     ):
+        if num_workers >= 1:
+            sampler = CacheSampler(dataset_size, num_workers, batch_size)
+        else:
+            sampler = SequentialSampler(range(dataset_size))
         super().__init__(sampler, batch_size, drop_last)
         self._cache = cache
         self._shuffle = shuffle
+        self._num_workers = num_workers
+
+    def __modified_iter__(self) -> Iterator[List[int]]:
+        # Implemented based on the benchmarking in https://github.com/pytorch/pytorch/pull/76951
+        iterator = iter(self.sampler)
+        batch = []
+        while not self.sampler.done:
+            try:
+                idx = next(iterator)
+                batch.append(idx)
+                if len(batch) == self.batch_size:
+                    yield batch
+                    batch = []
+            except StopIteration:
+                if self.sampler.done:
+                    yield batch
+                    return
+                yield batch
+                batch = []
 
     def __iter__(self):
         if self._cache.filled and self._shuffle:
             return self.__iter__cache__()
+        if self._num_workers >= 1:
+            return self.__modified_iter__()
         return super().__iter__()
 
     def __iter__cache__(self):
@@ -170,23 +218,14 @@ StopIterationEvent = "StopIterationEvent"
 
 
 class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
-    def _next_index(self):
-        try:
-            return super()._next_index()
-        except StopIteration:
-            for worker_queue_idx in range(self._num_workers):
-                self._index_queues[worker_queue_idx].put((worker_queue_idx + self._send_idx, [StopIterationEvent]))
-                self._task_info[self._send_idx] = (worker_queue_idx,)
-            raise StopIteration
+    def __init__(self, loader):
+        # Patch PyTorch worker loop
+        from torch.utils.data._utils import worker
 
-    def _next_data(self):
-        try:
-            return super()._next_data()
-        except (KeyError, AssertionError, ValueError):
-            self._shutdown_workers()
-            return None
-        except Exception as e:
-            raise e
+        from lightning.data.cache.worker import _worker_loop
+
+        worker._worker_loop = _worker_loop
+        super().__init__(loader)
 
 
 class CacheDataLoader(DataLoader):
@@ -196,10 +235,10 @@ class CacheDataLoader(DataLoader):
         *args,
         sampler=None,
         batch_sampler=None,
-        num_workers=1,
+        num_workers=0,
         shuffle: bool = False,
         generator=None,
-        batch_size=None,
+        batch_size=1,
         drop_last=False,
         **kwargs,
     ):
@@ -218,14 +257,14 @@ class CacheDataLoader(DataLoader):
             raise Exception(f"The CacheDataloader should be used with a dataset using a single cache. Found {cache}.")
 
         cache = cache[0]
-        batch_sampler = CacheBatchSampler(
-            CacheSampler(dataset, generator, shuffle), batch_size, drop_last, shuffle, cache
-        )
+        if not cache.filled and shuffle:
+            logger.info("Shuffle is ignored during caching phase")
+
         super().__init__(
             dataset,
             *args,
             sampler=None,
-            batch_sampler=batch_sampler,
+            batch_sampler=CacheBatchSampler(len(dataset), num_workers, batch_size, drop_last, shuffle, cache),
             generator=generator,
             collate_fn=CacheCollateFn(),
             num_workers=num_workers,

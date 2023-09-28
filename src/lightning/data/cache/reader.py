@@ -17,7 +17,9 @@ from typing import Optional
 
 import numpy as np
 
+from lightning.data.cache.env import _WorkerEnv
 from lightning.data.cache.serializers import _SERIALIZERS
+from lightning.data.datasets.env import _DistributedEnv
 
 
 class BinaryReader:
@@ -29,6 +31,18 @@ class BinaryReader:
         self._intervals = None
         self._chunks_data = {}
         self._serializers = _SERIALIZERS
+
+        self._env = _DistributedEnv.detect()
+        self._worker_env = None
+        self._rank = None
+
+    @property
+    def rank(self):
+        if self._rank is None:
+            self._worker_env = _WorkerEnv.detect()
+            self._rank = self._env.global_rank * self._worker_env.world_size + self._worker_env.rank
+
+        return self._rank
 
     def _try_read_index(self):
         files = os.listdir(self._cache_dir)
@@ -49,7 +63,8 @@ class BinaryReader:
             self._chunks_data[chunk["filename"]] = chunk
 
         self._intervals = []
-        cumsum_samples = np.cumsum([0] + [v["samples"] for v in self._index["chunks"]] + [1])
+        num_samples = [v["samples"] for v in self._index["chunks"]]
+        cumsum_samples = np.cumsum([0] + num_samples)
         for i in range(len(cumsum_samples) - 1):
             self._intervals.append([cumsum_samples[i], cumsum_samples[i + 1]])
 
@@ -62,7 +77,7 @@ class BinaryReader:
     def _should_keep_in_memory(self):
         return True
 
-    def read(self, index: int, rank: int = 0):
+    def read(self, index: int):
         if self._index is None:
             self._try_read_index()
 
