@@ -83,7 +83,7 @@ def _setup_args() -> Dict[str, Any]:
 
     install_requires = _ASSISTANT.load_requirements(
         _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
-    )
+    ) + ["pytorch-lightning"]
 
     return {
         "name": "lightning",
