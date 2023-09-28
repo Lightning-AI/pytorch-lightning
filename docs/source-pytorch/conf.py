@@ -100,7 +100,7 @@ assist_local.AssistantCLI.pull_docs_files(
     target_dir="docs/source-pytorch/integrations/hpu",
     # todo: update after release
     # checkout="tags/1.0.0",
-    checkout="tags/1.1.0.dev",
+    checkout="tags/1.1.0",
 )
 
 if not _FAST_DOCS_DEV:
