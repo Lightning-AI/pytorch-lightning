@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copy pasted from https://github.com/pytorch/pytorch/blob/main/torch/utils/data/_utils/worker.py + lines 337-347
+# Copy pasted from https://github.com/pytorch/pytorch/blob/main/torch/utils/data/_utils/worker.py + lines 332-342
 # TODO: Delete me when this is addressed https://github.com/pytorch/pytorch/issues/110156
 
 
