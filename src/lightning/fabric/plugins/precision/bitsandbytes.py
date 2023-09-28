@@ -233,7 +233,7 @@ if _BITSANDBYTES_AVAILABLE:
             super().__init__(*args, **kwargs)
 
 
-def _convert_layers(module: torch.nn.Module, linear_cls: Type[torch.nn.Linear], skips: Set[str]) -> None:
+def _convert_layers(module: torch.nn.Module, linear_cls: Type, skips: Set[str]) -> None:
     for name, child in module.named_children():
         if isinstance(child, torch.nn.Linear) and not any(name.startswith(s) for s in skips):
             has_bias = child.bias is not None
