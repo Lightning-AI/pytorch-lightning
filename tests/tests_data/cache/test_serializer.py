@@ -2,9 +2,8 @@ import os
 
 import numpy as np
 import pytest
-from lightning_utilities.core.imports import RequirementCache
-
 from lightning.data.cache.serializers import _SERIALIZERS, IntSerializer, JPEGSerializer, PILSerializer
+from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 

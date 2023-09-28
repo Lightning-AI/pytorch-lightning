@@ -3,10 +3,9 @@ import os
 
 import numpy as np
 import pytest
-from lightning_utilities.core.imports import RequirementCache
-
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.writer import BinaryWriter
+from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 
