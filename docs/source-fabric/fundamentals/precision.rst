@@ -249,13 +249,26 @@ Fabric automatically replaces the :class:`torch.nn.Linear` layers in your model 
         model = MyModel()
 
 
-This plugin does not take care of replacing your optimizer with an 8-bit optimizer e.g. `bitsandbytes.optim.Adam8bit``.
-You might want to do this for extra memory savings.
-
 .. note::
 
     Only supports CUDA devices and the Linux operating system. Windows users should use
     `WSL2 <https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl>`__.
+
+
+This plugin does not take care of replacing your optimizer with an 8-bit optimizer e.g. `bitsandbytes.optim.Adam8bit``.
+You might want to do this for extra memory savings.
+
+.. code-block:: python
+
+    import bitsandbytes as bnb
+
+    optimizer = bnb.optim.Adam8bit(model.parameters(), lr=0.001, betas=(0.9, 0.995))
+
+    # (optional) force embedding layers to use 32 bit for training stability
+    # https://github.com/huggingface/transformers/issues/14819#issuecomment-1003445038
+    for module in model.modules():
+        if isinstance(module, torch.nn.Embedding):
+            bnb.optim.GlobalOptimManager.get_instance().register_module_override(module, "weight", {"optim_bits": 32})
 
 
 ----

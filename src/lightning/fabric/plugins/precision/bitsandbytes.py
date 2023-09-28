@@ -44,12 +44,18 @@ class BitsandbytesPrecision(Precision):
 
     The model needs to be instantiated under the :meth:`lightning.fabric.fabric.Fabric.init_module()` method. It does
     not support conversion via :meth:`lightning.fabric.fabric.Fabric.setup`.
-    The optimizer is not replaced with ``bitsandbytes.optim.Adam8bit`` or similar 8-bit optimizers.
+
+    .. note::
+        The optimizer is not automatically replaced with ``bitsandbytes.optim.Adam8bit`` or equivalent 8-bit optimizers.
 
     Args:
         mode: The quantization mode to use.
         dtype: The compute dtype to use.
     """
+
+    # TODO: we could implement optimizer replacement with
+    # - Fabric: Add `Precision.convert_optimizer` from `Strategy.setup_optimizer`
+    # - Trainer: Use `PrecisionPlugin.connect`
 
     def __init__(
         self,
