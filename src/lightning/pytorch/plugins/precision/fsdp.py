@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Literal, Optional
 
 import torch
@@ -116,7 +115,6 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
             buffer_dtype=buffer_dtype,
         )
 
-    @contextmanager
     def init_context(self) -> ContextManager:
         return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
 
