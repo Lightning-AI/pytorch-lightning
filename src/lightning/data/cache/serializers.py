@@ -11,10 +11,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from abc import ABC, abstractmethod
+from io import BytesIO
+
 import numpy as np
 from lightning_utilities.core.imports import RequirementCache
-
-from lightning.data.builder.base import Serializer
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 
@@ -22,11 +23,29 @@ if _PIL_AVAILABLE:
     from PIL import Image
     from PIL.JpegImagePlugin import JpegImageFile
 else:
-    Image = Any
+    Image = None
     JpegImageFile = None
 
 
+class Serializer(ABC):
+    """The base interface for any serializers.
+
+    A Serializer serialize and deserialize to and from bytes.
+
+    """
+
+    @abstractmethod
+    def serialize(self, data: any) -> bytes:
+        pass
+
+    @abstractmethod
+    def deserialize(self, data: bytes) -> any:
+        pass
+
+
 class PILSerializer(Serializer):
+    """The PILSerializer serialize and deserialize PIL Image to and from bytes."""
+
     def serialize(self, item: any) -> bytes:
         mode = item.mode.encode("utf-8")
         width, height = item.size
@@ -45,6 +64,8 @@ class PILSerializer(Serializer):
 
 
 class IntSerializer(Serializer):
+    """The IntSerializer serialize and deserialize integer to and from bytes."""
+
     def serialize(self, item: int) -> bytes:
         return str(item).encode("utf-8")
 
@@ -53,14 +74,13 @@ class IntSerializer(Serializer):
 
 
 class JPEGSerializer(Serializer):
+    """The JPEGSerializer serialize and deserialize JPEG image to and from bytes."""
+
     def serialize(self, obj: Image) -> bytes:
         if isinstance(obj, JpegImageFile) and hasattr(obj, "filename"):
             with open(obj.filename, "rb") as f:
                 return f.read()
-        else:
-            out = BytesIO()
-            obj.save(out, format="JPEG")
-            return out.getvalue()
+        raise TypeError(f"The provided object should be of type {JpegImageFile}")
 
     def deserialize(self, data: bytes) -> Image:
         inp = BytesIO(data)

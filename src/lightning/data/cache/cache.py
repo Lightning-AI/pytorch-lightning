@@ -17,11 +17,16 @@ from typing import Dict, Iterable, Iterator, Optional, Union
 import numpy as np
 from torch.utils.data import IterableDataset
 from torch.utils.data._utils.collate import default_collate
-from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter, _SingleProcessDataLoaderIter
+from torch.utils.data.dataloader import (
+    _BaseDataLoaderIter,
+    _MultiProcessingDataLoaderIter,
+    _SingleProcessDataLoaderIter,
+    DataLoader,
+)
 from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, Sized
 
-from lightning.data.builder.reader import Reader
-from lightning.data.builder.writer import Writer
+from lightning.data.cache.reader import BinaryReader
+from lightning.data.cache.writer import BinaryWriter
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
 
@@ -34,8 +39,8 @@ class Cache:
         chunk_size: int = 2 << 26,
     ):
         super().__init__()
-        self._writer = Writer(cache_dir, data_format, chunk_size=chunk_size, compression=compression)
-        self._reader = Reader(cache_dir, compression=compression)
+        self._writer = BinaryWriter(cache_dir, data_format, chunk_size=chunk_size, compression=compression)
+        self._reader = BinaryReader(cache_dir, compression=compression)
         self._cache_dir = cache_dir
 
         self._env = _DistributedEnv.detect()
@@ -230,6 +235,5 @@ class CacheDataLoader(DataLoader):
     def _get_iterator(self) -> "_BaseDataLoaderIter":
         if self.num_workers == 0:
             return _SingleProcessDataLoaderIterPatch(self)
-        else:
-            self.check_worker_number_rationality()
-            return _MultiProcessingDataLoaderIterPatch(self)
+        self.check_worker_number_rationality()
+        return _MultiProcessingDataLoaderIterPatch(self)

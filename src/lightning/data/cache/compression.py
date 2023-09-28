@@ -14,7 +14,12 @@
 from abc import ABC, abstractclassmethod, abstractmethod
 from typing import Dict, TypeVar
 
-import zstd
+from lightning_utilities.core.imports import RequirementCache, requires
+
+_ZSTD_AVAILABLE = RequirementCache("zstd")
+
+if _ZSTD_AVAILABLE:
+    import zstd
 
 TCompressor = TypeVar("TCompressor", bound="Compressor")
 
@@ -34,6 +39,7 @@ class Compressor(ABC):
 
 
 class ZSTDCompressor(Compressor):
+    @requires("zstd")
     def __init__(self, level):
         super().__init__()
         self.level = level
@@ -51,6 +57,9 @@ class ZSTDCompressor(Compressor):
 
     @classmethod
     def register(cls, compressors):
+        if not _ZSTD_AVAILABLE:
+            return
+
         # default
         compressors["zstd"] = ZSTDCompressor(4)
 
