@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Generator, Literal, Optional
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Literal, Optional
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -117,18 +117,8 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
         )
 
     @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type when initializing module parameters or tensors.
-
-        See: :func:`torch.set_default_dtype`
-
-        """
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self.mixed_precision_config.param_dtype or torch.float32)
-        try:
-            yield
-        finally:
-            torch.set_default_dtype(default_dtype)
+    def init_context(self) -> ContextManager:
+        return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
 
     def forward_context(self) -> ContextManager:
         if "mixed" in self.precision:

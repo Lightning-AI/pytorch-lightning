@@ -211,9 +211,17 @@ class FSDPStrategy(ParallelStrategy):
         plugin = self.precision_plugin
         if isinstance(plugin, FSDPPrecisionPlugin):
             return plugin.mixed_precision_config
-        if isinstance(plugin, PrecisionPlugin):
-            raise TypeError(f"The FSDP strategy can only work with the `FSDPPrecisionPlugin` plugin, found {plugin}")
         return None
+
+    @property
+    def precision(self) -> FSDPPrecisionPlugin:
+        return self._precision if self._precision is not None else FSDPPrecisionPlugin("32-true")
+
+    @precision.setter
+    def precision(self, precision: Optional[FSDPPrecisionPlugin]) -> None:
+        if precision is not None and not isinstance(precision, FSDPPrecisionPlugin):
+            raise TypeError(f"The FSDP strategy can only work with the `FSDPPrecisionPlugin` plugin, found {precision}")
+        self._precision = precision
 
     @property
     def distributed_sampler_kwargs(self) -> Dict:
