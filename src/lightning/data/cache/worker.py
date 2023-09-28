@@ -11,13 +11,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copy pasted from https://github.com/pytorch/pytorch/blob/main/torch/utils/data/_utils/worker.py + lines 370-378
+# Copy pasted from https://github.com/pytorch/pytorch/blob/main/torch/utils/data/_utils/worker.py + lines 337-347
 # TODO: Delete me when this is addressed https://github.com/pytorch/pytorch/issues/110156
-r""""Contains definitions of the methods used by the _BaseDataLoaderIter workers.
 
-These **needs** to be in global scope since Py2 doesn't support serializing static methods.
-
-"""
 
 import os
 import queue
@@ -135,46 +131,14 @@ def get_worker_info() -> Optional[WorkerInfo]:
     return _worker_info
 
 
-r"""Dummy class used to signal the end of an IterableDataset"""
-
-
 @dataclass(frozen=True)
 class _IterableDatasetStopIteration:
     worker_id: int
 
 
-r"""Dummy class used to resume the fetching when worker reuse is enabled"""
-
-
 @dataclass(frozen=True)
 class _ResumeIteration:
     seed: Optional[int] = None
-
-
-# The function `_generate_state` is adapted from `numpy.random.SeedSequence`
-# from https://github.com/numpy/numpy/blob/main/numpy/random/bit_generator.pyx
-# It's MIT licensed, here is the copyright:
-
-# Copyright (c) 2015 Melissa E. O'Neill
-# Copyright (c) 2019 NumPy Developers
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 
 
 # This function generates an array of int32 as the seed for
@@ -328,11 +292,13 @@ def _worker_loop(
                 # Recreate the fetcher for worker-reuse policy
                 fetcher = _DatasetKind.create_fetcher(dataset_kind, dataset, auto_collation, collate_fn, drop_last)
                 continue
-            elif r is None:
+
+            if r is None:
                 # Received the final signal
                 assert done_event.is_set() or iteration_end
                 break
-            elif done_event.is_set() or iteration_end:
+
+            if done_event.is_set() or iteration_end:
                 # `done_event` is set. But I haven't received the final signal
                 # (None) yet. I will keep continuing until get it, and skip the
                 # processing steps.

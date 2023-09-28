@@ -42,7 +42,7 @@ def test_binary_writer_with_ints(tmpdir):
         binary_writer[i] = {"i": i, "i+1": i + 1, "i+2": i + 2}
 
     assert len(os.listdir(tmpdir)) == 19
-    binary_writer.done(0)
+    binary_writer.done()
     assert len(os.listdir(tmpdir)) == 21
 
     with open(os.path.join(tmpdir, "0.index.json")) as f:
@@ -79,7 +79,7 @@ def test_binary_writer_with_jpeg_and_int(tmpdir):
         binary_writer[i] = {"x": img, "y": i}
 
     assert len(os.listdir(cache_dir)) == 24
-    binary_writer.done(0)
+    binary_writer.done()
     assert len(os.listdir(cache_dir)) == 26
 
     with open(os.path.join(cache_dir, "0.index.json")) as f:
@@ -109,6 +109,6 @@ def test_binary_writer_config(monkeypatch):
     assert BinaryWriter.get_cloud_path("~") == prefix
     assert BinaryWriter.get_cloud_path("~/") == prefix
     assert BinaryWriter.get_cloud_path("/") == prefix
-    assert BinaryWriter.get_cloud_path("/data") == f"{prefix}/data"
-    assert BinaryWriter.get_cloud_path("~/data") == f"{prefix}/data"
-    assert BinaryWriter.get_cloud_path("/teamspace/studios/this_studio/data") == f"{prefix}/data"
+    assert BinaryWriter.get_cloud_path("/data") == f"{prefix}data"
+    assert BinaryWriter.get_cloud_path("~/data") == f"{prefix}data"
+    assert BinaryWriter.get_cloud_path("/teamspace/studios/this_studio/data") == f"{prefix}data"

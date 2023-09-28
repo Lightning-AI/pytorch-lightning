@@ -50,7 +50,6 @@ class Cache:
         self._distributed_env = _DistributedEnv.detect()
         self._num_workers = None
 
-    # TODO: Find a way to make this faster
     @property
     def filled(self) -> bool:
         if self._num_workers is None:
@@ -59,7 +58,7 @@ class Cache:
             return True
         files = os.listdir(self._cache_dir)
         index_files = [f for f in files if f.endswith("index.json")]
-        self._is_done = len(index_files) == self._distributed_env.world_size * self._num_workers
+        self._is_done = len(index_files) == self._distributed_env.world_size * (self._num_workers or 1)
         return self._is_done
 
     def __setitem__(self, index, data):

@@ -75,9 +75,8 @@ def cache_for_image_dataset(num_workers, tmpdir, fabric=None):
     cache = Cache(cache_dir, data_format={"image": "jpeg", "class": "int", "index": "int"}, chunk_size=2 << 12)
     dataset = ImageDataset(tmpdir, cache, dataset_size, 10)
     dataloader = CacheDataLoader(dataset, num_workers=num_workers, batch_size=4)
-    dataloader_iter = iter(dataloader)
 
-    for _ in dataloader_iter:
+    for _ in dataloader:
         pass
 
     for i in range(len(dataset)):
