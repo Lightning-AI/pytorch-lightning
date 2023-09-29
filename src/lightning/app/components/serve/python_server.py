@@ -134,7 +134,6 @@ response = requests.post('{url}', json={{
 
 
 class Number(BaseModel):
-
     # deprecated - TODO remove this in favour of Category
     prediction: Optional[int] = None
 
