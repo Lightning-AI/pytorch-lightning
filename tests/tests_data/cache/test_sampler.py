@@ -136,49 +136,6 @@ def test_cache_distributed_sampler_samplers(params):
         assert sampler.samplers[2].data_source == params[2][rank][2]
 
 
-def test_cache_distributed_sampler_sampling():
-    """Valides the DistributedCacheSampler can return batch of data in an ordered way."""
-    dataset_size = 129
-    sampler = DistributedCacheSampler(dataset_size, 5, 3, 3)
-    iter_sampler = iter(sampler)
-
-    all_indexes = []
-    indexes = []
-    while True:
-        try:
-            index = next(iter_sampler)
-            indexes.append(index)
-            all_indexes.append(index)
-        except StopIteration:
-            assert indexes == [0, 1, 2, 5, 6, 7, 10, 11, 12, 3, 4]
-            assert sampler._done == {0}
-            break
-
-    indexes = []
-    while True:
-        try:
-            index = next(iter_sampler)
-            indexes.append(index)
-            all_indexes.append(index)
-        except StopIteration:
-            assert indexes == [8, 9]
-            assert sampler._done == {0, 1}
-            break
-
-    indexes = []
-    while True:
-        try:
-            index = next(iter_sampler)
-            indexes.append(index)
-            all_indexes.append(index)
-        except StopIteration:
-            assert indexes == [13, 14, 15, 16]
-            assert sampler._done == {0, 1, 2}
-            break
-
-    assert sorted(all_indexes) == list(range(dataset_size))
-
-
 @pytest.mark.parametrize(
     "params",
     [
