@@ -1,5 +1,7 @@
+from unittest import mock
+
 import pytest
-from lightning.data.cache.sampler import CacheSampler, DistributedCacheSampler
+from lightning.data.cache.sampler import CacheBatchSampler, CacheSampler, DistributedCacheSampler
 
 
 def test_cache_sampler_sampling():
@@ -175,3 +177,25 @@ def test_cache_distributed_sampler_sampling():
             break
 
     assert sorted(all_indexes) == list(range(dataset_size))
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        (21, [[0, 1, 2], [7, 8, 9], [14, 15, 16], [3, 4, 5], [10, 11, 12], [17, 18, 19], [6], [13], [20]]),
+        (11, [[0, 1, 2], [3, 4, 5], [6, 7, 8], [], [], [9, 10]]),
+        (8, [[0, 1], [2, 3], [4, 5, 6], [7]]),
+        (4, [[0], [1], [2, 3]]),
+        (9, [[0, 1, 2], [3, 4, 5], [6, 7, 8], [], [], []]),
+        (19, [[0, 1, 2], [6, 7, 8], [12, 13, 14], [3, 4, 5], [9, 10, 11], [15, 16, 17], [], [], [18]]),
+    ],
+)
+def test_cache_batch_sampler(params):
+    cache = mock.MagicMock()
+    cache.filled = False
+    batch_sampler = CacheBatchSampler(params[0], 1, 0, 3, 3, False, True, cache)
+    batches = []
+    for batch in batch_sampler:
+        batches.append(batch)
+    print(batches)
+    assert batches == params[1]
