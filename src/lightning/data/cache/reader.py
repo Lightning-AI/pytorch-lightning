@@ -18,7 +18,6 @@ from typing import Any, Dict, Optional
 import numpy as np
 
 from lightning.data.cache.serializers import _SERIALIZERS
-from lightning.data.cache.worker import get_worker_info
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
 
@@ -48,17 +47,9 @@ class BinaryReader:
 
         self._env = _DistributedEnv.detect()
         self._worker_env: Optional[_WorkerEnv] = None
-        self._rank: Optional[int] = None
-
-    @property
-    def rank(self) -> Optional[int]:
-        if self._rank is None:
-            self._worker_env = _WorkerEnv.detect(get_worker_info_fn=get_worker_info)
-            self._rank = self._env.global_rank * self._worker_env.world_size + self._worker_env.rank
-
-        return self._rank
 
     def _try_read_index(self):
+        """Try to read the chunks json index files if available."""
         files = os.listdir(self._cache_dir)
         indexes_filepath = sorted([os.path.join(self._cache_dir, f) for f in files if f.endswith("index.json")])
         if not indexes_filepath:
@@ -82,16 +73,19 @@ class BinaryReader:
         for i in range(len(cumsum_samples) - 1):
             self._intervals.append([cumsum_samples[i], cumsum_samples[i + 1]])
 
-    def _map_index_to_chunk_id(self, index):
+    def _map_index_to_chunk_id(self, index: int) -> int:
+        """Find the associated chunk in which the current index was stored."""
         for interval_index, internal in enumerate(self._intervals):
             if internal[0] <= index and index < internal[1]:
                 return interval_index
         raise Exception(f"The chunk interval weren't properly defined. Found {self._intervals} for inded {index}.")
 
-    def _should_keep_in_memory(self):
-        return True
-
     def read(self, index: int):
+        """Read an item for the given from a chunk.
+
+        If the chunk isn't available, it will be downloaded.
+
+        """
         if self._index is None:
             self._try_read_index()
 
@@ -101,12 +95,11 @@ class BinaryReader:
         chunk_id = self._map_index_to_chunk_id(index)
         chunk_config = self._index["chunks"][chunk_id]
         chunk_path = os.path.join(self._cache_dir, chunk_config["filename"])
-        raw_item_data, item_config = self.load_item_from_chunk(
-            index, chunk_path, keep_in_memory=self._should_keep_in_memory()
-        )
+        raw_item_data, item_config = self.load_item_from_chunk(index, chunk_path, keep_in_memory=True)
         return self.deserialize(raw_item_data, item_config)
 
     def deserialize(self, raw_item_data: bytes, item_config: Dict[str, Any]) -> Any:
+        """Deserialize the raw bytes into their python equivalent."""
         sizes = []
         idx = 0
         data_format = item_config["data_format"]
@@ -145,6 +138,7 @@ class BinaryReader:
         return data, config
 
     def get_length(self) -> int:
+        """Get the number of samples across all chunks."""
         if self._index is None:
             self._try_read_index()
 
@@ -154,6 +148,7 @@ class BinaryReader:
         return sum([v["samples"] for v in self._index["chunks"]])
 
     def get_chunk_interval(self):
+        """Get the index interval of each chunks."""
         if self._index is None:
             self._try_read_index()
 

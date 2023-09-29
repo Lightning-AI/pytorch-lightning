@@ -49,6 +49,7 @@ class Cache:
         self._num_workers: Optional[int] = None
 
     def _setup(self, num_workers: int) -> None:
+        """Called by the CacheDataLoader to ensure the num_workers is known."""
         self._num_workers = num_workers
 
     @property

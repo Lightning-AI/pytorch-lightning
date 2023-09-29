@@ -97,13 +97,15 @@ class BinaryWriter:
 
     @property
     def rank(self):
+        """Returns the rank of the writer."""
         if self._rank is None:
             self._worker_env = _WorkerEnv.detect(get_worker_info_fn=get_worker_info)
             self._rank = self._env.global_rank * self._worker_env.world_size + self._worker_env.rank
         return self._rank
 
     def get_config(self) -> Dict[str, Any]:
-        out = super().get_config()
+        """Returns the config of the writer."""
+        out = {"compression": self._compression, "chunk_size": self._chunk_size, "data_format": self._data_format}
         out.update(self._data_format)
         cloud_path = self.get_cloud_path(self._cache_dir)
         if cloud_path:
@@ -114,6 +116,7 @@ class BinaryWriter:
         return out
 
     def serialize(self, items: Dict[str, Any]) -> bytes:
+        """Serialize a dictionary into its binary format."""
         if not isinstance(items, dict):
             raise Exception("The provided data should be a dictionary.")
 
@@ -139,6 +142,7 @@ class BinaryWriter:
         return head + body
 
     def _create_chunk(self, filename: str) -> bytes:
+        """Create a binary chunk from all the binarized items."""
         num_items = np.uint32(len(self._serialized_items))
         sizes = list(map(len, self._serialized_items))
         offsets = np.array([0] + sizes).cumsum().astype(np.uint32)
@@ -164,18 +168,12 @@ class BinaryWriter:
         return data
 
     def write_chunk(self):
+        """Write a chunk to the filesystem."""
         if self._compression:
             filename = f"chunk-{self.rank}-{self._chunk_id}.{self._compression}.bin"
         else:
             filename = f"chunk-{self.rank}-{self._chunk_id}.bin"
         self.write_file(self._create_chunk(filename), filename)
-
-    @property
-    def is_cached(self) -> bool:
-        return os.path.exists(os.path.join(self._cache_dir, "index.json"))
-
-    def get_config(self) -> Dict[str, Any]:
-        return {"compression": self._compression, "chunk_size": self._chunk_size, "data_format": self._data_format}
 
     @property
     def available_serializers(self):
@@ -188,6 +186,11 @@ class BinaryWriter:
         self._current_chunk_size = 0
 
     def __setitem__(self, index, items: any):
+        """Store an item to a chunk.
+
+        The index needs to be provided in order.
+
+        """
         serialized_items = self.serialize(items)
         serialized_items_size = len(serialized_items)
 
@@ -214,6 +217,7 @@ class BinaryWriter:
         raw_data: bytes,
         filename: str,
     ) -> None:
+        """Write chunk bytes to a file."""
         if self._compression:
             raw_data = self._compressor.compress(raw_data)
         filepath = os.path.join(self._cache_dir, filename)
@@ -221,11 +225,17 @@ class BinaryWriter:
             out.write(raw_data)
 
     def write_chunks_index(self):
+        """Write the chunks index to a JSON file."""
         filepath = os.path.join(self._cache_dir, f"{self.rank}.index.json")
         with open(filepath, "w") as out:
             json.dump({"chunks": self._chunks_info}, out, sort_keys=True)
 
     def done(self):
+        """Called when StopIteration is triggered.
+
+        It tries to save the last chunk and write the chunks index.
+
+        """
         if self._is_done:
             return
         if self._serialized_items:
@@ -236,6 +246,7 @@ class BinaryWriter:
 
     @classmethod
     def get_cloud_path(cls, cache_dir: str) -> Optional[str]:
+        """Returns the s3 URL to the cache_dir."""
         cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
         project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
         cloud_space_id = os.getenv("LIGHTNING_CLOUD_SPACE_ID", None)

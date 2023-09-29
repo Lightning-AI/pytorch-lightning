@@ -120,6 +120,7 @@ class CacheDataLoader(DataLoader):
         )
 
     def _get_iterator(self) -> "_BaseDataLoaderIter":
+        """Overriden to ensure the `Cache.done` method is triggered on iteration done."""
         if self.num_workers == 0:
             return _SingleProcessDataLoaderIterPatch(self)
         self.check_worker_number_rationality()
