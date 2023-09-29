@@ -243,10 +243,11 @@ if _BITSANDBYTES_AVAILABLE:
             super().__init__(*args, quant_type="nf4", compress_statistics=True, **kwargs)
 
 
-def _convert_layers(module: torch.nn.Module, linear_cls: Type, skips: Set[str]) -> None:
+def _convert_layers(module: torch.nn.Module, linear_cls: Type, skips: Set[str], prefix: str = "") -> None:
     for name, child in module.named_children():
-        if isinstance(child, torch.nn.Linear) and not any(name.startswith(s) for s in skips):
-            log.debug(f"Replacing layer {name!r} with bitsandbytes equivalent")
+        fullname = f"{prefix}.{name}" if prefix else name
+        if isinstance(child, torch.nn.Linear) and not any(fullname.startswith(s) for s in skips):
+            log.debug(f"Replacing layer {fullname!r} with bitsandbytes equivalent")
             has_bias = child.bias is not None
             replacement = linear_cls(
                 # since we are going to copy over the child's data, the device doesn't matter. I chose CPU
@@ -256,11 +257,9 @@ def _convert_layers(module: torch.nn.Module, linear_cls: Type, skips: Set[str]) 
                 bias=has_bias,
                 device=torch.device("cpu"),
             )
-            replacement.weight.data = child.weight.data.clone()
             if has_bias:
                 replacement.bias.data = child.bias.data.clone()
-            # once the data has been copied, quantize it
-            replacement._quantize_weight(replacement.weight.data)
+            replacement._quantize_weight(child.weight.data.clone())
             module.__setattr__(name, replacement)
         else:
-            _convert_layers(child, linear_cls, skips)
+            _convert_layers(child, linear_cls, skips, prefix=fullname)
