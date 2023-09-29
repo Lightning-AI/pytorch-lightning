@@ -1,10 +1,12 @@
-import torch, timm
+import os
+
 import lightning.pytorch as pl
+import timm
+import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms as tfs
 from torchvision.datasets import CIFAR10
-import os
 
 
 class LitModel(pl.LightningModule):
@@ -20,8 +22,7 @@ class LitModel(pl.LightningModule):
         print(torch.get_num_threads(), torch.get_num_interop_threads())
         x, y = batch
         logits = self.model(x)
-        loss = F.cross_entropy(logits, y)
-        return loss
+        return F.cross_entropy(logits, y)
 
 
 def run():
