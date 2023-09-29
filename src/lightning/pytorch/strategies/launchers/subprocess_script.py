@@ -98,7 +98,7 @@ class _SubprocessScriptLauncher(_Launcher):
             self._call_children_scripts()
             _launch_process_observer(self.procs)
 
-        _set_num_threads()
+        _set_num_threads(num_processes=self.num_processes)
         return function(*args, **kwargs)
 
     def kill(self, signum: _SIGNUM) -> None:

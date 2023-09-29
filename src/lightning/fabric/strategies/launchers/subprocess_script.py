@@ -25,6 +25,7 @@ from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.strategies.launchers.launcher import _Launcher
+from lightning.fabric.utilities.data import _num_cpus_available
 from lightning.fabric.utilities.rank_zero import rank_prefixed_message
 
 _logger = logging.getLogger(__name__)
@@ -100,7 +101,7 @@ class _SubprocessScriptLauncher(_Launcher):
             self._call_children_scripts()
             _launch_process_observer(self.procs)
 
-        _set_num_threads()
+        _set_num_threads(num_processes=self.num_processes)
         return function(*args, **kwargs)
 
     def _call_children_scripts(self) -> None:
@@ -231,6 +232,7 @@ class _ChildProcessObserver:
         os.kill(self._main_pid, self._termination_signal)
 
 
-def _set_num_threads():
+def _set_num_threads(num_processes: int = 1) -> None:
     if "OMP_NUM_THREADS" not in os.environ:
-        torch.set_num_threads(1)
+        num_cpus = _num_cpus_available()
+        torch.set_num_threads(max(1, num_cpus // num_processes))
