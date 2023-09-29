@@ -81,7 +81,7 @@ class CacheDataLoader(DataLoader):
             raise Exception("Passing a sampler isn't supported with the CacheDataLoader.")
 
         if batch_sampler:
-            raise Exception("Passing a batch_sampler isn't supoprt with the CacheDataLoader.")
+            raise Exception("Passing a batch_sampler isn't supported with the CacheDataLoader.")
 
         if isinstance(dataset, IterableDataset):
             raise Exception("Only map-based dataset are supported by the CacheDataLoader for now.")
