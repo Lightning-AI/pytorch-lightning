@@ -15,17 +15,16 @@ import os
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 from urllib.parse import urlparse
 
 import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from lightning_cloud.openapi import Externalv1LightningappInstance
 from pydantic import BaseModel
 
-from lightning.app.core import constants
-from lightning.app.plugin.actions import _Action
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.component import _set_flow_context
 from lightning.app.utilities.enum import AppStage
@@ -46,11 +45,11 @@ class LightningPlugin:
         self.cluster_id = ""
         self.source_app = ""
 
-    def run(self, *args: str, **kwargs: str) -> Optional[List[_Action]]:
+    def run(self, *args: str, **kwargs: str) -> Externalv1LightningappInstance:
         """Override with the logic to execute on the cloudspace."""
         raise NotImplementedError
 
-    def run_job(self, name: str, app_entrypoint: str, env_vars: Dict[str, str] = {}) -> str:
+    def run_job(self, name: str, app_entrypoint: str, env_vars: Dict[str, str] = {}) -> Externalv1LightningappInstance:
         """Run a job in the cloudspace associated with this plugin.
 
         Args:
@@ -59,7 +58,7 @@ class LightningPlugin:
             env_vars: Additional env vars to set when running the app.
 
         Returns:
-            The relative URL of the created job.
+            The spec of the created LightningappInstance.
 
         """
         from lightning.app.runners.backends.cloud import CloudBackend
@@ -88,15 +87,13 @@ class LightningPlugin:
         # Used to indicate Lightning has been dispatched
         os.environ["LIGHTNING_DISPATCHED"] = "1"
 
-        url = runtime.cloudspace_dispatch(
+        return runtime.cloudspace_dispatch(
             project_id=self.project_id,
             cloudspace_id=self.cloudspace_id,
             name=name,
             cluster_id=self.cluster_id,
             source_app=self.source_app,
         )
-        # Return a relative URL so it can be used with the NavigateTo action.
-        return url.replace(constants.get_lightning_cloud_url(), "")
 
     def _setup(
         self,
@@ -187,8 +184,8 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
                 cluster_id=run.cluster_id,
                 source_app=run.source_app,
             )
-            actions = plugin.run(**run.plugin_arguments) or []
-            return {"actions": [action.to_spec().to_dict() for action in actions]}
+            appInstance = plugin.run(**run.plugin_arguments)
+            return {"appInstance": appInstance.to_dict()}
         except Exception as ex:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error running plugin: {str(ex)}."
