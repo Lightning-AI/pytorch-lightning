@@ -141,14 +141,17 @@ def _import_bitsandbytes() -> ModuleType:
     if not _BITSANDBYTES_AVAILABLE:
         raise ModuleNotFoundError(str(_BITSANDBYTES_AVAILABLE))
     # configuration for bitsandbytes before import
-    os.environ["BITSANDBYTES_NOWELCOME"] = "1"
+    nowelcome_set = "BITSANDBYTES_NOWELCOME" in os.environ
+    if not nowelcome_set:
+        os.environ["BITSANDBYTES_NOWELCOME"] = "1"
     warnings.filterwarnings("ignore", message=r".*bitsandbytes was compiled without GPU support.*")
     warnings.filterwarnings(
         "ignore", message=r"MatMul8bitLt: inputs will be cast from .* to float16 during quantization"
     )
     import bitsandbytes
 
-    del os.environ["BITSANDBYTES_NOWELCOME"]
+    if not nowelcome_set:
+        del os.environ["BITSANDBYTES_NOWELCOME"]
 
     return bitsandbytes
 
