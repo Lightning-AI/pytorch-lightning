@@ -15,13 +15,15 @@ import logging
 import os
 import warnings
 from contextlib import ExitStack
+from functools import partial
 from types import ModuleType
-from typing import Any, ContextManager, Dict, Literal, Optional, Set, Type
+from typing import Any, Callable, ContextManager, Literal, Optional, OrderedDict, Set, Type
 
 import torch
 from lightning_utilities import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
+from torch.nn.modules.module import _IncompatibleKeys
 
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import (
@@ -151,6 +153,20 @@ def _import_bitsandbytes() -> ModuleType:
 if _BITSANDBYTES_AVAILABLE:
     bnb = _import_bitsandbytes()
 
+    def _quantize_on_load_hook(quantize_fn: Callable[[torch.Tensor], None], state_dict: OrderedDict, *_: Any) -> None:
+        # There is only one key that ends with `*.weight`, the other one is the bias
+        weight_key = next((name for name in state_dict if name.endswith("weight")), None)
+        if weight_key is None:
+            return
+        # Load the weight from the state dict and re-quantize it
+        weight = state_dict.pop(weight_key)
+        quantize_fn(weight)
+
+    def _ignore_missing_weights_hook(module: torch.nn.Module, incompatible_keys: _IncompatibleKeys) -> None:
+        for key in reversed(incompatible_keys.missing_keys):
+            if key.endswith("weight"):
+                incompatible_keys.missing_keys.remove(key)
+
     class _Linear8bitLt(bnb.nn.Linear8bitLt):  # type: ignore[name-defined]
         """Wraps `bnb.nn.Linear8bitLt` and enables instantiation directly on the device and
         re-quantizaton when loading the state dict.
@@ -159,26 +175,15 @@ if _BITSANDBYTES_AVAILABLE:
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             kwargs.setdefault("threshold", 6.0)
             super().__init__(*args, **kwargs)
-            # We quantize the initial weight here so we don't end up filling the device
-            # memory with float32 weights which could lead to OOM.
-            self._quantize_weight(self.weight.data)
-
-        def _load_from_state_dict(self, local_state_dict: Dict, *args: Any, **kwargs: Any) -> None:
-            # There is only one key that ends with `*.weight`, the other one is the bias
-            weight_key = next((name for name in local_state_dict if name.endswith("weight")), None)
-            if weight_key is None:
-                return
-
-            # Load the weight from the state dict and re-quantize it
-            weight = local_state_dict.pop(weight_key)
-            self._quantize_weight(weight)
-
-            # If there is a bias, let nn.Module load it
-            if local_state_dict:
-                super()._load_from_state_dict(local_state_dict, *args, **kwargs)
+            if torch.tensor(0).device.type == "cuda":
+                # We quantize the initial weight here so we don't end up filling the device
+                # memory with float32 weights which could lead to OOM.
+                self._quantize_weight(self.weight.data)
+            self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self._quantize_weight))
+            self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
 
         def _quantize_weight(self, weight: torch.Tensor) -> None:
-            # This code is taken and adapted from `bnb.nn.Int8Params.cuda()`
+            # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L296-L302
             B = weight.contiguous().half().cuda()
             CB, CBt, SCB, SCBt, coo_tensorB = bnb.functional.double_quant(B)
             del CBt
@@ -188,19 +193,31 @@ if _BITSANDBYTES_AVAILABLE:
             setattr(self.weight, "SCB", SCB)
 
     class _Linear4bit(bnb.nn.Linear4bit):  # type: ignore[name-defined]
+        """Wraps `bnb.nn.Linear4bit` and enables instantiation directly on the device and
+        re-quantizaton when loading the state dict.
+        """
+
         def __init__(self, *args: Any, device: Optional[torch.device] = None, **kwargs: Any) -> None:
             super().__init__(*args, **kwargs)
-            if device is None:
-                device = torch.tensor(0).device
-            if device.type == "cuda":
-                # weight needs to be moved manually because it doesn't work with device as a context manager:
-                # `weight.to()` gets skipped if `weight.data` is already on CUDA. we avoid it by moving it back
-                # (inefficient). see condition:
-                # https://github.com/TimDettmers/bitsandbytes/blob/817bdf6/bitsandbytes/nn/modules.py#L177
-                self.weight.data = self.weight.data.to("cpu")
-                warnings.filterwarnings("ignore", message=r".*Fabric.setup\(\)` has parameters on different devices.*")
-                # we could manually move `self.weight.to(device)` here but that breaks checkpoint loading
-                # bnb expects that the layers are moved to the device after loading
+            if torch.tensor(0).device.type == "cuda":
+                # We quantize the initial weight here so we don't end up filling the device
+                # memory with float32 weights which could lead to OOM.
+                self.weight.cuda(torch.cuda.current_device() if device is None else device)
+            self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self._quantize_weight))
+            self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
+
+        def _quantize_weight(self, weight: torch.Tensor) -> None:
+            # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L156-L159
+            params4bit = self.weight
+            w = weight.contiguous().to(device="cuda", dtype=torch.half)
+            w_4bit, quant_state = bnb.functional.quantize_4bit(
+                w,
+                blocksize=params4bit.blocksize,
+                compress_statistics=params4bit.compress_statistics,
+                quant_type=params4bit.quant_type,
+            )
+            params4bit.data = w_4bit
+            params4bit.quant_state = quant_state
 
     # Use a class instead `functools.partial` to respect `isinstance` checks and attribute accesses
     class _Int8LinearInference(_Linear8bitLt):
