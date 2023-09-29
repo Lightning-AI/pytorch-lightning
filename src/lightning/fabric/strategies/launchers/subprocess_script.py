@@ -20,6 +20,7 @@ import time
 from threading import Thread
 from typing import Any, Callable, List, Optional, Sequence, Tuple
 
+import torch
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
@@ -98,6 +99,8 @@ class _SubprocessScriptLauncher(_Launcher):
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
             _launch_process_observer(self.procs)
+
+        _set_num_threads()
         return function(*args, **kwargs)
 
     def _call_children_scripts(self) -> None:
@@ -226,3 +229,8 @@ class _ChildProcessObserver:
         for p in self._child_processes:
             p.send_signal(self._termination_signal)
         os.kill(self._main_pid, self._termination_signal)
+
+
+def _set_num_threads():
+    if "OMP_NUM_THREADS" not in os.environ:
+        torch.set_num_threads(1)
