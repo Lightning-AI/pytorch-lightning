@@ -15,16 +15,12 @@ import os
 import sys
 from re import escape
 from unittest import mock
-from unittest.mock import ANY, call, MagicMock, Mock, PropertyMock
+from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
 import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
-from lightning_utilities.test.warning import no_warning_call
-from torch import nn
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
-
 from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
@@ -42,6 +38,10 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from lightning_utilities.test.warning import no_warning_call
+from torch import nn
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
+
 from tests_fabric.helpers.runif import RunIf
 
 

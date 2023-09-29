@@ -2,19 +2,18 @@ from functools import partial
 from unittest import mock
 
 import pytest
-
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.core.flow import _RootFlow
 from lightning.app.frontend import StaticWebFrontend
 from lightning.app.utilities.app_helpers import (
-    _is_headless,
-    _MagicMockJsonSerializable,
     AppStatePlugin,
     BaseStatePlugin,
     InMemoryStateStore,
+    StateStore,
+    _is_headless,
+    _MagicMockJsonSerializable,
     is_overridden,
     is_static_method,
-    StateStore,
 )
 from lightning.app.utilities.exceptions import LightningAppStateException
 

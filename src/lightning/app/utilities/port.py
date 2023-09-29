@@ -18,7 +18,7 @@ from typing import Optional
 
 from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance, V1NetworkConfig
 
-from lightning.app.utilities.network import find_free_network_port, LightningClient
+from lightning.app.utilities.network import LightningClient, find_free_network_port
 
 
 def is_port_in_use(port: int) -> bool:

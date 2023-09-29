@@ -54,7 +54,7 @@ See a full example of a benchmark with the a `GPT-2 model <https://github.com/hp
 
     *   It only supports a single optimizer, which must be ``colossalai.nn.optimizer.CPUAdam`` or ``colossalai.nn.optimizer.
         HybridAdam`` now. You can set ``adamw_mode`` to False to use normal Adam. Noticing that ``HybridAdam`` is highly optimized, it uses fused CUDA kernel and parallel CPU kernel.
-        It is recomended to use ``HybridAdam``, since it updates parameters in GPU and CPU both.
+        It is recommended to use ``HybridAdam``, since it updates parameters in GPU and CPU both.
 
     *   Your model must be created using the :meth:`~lightning.pytorch.core.LightningModule.configure_model` method.
 

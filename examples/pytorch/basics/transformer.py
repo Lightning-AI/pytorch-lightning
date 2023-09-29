@@ -1,9 +1,8 @@
+import lightning as L
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, random_split
-
-import lightning as L
 from lightning.pytorch.demos import Transformer, WikiText2
+from torch.utils.data import DataLoader, random_split
 
 
 class LanguageModel(L.LightningModule):

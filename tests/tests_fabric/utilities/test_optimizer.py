@@ -2,9 +2,8 @@ import collections
 import dataclasses
 
 import torch
-from torch import Tensor
-
 from lightning.fabric.utilities.optimizer import _optimizer_to_device
+from torch import Tensor
 
 
 def test_optimizer_to_device():

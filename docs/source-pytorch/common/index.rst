@@ -198,7 +198,7 @@ How-to Guides
 
 .. displayitem::
     :header: Use a pretrained model
-    :description: Improve results with transer learning on pretrained models
+    :description: Improve results with transfer learning on pretrained models
     :button_link: ../advanced/pretrained.html
     :col_css: col-md-4
     :height: 180

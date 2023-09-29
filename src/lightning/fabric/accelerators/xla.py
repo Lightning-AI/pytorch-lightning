@@ -17,8 +17,8 @@ from typing import Any, List, Union
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.device_parser import _check_data_type
 
 

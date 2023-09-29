@@ -8,8 +8,6 @@ from unittest import mock
 
 import pytest
 from deepdiff import Delta
-from pympler import asizeof
-
 from lightning.app import CloudCompute, LightningApp, LightningFlow, LightningWork  # F401
 from lightning.app.api.request_types import _DeltaRequest
 from lightning.app.core.constants import (
@@ -21,7 +19,7 @@ from lightning.app.core.constants import (
 from lightning.app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue
 from lightning.app.frontend import StreamlitFrontend
 from lightning.app.runners import MultiProcessRuntime
-from lightning.app.storage.path import _storage_root_dir, Path
+from lightning.app.storage.path import Path, _storage_root_dir
 from lightning.app.testing.helpers import _RunIf
 from lightning.app.testing.testing import LightningTestApp
 from lightning.app.utilities.app_helpers import affiliation
@@ -30,6 +28,8 @@ from lightning.app.utilities.imports import _IS_WINDOWS
 from lightning.app.utilities.packaging import cloud_compute
 from lightning.app.utilities.redis import check_if_redis_running
 from lightning.app.utilities.warnings import LightningFlowWarning
+from pympler import asizeof
+
 from tests_app import _PROJECT_ROOT
 
 logger = logging.getLogger()

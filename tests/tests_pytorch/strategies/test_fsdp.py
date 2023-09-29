@@ -12,7 +12,6 @@ from unittest.mock import ANY, MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
-
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_12,
@@ -26,6 +25,7 @@ from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
 from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
@@ -62,16 +62,23 @@ class TestFSDPModel(BoringModel):
         # There is some issue with SGD optimizer state in FSDP
         return torch.optim.AdamW(self.layer.parameters(), lr=0.1)
 
-    def on_train_batch_end(self, *_) -> None:
+    def on_train_batch_start(self, batch, batch_idx):
+        assert batch.dtype == torch.float32
+
+    def on_train_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_test_batch_end(self, *_) -> None:
+    def on_test_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_validation_batch_end(self, *_) -> None:
+    def on_validation_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_predict_batch_end(self, *_) -> None:
+    def on_predict_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
     def _assert_layer_fsdp_instance(self) -> None:
@@ -118,16 +125,23 @@ class TestBoringModel(BoringModel):
 
 
 class TestFSDPModelAutoWrapped(TestBoringModel):
-    def on_train_batch_end(self, *_) -> None:
+    def on_train_batch_start(self, batch, batch_idx):
+        assert batch.dtype == torch.float32
+
+    def on_train_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_test_batch_end(self, *_) -> None:
+    def on_test_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_validation_batch_end(self, *_) -> None:
+    def on_validation_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_predict_batch_end(self, *_) -> None:
+    def on_predict_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
     def _assert_layer_fsdp_instance(self) -> None:

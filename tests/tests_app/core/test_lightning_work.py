@@ -4,15 +4,14 @@ from re import escape
 from unittest.mock import MagicMock, Mock
 
 import pytest
-
 from lightning.app import LightningApp
 from lightning.app.core.flow import LightningFlow
 from lightning.app.core.work import LightningWork
 from lightning.app.runners import MultiProcessRuntime
 from lightning.app.storage.path import Path
-from lightning.app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
+from lightning.app.testing.helpers import EmptyFlow, EmptyWork, _MockQueue
 from lightning.app.testing.testing import LightningTestApp
-from lightning.app.utilities.enum import make_status, WorkStageStatus
+from lightning.app.utilities.enum import WorkStageStatus, make_status
 from lightning.app.utilities.exceptions import LightningWorkException
 from lightning.app.utilities.imports import _IS_WINDOWS
 from lightning.app.utilities.packaging.build_config import BuildConfig

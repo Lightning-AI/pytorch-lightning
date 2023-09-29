@@ -19,15 +19,15 @@ import traceback
 import types
 from contextlib import contextmanager
 from copy import copy
-from typing import Any, Dict, List, Tuple, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Type, Union
 
 from lightning.app.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
-    from lightning.app.core import LightningFlow, LightningWork, LightningApp
+    from lightning.app.core import LightningApp, LightningFlow, LightningWork
     from lightning.app.plugin.plugin import LightningPlugin
 
-from lightning.app.utilities.app_helpers import _mock_missing_imports, Logger
+from lightning.app.utilities.app_helpers import Logger, _mock_missing_imports
 
 logger = Logger(__name__)
 
