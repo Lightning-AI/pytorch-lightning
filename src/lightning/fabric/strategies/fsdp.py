@@ -223,9 +223,24 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def mixed_precision_config(self) -> Optional["MixedPrecision"]:
         if self.mixed_precision:
             return self.mixed_precision
-        if isinstance(self.precision, FSDPPrecision):
-            return self.precision.mixed_precision_config
+        plugin = self.precision
+        if isinstance(plugin, FSDPPrecision):
+            return plugin.mixed_precision_config
         return None
+
+    @property  # type: ignore[override]
+    def precision(self) -> FSDPPrecision:
+        plugin = self._precision
+        if plugin is not None:
+            assert isinstance(plugin, FSDPPrecision)
+            return plugin
+        return FSDPPrecision("32-true")
+
+    @precision.setter
+    def precision(self, precision: Optional[FSDPPrecision]) -> None:
+        if precision is not None and not isinstance(precision, FSDPPrecision):
+            raise TypeError(f"The FSDP strategy can only work with the `FSDPPrecision` plugin, found {precision}")
+        self._precision = precision
 
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
