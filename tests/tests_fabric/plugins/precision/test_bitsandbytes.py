@@ -36,7 +36,8 @@ def test_bitsandbytes_plugin(monkeypatch):
         ...
 
     class NF4LinearMock(ModuleMock):
-        ...
+        def _quantize_weight(self, w):
+            pass
 
     module._FP4Linear = ModuleMock
     module._NF4Linear = NF4LinearMock
