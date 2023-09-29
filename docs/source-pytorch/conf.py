@@ -99,8 +99,6 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    # todo: update after release
-    # checkout="tags/1.0.0",
     checkout="tags/1.1.0",
 )
 
@@ -207,7 +205,6 @@ exclude_patterns = [
     "notebooks/sample-template*",
 ]
 
-# todo: checking cross link will fail because `tutorials.rst` is referred in `common/notebooks.rst`
 if not _COPY_NOTEBOOKS:
     exclude_patterns.append("notebooks/*")
     exclude_patterns.append("tutorials.rst")
