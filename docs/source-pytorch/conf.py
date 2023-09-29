@@ -29,6 +29,8 @@ import lightning
 # -----------------------
 _SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 _FAST_DOCS_DEV = int(os.getenv("FAST_DOCS_DEV", True))
+_COPY_NOTEBOOKS = int(os.getenv("DOCS_COPY_NOTEBOOKS", not _FAST_DOCS_DEV))
+_FETCH_S3_ASSETS = int(os.getenv("DOCS_FETCH_ASSETS", not _FAST_DOCS_DEV))
 
 # -----------------------
 # BUILD stuff
@@ -37,7 +39,6 @@ _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.join(_PATH_HERE, "..", "..")
 _PATH_RAW_NB = os.path.join(_PATH_ROOT, "_notebooks")
 _PATH_RAW_NB_ACTIONS = os.path.join(_PATH_RAW_NB, ".actions")
-_COPY_NOTEBOOKS = int(os.getenv("DOCS_COPY_NOTEBOOKS", True))
 _FOLDER_GENERATED = "generated"
 
 
@@ -103,7 +104,7 @@ assist_local.AssistantCLI.pull_docs_files(
     checkout="tags/1.1.0",
 )
 
-if not _FAST_DOCS_DEV:
+if _FETCH_S3_ASSETS:
     fetch_external_assets(
         docs_folder=_PATH_HERE,
         assets_folder="_static/fetched-s3-assets",
