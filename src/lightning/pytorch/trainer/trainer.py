@@ -97,7 +97,7 @@ class Trainer:
         strategy: Union[str, Strategy] = "auto",
         devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
-        precision: _PRECISION_INPUT = "32-true",
+        precision: Optional[_PRECISION_INPUT] = None,
         logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         fast_dev_run: Union[int, bool] = False,

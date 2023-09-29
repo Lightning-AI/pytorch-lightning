@@ -265,6 +265,11 @@ def test_interactive_incompatible_backend_error(_, monkeypatch):
         _Connector(strategy="dp", accelerator="cpu")
 
 
+def test_precision_and_precision_plugin_raises():
+    with pytest.raises(ValueError, match="both `precision=16-true` and `plugins"):
+        _Connector(precision="16-true", plugins=Precision())
+
+
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_interactive_compatible_dp_strategy_gpu(_, __, monkeypatch):

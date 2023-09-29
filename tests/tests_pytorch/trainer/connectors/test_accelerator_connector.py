@@ -99,6 +99,11 @@ def test_invalid_strategy_choice(invalid_strategy):
         _AcceleratorConnector(strategy=invalid_strategy)
 
 
+def test_precision_and_precision_plugin_raises():
+    with pytest.raises(ValueError, match="both `precision=16-true` and `plugins"):
+        _AcceleratorConnector(precision="16-true", plugins=PrecisionPlugin())
+
+
 @RunIf(skip_windows=True, standalone=True)
 def test_strategy_choice_ddp_on_cpu(tmpdir):
     """Test that selecting DDPStrategy on CPU works."""

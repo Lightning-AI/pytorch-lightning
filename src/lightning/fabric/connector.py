@@ -106,7 +106,7 @@ class _Connector:
         strategy: Union[str, Strategy] = "auto",
         devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
-        precision: _PRECISION_INPUT = "32-true",
+        precision: Optional[_PRECISION_INPUT] = None,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
         # These arguments can be set through environment variables set by the CLI
@@ -169,7 +169,7 @@ class _Connector:
         self,
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
-        precision: _PRECISION_INPUT,
+        precision: Optional[_PRECISION_INPUT],
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
     ) -> None:
         """This method checks:
@@ -252,6 +252,15 @@ class _Connector:
                     f"Received multiple values for {', '.join(duplicated_plugin_key)} flags in `plugins`."
                     " Expected one value for each type at most."
                 )
+
+            if plugins_flags_types.get(Precision.__name__) and self._precision_input is not None:
+                raise ValueError(
+                    f"Received both `precision={self._precision_input}` and `plugins={self._precision_instance}`."
+                    f" Choose one."
+                )
+
+        if self._precision_input is None:
+            self._precision_input = "32-true"
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
@@ -551,7 +560,10 @@ class _Connector:
         return env_value
 
 
-def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISION_INPUT_STR:
+def _convert_precision_to_unified_args(precision: Optional[_PRECISION_INPUT]) -> Optional[_PRECISION_INPUT_STR]:
+    if precision is None:
+        return None
+
     supported_precision = (
         get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT) + get_args(_PRECISION_INPUT_STR_ALIAS)
     )
