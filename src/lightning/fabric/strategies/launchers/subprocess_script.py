@@ -25,7 +25,7 @@ from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.strategies.launchers.launcher import _Launcher
-from lightning.fabric.utilities.data import _num_cpus_available
+from lightning.fabric.utilities.distributed import _suggested_max_num_threads
 from lightning.fabric.utilities.rank_zero import rank_prefixed_message
 
 _logger = logging.getLogger(__name__)
@@ -234,6 +234,7 @@ class _ChildProcessObserver:
 
 def _set_num_threads(num_processes: int = 1) -> None:
     if "OMP_NUM_THREADS" not in os.environ:
-        num_cpus = _num_cpus_available()
-        torch.set_num_threads(max(1, num_cpus // num_processes))
+        num_threads = _suggested_max_num_threads(num_processes)
+        torch.set_num_threads(num_threads)
         # TODO: do we also need to set torch.set_num_interop_threads()?
+        os.environ["OMP_NUM_THREADS"] = str(num_threads)
