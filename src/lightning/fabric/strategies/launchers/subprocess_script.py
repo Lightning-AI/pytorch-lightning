@@ -236,3 +236,4 @@ def _set_num_threads(num_processes: int = 1) -> None:
     if "OMP_NUM_THREADS" not in os.environ:
         num_cpus = _num_cpus_available()
         torch.set_num_threads(max(1, num_cpus // num_processes))
+        # TODO: do we also need to set torch.set_num_interop_threads()?
