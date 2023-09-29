@@ -14,8 +14,8 @@
 import multiprocessing
 
 import torch
-
 from lightning.pytorch.plugins import MixedPrecisionPlugin
+
 from tests_pytorch.helpers.runif import RunIf
 
 

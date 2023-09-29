@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from re import escape
 from unittest import mock
-from unittest.mock import ANY, call, MagicMock, Mock, PropertyMock
+from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
 import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
-from lightning_utilities.test.warning import no_warning_call
-from torch import nn
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
-
 from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
@@ -41,6 +38,10 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from lightning_utilities.test.warning import no_warning_call
+from torch import nn
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -743,6 +744,7 @@ def test_overridden_run_and_cli_not_allowed():
 def test_module_sharding_context():
     """Test that the sharding context manager gets applied when the strategy supports it and is a no-op otherwise."""
     fabric = Fabric()
+    fabric._launched = True
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
     with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
@@ -1177,12 +1179,57 @@ def test_verify_launch_called():
     with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
         fabric._validate_launched()
 
+    # Methods
     method_names = ("setup", "setup_module", "setup_dataloaders", "broadcast", "barrier", "all_reduce", "all_gather")
     for method_name in method_names:
         method = getattr(fabric, method_name)
         with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
             method(Mock())
 
+    # Context managers
+    ctx_manager_names = ("init_module",)
+    for ctx_manager_name in ctx_manager_names:
+        ctx_manager = getattr(fabric, ctx_manager_name)
+        with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"), ctx_manager():
+            pass  # the error is raised in the context manager and caught by `pytest.raises`
+
     fabric.launch()
     assert fabric._launched
     fabric._validate_launched()
+
+
+@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+@RunIf(dynamo=True)
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        pytest.param({"precision": "16-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
+        pytest.param({"precision": "64-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
+    ],
+)
+def test_fabric_with_torchdynamo_fullgraph(kwargs):
+    class MyModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l = torch.nn.Linear(10, 10)
+
+        def forward(self, x):
+            # forward gets compiled
+            assert torch._dynamo.is_compiling()
+            return self.l(x)
+
+    def fn(model, x):
+        assert torch._dynamo.is_compiling()
+        a = x * 10
+        return model(a)
+
+    fabric = Fabric(devices=1, **kwargs)
+    model = MyModel()
+    fmodel = fabric.setup(model)
+    # we are compiling a function that calls model.forward() inside
+    cfn = torch.compile(fn, fullgraph=True)
+    x = torch.randn(10, 10, device=fabric.device)
+    # pass the fabric wrapped model to the compiled function, so that it gets compiled too
+    out = cfn(fmodel, x)
+    assert isinstance(out, torch.Tensor)

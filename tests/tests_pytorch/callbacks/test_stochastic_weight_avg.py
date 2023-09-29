@@ -19,17 +19,17 @@ from unittest import mock
 
 import pytest
 import torch
-from torch import nn
-from torch.optim.lr_scheduler import LambdaLR
-from torch.optim.swa_utils import SWALR
-from torch.utils.data import DataLoader
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.strategies import Strategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from torch import nn
+from torch.optim.lr_scheduler import LambdaLR
+from torch.optim.swa_utils import SWALR
+from torch.utils.data import DataLoader
+
 from tests_pytorch.helpers.runif import RunIf
 
 

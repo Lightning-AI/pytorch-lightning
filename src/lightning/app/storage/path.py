@@ -18,7 +18,7 @@ import pathlib
 import shutil
 import sys
 from time import sleep
-from typing import Any, List, Optional, Sequence, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Union
 
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem

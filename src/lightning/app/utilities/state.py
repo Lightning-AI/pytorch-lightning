@@ -26,7 +26,7 @@ from requests.exceptions import ConnectionError
 from lightning.app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning.app.storage.drive import _maybe_create_drive
 from lightning.app.utilities.app_helpers import AppStatePlugin, BaseStatePlugin, Logger
-from lightning.app.utilities.network import _configure_session, LightningClient
+from lightning.app.utilities.network import LightningClient, _configure_session
 
 logger = Logger(__name__)
 

@@ -10,6 +10,15 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
+from lightning.app import BuildConfig, LightningApp, LightningFlow, LightningWork
+from lightning.app.runners import CloudRuntime, backends, cloud
+from lightning.app.source_code.copytree import _copytree, _parse_lightningignore
+from lightning.app.source_code.local import LocalSourceCodeDir
+from lightning.app.storage import Drive, Mount
+from lightning.app.testing.helpers import EmptyWork
+from lightning.app.utilities.cloud import _get_project
+from lightning.app.utilities.dependency_caching import get_hash
+from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 from lightning_cloud.openapi import (
     CloudspaceIdRunsBody,
     Externalv1Cluster,
@@ -57,16 +66,6 @@ from lightning_cloud.openapi import (
     V1UserRequestedFlowComputeConfig,
     V1Work,
 )
-
-from lightning.app import BuildConfig, LightningApp, LightningFlow, LightningWork
-from lightning.app.runners import backends, cloud, CloudRuntime
-from lightning.app.source_code.copytree import _copytree, _parse_lightningignore
-from lightning.app.source_code.local import LocalSourceCodeDir
-from lightning.app.storage import Drive, Mount
-from lightning.app.testing.helpers import EmptyWork
-from lightning.app.utilities.cloud import _get_project
-from lightning.app.utilities.dependency_caching import get_hash
-from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
 
 class MyWork(LightningWork):

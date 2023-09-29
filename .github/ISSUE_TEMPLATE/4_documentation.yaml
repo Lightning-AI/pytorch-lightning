@@ -9,7 +9,7 @@ body:
       placeholder: |
         For typos and doc fixes, please go ahead and:
 
-        - For a simlpe typo or fix, please send directly a PR (no ned to create an issue)
+        - For a simlpe typo or fix, please send directly a PR (no need to create an issue)
         - If you are not sure about the proper solution, please describe here your finding...
 
     validations:

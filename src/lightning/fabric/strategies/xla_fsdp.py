@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-import os
-from contextlib import contextmanager, nullcontext
+from contextlib import ExitStack, nullcontext
+from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Literal, Optional, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Literal, Optional, Set, Tuple, Type, Union
 
 import torch
 from torch import Tensor
@@ -24,26 +24,35 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _using_pjrt
+from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
-from lightning.fabric.plugins.precision import Precision
-from lightning.fabric.strategies import _StrategyRegistry, ParallelStrategy
+from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
 from lightning.fabric.strategies.fsdp import _apply_filter
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
-from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate_keys_for_strict_loading, TBroadcast
+from lightning.fabric.strategies.strategy import (
+    TBroadcast,
+    _BackwardSyncControl,
+    _Sharded,
+    _validate_keys_for_strict_loading,
+)
+from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
 
-if TYPE_CHECKING and _XLA_AVAILABLE:
+if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
+_POLICY_SET = Set[Type[Module]]
+_POLICY = Union[_POLICY_SET, Callable[[Module, bool, int], bool]]
 
-class XLAFSDPStrategy(ParallelStrategy):
-    """Strategy for training multiple XLA devices using the
+
+class XLAFSDPStrategy(ParallelStrategy, _Sharded):
+    r"""Strategy for training multiple XLA devices using the
     :func:`torch_xla.distributed.xla_fully_sharded_data_parallel.XlaFullyShardedDataParallel` method.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -51,8 +60,24 @@ class XLAFSDPStrategy(ParallelStrategy):
     For more information check out https://github.com/pytorch/xla/blob/master/docs/fsdp.md
 
     Args:
+        auto_wrap_policy: Same as ``auto_wrap_policy`` parameter in
+            :class:`torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`.
+            For convenience, this also accepts a set of the layer classes to wrap.
+        activation_checkpointing_policy: Used when selecting the modules for
+            which you want to enable activation checkpointing. Enabling this can free up a significant amount of memory
+            at the cost of speed since activations in these layers need to be recomputed during backpropagation.
+            This accepts a set of the layer classes to wrap.
+
+        state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
+
+            - ``"full"``: The full weights and optimizer states get assembled on rank 0 and saved to a single file.
+            - ``"sharded"``: Each rank saves its shard of weights and optimizer states to a file. The checkpoint is
+              a folder with files for each shard in the host. Note that TPU VM multihost does not have a shared
+              filesystem.
+
         sequential_save: With this enabled, individual ranks consecutively save their state dictionary shards, reducing
             peak system RAM usage, although it elongates the saving process.
+        \**kwargs: See available parameters in :class:`torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`.
     """
 
     def __init__(
@@ -60,7 +85,9 @@ class XLAFSDPStrategy(ParallelStrategy):
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
+        precision: Optional[XLAPrecision] = None,
+        auto_wrap_policy: Optional[_POLICY] = None,
+        activation_checkpointing_policy: Optional[_POLICY_SET] = None,
         state_dict_type: Literal["full", "sharded"] = "sharded",
         sequential_save: bool = False,
         **kwargs: Any,
@@ -75,6 +102,8 @@ class XLAFSDPStrategy(ParallelStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = _XLAFSDPBackwardSyncControl()
 
+        self._auto_wrap_policy = auto_wrap_policy
+        self._activation_checkpointing_policy = activation_checkpointing_policy
         self._fsdp_kwargs = kwargs
         self._state_dict_type = state_dict_type
         self._sequential_save = sequential_save
@@ -148,32 +177,31 @@ class XLAFSDPStrategy(ParallelStrategy):
     def setup_module(self, module: Module) -> Module:
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
-        if any(isinstance(mod, XLAFSDP) for mod in module.modules()) and "auto_wrap_policy" in self._fsdp_kwargs:
+        kwargs = self._parse_fsdp_kwargs()
+        if any(isinstance(mod, XLAFSDP) for mod in module.modules()) and "auto_wrap_policy" in kwargs:
             rank_zero_warn(
                 "A XLAFSDP `auto_wrap_policy` is set, but at least one submodule is already wrapped."
                 " The policy will be ignored."
             )
-            del self._fsdp_kwargs["auto_wrap_policy"]
-
+            del kwargs["auto_wrap_policy"]
         # XLA FSDP requires that the root is wrapped, even if submodules are already wrapped
-        module = XLAFSDP(module=module, **self._fsdp_kwargs)
-
+        if not isinstance(module, XLAFSDP):
+            module = XLAFSDP(module=module, **kwargs)
         return module
 
     def module_to_device(self, module: Module) -> None:
         pass
 
-    @contextmanager
-    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
-        # TODO: Use the meta device and reset parameters after https://github.com/pytorch/pytorch/issues/90465
-        # is resolved. For now, the module will get moved to the device in `setup_module`.
-        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
-        with empty_init_context, self.precision.init_context(), self.module_sharded_context():
-            yield
+    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+        stack = ExitStack()
+        if _TORCH_GREATER_EQUAL_1_13:
+            stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
+        stack.enter_context(self.precision.init_context())
+        stack.enter_context(self.module_sharded_context())
+        return stack
 
-    @contextmanager
-    def module_sharded_context(self) -> Generator:
-        yield
+    def module_sharded_context(self) -> ContextManager:
+        return nullcontext()
 
     def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -362,16 +390,11 @@ class XLAFSDPStrategy(ParallelStrategy):
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
                 "Saving and loading checkpoints with the `XLAFSDPStrategy` is not supported in PyTorch < 2.0."
-                " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
-            )
-        if storage_options is not None:
-            raise TypeError(
-                "`XLAFSDPStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
-                " `XLAFSDPStrategy` does not use the `CheckpointIO`."
+                " Please upgrade `torch`."
             )
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
-        path = self.broadcast(path)
-        if Path(path).is_dir() and os.listdir(path):
+        path = Path(self.broadcast(path))
+        if path.is_dir() and any(path.iterdir()):
             raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
@@ -393,8 +416,11 @@ class XLAFSDPStrategy(ParallelStrategy):
         # ensure model parameters are updated
         xm.mark_step()
 
+        parallel_devices = self.parallel_devices
+        assert parallel_devices is not None
         if self._sequential_save:
-            for rank in range(self.world_size):
+            # each host runs this in parallel, but the ranks in the host run it sequentially
+            for rank in range(len(parallel_devices)):
                 if rank == self.local_rank:
                     self._save_checkpoint_shard(path, state, storage_options, filter)
                 self.barrier(f"wait-for-{rank}-save")
@@ -402,21 +428,34 @@ class XLAFSDPStrategy(ParallelStrategy):
             self._save_checkpoint_shard(path, state, storage_options, filter)
 
         if self._state_dict_type == "full":
+            ckpt_prefix = str(path / "checkpoint")
+            ckpt_suffix = "_rank-*-of-*.pth"
+            if len(parallel_devices) != self.world_size:  # multihost
+                raise OSError(
+                    "Multihost setups do not have a shared filesystem, so the checkpoint shards cannot be consolidated"
+                    " into a single checkpoint after saving them. Please switch to"
+                    " `XLAFSDPStrategy(state_dict_type='sharded')`. TIP: You can consolidate them manually by getting"
+                    " them together into a single directory and running `python -m"
+                    f" torch_xla.distributed.fsdp.consolidate_sharded_ckpts --ckpt_prefix {ckpt_prefix!r} --ckpt_suffix"
+                    f" {ckpt_suffix!r} --save_path 'path/to/consolidated.ckpt'`."
+                )
+
             from torch_xla.distributed.fsdp import consolidate_sharded_model_checkpoints
 
             self.barrier("before_ckpt_consolidation")
             if self.is_global_zero:
-                consolidate_sharded_model_checkpoints(
-                    ckpt_prefix=os.path.join(path, "checkpoint"), ckpt_suffix="_rank-*-of-*.pth"
-                )
+                save_path = path.parent / "consolidated.ckpt"
+                # save consolidated checkpoint separate to the shards
+                consolidate_sharded_model_checkpoints(ckpt_prefix, ckpt_suffix, str(save_path))
+                # remove the shards directory
+                self.checkpoint_io.remove_checkpoint(path)
+                # mv the consolidated checkpoint where the user would expect it
+                get_filesystem(save_path).mv(str(save_path), str(path))
             self.barrier("after_ckpt_consolidation")
-            self.checkpoint_io.remove_checkpoint(
-                os.path.join(path, f"checkpoint_rank-{self.local_rank:08d}-of-{self.world_size:08d}.pth")
-            )
 
     def _save_checkpoint_shard(
         self,
-        path: _PATH,
+        path: Path,
         state: Dict[str, Union[Module, Optimizer, Any]],
         storage_options: Optional[Any],
         filter: Optional[Dict[str, Callable[[str, Any], bool]]],
@@ -438,7 +477,7 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         self.checkpoint_io.save_checkpoint(
             converted_state,
-            os.path.join(path, f"checkpoint_rank-{self.local_rank:08d}-of-{self.world_size:08d}.pth"),
+            path / f"checkpoint_rank-{self.global_rank:08d}-of-{self.world_size:08d}.pth",
             storage_options=storage_options,
         )
 
@@ -467,12 +506,7 @@ class XLAFSDPStrategy(ParallelStrategy):
             )
 
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        path = self.broadcast(path)
-        if not os.path.isdir(path):
-            raise NotImplementedError(
-                f"The path `{path}` is a file or does not exist, but the `XLAFSDPStrategy` currently only supports"
-                " loading from a checkpoint(s) in a directory."
-            )
+        path = Path(self.broadcast(path))
 
         if isinstance(state, (Module, Optimizer)):
             raise NotImplementedError(
@@ -485,8 +519,8 @@ class XLAFSDPStrategy(ParallelStrategy):
         modules = {key: module for key, module in state.items() if isinstance(module, XLAFSDP)}
         optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
         if self._state_dict_type == "sharded":
-            file = os.path.join(path, f"checkpoint_rank-{self.local_rank:08d}-of-{self.world_size:08d}.pth")
-            if not Path(file).is_file():
+            file = path / f"checkpoint_rank-{self.global_rank:08d}-of-{self.world_size:08d}.pth"
+            if not file.is_file():
                 raise ValueError(
                     f"The path {str(file)!r} does not point to valid sharded checkpoints. Make sure the path points to"
                     " a directory with XLAFSDP checkpoint shards."
@@ -532,10 +566,9 @@ class XLAFSDPStrategy(ParallelStrategy):
             return metadata
 
         if self._state_dict_type == "full":
-            file = os.path.join(path, "checkpoint_consolidated.pth")
-            if not Path(file).is_file():
+            if not path.is_file():
                 raise ValueError(
-                    f"The path {str(file)!r} does not point to a valid full checkpoint. Make sure the path points to a"
+                    f"The path {str(path)!r} does not point to a valid full checkpoint. Make sure the path points to a"
                     " directory with a full XLAFSDP checkpoint."
                 )
             if len(optimizers) > 0 or len(state.keys() - modules.keys() - optimizers.keys()) > 0:
@@ -550,7 +583,7 @@ class XLAFSDPStrategy(ParallelStrategy):
                 )
             if "model" not in state or not isinstance(model := state["model"], torch.nn.Module):
                 raise NotImplementedError("XLAFSDP only supports a single model instance with 'model' as the key.")
-            full_ckpt = torch.load(str(file))
+            full_ckpt = torch.load(path)
             model.load_state_dict(full_ckpt.pop("model"), strict=strict)
             return full_ckpt
 
@@ -560,10 +593,57 @@ class XLAFSDPStrategy(ParallelStrategy):
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla_fsdp", cls, description=cls.__class__.__name__)
 
+    def _parse_fsdp_kwargs(self) -> Dict:
+        # this needs to be delayed because `self.precision` isn't available at init
+        kwargs = self._fsdp_kwargs.copy()
+        precision = self.precision
+        if isinstance(precision, XLAPrecision):
+            # the `compute_dtype` will be passed to the `auto_wrapper_callable` automatically, so we don't need to pass
+            # it when creating it
+            kwargs.setdefault("compute_dtype", precision._desired_dtype)
+        kwargs = _auto_wrap_policy_kwargs(self._auto_wrap_policy, kwargs)
+        return _activation_checkpointing_kwargs(self._activation_checkpointing_policy, kwargs)
+
+
+def _auto_wrap_policy_kwargs(policy: Optional["_POLICY"], kwargs: Dict) -> Dict:
+    if policy is None:
+        return kwargs
+    if isinstance(policy, set):
+        from torch_xla.distributed.fsdp.wrap import transformer_auto_wrap_policy
+
+        # this is not transformer specific despite the name
+        policy = partial(transformer_auto_wrap_policy, transformer_layer_cls=policy)
+    kwargs["auto_wrap_policy"] = policy
+    return kwargs
+
+
+def _activation_checkpointing_auto_wrapper(policy: _POLICY_SET, module: Module, *args: Any, **kwargs: Any) -> Module:
+    from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+    from torch_xla.distributed.fsdp import checkpoint_module
+
+    module = checkpoint_module(module) if isinstance(module, tuple(policy)) else module
+    return XLAFSDP(module, *args, **kwargs)
+
+
+def _activation_checkpointing_kwargs(policy: Optional[_POLICY_SET], kwargs: Dict) -> Dict:
+    if not policy:
+        return kwargs
+    if "auto_wrapper_callable" in kwargs:
+        raise ValueError(
+            "You cannot set both `auto_wrapper_callable` and `activation_checkpointing_policy`. Choose one"
+        )
+    if not isinstance(policy, set):
+        raise TypeError(
+            f"`activation_checkpointing_policy` must be a set, found {policy}. You can try defining and"
+            " passing `auto_wrapper_callable` instead."
+        )
+    auto_wrapper_callable = partial(_activation_checkpointing_auto_wrapper, policy)
+    kwargs["auto_wrapper_callable"] = auto_wrapper_callable
+    return kwargs
+
 
 class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
-    @contextmanager
-    def no_backward_sync(self, module: Module) -> Generator:
+    def no_backward_sync(self, module: Module) -> ContextManager:
         """Blocks gradient synchronization inside the
         :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel` wrapper."""
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
@@ -574,5 +654,4 @@ class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
                 f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `XlaFullyShardedDataParallel`."
                 f" Got: {module.__class__.__name__}."
             )
-        with module.no_sync():
-            yield
+        return module.no_sync()

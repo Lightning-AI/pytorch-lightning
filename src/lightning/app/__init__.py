@@ -21,8 +21,6 @@ if not _root_logger.hasHandlers():
     _logger.propagate = False
 
 
-from lightning.app import components  # noqa: E402, F401
-
 if os.path.isfile(os.path.join(os.path.dirname(__file__), "__about__.py")):
     from lightning.app.__about__ import *  # noqa: F403
 if "__version__" not in locals():
@@ -45,5 +43,8 @@ __package_name__ = "lightning.app".split(".")[0]
 
 _PACKAGE_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(_PACKAGE_ROOT))
+if __package_name__ == "lightning":
+    _PACKAGE_ROOT = os.path.dirname(_PACKAGE_ROOT)
+    _PROJECT_ROOT = os.path.dirname(_PROJECT_ROOT)
 
 __all__ = ["LightningApp", "LightningFlow", "LightningWork", "LightningPlugin", "BuildConfig", "CloudCompute"]

@@ -36,7 +36,7 @@ from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_info, rank_zero_warn
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)
@@ -46,8 +46,8 @@ warning_cache = WarningCache()
 class ModelCheckpoint(Checkpoint):
     r"""
     Save the model periodically by monitoring a quantity. Every metric logged with
-    :meth:`~lightning.pytorch.core.module.LightningModule.log` or
-    :meth:`~lightning.pytorch.core.module.LightningModule.log_dict` is a candidate for the monitor key.
+    :meth:`~lightning.pytorch.core.LightningModule.log` or
+    :meth:`~lightning.pytorch.core.LightningModule.log_dict` is a candidate for the monitor key.
     For more information, see :ref:`checkpointing`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the

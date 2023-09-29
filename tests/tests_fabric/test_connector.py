@@ -18,12 +18,10 @@ from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.fabric
 import pytest
 import torch
 import torch.distributed
-from lightning_utilities.test.warning import no_warning_call
-
-import lightning.fabric
 from lightning.fabric import Fabric
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.accelerator import Accelerator
@@ -63,6 +61,8 @@ from lightning.fabric.strategies import (
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
+from lightning_utilities.test.warning import no_warning_call
+
 from tests_fabric.conftest import mock_tpu_available
 from tests_fabric.helpers.runif import RunIf
 
@@ -312,6 +312,13 @@ def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class):
 def test_strategy_choice_multi_node_gpu(_, strategy, strategy_class, devices):
     connector = _Connector(num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(connector.strategy, strategy_class)
+
+
+def test_num_nodes_input_validation():
+    with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
+        _Connector(num_nodes=0)
+    with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
+        _Connector(num_nodes=-1)
 
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0)
@@ -588,6 +595,26 @@ def test_strategy_choice_ddp_torchelastic(*_):
     assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
     assert connector.strategy.cluster_environment.local_rank() == 1
     assert connector.strategy.local_rank == 1
+
+
+@mock.patch.dict(
+    os.environ,
+    {
+        "TORCHELASTIC_RUN_ID": "1",
+        "SLURM_NTASKS": "2",
+        "WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+    },
+)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_torchelastic_priority_over_slurm(*_):
+    """Test that the TorchElastic cluster environment is chosen over SLURM when both are detected."""
+    assert TorchElasticEnvironment.detect()
+    assert SLURMEnvironment.detect()
+    connector = _Connector(strategy="ddp")
+    assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
 
 
 @mock.patch.dict(
@@ -984,11 +1011,12 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_tpu_available(monkeypatch, False)
         connector = _Connector()
     assert isinstance(connector.accelerator, CUDAAccelerator)
-    assert isinstance(connector.strategy, DDPStrategy)
-    assert connector._devices_flag == list(range(4))
-    assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
-    assert connector.strategy._start_method == "fork" if is_interactive else "popen"
-    assert connector.strategy.launcher.is_interactive_compatible == is_interactive
+    assert isinstance(connector.strategy, (SingleDeviceStrategy if is_interactive else DDPStrategy))
+    assert connector._devices_flag == [0] if is_interactive else list(range(4))
+    if not is_interactive:
+        assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
+        assert connector.strategy._start_method == "fork" if is_interactive else "popen"
+        assert connector.strategy.launcher.is_interactive_compatible == is_interactive
 
     # MPS (there's no distributed)
     with no_cuda, single_mps, monkeypatch.context():
@@ -1068,6 +1096,7 @@ def test_connector_transformer_engine(monkeypatch):
     )
     transformer_engine_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
+    monkeypatch.setitem(sys.modules, "transformer_engine.pytorch", Mock())
     recipe_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
 
@@ -1089,6 +1118,13 @@ def test_connector_transformer_engine(monkeypatch):
     recipe_mock.DelayedScaling.assert_called_once_with(foo=0, fp8_format=recipe_mock.Format.HYBRID)
     assert isinstance(recipe["fp8_format"], str)  # not modified
 
+    # same logic as in `test_default_dtype_is_restored`
+    assert torch.get_default_dtype() is torch.float32
+    with pytest.raises(RuntimeError, match="foo"), precision.init_context():
+        assert torch.get_default_dtype() is not torch.float32
+        raise RuntimeError("foo")
+    assert torch.get_default_dtype() is torch.float32
+
     class SubModule(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -1101,7 +1137,6 @@ def test_connector_transformer_engine(monkeypatch):
             self.l2 = torch.nn.LayerNorm(1)
             self.l3 = SubModule()
 
-    monkeypatch.setitem(sys.modules, "transformer_engine.pytorch", Mock())
     model = MyModule()
 
     precision.replace_layers = False

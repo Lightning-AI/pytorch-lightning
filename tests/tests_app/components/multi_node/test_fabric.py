@@ -3,12 +3,11 @@ from copy import deepcopy
 from functools import partial
 from unittest import mock
 
+import lightning.fabric as lf
 import pytest
+from lightning.app.components.multi_node.fabric import _FabricRunExecutor
 from lightning_utilities.core.imports import module_available
 from lightning_utilities.test.warning import no_warning_call
-
-import lightning.fabric as lf
-from lightning.app.components.multi_node.fabric import _FabricRunExecutor
 
 
 class DummyFabric(lf.Fabric):

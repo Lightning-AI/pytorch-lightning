@@ -1,8 +1,9 @@
 coverage ==7.3.0
 pytest ==7.4.0
 pytest-cov ==4.1.0
+pytest-timeout ==2.1.0
 pytest-rerunfailures ==12.0
 pytest-random-order ==1.1.0
-click ==8.1.6
-tensorboardX >=2.2, <=2.6.2  # min version is set by torch.onnx missing attribute
+click ==8.1.7
+tensorboardX >=2.2, <2.7.0  # min version is set by torch.onnx missing attribute
 torchmetrics >=0.7.0, <1.1.0 # needed for using fixed compare_version

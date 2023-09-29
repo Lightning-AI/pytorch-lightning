@@ -11,7 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""Finetuning Callback ^^^^^^^^^^^^^^^^^^^^ Freeze and unfreeze models for finetuning purposes."""
+r"""
+Finetuning Callback
+^^^^^^^^^^^^^^^^^^^^
+
+Freeze and unfreeze models for finetuning purposes.
+"""
 import logging
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 

@@ -19,13 +19,13 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
-from torch.nn.parallel import DistributedDataParallel
-
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from torch.nn.parallel import DistributedDataParallel
+
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
 

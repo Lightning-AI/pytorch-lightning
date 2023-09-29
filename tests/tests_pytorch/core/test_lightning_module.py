@@ -17,9 +17,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from torch import nn
-from torch.optim import Adam, SGD
-
 from lightning.fabric import Fabric
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
@@ -27,6 +24,9 @@ from lightning.pytorch.core.module import _TrainerFabricShim
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from torch import nn
+from torch.optim import SGD, Adam
+
 from tests_pytorch.helpers.runif import RunIf
 
 

@@ -12,14 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import call, Mock
+from unittest.mock import Mock, call
 
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import BatchSampler, DistributedSampler
-from torch.utils.data.dataloader import DataLoader
-
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
@@ -31,6 +27,10 @@ from lightning.fabric.wrappers import (
     is_wrapped,
     warning_cache,
 )
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import BatchSampler, DistributedSampler
+from torch.utils.data.dataloader import DataLoader
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -358,20 +358,41 @@ def test_fabric_optimizer_wraps():
     fabric_optimizer = _FabricOptimizer(optimizer, Mock())
     assert fabric_optimizer.optimizer is optimizer
     assert isinstance(fabric_optimizer, optimizer_cls)
+    assert isinstance(fabric_optimizer, _FabricOptimizer)
+    assert type(fabric_optimizer).__name__ == "FabricSGD"
 
 
 def test_fabric_optimizer_state_dict():
     """Test that the FabricOptimizer calls into the strategy to collect the state."""
-    optimizer = Mock()
+    optimizer = Mock(spec=torch.optim.Adam)
     strategy = Mock()
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)
     fabric_optimizer.state_dict()
     strategy.get_optimizer_state.assert_called_with(optimizer)
 
 
+def test_fabric_optimizer_load_state_dict():
+    """Test that the FabricOptimizer can load the state dict on the wrapped optimizer and update its
+    internal `__dict__`."""
+    model = torch.nn.Linear(1, 1)
+    optimizer = torch.optim.Adam(model.parameters())
+    assert not optimizer.state  # a fresh optimizer has no state
+    model(torch.rand(1)).backward()
+    optimizer.step()
+    assert optimizer.state
+    state_dict = optimizer.state_dict()
+
+    optimizer = torch.optim.Adam(model.parameters())  # fresh optimizer
+    fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=Mock())
+    assert not fabric_optimizer.state  # a fresh optimizer has no state
+    fabric_optimizer.load_state_dict(state_dict)
+    assert fabric_optimizer.state
+    assert fabric_optimizer.optimizer.state_dict()["state"] == state_dict["state"]
+
+
 def test_fabric_optimizer_steps():
     """Test that the FabricOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
-    optimizer = Mock()
+    optimizer = Mock(spec=torch.optim.Adam)
     strategy = Mock(spec=["optimizer_step"])
     strategy.optimizer_step.return_value = 123
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)

@@ -20,7 +20,7 @@ from copy import deepcopy
 from time import sleep, time
 from typing import Dict, List, Optional, Union
 
-from lightning.app.storage.path import _filesystem, _shared_storage_path, LocalFileSystem
+from lightning.app.storage.path import LocalFileSystem, _filesystem, _shared_storage_path
 from lightning.app.utilities.component import _is_flow_context
 
 
