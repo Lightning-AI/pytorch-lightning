@@ -42,7 +42,58 @@ class IteratorSampler(Sampler[int]):
         return len(self.data_source)
 
 
-class CacheSampler(Sampler):
+class BaseCacheSampler(Sampler):
+    def __init__(self, dataset_size: int):
+        super().__init__(None)
+        self.dataset_size = dataset_size
+        self.worker_id = 0
+        self.indice_id = 0
+        self.iterators = []
+        self._done = set()
+
+    def __len__(self) -> int:
+        return self.dataset_size
+
+    @property
+    def done(self) -> bool:
+        return len(self._done) == len(self.iterators)
+
+    def __iter__(self) -> "BaseCacheSampler":
+        self._done = set()
+
+        for sampler in self.samplers:
+            self.iterators.append(iter(sampler))
+
+        return self
+
+    def _next_worker_id(self):
+        if self.done:
+            return
+        counter = 1
+        while True:
+            next_worker_id = (self.worker_id + counter) % self.num_workers
+            if next_worker_id not in self._done:
+                self.worker_id = next_worker_id
+                break
+            counter += 1
+
+    def __next__(self) -> List[int]:
+        while len(self._done) != self.iterators:
+            try:
+                data = next(self.iterators[self.worker_id])
+                self.indice_id += 1
+                if self.indice_id == self.batch_size:
+                    self.indice_id = 0
+                    self._next_worker_id()
+                return data
+            except StopIteration:
+                self._done.add(self.worker_id)
+                self.indice_id = 0
+                self._next_worker_id()
+                raise StopIteration
+
+
+class CacheSampler(BaseCacheSampler):
     def __init__(self, dataset_size: int, num_workers: int, batch_size: int):
         """The CacheSampler splits the dataset indices into ordered chunks and assign each one of them to a DataLoader
         worker. The Cache Writer expects the index to be provided in an ordered fashion.
@@ -54,11 +105,10 @@ class CacheSampler(Sampler):
 
         """
 
-        super().__init__(None)
+        super().__init__(dataset_size)
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.indices = range(dataset_size)
-        self.dataset_size = dataset_size
         worker_size = dataset_size // self.num_workers
         self.samplers = []
         for worker_idx in range(num_workers):
@@ -73,38 +123,8 @@ class CacheSampler(Sampler):
         self.worker_id = 0
         self.indice_id = 0
 
-    def __len__(self) -> int:
-        return self.dataset_size
 
-    @property
-    def done(self) -> bool:
-        return len(self._done) == len(self.iterators)
-
-    def __iter__(self) -> "CacheSampler":
-        self._done = set()
-
-        for sampler in self.samplers:
-            self.iterators.append(iter(sampler))
-
-        return self
-
-    def __next__(self) -> List[int]:
-        while len(self._done) != self.iterators:
-            try:
-                data = next(self.iterators[self.worker_id])
-                self.indice_id += 1
-                if self.indice_id == self.batch_size:
-                    self.indice_id = 0
-                    self.worker_id = (self.worker_id + 1) % self.num_workers
-                return data
-            except StopIteration:
-                self._done.add(self.worker_id)
-                self.indice_id = 0
-                self.worker_id = (self.worker_id + 1) % self.num_workers
-                raise StopIteration
-
-
-class DistributedCacheSampler(Sampler):
+class DistributedCacheSampler(BaseCacheSampler):
     def __init__(self, dataset_size: int, num_replicas: int, rank: int, num_workers: int, batch_size: int):
         """The DistributedCacheSampler splits the dataset indices into ordered chunks along all the replicas and their
         workers. The Cache Writer expects the index to be provided in an ordered fashion.
@@ -115,11 +135,10 @@ class DistributedCacheSampler(Sampler):
             batch_size: The number of items in a batch
 
         """
-        super().__init__(None)
+        super().__init__(dataset_size)
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.indices = range(dataset_size)
-        self.dataset_size = dataset_size
         replica_size = dataset_size // num_replicas
         worker_size = dataset_size // (num_replicas * self.num_workers)
         self.samplers = []
@@ -147,36 +166,6 @@ class DistributedCacheSampler(Sampler):
         assert sum([len(s) for s in self.samplers]) == replica_size
         self.worker_id = 0
         self.indice_id = 0
-
-    def __len__(self) -> int:
-        return self.dataset_size
-
-    @property
-    def done(self) -> bool:
-        return len(self._done) == len(self.iterators)
-
-    def __iter__(self) -> "DistributedCacheSampler":
-        self._done = set()
-
-        for sampler in self.samplers:
-            self.iterators.append(iter(sampler))
-
-        return self
-
-    def __next__(self) -> List[str]:
-        while len(self._done) != self.iterators:
-            try:
-                data = next(self.iterators[self.worker_id])
-                self.indice_id += 1
-                if self.indice_id == self.batch_size:
-                    self.indice_id = 0
-                    self.worker_id = (self.worker_id + 1) % self.num_workers
-                return data
-            except StopIteration:
-                self._done.add(self.worker_id)
-                self.indice_id = 0
-                self.worker_id = (self.worker_id + 1) % self.num_workers
-                raise StopIteration
 
 
 class CacheBatchSampler(BatchSampler):
