@@ -183,7 +183,8 @@ def test_cache_with_simple_format(tmpdir):
 
 def test_cache_with_auto_wrapping(tmpdir):
     dataset = RandomDataset(64, 64)
-    dataloader = CacheDataLoader(dataset, cache_dir=tmpdir)
+    dataloader = CacheDataLoader(dataset, cache_dir=tmpdir, chunk_size=2 << 12)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
-    assert sorted(os.listdir(tmpdir)) == ["0.index.json", "chunk-0-0.bin"]
+    assert sorted(os.listdir(tmpdir)) == ["0.index.json", "chunk-0-0.bin", "chunk-0-1.bin", "chunk-0-2.bin"]
+    # Your dataset is optimised for the cloud
