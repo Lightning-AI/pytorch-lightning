@@ -54,11 +54,14 @@ class MyAMP(MixedPrecisionPlugin):
 )
 def test_amp_ddp(cuda_count_2, strategy, devices, custom_plugin, plugin_cls):
     plugin = None
+    precision = None
     if custom_plugin:
         plugin = plugin_cls("16-mixed", "cpu")
+    else:
+        precision = "16-mixed"
     trainer = Trainer(
         fast_dev_run=True,
-        precision="16-mixed",
+        precision=precision,
         accelerator="gpu",
         devices=devices,
         strategy=strategy,

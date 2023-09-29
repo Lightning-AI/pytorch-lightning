@@ -852,11 +852,14 @@ class MyAMP(MixedPrecision):
 )
 def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
     plugin = None
+    precision = None
     if is_custom_plugin:
         plugin = plugin_cls("16-mixed", "cpu")
+    else:
+        precision = "16-mixed"
     connector = _Connector(
         accelerator="cpu",
-        precision="16-mixed",
+        precision=precision,
         devices=devices,
         strategy=strategy,
         plugins=plugin,

@@ -226,7 +226,7 @@ class _Connector:
 
         self._accelerator_flag = accelerator
 
-        self._precision_input = _convert_precision_to_unified_args(precision)
+        precision_input = _convert_precision_to_unified_args(precision)
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -253,14 +253,13 @@ class _Connector:
                     " Expected one value for each type at most."
                 )
 
-            if plugins_flags_types.get(Precision.__name__) and self._precision_input is not None:
+            if plugins_flags_types.get(Precision.__name__) and precision_input is not None:
                 raise ValueError(
-                    f"Received both `precision={self._precision_input}` and `plugins={self._precision_instance}`."
+                    f"Received both `precision={precision_input}` and `plugins={self._precision_instance}`."
                     f" Choose one."
                 )
 
-        if self._precision_input is None:
-            self._precision_input = "32-true"
+        self._precision_input = "32-true" if precision_input is None else precision_input
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up

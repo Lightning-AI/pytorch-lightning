@@ -174,7 +174,7 @@ class _AcceleratorConnector:
         self,
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
-        precision: _PRECISION_INPUT,
+        precision: Optional[_PRECISION_INPUT],
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
         sync_batchnorm: bool,
     ) -> None:
@@ -237,7 +237,7 @@ class _AcceleratorConnector:
 
         self._accelerator_flag = accelerator
 
-        self._precision_flag = _convert_precision_to_unified_args(precision)
+        precision_flag = _convert_precision_to_unified_args(precision)
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -272,14 +272,13 @@ class _AcceleratorConnector:
                     " Expected one value for each type at most."
                 )
 
-            if plugins_flags_types.get(PrecisionPlugin.__name__) and self._precision_flag is not None:
+            if plugins_flags_types.get(PrecisionPlugin.__name__) and precision_flag is not None:
                 raise ValueError(
-                    f"Received both `precision={self._precision_flag}` and `plugins={self._precision_plugin_flag}`."
+                    f"Received both `precision={precision_flag}` and `plugins={self._precision_plugin_flag}`."
                     f" Choose one."
                 )
 
-        if self._precision_flag is None:
-            self._precision_flag = "32-true"
+        self._precision_flag = "32-true" if precision_flag is None else precision_flag
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
