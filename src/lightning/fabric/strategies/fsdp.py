@@ -223,9 +223,24 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def mixed_precision_config(self) -> Optional["MixedPrecision"]:
         if self.mixed_precision:
             return self.mixed_precision
-        if isinstance(self.precision, FSDPPrecision):
-            return self.precision.mixed_precision_config
+        plugin = self.precision
+        if isinstance(plugin, FSDPPrecision):
+            return plugin.mixed_precision_config
         return None
+
+    @property  # type: ignore[override]
+    def precision(self) -> FSDPPrecision:
+        plugin = self._precision
+        if plugin is not None:
+            assert isinstance(plugin, FSDPPrecision)
+            return plugin
+        return FSDPPrecision("32-true")
+
+    @precision.setter
+    def precision(self, precision: Optional[FSDPPrecision]) -> None:
+        if precision is not None and not isinstance(precision, FSDPPrecision):
+            raise TypeError(f"The FSDP strategy can only work with the `FSDPPrecision` plugin, found {precision}")
+        self._precision = precision
 
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
@@ -865,9 +880,13 @@ def _load_raw_module_state_from_path(path: Path, module: Module, world_size: int
 
 def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, world_size: int, strict: bool = True) -> None:
     """Loads the state dict into the module by gathering all weights first and then and writing back to each shard."""
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-    with _get_full_state_dict_context(module, world_size=world_size, rank0_only=False):
+    if not isinstance(module, FSDP):
         module.load_state_dict(state_dict, strict=strict)
+    else:
+        with _get_full_state_dict_context(module, world_size=world_size, rank0_only=False):
+            module.load_state_dict(state_dict, strict=strict)
 
 
 def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
