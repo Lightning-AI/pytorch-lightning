@@ -42,6 +42,10 @@ class Serializer(ABC):
     def deserialize(self, data: bytes) -> any:
         pass
 
+    @abstractmethod
+    def can_serialize(self, data: any) -> bool:
+        pass
+
 
 class PILSerializer(Serializer):
     """The PILSerializer serialize and deserialize PIL Image to and from bytes."""
@@ -62,6 +66,9 @@ class PILSerializer(Serializer):
         raw = data[idx2:]
         return Image.frombytes(mode, size, raw)  # pyright: ignore
 
+    def can_serialize(self, item) -> bool:
+        pass
+
 
 class IntSerializer(Serializer):
     """The IntSerializer serialize and deserialize integer to and from bytes."""
@@ -71,6 +78,9 @@ class IntSerializer(Serializer):
 
     def deserialize(self, data: bytes) -> int:
         return int(data.decode("utf-8"))
+
+    def can_serialize(self, item) -> bool:
+        return isinstance(item, int)
 
 
 class JPEGSerializer(Serializer):
@@ -89,6 +99,9 @@ class JPEGSerializer(Serializer):
     def deserialize(self, data: bytes) -> Image:
         inp = BytesIO(data)
         return Image.open(inp)
+
+    def can_serialize(self, item) -> bool:
+        pass
 
 
 _SERIALIZERS = {

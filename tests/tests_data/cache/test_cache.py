@@ -141,3 +141,31 @@ def test_cache_for_image_dataset_distributed(num_workers, tmpdir):
 
     fabric = Fabric(accelerator="cpu", devices=2, strategy="ddp_spawn")
     fabric.launch(partial(_fabric_cache_for_image_dataset, num_workers=num_workers, tmpdir=tmpdir))
+
+
+def test_cache_with_simple_format(tmpdir):
+    cache_dir = os.path.join(tmpdir, "cache1")
+    os.makedirs(cache_dir)
+
+    cache = Cache(cache_dir, chunk_size=90)
+
+    for i in range(100):
+        cache[i] = i
+
+    cache.done()
+
+    for i in range(100):
+        assert i == cache[i]
+
+    cache_dir = os.path.join(tmpdir, "cache2")
+    os.makedirs(cache_dir)
+
+    cache = Cache(cache_dir, chunk_size=90)
+
+    for i in range(100):
+        cache[i] = [i, {0: [i + 1]}]
+
+    cache.done()
+
+    for i in range(100):
+        assert [i, {0: [i + 1]}] == cache[i]

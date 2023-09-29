@@ -13,12 +13,70 @@
 
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 
-from lightning.data.cache.serializers import _SERIALIZERS
+from lightning.data.cache.pytree import tree_flatten, tree_unflatten, treespec_loads
+from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
+
+
+class ChunksConfig:
+    def __init__(self, cache_dir: str, index_filenames: str):
+        self._cache_dir = cache_dir
+        self.index_filenames = sorted(index_filenames)
+        self._intervals = []
+        self._config = None
+        self._chunks = []
+
+        for filename in self.index_filenames:
+            with open(os.path.join(self._cache_dir, filename)) as f:
+                data = json.load(f)
+
+                if self._config is None:
+                    self._config = data["config"]
+                    self._config["data_spec"] = treespec_loads(self._config["data_spec"])
+                    flattened_data_format, _ = tree_flatten(self._config["data_format"])
+                    self._config["flattened_data_format"] = flattened_data_format
+
+                elif self._config != data["config"]:
+                    raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
+
+                self._chunks.extend(data["chunks"])
+
+        for chunk in self._chunks:
+            start, end = chunk["interval"]
+            if (end - start + 1) != chunk["samples"]:
+                raise Exception(
+                    "The config intervals doesn't match the number of samples. This shouldn't have happened."
+                )
+            self._intervals.append(chunk["interval"])
+
+    @property
+    def intervals(self):
+        return self._intervals
+
+    @property
+    def config(self):
+        return self._config
+
+    def __getitem__(self, index: int) -> Tuple[str, int, int]:
+        """Find the associated chunk metadata."""
+        for interval_index, internal in enumerate(self._intervals):
+            if internal[0] <= index and index <= internal[1]:
+                chunk = self._chunks[interval_index]
+                mapping = chunk["mapping"][str(index)]
+                return os.path.join(self._cache_dir, chunk["filename"]), *mapping
+        raise Exception(f"The chunk interval weren't properly defined. Found {self._intervals} for index {index}.")
+
+    @classmethod
+    def load(cls, cache_dir: str) -> Optional["ChunksConfig"]:
+        files = os.listdir(cache_dir)
+        index_filenames = sorted([f for f in files if f.endswith("index.json")])
+        if not index_filenames:
+            return None
+        return ChunksConfig(cache_dir, index_filenames)
 
 
 class BinaryReader:
@@ -41,44 +99,17 @@ class BinaryReader:
         self._index = None
         self._intervals = None
 
-        # TODO: Use a chunk class
         self._chunks_data = {}
-        self._serializers = _SERIALIZERS
+        self._serializers: Dict[str, Serializer] = _SERIALIZERS
 
         self._env = _DistributedEnv.detect()
         self._worker_env: Optional[_WorkerEnv] = None
 
-    def _try_read_index(self):
-        """Try to read the chunks json index files if available."""
-        files = os.listdir(self._cache_dir)
-        indexes_filepath = sorted([os.path.join(self._cache_dir, f) for f in files if f.endswith("index.json")])
-        if not indexes_filepath:
-            return
+        self._config: Optional[ChunksConfig] = None
 
-        index = {"chunks": []}
-        for path in indexes_filepath:
-            with open(path) as f:
-                data = json.load(f)
-                index["chunks"].extend(data["chunks"])
-
-        self._index = index
-
-        for chunk in self._index["chunks"]:
-            chunk["data"] = None
-            self._chunks_data[chunk["filename"]] = chunk
-
-        self._intervals = []
-        num_samples = [v["samples"] for v in self._index["chunks"]]
-        cumsum_samples = np.cumsum([0] + num_samples)
-        for i in range(len(cumsum_samples) - 1):
-            self._intervals.append([cumsum_samples[i], cumsum_samples[i + 1]])
-
-    def _map_index_to_chunk_id(self, index: int) -> int:
-        """Find the associated chunk in which the current index was stored."""
-        for interval_index, internal in enumerate(self._intervals):
-            if internal[0] <= index and index < internal[1]:
-                return interval_index
-        raise Exception(f"The chunk interval weren't properly defined. Found {self._intervals} for inded {index}.")
+    def _try_load_config(self):
+        """Try to load the chunks config if the index files are available."""
+        self._config = ChunksConfig.load(self._cache_dir)
 
     def read(self, index: int):
         """Read an item for the given from a chunk.
@@ -87,60 +118,51 @@ class BinaryReader:
 
         """
         if self._index is None:
-            self._try_read_index()
+            self._try_load_config()
 
-        if self._index is None:
+        if self._config is None:
             raise Exception("The reader index isn't defined.")
 
-        chunk_id = self._map_index_to_chunk_id(index)
-        chunk_config = self._index["chunks"][chunk_id]
-        chunk_path = os.path.join(self._cache_dir, chunk_config["filename"])
-        raw_item_data, item_config = self.load_item_from_chunk(index, chunk_path, keep_in_memory=True)
-        return self.deserialize(raw_item_data, item_config)
+        chunk_filepath, begin, end = self._config[index]
+        raw_item_data = self.load_item_from_chunk(chunk_filepath, begin, end, keep_in_memory=True)
+        return self.deserialize(raw_item_data)
 
-    def deserialize(self, raw_item_data: bytes, item_config: Dict[str, Any]) -> Any:
+    def deserialize(self, raw_item_data: bytes) -> Any:
         """Deserialize the raw bytes into their python equivalent."""
         sizes = []
         idx = 0
-        data_format = item_config["data_format"]
-        keys = sorted(data_format)
-        for key in keys:
+        data_format = self._config.config["flattened_data_format"]
+        for key in data_format:
             (size,) = np.frombuffer(raw_item_data[idx : idx + 4], np.uint32)
             sizes.append(size)
             idx += 4
-        sample = {}
-        for key, size in zip(keys, sizes):
-            value = raw_item_data[idx : idx + size]
-            serializer = self._serializers[data_format[key]]
-            sample[key] = serializer.deserialize(value)
+        data = []
+        for size, format in zip(sizes, data_format):
+            serializer = self._serializers[format]
+            data_bytes = raw_item_data[idx : idx + size]
+            data.append(serializer.deserialize(data_bytes))
             idx += size
-        return sample
+        return tree_unflatten(data, self._config.config["data_spec"])
 
-    def load_item_from_chunk(self, index: int, chunk_path: str, keep_in_memory: bool = False):
-        chunk_name = os.path.basename(chunk_path)
-        try:
-            begin, end = self._chunks_data[chunk_name]["mapping"][str(index)]
-        except Exception as e:
-            raise Exception(f"Medata: ({self._chunks_data[chunk_name]}), Error: {e}")
-        config = self._chunks_data[chunk_name]["config"]
-        if self._chunks_data[chunk_name]["data"] is not None:
-            return self._chunks_data[chunk_name]["data"][begin:end], config
+    def load_item_from_chunk(self, chunk_filepath: str, begin: int, end: int, keep_in_memory: bool = False):
+        if chunk_filepath in self._chunks_data:
+            return self._chunks_data[chunk_filepath][begin:end]
 
         if keep_in_memory:
-            with open(chunk_path, "rb", 0) as fp:
+            with open(chunk_filepath, "rb", 0) as fp:
                 data = fp.read()
-            self._chunks_data[chunk_name]["data"] = data
-            return data[begin:end], config
+            self._chunks_data[chunk_filepath] = data
+            return data[begin:end]
 
-        with open(chunk_path, "rb", 0) as fp:
+        with open(chunk_filepath, "rb", 0) as fp:
             fp.seek(begin)
             data = fp.read(end - begin)
-        return data, config
+        return data
 
     def get_length(self) -> int:
         """Get the number of samples across all chunks."""
         if self._index is None:
-            self._try_read_index()
+            self._try_load_config()
 
         if self._index is None:
             raise Exception("The reader index isn't defined.")
@@ -150,7 +172,7 @@ class BinaryReader:
     def get_chunk_interval(self):
         """Get the index interval of each chunks."""
         if self._index is None:
-            self._try_read_index()
+            self._try_load_config()
 
         if self._intervals is None:
             raise Exception("The reader index isn't defined.")

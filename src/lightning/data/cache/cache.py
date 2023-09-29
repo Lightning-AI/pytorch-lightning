@@ -26,7 +26,7 @@ class Cache:
     def __init__(
         self,
         cache_dir: str,
-        data_format: Union[Dict[str, any], str],
+        data_format: Union[Dict[str, any], str] = None,
         compression: Optional[str] = None,
         chunk_size: int = 2 << 26,
     ):

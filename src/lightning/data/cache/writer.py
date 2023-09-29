@@ -13,12 +13,13 @@
 
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 
 from lightning.data.cache.compression import _COMPRESSORS
-from lightning.data.cache.serializers import _SERIALIZERS
+from lightning.data.cache.pytree import tree_flatten, tree_unflatten, treespec_dumps
+from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.cache.worker import get_worker_info
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
@@ -37,7 +38,7 @@ class BinaryWriter:
     def __init__(
         self,
         cache_dir: str,
-        data_format: Dict[str, str],
+        data_format: Union[Dict[str, str], str] = None,
         chunk_size: int = 1 << 26,
         compression: Optional[str] = None,
     ):
@@ -45,32 +46,43 @@ class BinaryWriter:
 
         Arguments:
             cache_dir: The path to where the chunks will be saved.
-            data_format: The format of the provided data to cache. Only dictionary are supported for now.
+            data_format: The format of the provided data to cache.
             chunk_size: The maximum number of bytes to store within a chunk.
             compression: The compression algorithm to use.
 
         """
         self._cache_dir = cache_dir
-        self._data_format = {k.lower(): v for k, v in data_format.items()}
-        self._chunk_size = chunk_size
-        self._compression = compression
 
         if not os.path.exists(self._cache_dir):
             raise FileNotFoundError(f"The provided cache directory `{self._cache_dir}` doesn't exist.")
 
-        if len(self._data_format) == 0:
-            raise ValueError("The provided data format shouldn't be empty.")
+        self._serializers: Dict[str, Serializer] = _SERIALIZERS
+        self._chunk_size = chunk_size
+        self._compression = compression
 
-        self._data_format_keys = sorted(self._data_format.keys())
-        self._serializers = _SERIALIZERS
+        self._data_format = None
+        self._data_spec = None
 
-        available_serializers = set(self._serializers.keys())
-        selected_serializers = set(self._data_format.values())
-        if selected_serializers.difference(available_serializers):
-            raise ValueError(
-                "The provided data_format don't match the provided serializers."
-                " Should be selected from {sorted(available_serializers)}."
-            )
+        if data_format:
+            if isinstance(data_format, str):
+                self._data_format = data_format
+                self._data_format_key = None
+            elif isinstance(data_format, Dict):
+                if len(data_format) == 0:
+                    raise ValueError("The provided data format shouldn't be empty.")
+                self._data_format = {k.lower(): v for k, v in data_format.items()}
+                self._data_format_keys = sorted(self._data_format.keys())
+
+                available_serializers = set(self._serializers.keys())
+                selected_serializers = set(self._data_format.values())
+                if selected_serializers.difference(available_serializers):
+                    raise ValueError(
+                        "The provided data_format don't match the provided serializers."
+                        " Should be selected from {sorted(available_serializers)}."
+                    )
+        else:
+            self._data_format = None
+            self._data_format_key = None
 
         if self._compression:
             if len(_COMPRESSORS) == 0:
@@ -86,10 +98,6 @@ class BinaryWriter:
         self._serialized_items = []
         self._chunks_info = []
         self._indexes = []
-        obj = self.get_config()
-        text = json.dumps(obj, sort_keys=True)
-        self._config_data = text.encode("utf-8")
-
         self._env = _DistributedEnv.detect()
         self._worker_env = None
         self._rank = None
@@ -105,8 +113,12 @@ class BinaryWriter:
 
     def get_config(self) -> Dict[str, Any]:
         """Returns the config of the writer."""
-        out = {"compression": self._compression, "chunk_size": self._chunk_size, "data_format": self._data_format}
-        out.update(self._data_format)
+        out = {
+            "compression": self._compression,
+            "chunk_size": self._chunk_size,
+            "data_format": self._data_format,
+            "data_spec": treespec_dumps(self._data_spec),
+        }
         cloud_path = self.get_cloud_path(self._cache_dir)
         if cloud_path:
             out["cloud_path"] = cloud_path
@@ -115,52 +127,71 @@ class BinaryWriter:
             out["user_id"] = user_id
         return out
 
-    def serialize(self, items: Dict[str, Any]) -> bytes:
+    def serialize(self, items: Any) -> bytes:
         """Serialize a dictionary into its binary format."""
-        if not isinstance(items, dict):
-            raise Exception("The provided data should be a dictionary.")
-
-        keys = sorted(items.keys())
-
-        if keys != self._data_format_keys:
-            raise Exception(
-                f"The provided keys don't match the provided format. Found {keys} instead of {self._data_format_keys}."
-            )
+        flattened, data_spec = tree_flatten(items)
 
         sizes = []
         data = []
 
-        for key in self._data_format_keys:
-            serializer_name = self._data_format[key]
-            serializer = self._serializers[serializer_name]
-            serialized_data = serializer.serialize(items[key]) if not isinstance(items[key], bytes) else items[key]
-            sizes.append(len(serialized_data))
-            data.append(serialized_data)
+        formats = []
+        for item in flattened:
+            formats.append(self._serialize(item, sizes, data))
+
+        data_format = tree_unflatten(formats, data_spec)
+
+        if self._data_format is None:
+            self._data_format = data_format
+            self._data_spec = data_spec
+        else:
+            if self._data_format != data_format:
+                raise Exception(
+                    f"The data format changed between items. Found {data_format} instead of {self._data_format}."
+                )
+            if self._data_spec != data_spec:
+                raise Exception(
+                    f"The data format changed between items. Found {data_spec} instead of {self._data_spec}."
+                )
 
         head = np.array(sizes, np.uint32).tobytes()
         body = b"".join(data)
         return head + body
+
+    def _serialize(self, item, sizes, data) -> bytes:
+        if isinstance(item, bytes):
+            data.append(item)
+            sizes.append(len(item))
+            return "bytes"
+
+        for serializer_name, serializer in self._serializers.items():
+            if serializer.can_serialize(item):
+                serialized_item = serializer.serialize(item)
+                data.append(serialized_item)
+                sizes.append(len(serialized_item))
+                return serializer_name
+        raise ValueError(f"The provided item isn't serializable. Found {item}")
 
     def _create_chunk(self, filename: str) -> bytes:
         """Create a binary chunk from all the binarized items."""
         num_items = np.uint32(len(self._serialized_items))
         sizes = list(map(len, self._serialized_items))
         offsets = np.array([0] + sizes).cumsum().astype(np.uint32)
-        offsets += len(num_items.tobytes()) + len(offsets.tobytes()) + len(self._config_data)
+        offsets += len(num_items.tobytes()) + len(offsets.tobytes())
         sample_data = b"".join(self._serialized_items)
-        data = num_items.tobytes() + offsets.tobytes() + self._config_data + sample_data
+        data = num_items.tobytes() + offsets.tobytes() + sample_data
         offsets = offsets.tolist()
         mapping = {}
         for i in range(len(self._indexes)):
             mapping[self._indexes[i]] = [offsets[i], offsets[i + 1]]
 
         assert len(mapping) == len(self._indexes)
+        assert (self._indexes[-1] - self._indexes[0] + 1) == len(self._serialized_items)
 
         chunk_info = {
             "samples": len(self._serialized_items),
-            "config": self.get_config(),
             "filename": filename,
             "mapping": mapping,
+            "interval": [self._indexes[0], self._indexes[-1]],
         }
 
         self._chunks_info.append(chunk_info)
@@ -228,7 +259,7 @@ class BinaryWriter:
         """Write the chunks index to a JSON file."""
         filepath = os.path.join(self._cache_dir, f"{self.rank}.index.json")
         with open(filepath, "w") as out:
-            json.dump({"chunks": self._chunks_info}, out, sort_keys=True)
+            json.dump({"chunks": self._chunks_info, "config": self.get_config()}, out, sort_keys=True)
 
     def done(self):
         """Called when StopIteration is triggered.
