@@ -186,4 +186,4 @@ def test_cache_with_auto_wrapping(tmpdir):
     dataloader = CacheDataLoader(dataset, cache_dir=tmpdir)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
-    assert len(os.listdir(tmpdir)) == 2
+    assert sorted(os.listdir(tmpdir)) == ["0.index.json", "chunk-0-0.bin"]
