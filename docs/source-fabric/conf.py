@@ -277,6 +277,7 @@ nitpick_ignore_regex = [
     ("py:class", "deepspeed.*"),
     ("py:.*", "torch_xla.*"),
     ("py:class", "transformer_engine.*"),
+    ("py:class", "bitsandbytes.*"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
