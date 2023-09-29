@@ -187,7 +187,7 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
                 source_app=run.source_app,
             )
             app_instance = plugin.run(**run.plugin_arguments)
-            return _to_clean_dict(app_instance, False)
+            return _to_clean_dict(app_instance, True)
         except Exception as ex:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error running plugin: {str(ex)}."
