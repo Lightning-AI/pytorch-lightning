@@ -141,22 +141,23 @@ def test_cache_distributed_sampler_samplers(params):
 @pytest.mark.parametrize(
     "params",
     [
-        (21, [[0, 1, 2], [7, 8, 9], [14, 15, 16], [3, 4, 5], [10, 11, 12], [17, 18, 19], [6], [13], [20]]),
-        (11, [[0, 1, 2], [3, 4, 5], [6, 7, 8], [], [], [9, 10]]),
-        (8, [[0, 1], [2, 3], [4, 5, 6], [7]]),
-        (4, [[0], [1], [2, 3]]),
-        (9, [[0, 1, 2], [3, 4, 5], [6, 7, 8], [], [], []]),
-        (19, [[0, 1, 2], [6, 7, 8], [12, 13, 14], [3, 4, 5], [9, 10, 11], [15, 16, 17], [], [], [18]]),
+        (21, 1, [[0, 1, 2], [7, 8, 9], [14, 15, 16], [3, 4, 5], [10, 11, 12], [17, 18, 19], [6], [13], [20]]),
+        (11, 1, [[0, 1, 2], [3, 4, 5], [6, 7, 8], [], [], [9, 10]]),
+        (8, 1, [[0, 1], [2, 3], [4, 5, 6], [7]]),
+        (4, 1, [[0], [1], [2, 3]]),
+        (9, 1, [[0, 1, 2], [3, 4, 5], [6, 7, 8], [], [], []]),
+        (19, 1, [[0, 1, 2], [6, 7, 8], [12, 13, 14], [3, 4, 5], [9, 10, 11], [15, 16, 17], [], [], [18]]),
+        (19, 2, [[0, 1, 2], [3, 4, 5], [6, 7, 8], [], [], []]),
     ],
 )
 def test_cache_batch_sampler(params):
     cache = mock.MagicMock()
     cache.filled = False
-    batch_sampler = CacheBatchSampler(params[0], 1, 0, 3, 3, False, True, cache)
+    batch_sampler = CacheBatchSampler(params[0], params[1], 0, 3, 3, False, True, cache)
     batches = []
     for batch in batch_sampler:
         batches.append(batch)
-    assert batches == params[1]
+    assert batches == params[2]
 
     chunk_interval = [[batch[0], batch[-1] + 1] for batch in batches if len(batch)]
 
@@ -165,30 +166,48 @@ def test_cache_batch_sampler(params):
 
     seed_everything(42)
 
-    batch_sampler = CacheBatchSampler(params[0], 1, 0, 3, 3, False, True, cache)
+    batch_sampler = CacheBatchSampler(params[0], params[1], 0, 3, 3, False, True, cache)
 
     batches_1 = []
     for batch in batch_sampler:
         batches_1.extend(batch)
 
-    size = 0
-    for interval in batch_sampler._shuffled_chunk_intervals:
-        interval_indices = np.arange(interval[0], interval[1])
-        for indice in interval_indices:
-            assert indice in batches_1[size : size + len(interval_indices)]
-        size += len(interval_indices)
+    def validate_batch(data):
+        chunks = batch_sampler._shuffled_chunk_intervals
+        if params[1] == 1:
+            size = 0
+            for interval in chunks:
+                interval_indices = np.arange(interval[0], interval[1])
+                for indice in interval_indices:
+                    assert indice in data[size : size + len(interval_indices)]
+                size += len(interval_indices)
+        else:
+            chunks_per_replica = len(chunks) // params[1]
+            for replica_idx in range(params[1]):
+                if replica_idx != 0:
+                    continue
+                is_last_replica = replica_idx == params[1] - 1
+                start_replica = replica_idx * chunks_per_replica
+                end_replica = len(chunks) if is_last_replica else (replica_idx + 1) * chunks_per_replica
+                shuffled_chunk_intervals_replica = chunks[start_replica:end_replica]
 
-    assert len(batches_1) == params[0]
+                assert len(shuffled_chunk_intervals_replica)
+
+                size = 0
+                for interval in shuffled_chunk_intervals_replica:
+                    interval_indices = np.arange(interval[0], interval[1])
+                    for indice in interval_indices:
+                        assert indice in data[size : size + len(interval_indices)]
+                    size += len(interval_indices)
+
+    validate_batch(batches_1)
+    if params[1] == 1:
+        assert len(batches_1) == params[0]
 
     batches_2 = []
     for batch in batch_sampler:
         batches_2.extend(batch)
 
-    size = 0
-    for interval in batch_sampler._shuffled_chunk_intervals:
-        interval_indices = np.arange(interval[0], interval[1])
-        for indice in interval_indices:
-            assert indice in batches_2[size : size + len(interval_indices)]
-        size += len(interval_indices)
-
-    assert batches_1 != batches_2
+    validate_batch(batches_2)
+    if params[1] == 1:
+        assert batches_1 != batches_2
