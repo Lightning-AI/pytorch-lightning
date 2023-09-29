@@ -180,7 +180,7 @@ def test_worker_check_reload_dataloaders_every_n_epochs_limitations(_):
     trainer = Mock(reload_dataloaders_every_n_epochs=1)
     dataloader = DataLoader(range(2), num_workers=1, pin_memory=True, persistent_workers=True)
     with pytest.warns(UserWarning, match="The combination of .*reload_dataloaders_every_n_epochs"):
-        _worker_check(trainer, using_spawn=False, dataloader=dataloader, name="train_dataloader")
+        _worker_check(trainer, dataloader=dataloader, name="train_dataloader")
 
 
 def test_update_dataloader_raises():
