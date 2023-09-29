@@ -49,9 +49,9 @@ class BitsandbytesPrecision(Precision):
     Args:
         mode: The quantization mode to use.
         dtype: The compute dtype to use.
-        skips: The submodules whose Linear layers should not be replaced, for example. ``{"lm_head"}``.
+        ignore_modules: The submodules whose Linear layers should not be replaced, for example. ``{"lm_head"}``.
             This might be desirable for numerical stability. The string will be checked in as a prefix, so a value like
-            "transformer.blocks" will skip all linear layers in all of the transformer blocks.
+            "transformer.blocks" will ignore all linear layers in all of the transformer blocks.
     """
 
     # Note: you'll notice that the `precision` str class attribute is not defined. This is on purpose because there are
@@ -66,7 +66,7 @@ class BitsandbytesPrecision(Precision):
         self,
         mode: Literal["nf4", "nf4-dq", "fp4", "fp4-dq", "int8", "int8-training"],
         dtype: Optional[torch.dtype] = None,
-        skips: Optional[Set[str]] = None,
+        ignore_modules: Optional[Set[str]] = None,
     ) -> None:
         if not _BITSANDBYTES_AVAILABLE:
             raise ModuleNotFoundError(str(_BITSANDBYTES_AVAILABLE))
@@ -93,7 +93,7 @@ class BitsandbytesPrecision(Precision):
         }
         self._linear_cls = mode_to_cls[mode]
         self.dtype = dtype
-        self.skips = skips or set()
+        self.ignore_modules = ignore_modules or set()
 
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
         # avoid naive users thinking they quantized their model
@@ -104,10 +104,9 @@ class BitsandbytesPrecision(Precision):
             )
 
         # convert modules if they haven't been converted already
-        if not any(
-            "bitsandbytes.nn" in m.__module__ or "precision.bitsandbytes" in m.__module__ for m in module.modules()
-        ):
-            _convert_layers(module, self._linear_cls, self.skips)
+        bnb = _import_bitsandbytes()
+        if not any(isinstance(m, (bnb.nn.Linear8bitLt, bnb.nn.Linear4bit)) for m in module.modules()):
+            _convert_layers(module, self._linear_cls, self.ignore_modules)
 
         # set the compute dtype if necessary
         for m in module.modules():
@@ -118,7 +117,7 @@ class BitsandbytesPrecision(Precision):
 
     def init_context(self) -> ContextManager:
         dtype_ctx = _DtypeContextManager(self.dtype)
-        if self.skips:
+        if self.ignore_modules:
             # cannot patch the Linear class if the user wants to skip some submodules
             return dtype_ctx
         stack = ExitStack()
@@ -149,25 +148,29 @@ def _import_bitsandbytes() -> ModuleType:
     )
     import bitsandbytes
 
+    del os.environ["BITSANDBYTES_NOWELCOME"]
+
     return bitsandbytes
+
+
+def _quantize_on_load_hook(quantize_fn: Callable[[torch.Tensor], None], state_dict: OrderedDict, *_: Any) -> None:
+    # There is only one key that ends with `*.weight`, the other one is the bias
+    weight_key = next((name for name in state_dict if name.endswith("weight")), None)
+    if weight_key is None:
+        return
+    # Load the weight from the state dict and re-quantize it
+    weight = state_dict.pop(weight_key)
+    quantize_fn(weight)
+
+
+def _ignore_missing_weights_hook(module: torch.nn.Module, incompatible_keys: _IncompatibleKeys) -> None:
+    for key in reversed(incompatible_keys.missing_keys):
+        if key.endswith("weight"):
+            incompatible_keys.missing_keys.remove(key)
 
 
 if _BITSANDBYTES_AVAILABLE:
     bnb = _import_bitsandbytes()
-
-    def _quantize_on_load_hook(quantize_fn: Callable[[torch.Tensor], None], state_dict: OrderedDict, *_: Any) -> None:
-        # There is only one key that ends with `*.weight`, the other one is the bias
-        weight_key = next((name for name in state_dict if name.endswith("weight")), None)
-        if weight_key is None:
-            return
-        # Load the weight from the state dict and re-quantize it
-        weight = state_dict.pop(weight_key)
-        quantize_fn(weight)
-
-    def _ignore_missing_weights_hook(module: torch.nn.Module, incompatible_keys: _IncompatibleKeys) -> None:
-        for key in reversed(incompatible_keys.missing_keys):
-            if key.endswith("weight"):
-                incompatible_keys.missing_keys.remove(key)
 
     class _Linear8bitLt(bnb.nn.Linear8bitLt):  # type: ignore[name-defined]
         """Wraps `bnb.nn.Linear8bitLt` and enables instantiation directly on the device and
@@ -242,10 +245,10 @@ if _BITSANDBYTES_AVAILABLE:
             super().__init__(*args, quant_type="nf4", compress_statistics=True, **kwargs)
 
 
-def _convert_layers(module: torch.nn.Module, linear_cls: Type, skips: Set[str], prefix: str = "") -> None:
+def _convert_layers(module: torch.nn.Module, linear_cls: Type, ignore_modules: Set[str], prefix: str = "") -> None:
     for name, child in module.named_children():
         fullname = f"{prefix}.{name}" if prefix else name
-        if isinstance(child, torch.nn.Linear) and not any(fullname.startswith(s) for s in skips):
+        if isinstance(child, torch.nn.Linear) and not any(fullname.startswith(s) for s in ignore_modules):
             log.debug(f"Replacing layer {fullname!r} with bitsandbytes equivalent")
             has_bias = child.bias is not None
             replacement = linear_cls(
@@ -261,4 +264,4 @@ def _convert_layers(module: torch.nn.Module, linear_cls: Type, skips: Set[str], 
             replacement._quantize_weight(child.weight.data.clone())
             module.__setattr__(name, replacement)
         else:
-            _convert_layers(child, linear_cls, skips, prefix=fullname)
+            _convert_layers(child, linear_cls, ignore_modules, prefix=fullname)

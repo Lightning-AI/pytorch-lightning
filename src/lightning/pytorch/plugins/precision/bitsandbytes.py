@@ -26,7 +26,7 @@ class BitsandbytesPrecisionPlugin(PrecisionPlugin, FabricBNBPrecision):
     Args:
         mode: The quantization mode to use.
         dtype: The compute dtype to use.
-        skips: The submodules whose Linear layers should not be replaced, for example. ``{"lm_head"}``.
+        ignore_modules: The submodules whose Linear layers should not be replaced, for example. ``{"lm_head"}``.
             This might be desirable for numerical stability. The string will be checked in as a prefix, so a value like
-            "transformer.blocks" will skip all linear layers in all of the transformer blocks.
+            "transformer.blocks" will ignore all linear layers in all of the transformer blocks.
     """

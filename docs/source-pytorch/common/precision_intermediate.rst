@@ -179,7 +179,7 @@ Specifically, we support the following modes:
 While these techniques store weights in 4 or 8 bit, the computation still happens in 16 or 32-bit (float16, bfloat16, float32).
 This is configurable via the dtype argument in the plugin.
 
-Quantizing the model will dramatically reduce the weight's memory requirements but might impact performance negatively.
+Quantizing the model will dramatically reduce the weight's memory requirements but  may have a negative impact on the model's performance or runtime.
 
 The Trainer automatically replaces the :class:`torch.nn.Linear` layers in your model with their BNB alternatives.
 
@@ -192,7 +192,7 @@ The Trainer automatically replaces the :class:`torch.nn.Linear` layers in your m
     trainer = Trainer(plugins=precision)
 
     # Customize the dtype, or skip some modules
-    precision = BitsandbytesPrecisionPlugin("int8-training", dtype=torch.float16, skips={"lm_head"})
+    precision = BitsandbytesPrecisionPlugin("int8-training", dtype=torch.float16, ignore_modules={"lm_head"})
     trainer = Trainer(plugins=precision)
 
 
@@ -208,7 +208,7 @@ The Trainer automatically replaces the :class:`torch.nn.Linear` layers in your m
     `WSL2 <https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl>`__.
 
 
-This plugin does not take care of replacing your optimizer with an 8-bit optimizer e.g. `bitsandbytes.optim.Adam8bit``.
+This plugin does not take care of replacing your optimizer with an 8-bit optimizer e.g. ``bitsandbytes.optim.Adam8bit``.
 You might want to do this for extra memory savings.
 
 .. code-block:: python

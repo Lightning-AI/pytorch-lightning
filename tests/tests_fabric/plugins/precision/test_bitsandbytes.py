@@ -39,6 +39,8 @@ def test_bitsandbytes_plugin(monkeypatch):
         def _quantize_weight(self, w):
             pass
 
+    bitsandbytes_mock.nn.Linear8bitLt = ModuleMock
+    bitsandbytes_mock.nn.Linear4bit = ModuleMock
     module._FP4Linear = ModuleMock
     module._NF4Linear = NF4LinearMock
     module._Int8LinearInference = ModuleMock
@@ -84,7 +86,7 @@ def test_bitsandbytes_plugin(monkeypatch):
     assert isinstance(model.l1, NF4LinearMock)
     assert isinstance(model.l2.l, NF4LinearMock)
 
-    precision.skips = {"l2"}
+    precision.ignore_modules = {"l2"}
     model = MyModule()
     precision.convert_module(model)
     assert isinstance(model.l1, NF4LinearMock)
@@ -131,10 +133,10 @@ def test_bitsandbytes_layers(args, expected):
     assert model.l.weight.device.type == "cuda"
     assert model.l.weight.dtype == expected
 
-    fabric = Fabric(devices=1, plugins=BitsandbytesPrecision(*args, skips={"foo"}))
+    fabric = Fabric(devices=1, plugins=BitsandbytesPrecision(*args, ignore_modules={"foo"}))
     with fabric.init_module():
         model = MyModel()
-    # When skips are present, we only quantize on `setup`
+    # When ignore_modules is set, we only quantize on `setup`
     assert model.l.weight.device.type == "cuda"
     assert model.l.weight.dtype == args[1]
     # this quantizes now
