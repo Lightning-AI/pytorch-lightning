@@ -39,8 +39,7 @@ _BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes>=0.41.0")
 
 
 class BitsandbytesPrecision(Precision):
-    """Plugin for quantizing weights with
-    `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__.
+    """Plugin for quantizing weights with `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 

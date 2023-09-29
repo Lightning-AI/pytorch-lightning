@@ -16,4 +16,17 @@ from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 
 
 class BitsandbytesPrecisionPlugin(PrecisionPlugin, FabricBNBPrecision):
-    pass
+    """Plugin for quantizing weights with `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
+    .. note::
+        The optimizer is not automatically replaced with ``bitsandbytes.optim.Adam8bit`` or equivalent 8-bit optimizers.
+
+    Args:
+        mode: The quantization mode to use.
+        dtype: The compute dtype to use.
+        skips: The submodules whose Linear layers should not be replaced, for example. ``{"lm_head"}``.
+            This might be desirable for numerical stability. The string will be checked in as a prefix, so a value like
+            "transformer.blocks" will skip all linear layers in all of the transformer blocks.
+    """
