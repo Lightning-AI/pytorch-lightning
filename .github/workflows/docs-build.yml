@@ -43,7 +43,7 @@ jobs:
         pkg-name: ["app", "fabric", "pytorch"]
         check: ["html", "doctest", "linkcheck"]
     env:
-      FAST_DOCS_DEV: 1
+      DOCS_COPY_NOTEBOOKS: 1
     steps:
       - uses: actions/checkout@v3
         with:
@@ -95,7 +95,7 @@ jobs:
 
       - name: Full build for deployment
         if: github.event_name == 'push'
-        run: echo "FAST_DOCS_DEV=0" >> $GITHUB_ENV
+        run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
       - name: Make Documentation
         if: ${{ matrix.check == 'html' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}

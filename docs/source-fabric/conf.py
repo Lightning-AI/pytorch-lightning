@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 
 _SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 _FAST_DOCS_DEV = int(os.environ.get("FAST_DOCS_DEV", True))
+_FETCH_S3_ASSETS = int(os.getenv("DOCS_FETCH_ASSETS", not _FAST_DOCS_DEV))
 
 # -- Project information -----------------------------------------------------
 
@@ -45,7 +46,7 @@ github_repo = project
 
 # -- Project documents -------------------------------------------------------
 
-if not _FAST_DOCS_DEV:
+if _FETCH_S3_ASSETS:
     fetch_external_assets(
         docs_folder=_PATH_HERE,
         assets_folder="_static/fetched-s3-assets",
