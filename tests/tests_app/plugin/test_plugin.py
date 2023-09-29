@@ -186,8 +186,8 @@ def test_run_job(mock_requests, mock_cloud_runtime, mock_cloud_backend, mock_plu
 
     response = mock_plugin_server.post("/v1/runs", json=body.dict(exclude_none=True))
 
-    assert response.status_code == status.HTTP_200_OK
-    assert json.loads(response.text)["appInstance"]["id"] == "created_app_id"
+    assert response.status_code == status.HTTP_200_OK, response.json()
+    assert json.loads(response.text)["id"] == "created_app_id"
 
     mock_cloud_runtime.load_app_from_file.assert_called_once()
     assert "test_entrypoint" in mock_cloud_runtime.load_app_from_file.call_args[0][0]

@@ -43,7 +43,7 @@ jobs:
         pkg-name: ["app", "fabric", "pytorch"]
         check: ["html", "doctest", "linkcheck"]
     env:
-      FAST_DOCS_DEV: 1
+      DOCS_COPY_NOTEBOOKS: 1
     steps:
       - uses: actions/checkout@v3
         with:
@@ -66,10 +66,12 @@ jobs:
 
       - name: Install pandoc & texlive
         if: ${{ matrix.pkg-name == 'pytorch' }}
+        timeout-minutes: 5
         run: |
           sudo apt-get update
           sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       - name: Install package & dependencies
+        timeout-minutes: 15
         run: |
           mkdir -p ${PYPI_CACHE_DIR}  # in case cache was not hit
           ls -lh ${PYPI_CACHE_DIR}
@@ -95,7 +97,7 @@ jobs:
 
       - name: Full build for deployment
         if: github.event_name == 'push'
-        run: echo "FAST_DOCS_DEV=0" >> $GITHUB_ENV
+        run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
       - name: Make Documentation
         if: ${{ matrix.check == 'html' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
