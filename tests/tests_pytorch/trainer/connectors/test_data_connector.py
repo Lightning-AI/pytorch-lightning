@@ -174,6 +174,15 @@ def test_worker_check(_, cpu_count_mock, num_devices, num_workers, cpu_count, ex
         _worker_check(trainer, dataloader=dataloader, name="train_dataloader")
 
 
+@mock.patch("lightning.pytorch.trainer.connectors.data_connector.suggested_max_num_workers", return_value=2)
+def test_worker_check_reload_dataloaders_every_n_epochs_limitations(_):
+    """Test that we warn about problematic settings when using `dataloaders_every_n_epochs_limitations`."""
+    trainer = Mock(reload_dataloaders_every_n_epochs=1)
+    dataloader = DataLoader(range(2), num_workers=1, pin_memory=True, persistent_workers=True)
+    with pytest.warns(UserWarning, match="The combination of .*reload_dataloaders_every_n_epochs"):
+        _worker_check(trainer, dataloader=dataloader, name="train_dataloader")
+
+
 def test_update_dataloader_raises():
     with pytest.raises(ValueError, match="needs to subclass `torch.utils.data.DataLoader"):
         _update_dataloader(object(), object(), mode="fit")
