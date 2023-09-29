@@ -1,6 +1,8 @@
 from unittest import mock
 
+import numpy as np
 import pytest
+from lightning import seed_everything
 from lightning.data.cache.sampler import CacheBatchSampler, CacheSampler, DistributedCacheSampler
 
 
@@ -155,3 +157,38 @@ def test_cache_batch_sampler(params):
     for batch in batch_sampler:
         batches.append(batch)
     assert batches == params[1]
+
+    chunk_interval = [[batch[0], batch[-1] + 1] for batch in batches if len(batch)]
+
+    cache.filled = True
+    cache.get_chunk_interval.return_value = chunk_interval
+
+    seed_everything(42)
+
+    batch_sampler = CacheBatchSampler(params[0], 1, 0, 3, 3, False, True, cache)
+
+    batches_1 = []
+    for batch in batch_sampler:
+        batches_1.extend(batch)
+
+    size = 0
+    for interval in batch_sampler._shuffled_chunk_intervals:
+        interval_indices = np.arange(interval[0], interval[1])
+        for indice in interval_indices:
+            assert indice in batches_1[size : size + len(interval_indices)]
+        size += len(interval_indices)
+
+    assert len(batches_1) == params[0]
+
+    batches_2 = []
+    for batch in batch_sampler:
+        batches_2.extend(batch)
+
+    size = 0
+    for interval in batch_sampler._shuffled_chunk_intervals:
+        interval_indices = np.arange(interval[0], interval[1])
+        for indice in interval_indices:
+            assert indice in batches_2[size : size + len(interval_indices)]
+        size += len(interval_indices)
+
+    assert batches_1 != batches_2

@@ -214,6 +214,7 @@ class CacheBatchSampler(BatchSampler):
         self._cache = cache
         self._shuffle = shuffle
         self._num_workers = num_workers
+        self._shuffled_chunk_intervals = None
 
     def __iter_ordered__(self) -> Iterator[List[int]]:
         # Implemented based on the benchmarking in https://github.com/pytorch/pytorch/pull/76951
@@ -242,11 +243,11 @@ class CacheBatchSampler(BatchSampler):
 
     def __iter_from_chunks__(self):
         chunk_intervals = self._cache.get_chunk_interval()
-        shuffled_chunk_intervals = np.random.permutation(chunk_intervals)
+        self._shuffled_chunk_intervals = np.random.permutation(chunk_intervals)
 
         if self._num_replicas == 1:
             indices = []
-            for interval in shuffled_chunk_intervals:
+            for interval in self._shuffled_chunk_intervals:
                 interval_indices = np.arange(interval[0], interval[1])
                 shuffled_interval_indices = np.random.permutation(interval_indices)
                 indices.extend(shuffled_interval_indices.tolist())
@@ -255,14 +256,14 @@ class CacheBatchSampler(BatchSampler):
                 raise Exception("The generated indices don't match the initial length of the sampler.")
 
         else:
-            chunks_per_replica = len(shuffled_chunk_intervals) // self._num_replicas
+            chunks_per_replica = len(self._shuffled_chunk_intervals) // self._num_replicas
             for replica_idx in range(self._num_replicas):
                 if replica_idx != self._rank:
                     continue
                 is_last_replica = replica_idx == self._num_replicas - 1
                 start_replica = replica_idx * chunks_per_replica
                 end_replica = len(chunk_intervals) if is_last_replica else (replica_idx + 1) * chunks_per_replica
-                shuffled_chunk_intervals_replica = shuffled_chunk_intervals[start_replica:end_replica]
+                shuffled_chunk_intervals_replica = self._shuffled_chunk_intervals[start_replica:end_replica]
 
                 indices = []
                 for interval in shuffled_chunk_intervals_replica:

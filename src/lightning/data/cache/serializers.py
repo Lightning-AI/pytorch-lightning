@@ -129,7 +129,7 @@ _TORCH_DTYPES_MAPPING = {
     7: torch.cdouble,
     8: torch.float16,
     9: torch.half,
-    10: torch.bfloat16,
+    10: torch.bfloat16,  # Not supported https://github.com/pytorch/pytorch/issues/110285
     11: torch.uint8,
     12: torch.int8,
     13: torch.int16,
