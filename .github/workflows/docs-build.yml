@@ -43,7 +43,6 @@ jobs:
         pkg-name: ["app", "fabric", "pytorch"]
         check: ["html", "doctest", "linkcheck"]
     env:
-      FAST_DOCS_DEV: 1
       DOCS_COPY_NOTEBOOKS: 1
     steps:
       - uses: actions/checkout@v3
