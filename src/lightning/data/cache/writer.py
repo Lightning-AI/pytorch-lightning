@@ -13,12 +13,12 @@
 
 import json
 import os
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import numpy as np
 
 from lightning.data.cache.compression import _COMPRESSORS
-from lightning.data.cache.pytree import tree_flatten, tree_unflatten, treespec_dumps
+from lightning.data.cache.pytree import tree_flatten, treespec_dumps
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.cache.worker import get_worker_info
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
@@ -38,7 +38,6 @@ class BinaryWriter:
     def __init__(
         self,
         cache_dir: str,
-        data_format: Union[Dict[str, str], str] = None,
         chunk_size: int = 1 << 26,
         compression: Optional[str] = None,
     ):
@@ -46,7 +45,6 @@ class BinaryWriter:
 
         Arguments:
             cache_dir: The path to where the chunks will be saved.
-            data_format: The format of the provided data to cache.
             chunk_size: The maximum number of bytes to store within a chunk.
             compression: The compression algorithm to use.
 
@@ -62,27 +60,6 @@ class BinaryWriter:
 
         self._data_format = None
         self._data_spec = None
-
-        if data_format:
-            if isinstance(data_format, str):
-                self._data_format = data_format
-                self._data_format_key = None
-            elif isinstance(data_format, Dict):
-                if len(data_format) == 0:
-                    raise ValueError("The provided data format shouldn't be empty.")
-                self._data_format = {k.lower(): v for k, v in data_format.items()}
-                self._data_format_keys = sorted(self._data_format.keys())
-
-                available_serializers = set(self._serializers.keys())
-                selected_serializers = set(self._data_format.values())
-                if selected_serializers.difference(available_serializers):
-                    raise ValueError(
-                        "The provided data_format don't match the provided serializers."
-                        " Should be selected from {sorted(available_serializers)}."
-                    )
-        else:
-            self._data_format = None
-            self._data_format_key = None
 
         if self._compression:
             if len(_COMPRESSORS) == 0:
@@ -104,6 +81,17 @@ class BinaryWriter:
         self._is_done = False
 
     @property
+    def filled(self) -> bool:
+        """Returns whether the caching phase is done."""
+        if self._is_done:
+            return True
+        files = os.listdir(self._cache_dir)
+        index_files = [f for f in files if f.endswith("index.json")]
+        worker_end = _WorkerEnv.detect(get_worker_info_fn=get_worker_info)
+        self._is_done = len(index_files) == self._env.world_size * worker_end.world_size
+        return self._is_done
+
+    @property
     def rank(self):
         """Returns the rank of the writer."""
         if self._rank is None:
@@ -117,7 +105,7 @@ class BinaryWriter:
             "compression": self._compression,
             "chunk_size": self._chunk_size,
             "data_format": self._data_format,
-            "data_spec": treespec_dumps(self._data_spec),
+            "data_spec": treespec_dumps(self._data_spec) if self._data_spec else None,
         }
         cloud_path = self.get_cloud_path(self._cache_dir)
         if cloud_path:
@@ -134,35 +122,27 @@ class BinaryWriter:
         sizes = []
         data = []
 
-        formats = []
+        data_format = []
         for item in flattened:
-            formats.append(self._serialize(item, sizes, data))
-
-        data_format = tree_unflatten(formats, data_spec)
+            data_format.append(self._serialize(item, sizes, data))
 
         if self._data_format is None:
             self._data_format = data_format
+        elif self._data_format != data_format:
+            raise Exception(
+                f"The data format changed between items. Found {data_format} instead of {self._data_format}."
+            )
+
+        if self._data_spec is None:
             self._data_spec = data_spec
-        else:
-            if self._data_format != data_format:
-                raise Exception(
-                    f"The data format changed between items. Found {data_format} instead of {self._data_format}."
-                )
-            if self._data_spec != data_spec:
-                raise Exception(
-                    f"The data format changed between items. Found {data_spec} instead of {self._data_spec}."
-                )
+        elif self._data_spec != data_spec:
+            raise Exception(f"The data format changed between items. Found {data_spec} instead of {self._data_spec}.")
 
         head = np.array(sizes, np.uint32).tobytes()
         body = b"".join(data)
         return head + body
 
     def _serialize(self, item, sizes, data) -> bytes:
-        if isinstance(item, bytes):
-            data.append(item)
-            sizes.append(len(item))
-            return "bytes"
-
         for serializer_name, serializer in self._serializers.items():
             if serializer.can_serialize(item):
                 serialized_item = serializer.serialize(item)
@@ -191,7 +171,7 @@ class BinaryWriter:
             "samples": len(self._serialized_items),
             "filename": filename,
             "mapping": mapping,
-            "interval": [self._indexes[0], self._indexes[-1]],
+            "interval": [self._indexes[0], self._indexes[-1] + 1],
         }
 
         self._chunks_info.append(chunk_info)
@@ -258,8 +238,9 @@ class BinaryWriter:
     def write_chunks_index(self):
         """Write the chunks index to a JSON file."""
         filepath = os.path.join(self._cache_dir, f"{self.rank}.index.json")
+        config = self.get_config()
         with open(filepath, "w") as out:
-            json.dump({"chunks": self._chunks_info, "config": self.get_config()}, out, sort_keys=True)
+            json.dump({"chunks": self._chunks_info, "config": config}, out, sort_keys=True)
 
     def done(self):
         """Called when StopIteration is triggered.
@@ -267,7 +248,7 @@ class BinaryWriter:
         It tries to save the last chunk and write the chunks index.
 
         """
-        if self._is_done:
+        if self.filled:
             return
         if self._serialized_items:
             self.write_chunk()

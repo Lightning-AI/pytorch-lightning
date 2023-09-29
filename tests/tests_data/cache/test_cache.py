@@ -56,10 +56,12 @@ class ImageDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
+        from PIL import Image
+
         if self.cache.filled:
             data = self.cache[index]
             if self.use_transform:
-                data["image"] = self.transform(data["image"]).unsqueeze(0)
+                data["image"] = self.transform(Image.open(io.BytesIO(data["image"]))).unsqueeze(0)
             return data
         self.cache[index] = {**self.data[index], "index": index}
         return None
@@ -73,19 +75,25 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
     cache_dir = os.path.join(tmpdir, "cache")
     distributed_env = _DistributedEnv.detect()
 
-    cache = Cache(cache_dir, data_format={"image": "jpeg", "class": "int", "index": "int"}, chunk_size=2 << 12)
+    cache = Cache(cache_dir, chunk_size=2 << 12)
     dataset = ImageDataset(tmpdir, cache, dataset_size, 10)
     dataloader = CacheDataLoader(dataset, num_workers=num_workers, batch_size=4)
 
     for _ in dataloader:
         pass
 
+    # Not strictly required but added to avoid race condition
+    if distributed_env.world_size > 1:
+        fabric.barrier()
+
+    assert cache.filled
+
     for i in range(len(dataset)):
         cached_data = dataset[i]
         original_data = dataset.data[i]
         assert cached_data["class"] == original_data["class"]
         original_image = Image.open(io.BytesIO(original_data["image"]))
-        assert cached_data["image"] == original_image
+        assert Image.open(io.BytesIO(cached_data["image"])) == original_image
 
     dataset.use_transform = True
 
@@ -118,7 +126,7 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 @pytest.mark.skipif(
     condition=not _PIL_AVAILABLE or not _TORCH_VISION_AVAILABLE, reason="Requires: ['pil', 'torchvision']"
 )
-@pytest.mark.parametrize("num_workers", [0])
+@pytest.mark.parametrize("num_workers", [0, 1, 2])
 def test_cache_for_image_dataset(num_workers, tmpdir):
     cache_dir = os.path.join(tmpdir, "cache")
     os.makedirs(cache_dir)

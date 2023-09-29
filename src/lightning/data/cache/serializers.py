@@ -50,7 +50,7 @@ class Serializer(ABC):
 class PILSerializer(Serializer):
     """The PILSerializer serialize and deserialize PIL Image to and from bytes."""
 
-    def serialize(self, item: any) -> bytes:
+    def serialize(self, item: Image) -> bytes:
         mode = item.mode.encode("utf-8")
         width, height = item.size
         raw = item.tobytes()
@@ -67,7 +67,7 @@ class PILSerializer(Serializer):
         return Image.frombytes(mode, size, raw)  # pyright: ignore
 
     def can_serialize(self, item) -> bool:
-        pass
+        return isinstance(item, Image.Image) and not isinstance(item, JpegImageFile)
 
 
 class IntSerializer(Serializer):
@@ -86,26 +86,35 @@ class IntSerializer(Serializer):
 class JPEGSerializer(Serializer):
     """The JPEGSerializer serialize and deserialize JPEG image to and from bytes."""
 
-    def serialize(self, obj: Image) -> bytes:
-        if isinstance(obj, JpegImageFile):
-            if not hasattr(obj, "filename"):
+    def serialize(self, item: Image) -> bytes:
+        if isinstance(item, JpegImageFile):
+            if not hasattr(item, "filename"):
                 raise ValueError(
                     "The JPEG Image's filename isn't defined. HINT: Open the image in your Dataset __getitem__ method."
                 )
-            with open(obj.filename, "rb") as f:
+            with open(item.filename, "rb") as f:
                 return f.read()
-        raise TypeError(f"The provided object should be of type {JpegImageFile}. Found {obj}.")
+        raise TypeError(f"The provided itemect should be of type {JpegImageFile}. Found {item}.")
 
     def deserialize(self, data: bytes) -> Image:
         inp = BytesIO(data)
         return Image.open(inp)
 
     def can_serialize(self, item) -> bool:
-        pass
+        return isinstance(item, JpegImageFile)
 
 
-_SERIALIZERS = {
-    "pil": PILSerializer(),
-    "int": IntSerializer(),
-    "jpeg": JPEGSerializer(),
-}
+class BytesSerializer(Serializer):
+    """The BytesSerializer serialize and deserialize integer to and from bytes."""
+
+    def serialize(self, item: bytes) -> bytes:
+        return item
+
+    def deserialize(self, item: bytes) -> bytes:
+        return item
+
+    def can_serialize(self, item: bytes) -> bool:
+        return isinstance(item, bytes)
+
+
+_SERIALIZERS = {"pil": PILSerializer(), "int": IntSerializer(), "jpeg": JPEGSerializer(), "bytes": BytesSerializer()}

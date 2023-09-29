@@ -17,9 +17,9 @@ from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 
-from lightning.data.cache.pytree import tree_flatten, tree_unflatten, treespec_loads
+from lightning.data.cache.pytree import tree_unflatten, treespec_loads
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
+from lightning.data.datasets.env import _DistributedEnv
 
 
 class ChunksConfig:
@@ -36,26 +36,31 @@ class ChunksConfig:
 
                 if self._config is None:
                     self._config = data["config"]
-                    self._config["data_spec"] = treespec_loads(self._config["data_spec"])
-                    flattened_data_format, _ = tree_flatten(self._config["data_format"])
-                    self._config["flattened_data_format"] = flattened_data_format
 
                 elif self._config != data["config"]:
                     raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
 
                 self._chunks.extend(data["chunks"])
 
+        self._config["data_spec"] = treespec_loads(self._config["data_spec"])
+
         for chunk in self._chunks:
             start, end = chunk["interval"]
-            if (end - start + 1) != chunk["samples"]:
+            if (end - start) != chunk["samples"]:
                 raise Exception(
                     "The config intervals doesn't match the number of samples. This shouldn't have happened."
                 )
             self._intervals.append(chunk["interval"])
 
+        self._length = sum([chunk["samples"] for chunk in self._chunks])
+
     @property
     def intervals(self):
         return self._intervals
+
+    @property
+    def data_format(self):
+        return self._config["data_format"]
 
     @property
     def config(self):
@@ -63,9 +68,9 @@ class ChunksConfig:
 
     def __getitem__(self, index: int) -> Tuple[str, int, int]:
         """Find the associated chunk metadata."""
-        for interval_index, internal in enumerate(self._intervals):
-            if internal[0] <= index and index <= internal[1]:
-                chunk = self._chunks[interval_index]
+        for interval_config, internal in enumerate(self._intervals):
+            if internal[0] <= index and index < internal[1]:
+                chunk = self._chunks[interval_config]
                 mapping = chunk["mapping"][str(index)]
                 return os.path.join(self._cache_dir, chunk["filename"]), *mapping
         raise Exception(f"The chunk interval weren't properly defined. Found {self._intervals} for index {index}.")
@@ -77,6 +82,9 @@ class ChunksConfig:
         if not index_filenames:
             return None
         return ChunksConfig(cache_dir, index_filenames)
+
+    def __len__(self) -> int:
+        return self._length
 
 
 class BinaryReader:
@@ -96,15 +104,13 @@ class BinaryReader:
             raise FileNotFoundError(f"The provided cache_dir `{self._cache_dir}` doesn't exist.")
 
         self._compression = compression
-        self._index = None
+        self._config = None
         self._intervals = None
 
         self._chunks_data = {}
         self._serializers: Dict[str, Serializer] = _SERIALIZERS
 
         self._env = _DistributedEnv.detect()
-        self._worker_env: Optional[_WorkerEnv] = None
-
         self._config: Optional[ChunksConfig] = None
 
     def _try_load_config(self):
@@ -117,7 +123,7 @@ class BinaryReader:
         If the chunk isn't available, it will be downloaded.
 
         """
-        if self._index is None:
+        if self._config is None:
             self._try_load_config()
 
         if self._config is None:
@@ -131,8 +137,8 @@ class BinaryReader:
         """Deserialize the raw bytes into their python equivalent."""
         sizes = []
         idx = 0
-        data_format = self._config.config["flattened_data_format"]
-        for key in data_format:
+        data_format = self._config.data_format
+        for _ in data_format:
             (size,) = np.frombuffer(raw_item_data[idx : idx + 4], np.uint32)
             sizes.append(size)
             idx += 4
@@ -161,20 +167,20 @@ class BinaryReader:
 
     def get_length(self) -> int:
         """Get the number of samples across all chunks."""
-        if self._index is None:
+        if self._config is None:
             self._try_load_config()
 
-        if self._index is None:
+        if self._config is None:
             raise Exception("The reader index isn't defined.")
 
-        return sum([v["samples"] for v in self._index["chunks"]])
+        return len(self._config)
 
     def get_chunk_interval(self):
         """Get the index interval of each chunks."""
-        if self._index is None:
+        if self._config is None:
             self._try_load_config()
 
-        if self._intervals is None:
+        if self._config is None:
             raise Exception("The reader index isn't defined.")
 
-        return self._intervals
+        return self._config.intervals

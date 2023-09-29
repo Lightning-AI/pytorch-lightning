@@ -22,7 +22,7 @@ _PIL_AVAILABLE = RequirementCache("PIL")
 
 
 def test_serializers():
-    assert sorted(_SERIALIZERS) == ["int", "jpeg", "pil"]
+    assert sorted(_SERIALIZERS) == ["bytes", "int", "jpeg", "pil"]
 
 
 def test_int_serializer():

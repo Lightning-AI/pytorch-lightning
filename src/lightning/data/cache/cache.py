@@ -13,7 +13,7 @@
 
 import logging
 import os
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.writer import BinaryWriter
@@ -26,7 +26,6 @@ class Cache:
     def __init__(
         self,
         cache_dir: str,
-        data_format: Union[Dict[str, any], str] = None,
         compression: Optional[str] = None,
         chunk_size: int = 2 << 26,
     ):
@@ -35,13 +34,12 @@ class Cache:
 
         Arguments:
             cache_dir: The path to where the chunks will be stored.
-            data_format: The structure of the data to be serialized.
             compression: The name of the algorithm to reduce the size of the chunks
             chunk_size: The maximum byte size of chunk.
 
         """
         super().__init__()
-        self._writer = BinaryWriter(cache_dir, data_format, chunk_size=chunk_size, compression=compression)
+        self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, compression=compression)
         self._reader = BinaryReader(cache_dir, compression=compression)
         self._cache_dir = cache_dir
         self._is_done = False

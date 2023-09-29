@@ -28,16 +28,10 @@ def test_binary_writer_with_ints(tmpdir):
     with pytest.raises(FileNotFoundError, match="The provided cache directory `dontexists` doesn't exist."):
         BinaryWriter("dontexists", {})
 
-    with pytest.raises(ValueError, match="The provided data format shouldn't be empty."):
-        BinaryWriter(tmpdir, {})
-
-    with pytest.raises(ValueError, match="['int', 'jpeg', 'pil']"):
-        BinaryWriter(tmpdir, {"i": "random"})
-
     with pytest.raises(ValueError, match="No compresion algorithms are installed."):
         BinaryWriter(tmpdir, {"i": "int"}, compression="something_else")
 
-    binary_writer = BinaryWriter(tmpdir, {"i": "int", "i+1": "int", "i+2": "int"}, chunk_size=90)
+    binary_writer = BinaryWriter(tmpdir, chunk_size=90)
 
     for i in range(100):
         binary_writer[i] = {"i": i, "i+1": i + 1, "i+2": i + 2}
@@ -66,7 +60,7 @@ def test_binary_writer_with_jpeg_and_int(tmpdir):
 
     cache_dir = os.path.join(tmpdir, "chunks")
     os.makedirs(cache_dir, exist_ok=True)
-    binary_writer = BinaryWriter(cache_dir, {"x": "jpeg", "y": "int"}, chunk_size=2 << 12)
+    binary_writer = BinaryWriter(cache_dir, chunk_size=2 << 12)
 
     imgs = []
 
