@@ -2,7 +2,6 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
-
 from lightning.app.cli.connect import data
 
 

@@ -15,10 +15,9 @@ import os
 from unittest import mock
 from unittest.mock import ANY, Mock
 
+import lightning.pytorch as pl
 import pytest
 import torch
-
-import lightning.pytorch as pl
 from lightning.fabric.plugins import TorchCheckpointIO, XLACheckpointIO
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint

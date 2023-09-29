@@ -15,7 +15,7 @@
 import io
 import logging
 from pathlib import Path
-from typing import Any, Dict, IO, Union
+from typing import IO, Any, Dict, Union
 
 import fsspec
 import torch

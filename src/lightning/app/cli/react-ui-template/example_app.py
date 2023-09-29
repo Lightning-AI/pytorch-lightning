@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from lightning.app import frontend, LightningApp, LightningFlow
+from lightning.app import LightningApp, LightningFlow, frontend
 
 
 class YourComponent(LightningFlow):

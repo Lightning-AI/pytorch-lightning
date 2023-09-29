@@ -4,8 +4,6 @@ if _is_torch_available():
     from torch.utils.data import Dataset
 
 if _is_pytorch_lightning_available():
-    from torchmetrics import Metric
-
     from lightning.fabric import Fabric
     from pytorch_lightning import LightningDataModule, LightningModule, Trainer
     from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -13,6 +11,7 @@ if _is_pytorch_lightning_available():
     from pytorch_lightning.loggers import Logger
     from pytorch_lightning.plugins import PrecisionPlugin
     from pytorch_lightning.profilers import Profiler
+    from torchmetrics import Metric
 
 
 if __name__ == "__main__":

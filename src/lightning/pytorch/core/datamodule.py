@@ -13,7 +13,7 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 import inspect
-from typing import Any, cast, Dict, IO, Iterable, Optional, Union
+from typing import IO, Any, Dict, Iterable, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
 from torch.utils.data import DataLoader, Dataset, IterableDataset
@@ -48,7 +48,9 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
                 dataset = RandomDataset(1, 100)
-                self.train, self.val, self.test = data.random_split(dataset, [80, 10, 10])
+                self.train, self.val, self.test = data.random_split(
+                    dataset, [80, 10, 10], generator=torch.Generator().manual_seed(42)
+                )
 
             def train_dataloader(self):
                 return data.DataLoader(self.train)

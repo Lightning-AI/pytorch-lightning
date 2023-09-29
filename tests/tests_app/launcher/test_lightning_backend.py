@@ -6,15 +6,14 @@ from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
-from lightning_cloud.openapi import Body5, V1DriveType, V1LightningworkState, V1SourceType
-from lightning_cloud.openapi.rest import ApiException
-
 from lightning.app import BuildConfig, CloudCompute, LightningWork
 from lightning.app.launcher.lightning_backend import CloudBackend
 from lightning.app.storage import Drive, Mount
 from lightning.app.testing.helpers import EmptyWork
 from lightning.app.utilities.enum import WorkFailureReasons, WorkStageStatus
 from lightning.app.utilities.exceptions import LightningPlatformException
+from lightning_cloud.openapi import Body5, V1DriveType, V1LightningworkState, V1SourceType
+from lightning_cloud.openapi.rest import ApiException
 
 
 class WorkWithDrive(LightningWork):
