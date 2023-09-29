@@ -122,7 +122,7 @@ class BitsandbytesPrecision(Precision):
             return dtype_ctx
         stack = ExitStack()
         stack.enter_context(dtype_ctx)
-        # TODO: this could also consider replacing with `bnb.nn.Embedding`
+        # TODO: this could also support replacing `Embedding` and `Conv1D`
         context_manager = _ClassReplacementContextManager({"torch.nn.Linear": self._linear_cls})
         stack.enter_context(context_manager)
         return stack
