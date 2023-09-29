@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import redirect_stderr
-from io import StringIO
 from re import escape
 from typing import Sized
 from unittest import mock
@@ -44,7 +42,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("mode", [1, 2])
-def test_replace_distributed_sampler(tmpdir, mode):
+def test_replace_distributed_sampler(tmp_path, mode):
     class IndexedRandomDataset(RandomDataset):
         def __getitem__(self, index):
             return self.data[index]
@@ -100,7 +98,7 @@ def test_replace_distributed_sampler(tmpdir, mode):
     model = TestModel(2, mode)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         limit_test_batches=2,
         accelerator="cpu",
         devices=1,
@@ -110,43 +108,35 @@ def test_replace_distributed_sampler(tmpdir, mode):
 
 
 class TestSpawnBoringModel(BoringModel):
-    def __init__(self, num_workers):
+    def __init__(self, warning_expected=False):
         super().__init__()
-        self.num_workers = num_workers
-
-    def train_dataloader(self):
-        return DataLoader(RandomDataset(32, 64), num_workers=self.num_workers)
+        self.warning_expected = warning_expected
 
     def on_fit_start(self):
-        self._resout = StringIO()
-        self.ctx = redirect_stderr(self._resout)
-        self.ctx.__enter__()
+        ctx = pytest.warns if self.warning_expected else no_warning_call
+        self.ctx = ctx(UserWarning, match="Consider setting `persistent_workers=True`")
+        if self.global_rank == 0:
+            self.ctx.__enter__()
 
     def on_train_end(self):
-        def _get_warning_msg():
-            dl = self.trainer.train_dataloader
-            if hasattr(dl, "persistent_workers"):
-                if self.num_workers == 0:
-                    warn_str = "Consider setting num_workers>0 and persistent_workers=True"
-                else:
-                    warn_str = "Consider setting persistent_workers=True"
-            else:
-                warn_str = "Consider setting strategy=ddp"
-
-            return warn_str
-
-        if self.trainer.is_global_zero:
+        if self.global_rank == 0:
             self.ctx.__exit__(None, None, None)
-            msg = self._resout.getvalue()
-            warn_str = _get_warning_msg()
-            assert warn_str in msg
 
 
-@RunIf(skip_windows=True)
-@pytest.mark.parametrize("num_workers", [0, 1])
-def test_dataloader_warnings(tmpdir, num_workers):
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
-    trainer.fit(TestSpawnBoringModel(num_workers))
+@pytest.mark.parametrize("num_workers", [0, 1, 2])
+def test_dataloader_persistent_workers_performance_warning(num_workers, tmp_path):
+    """Test that when the multiprocessing start-method is 'spawn', we recommend setting `persistent_workers=True`."""
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        devices=1,
+        strategy="ddp_spawn",
+        max_steps=1,
+        barebones=True,
+    )
+    model = TestSpawnBoringModel(warning_expected=(num_workers > 0))
+    dataloader = DataLoader(RandomDataset(32, 64), num_workers=num_workers)
+    trainer.fit(model, dataloader)
 
 
 @pytest.mark.parametrize(
@@ -166,10 +156,11 @@ def test_dataloader_warnings(tmpdir, num_workers):
     ],
 )
 @mock.patch("lightning.fabric.utilities.data.os.cpu_count")
-def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expected_warning, monkeypatch):
+@mock.patch("lightning.pytorch.trainer.connectors.data_connector.mp.get_start_method", return_value="not_spawn")
+def test_worker_check(_, cpu_count_mock, num_devices, num_workers, cpu_count, expected_warning, monkeypatch):
     monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
     trainer = Mock(spec=Trainer)
-    dataloader = Mock(spec=DataLoader)
+    dataloader = Mock(spec=DataLoader, persistent_workers=False)
     trainer.num_devices = num_devices
     dataloader.num_workers = num_workers
     cpu_count_mock.return_value = cpu_count
@@ -177,10 +168,10 @@ def test_worker_check(cpu_count_mock, num_devices, num_workers, cpu_count, expec
     if expected_warning:
         ctx = pytest.warns(UserWarning, match="Consider increasing the value of the `num_workers` argument`")
     else:
-        ctx = no_warning_call(UserWarning)
+        ctx = no_warning_call()
 
     with ctx:
-        _worker_check(trainer, using_spawn=False, dataloader=dataloader, name="train_dataloader")
+        _worker_check(trainer, dataloader=dataloader, name="train_dataloader")
 
 
 @mock.patch("lightning.pytorch.trainer.connectors.data_connector.suggested_max_num_workers", return_value=2)
@@ -637,10 +628,10 @@ def test_error_raised_with_insufficient_float_limit_train_dataloader():
         ("predict", "dataloaders"),
     ],
 )
-def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, dataloader_name, tmpdir):
+def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, dataloader_name, tmp_path):
     """Test that passing `Trainer.method(x_dataloader=None)` with no module-method implementations available raises an
     error."""
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
     model = BoringModel()
     datamodule = BoringDataModule()
     trainer_fn = getattr(trainer, trainer_fn_name)

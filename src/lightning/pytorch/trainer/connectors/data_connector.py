@@ -15,6 +15,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional, Tuple, Union
 
+import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
@@ -28,7 +29,6 @@ from lightning.fabric.utilities.data import (
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
-from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
@@ -420,28 +420,21 @@ def _check_dataloader_iterable(
         )
 
 
-def _worker_check(trainer: "pl.Trainer", using_spawn: bool, dataloader: object, name: str) -> None:
+def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
     if not isinstance(dataloader, DataLoader):
         return
 
     upper_bound = suggested_max_num_workers(trainer.num_devices)
+    start_method = (
+        dataloader.multiprocessing_context.get_start_method()
+        if dataloader.multiprocessing_context is not None
+        else mp.get_start_method()
+    )
 
-    # ddp_spawn + num_workers > 0 don't mix! tell the user
-    if dataloader.num_workers > 0 and using_spawn:
-        if not dataloader.persistent_workers:
-            rank_zero_warn(
-                "num_workers>0, persistent_workers=False, and strategy=ddp_spawn"
-                " may result in data loading bottlenecks."
-                " Consider setting persistent_workers=True"
-                " (this is a limitation of Python .spawn() and PyTorch)"
-            )
-
-    elif dataloader.num_workers == 0 and using_spawn:
-        if not dataloader.persistent_workers:
-            rank_zero_warn(
-                "strategy=ddp_spawn and num_workers=0 may result in data loading bottlenecks."
-                " Consider setting num_workers>0 and persistent_workers=True"
-            )
+    if dataloader.num_workers > 0 and start_method == "spawn" and not dataloader.persistent_workers:
+        rank_zero_warn(
+            f"Consider setting `persistent_workers=True` in '{name}' to speed up the dataloader worker initialization."
+        )
     elif dataloader.num_workers <= 2 < upper_bound or dataloader.num_workers < 2 <= upper_bound:
         # if changed, update the `filterwarnings` snippet in 'speed.html#num-workers'
         rank_zero_warn(
@@ -507,13 +500,11 @@ def _process_dataloader(
     dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=is_shuffled, mode=stage)
 
     # let the strategy inject its logic
-    strategy = trainer.strategy
-    dataloader = strategy.process_dataloader(dataloader)
+    dataloader = trainer.strategy.process_dataloader(dataloader)
 
     # check the workers
     _worker_check(
         trainer=trainer,
-        using_spawn=isinstance(strategy, DDPStrategy) and strategy._start_method == "spawn",
         dataloader=dataloader,
         name=f"{stage.dataloader_prefix}_dataloader",
     )
