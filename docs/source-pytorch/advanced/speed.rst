@@ -82,13 +82,13 @@ The question of how many workers to specify in ``num_workers`` is tricky. Here's
 1. ``num_workers=0`` means ONLY the main process will load batches (that can be a bottleneck).
 2. ``num_workers=1`` means ONLY one worker (just not the main process) will load data, but it will still be slow.
 3. The performance of high ``num_workers`` depends on the batch size and your machine.
-4. A general place to start is to set ``num_workers`` equal to the number of CPU cores on that machine. You can get the number of CPU cores in python using ``os.cpu_count()``, but note that depending on your batch size, you may overflow RAM memory.
+4. A general place to start is to set ``num_workers`` equal to the number of CPU cores on that machine. You can get the number of CPU cores in Python using ``os.cpu_count()``, but note that depending on your batch size, you may overflow CPU RAM.
 
 .. warning:: Increasing ``num_workers`` will ALSO increase your CPU memory consumption.
 
 The best thing to do is to increase the ``num_workers`` slowly and stop once there is no more improvement in your training speed.
 
-For debugging purposes or for dataloaders that load very small datasets, it is desirable to set ``num_workers=0``. However, this will always log a warning for every dataloader with ``num_workers <= min(2, os.cpu_count())``. In such cases, you can specifically filter this warning by using:
+For debugging purposes or for dataloaders that load very small datasets, it is desirable to set ``num_workers=0``. However, this will log a warning that you're not using enough workers. In such cases, you can specifically filter this warning by using:
 
 .. code-block:: python
 
@@ -101,26 +101,12 @@ For debugging purposes or for dataloaders that load very small datasets, it is d
 
     warnings.filterwarnings("ignore", category=PossibleUserWarning)
 
-Spawn
-^^^^^
-
-When using ``strategy="ddp_spawn"`` or training on TPUs, the way multiple GPUs/TPU cores are used is by calling :obj:`torch.multiprocessing`
-``.spawn()`` under the hood. The problem is that PyTorch has issues with ``num_workers>0`` when using ``.spawn()``. For this reason, we recommend you
-use ``strategy="ddp"`` so you can increase the ``num_workers``, however since DDP doesn't work in an interactive environment like IPython/Jupyter notebooks
-your script has to be callable like so:
-
-.. code-block:: bash
-
-    python my_program.py
-
-However, using ``strategy="ddp_spawn"`` enables to reduce memory usage with In-Memory Dataset and shared memory tensors. For more info, check out
-:ref:`Sharing Datasets Across Process Boundaries <ddp_spawn_shared_memory>` section.
 
 Persistent Workers
 ^^^^^^^^^^^^^^^^^^
 
-When using ``strategy="ddp_spawn"`` and ``num_workers>0``, consider setting ``persistent_workers=True`` inside your DataLoader since it can result in data-loading bottlenecks and slowdowns.
-This is a limitation of Python ``.spawn()`` and PyTorch.
+If you use a large number of ``num_workers`` in your dataloaders or your epochs are very fast, you may notice a slowdown at the beginning of every epoch due to the time it takes for the dataloader to spawn its worker processes.
+In this case, setting ``persistent_workers=True`` in your dataloader will significantly speed up the worker startup time across epochs.
 
 
 TPU Training

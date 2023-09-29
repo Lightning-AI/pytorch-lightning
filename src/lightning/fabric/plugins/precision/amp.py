@@ -59,7 +59,7 @@ class MixedPrecision(Precision):
         self._desired_input_dtype = torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16
 
     def forward_context(self) -> ContextManager:
-        return self._autocast_context_manager()
+        return torch.autocast(self.device, dtype=self._desired_input_dtype)
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
@@ -95,11 +95,6 @@ class MixedPrecision(Precision):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
-
-    def _autocast_context_manager(self) -> torch.autocast:
-        # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
-        # https://github.com/pytorch/pytorch/issues/67233
-        return torch.autocast(self.device, dtype=self._desired_input_dtype)
 
     def unscale_gradients(self, optimizer: Optimizer) -> None:
         scaler = self.scaler
