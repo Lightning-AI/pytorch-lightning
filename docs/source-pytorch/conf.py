@@ -368,10 +368,12 @@ nitpick_ignore = [
     ("py:class", "jsonargparse._namespace.Namespace"),
     ("py:class", "jsonargparse.core.ArgumentParser"),
     ("py:class", "jsonargparse.namespace.Namespace"),
+    ("py:class", "transformer_engine.common.recipe.DelayedScaling"),
     ("py:class", "lightning.fabric.accelerators.xla.XLAAccelerator"),
     ("py:class", "lightning.fabric.loggers.csv_logs._ExperimentWriter"),
     ("py:class", "lightning.fabric.loggers.logger._DummyExperiment"),
     ("py:class", "lightning.fabric.plugins.precision.transformer_engine.TransformerEnginePrecision"),
+    ("py:class", "lightning.fabric.plugins.precision.bitsandbytes.BitsandbytesPrecision"),
     ("py:class", "lightning.fabric.utilities.device_dtype_mixin._DeviceDtypeModuleMixin"),
     ("py:func", "lightning.fabric.utilities.seed.seed_everything"),
     ("py:class", "lightning.fabric.utilities.types.LRScheduler"),
@@ -528,7 +530,7 @@ if _SPHINX_MOCK_REQUIREMENTS:
     MOCK_PACKAGES += package_list_from_file(_path_require("extra.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("strategies.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("loggers.info"))
-    MOCK_PACKAGES += ["comet_ml", "torch_xla", "transformer_engine"]
+    MOCK_PACKAGES += ["comet_ml", "torch_xla", "transformer_engine", "bitsandbytes"]
     MOCK_PACKAGES.remove("jsonargparse")
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
