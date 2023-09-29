@@ -230,7 +230,6 @@ class CloudRuntime(Runtime):
             package_source=not absolute_entrypoint,
             sys_customizations_root=sys_customizations_root,
         )
-        self._resolve_project(project_id=project_id)
         existing_instances = self._resolve_run_instances_by_name(project_id, name)
         name = self._resolve_run_name(name, existing_instances)
         cloudspace = self._resolve_cloudspace(project_id, cloudspace_id)
