@@ -18,16 +18,16 @@ import lightning.fabric
 import pytest
 import torch
 import torch.distributed
+from lightning import Fabric
 from lightning.fabric.connector import _Connector
-from lightning.fabric.plugins import (
-    BitsandbytesPrecision,
-)
+from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE, BitsandbytesPrecision
+
+from tests_fabric.helpers.runif import RunIf
 
 
+@pytest.mark.skipif(_BITSANDBYTES_AVAILABLE, reason="bitsandbytes needs to be unavailable")
 def test_bitsandbytes_plugin(monkeypatch):
     module = lightning.fabric.plugins.precision.bitsandbytes
-    if module._BITSANDBYTES_AVAILABLE:
-        pytest.skip("Assumes bitsandbytes is unavailable")
     monkeypatch.setattr(module, "_BITSANDBYTES_AVAILABLE", lambda: True)
     bitsandbytes_mock = Mock()
     monkeypatch.setitem(sys.modules, "bitsandbytes", bitsandbytes_mock)
@@ -92,3 +92,51 @@ def test_bitsandbytes_plugin(monkeypatch):
     model = torch.nn.Conv1d(1, 1, 1)
     with pytest.raises(TypeError, match="your model has no Linear"):
         precision.convert_module(model)
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes unavailable")
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (("int8", torch.float16), torch.int8),
+        (("nf4", torch.bfloat16), torch.uint8),
+    ],
+)
+def test_bitsandbytes_layers(args, expected):
+    class MyModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l = torch.nn.Linear(2, 2)
+            self.ln = torch.nn.LayerNorm(2)
+
+    state_dict = MyModel().state_dict()
+
+    fabric = Fabric(devices=1, plugins=BitsandbytesPrecision(*args))
+    with fabric.init_module():
+        model = MyModel()
+    # the model was instantiated on-device and quantized straight away
+    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.dtype == expected
+    # this has no impact
+    model = fabric.setup(model)
+    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.dtype == expected
+    # state dict loading still works even thought the weights are quantized
+    weight_before = model.l.weight.data.clone()
+    keys = model.load_state_dict(state_dict, strict=True)
+    assert not keys.missing_keys
+    assert not torch.equal(weight_before, model.l.weight.data)
+    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.dtype == expected
+
+    fabric = Fabric(devices=1, plugins=BitsandbytesPrecision(*args, skips={"foo"}))
+    with fabric.init_module():
+        model = MyModel()
+    # When skips are present, we only quantize on `setup`
+    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.dtype == args[1]
+    # this quantizes now
+    model = fabric.setup(model)
+    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.dtype == expected

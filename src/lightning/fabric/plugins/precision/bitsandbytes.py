@@ -31,6 +31,7 @@ from lightning.fabric.plugins.precision.utils import (
     _convert_fp_tensor,
     _DtypeContextManager,
 )
+from lightning.fabric.utilities.types import _DEVICE
 
 log = logging.getLogger(__name__)
 
@@ -104,7 +105,9 @@ class BitsandbytesPrecision(Precision):
             )
 
         # convert modules if they haven't been converted already
-        if not any("bitsandbytes.nn" in m.__module__ for m in module.modules()):
+        if not any(
+            "bitsandbytes.nn" in m.__module__ or "precision.bitsandbytes" in m.__module__ for m in module.modules()
+        ):
             _convert_layers(module, self._linear_cls, self.skips)
 
         # set the compute dtype if necessary
@@ -172,12 +175,11 @@ if _BITSANDBYTES_AVAILABLE:
         re-quantizaton when loading the state dict.
         """
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None:
-            kwargs.setdefault("threshold", 6.0)
-            super().__init__(*args, **kwargs)
-            if torch.tensor(0).device.type == "cuda":
-                # We quantize the initial weight here so we don't end up filling the device
-                # memory with float32 weights which could lead to OOM.
+        def __init__(self, *args: Any, device: Optional[_DEVICE] = None, threshold: float = 6.0, **kwargs: Any) -> None:
+            super().__init__(*args, device=device, threshold=threshold, **kwargs)
+            # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
+            # filling the device memory with float32 weights which could lead to OOM
+            if torch.tensor(0, device=device).device.type == "cuda":
                 self._quantize_weight(self.weight.data)
             self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self._quantize_weight))
             self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
@@ -197,12 +199,12 @@ if _BITSANDBYTES_AVAILABLE:
         re-quantizaton when loading the state dict.
         """
 
-        def __init__(self, *args: Any, device: Optional[torch.device] = None, **kwargs: Any) -> None:
-            super().__init__(*args, **kwargs)
-            if torch.tensor(0).device.type == "cuda":
-                # We quantize the initial weight here so we don't end up filling the device
-                # memory with float32 weights which could lead to OOM.
-                self.weight.cuda(torch.cuda.current_device() if device is None else device)
+        def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
+            super().__init__(*args, device=device, **kwargs)
+            # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
+            # filling the device memory with float32 weights which could lead to OOM
+            if torch.tensor(0, device=device).device.type == "cuda":
+                self._quantize_weight(self.weight.data)
             self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self._quantize_weight))
             self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
 
@@ -222,43 +224,43 @@ if _BITSANDBYTES_AVAILABLE:
     # Use a class instead `functools.partial` to respect `isinstance` checks and attribute accesses
     class _Int8LinearInference(_Linear8bitLt):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
-            kwargs.setdefault("has_fp16_weights", False)
-            super().__init__(*args, **kwargs)
+            super().__init__(*args, has_fp16_weights=False, **kwargs)
 
     class _FP4Linear(_Linear4bit):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
-            kwargs.setdefault("quant_type", "fp4")
-            kwargs.setdefault("compress_statistics", False)
-            super().__init__(*args, **kwargs)
+            super().__init__(*args, quant_type="fp4", compress_statistics=False, **kwargs)
 
     class _FP4DQLinear(_Linear4bit):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
-            kwargs.setdefault("quant_type", "fp4")
-            kwargs.setdefault("compress_statistics", True)
-            super().__init__(*args, **kwargs)
+            super().__init__(*args, quant_type="fp4", compress_statistics=True, **kwargs)
 
     class _NF4Linear(_Linear4bit):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
-            kwargs.setdefault("quant_type", "nf4")
-            kwargs.setdefault("compress_statistics", False)
-            super().__init__(*args, **kwargs)
+            super().__init__(*args, quant_type="nf4", compress_statistics=False, **kwargs)
 
     class _NF4DQLinear(_Linear4bit):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
-            kwargs.setdefault("quant_type", "nf4")
-            kwargs.setdefault("compress_statistics", True)
-            super().__init__(*args, **kwargs)
+            super().__init__(*args, quant_type="nf4", compress_statistics=True, **kwargs)
 
 
 def _convert_layers(module: torch.nn.Module, linear_cls: Type, skips: Set[str]) -> None:
     for name, child in module.named_children():
         if isinstance(child, torch.nn.Linear) and not any(name.startswith(s) for s in skips):
+            log.debug(f"Replacing layer {name!r} with bitsandbytes equivalent")
             has_bias = child.bias is not None
-            replacement = linear_cls(child.in_features, child.out_features, bias=has_bias)
+            replacement = linear_cls(
+                # since we are going to copy over the child's data, the device doesn't matter. I chose CPU
+                # to avoid spiking CUDA memory even though initialization is slower
+                child.in_features,
+                child.out_features,
+                bias=has_bias,
+                device=torch.device("cpu"),
+            )
             replacement.weight.data = child.weight.data.clone()
             if has_bias:
                 replacement.bias.data = child.bias.data.clone()
-            log.debug(f"Replacing layer {name!r} with bitsandbytes equivalent")
+            # once the data has been copied, quantize it
+            replacement._quantize_weight(replacement.weight.data)
             module.__setattr__(name, replacement)
         else:
             _convert_layers(child, linear_cls, skips)
