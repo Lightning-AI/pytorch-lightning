@@ -154,5 +154,4 @@ def test_cache_batch_sampler(params):
     batches = []
     for batch in batch_sampler:
         batches.append(batch)
-    print(batches)
     assert batches == params[1]

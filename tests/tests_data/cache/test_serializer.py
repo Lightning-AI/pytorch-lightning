@@ -15,14 +15,22 @@ import os
 
 import numpy as np
 import pytest
-from lightning.data.cache.serializers import _SERIALIZERS, IntSerializer, JPEGSerializer, PILSerializer
+import torch
+from lightning.data.cache.serializers import (
+    _SERIALIZERS,
+    _TORCH_DTYPES_MAPPING,
+    IntSerializer,
+    JPEGSerializer,
+    PILSerializer,
+    TensorSerializer,
+)
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 
 
 def test_serializers():
-    assert sorted(_SERIALIZERS) == ["bytes", "int", "jpeg", "pil"]
+    assert sorted(_SERIALIZERS) == ["bytes", "int", "jpeg", "pil", "tensor"]
 
 
 def test_int_serializer():
@@ -91,3 +99,26 @@ def test_pil_serializer(mode):
 
     # Validate data content
     assert np.array_equal(np_data, np_dec_data)
+
+
+def test_tensor_serializer():
+    serializer = TensorSerializer()
+
+    shapes = [(10,), (10, 10), (10, 10, 10), (10, 10, 10, 5), (10, 10, 10, 5, 4)]
+    for dtype in _TORCH_DTYPES_MAPPING.values():
+        for shape in shapes:
+            # Not serializable for some reasons
+            if dtype in [torch.bfloat16]:
+                continue
+            tensor = torch.ones(shape, dtype=dtype)
+            data = serializer.serialize(tensor)
+            deserialized_tensor = serializer.deserialize(data)
+            assert deserialized_tensor.dtype == dtype
+            assert torch.equal(tensor, deserialized_tensor)
+
+
+def test_assert_bfloat16_tensor_serializer():
+    serializer = TensorSerializer()
+    tensor = torch.ones((10,), dtype=torch.bfloat16)
+    with pytest.raises(TypeError, match="Got unsupported ScalarType BFloat16"):
+        serializer.serialize(tensor)

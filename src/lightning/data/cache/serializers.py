@@ -15,6 +15,7 @@ from abc import ABC, abstractmethod
 from io import BytesIO
 
 import numpy as np
+import torch
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -117,4 +118,64 @@ class BytesSerializer(Serializer):
         return isinstance(item, bytes)
 
 
-_SERIALIZERS = {"pil": PILSerializer(), "int": IntSerializer(), "jpeg": JPEGSerializer(), "bytes": BytesSerializer()}
+_TORCH_DTYPES_MAPPING = {
+    0: torch.float32,
+    1: torch.float,
+    2: torch.float64,
+    3: torch.double,
+    4: torch.complex64,
+    5: torch.cfloat,
+    6: torch.complex128,
+    7: torch.cdouble,
+    8: torch.float16,
+    9: torch.half,
+    10: torch.bfloat16,
+    11: torch.uint8,
+    12: torch.int8,
+    13: torch.int16,
+    14: torch.short,
+    15: torch.int32,
+    16: torch.int,
+    17: torch.int64,
+    18: torch.long,
+    19: torch.bool,
+}
+
+
+class TensorSerializer(Serializer):
+    """The TensorSerializer serialize and deserialize tensor to and from bytes."""
+
+    def __init__(self):
+        super().__init__()
+        self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
+
+    def serialize(self, item: torch.Tensor) -> bytes:
+        dtype_indice = self._dtype_to_indice[item.dtype]
+        data = [np.uint32(dtype_indice).tobytes()]
+        data.append(np.uint32(len(item.shape)).tobytes())
+        for dim in item.shape:
+            data.append(np.uint32(dim).tobytes())
+        data.append(item.numpy().tobytes())
+        return b"".join(data)
+
+    def deserialize(self, data: bytes) -> torch.Tensor:
+        dtype_indice = np.frombuffer(data[0:4], np.uint32).item()
+        dtype = _TORCH_DTYPES_MAPPING[dtype_indice]
+        shape_size = np.frombuffer(data[4:8], np.uint32).item()
+        shape = []
+        for shape_idx in range(shape_size):
+            shape.append(np.frombuffer(data[8 + 4 * shape_idx : 8 + 4 * (shape_idx + 1)], np.uint32).item())
+        tensor = torch.frombuffer(data[8 + 4 * (shape_idx + 1) : len(data)], dtype=dtype)
+        return torch.reshape(tensor, torch.Size(shape))
+
+    def can_serialize(self, item: torch.Tensor) -> bool:
+        return isinstance(item, torch.Tensor)
+
+
+_SERIALIZERS = {
+    "pil": PILSerializer(),
+    "int": IntSerializer(),
+    "jpeg": JPEGSerializer(),
+    "bytes": BytesSerializer(),
+    "tensor": TensorSerializer(),
+}
