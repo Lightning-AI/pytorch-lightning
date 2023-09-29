@@ -79,7 +79,7 @@ class BitsandbytesPrecision(Precision):
                 )
         if mode.startswith("int8") and dtype is not torch.float16:
             # this limitation is mentioned in https://huggingface.co/blog/hf-bitsandbytes-integration#usage
-            raise ValueError(f"{mode!r} only works with `dtype=torch.bfloat16`, but you chose `{dtype}`")
+            raise ValueError(f"{mode!r} only works with `dtype=torch.float16`, but you chose `{dtype}`")
 
         mode_to_cls = {
             "nf4": _NF4Linear,
@@ -205,7 +205,7 @@ if _BITSANDBYTES_AVAILABLE:
     # Use a class instead `functools.partial` to respect `isinstance` checks and attribute accesses
     class _Int8LinearInference(_Linear8bitLt):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
-            kwargs.setdefault("has_fp_weights", False)
+            kwargs.setdefault("has_fp16_weights", False)
             super().__init__(*args, **kwargs)
 
     class _FP4Linear(_Linear4bit):
