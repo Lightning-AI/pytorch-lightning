@@ -17,9 +17,9 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 
-from lightning.data.cache.env import _WorkerEnv
 from lightning.data.cache.serializers import _SERIALIZERS
-from lightning.data.datasets.env import _DistributedEnv
+from lightning.data.cache.worker import get_worker_info
+from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
 
 class BinaryReader:
@@ -53,7 +53,7 @@ class BinaryReader:
     @property
     def rank(self) -> Optional[int]:
         if self._rank is None:
-            self._worker_env = _WorkerEnv.detect()
+            self._worker_env = _WorkerEnv.detect(get_worker_info_fn=get_worker_info)
             self._rank = self._env.global_rank * self._worker_env.world_size + self._worker_env.rank
 
         return self._rank
