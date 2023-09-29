@@ -119,6 +119,8 @@ class _Run(BaseModel):
 
 
 def _run_plugin(run: _Run) -> Dict[str, Any]:
+    from lightning.app.runners.cloud import _to_clean_dict
+
     """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
     with tempfile.TemporaryDirectory() as tmpdir:
         download_path = os.path.join(tmpdir, "source.tar.gz")
@@ -184,8 +186,8 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
                 cluster_id=run.cluster_id,
                 source_app=run.source_app,
             )
-            appInstance = plugin.run(**run.plugin_arguments)
-            return {"appInstance": appInstance.to_dict()}
+            app_instance = plugin.run(**run.plugin_arguments)
+            return _to_clean_dict(app_instance, False)
         except Exception as ex:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error running plugin: {str(ex)}."
