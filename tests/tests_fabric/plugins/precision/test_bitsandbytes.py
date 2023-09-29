@@ -18,7 +18,7 @@ import lightning.fabric
 import pytest
 import torch
 import torch.distributed
-from lightning import Fabric
+from lightning.fabric import Fabric
 from lightning.fabric.connector import _Connector
 from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE, BitsandbytesPrecision
 
