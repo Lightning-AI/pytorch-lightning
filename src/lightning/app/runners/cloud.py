@@ -197,7 +197,7 @@ class CloudRuntime(Runtime):
         name: str,
         cluster_id: str,
         source_app: Optional[str] = None,
-    ) -> str:
+    ) -> Externalv1LightningappInstance:
         """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties such
         as the project and cluster IDs that are instead passed directly.
 
@@ -213,7 +213,7 @@ class CloudRuntime(Runtime):
             ValueError: If there are validation errors.
 
         Returns:
-            The URL of the created job.
+            The spec the created app instance.
 
         """
         # Dispatch in four phases: resolution, validation, spec creation, API transactions
@@ -230,7 +230,6 @@ class CloudRuntime(Runtime):
             package_source=not absolute_entrypoint,
             sys_customizations_root=sys_customizations_root,
         )
-        project = self._resolve_project(project_id=project_id)
         existing_instances = self._resolve_run_instances_by_name(project_id, name)
         name = self._resolve_run_name(name, existing_instances)
         cloudspace = self._resolve_cloudspace(project_id, cloudspace_id)
@@ -269,7 +268,7 @@ class CloudRuntime(Runtime):
         self._api_package_and_upload_repo(repo, run)
 
         logger.info(f"Creating cloudspace run instance. name: {name}")
-        run_instance = self._api_create_run_instance(
+        return self._api_create_run_instance(
             cluster_id,
             project_id,
             name,
@@ -280,8 +279,6 @@ class CloudRuntime(Runtime):
             env_vars,
             source_app=source_app,
         )
-
-        return self._get_app_url(project, run_instance, "logs" if run.is_headless else "web-ui")
 
     def dispatch(
         self,
