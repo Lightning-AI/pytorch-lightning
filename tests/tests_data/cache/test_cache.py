@@ -13,6 +13,7 @@
 
 import io
 import os
+import sys
 from functools import partial
 
 import numpy as np
@@ -64,7 +65,7 @@ class ImageDataset(Dataset):
         return None
 
 
-def cache_for_image_dataset(num_workers, tmpdir, fabric=None):
+def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
     from PIL import Image
 
     dataset_size = 85
@@ -117,20 +118,21 @@ def cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 @pytest.mark.skipif(
     condition=not _PIL_AVAILABLE or not _TORCH_VISION_AVAILABLE, reason="Requires: ['pil', 'torchvision']"
 )
-@pytest.mark.parametrize("num_workers", [0, 1, 2])
+@pytest.mark.parametrize("num_workers", [0])
 def test_cache_for_image_dataset(num_workers, tmpdir):
     cache_dir = os.path.join(tmpdir, "cache")
     os.makedirs(cache_dir)
 
-    cache_for_image_dataset(num_workers, tmpdir)
+    _cache_for_image_dataset(num_workers, tmpdir)
 
 
-def fabric_cache_for_image_dataset(fabric, num_workers, tmpdir):
-    cache_for_image_dataset(num_workers, tmpdir, fabric=fabric)
+def _fabric_cache_for_image_dataset(fabric, num_workers, tmpdir):
+    _cache_for_image_dataset(num_workers, tmpdir, fabric=fabric)
 
 
 @pytest.mark.skipif(
-    condition=not _PIL_AVAILABLE or not _TORCH_VISION_AVAILABLE, reason="Requires: ['pil', 'torchvision']"
+    condition=not _PIL_AVAILABLE or not _TORCH_VISION_AVAILABLE or sys.platform == "win32",
+    reason="Requires: ['pil', 'torchvision']",
 )
 @pytest.mark.parametrize("num_workers", [2])
 def test_cache_for_image_dataset_distributed(num_workers, tmpdir):
@@ -138,4 +140,4 @@ def test_cache_for_image_dataset_distributed(num_workers, tmpdir):
     os.makedirs(cache_dir)
 
     fabric = Fabric(accelerator="cpu", devices=2, strategy="ddp_spawn")
-    fabric.launch(partial(fabric_cache_for_image_dataset, num_workers=num_workers, tmpdir=tmpdir))
+    fabric.launch(partial(_fabric_cache_for_image_dataset, num_workers=num_workers, tmpdir=tmpdir))

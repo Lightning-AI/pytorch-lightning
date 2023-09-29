@@ -13,6 +13,7 @@
 
 import json
 import os
+import sys
 
 import numpy as np
 import pytest
@@ -96,6 +97,7 @@ def test_binary_writer_with_jpeg_and_int(tmpdir):
         assert data["y"] == i
 
 
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_binary_writer_config(monkeypatch):
     assert BinaryWriter.get_cloud_path("") is None
 

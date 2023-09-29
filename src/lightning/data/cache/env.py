@@ -15,7 +15,10 @@ from lightning.data.cache.worker import get_worker_info
 
 
 class _WorkerEnv:
-    """Contains the environment for the current dataloader within the current training process.
+    """
+    Note: This is using our fork: `from lightning.data.cache.worker import get_worker_info` to get the worker_infor
+
+    Contains the environment for the current dataloader within the current training process.
 
     Args:
         world_size: The number of dataloader workers for the current training process

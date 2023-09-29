@@ -25,6 +25,8 @@ TCompressor = TypeVar("TCompressor", bound="Compressor")
 
 
 class Compressor(ABC):
+    """Base class for compression algorithm."""
+
     @abstractmethod
     def compress(self, data: bytes) -> bytes:
         pass
@@ -39,6 +41,8 @@ class Compressor(ABC):
 
 
 class ZSTDCompressor(Compressor):
+    """Compressor for the zstd package."""
+
     @requires("zstd")
     def __init__(self, level):
         super().__init__()

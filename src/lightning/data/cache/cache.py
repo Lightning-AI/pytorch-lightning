@@ -13,7 +13,7 @@
 
 import logging
 import os
-from typing import Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 import numpy as np
 from torch.utils.data import IterableDataset
@@ -42,16 +42,30 @@ class Cache:
         compression: Optional[str] = None,
         chunk_size: int = 2 << 26,
     ):
+        """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements
+        together in order to accelerate fetching.
+
+        Arguments:
+            cache_dir: The path to where the chunks will be stored.
+            data_format: The structure of the data to be serialized.
+            compression: The name of the algorithm to reduce the size of the chunks
+            chunk_size: The maximum byte size of chunk.
+
+        """
         super().__init__()
         self._writer = BinaryWriter(cache_dir, data_format, chunk_size=chunk_size, compression=compression)
         self._reader = BinaryReader(cache_dir, compression=compression)
         self._cache_dir = cache_dir
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
-        self._num_workers = None
+        self._num_workers: Optional[int] = None
+
+    def _setup(self, num_workers: int) -> None:
+        self._num_workers = num_workers
 
     @property
     def filled(self) -> bool:
+        """Returns whether the caching phase is done."""
         if self._num_workers is None:
             raise Exception("The Cache wasn't setup properly. HINT: Did you use the CacheDataLoader ?")
         if self._is_done:
@@ -61,16 +75,19 @@ class Cache:
         self._is_done = len(index_files) == self._distributed_env.world_size * (self._num_workers or 1)
         return self._is_done
 
-    def __setitem__(self, index, data):
+    def __setitem__(self, index, data) -> None:
+        """Store an item in the writer."""
         self._writer[index] = data
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> Dict[str, Any]:
+        """Read an item in the reader."""
         return self._reader.read(index)
 
-    def done(self):
+    def done(self) -> None:
+        """Inform the writer the chunking phase is finished."""
         self._writer.done()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._reader.get_length()
 
     def get_chunk_interval(self):
@@ -78,6 +95,8 @@ class Cache:
 
 
 class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
+    """This is overriden to inform the cache is done chunking."""
+
     def _next_data(self):
         try:
             return super()._next_data()
@@ -109,6 +128,16 @@ class IteratorSampler(Sampler[int]):
 
 class CacheSampler(Sampler):
     def __init__(self, dataset_size: int, num_workers: int, batch_size: int):
+        """The CacheSampler splits the dataset indices into ordered chunks and assign each one of them to a DataLoader
+        worker. The Cache Writer expects the index to be provided in an ordered fashion.
+
+        Arguments:
+            dataset_size: The size of the dataset.
+            num_workers: The number of workers provided to the DataLoader
+            batch_size: The number of items in a batch
+
+        """
+
         super().__init__(None)
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -135,7 +164,7 @@ class CacheSampler(Sampler):
     def done(self) -> bool:
         return len(self._done) == len(self.iterators)
 
-    def __iter__(self):
+    def __iter__(self) -> "CacheSampler":
         self._done = set()
 
         for sampler in self.samplers:
@@ -143,7 +172,7 @@ class CacheSampler(Sampler):
 
         return self
 
-    def __next__(self):
+    def __next__(self) -> List[int]:
         while len(self._done) != self.iterators:
             try:
                 data = next(self.iterators[self.worker_id])
@@ -161,6 +190,15 @@ class CacheSampler(Sampler):
 
 class DistributedCacheSampler(Sampler):
     def __init__(self, dataset_size: int, num_replicas: int, rank: int, num_workers: int, batch_size: int):
+        """The DistributedCacheSampler splits the dataset indices into ordered chunks along all the replicas and their
+        workers. The Cache Writer expects the index to be provided in an ordered fashion.
+
+        Arguments:
+            dataset_size: The size of the dataset.
+            num_workers: The number of workers provided to the DataLoader
+            batch_size: The number of items in a batch
+
+        """
         super().__init__(None)
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -201,7 +239,7 @@ class DistributedCacheSampler(Sampler):
     def done(self) -> bool:
         return len(self._done) == len(self.iterators)
 
-    def __iter__(self):
+    def __iter__(self) -> "DistributedCacheSampler":
         self._done = set()
 
         for sampler in self.samplers:
@@ -209,7 +247,7 @@ class DistributedCacheSampler(Sampler):
 
         return self
 
-    def __next__(self):
+    def __next__(self) -> List[str]:
         while len(self._done) != self.iterators:
             try:
                 data = next(self.iterators[self.worker_id])
@@ -237,6 +275,22 @@ class CacheBatchSampler(BatchSampler):
         shuffle: bool,
         cache: Cache,
     ):
+        """The CacheBatchSampler handles the generation of batch indices.
+
+        If the cache isn't filled, the batch sampler alternates with ordered indices for the writer to chunk the dataset
+        If the cache is filled, it acts as normal BatchSampler.
+
+        Arguments:
+            dataset_size: The size of the dataset.
+            num_replicas: The number of processes involves in the distributed training.
+            rank: The rank of the given process
+            num_workers: The number of workers provided to the DataLoader.
+            batch_size: The number of items in a batch.
+            shuffle: Whether the data should be shuffled.
+            cache: The cache associated to the dataset.
+
+        """
+
         if num_replicas == 1:
             if not cache.filled and num_workers > 1:
                 sampler = CacheSampler(dataset_size, num_workers, batch_size)
@@ -369,7 +423,7 @@ class CacheDataLoader(DataLoader):
             raise Exception(f"The CacheDataloader should be used with a dataset using a single cache. Found {cache}.")
 
         cache = cache[0]
-        cache._num_workers = num_workers
+        cache._setup(num_workers)
         if not cache.filled and shuffle:
             logger.info("Shuffle is ignored during caching phase")
 

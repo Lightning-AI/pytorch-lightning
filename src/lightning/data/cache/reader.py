@@ -13,7 +13,7 @@
 
 import json
 import os
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 
@@ -23,21 +23,35 @@ from lightning.data.datasets.env import _DistributedEnv
 
 
 class BinaryReader:
-    def __init__(self, _cache_dir: str, compression: Optional[str] = None):
+    def __init__(self, cache_dir: str, compression: Optional[str] = None):
+        """The BinaryReader enables to read chunked dataset in an efficient way.
+
+        Arguments:
+            cache_dir: The path to cache folder
+            compression: The algorithm to decompress the chunks.
+
+        """
+
         super().__init__()
-        self._cache_dir = _cache_dir
+        self._cache_dir = cache_dir
+
+        if not os.path.exists(self._cache_dir):
+            raise FileNotFoundError(f"The provided cache_dir `{self._cache_dir}` doesn't exist.")
+
         self._compression = compression
         self._index = None
         self._intervals = None
+
+        # TODO: Use a chunk class
         self._chunks_data = {}
         self._serializers = _SERIALIZERS
 
         self._env = _DistributedEnv.detect()
-        self._worker_env = None
-        self._rank = None
+        self._worker_env: Optional[_WorkerEnv] = None
+        self._rank: Optional[int] = None
 
     @property
-    def rank(self):
+    def rank(self) -> Optional[int]:
         if self._rank is None:
             self._worker_env = _WorkerEnv.detect()
             self._rank = self._env.global_rank * self._worker_env.world_size + self._worker_env.rank
@@ -92,7 +106,7 @@ class BinaryReader:
         )
         return self.deserialize(raw_item_data, item_config)
 
-    def deserialize(self, raw_item_data, item_config):
+    def deserialize(self, raw_item_data: bytes, item_config: Dict[str, Any]) -> Any:
         sizes = []
         idx = 0
         data_format = item_config["data_format"]
