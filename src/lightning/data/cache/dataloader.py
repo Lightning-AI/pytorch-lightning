@@ -12,8 +12,11 @@
 # limitations under the License.
 
 import logging
+import os
+from datetime import datetime
+from typing import Optional
 
-from torch.utils.data import IterableDataset
+from torch.utils.data import Dataset, IterableDataset
 from torch.utils.data._utils.collate import default_collate
 from torch.utils.data.dataloader import (
     DataLoader,
@@ -27,6 +30,27 @@ from lightning.data.cache.sampler import CacheBatchSampler
 from lightning.data.datasets.env import _DistributedEnv
 
 logger = logging.Logger(__name__)
+
+
+class CacheDataset(Dataset):
+    def __init__(
+        self, dataset: Dataset, cache_dir: Optional[str], chunk_size: Optional[int], compression: Optional[str]
+    ):
+        self._datataset = dataset
+        if cache_dir is None:
+            cache_dir = os.path.join(os.getcwd(), "cache_dir", datetime.now().strftime("%m-%d-%Y-%H-%M"))
+            os.makedirs(cache_dir, exist_ok=True)
+            chunk_size = 2 << 26
+        self.cache = Cache(cache_dir, chunk_size=chunk_size, compression=compression)
+
+    def __len__(self) -> int:
+        return len(self.cache) if self.cache.filled else len(self._datataset)
+
+    def __getitem__(self, index):
+        data = self.cache[index] if self.cache.filled else self._datataset[index]
+        if not self.cache.filled:
+            self.cache[index] = data
+        return data
 
 
 class CacheCollateFn:
@@ -75,6 +99,9 @@ class CacheDataLoader(DataLoader):
         generator=None,
         batch_size=1,
         drop_last=False,
+        cache_dir: Optional[str] = None,
+        chunk_size: Optional[int] = 2 << 26,
+        compression: Optional[str] = None,
         **kwargs,
     ):
         if sampler:
@@ -88,11 +115,20 @@ class CacheDataLoader(DataLoader):
 
         cache = [v for v in dataset.__dict__.values() if isinstance(v, Cache)]
 
-        if not cache or len(cache) > 1:
+        if len(cache) > 1:
             raise Exception(f"The CacheDataloader should be used with a dataset using a single cache. Found {cache}.")
 
-        cache = cache[0]
+        if len(cache) == 0:
+            if cache_dir is None:
+                logger.info("You can provide a `cache_dir` filepath to the CacheDataLoader.")
+
+            dataset = CacheDataset(dataset, cache_dir, chunk_size, compression)
+            cache = dataset.cache
+        else:
+            cache = cache[0]
+
         cache._setup(num_workers)
+
         if not cache.filled and shuffle:
             logger.info("Shuffle is ignored during caching phase")
 

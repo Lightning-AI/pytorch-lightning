@@ -18,10 +18,12 @@ from functools import partial
 
 import numpy as np
 import pytest
+import torch
 from lightning import seed_everything
 from lightning.data.cache import Cache, CacheDataLoader
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.fabric import Fabric
+from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import Dataset
 
@@ -177,3 +179,11 @@ def test_cache_with_simple_format(tmpdir):
 
     for i in range(100):
         assert [i, {0: [i + 1]}] == cache[i]
+
+
+def test_cache_with_auto_wrapping(tmpdir):
+    dataset = RandomDataset(64, 64)
+    dataloader = CacheDataLoader(dataset, cache_dir=tmpdir)
+    for batch in dataloader:
+        assert isinstance(batch, torch.Tensor)
+    assert len(os.listdir(tmpdir)) == 2
