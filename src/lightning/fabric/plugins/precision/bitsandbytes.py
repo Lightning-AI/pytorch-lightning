@@ -69,8 +69,7 @@ class BitsandbytesPrecision(Precision):
         dtype: Optional[torch.dtype] = None,
         ignore_modules: Optional[Set[str]] = None,
     ) -> None:
-        if not _BITSANDBYTES_AVAILABLE:
-            raise ModuleNotFoundError(str(_BITSANDBYTES_AVAILABLE))
+        _import_bitsandbytes()
 
         if dtype is None:
             # try to be smart about the default selection
@@ -172,7 +171,7 @@ def _import_bitsandbytes() -> ModuleType:
     if not nowelcome_set:
         del os.environ["BITSANDBYTES_NOWELCOME"]
 
-    class _Linear8bitLt(bnb.nn.Linear8bitLt):  # type: ignore[name-defined]
+    class _Linear8bitLt(bnb.nn.Linear8bitLt):
         """Wraps `bnb.nn.Linear8bitLt` and enables instantiation directly on the device and
         re-quantizaton when loading the state dict.
         """
@@ -196,7 +195,7 @@ def _import_bitsandbytes() -> ModuleType:
             setattr(self.weight, "CB", CB)
             setattr(self.weight, "SCB", SCB)
 
-    class _Linear4bit(bnb.nn.Linear4bit):  # type: ignore[name-defined]
+    class _Linear4bit(bnb.nn.Linear4bit):
         """Wraps `bnb.nn.Linear4bit` and enables instantiation directly on the device and
         re-quantizaton when loading the state dict.
         """
