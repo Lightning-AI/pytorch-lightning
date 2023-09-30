@@ -21,6 +21,7 @@ def rank_zero_only(fn: Callable[P, T]) -> Callable[P, Optional[T]]:
     """Wrap a function to call internal function only in rank zero.
 
     Function that can be used as a decorator to enable a function/method being called only on global rank 0.
+
     """
 
     @wraps(fn)

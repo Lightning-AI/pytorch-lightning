@@ -15,6 +15,7 @@ def _transform_changelog(path_in: str, path_out: str) -> None:
     Args:
         path_in: input MD file
         path_out: output also MD file
+
     """
     with open(path_in) as fp:
         chlog_lines = fp.readlines()

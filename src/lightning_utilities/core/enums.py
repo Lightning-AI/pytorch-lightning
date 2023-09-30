@@ -25,6 +25,7 @@ class StrEnum(str, Enum):
     Traceback (most recent call last):
       ...
     ValueError: Invalid match: expected one of ['t1', 't2', 'T-1', 'T-2'], but got t-3.
+
     """
 
     @classmethod

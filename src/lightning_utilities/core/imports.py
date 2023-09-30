@@ -34,6 +34,7 @@ def package_available(package_name: str) -> bool:
     True
     >>> package_available('bla')
     False
+
     """
     try:
         return find_spec(package_name) is not None
@@ -51,6 +52,7 @@ def module_available(module_path: str) -> bool:
     False
     >>> module_available('bla.bla')
     False
+
     """
     module_names = module_path.split(".")
     if not package_available(module_names[0]):
@@ -69,6 +71,7 @@ def compare_version(package: str, op: Callable, version: str, use_base_version: 
     True
     >>> compare_version("does_not_exist", operator.ge, "0.0")
     False
+
     """
     try:
         pkg = importlib.import_module(package)
@@ -113,6 +116,7 @@ class RequirementCache:
     False
     >>> bool(RequirementCache(module="unknown.module.path"))
     False
+
     """
 
     def __init__(self, requirement: Optional[str] = None, module: Optional[str] = None) -> None:
@@ -181,6 +185,7 @@ class ModuleAvailableCache(RequirementCache):
     False
     >>> bool(ModuleAvailableCache("unknown.module.path"))
     False
+
     """
 
     def __init__(self, module: str) -> None:
@@ -198,6 +203,7 @@ def get_dependency_min_version_spec(package_name: str, dependency_name: str) -> 
 
     >>> get_dependency_min_version_spec("pytorch-lightning==1.8.0", "jsonargparse")
     '>=4.12.0'
+
     """
     dependencies = metadata.requires(package_name) or []
     for dep in dependencies:
@@ -217,6 +223,7 @@ class LazyModule(ModuleType):
     Args:
         module_name: the fully-qualified module name to import
         callback: a callback function to call before importing the module
+
     """
 
     def __init__(self, module_name: str, callback: Optional[Callable] = None) -> None:
@@ -268,6 +275,7 @@ def lazy_import(module_name: str, callback: Optional[Callable] = None) -> LazyMo
 
     Returns:
         a proxy module object that will be lazily imported when first used
+
     """
     return LazyModule(module_name, callback=callback)
 
@@ -291,6 +299,7 @@ def requires(*module_path_version: str, raise_exception: bool = True) -> Callabl
         ...         from math import pow
         ...         from random import randint
         ...         self._rnd = pow(randint(1, 9), 2)
+
     """
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:

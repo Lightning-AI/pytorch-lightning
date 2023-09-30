@@ -35,6 +35,13 @@ repos:
         additional_dependencies: [tomli]
         #args: ["--write-changes"] # uncomment if you want to get automatic fixing
 
+  - repo: https://github.com/PyCQA/docformatter
+    rev: v1.7.3
+    hooks:
+      - id: docformatter
+        additional_dependencies: [tomli]
+        args: ["--in-place"]
+
   - repo: https://github.com/psf/black
     rev: 23.7.0
     hooks:

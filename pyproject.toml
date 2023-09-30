@@ -55,6 +55,14 @@ quiet-level = 3
 ignore-words-list = "te, compiletime"
 
 
+[tool.docformatter]
+recursive = true
+# this need to be shorter as some docstings are r"""...
+wrap-summaries = 119
+wrap-descriptions = 120
+blank = true
+
+
 [tool.black]
 # https://github.com/psf/black
 line-length = 120

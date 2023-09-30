@@ -41,6 +41,7 @@ class _RequirementWithComment(Requirement):
         'arrow>=1.2.0'
         >>> _RequirementWithComment("arrow").adjust("major")
         'arrow'
+
         """
         out = str(self)
         if self.strict:
@@ -109,6 +110,7 @@ def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str 
     >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
     >>> load_requirements(path_req, "docs.txt", unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ['sphinx<6.0,>=4.0', ...]
+
     """
     if unfreeze not in {"none", "major", "all"}:
         raise ValueError(f'unsupported option of "{unfreeze}"')

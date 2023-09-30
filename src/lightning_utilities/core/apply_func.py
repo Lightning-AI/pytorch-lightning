@@ -45,6 +45,7 @@ def apply_to_collection(
 
     Returns:
         The resulting collection
+
     """
     if include_none is False or wrong_dtype is not None or allow_frozen is True:
         # not worth implementing these on the fast path: go with the slower option
@@ -204,6 +205,7 @@ def apply_to_collections(
     Raises:
         AssertionError:
             If sequence collections have different data sizes.
+
     """
     if data1 is None:
         if data2 is None:

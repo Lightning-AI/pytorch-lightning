@@ -13,6 +13,7 @@ def fetch_all_caches(repository: str, token: str, per_page: int = 100, max_pages
         token: authentication token for GH API calls
         per_page: number of items per listing page
         max_pages: max number of listing pages
+
     """
     import requests
     from pandas import Timestamp, to_datetime
@@ -67,6 +68,7 @@ def main(repository: str, token: str, age_days: float = 7, output_file: str = "u
         token: authentication token for making API calls
         age_days: filter all caches older than this age set in days
         output_file: path to a file for dumping list of cache's Id
+
     """
     caches = fetch_all_caches(repository, token)
 

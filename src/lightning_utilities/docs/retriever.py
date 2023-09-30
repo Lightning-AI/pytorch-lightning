@@ -29,6 +29,7 @@ def _search_all_occurrences(list_files: List[str], pattern: str) -> List[str]:
     Args:
         list_files: list of files to be scanned
         pattern: pattern for search, reg. expression
+
     """
     collected = []
     for file_path in list_files:
@@ -48,6 +49,7 @@ def _replace_remote_with_local(
         file_path: file for replacement
         docs_folder: the location of docs related to the project root
         pairs_url_path: pairs of URL and local file path to be swapped
+
     """
     # drop the default/global path to the docs
     relt_path = os.path.dirname(file_path).replace(docs_folder, "")
@@ -77,6 +79,7 @@ def fetch_external_assets(
         assets_folder: a folder inside ``docs_folder`` to be created and saving online assets
         file_pattern: what kind of files shall be scanned
         retrieve_pattern: pattern for reg. expression to search URL/S3 resources
+
     """
     list_files = glob.glob(os.path.join(docs_folder, "**", file_pattern), recursive=True)
     if not list_files:
