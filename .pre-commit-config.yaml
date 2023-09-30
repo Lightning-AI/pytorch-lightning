@@ -25,7 +25,7 @@ repos:
     rev: v3.10.1
     hooks:
       - id: pyupgrade
-        args: [--py37-plus]
+        args: ["--py37-plus"]
         name: Upgrade code
 
   - repo: https://github.com/codespell-project/codespell

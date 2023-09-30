@@ -1,5 +1,8 @@
 documentation:
   - docs/**/*
+  - README.md
+
 ci/cd:
   - .github/actions/**/*
+  - .github/scripts/*
   - .github/workflows/*
