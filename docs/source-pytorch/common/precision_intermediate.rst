@@ -182,7 +182,7 @@ This is configurable via the dtype argument in the plugin.
 
 Quantizing the model will dramatically reduce the weight's memory requirements but  may have a negative impact on the model's performance or runtime.
 
-The :class:`lightning.pytorch.plugins.precision.bitsandbytes.BitsandbytesPrecisionPlugin` automatically replaces the :class:`torch.nn.Linear` layers in your model with their BNB alternatives.
+The :class:`~lightning.pytorch.plugins.precision.bitsandbytes.BitsandbytesPrecisionPlugin` automatically replaces the :class:`torch.nn.Linear` layers in your model with their BNB alternatives.
 
 .. code-block:: python
 

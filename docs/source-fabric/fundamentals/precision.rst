@@ -231,7 +231,7 @@ This is configurable via the dtype argument in the plugin.
 
 Quantizing the model will dramatically reduce the weight's memory requirements but may have a negative impact on the model's performance or runtime.
 
-The :class:`lightning.fabric.plugins.precision.bitsandbytes.BitsandbytesPrecision` a
+The :class:`~lightning.fabric.plugins.precision.bitsandbytes.BitsandbytesPrecision` a
 .. code-block:: python
 
     from lightning.fabric.plugins import BitsandbytesPrecision
