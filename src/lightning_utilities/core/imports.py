@@ -276,7 +276,7 @@ def requires(*module_path_version: str, raise_exception: bool = True) -> Callabl
     """Wrap early import failure with some nice exception message.
 
     Args:
-        module_path_version: pythin package path (e.g. `torch.cuda`) or pip like requiremsnt (e.g. `torch>=2.0.0`)
+        module_path_version: python package path (e.g. `torch.cuda`) or pip like requiremsnt (e.g. `torch>=2.0.0`)
         raise_exception: how strict the check shall be if exit the code or just warn user
 
     Example:

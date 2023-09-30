@@ -111,7 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- CI: Checking schem in both yaml & yml + verbose ([#84](https://github.com/Lightning-AI/utilities/pull/84))
+- CI: Checking scheme in both yaml & yml + verbose ([#84](https://github.com/Lightning-AI/utilities/pull/84))
 
 
 ## [0.5.0] - 2022-12-21

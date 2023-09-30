@@ -38,8 +38,8 @@ def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
 
 
 def _replace_min(fname: str) -> None:
-    with open(fname) as fo:
-        req = fo.read().replace(">=", "==")
+    with open(fname) as fopen:
+        req = fopen.read().replace(">=", "==")
     with open(fname, "w") as fw:
         fw.write(req)
 

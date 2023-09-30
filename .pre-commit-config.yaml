@@ -28,6 +28,13 @@ repos:
         args: [--py37-plus]
         name: Upgrade code
 
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.5
+    hooks:
+      - id: codespell
+        additional_dependencies: [tomli]
+        #args: ["--write-changes"] # uncomment if you want to get automatic fixing
+
   - repo: https://github.com/psf/black
     rev: 23.7.0
     hooks:

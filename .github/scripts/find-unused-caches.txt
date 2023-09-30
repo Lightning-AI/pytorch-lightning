@@ -1,4 +1,4 @@
-# Requirements for running equally named scrit,
+# Requirements for running equally named script,
 #  having it in extra file to prevent version discrepancy if hardcoded in workflow
 
 fire

@@ -24,7 +24,7 @@ def _download_file(file_url: str, folder: str) -> str:
 
 
 def _search_all_occurrences(list_files: List[str], pattern: str) -> List[str]:
-    """Search for all occurrences of specific patter in a collection of files.
+    """Search for all occurrences of specific pattern in a collection of files.
 
     Args:
         list_files: list of files to be scanned
@@ -32,8 +32,8 @@ def _search_all_occurrences(list_files: List[str], pattern: str) -> List[str]:
     """
     collected = []
     for file_path in list_files:
-        with open(file_path, encoding="UTF-8") as fo:
-            body = fo.read()
+        with open(file_path, encoding="UTF-8") as fopem:
+            body = fopem.read()
         found = re.findall(pattern, body)
         collected += found
     return collected
@@ -53,8 +53,8 @@ def _replace_remote_with_local(
     relt_path = os.path.dirname(file_path).replace(docs_folder, "")
     # filter the path starting with / as not empty folder names
     depth = len([p for p in relt_path.split(os.path.sep) if p])
-    with open(file_path, encoding="UTF-8") as fo:
-        body = fo.read()
+    with open(file_path, encoding="UTF-8") as fopen:
+        body = fopen.read()
     for url, fpath in pairs_url_path:
         if depth:
             path_up = [".."] * depth
@@ -76,7 +76,7 @@ def fetch_external_assets(
         docs_folder: the location of docs related to the project root
         assets_folder: a folder inside ``docs_folder`` to be created and saving online assets
         file_pattern: what kind of files shall be scanned
-        retrieve_pattern: patter for reg. expression to search URL/S3 resources
+        retrieve_pattern: pattern for reg. expression to search URL/S3 resources
     """
     list_files = glob.glob(os.path.join(docs_folder, "**", file_pattern), recursive=True)
     if not list_files:

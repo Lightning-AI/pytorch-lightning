@@ -23,7 +23,6 @@ norecursedirs = [
     "build",
     "docs",
 ]
-
 addopts = [
     "--strict-markers",
     "--doctest-modules",
@@ -39,28 +38,28 @@ exclude_lines = [
     "pragma: no cover",
     "pass",
 ]
-
 [tool.coverage.run]
 parallel = true
 concurrency = "thread"
 relative_files = true
+
+
+[tool.codespell]
+# Todo: enable also python files in a next step
+skip = '*.py'
+quiet-level = 3
+# comma separated list of words; waiting for:
+#  https://github.com/codespell-project/codespell/issues/2839#issuecomment-1731601603
+# also adding links until they ignored by its: nature
+#  https://github.com/codespell-project/codespell/issues/2243#issuecomment-1732019960
+ignore-words-list = "te, compiletime"
+
 
 [tool.black]
 # https://github.com/psf/black
 line-length = 120
 exclude = "(.eggs|.git|.hg|.mypy_cache|.venv|_build|buck-out|build|dist)"
 
-[tool.isort]
-known_first_party = [
-    "lightning_utilities",
-    "tests"
-]
-skip_glob = []
-profile = "black"
-line_length = 120
-order_by_type = false
-multi_line_output = 3
-include_trailing_comma = true
 
 [tool.mypy]
 files = [

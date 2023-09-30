@@ -31,7 +31,7 @@ runs:
   - name: Install package (wheel)
     working-directory: pypi/
     run: |
-      # TODO: reset env / conside add as conda
+      # TODO: reset env / consider add as conda
       pip install *.whl ${{ inputs.pip-flags }}
       python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
       pip list
@@ -46,7 +46,7 @@ runs:
   - name: Install package (archive)
     working-directory: pypi/
     run: |
-      # TODO: reset env / conside add as conda
+      # TODO: reset env / consider add as conda
       pip install *.tar.gz ${{ inputs.pip-flags }}
       python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
       pip list

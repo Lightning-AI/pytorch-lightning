@@ -1,4 +1,4 @@
-name: Check formating flow
+name: Check formatting flow
 
 on:
   workflow_call:

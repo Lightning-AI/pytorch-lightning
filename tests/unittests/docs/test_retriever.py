@@ -15,15 +15,15 @@ def test_retriever_s3():
 
     fetch_external_assets(docs_folder=path_docs)
 
-    with open(path_index, encoding="UTF-8") as fo:
-        body = fo.read()
+    with open(path_index, encoding="UTF-8") as fopen:
+        body = fopen.read()
     # that the image exists~
     assert "Lightning.gif" in body
     # but it is not sourced from S3
     assert ".s3." not in body
 
-    with open(path_page, encoding="UTF-8") as fo:
-        body = fo.read()
+    with open(path_page, encoding="UTF-8") as fopen:
+        body = fopen.read()
     # that the image exists~
     assert "Lightning.gif" in body
     # check the proper depth
