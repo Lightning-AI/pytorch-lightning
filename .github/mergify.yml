@@ -1,5 +1,4 @@
 pull_request_rules:
-
   - name: warn on conflicts
     conditions:
       - conflict
@@ -9,7 +8,7 @@ pull_request_rules:
       # comment:
       #   message: This pull request is now in conflict... :(
       label:
-        add: [ "has conflicts" ]
+        add: ["has conflicts"]
 
   - name: resolved conflicts
     conditions:
@@ -20,7 +19,7 @@ pull_request_rules:
       - -closed
     actions:
       label:
-        remove: [ "has conflicts" ]
+        remove: ["has conflicts"]
 
   - name: add core reviewer
     conditions:

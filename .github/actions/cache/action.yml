@@ -21,33 +21,32 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: install assitant's deps
+      run: pip install fire requests packaging
+      shell: bash
 
-  - name: install assitant's deps
-    run: pip install fire requests packaging
-    shell: bash
+    - name: Set min. dependencies
+      if: inputs.requires == 'oldest'
+      run: python .github/assistant.py set-oldest-versions
+      shell: bash
 
-  - name: Set min. dependencies
-    if: inputs.requires == 'oldest'
-    run: python .github/assistant.py set-oldest-versions
-    shell: bash
+    - name: Determine caches
+      id: cache_dirs
+      run: echo "pip_dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+      shell: bash
 
-  - name: Determine caches
-    id: cache_dirs
-    run: echo "pip_dir=$(pip cache dir)" >> $GITHUB_OUTPUT
-    shell: bash
+    - name: Cache 💽 pip
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.cache_dirs.outputs.pip_dir }}
+        key: py${{ inputs.python-version }}-pip-${{ inputs.offset }}-${{ hashFiles('requirements.txt') }}
+        restore-keys: py${{ inputs.python-version }}-pip-${{ inputs.offset }}-
+        enableCrossOsArchive: true
 
-  - name: Cache 💽 pip
-    uses: actions/cache@v3
-    with:
-      path: ${{ steps.cache_dirs.outputs.pip_dir }}
-      key: py${{ inputs.python-version }}-pip-${{ inputs.offset }}-${{ hashFiles('requirements.txt') }}
-      restore-keys: py${{ inputs.python-version }}-pip-${{ inputs.offset }}-
-      enableCrossOsArchive: true
-
-  - name: Cache 💽 conda
-    uses: actions/cache@v3
-    if: runner.os == 'Linux'
-    with:
-      path: ~/conda_pkgs_dir
-      key: py${{ inputs.python-version }}-conda-${{ inputs.offset }}
-      restore-keys: py${{ inputs.python-version }}-conda-${{ inputs.offset }}
+    - name: Cache 💽 conda
+      uses: actions/cache@v3
+      if: runner.os == 'Linux'
+      with:
+        path: ~/conda_pkgs_dir
+        key: py${{ inputs.python-version }}-conda-${{ inputs.offset }}
+        restore-keys: py${{ inputs.python-version }}-conda-${{ inputs.offset }}

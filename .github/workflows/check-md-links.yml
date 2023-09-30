@@ -5,45 +5,45 @@ on:
   workflow_call:
     inputs:
       config-file:
-        description: 'Config file (JSON) used for markdown link checks'
+        description: "Config file (JSON) used for markdown link checks"
         required: false
         type: string
-        default: ''
+        default: ""
 
 jobs:
   markdown-link-check:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@master
+      - uses: actions/checkout@master
 
-    - name: Create local version of config
-      if:  inputs.config-file == ''
-      run: |
-        echo '{
-        "ignorePatterns": [
-          {
-            "pattern": "^https://github.com/${{ github.repository }}/pull/.*"
-          }
-        ],
-        "httpHeaders": [
-          {
-            "urls": ["https://github.com/", "https://guides.github.com/", "https://help.github.com/", "https://docs.github.com/"],
-            "headers": {
-              "Accept-Encoding": "zstd, br, gzip, deflate"
+      - name: Create local version of config
+        if: inputs.config-file == ''
+        run: |
+          echo '{
+          "ignorePatterns": [
+            {
+              "pattern": "^https://github.com/${{ github.repository }}/pull/.*"
             }
-          }
-        ]
-        }' > 'markdown.links.config.json'
-        echo "CONFIG=markdown.links.config.json" >> $GITHUB_ENV
-        cat 'markdown.links.config.json'
-    - name: Show local version of config
-      if:  inputs.config-file != ''
-      run: |
-        echo "CONFIG=${{ inputs.config-file }}" >> $GITHUB_ENV
-        cat ${{ inputs.config-file }}
+          ],
+          "httpHeaders": [
+            {
+              "urls": ["https://github.com/", "https://guides.github.com/", "https://help.github.com/", "https://docs.github.com/"],
+              "headers": {
+                "Accept-Encoding": "zstd, br, gzip, deflate"
+              }
+            }
+          ]
+          }' > 'markdown.links.config.json'
+          echo "CONFIG=markdown.links.config.json" >> $GITHUB_ENV
+          cat 'markdown.links.config.json'
+      - name: Show local version of config
+        if: inputs.config-file != ''
+        run: |
+          echo "CONFIG=${{ inputs.config-file }}" >> $GITHUB_ENV
+          cat ${{ inputs.config-file }}
 
-    - name: Checking markdown link
-      uses: gaurav-nelson/github-action-markdown-link-check@v1
-      with:
-        use-quiet-mode: 'yes'
-        config-file: ${{ env.CONFIG }}
+      - name: Checking markdown link
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: "yes"
+          config-file: ${{ env.CONFIG }}

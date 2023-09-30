@@ -3,45 +3,44 @@ description: building, checking the package
 
 inputs:
   artifact-name:
-    description: 'Unique name for collecting artifacts'
+    description: "Unique name for collecting artifacts"
     required: false
     default: ""
 
 runs:
   using: "composite"
   steps:
+    - name: Prepare dev. env
+      run: pip install "twine==4.0.2" setuptools wheel build
+      shell: bash
 
-  - name: Prepare dev. env
-    run: pip install "twine==4.0.2" setuptools wheel build
-    shell: bash
+    - name: Create package 📦
+      # python setup.py clean
+      run: python -m build
+      shell: bash
 
-  - name: Create package 📦
-    # python setup.py clean
-    run: python -m build
-    shell: bash
+    - name: Check package 📦
+      working-directory: dist
+      run: |
+        ls -lh .
+        twine check *
+      shell: bash
 
-  - name: Check package 📦
-    working-directory: dist
-    run: |
-      ls -lh .
-      twine check *
-    shell: bash
+    - name: Download 📥 previous packages
+      if: ${{ inputs.artifact-name != '' }}
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: pypi
 
-  - name: Download 📥 previous packages
-    if: ${{ inputs.artifact-name != '' }}
-    uses: actions/download-artifact@v3
-    with:
-      name: ${{ inputs.artifact-name }}
-      path: pypi
+    - name: copy/export pkg
+      if: ${{ inputs.artifact-name != '' }}
+      run: cp dist/* pypi/
+      shell: bash
 
-  - name: copy/export pkg
-    if: ${{ inputs.artifact-name != '' }}
-    run: cp dist/* pypi/
-    shell: bash
-
-  - name: Upload 📤 to the share store
-    if: ${{ inputs.artifact-name != '' }}
-    uses: actions/upload-artifact@v3
-    with:
-      name: ${{ inputs.artifact-name }}
-      path: pypi
+    - name: Upload 📤 to the share store
+      if: ${{ inputs.artifact-name != '' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: pypi

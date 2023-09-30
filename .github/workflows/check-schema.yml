@@ -4,13 +4,13 @@ on:
   workflow_call:
     inputs:
       actions-ref:
-        description: 'Version of actions, normally the same as workflow'
+        description: "Version of actions, normally the same as workflow"
         required: false
         type: string
         default: ""
       azure-dir:
-        description: 'Directory containing Azure Pipelines config files. Provide an empty string to skip checking on Azure Pipelines files.'
-        default: '.azure/'
+        description: "Directory containing Azure Pipelines config files. Provide an empty string to skip checking on Azure Pipelines files."
+        default: ".azure/"
         required: false
         type: string
 
@@ -19,66 +19,65 @@ defaults:
     shell: bash
 
 jobs:
-
   schema:
     runs-on: ubuntu-20.04
     steps:
-    - name: Checkout 🛎
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - name: Checkout 🛎
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    # if actions version is given install defined versions
-    - name: "[optional] Pull re-usable 🤖 actions"
-      if: inputs.actions-ref != ''
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ inputs.actions-ref }}
-        path: .cicd
-        repository: Lightning-AI/utilities
-    - name: "[optional] Install recommended dependencies"
-      if: inputs.actions-ref != ''
-      run: |
-        pip install -r ./.cicd/requirements/gha-schema.txt
-        pip list | grep "check-jsonschema"
-    # otherwise fall back to using the latest
-    - name: "[default] Install recommended dependencies"
-      if: inputs.actions-ref == ''
-      run: |
-        pip install -q check-jsonschema
-        pip list | grep "check-jsonschema"
+      # if actions version is given install defined versions
+      - name: "[optional] Pull re-usable 🤖 actions"
+        if: inputs.actions-ref != ''
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.actions-ref }}
+          path: .cicd
+          repository: Lightning-AI/utilities
+      - name: "[optional] Install recommended dependencies"
+        if: inputs.actions-ref != ''
+        run: |
+          pip install -r ./.cicd/requirements/gha-schema.txt
+          pip list | grep "check-jsonschema"
+      # otherwise fall back to using the latest
+      - name: "[default] Install recommended dependencies"
+        if: inputs.actions-ref == ''
+        run: |
+          pip install -q check-jsonschema
+          pip list | grep "check-jsonschema"
 
-    - name: Scan repo
-      id: folders
-      run: python -c "import os; print('gh_actions=' + str(int(os.path.isdir('.github/actions'))))" >> $GITHUB_OUTPUT
+      - name: Scan repo
+        id: folders
+        run: python -c "import os; print('gh_actions=' + str(int(os.path.isdir('.github/actions'))))" >> $GITHUB_OUTPUT
 
-    # https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/github-workflow.json
-    - name: GitHub Actions - workflow
-      run: |
-        files=$(find .github/workflows -name '*.yml' -or -name '*.yaml' -not -name '__*')
-        for f in $files; do
-          echo $f;
-          check-jsonschema -v $f --builtin-schema "github-workflows";
-        done
+      # https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/github-workflow.json
+      - name: GitHub Actions - workflow
+        run: |
+          files=$(find .github/workflows -name '*.yml' -or -name '*.yaml' -not -name '__*')
+          for f in $files; do
+            echo $f;
+            check-jsonschema -v $f --builtin-schema "github-workflows";
+          done
 
-    # https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/github-action.json
-    - name: GitHub Actions - action
-      if: steps.folders.outputs.gh_actions == '1'
-      run: |
-        files=$(find .github/actions -name '*.yml' -or -name '*.yaml')
-        for f in $files; do
-          echo $f;
-          check-jsonschema -v $f --builtin-schema "github-actions";
-        done
+      # https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/github-action.json
+      - name: GitHub Actions - action
+        if: steps.folders.outputs.gh_actions == '1'
+        run: |
+          files=$(find .github/actions -name '*.yml' -or -name '*.yaml')
+          for f in $files; do
+            echo $f;
+            check-jsonschema -v $f --builtin-schema "github-actions";
+          done
 
-    # https://github.com/microsoft/azure-pipelines-vscode/blob/main/service-schema.json
-    - name: Azure Pipelines
-      if: ${{ inputs.azure-dir != '' }}
-      env:
-        SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.208.0/service-schema.json
-      run: |
-        files=$(find ${{ inputs.azure-dir }} -name '*.yml' -or -name '*.yaml')
-        for f in $files; do
-          echo $f;
-          check-jsonschema -v $f --schemafile "$SCHEMA_FILE";
-        done
+      # https://github.com/microsoft/azure-pipelines-vscode/blob/main/service-schema.json
+      - name: Azure Pipelines
+        if: ${{ inputs.azure-dir != '' }}
+        env:
+          SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.208.0/service-schema.json
+        run: |
+          files=$(find ${{ inputs.azure-dir }} -name '*.yml' -or -name '*.yaml')
+          for f in $files; do
+            echo $f;
+            check-jsonschema -v $f --schemafile "$SCHEMA_FILE";
+          done

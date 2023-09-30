@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       scripts-ref:
-        description: 'Version of script, normally the same as workflow'
+        description: "Version of script, normally the same as workflow"
         required: true
         type: string
       #gh-token:
@@ -12,20 +12,19 @@ on:
       #  required: true
       #  type: string
       dry-run:
-        description: 'allow just listing and not delete any, options yes|no'
+        description: "allow just listing and not delete any, options yes|no"
         required: true
         type: string
       age-days:
-        description: 'setting the age of caches in days to be dropped'
+        description: "setting the age of caches in days to be dropped"
         required: true
         type: number
         default: 7
       pattern:
-        description: 'string to grep cache keys with'
+        description: "string to grep cache keys with"
         required: false
         type: string
         default: ""
-
 
 defaults:
   run:

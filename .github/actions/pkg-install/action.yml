@@ -3,11 +3,11 @@ description: installing and validationg the package
 
 inputs:
   artifact-name:
-    description: 'Unique name for collecting artifacts'
+    description: "Unique name for collecting artifacts"
     required: false
     default: ""
   import-name:
-    description: 'Import name to test with after installation'
+    description: "Import name to test with after installation"
     required: true
   pip-flags:
     description: additional pip install flags
@@ -17,37 +17,37 @@ inputs:
 runs:
   using: "composite"
   steps:
-  - name: Download 📥 all packages
-    if: ${{ inputs.artifact-name != '' }}
-    uses: actions/download-artifact@v3
-    with:
-      name: ${{ inputs.artifact-name }}
-      path: pypi
-  - name: show packages
-    working-directory: pypi
-    run: ls -lh
-    shell: bash
+    - name: Download 📥 all packages
+      if: ${{ inputs.artifact-name != '' }}
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: pypi
+    - name: show packages
+      working-directory: pypi
+      run: ls -lh
+      shell: bash
 
-  - name: Install package (wheel)
-    working-directory: pypi/
-    run: |
-      # TODO: reset env / consider add as conda
-      pip install *.whl ${{ inputs.pip-flags }}
-      python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
-      pip list
-    shell: bash
+    - name: Install package (wheel)
+      working-directory: pypi/
+      run: |
+        # TODO: reset env / consider add as conda
+        pip install *.whl ${{ inputs.pip-flags }}
+        python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
+        pip list
+      shell: bash
 
-  - name: Uninstall all
-    run: |
-      pip freeze > _reqs.txt
-      pip uninstall -y -r _reqs.txt
-    shell: bash
+    - name: Uninstall all
+      run: |
+        pip freeze > _reqs.txt
+        pip uninstall -y -r _reqs.txt
+      shell: bash
 
-  - name: Install package (archive)
-    working-directory: pypi/
-    run: |
-      # TODO: reset env / consider add as conda
-      pip install *.tar.gz ${{ inputs.pip-flags }}
-      python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
-      pip list
-    shell: bash
+    - name: Install package (archive)
+      working-directory: pypi/
+      run: |
+        # TODO: reset env / consider add as conda
+        pip install *.tar.gz ${{ inputs.pip-flags }}
+        python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
+        pip list
+      shell: bash

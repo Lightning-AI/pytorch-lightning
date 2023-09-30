@@ -4,24 +4,24 @@ on:
   workflow_call:
     inputs:
       actions-ref:
-        description: 'Version of actions, normally the same as workflow'
+        description: "Version of actions, normally the same as workflow"
         required: true
         type: string
       artifact-name:
-        description: 'Unique name for collecting artifacts'
+        description: "Unique name for collecting artifacts"
         required: true
         type: string
       import-name:
-        description: 'Import name to test with after installation'
+        description: "Import name to test with after installation"
         required: true
         type: string
       install-flags:
-        description: 'Additional pip install flags'
+        description: "Additional pip install flags"
         required: false
         type: string
         default: "-f https://download.pytorch.org/whl/cpu/torch_stable.html"
       build-matrix:
-        description: 'what building configs in json format'
+        description: "what building configs in json format"
         required: false
         type: string
         default: |
@@ -29,7 +29,7 @@ on:
             "os": ["ubuntu-latest"],
           }
       testing-matrix:
-        description: 'what test configs to run in json format'
+        description: "what test configs to run in json format"
         required: false
         type: string
         # default operating systems should be pinned to specific versions instead of "-latest" for stability
@@ -45,51 +45,48 @@ defaults:
     shell: bash
 
 jobs:
-
-  init-store:  #  todo: remove this wne download will be fault tolerant
+  init-store: #  todo: remove this wne download will be fault tolerant
     runs-on: ubuntu-20.04
     steps:
-    - name: Checkout 🛎️
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    - run: mkdir dist && touch dist/.placeholder
-    - name: Upload 📤
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ inputs.artifact-name }}
-        path: dist
-
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: mkdir dist && touch dist/.placeholder
+      - name: Upload 📤
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: dist
 
   pkg-build:
     needs: init-store
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 1  # run sequential to prevent download/upload collisions
+      max-parallel: 1 # run sequential to prevent download/upload collisions
       fail-fast: false
       matrix: ${{ fromJSON(inputs.build-matrix) }}
 
     steps:
-    - name: Checkout 🛎️
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    - name: Set up Python 🐍
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.8
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up Python 🐍
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
 
-    - name: Pull re-usable 🤖 actions️
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ inputs.actions-ref }}
-        path: .cicd
-        repository: Lightning-AI/utilities
-    - name: Create package 📦
-      uses: ./.cicd/.github/actions/pkg-create
-      with:
-        artifact-name: ${{ inputs.artifact-name }}
-
+      - name: Pull re-usable 🤖 actions️
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.actions-ref }}
+          path: .cicd
+          repository: Lightning-AI/utilities
+      - name: Create package 📦
+        uses: ./.cicd/.github/actions/pkg-create
+        with:
+          artifact-name: ${{ inputs.artifact-name }}
 
   pkg-check:
     needs: pkg-build
@@ -99,27 +96,27 @@ jobs:
       matrix: ${{ fromJSON(inputs.testing-matrix) }}
 
     steps:
-    - name: Checkout 🛎️
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    - name: Set up Python 🐍 ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up Python 🐍 ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Pull re-usable 🤖 actions️
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ inputs.actions-ref }}
-        path: .cicd
-        repository: Lightning-AI/utilities
-    - name: Installing package 📦
-      uses: ./.cicd/.github/actions/pkg-install
-      with:
-        artifact-name: ${{ inputs.artifact-name }}
-        import-name: ${{ inputs.import-name }}
-        pip-flags: ${{ inputs.install-flags }}
+      - name: Pull re-usable 🤖 actions️
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.actions-ref }}
+          path: .cicd
+          repository: Lightning-AI/utilities
+      - name: Installing package 📦
+        uses: ./.cicd/.github/actions/pkg-install
+        with:
+          artifact-name: ${{ inputs.artifact-name }}
+          import-name: ${{ inputs.import-name }}
+          pip-flags: ${{ inputs.install-flags }}
 
     # TODO: add run doctests
 
@@ -128,7 +125,7 @@ jobs:
     needs: pkg-check
     if: always()
     steps:
-    - run: echo "${{ needs.pkg-check.result }}"
-    - name: failing...
-      if: needs.pkg-check.result == 'failure'
-      run: exit 1
+      - run: echo "${{ needs.pkg-check.result }}"
+      - name: failing...
+        if: needs.pkg-check.result == 'failure'
+        run: exit 1

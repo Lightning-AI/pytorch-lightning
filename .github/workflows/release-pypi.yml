@@ -1,10 +1,10 @@
 name: PyPI Release
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on: # Trigger the workflow on push or pull request, but only for the master branch
   push:
     branches: [main, "release/*"]
-    tags: ['v?[0-9]+.[0-9]+.[0-9]+']
+    tags: ["v?[0-9]+.[0-9]+.[0-9]+"]
   release:
     types: [published]
 
@@ -13,29 +13,27 @@ defaults:
     shell: bash
 
 jobs:
-
   # based on https://github.com/pypa/gh-action-pypi-publish
   build-package:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-    - name: Checkout 🛎️
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    - name: Set up Python 🐍
-      uses: actions/setup-python@v4
-      with:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up Python 🐍
+        uses: actions/setup-python@v4
+        with:
           python-version: 3.8
 
-    - name: Create 📦 package
-      uses: ./.github/actions/pkg-create
-    - name: Upload 📤 to the share store
-      uses: actions/upload-artifact@v3
-      with:
-        name: pypi-packages-${{ github.sha }}
-        path: dist
-
+      - name: Create 📦 package
+        uses: ./.github/actions/pkg-create
+      - name: Upload 📤 to the share store
+        uses: actions/upload-artifact@v3
+        with:
+          name: pypi-packages-${{ github.sha }}
+          path: dist
 
   upload-package:
     needs: build-package
@@ -43,64 +41,62 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout 🛎️
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    - name: Download 📥 artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: pypi-packages-${{ github.sha }}
-        path: dist
-    - name: local 🗃️ files
-      run: ls -lh dist/
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Download 📥 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: pypi-packages-${{ github.sha }}
+          path: dist
+      - name: local 🗃️ files
+        run: ls -lh dist/
 
-    - name: Upload to release
-      uses: AButler/upload-release-assets@v2.0
-      with:
-        files: 'dist/*'
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-
+      - name: Upload to release
+        uses: AButler/upload-release-assets@v2.0
+        with:
+          files: "dist/*"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
   delay-publish:
     needs: build-package
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     runs-on: ubuntu-latest
     steps:
-    - name: Delay ⏰ releasing
-      uses: juliangruber/sleep-action@v1
-      with:
-        time: 5m
-
+      - name: Delay ⏰ releasing
+        uses: juliangruber/sleep-action@v1
+        with:
+          time: 5m
 
   publish-package:
     needs: delay-publish
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-    - name: Checkout 🛎️
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    - name: Download 📥 artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: pypi-packages-${{ github.sha }}
-        path: dist
-    - name: local 🗃️ files
-      run: ls -lh dist/
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Download 📥 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: pypi-packages-${{ github.sha }}
+          path: dist
+      - name: local 🗃️ files
+        run: ls -lh dist/
 
-    # We do this, since failures on test.pypi aren't that bad
-    - name: Publish to Test PyPI
-      uses: pypa/gh-action-pypi-publish@v1.8.10
-      with:
-        user: __token__
-        password: ${{ secrets.test_pypi_password }}
-        repository_url: https://test.pypi.org/legacy/
-        verbose: true
+      # We do this, since failures on test.pypi aren't that bad
+      - name: Publish to Test PyPI
+        uses: pypa/gh-action-pypi-publish@v1.8.10
+        with:
+          user: __token__
+          password: ${{ secrets.test_pypi_password }}
+          repository_url: https://test.pypi.org/legacy/
+          verbose: true
 
-    - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.8.10
-      with:
-        user: __token__
-        password: ${{ secrets.pypi_password }}
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.8.10
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_password }}

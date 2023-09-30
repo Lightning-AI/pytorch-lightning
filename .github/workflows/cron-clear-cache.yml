@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       pattern:
-        description: 'patter for cleaning cache'
+        description: "pattern for cleaning cache"
         default: "pip"
         required: false
         type: string
@@ -22,7 +22,7 @@ jobs:
   drop-unused-caches:
     uses: ./.github/workflows/cleanup-caches.yml
     with:
-      scripts-ref: ${{ github.sha }}  # use local version
+      scripts-ref: ${{ github.sha }} # use local version
       dry-run: ${{ github.event_name == 'pull_request' }}
       # ise input if set of default...
       pattern: ${{ inputs.pattern || 'pip|conda' }}

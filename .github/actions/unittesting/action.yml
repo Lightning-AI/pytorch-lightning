@@ -28,38 +28,37 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Python 🐍 details
+      run: |
+        python --version
+        pip --version
+        pip list
+      shell: ${{ inputs.shell-type }}
 
-  - name: Python 🐍 details
-    run: |
-      python --version
-      pip --version
-      pip list
-    shell: ${{ inputs.shell-type }}
+    - run: |
+        echo "artifact=test-results-${{ runner.os }}-py${{ inputs.python-version }}-${{ inputs.requires }}" >> $GITHUB_OUTPUT
+      id: location
+      shell: bash
 
-  - run: |
-      echo "artifact=test-results-${{ runner.os }}-py${{ inputs.python-version }}-${{ inputs.requires }}" >> $GITHUB_OUTPUT
-    id: location
-    shell: bash
+    - name: Unittests
+      working-directory: ./tests
+      run: |
+        python -m pytest ${{ inputs.dirs }} \
+          --cov=${{ inputs.pkg-name }} --durations=50 ${{ inputs.test-timeout }} \
+          --junitxml="${{ steps.location.outputs.artifact }}.xml"
+      shell: ${{ inputs.shell-type }}
 
-  - name: Unittests
-    working-directory: ./tests
-    run: |
-      python -m pytest ${{ inputs.dirs }} \
-        --cov=${{ inputs.pkg-name }} --durations=50 ${{ inputs.test-timeout }} \
-        --junitxml="${{ steps.location.outputs.artifact }}.xml"
-    shell: ${{ inputs.shell-type }}
+    - name: Upload pytest results
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ steps.location.outputs.artifact }}
+        path: "test/${{ steps.location.outputs.artifact }}.xml"
+      if: failure()
 
-  - name: Upload pytest results
-    uses: actions/upload-artifact@v2
-    with:
-      name: ${{ steps.location.outputs.artifact }}
-      path: "test/${{ steps.location.outputs.artifact }}.xml"
-    if: failure()
-
-  - name: Statistics
-    if: success()
-    working-directory: ./tests
-    run: |
-      coverage xml
-      coverage report
-    shell: ${{ inputs.shell-type }}
+    - name: Statistics
+      if: success()
+      working-directory: ./tests
+      run: |
+        coverage xml
+        coverage report
+      shell: ${{ inputs.shell-type }}

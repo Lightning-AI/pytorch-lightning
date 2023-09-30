@@ -4,17 +4,17 @@ on:
   workflow_call:
     inputs:
       actions-ref:
-        description: 'Version of actions, normally the same as workflow'
+        description: "Version of actions, normally the same as workflow"
         required: true
         type: string
       python-version:
-        description: 'Python version to use'
-        default: '3.9'
+        description: "Python version to use"
+        default: "3.9"
         required: false
         type: string
       extra-typing:
-        description: 'Package extra to be installed for type checks + include mypy'
-        default: 'test'
+        description: "Package extra to be installed for type checks + include mypy"
+        default: "test"
         required: false
         type: string
 
@@ -23,87 +23,85 @@ defaults:
     shell: bash
 
 jobs:
-
   mypy:
     runs-on: ubuntu-20.04
     steps:
-    - name: Checkout 🛎️
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: Set up Python 🐍 ${{ inputs.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ inputs.python-version }}
+      - name: Set up Python 🐍 ${{ inputs.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
 
-    - name: Install dependencies
-      run: |
-        # don't use --upgrade to respect the version installed via setup.py
-        pip install -e '.[${{ inputs.extra-typing }}]' mypy \
-          --extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip list
+      - name: Install dependencies
+        run: |
+          # don't use --upgrade to respect the version installed via setup.py
+          pip install -e '.[${{ inputs.extra-typing }}]' mypy \
+            --extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip list
 
-    - name: Pull re-usable 🤖 actions️
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ inputs.actions-ref }}
-        path: .cicd
-        repository: Lightning-AI/utilities
-    - name: Print 🖨️ dependencies
-      uses: ./.cicd/.github/actions/pip-list
-      with:
-        unfold: true
+      - name: Pull re-usable 🤖 actions️
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.actions-ref }}
+          path: .cicd
+          repository: Lightning-AI/utilities
+      - name: Print 🖨️ dependencies
+        uses: ./.cicd/.github/actions/pip-list
+        with:
+          unfold: true
 
-    # see: https://github.com/python/mypy/issues/10600#issuecomment-857351152
-    - run: yes | mypy src --install-types || true
+      # see: https://github.com/python/mypy/issues/10600#issuecomment-857351152
+      - run: yes | mypy src --install-types || true
 
-    - name: Check typing
-      # mypy uses the config file found in the following order:
-      # 1. mypy.ini
-      # 2. pyproject.toml
-      # 3. setup.cfg
-      # 4. $XDG_CONFIG_HOME/mypy/config
-      # 5. ~/.config/mypy/config
-      # 6. ~/.mypy.ini
-      # https://mypy.readthedocs.io/en/stable/config_file.html
-      run: mypy
+      - name: Check typing
+        # mypy uses the config file found in the following order:
+        # 1. mypy.ini
+        # 2. pyproject.toml
+        # 3. setup.cfg
+        # 4. $XDG_CONFIG_HOME/mypy/config
+        # 5. ~/.config/mypy/config
+        # 6. ~/.mypy.ini
+        # https://mypy.readthedocs.io/en/stable/config_file.html
+        run: mypy
 
-    - name: suggest ignores
-      if: failure()
-      run: |
-        mypy --no-error-summary 2>&1 \
-          | tr ':' ' ' \
-          | awk '{print $1}' \
-          | sort \
-          | uniq \
-          | sed 's/\.py//g;  s|src/||g;  s|\/__init__||g;  s|\/|\.|g' \
-          | xargs -I {} echo '"{}",' \
-        || true
-
+      - name: suggest ignores
+        if: failure()
+        run: |
+          mypy --no-error-summary 2>&1 \
+            | tr ':' ' ' \
+            | awk '{print $1}' \
+            | sort \
+            | uniq \
+            | sed 's/\.py//g;  s|src/||g;  s|\/__init__||g;  s|\/|\.|g' \
+            | xargs -I {} echo '"{}",' \
+          || true
 
   pre-commit:
     runs-on: ubuntu-20.04
     steps:
-    - name: Checkout 🛎️
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        submodules: recursive
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-    - name: Set up Python 🐍
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ inputs.python-version }}
+      - name: Set up Python 🐍
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
 
-    - name: Determine cache hash
-      run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+      - name: Determine cache hash
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
-    - name: Cache 💽 pre-commit
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pre-commit
-        key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Cache 💽 pre-commit
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
 
-    - name: Run pre-commit
-      uses: pre-commit/action@v3.0.0
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.0
