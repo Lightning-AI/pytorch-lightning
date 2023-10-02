@@ -32,7 +32,6 @@ from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
-
 from tests_fabric.helpers.runif import RunIf
 
 
