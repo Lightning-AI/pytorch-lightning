@@ -205,8 +205,8 @@ class _ResultMetric(Metric):
     def update(self, value: _VALUE, batch_size: int) -> None:
         if self.is_tensor:
             value = cast(Tensor, value)
+            dtype = _get_default_dtype()
             if not torch.is_floating_point(value):
-                dtype = _get_default_dtype()
                 warning_cache.warn(
                     # do not include the value to avoid cache misses
                     f"You called `self.log({self.meta.name!r}, ...)` in your `{self.meta.fx}` but the value needs to"
@@ -214,7 +214,7 @@ class _ResultMetric(Metric):
                 )
                 value = value.to(dtype)
             if value.dtype not in (torch.float32, torch.float64):
-                value = value.float()
+                value = value.to(dtype)
 
             if self.meta.on_step:
                 self._forward_cache = self.meta.sync(value.clone())  # `clone` because `sync` is in-place
