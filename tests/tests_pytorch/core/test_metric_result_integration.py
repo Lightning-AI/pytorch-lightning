@@ -496,7 +496,7 @@ def test_metric_result_respects_dtype(default_type, converted_type):
     metadata.sync = _Sync()
     rm = _ResultMetric(metadata, is_tensor=True)
 
-    assert rm.value.dtype == default_type
+    assert rm.value.dtype == converted_type
     assert rm.cumulated_batch_size.dtype == fixed_dtype
 
     # two fixed point numbers - should be converted

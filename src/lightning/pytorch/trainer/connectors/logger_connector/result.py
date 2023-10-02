@@ -194,8 +194,8 @@ class _ResultMetric(Metric):
                 default = float("inf")
             else:
                 default = 0.0
-            # do not set a dtype in case the default dtype was changed
-            self.add_state("value", torch.tensor(default), dist_reduce_fx=torch.sum)
+            # the logged value will be stored in float32 or higher to maintain accuracy
+            self.add_state("value", torch.tensor(default, dtype=_get_default_dtype()), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
                 self.cumulated_batch_size: Tensor
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
@@ -206,8 +206,7 @@ class _ResultMetric(Metric):
         if self.is_tensor:
             value = cast(Tensor, value)
             if not torch.is_floating_point(value):
-                dtype = torch.get_default_dtype()
-                dtype = dtype if dtype in (torch.float32, torch.float64) else torch.float32
+                dtype = _get_default_dtype()
                 warning_cache.warn(
                     # do not include the value to avoid cache misses
                     f"You called `self.log({self.meta.name!r}, ...)` in your `{self.meta.fx}` but the value needs to"
@@ -520,3 +519,8 @@ class _ResultCollection(dict):
 
     def __repr__(self) -> str:
         return f"{{{self.training}, {super().__repr__()}}}"
+
+
+def _get_default_dtype() -> torch.dtype:
+    dtype = torch.get_default_dtype()
+    return dtype if dtype in (torch.float32, torch.float64) else torch.float32
