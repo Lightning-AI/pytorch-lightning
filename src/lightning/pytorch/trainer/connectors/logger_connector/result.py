@@ -522,5 +522,6 @@ class _ResultCollection(dict):
 
 
 def _get_default_dtype() -> torch.dtype:
+    """The default dtype for new tensors, but no lower than float32."""
     dtype = torch.get_default_dtype()
     return dtype if dtype in (torch.float32, torch.float64) else torch.float32
