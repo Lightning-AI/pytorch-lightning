@@ -35,12 +35,11 @@ from lightning.fabric.strategies.fsdp import (
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning_utilities.core.imports import RequirementCache
-from torch.optim import Adam
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+from torch.optim import Adam
 
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
-
 
 
 def test_fsdp_custom_mixed_precision():
@@ -48,7 +47,6 @@ def test_fsdp_custom_mixed_precision():
     config = MixedPrecision()
     strategy = FSDPStrategy(mixed_precision=config)
     assert strategy.mixed_precision_config == config
-
 
 
 def test_fsdp_cpu_offload():
@@ -61,7 +59,6 @@ def test_fsdp_cpu_offload():
     config = CPUOffload()
     strategy = FSDPStrategy(cpu_offload=config)
     assert strategy.cpu_offload == config
-
 
 
 def test_fsdp_sharding_strategy():
@@ -97,7 +94,6 @@ def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
     assert strategy.sharding_strategy.name == sharding_strategy
 
 
-
 def test_fsdp_checkpoint_io_unsupported():
     """Test that the FSDP strategy does not support the `CheckpointIO` plugin."""
     strategy = FSDPStrategy()
@@ -106,7 +102,6 @@ def test_fsdp_checkpoint_io_unsupported():
 
     with pytest.raises(NotImplementedError, match="does not support setting a `CheckpointIO` plugin"):
         strategy.checkpoint_io = Mock()
-
 
 
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
@@ -147,7 +142,6 @@ def test_fsdp_setup_use_orig_params(_):
     assert strategy._fsdp_kwargs["use_orig_params"]
 
 
-
 def test_fsdp_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     FullyShardedDataParallel."""
@@ -165,7 +159,6 @@ def test_fsdp_no_backward_sync():
         pass
 
     module.no_sync.assert_called_once()
-
 
 
 def test_fsdp_activation_checkpointing_support(monkeypatch):
@@ -404,7 +397,6 @@ def test_fsdp_load_raw_checkpoint_optimizer_unsupported(tmp_path):
         NotImplementedError, match="Loading a single optimizer object from a checkpoint is not supported"
     ):
         strategy.load_checkpoint(path=tmp_path, state=optimizer)
-
 
 
 @mock.patch("torch.distributed.init_process_group")

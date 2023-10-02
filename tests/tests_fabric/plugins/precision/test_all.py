@@ -2,8 +2,6 @@ import pytest
 import torch
 from lightning.fabric.plugins import DeepSpeedPrecision, DoublePrecision, FSDPPrecision, HalfPrecision
 
-from tests_fabric.helpers.runif import RunIf
-
 
 @pytest.mark.parametrize(
     "precision",

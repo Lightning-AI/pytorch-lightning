@@ -52,7 +52,6 @@ def test_double_precision_wrapper():
         LightningDoublePrecisionModule(BoringModel())
 
 
-
 def test_fsdp_mixed_precision_plugin():
     with pytest.deprecated_call(match=r"The `FSDPMixedPrecisionPlugin` is deprecated"):
         FSDPMixedPrecisionPlugin(precision="16-mixed", device="cuda")
