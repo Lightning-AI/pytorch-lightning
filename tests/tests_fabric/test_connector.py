@@ -58,7 +58,7 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning_utilities.test.warning import no_warning_call
 
 from tests_fabric.conftest import mock_tpu_available
@@ -1019,8 +1019,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     # MPS (there's no distributed)
     with no_cuda, single_mps, monkeypatch.context():
         mock_tpu_available(monkeypatch, False)
-        if not _TORCH_GREATER_EQUAL_1_12:
-            monkeypatch.setattr(torch, "device", Mock())
         connector = _Connector()
     assert isinstance(connector.accelerator, MPSAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)

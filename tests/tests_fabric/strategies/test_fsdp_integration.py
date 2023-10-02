@@ -21,21 +21,15 @@ import torch
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_12,
-    _TORCH_GREATER_EQUAL_2_0,
-    _TORCH_GREATER_EQUAL_2_1,
-)
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import _FabricOptimizer
 from torch.nn import Parameter
+from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
+from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
-
-if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
-    from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 
 
 class _MyFabric(BoringFabric):

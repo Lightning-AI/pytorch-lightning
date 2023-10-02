@@ -14,7 +14,6 @@ import torch
 import torch.nn as nn
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_12,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
 )
@@ -29,11 +28,9 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 from tests_pytorch.helpers.runif import RunIf
 
-if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-    from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
-else:
-    size_based_auto_wrap_policy = lambda *_, **__: False
+from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
+
 if _TORCH_GREATER_EQUAL_2_0:
     from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 else:

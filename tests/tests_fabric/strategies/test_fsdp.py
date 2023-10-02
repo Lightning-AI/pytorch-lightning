@@ -33,21 +33,13 @@ from lightning.fabric.strategies.fsdp import (
     _has_meta_device_parameters,
     fsdp_overlap_step_with_backward,
 )
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning_utilities.core.imports import RequirementCache
 from torch.optim import Adam
+from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
-
-if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-
-
-@mock.patch("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_1_12", False)
-def test_fsdp_support(*_):
-    with pytest.raises(NotImplementedError, match="`FSDPStrategy` is supported from PyTorch v1.12.0"):
-        FSDPStrategy()
 
 
 @RunIf(min_torch="1.12")

@@ -49,7 +49,6 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_12,
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
@@ -157,9 +156,6 @@ class FSDPStrategy(ParallelStrategy):
         state_dict_type: Literal["full", "sharded"] = "full",
         **kwargs: Any,
     ) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException("`FSDPStrategy` is supported from PyTorch v1.12.0 onwards.")
-
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -452,7 +448,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12 or not torch.distributed.is_available():
+        if not torch.distributed.is_available():
             return
         strategy_registry.register(
             "fsdp",

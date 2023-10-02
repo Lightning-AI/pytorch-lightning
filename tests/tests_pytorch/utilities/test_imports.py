@@ -98,12 +98,6 @@ def clean_import():
             "lightning.pytorch.cli",
             id="cli",
         ),
-        pytest.param(
-            "lightning_utilities.core.imports.compare_version",
-            _shortcut_patch(compare_version, ("torch", operator.ge, "1.12.0")),
-            "lightning.pytorch.strategies.fsdp",
-            id="fsdp",
-        ),
     ],
 )
 def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, clean_import):

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
@@ -20,12 +19,6 @@ from lightning.fabric.plugins.precision.utils import _DtypeContextManager
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
 
 from tests_pytorch.helpers.runif import RunIf
-
-
-@mock.patch("lightning.pytorch.plugins.precision.fsdp._TORCH_GREATER_EQUAL_1_12", False)
-def test_fsdp_precision_support(*_):
-    with pytest.raises(NotImplementedError, match="`FSDPPrecisionPlugin` is supported from PyTorch v1.12.0"):
-        FSDPPrecisionPlugin(precision="16-mixed")
 
 
 @RunIf(min_torch="1.12")
