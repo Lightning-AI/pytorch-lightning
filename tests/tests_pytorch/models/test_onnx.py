@@ -150,7 +150,7 @@ def test_if_inference_output_is_valid(tmpdir):
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path, model.example_input_array, export_params=True)
 
-    ort_session = onnxruntime.InferenceSession(file_path, providers='CPUExecutionProvider')
+    ort_session = onnxruntime.InferenceSession(file_path, providers="CPUExecutionProvider")
 
     def to_numpy(tensor):
         return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
