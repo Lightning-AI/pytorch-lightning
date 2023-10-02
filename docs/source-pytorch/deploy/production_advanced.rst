@@ -54,7 +54,7 @@ Once you have the exported model, you can run it on your ONNX runtime in the fol
 
     import onnxruntime
 
-    ort_session = onnxruntime.InferenceSession(filepath)
+    ort_session = onnxruntime.InferenceSession(filepath, providers='CPUExecutionProvider')
     input_name = ort_session.get_inputs()[0].name
     ort_inputs = {input_name: np.random.randn(1, 64)}
     ort_outs = ort_session.run(None, ort_inputs)
