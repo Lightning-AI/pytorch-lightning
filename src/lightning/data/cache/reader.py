@@ -13,11 +13,12 @@
 
 import json
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 
 from lightning.data.cache.pytree import tree_unflatten, treespec_loads
+from lightning.data.cache.sampler import BatchIndex
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv
 
@@ -66,13 +67,19 @@ class ChunksConfig:
     def config(self):
         return self._config
 
-    def __getitem__(self, index: int) -> Tuple[str, int, int]:
+    def __getitem__(self, index: Union[int, BatchIndex]) -> Tuple[str, int, int]:
         """Find the associated chunk metadata."""
-        for interval_config, internal in enumerate(self._intervals):
-            if internal[0] <= index and index < internal[1]:
-                chunk = self._chunks[interval_config]
-                mapping = chunk["mapping"][str(index)]
-                return os.path.join(self._cache_dir, chunk["filename"]), *mapping
+        if isinstance(index, int):
+            for interval_config, internal in enumerate(self._intervals):
+                if internal[0] <= index and index < internal[1]:
+                    chunk = self._chunks[interval_config]
+                    mapping = chunk["mapping"][str(index)]
+                    return os.path.join(self._cache_dir, chunk["filename"]), *mapping
+        # Note: Optimisation to avoid doing the interval search.
+        elif isinstance(index, BatchIndex):
+            chunk = self._chunks[index.chunk_index]
+            mapping = chunk["mapping"][str(index.index)]
+            return os.path.join(self._cache_dir, chunk["filename"]), *mapping
         raise Exception(f"The chunk interval weren't properly defined. Found {self._intervals} for index {index}.")
 
     @classmethod
@@ -117,10 +124,12 @@ class BinaryReader:
         """Try to load the chunks config if the index files are available."""
         self._config = ChunksConfig.load(self._cache_dir)
 
-    def read(self, index: int):
+    def read(self, index: Union[int, BatchIndex]):
         """Read an item for the given from a chunk.
 
-        If the chunk isn't available, it will be downloaded.
+        If the chunk isn't available locally or in memory, it will be downloaded.
+
+        Prefetching should reduce the wait time to be the batch available.
 
         """
         if self._config is None:

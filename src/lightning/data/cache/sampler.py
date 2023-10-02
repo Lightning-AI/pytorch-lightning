@@ -12,13 +12,12 @@
 # limitations under the License.
 
 import logging
+from dataclasses import dataclass
 from typing import Iterator, List
 
 import numpy as np
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, Sized
-
-from lightning.data.cache import Cache
 
 logger = logging.Logger(__name__)
 
@@ -47,7 +46,7 @@ class BaseCacheSampler(Sampler):
         super().__init__(None)
         self.dataset_size = dataset_size
         self.worker_id = 0
-        self.indice_id = 0
+        self.index_id = 0
         self.iterators = []
         self._done = set()
 
@@ -81,14 +80,14 @@ class BaseCacheSampler(Sampler):
         while len(self._done) != self.iterators:
             try:
                 data = next(self.iterators[self.worker_id])
-                self.indice_id += 1
-                if self.indice_id == self.batch_size:
-                    self.indice_id = 0
+                self.index_id += 1
+                if self.index_id == self.batch_size:
+                    self.index_id = 0
                     self._next_worker_id()
                 return data
             except StopIteration:
                 self._done.add(self.worker_id)
-                self.indice_id = 0
+                self.index_id = 0
                 self._next_worker_id()
                 raise StopIteration
 
@@ -121,7 +120,7 @@ class CacheSampler(BaseCacheSampler):
         self._done = set()
         assert sum([len(s) for s in self.samplers]) == dataset_size
         self.worker_id = 0
-        self.indice_id = 0
+        self.index_id = 0
 
 
 class DistributedCacheSampler(BaseCacheSampler):
@@ -165,7 +164,13 @@ class DistributedCacheSampler(BaseCacheSampler):
 
         assert sum([len(s) for s in self.samplers]) == replica_size
         self.worker_id = 0
-        self.indice_id = 0
+        self.index_id = 0
+
+
+@dataclass
+class BatchIndex:
+    index: int
+    chunk_index: int
 
 
 class CacheBatchSampler(BatchSampler):
@@ -178,7 +183,7 @@ class CacheBatchSampler(BatchSampler):
         batch_size: int,
         drop_last: bool,
         shuffle: bool,
-        cache: Cache,
+        cache: any,
     ):
         """The CacheBatchSampler handles the generation of batch indices.
 
@@ -243,14 +248,15 @@ class CacheBatchSampler(BatchSampler):
 
     def __iter_from_chunks__(self):
         chunk_intervals = self._cache.get_chunk_interval()
-        self._shuffled_chunk_intervals = np.random.permutation(chunk_intervals)
+        shuffled_indices = np.random.permutation(range(len(chunk_intervals)))
+        self._shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indices]
 
         if self._num_replicas == 1:
             indices = []
-            for interval in self._shuffled_chunk_intervals:
+            for interval, chunk_index in zip(self._shuffled_chunk_intervals, shuffled_indices):
                 interval_indices = np.arange(interval[0], interval[1])
-                shuffled_interval_indices = np.random.permutation(interval_indices)
-                indices.extend(shuffled_interval_indices.tolist())
+                shuffled_interval_indices = np.random.permutation(interval_indices).tolist()
+                indices.extend([BatchIndex(index, chunk_index) for index in shuffled_interval_indices])
 
             if len(indices) != len(self.sampler):
                 raise Exception("The generated indices don't match the initial length of the sampler.")
@@ -264,12 +270,13 @@ class CacheBatchSampler(BatchSampler):
                 start_replica = replica_idx * chunks_per_replica
                 end_replica = len(chunk_intervals) if is_last_replica else (replica_idx + 1) * chunks_per_replica
                 shuffled_chunk_intervals_replica = self._shuffled_chunk_intervals[start_replica:end_replica]
+                shuffled_indices_replica = shuffled_indices[start_replica:end_replica]
 
                 indices = []
-                for interval in shuffled_chunk_intervals_replica:
+                for interval, chunk_index in zip(shuffled_chunk_intervals_replica, shuffled_indices_replica):
                     interval_indices = np.arange(interval[0], interval[1])
-                    shuffled_interval_indices = np.random.permutation(interval_indices)
-                    indices.extend(shuffled_interval_indices.tolist())
+                    shuffled_interval_indices = np.random.permutation(interval_indices).tolist()
+                    indices.extend([BatchIndex(index, chunk_index) for index in shuffled_interval_indices])
 
         self.sampler = IteratorSampler(indices)
 

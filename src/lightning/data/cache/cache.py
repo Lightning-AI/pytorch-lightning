@@ -15,6 +15,9 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
+import torch
+
+from lightning.data.cache.pytree import tree_flatten
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.writer import BinaryWriter
 from lightning.data.datasets.env import _DistributedEnv
@@ -46,15 +49,29 @@ class Cache:
         self._distributed_env = _DistributedEnv.detect()
         self._num_workers: Optional[int] = None
 
+    def _is_item_equal(self, data_1: Any, data_2: Any) -> bool:
+        data_1_flattened, _ = tree_flatten(data_1)
+        data_2_flattened, _ = tree_flatten(data_2)
+
+        if len(data_1_flattened) != len(data_2_flattened):
+            return False
+
+        return all(self._is_data_equal(d1, d2) for d1, d2 in zip(data_1_flattened, data_2_flattened))
+
+    def _is_data_equal(self, d1, d2) -> bool:
+        if isinstance(d1, torch.Tensor) and isinstance(d2, torch.Tensor):
+            return torch.equal(d1, d2)
+        return d1 == d2
+
     def _setup(self, num_workers: int) -> None:
-        """Called by the CacheDataLoader to ensure the num_workers is known."""
+        """Called by the LightningDataLoader to ensure the num_workers is known."""
         self._num_workers = num_workers
 
     @property
     def filled(self) -> bool:
         """Returns whether the caching phase is done."""
         if self._num_workers is None:
-            raise Exception("The Cache wasn't setup properly. HINT: Did you use the CacheDataLoader ?")
+            raise Exception("The Cache wasn't setup properly. HINT: Did you use the LightningDataLoader ?")
         if self._is_done:
             return True
         files = os.listdir(self._cache_dir)

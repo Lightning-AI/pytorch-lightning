@@ -34,6 +34,20 @@ def cloud_path(cache_dir: str) -> Optional[str]:
     return f"s3://{cluster_id}/projects/{project_id}/cloudspaces/{cloud_space_id}/content/{cache_dir}/"
 
 
+def get_cloud_path(cache_dir: str) -> Optional[str]:
+    """Returns the s3 URL to the cache_dir."""
+    cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
+    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+    cloud_space_id = os.getenv("LIGHTNING_CLOUD_SPACE_ID", None)
+
+    if cluster_id is None or project_id is None or cloud_space_id is None:
+        return None
+    cache_dir = cache_dir.replace("~/", "").replace("~", "").replace("/teamspace/studios/this_studio/", "")
+    if cache_dir.startswith("/"):
+        cache_dir = cache_dir[1:]
+    return os.path.join(f"s3://{cluster_id}/projects/{project_id}/cloudspaces/{cloud_space_id}/code/content", cache_dir)
+
+
 class BinaryWriter:
     def __init__(
         self,
@@ -107,7 +121,7 @@ class BinaryWriter:
             "data_format": self._data_format,
             "data_spec": treespec_dumps(self._data_spec) if self._data_spec else None,
         }
-        cloud_path = self.get_cloud_path(self._cache_dir)
+        cloud_path = get_cloud_path(self._cache_dir)
         if cloud_path:
             out["cloud_path"] = cloud_path
         user_id = os.getenv("LIGHTNING_USER_ID", None)
@@ -201,6 +215,8 @@ class BinaryWriter:
 
         The index needs to be provided in order.
 
+        This is handled by the samplers automatically. This ensures we can map an index to a shard from an interval.
+
         """
         serialized_items = self.serialize(items)
         serialized_items_size = len(serialized_items)
@@ -255,19 +271,3 @@ class BinaryWriter:
         self.write_chunks_index()
         self.reset()
         self._is_done = True
-
-    @classmethod
-    def get_cloud_path(cls, cache_dir: str) -> Optional[str]:
-        """Returns the s3 URL to the cache_dir."""
-        cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
-        project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
-        cloud_space_id = os.getenv("LIGHTNING_CLOUD_SPACE_ID", None)
-
-        if cluster_id is None or project_id is None or cloud_space_id is None:
-            return None
-        cache_dir = cache_dir.replace("~/", "").replace("~", "").replace("/teamspace/studios/this_studio/", "")
-        if cache_dir.startswith("/"):
-            cache_dir = cache_dir[1:]
-        return os.path.join(
-            f"s3://{cluster_id}/projects/{project_id}/cloudspaces/{cloud_space_id}/code/content", cache_dir
-        )

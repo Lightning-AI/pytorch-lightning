@@ -20,7 +20,8 @@ import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
-from lightning.data.cache import Cache, CacheDataLoader
+from lightning.data.cache import Cache
+from lightning.data.cache.dataloader import LightningDataLoader
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
@@ -79,7 +80,7 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 
     cache = Cache(cache_dir, chunk_size=2 << 12)
     dataset = ImageDataset(tmpdir, cache, dataset_size, 10)
-    dataloader = CacheDataLoader(dataset, num_workers=num_workers, batch_size=4)
+    dataloader = LightningDataLoader(dataset, num_workers=num_workers, batch_size=4)
 
     for _ in dataloader:
         pass
@@ -101,14 +102,14 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 
     if distributed_env.world_size == 1:
         indexes = []
-        for batch in CacheDataLoader(dataset, num_workers=num_workers, batch_size=4):
+        for batch in LightningDataLoader(dataset, num_workers=num_workers, batch_size=4):
             indexes.extend(batch["index"].numpy().tolist())
 
         assert len(indexes) == dataset_size
 
     seed_everything(42)
 
-    dataloader = CacheDataLoader(dataset, num_workers=num_workers, batch_size=4, shuffle=True)
+    dataloader = LightningDataLoader(dataset, num_workers=num_workers, batch_size=4, shuffle=True)
     dataloader_iter = iter(dataloader)
 
     indexes = []
@@ -182,9 +183,34 @@ def test_cache_with_simple_format(tmpdir):
 
 
 def test_cache_with_auto_wrapping(tmpdir):
+    os.makedirs(os.path.join(tmpdir, "cache_1"), exist_ok=True)
+
     dataset = RandomDataset(64, 64)
-    dataloader = CacheDataLoader(dataset, cache_dir=tmpdir, chunk_size=2 << 12)
+    dataloader = LightningDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_1"), chunk_size=2 << 12)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
-    assert sorted(os.listdir(tmpdir)) == ["0.index.json", "chunk-0-0.bin", "chunk-0-1.bin", "chunk-0-2.bin"]
+    assert sorted(os.listdir(os.path.join(tmpdir, "cache_1"))) == [
+        "0.index.json",
+        "chunk-0-0.bin",
+        "chunk-0-1.bin",
+        "chunk-0-2.bin",
+    ]
     # Your dataset is optimised for the cloud
+
+    class RandomDatasetAtRuntime(Dataset):
+        def __init__(self, size: int, length: int):
+            self.len = length
+            self.size = size
+
+        def __getitem__(self, index: int) -> torch.Tensor:
+            return torch.randn(1, self.size)
+
+        def __len__(self) -> int:
+            return self.len
+
+    os.makedirs(os.path.join(tmpdir, "cache_2"), exist_ok=True)
+    dataset = RandomDatasetAtRuntime(64, 64)
+    dataloader = LightningDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_2"), chunk_size=2 << 12)
+    with pytest.raises(ValueError, match="Your dataset items aren't deterministic"):
+        for batch in dataloader:
+            pass

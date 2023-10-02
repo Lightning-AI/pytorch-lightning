@@ -179,7 +179,7 @@ def test_cache_batch_sampler(params):
             for interval in chunks:
                 interval_indices = np.arange(interval[0], interval[1])
                 for indice in interval_indices:
-                    assert indice in data[size : size + len(interval_indices)]
+                    assert indice in [b.index for b in data[size : size + len(interval_indices)]]
                 size += len(interval_indices)
         else:
             chunks_per_replica = len(chunks) // params[1]
@@ -197,7 +197,7 @@ def test_cache_batch_sampler(params):
                 for interval in shuffled_chunk_intervals_replica:
                     interval_indices = np.arange(interval[0], interval[1])
                     for indice in interval_indices:
-                        assert indice in data[size : size + len(interval_indices)]
+                        assert indice in [b.index for b in data[size : size + len(interval_indices)]]
                     size += len(interval_indices)
 
     validate_batch(batches_1)

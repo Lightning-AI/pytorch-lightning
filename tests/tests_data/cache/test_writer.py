@@ -18,7 +18,7 @@ import sys
 import numpy as np
 import pytest
 from lightning.data.cache.reader import BinaryReader
-from lightning.data.cache.writer import BinaryWriter
+from lightning.data.cache.writer import BinaryWriter, get_cloud_path
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -93,7 +93,7 @@ def test_binary_writer_with_jpeg_and_int(tmpdir):
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_binary_writer_config(monkeypatch):
-    assert BinaryWriter.get_cloud_path("") is None
+    assert get_cloud_path("") is None
 
     monkeypatch.setenv("LIGHTNING_CLUSTER_ID", "cluster_id")
     monkeypatch.setenv("LIGHTNING_CLOUD_PROJECT_ID", "project_id")
@@ -101,10 +101,10 @@ def test_binary_writer_config(monkeypatch):
 
     prefix = "s3://cluster_id/projects/project_id/cloudspaces/cloud_space_id/code/content/"
 
-    assert BinaryWriter.get_cloud_path("") == prefix
-    assert BinaryWriter.get_cloud_path("~") == prefix
-    assert BinaryWriter.get_cloud_path("~/") == prefix
-    assert BinaryWriter.get_cloud_path("/") == prefix
-    assert BinaryWriter.get_cloud_path("/data") == f"{prefix}data"
-    assert BinaryWriter.get_cloud_path("~/data") == f"{prefix}data"
-    assert BinaryWriter.get_cloud_path("/teamspace/studios/this_studio/data") == f"{prefix}data"
+    assert get_cloud_path("") == prefix
+    assert get_cloud_path("~") == prefix
+    assert get_cloud_path("~/") == prefix
+    assert get_cloud_path("/") == prefix
+    assert get_cloud_path("/data") == f"{prefix}data"
+    assert get_cloud_path("~/data") == f"{prefix}data"
+    assert get_cloud_path("/teamspace/studios/this_studio/data") == f"{prefix}data"

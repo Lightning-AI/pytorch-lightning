@@ -12,6 +12,6 @@
 # limitations under the License.
 
 from lightning.data.cache.cache import Cache
-from lightning.data.cache.dataloader import CacheDataLoader
+from lightning.data.cache.dataloader import LightningDataLoader
 
-__all__ = ["Cache", "CacheDataLoader"]
+__all__ = ["Cache", "LightningDataLoader"]
