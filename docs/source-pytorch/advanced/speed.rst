@@ -109,6 +109,25 @@ If you use a large number of ``num_workers`` in your dataloaders or your epochs 
 In this case, setting ``persistent_workers=True`` in your dataloader will significantly speed up the worker startup time across epochs.
 
 
+Low-precision Matrix Multiplication
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+GPUs of the generation Ampere or later (A100, H100, etc.) support `low-precision matrix multiplication <https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision>`_ to trade-off precision for performance:
+
+.. code-block:: python
+
+    # Default used by PyTorch
+    torch.set_float32_matmul_precision("highest")
+
+    # Faster, but less precise
+    torch.set_float32_matmul_precision("high")
+
+    # Fastest, but imprecise
+    torch.set_float32_matmul_precision("medium")
+
+It makes sense to lower the precision only in applications where the loss of precision has a negligible impact on your model's performance.
+
+
 TPU Training
 ============
 
