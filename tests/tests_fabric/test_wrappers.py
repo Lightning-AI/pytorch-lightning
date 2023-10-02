@@ -189,7 +189,12 @@ def test_fabric_module_state_dict_access():
 
     if _TORCH_GREATER_EQUAL_2_1:
         # Can use additional `assign` argument in PyTorch >= 2.1
+        with torch.device("meta"):
+            original_module = OriginalModule()
+        fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
+        assert fabric_module.layer.weight.is_meta
         fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias}, assign=True)
+        assert not fabric_module.layer.weight.is_meta
 
 
 @pytest.mark.parametrize(
