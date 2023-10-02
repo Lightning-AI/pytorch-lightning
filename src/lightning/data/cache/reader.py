@@ -185,7 +185,7 @@ class BinaryReader:
         return len(self._config)
 
     def get_chunk_interval(self):
-        """Get the index interval of each chunks."""
+        """Get the index interval of each chunk."""
         if self._config is None:
             self._try_load_config()
 
