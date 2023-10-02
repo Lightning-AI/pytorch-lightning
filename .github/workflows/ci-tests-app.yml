@@ -58,7 +58,7 @@ jobs:
       PYPI_CACHE_DIR: "_pip-wheels"
       TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -159,7 +159,7 @@ jobs:
           fail_ci_if_error: false
 # TODO: figure out why we clone and install quick-start
 #      - name: Clone Quick Start Example Repo
-#        uses: actions/checkout@v3
+#        uses: actions/checkout@v4
 #        # TODO: this needs to be git submodule
 #        if: matrix.os == 'windows-2022'  # because the install doesn't work on windows
 #        with:

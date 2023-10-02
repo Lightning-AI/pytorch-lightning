@@ -51,7 +51,7 @@ jobs:
           - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.9", pkg-extra: "app" }
           - { os: "ubuntu-22.04", pkg-name: "notset", python-version: "3.9", pkg-extra: "app" }
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
