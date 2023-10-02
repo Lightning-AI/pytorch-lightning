@@ -213,7 +213,7 @@ class _ResultMetric(Metric):
                     f" be floating point. Converting it to {dtype}."
                 )
                 value = value.to(dtype)
-            if value.dtype in (torch.float16, torch.bfloat16):
+            if value.dtype not in (torch.float32, torch.float64):
                 value = value.float()
 
             if self.meta.on_step:
