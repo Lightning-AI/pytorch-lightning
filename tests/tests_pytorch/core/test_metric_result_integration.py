@@ -538,6 +538,23 @@ def test_metric_result_dtype_promotion(reduce_fx):
     assert total.dtype == torch.double
 
 
+@pytest.mark.parametrize("input_dtype", [torch.int8, torch.float16, torch.bfloat16])
+def test_metric_result_precision_no_lower_than_float32(input_dtype):
+    """Test that the ResultMetric only stores values in float32 or higher precision for numerical stability."""
+    metadata = _Metadata("foo", "bar", reduce_fx="sum")
+    metadata.sync = _Sync()
+    metric = _ResultMetric(metadata, is_tensor=True)
+    assert metric.value.dtype == torch.float
+
+    for i in range(1000):
+        metric.update(tensor(1., dtype=input_dtype), 1)
+        assert metric.value.dtype == torch.float32
+
+    total = metric.compute()
+    assert total.item() == 1000.
+    assert total.dtype == torch.float32
+
+
 @pytest.mark.parametrize(("reduce_fx", "expected"), [(max, -2), (min, 2)])
 def test_result_metric_max_min(reduce_fx, expected):
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
