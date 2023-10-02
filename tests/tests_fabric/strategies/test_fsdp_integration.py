@@ -280,7 +280,7 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     assert torch.equal(params_before, params_after)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("move_to_device", [True, False])
 @mock.patch("lightning.fabric.wrappers._FabricModule")
 def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
@@ -463,7 +463,7 @@ def test_fsdp_manual_activation_checkpointing():
     assert wrappers == {"_fsdp_wrapped_module.0", "_fsdp_wrapped_module.1"}
 
 
-@RunIf(min_torch="1.12", min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_rewrap_warnings():
     from torch.distributed.fsdp import FullyShardedDataParallel
     from torch.distributed.fsdp.wrap import wrap

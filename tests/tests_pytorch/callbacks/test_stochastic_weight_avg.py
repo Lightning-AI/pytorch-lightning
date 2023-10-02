@@ -363,7 +363,7 @@ def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
     "strategy",
     [
         pytest.param("deepspeed", marks=RunIf(deepspeed=True, min_cuda_gpus=1)),
-        pytest.param("fsdp", marks=RunIf(min_cuda_gpus=1, skip_windows=True, min_torch="1.12")),
+        pytest.param("fsdp", marks=RunIf(min_cuda_gpus=1, skip_windows=True)),
     ],
 )
 def test_misconfiguration_error_with_sharded_model(tmpdir, strategy: str):

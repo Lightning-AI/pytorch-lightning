@@ -225,7 +225,7 @@ def test_fsdp_custom_mixed_precision():
     assert strategy.mixed_precision_config == config
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_fsdp_strategy_sync_batchnorm(tmpdir):
     """Test to ensure that sync_batchnorm works when using FSDP and GPU, and all stages can be run."""
     model = TestFSDPModel()
@@ -241,7 +241,7 @@ def test_fsdp_strategy_sync_batchnorm(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 def test_fsdp_strategy_checkpoint(tmpdir, precision):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
@@ -271,7 +271,7 @@ else:
         return unwrapped_params >= 2
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
 def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
     """Test to ensure that the full state dict is extracted when using FSDP strategy.
@@ -306,7 +306,7 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
     assert all(_ex == _co for _ex, _co in zip(full_state_dict.keys(), correct_state_dict.keys()))
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize(
     ("model", "strategy", "strategy_cfg"),
     [
@@ -361,7 +361,7 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
     _run_multiple_stages(trainer, model)
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
 def test_invalid_parameters_in_optimizer():
     trainer = Trainer(
         strategy="fsdp",
@@ -564,7 +564,7 @@ def test_fsdp_strategy_load_optimizer_states_multiple(_, tmp_path):
         strategy.load_checkpoint(tmp_path / "one-state.ckpt")
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
 def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
     """Test to ensure that the full state dict and optimizer states is saved when using FSDP strategy.
@@ -625,7 +625,7 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
     trainer.strategy.barrier()
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
 def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
     """Test to ensure that the full state dict and optimizer states can be load when using FSDP strategy.
@@ -684,7 +684,7 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
     trainer.strategy.barrier()
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
     [

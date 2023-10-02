@@ -74,7 +74,7 @@ def test_fsdp_precision_scaler_with_bf16():
     assert precision.scaler is None
 
 
-@RunIf(min_torch="1.12", min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_fsdp_precision_forward_context():
     """Test to ensure that the context manager correctly is set to bfloat16."""
     precision = FSDPPrecision(precision="16-mixed")
