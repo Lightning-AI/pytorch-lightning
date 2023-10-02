@@ -19,6 +19,7 @@ import torch
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
@@ -30,6 +31,7 @@ from lightning.fabric.wrappers import (
 from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
+
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -184,6 +186,10 @@ def test_fabric_module_state_dict_access():
     fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias})
     assert torch.equal(fabric_module.layer.weight, weight)
     assert torch.equal(fabric_module.layer.bias, bias)
+
+    if _TORCH_GREATER_EQUAL_2_1:
+        # Can use additional `assign` argument in PyTorch >= 2.1
+        fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias}, assign=True)
 
 
 @pytest.mark.parametrize(
