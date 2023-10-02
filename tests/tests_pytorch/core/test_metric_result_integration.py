@@ -549,6 +549,8 @@ def test_metric_result_precision_no_lower_than_float32(input_dtype):
     metric = _ResultMetric(metadata, is_tensor=True)
     assert metric.value.dtype == torch.float
 
+    # in bfloat16, truncation would occur at 256 (8 bit exponent)
+    # in int8, overflow would occur at 128
     for i in range(1000):
         metric.update(tensor(1.0, dtype=input_dtype), 1)
         assert metric.value.dtype == torch.float32
