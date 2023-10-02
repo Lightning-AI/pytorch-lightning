@@ -246,11 +246,11 @@ def _all_gather_ddp_if_available(
     if not torch.distributed.is_initialized():
         return tensor
 
-    import torch.distributed.nn
+    from torch.distributed.nn.functional import all_gather
 
     tensor = tensor.contiguous()  # https://github.com/pytorch/pytorch/issues/73515
     with nullcontext() if sync_grads else torch.no_grad():
-        gathered_tensors = torch.distributed.nn.functional.all_gather(tensor, group)
+        gathered_tensors = all_gather(tensor, group)
     return torch.stack(gathered_tensors)
 
 
