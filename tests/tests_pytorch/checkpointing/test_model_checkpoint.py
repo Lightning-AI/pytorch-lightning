@@ -158,7 +158,7 @@ def test_model_checkpoint_score_and_ckpt(
     for epoch in range(max_epochs):
         score = model.scores[epoch]
         expected_score = getattr(model, f"{monitor}s")[epoch].mean().item()
-        assert math.isclose(score, expected_score, rel_tol=1e-4)
+        assert math.isclose(score, expected_score, abs_tol=1e-5)
 
         expected_filename = f"{monitor}={score:.4f}-epoch={epoch}.ckpt"
         chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
