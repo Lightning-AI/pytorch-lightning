@@ -771,7 +771,6 @@ def test_gpu_accelerator_backend_choice_cuda(*_):
     assert isinstance(connector.accelerator, CUDAAccelerator)
 
 
-
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=True)
 @mock.patch("lightning.fabric.accelerators.mps._get_all_available_mps_gpus", return_value=[0])
 @mock.patch("torch.device", DeviceMock)
@@ -945,7 +944,6 @@ def test_arguments_from_environment_collision():
         ValueError, match="`Fabric\\(precision='64-true', ...\\)` but .* `--precision=16-mixed`"
     ):
         _Connector(precision="64-true")
-
 
 
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)

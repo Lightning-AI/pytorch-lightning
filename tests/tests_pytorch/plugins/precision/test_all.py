@@ -7,8 +7,6 @@ from lightning.pytorch.plugins import (
     HalfPrecisionPlugin,
 )
 
-from tests_pytorch.helpers.runif import RunIf
-
 
 @pytest.mark.parametrize(
     "precision",

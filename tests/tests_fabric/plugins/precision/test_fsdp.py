@@ -21,7 +21,6 @@ from lightning.fabric.plugins.precision.utils import _DtypeContextManager
 from tests_fabric.helpers.runif import RunIf
 
 
-
 @pytest.mark.parametrize(
     ("precision", "expected"),
     [
@@ -57,13 +56,11 @@ def test_fsdp_precision_config(precision, expected):
     assert config.reduce_dtype == expected[2]
 
 
-
 def test_fsdp_precision_default_scaler():
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
     precision = FSDPPrecision(precision="16-mixed")
     assert isinstance(precision.scaler, ShardedGradScaler)
-
 
 
 def test_fsdp_precision_scaler_with_bf16():
@@ -108,7 +105,6 @@ def test_fsdp_precision_forward_context():
     assert precision.forward_context()._new_dtype == torch.bfloat16
 
 
-
 def test_fsdp_precision_backward():
     precision = FSDPPrecision(precision="16-mixed")
     precision.scaler = Mock()
@@ -118,7 +114,6 @@ def test_fsdp_precision_backward():
     precision.backward(tensor, model, "positional-arg", keyword="arg")
     precision.scaler.scale.assert_called_once_with(tensor)
     tensor.backward.assert_called_once_with("positional-arg", keyword="arg")
-
 
 
 def test_fsdp_precision_optimizer_step_with_scaler():
@@ -131,7 +126,6 @@ def test_fsdp_precision_optimizer_step_with_scaler():
     precision.scaler.update.assert_called_once()
 
 
-
 def test_fsdp_precision_optimizer_step_without_scaler():
     precision = FSDPPrecision(precision="bf16-mixed")
     assert precision.scaler is None
@@ -139,7 +133,6 @@ def test_fsdp_precision_optimizer_step_without_scaler():
 
     precision.optimizer_step(optimizer, keyword="arg")
     optimizer.step.assert_called_once_with(keyword="arg")
-
 
 
 def test_invalid_precision_with_fsdp_precision():

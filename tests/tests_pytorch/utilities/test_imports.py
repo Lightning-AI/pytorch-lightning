@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import importlib
-import operator
 import subprocess
 import sys
 from textwrap import dedent
@@ -21,7 +20,7 @@ from unittest import mock
 
 import pytest
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
-from lightning_utilities.core.imports import RequirementCache, compare_version
+from lightning_utilities.core.imports import RequirementCache
 from torch.distributed import is_available
 
 from tests_pytorch.helpers.runif import RunIf

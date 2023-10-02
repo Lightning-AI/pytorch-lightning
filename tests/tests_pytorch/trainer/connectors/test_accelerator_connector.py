@@ -560,7 +560,6 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
     assert trainer.strategy.local_rank == 0
 
 
-
 def test_check_fsdp_strategy_and_fallback():
     with pytest.raises(
         MisconfigurationException,
