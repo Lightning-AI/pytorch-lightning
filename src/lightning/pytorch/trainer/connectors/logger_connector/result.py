@@ -206,12 +206,14 @@ class _ResultMetric(Metric):
         if self.is_tensor:
             value = cast(Tensor, value)
             if not torch.is_floating_point(value):
+                dtype = torch.get_default_dtype()
+                dtype = dtype if dtype in (torch.float32, torch.float64) else torch.float32
                 warning_cache.warn(
                     # do not include the value to avoid cache misses
                     f"You called `self.log({self.meta.name!r}, ...)` in your `{self.meta.fx}` but the value needs to"
-                    f" be floating point. Converting it to `torch.float32`."
+                    f" be floating point. Converting it to {dtype}."
                 )
-                value = value.float()
+                value = value.to(dtype)
             if value.dtype in (torch.float16, torch.bfloat16):
                 value = value.float()
 

@@ -479,27 +479,31 @@ def test_metric_result_computed_check():
     assert cache is computed_value
 
 
-@pytest.mark.parametrize("floating_dtype", [torch.float, torch.double])
-def test_metric_result_respects_dtype(floating_dtype):
+@pytest.mark.parametrize("default_type, converted_type", [
+    (torch.half, torch.float),
+    (torch.float, torch.float),
+    (torch.double, torch.double),
+])
+def test_metric_result_respects_dtype(default_type, converted_type):
     from lightning.pytorch.trainer.connectors.logger_connector.result import warning_cache
 
     warning_cache.clear()
 
-    torch.set_default_dtype(floating_dtype)
+    torch.set_default_dtype(default_type)
     fixed_dtype = torch.long  # default by PyTorch
 
     metadata = _Metadata("foo", "bar")
     metadata.sync = _Sync()
     rm = _ResultMetric(metadata, is_tensor=True)
 
-    assert rm.value.dtype == floating_dtype
+    assert rm.value.dtype == default_type
     assert rm.cumulated_batch_size.dtype == fixed_dtype
 
     # two fixed point numbers - should be converted
     value, batch_size = tensor(2), 3
     assert value.dtype == fixed_dtype
     with pytest.warns(
-        UserWarning, match=rf"`self.log\('bar', ...\)` in your `foo` .* Converting it to {floating_dtype}"
+        UserWarning, match=rf"`self.log\('bar', ...\)` in your `foo` .* Converting it to {converted_type}"
     ):
         rm.update(value, batch_size)
     # floating and fixed
@@ -508,7 +512,7 @@ def test_metric_result_respects_dtype(floating_dtype):
     total = rm.compute()
 
     assert total == (2 * 3 + 4 * 5) / (5 + 3)
-    assert total.dtype == floating_dtype
+    assert total.dtype == converted_type
 
     # restore to avoid impacting other tests
     torch.set_default_dtype(torch.float)
