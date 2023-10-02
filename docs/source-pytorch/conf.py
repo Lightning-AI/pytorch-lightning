@@ -596,8 +596,5 @@ linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
 
 # ignore the following relative links (false positive errors during linkcheck)
 linkcheck_ignore = [
-    r"^starter/installation.html$",
     r"^installation.html$",
-    r"^../cli/lightning_cli.html$",
-    r"^../common/trainer.html#trainer-flags$",
 ]
