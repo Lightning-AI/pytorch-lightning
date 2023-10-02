@@ -19,11 +19,10 @@ import numpy as np
 import onnxruntime
 import pytest
 import torch
-from lightning_utilities import compare_version
-
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning_utilities import compare_version
 
 import tests_pytorch.helpers.pipelines as tpipes
 from tests_pytorch.helpers.runif import RunIf
@@ -153,7 +152,7 @@ def test_if_inference_output_is_valid(tmpdir):
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path, model.example_input_array, export_params=True)
 
-    ort_kwargs = dict(providers='CPUExecutionProvider') if compare_version("onnxruntime", operator.ge, "0.16.0") else {}
+    ort_kwargs = {"providers": "CPUExecutionProvider"} if compare_version("onnxruntime", operator.ge, "0.16.0") else {}
     ort_session = onnxruntime.InferenceSession(file_path, **ort_kwargs)
 
     def to_numpy(tensor):
