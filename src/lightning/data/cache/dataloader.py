@@ -12,8 +12,6 @@
 # limitations under the License.
 
 import logging
-import os
-from datetime import datetime
 from typing import Any, Optional
 
 import torch
@@ -47,9 +45,10 @@ def _equal_items(data_1: Any, data_2: Any) -> bool:
 def _equal_item(d1, d2) -> bool:
     if not isinstance(d1, type(d2)):
         raise False
-    if isinstance(d1, torch.Tensor) and isinstance(d2, torch.Tensor):
-        return torch.equal(d1, d2)
-    return d1 == d2
+    equality = d1 == d2
+    if isinstance(equality, torch.Tensor):
+        return equality.all()
+    return equality
 
 
 class CacheDataset(Dataset):
@@ -57,28 +56,24 @@ class CacheDataset(Dataset):
         self, dataset: Dataset, cache_dir: Optional[str], chunk_size: Optional[int], compression: Optional[str]
     ):
         self._datataset = dataset
-        if cache_dir is None:
-            cache_dir = os.path.join(os.getcwd(), "cache_dir", datetime.now().strftime("%m-%d-%Y-%H-%M"))
-            os.makedirs(cache_dir, exist_ok=True)
-            chunk_size = 2 << 26
-        self.cache = Cache(cache_dir, chunk_size=chunk_size, compression=compression)
-        self.is_deterministic = False
+        self._cache = Cache(cache_dir, chunk_size=chunk_size, compression=compression)
+        self._is_deterministic = False
 
     def __len__(self) -> int:
-        return len(self.cache) if self.cache.filled else len(self._datataset)
+        return len(self._cache) if self._cache.filled else len(self._datataset)
 
     def __getitem__(self, index):
-        data_1 = self.cache[index] if self.cache.filled else self._datataset[index]
-        if not self.cache.filled:
-            if not self.is_deterministic:
+        data_1 = self._cache[index] if self._cache.filled else self._datataset[index]
+        if not self._cache.filled:
+            if not self._is_deterministic:
                 data2 = self._datataset[index]
                 if not _equal_items(data_1, data2):
                     raise ValueError(
                         f"Your dataset items aren't deterministic. Found {data_1} and {data2} for index {index}."
                         " HINT: Use the `lightning.data.cache.Cache` directly within your dataset."
                     )
-                self.is_deterministic = True
-            self.cache[index] = data_1
+                self._is_deterministic = True
+            self._cache[index] = data_1
         return data_1
 
 
@@ -117,6 +112,8 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
 
 
 class LightningDataLoader(DataLoader):
+    __doc__ = DataLoader.__doc__
+
     def __init__(
         self,
         dataset,
@@ -134,26 +131,28 @@ class LightningDataLoader(DataLoader):
         **kwargs,
     ):
         if sampler:
-            raise Exception(
+            raise ValueError(
                 "The LightningDataLoader relies on its own internal sampler. Passing a sampler isn't supported."
             )
 
         if batch_sampler:
-            raise Exception(
+            raise ValueError(
                 "The LightningDataLoader relies on its own internal sampler. Passing a batch_sampler isn't supported."
             )
 
         if isinstance(dataset, IterableDataset):
-            raise Exception("Only map-based dataset are supported by the LightningDataLoader for now.")
+            raise ValueError("Only map-based dataset are supported by the LightningDataLoader for now.")
 
         cache = [v for v in dataset.__dict__.values() if isinstance(v, Cache)]
 
         if len(cache) > 1:
-            raise Exception("We found several Cache used as attributes from your dataset. Only one is support for now.")
+            raise ValueError(
+                "We found several Cache used as attributes from your dataset. Only one is support for now."
+            )
 
         if len(cache) == 0:
             if cache_dir is None:
-                logger.info("You can provide a `cache_dir` filepath to the LightningDataLoader.")
+                raise ValueError("You can provide a `cache_dir` filepath to the LightningDataLoader.")
 
             dataset = CacheDataset(dataset, cache_dir, chunk_size, compression)
             cache = dataset.cache
