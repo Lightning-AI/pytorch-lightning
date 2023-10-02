@@ -771,7 +771,7 @@ def test_gpu_accelerator_backend_choice_cuda(*_):
     assert isinstance(connector.accelerator, CUDAAccelerator)
 
 
-@RunIf(min_torch="1.12")
+
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=True)
 @mock.patch("lightning.fabric.accelerators.mps._get_all_available_mps_gpus", return_value=[0])
 @mock.patch("torch.device", DeviceMock)
@@ -947,7 +947,7 @@ def test_arguments_from_environment_collision():
         _Connector(precision="64-true")
 
 
-@RunIf(min_torch="1.12")
+
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_fsdp_unsupported_on_cpu(_):
     """Test that we raise an error if attempting to run FSDP without GPU."""

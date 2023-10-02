@@ -21,7 +21,7 @@ from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
 
-@RunIf(min_torch="1.12")
+
 @pytest.mark.parametrize(
     ("precision", "expected"),
     [
@@ -57,7 +57,7 @@ def test_fsdp_precision_config(precision, expected):
     assert config.reduce_dtype == expected[2]
 
 
-@RunIf(min_torch="1.12")
+
 def test_fsdp_precision_default_scaler():
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
@@ -65,7 +65,7 @@ def test_fsdp_precision_default_scaler():
     assert isinstance(precision.scaler, ShardedGradScaler)
 
 
-@RunIf(min_torch="1.12")
+
 def test_fsdp_precision_scaler_with_bf16():
     with pytest.raises(ValueError, match="`precision='bf16-mixed'` does not use a scaler"):
         FSDPPrecisionPlugin(precision="bf16-mixed", scaler=Mock())
@@ -108,7 +108,7 @@ def test_fsdp_precision_forward_context():
     assert precision.forward_context()._new_dtype == torch.bfloat16
 
 
-@RunIf(min_torch="1.12")
+
 def test_fsdp_precision_backward():
     precision = FSDPPrecisionPlugin(precision="16-mixed")
     precision.scaler = Mock()
@@ -121,7 +121,7 @@ def test_fsdp_precision_backward():
     model.backward.assert_called_once_with(tensor, "positional-arg", keyword="arg")
 
 
-@RunIf(min_torch="1.12")
+
 def test_fsdp_precision_optimizer_step_with_scaler():
     precision = FSDPPrecisionPlugin(precision="16-mixed")
     precision.scaler = Mock()
@@ -134,7 +134,7 @@ def test_fsdp_precision_optimizer_step_with_scaler():
     precision.scaler.update.assert_called_once()
 
 
-@RunIf(min_torch="1.12")
+
 def test_fsdp_precision_optimizer_step_without_scaler():
     precision = FSDPPrecisionPlugin(precision="bf16-mixed")
     assert precision.scaler is None
@@ -146,7 +146,7 @@ def test_fsdp_precision_optimizer_step_without_scaler():
     optimizer.step.assert_called_once_with(closure=ANY, keyword="arg")
 
 
-@RunIf(min_torch="1.12")
+
 def test_invalid_precision_with_fsdp_precision():
     FSDPPrecisionPlugin("16-mixed")
     FSDPPrecisionPlugin("bf16-mixed")
