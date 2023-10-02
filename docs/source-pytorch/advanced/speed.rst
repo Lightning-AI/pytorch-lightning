@@ -122,7 +122,7 @@ GPUs of the generation Ampere or later (A100, H100, etc.) support `low-precision
     # Faster, but less precise
     torch.set_float32_matmul_precision("high")
 
-    # Fastest, but imprecise
+    # Even faster, but also less precise
     torch.set_float32_matmul_precision("medium")
 
 It makes sense to lower the precision only in applications where the loss of precision has a negligible impact on your model's performance.
