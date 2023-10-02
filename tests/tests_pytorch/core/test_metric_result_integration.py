@@ -479,11 +479,14 @@ def test_metric_result_computed_check():
     assert cache is computed_value
 
 
-@pytest.mark.parametrize("default_type, converted_type", [
-    (torch.half, torch.float),
-    (torch.float, torch.float),
-    (torch.double, torch.double),
-])
+@pytest.mark.parametrize(
+    ("default_type", "converted_type"),
+    [
+        (torch.half, torch.float),
+        (torch.float, torch.float),
+        (torch.double, torch.double),
+    ],
+)
 def test_metric_result_respects_dtype(default_type, converted_type):
     from lightning.pytorch.trainer.connectors.logger_connector.result import warning_cache
 
@@ -547,11 +550,11 @@ def test_metric_result_precision_no_lower_than_float32(input_dtype):
     assert metric.value.dtype == torch.float
 
     for i in range(1000):
-        metric.update(tensor(1., dtype=input_dtype), 1)
+        metric.update(tensor(1.0, dtype=input_dtype), 1)
         assert metric.value.dtype == torch.float32
 
     total = metric.compute()
-    assert total.item() == 1000.
+    assert total.item() == 1000.0
     assert total.dtype == torch.float32
 
 
