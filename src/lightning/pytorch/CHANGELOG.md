@@ -125,6 +125,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for mixed 8-bit precision as `Trainer(precision="transformer-engine")` using [Nvidia's Transformer Engine](https://docs.nvidia.com/deeplearning/transformer-engine) ([#18459](https://github.com/Lightning-AI/lightning/pull/18459))
 
 
+- Added support for linear layer quantization with `Trainer(plugins=BitsandbytesPrecision())` using [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) ([#18655](https://github.com/Lightning-AI/lightning/pull/18655))
+
+
 - Added support for passing the process group to the `FSDPStrategy` ([#18583](https://github.com/Lightning-AI/lightning/pull/18583))
 
 
@@ -265,6 +268,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed issue where unexpected exceptions would leave the default torch dtype modified when using true precision settings ([#18500](https://github.com/Lightning-AI/lightning/pull/18500))
 
 
+- Fixed issue where not including the `batch_idx` argument in the `training_step` would disable gradient accumulation ([#18619](https://github.com/Lightning-AI/lightning/pull/18619))
+
+
 - Fixed the replacement of callbacks returned in `LightningModule.configure_callbacks` when the callback was a subclass of an existing Trainer callback ([#18508](https://github.com/Lightning-AI/lightning/pull/18508))
 
 
@@ -272,6 +278,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed redundant input-type casting in FSDP precision ([#18630](https://github.com/Lightning-AI/lightning/pull/18630))
+
+
+- Fixed numerical issues when reducing values in low precision with `self.log` ([#18686](https://github.com/Lightning-AI/lightning/pull/18686))
 
 
 
@@ -1248,7 +1257,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - When training with `precision=16` on IPU, the cast has been moved off the IPU onto the host, making the copies from host to IPU cheaper ([#13880](https://github.com/Lightning-AI/lightning/pull/13880))
 - Fixed error handling in learning rate finder when not enough data points are available to give a good suggestion ([#13845](https://github.com/Lightning-AI/lightning/pull/13845))
 - Fixed an issue that caused the learning rate finder to set the model's learning rate to None when no suggestion was possible ([#13845](https://github.com/Lightning-AI/lightning/pull/13845))
-- Fixed an issue causing deterministic algorighms and other globals to get reset in spawned processes ([#13921](https://github.com/Lightning-AI/lightning/pull/13921))
+- Fixed an issue causing deterministic algorithms and other globals to get reset in spawned processes ([#13921](https://github.com/Lightning-AI/lightning/pull/13921))
 - Fixed default `amp_level` for `DeepSpeedPrecisionPlugin` to `O2` ([#13897](https://github.com/Lightning-AI/lightning/pull/13897))
 - Fixed Python 3.10 compatibility for truncated back-propagation through time (TBPTT) ([#13973](https://github.com/Lightning-AI/lightning/pull/13973))
 - Fixed `TQDMProgressBar` reset and update to show correct time estimation (2/2) ([#13962](https://github.com/Lightning-AI/lightning/pull/13962))

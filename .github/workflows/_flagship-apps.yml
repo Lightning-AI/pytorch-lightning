@@ -29,7 +29,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright/python:v1.36.0-focal
+      image: mcr.microsoft.com/playwright/python:v1.38.0-focal
     strategy:
       fail-fast: false
       matrix:
@@ -60,6 +60,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: basic setup
+        timeout-minutes: 20
         run: |
           mkdir -p tests/_flagships
           mkdir -p $VIDEO_LOCATION
@@ -81,6 +82,7 @@ jobs:
           name: ${{ matrix.app }}
 
       - name: Install Lightning package
+        timeout-minutes: 20
         run: pip install -e .[cloud,test] -f $TORCH_URL
       - name: List pip dependency
         run: pip --version && pip list

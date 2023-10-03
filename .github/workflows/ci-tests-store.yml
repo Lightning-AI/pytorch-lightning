@@ -66,6 +66,7 @@ jobs:
           done
 
       - name: Install package & dependencies
+        timeout-minutes: 20
         run: |
           python -m pip install -q pip -U
           pip install -e ".[store,store-test]" -U -f ${TORCH_URL} --prefer-binary

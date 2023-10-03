@@ -64,6 +64,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for mixed 8-bit precision as `Fabric(precision="transformer-engine")` using [Nvidia's Transformer Engine](https://docs.nvidia.com/deeplearning/transformer-engine) ([#17597](https://github.com/Lightning-AI/lightning/pull/17597))
 
 
+- Added support for linear layer quantization with `Fabric(plugins=BitsandbytesPrecision())` using [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) ([#18655](https://github.com/Lightning-AI/lightning/pull/18655))
+
+
 - Added error messaging for missed `.launch()` when it is required ([#17570](https://github.com/Lightning-AI/lightning/pull/17570))
 
 
@@ -132,6 +135,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `lightning.fabric.utilities.is_shared_filesystem` utility function to automatically check whether the filesystem is shared between machines ([#18586](https://github.com/Lightning-AI/lightning/pull/18586))
 
+
+- Added support for passing the argument `.load_state_dict(..., assign=True|False)` on Fabric-wrapped modules in PyTorch 2.1 or newer ([#18690](https://github.com/Lightning-AI/lightning/pull/18690))
 
 
 ### Changed

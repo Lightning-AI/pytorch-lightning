@@ -140,6 +140,7 @@ class _NotYetLoadedTensor:
             "dtype",
             "grad",
             "grad_fn",
+            "is_meta",
             "layout",
             "names",
             "ndim",

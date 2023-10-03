@@ -1,6 +1,6 @@
 import multiprocessing as mp
 
-from lightning.app.components import Image, Number, PythonServer
+from lightning.app.components import Category, Image, Number, PythonServer, Text
 from lightning.app.utilities.network import _configure_session, find_free_network_port
 
 
@@ -39,8 +39,22 @@ def test_image_sample_data():
     assert len(data["image"]) > 100
 
 
+def test_text_sample_data():
+    data = Text().get_sample_data()
+    assert isinstance(data, dict)
+    assert "text" in data
+    assert len(data["text"]) > 20
+
+
 def test_number_sample_data():
     data = Number().get_sample_data()
     assert isinstance(data, dict)
     assert "prediction" in data
     assert data["prediction"] == 463
+
+
+def test_category_sample_data():
+    data = Category().get_sample_data()
+    assert isinstance(data, dict)
+    assert "category" in data
+    assert data["category"] == 463
