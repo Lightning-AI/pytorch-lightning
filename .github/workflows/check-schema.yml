@@ -37,12 +37,14 @@ jobs:
           repository: Lightning-AI/utilities
       - name: "[optional] Install recommended dependencies"
         if: inputs.actions-ref != ''
+        timeout-minutes: 5
         run: |
           pip install -r ./.cicd/requirements/gha-schema.txt
           pip list | grep "check-jsonschema"
       # otherwise fall back to using the latest
       - name: "[default] Install recommended dependencies"
         if: inputs.actions-ref == ''
+        timeout-minutes: 5
         run: |
           pip install -q check-jsonschema
           pip list | grep "check-jsonschema"

@@ -37,6 +37,7 @@ jobs:
           python-version: ${{ inputs.python-version }}
 
       - name: Install dependencies
+        timeout-minutes: 20
         run: |
           # don't use --upgrade to respect the version installed via setup.py
           pip install -e '.[${{ inputs.extra-typing }}]' mypy \

@@ -112,6 +112,7 @@ jobs:
           path: .cicd
           repository: Lightning-AI/utilities
       - name: Installing package 📦
+        timeout-minutes: 20
         uses: ./.cicd/.github/actions/pkg-install
         with:
           artifact-name: ${{ inputs.artifact-name }}

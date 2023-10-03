@@ -33,6 +33,7 @@ jobs:
       - name: Set oldest dependencies
         # todo: this is strange to use itself :/
         if: matrix.requires == 'oldest'
+        timeout-minutes: 20
         run: |
           pip install -e '.[cli]'
           python -m lightning_utilities.cli requirements set-oldest
@@ -43,6 +44,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
+        timeout-minutes: 20
         run: |
           pip install -e . -U -r requirements/dev-tests.txt \
             -f https://download.pytorch.org/whl/cpu/torch_stable.html

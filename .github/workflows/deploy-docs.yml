@@ -11,6 +11,8 @@ jobs:
   # https://github.com/marketplace/actions/deploy-to-github-pages
   build-docs-deploy:
     runs-on: ubuntu-20.04
+    env:
+      TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
@@ -32,14 +34,19 @@ jobs:
           key: pip-${{ hashFiles('requirements/*.txt') }}
           restore-keys: pip-
 
-      - name: Install dependencies
+      - name: Install texlive
+        timeout-minutes: 20
         run: |
-          pip install -e . -U -q -r requirements/dev-docs.txt \
-            -f https://download.pytorch.org/whl/cpu/torch_stable.html
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update --fix-missing
           sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
+        shell: bash
+
+      - name: Install dependencies
+        timeout-minutes: 20
+        run: |
           pip --version
+          pip install -e . -U -q -r requirements/dev-docs.txt -f ${TORCH_URL}
           pip list
         shell: bash
 

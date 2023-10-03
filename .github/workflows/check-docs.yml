@@ -71,11 +71,13 @@ jobs:
 
       - name: Install pandoc & texlive
         if: inputs.install-tex == 'true'
+        timeout-minutes: 20
         run: |
           sudo apt-get update --fix-missing
           sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       # todo: consider adding cache with separate restore/dave
       - name: Install dependencies
+        timeout-minutes: 20
         run: |
           pip --version
           pip install -e . -U -r ${{ inputs.requirements-file }} -f ${TORCH_URL}

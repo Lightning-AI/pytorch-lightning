@@ -48,6 +48,7 @@ jobs:
           path: .cicd
           repository: Lightning-AI/utilities
       - name: install requirements
+        timeout-minutes: 20
         run: pip install -U -r ./.cicd/.github/scripts/find-unused-caches.txt
 
       - name: List and Filer 🔍 caches
