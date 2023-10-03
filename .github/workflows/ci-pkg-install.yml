@@ -65,6 +65,7 @@ jobs:
           python -c "print('PKG_DIR=' + {'notset': 'lightning'}.get('${{matrix.pkg-name}}', '${{matrix.pkg-name}}'))" >> $GITHUB_ENV
       - name: Install package - wheel & archive
         uses: ./.github/actions/pkg-install
+        timeout-minutes: 25
         with:
           pkg-folder: dist/${{ env.PKG_DIR }}
           pkg-name: ${{ matrix.pkg-name }}

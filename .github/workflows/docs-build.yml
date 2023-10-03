@@ -71,7 +71,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       - name: Install package & dependencies
-        timeout-minutes: 15
+        timeout-minutes: 20
         run: |
           mkdir -p ${PYPI_CACHE_DIR}  # in case cache was not hit
           ls -lh ${PYPI_CACHE_DIR}
@@ -81,6 +81,7 @@ jobs:
           pip list
       - name: Install req. for Notebooks/tutorials
         if: matrix.pkg-name == 'pytorch'
+        timeout-minutes: 10
         run: pip install -q -r _notebooks/.actions/requires.txt
 
       - name: Test Examples in Docs
