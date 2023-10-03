@@ -139,7 +139,7 @@ class ProxyWorkRun:
         else:
             if self.work.cache_calls and returned:
                 return
-            elif returned or stopped_on_sigterm:
+            if returned or stopped_on_sigterm:
                 # the previous task has completed and we can re-queue the next one.
                 # overriding the return value for next loop iteration.
                 _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)

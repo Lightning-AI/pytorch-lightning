@@ -66,7 +66,7 @@ def test_flatten_dict():
     wrapping_dict = {"params": params}
     params = _flatten_dict(wrapping_dict)
 
-    assert type(params) == dict
+    assert isinstance(params, dict)
     assert params["params/a"] == 1
     assert params["params/b"] == 2
     assert "a" not in params

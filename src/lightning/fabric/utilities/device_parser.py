@@ -198,7 +198,7 @@ def _check_data_type(device_ids: object) -> None:
         raise TypeError(f"{msg} None")
     if isinstance(device_ids, (MutableSequence, tuple)):
         for id_ in device_ids:
-            if type(id_) is not int:
+            if not isinstance(id_, int):
                 raise TypeError(f"{msg} a sequence of {type(id_).__name__}.")
     elif type(device_ids) not in (int, str):
         raise TypeError(f"{msg} {device_ids!r}.")
