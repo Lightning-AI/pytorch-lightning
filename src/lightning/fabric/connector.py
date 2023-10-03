@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from collections import Counter
-from typing import Any, cast, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import torch
 from typing_extensions import get_args
@@ -29,6 +29,7 @@ from lightning.fabric.plugins import (
     HalfPrecision,
     MixedPrecision,
     Precision,
+    TransformerEnginePrecision,
     XLAPrecision,
 )
 from lightning.fabric.plugins.environments import (
@@ -48,14 +49,13 @@ from lightning.fabric.plugins.precision.precision import (
     _PRECISION_INPUT_STR_ALIAS,
     _PRECISION_INPUT_STR_ALIAS_CONVERSION,
 )
-from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
+    STRATEGY_REGISTRY,
     DeepSpeedStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
     Strategy,
-    STRATEGY_REGISTRY,
     XLAFSDPStrategy,
     XLAStrategy,
 )
@@ -377,8 +377,9 @@ class _Connector:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             return self._cluster_environment_flag
         for env_type in (
-            SLURMEnvironment,
+            # TorchElastic has the highest priority since it can also be used inside SLURM
             TorchElasticEnvironment,
+            SLURMEnvironment,
             LSFEnvironment,
             MPIEnvironment,
         ):
@@ -461,7 +462,9 @@ class _Connector:
         if self._precision_input == "64-true":
             return DoublePrecision()
         if self._precision_input == "transformer-engine":
-            return TransformerEnginePrecision()
+            return TransformerEnginePrecision(dtype=torch.bfloat16)
+        if self._precision_input == "transformer-engine-float16":
+            return TransformerEnginePrecision(dtype=torch.float16)
 
         if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(

@@ -2,7 +2,6 @@ from unittest import mock
 from unittest.mock import ANY, MagicMock
 
 import pytest
-
 from lightning.app.source_code import uploader
 
 # keeping as global var so individual tests can access/modify it

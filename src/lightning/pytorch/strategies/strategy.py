@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Callable, cast, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union, cast
 
 import torch
 from torch import Tensor
@@ -30,13 +30,13 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH
-from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
+from lightning.pytorch.core.optimizer import LightningOptimizer, _init_optimizers_and_lr_schedulers
 from lightning.pytorch.plugins import TorchCheckpointIO
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.types import LRSchedulerConfig, STEP_OUTPUT
+from lightning.pytorch.utilities.types import STEP_OUTPUT, LRSchedulerConfig
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -55,7 +55,9 @@ class Strategy(ABC):
     ) -> None:
         self._accelerator: Optional["pl.accelerators.Accelerator"] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision_plugin: Optional[PrecisionPlugin] = precision_plugin
+        self._precision_plugin: Optional[PrecisionPlugin] = None
+        # Call the precision setter for input validation
+        self.precision_plugin = precision_plugin  # type: ignore[assignment]
         self._lightning_module: Optional[pl.LightningModule] = None
         self._model: Optional[Module] = None
         self._launcher: Optional[_Launcher] = None

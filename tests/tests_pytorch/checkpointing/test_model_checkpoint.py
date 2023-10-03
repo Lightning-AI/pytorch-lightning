@@ -22,22 +22,22 @@ from logging import INFO
 from pathlib import Path
 from typing import Union
 from unittest import mock
-from unittest.mock import call, Mock, patch
+from unittest.mock import Mock, call, patch
 
 import cloudpickle
+import lightning.pytorch as pl
 import pytest
 import torch
 import yaml
-from torch import optim
-
-import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
-from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from torch import optim
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -158,7 +158,7 @@ def test_model_checkpoint_score_and_ckpt(
     for epoch in range(max_epochs):
         score = model.scores[epoch]
         expected_score = getattr(model, f"{monitor}s")[epoch].mean().item()
-        assert math.isclose(score, expected_score, rel_tol=1e-4)
+        assert math.isclose(score, expected_score, abs_tol=1e-5)
 
         expected_filename = f"{monitor}={score:.4f}-epoch={epoch}.ckpt"
         chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))

@@ -19,7 +19,7 @@ from typing import Dict, List, Literal, Optional, Union
 
 import torch
 
-from lightning.fabric.connector import _convert_precision_to_unified_args, _PRECISION_INPUT, _PRECISION_INPUT_STR
+from lightning.fabric.connector import _PRECISION_INPUT, _PRECISION_INPUT_STR, _convert_precision_to_unified_args
 from lightning.fabric.plugins.environments import (
     ClusterEnvironment,
     LightningEnvironment,
@@ -36,13 +36,13 @@ from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.plugins import (
+    PLUGIN_INPUT,
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
     FSDPPrecisionPlugin,
     HalfPrecisionPlugin,
     MixedPrecisionPlugin,
-    PLUGIN_INPUT,
     PrecisionPlugin,
     TransformerEnginePrecisionPlugin,
     XLAPrecisionPlugin,
@@ -410,8 +410,9 @@ class _AcceleratorConnector:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             return self._cluster_environment_flag
         for env_type in (
-            SLURMEnvironment,
+            # TorchElastic has the highest priority since it can also be used inside SLURM
             TorchElasticEnvironment,
+            SLURMEnvironment,
             LSFEnvironment,
             MPIEnvironment,
         ):
@@ -540,7 +541,9 @@ class _AcceleratorConnector:
         if self._precision_flag == "64-true":
             return DoublePrecisionPlugin()
         if self._precision_flag == "transformer-engine":
-            return TransformerEnginePrecisionPlugin()
+            return TransformerEnginePrecisionPlugin(dtype=torch.bfloat16)
+        if self._precision_flag == "transformer-engine-float16":
+            return TransformerEnginePrecisionPlugin(dtype=torch.float16)
 
         if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(

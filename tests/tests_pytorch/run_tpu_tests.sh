@@ -3,7 +3,7 @@ set -e  # exit on error
 echo "--- Install packages ---"
 # show what's already installed
 pip3 list
-# typing-extensions==4.5.0 comes pre-installed in the environment, and pydantic doesnt support that, however,
+# typing-extensions==4.5.0 comes pre-installed in the environment, and pydantic doesn't support that, however,
 # pip cannot upgrade it because it's in the system folder: needs sudo
 sudo pip3 install -U typing-extensions
 # set particular PyTorch version

@@ -15,11 +15,10 @@ import operator
 
 import torch
 import torch.nn.functional as F
+from lightning.pytorch import LightningModule
 from lightning_utilities.core.imports import compare_version
 from torch import nn
 from torchmetrics import Accuracy, MeanSquaredError
-
-from lightning.pytorch import LightningModule
 
 # using new API with task
 _TM_GE_0_11 = compare_version("torchmetrics", operator.ge, "0.11.0")

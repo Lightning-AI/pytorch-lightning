@@ -290,7 +290,7 @@ An example of a model that uses two optimizers is the following:
 
     cli = MyLightningCLI(MyModel, auto_configure_optimizers=False)
 
-Note the type ``Callable[[Iterable], Optimizer]``, which denotes a function that receives a singe argument, some
+Note the type ``Callable[[Iterable], Optimizer]``, which denotes a function that receives a single argument, some
 learnable parameters, and returns an optimizer instance. With this, from the command line it is possible to select the
 class and init arguments for each of the optimizers, as follows:
 

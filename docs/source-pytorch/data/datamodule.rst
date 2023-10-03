@@ -89,7 +89,9 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
             self.mnist_test = MNIST(self.data_dir, train=False)
             self.mnist_predict = MNIST(self.data_dir, train=False)
             mnist_full = MNIST(self.data_dir, train=True)
-            self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
+            self.mnist_train, self.mnist_val = random_split(
+                mnist_full, [55000, 5000], generator=torch.Generator().manual_seed(42)
+            )
 
         def train_dataloader(self):
             return DataLoader(self.mnist_train, batch_size=self.batch_size)
@@ -146,7 +148,9 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
             # Assign train/val datasets for use in dataloaders
             if stage == "fit":
                 mnist_full = MNIST(self.data_dir, train=True, transform=self.transform)
-                self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
+                self.mnist_train, self.mnist_val = random_split(
+                    mnist_full, [55000, 5000], generator=torch.Generator().manual_seed(42)
+                )
 
             # Assign test dataset for use in dataloader(s)
             if stage == "test":
@@ -230,7 +234,9 @@ There are also data operations you might want to perform on every GPU. Use :meth
             # Assign Train/val split(s) for use in Dataloaders
             if stage == "fit":
                 mnist_full = MNIST(self.data_dir, train=True, download=True, transform=self.transform)
-                self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
+                self.mnist_train, self.mnist_val = random_split(
+                    mnist_full, [55000, 5000], generator=torch.Generator().manual_seed(42)
+                )
 
             # Assign Test split(s) for use in Dataloaders
             if stage == "test":

@@ -16,9 +16,6 @@ from typing import Any, Iterator
 
 import pytest
 import torch
-from torch import Tensor
-from torch.utils.data import DataLoader, Dataset, IterableDataset
-
 from lightning.pytorch import LightningDataModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops.fetchers import _DataLoaderIterDataFetcher, _PrefetchDataFetcher
@@ -26,6 +23,9 @@ from lightning.pytorch.profilers import SimpleProfiler
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
+from torch import Tensor
+from torch.utils.data import DataLoader, Dataset, IterableDataset
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -435,34 +435,6 @@ def test_stop_iteration_with_dataloader_iter(trigger_stop_iteration, tmpdir):
     if trigger_stop_iteration:
         expected *= 2
     assert m.num_batches_processed == expected
-
-
-def test_on_train_batch_start_overridden(tmpdir) -> None:
-    """Verify that a `MisconfigurationException` is raised when `on_train_batch_start` is overridden on the
-    `LightningModule`."""
-
-    class InvalidModel(AsyncBoringModel):
-        def on_train_batch_start(self, batch, batch_idx):
-            pass
-
-    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir, accelerator="cpu")
-    m = InvalidModel()
-    with pytest.warns(match="InvalidModel.on_train_batch_start` hook may not match"):
-        trainer.fit(m)
-
-
-def test_on_train_batch_end_overridden(tmpdir) -> None:
-    """Verify that a `MisconfigurationException` is raised when `on_train_batch_end` is overridden on the
-    `LightningModule`."""
-
-    class InvalidModel(AsyncBoringModel):
-        def on_train_batch_end(self, *_):
-            pass
-
-    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir, accelerator="cpu")
-    m = InvalidModel()
-    with pytest.warns(match="InvalidModel.on_train_batch_end` hook may not match"):
-        trainer.fit(m)
 
 
 def test_transfer_hooks_with_unpacking(tmpdir):

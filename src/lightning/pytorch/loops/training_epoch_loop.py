@@ -27,7 +27,7 @@ from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 _BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
@@ -237,7 +237,7 @@ class _TrainingEpochLoop(loops._Loop):
             with trainer.profiler.profile("run_training_batch"):
                 if trainer.lightning_module.automatic_optimization:
                     # in automatic optimization, there can only be one optimizer
-                    batch_output = self.automatic_optimization.run(trainer.optimizers[0], kwargs)
+                    batch_output = self.automatic_optimization.run(trainer.optimizers[0], batch_idx, kwargs)
                 else:
                     batch_output = self.manual_optimization.run(kwargs)
 

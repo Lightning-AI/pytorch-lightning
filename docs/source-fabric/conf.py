@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 
 _SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 _FAST_DOCS_DEV = int(os.environ.get("FAST_DOCS_DEV", True))
+_FETCH_S3_ASSETS = int(os.getenv("DOCS_FETCH_ASSETS", not _FAST_DOCS_DEV))
 
 # -- Project information -----------------------------------------------------
 
@@ -45,7 +46,7 @@ github_repo = project
 
 # -- Project documents -------------------------------------------------------
 
-if not _FAST_DOCS_DEV:
+if _FETCH_S3_ASSETS:
     fetch_external_assets(
         docs_folder=_PATH_HERE,
         assets_folder="_static/fetched-s3-assets",
@@ -277,6 +278,7 @@ nitpick_ignore_regex = [
     ("py:class", "deepspeed.*"),
     ("py:.*", "torch_xla.*"),
     ("py:class", "transformer_engine.*"),
+    ("py:class", "bitsandbytes.*"),
 ]
 
 # -- Options for todo extension ----------------------------------------------
@@ -314,7 +316,7 @@ MOCK_PACKAGES = []
 if _SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_ROOT, "requirements.txt"))
-    MOCK_PACKAGES += ["deepspeed", "torch_xla", "transformer_engine"]
+    MOCK_PACKAGES += ["deepspeed", "torch_xla", "transformer_engine", "bitsandbytes"]
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES

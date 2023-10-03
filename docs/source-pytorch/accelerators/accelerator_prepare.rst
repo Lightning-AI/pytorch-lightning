@@ -1,7 +1,5 @@
 :orphan:
 
-.. _gpu_prepare:
-
 ########################################
 Hardware agnostic training (preparation)
 ########################################

@@ -73,6 +73,7 @@ jobs:
           key: pypi_wheels
 
       - name: Install Lightning package & dependencies
+        timeout-minutes: 20
         run: |
           extra=$(python -c "print({'lightning': 'app-'}.get('${{ matrix.pkg-name }}', ''))")
           # do not use `-e` because it will make both packages available since it adds `src` to `sys.path` automatically
@@ -93,6 +94,7 @@ jobs:
           node-version: "16"
 
       - name: Install Yarn
+        timeout-minutes: 20
         run: npm install -g yarn
 
       - name: Adjust imports -> App

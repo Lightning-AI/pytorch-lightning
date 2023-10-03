@@ -4,10 +4,6 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler
-
 from lightning.fabric.utilities.data import _replace_dunder_methods
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import RandomDataset, RandomIterableDataset
@@ -21,6 +17,9 @@ from lightning.pytorch.utilities.data import (
     warning_cache,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
 
 def test_extract_batch_size():

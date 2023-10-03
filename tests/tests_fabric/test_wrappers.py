@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import call, Mock
+from unittest.mock import Mock, call
 
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import BatchSampler, DistributedSampler
-from torch.utils.data.dataloader import DataLoader
-
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
@@ -31,6 +28,10 @@ from lightning.fabric.wrappers import (
     is_wrapped,
     warning_cache,
 )
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import BatchSampler, DistributedSampler
+from torch.utils.data.dataloader import DataLoader
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -184,6 +185,15 @@ def test_fabric_module_state_dict_access():
     fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias})
     assert torch.equal(fabric_module.layer.weight, weight)
     assert torch.equal(fabric_module.layer.bias, bias)
+
+    if _TORCH_GREATER_EQUAL_2_1:
+        # Can use additional `assign` argument in PyTorch >= 2.1
+        with torch.device("meta"):
+            original_module = OriginalModule()
+        fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
+        assert fabric_module.layer.weight.is_meta
+        fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias}, assign=True)
+        assert not fabric_module.layer.weight.is_meta
 
 
 @pytest.mark.parametrize(

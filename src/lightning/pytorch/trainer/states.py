@@ -14,7 +14,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from lightning.pytorch.utilities import LightningEnum
+from lightning.pytorch.utilities.enums import LightningEnum
 
 
 class TrainerStatus(LightningEnum):

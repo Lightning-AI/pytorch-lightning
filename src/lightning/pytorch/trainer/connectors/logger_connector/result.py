@@ -13,7 +13,7 @@
 # limitations under the License.
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, cast
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -27,7 +27,7 @@ from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.memory import recursive_detach
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
 _VALUE = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
@@ -194,8 +194,8 @@ class _ResultMetric(Metric):
                 default = float("inf")
             else:
                 default = 0.0
-            # do not set a dtype in case the default dtype was changed
-            self.add_state("value", torch.tensor(default), dist_reduce_fx=torch.sum)
+            # the logged value will be stored in float32 or higher to maintain accuracy
+            self.add_state("value", torch.tensor(default, dtype=_get_default_dtype()), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
                 self.cumulated_batch_size: Tensor
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
@@ -205,13 +205,15 @@ class _ResultMetric(Metric):
     def update(self, value: _VALUE, batch_size: int) -> None:
         if self.is_tensor:
             value = cast(Tensor, value)
+            dtype = _get_default_dtype()
             if not torch.is_floating_point(value):
-                dtype = torch.get_default_dtype()
                 warning_cache.warn(
                     # do not include the value to avoid cache misses
                     f"You called `self.log({self.meta.name!r}, ...)` in your `{self.meta.fx}` but the value needs to"
                     f" be floating point. Converting it to {dtype}."
                 )
+                value = value.to(dtype)
+            if value.dtype not in (torch.float32, torch.float64):
                 value = value.to(dtype)
 
             if self.meta.on_step:
@@ -517,3 +519,9 @@ class _ResultCollection(dict):
 
     def __repr__(self) -> str:
         return f"{{{self.training}, {super().__repr__()}}}"
+
+
+def _get_default_dtype() -> torch.dtype:
+    """The default dtype for new tensors, but no lower than float32."""
+    dtype = torch.get_default_dtype()
+    return dtype if dtype in (torch.float32, torch.float64) else torch.float32

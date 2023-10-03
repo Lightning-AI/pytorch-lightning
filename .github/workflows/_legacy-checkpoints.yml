@@ -42,7 +42,8 @@ on:
         type: boolean
 
 env:
-  legacy_dir: tests/legacy
+  legacy_dir: "tests/legacy"
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
 
 defaults:
   run:
@@ -65,11 +66,13 @@ jobs:
         env:
           PACKAGE_NAME: pytorch
           FREEZE_REQUIREMENTS: 1
-        run: pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        timeout-minutes: 20
+        run: pip install . -f ${TORCH_URL}
         if: inputs.pl_version == ''
 
       - name: Install PL version
-        run: pip install "pytorch-lightning==${{ inputs.pl_version }}" -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        timeout-minutes: 20
+        run: pip install "pytorch-lightning==${{ inputs.pl_version }}" -f ${TORCH_URL}
         if: inputs.pl_version != ''
 
       - name: Adjust tests -> PL
@@ -107,13 +110,6 @@ jobs:
           path: ${{ env.legacy_dir }}/checkpoints/
           retention-days: ${{ env.KEEP_DAYS }}
 
-      - name: Install AWS CLI
-        continue-on-error: true
-        run: |
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip"
-          unzip -qq awscli.zip
-          bash ./aws/install
-          aws --version
       - name: Upload checkpoints to S3
         working-directory: ${{ env.legacy_dir }}
         env:
@@ -121,6 +117,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PUB_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
+          pip install -q awscli
           aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/
           zip -r checkpoints.zip checkpoints
           aws s3 cp $AWS_RUN checkpoints.zip s3://pl-public-data/legacy/ --acl public-read

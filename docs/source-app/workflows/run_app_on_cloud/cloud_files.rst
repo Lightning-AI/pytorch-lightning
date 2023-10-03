@@ -62,8 +62,8 @@ We recommend your app contain the following files:
 .. code:: bash
 
     .
-    ├── .lightning        (auto-generated- conatins Lightning configuration)
+    ├── .lightning        (auto-generated- contains Lightning configuration)
     ├── .lightningignore  (contains files not to upload to the cloud)
     ├── app.py
     ├── README.md         (optional- a markdown description of your app)
-    └── requirements.txt  (optional- conatins all your app dependencies)
+    └── requirements.txt  (optional- contains all your app dependencies)

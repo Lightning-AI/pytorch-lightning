@@ -13,17 +13,14 @@
 # limitations under the License
 import inspect
 import os
-import sys
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.pytorch
 import pytest
 import torch
 import torch.distributed
-from lightning_utilities.core.imports import package_available
-
-import lightning.pytorch
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -34,7 +31,6 @@ from lightning.fabric.plugins.environments import (
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAccelerator, MPSAccelerator, XLAAccelerator
-from lightning.pytorch.plugins import TransformerEnginePrecisionPlugin
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision import (
@@ -58,6 +54,8 @@ from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _lightning_graphcore_available, _lightning_habana_available
+from lightning_utilities.core.imports import package_available
+
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 
@@ -476,6 +474,26 @@ def test_strategy_choice_ddp_torchelastic(_, __, mps_count_0, cuda_count_2):
     assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
     assert trainer.strategy.cluster_environment.local_rank() == 1
     assert trainer.strategy.local_rank == 1
+
+
+@mock.patch.dict(
+    os.environ,
+    {
+        "TORCHELASTIC_RUN_ID": "1",
+        "SLURM_NTASKS": "2",
+        "WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+    },
+)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_torchelastic_priority_over_slurm(*_):
+    """Test that the TorchElastic cluster environment is chosen over SLURM when both are detected."""
+    assert TorchElasticEnvironment.detect()
+    assert SLURMEnvironment.detect()
+    connector = _AcceleratorConnector(strategy="ddp")
+    assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
 
 
 @mock.patch.dict(
@@ -1044,22 +1062,3 @@ def test_connector_num_nodes_input_validation():
 def test_precision_selection(precision_str, strategy_str, expected_precision_cls):
     connector = _AcceleratorConnector(precision=precision_str, strategy=strategy_str)
     assert isinstance(connector.precision_plugin, expected_precision_cls)
-
-
-def test_connector_transformer_engine(monkeypatch):
-    import lightning.fabric  # avoid breakage with standalone package
-
-    monkeypatch.setattr(
-        lightning.fabric.plugins.precision.transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True
-    )
-    transformer_engine_mock = Mock()
-    monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
-    recipe_mock = Mock()
-    monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
-
-    connector = _AcceleratorConnector(precision="transformer-engine")
-    assert isinstance(connector.precision_plugin, TransformerEnginePrecisionPlugin)
-
-    precision = TransformerEnginePrecisionPlugin()
-    connector = _AcceleratorConnector(plugins=precision)
-    assert connector.precision_plugin is precision

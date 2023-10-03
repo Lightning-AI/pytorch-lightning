@@ -14,6 +14,7 @@
 import glob
 import os
 import shutil
+import urllib.request
 import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
@@ -29,6 +30,8 @@ import lightning
 # -----------------------
 _SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 _FAST_DOCS_DEV = int(os.getenv("FAST_DOCS_DEV", True))
+_COPY_NOTEBOOKS = int(os.getenv("DOCS_COPY_NOTEBOOKS", not _FAST_DOCS_DEV))
+_FETCH_S3_ASSETS = int(os.getenv("DOCS_FETCH_ASSETS", not _FAST_DOCS_DEV))
 
 # -----------------------
 # BUILD stuff
@@ -37,7 +40,6 @@ _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.join(_PATH_HERE, "..", "..")
 _PATH_RAW_NB = os.path.join(_PATH_ROOT, "_notebooks")
 _PATH_RAW_NB_ACTIONS = os.path.join(_PATH_RAW_NB, ".actions")
-_COPY_NOTEBOOKS = int(os.getenv("DOCS_COPY_NOTEBOOKS", True))
 _FOLDER_GENERATED = "generated"
 
 
@@ -98,12 +100,22 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    # todo: update after release
-    # checkout="tags/1.0.0",
-    checkout="tags/1.1.0.dev",
+    checkout="tags/1.1.0",
 )
+assist_local.AssistantCLI.pull_docs_files(
+    gh_user_repo="Lightning-AI/lightning-Graphcore",
+    target_dir="docs/source-pytorch/integrations/ipu",
+    checkout="tags/v0.1.0",
+    as_orphan=True,  # todo: this can be dropped after new IPU release
+)
+# the IPU also need one image
+URL_RAW_DOCS_GRAPHCORE = "https://raw.githubusercontent.com/Lightning-AI/lightning-Graphcore/v0.1.0/docs/source"
+for img in ["_static/images/ipu/profiler.png"]:
+    os.makedirs(os.path.dirname(os.path.join(_PATH_HERE, img)), exist_ok=True)
+    urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", os.path.join(_PATH_HERE, img))
 
-if not _FAST_DOCS_DEV:
+
+if _FETCH_S3_ASSETS:
     fetch_external_assets(
         docs_folder=_PATH_HERE,
         assets_folder="_static/fetched-s3-assets",
@@ -206,7 +218,6 @@ exclude_patterns = [
     "notebooks/sample-template*",
 ]
 
-# todo: checking cross link will fail because `tutorials.rst` is referred in `common/notebooks.rst`
 if not _COPY_NOTEBOOKS:
     exclude_patterns.append("notebooks/*")
     exclude_patterns.append("tutorials.rst")
@@ -370,10 +381,12 @@ nitpick_ignore = [
     ("py:class", "jsonargparse._namespace.Namespace"),
     ("py:class", "jsonargparse.core.ArgumentParser"),
     ("py:class", "jsonargparse.namespace.Namespace"),
+    ("py:class", "transformer_engine.common.recipe.DelayedScaling"),
     ("py:class", "lightning.fabric.accelerators.xla.XLAAccelerator"),
     ("py:class", "lightning.fabric.loggers.csv_logs._ExperimentWriter"),
     ("py:class", "lightning.fabric.loggers.logger._DummyExperiment"),
     ("py:class", "lightning.fabric.plugins.precision.transformer_engine.TransformerEnginePrecision"),
+    ("py:class", "lightning.fabric.plugins.precision.bitsandbytes.BitsandbytesPrecision"),
     ("py:class", "lightning.fabric.utilities.device_dtype_mixin._DeviceDtypeModuleMixin"),
     ("py:func", "lightning.fabric.utilities.seed.seed_everything"),
     ("py:class", "lightning.fabric.utilities.types.LRScheduler"),
@@ -530,7 +543,7 @@ if _SPHINX_MOCK_REQUIREMENTS:
     MOCK_PACKAGES += package_list_from_file(_path_require("extra.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("strategies.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("loggers.info"))
-    MOCK_PACKAGES += ["comet_ml", "torch_xla", "transformer_engine"]
+    MOCK_PACKAGES += ["comet_ml", "torch_xla", "transformer_engine", "bitsandbytes"]
     MOCK_PACKAGES.remove("jsonargparse")
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
@@ -596,8 +609,8 @@ linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
 
 # ignore the following relative links (false positive errors during linkcheck)
 linkcheck_ignore = [
-    r"^starter/installation.html$",
-    r"^installation.html$",
-    r"^../cli/lightning_cli.html$",
+    r"installation.html$",
+    r"starter/installation.html$",
     r"^../common/trainer.html#trainer-flags$",
+    "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
 ]
