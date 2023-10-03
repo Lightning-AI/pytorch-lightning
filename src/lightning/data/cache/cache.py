@@ -59,9 +59,7 @@ class Cache:
             raise Exception("The Cache wasn't setup properly. HINT: Did you use the LightningDataLoader ?")
         if self._is_done:
             return True
-        files = os.listdir(self._cache_dir)
-        index_files = [f for f in files if f.endswith("index.json")]
-        self._is_done = len(index_files) == self._distributed_env.world_size * (self._num_workers or 1)
+        self._is_done = os.path.exists(os.path.join(self._cache_dir, "index.json"))
         return self._is_done
 
     def __setitem__(self, index, data) -> None:
@@ -75,6 +73,7 @@ class Cache:
     def done(self) -> None:
         """Inform the writer the chunking phase is finished."""
         self._writer.done()
+        self._writer.merge()
 
     def __len__(self) -> int:
         return self._reader.get_length()
