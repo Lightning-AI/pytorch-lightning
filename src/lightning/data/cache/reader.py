@@ -11,17 +11,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
-from typing import Any, Dict, Optional, Tuple, Union
-from urllib import parse
+from typing import Any, Dict, Optional, Union
+
 import numpy as np
 
-from lightning.data.cache.pytree import tree_unflatten, treespec_loads
+from lightning.data.cache.config import ChunksConfig
+from lightning.data.cache.pytree import tree_unflatten
 from lightning.data.cache.sampler import BatchIndex
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv
-from lightning.data.cache.config import ChunksConfig
 
 
 class BinaryReader:
@@ -79,7 +78,9 @@ class BinaryReader:
                 self._latest_chunk_index = index.chunk_index
 
         chunk_filepath, begin, end = self._config[index]
-        raw_item_data = self.load_item_from_chunk(index.chunk_index, chunk_filepath, begin, end, keep_in_memory=self._keep_in_memory)
+        raw_item_data = self.load_item_from_chunk(
+            index.chunk_index, chunk_filepath, begin, end, keep_in_memory=self._keep_in_memory
+        )
         return self.deserialize(raw_item_data)
 
     def deserialize(self, raw_item_data: bytes) -> Any:
@@ -99,7 +100,9 @@ class BinaryReader:
             idx += size
         return tree_unflatten(data, self._config.config["data_spec"])
 
-    def load_item_from_chunk(self, chunk_index: int, chunk_filepath: str, begin: int, end: int, keep_in_memory: bool = False):
+    def load_item_from_chunk(
+        self, chunk_index: int, chunk_filepath: str, begin: int, end: int, keep_in_memory: bool = False
+    ):
         if chunk_index in self._chunks_data:
             return self._chunks_data[chunk_index][begin:end]
 

@@ -259,12 +259,16 @@ class CacheBatchSampler(BatchSampler):
                 interval_indices = np.arange(interval[0], interval[1])
                 shuffled_interval_indices = np.random.permutation(interval_indices).tolist()
                 not_boundary = i > 0 and i < len(shuffled_indices) - 1
-                indices.extend([
-                    BatchIndex(
-                        index,
-                        chunk_index,
-                        next_chunk_index=shuffled_indices[i + 1] if not_boundary else None, 
-                ) for j, index in enumerate(shuffled_interval_indices)])
+                indices.extend(
+                    [
+                        BatchIndex(
+                            index,
+                            chunk_index,
+                            next_chunk_index=shuffled_indices[i + 1] if not_boundary else None,
+                        )
+                        for j, index in enumerate(shuffled_interval_indices)
+                    ]
+                )
 
             if len(indices) != len(self.sampler):
                 raise Exception("The generated indices don't match the initial length of the sampler.")

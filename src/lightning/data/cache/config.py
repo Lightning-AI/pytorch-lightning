@@ -13,20 +13,16 @@
 
 import json
 import os
-from typing import Any, Dict, Optional, Tuple, Union
-from urllib import parse
-import numpy as np
-
-from lightning.data.cache.pytree import tree_unflatten, treespec_loads
-from lightning.data.cache.sampler import BatchIndex
-from lightning.data.cache.serializers import _SERIALIZERS, Serializer
-from lightning.data.datasets.env import _DistributedEnv
-from subprocess import Popen
 import subprocess
+from subprocess import Popen
+from typing import Optional, Tuple, Union
+from urllib import parse
+
+from lightning.data.cache.pytree import treespec_loads
+from lightning.data.cache.sampler import BatchIndex
 
 
 class ChunksConfig:
-
     def __init__(self, cache_dir: str, index_filenames: str, source_dir: Optional[str]):
         self._cache_dir = cache_dir
         self.index_filenames = sorted(index_filenames)
@@ -117,7 +113,9 @@ class ChunksConfig:
     @classmethod
     def load(cls, cache_dir: str, source_dir: Optional[str] = None) -> Optional["ChunksConfig"]:
         if isinstance(source_dir, str):
-            Downloader.download_file_from_s3(os.path.join(source_dir, "index.json"), os.path.join(cache_dir, "index.json"))
+            Downloader.download_file_from_s3(
+                os.path.join(source_dir, "index.json"), os.path.join(cache_dir, "index.json")
+            )
         files = os.listdir(cache_dir)
         index_filenames = sorted([f for f in files if f.endswith("index.json")])
         if not index_filenames:
@@ -129,7 +127,6 @@ class ChunksConfig:
 
 
 class Downloader:
-
     def __init__(self, source_dir: str, cache_dir: str, chunks):
         self._processes = {}
         self._credentials = None
@@ -154,7 +151,6 @@ class Downloader:
         os.environ["AWS_SESSION_TOKEN"] = credentials.token
         self._credentials = credentials
 
-
     def handle_index(self, index: BatchIndex) -> None:
         local_filepath = os.path.join(self._cache_dir, self._chunks[index.chunk_index]["filename"])
 
@@ -171,53 +167,52 @@ class Downloader:
                 self.download_file_from_s3_with_s5cmd(
                     index.next_chunk_index,
                     os.path.join(self._source_dir, next_chunk_filename),
-                    os.path.join(self._cache_dir, next_chunk_filename)
+                    os.path.join(self._cache_dir, next_chunk_filename),
                 )
 
             self._processes[index.chunk_index].wait()
-            
+
             return
 
         if remote_filepath.startswith("s3://"):
             self.download_file_from_s3(remote_filepath, local_filepath)
 
             return
-        
-        raise ValueError(f"The provided remote_filepath isn't supported. Found {remote_filepath}")
 
+        raise ValueError(f"The provided remote_filepath isn't supported. Found {remote_filepath}")
 
     def download_file_from_s3_with_s5cmd(self, index, remote_filepath: str, local_filepath: str):
         if index not in self._processes:
-            self._processes[index] = Popen(f"s5cmd cp {remote_filepath} {local_filepath}".split(" "), env=os.environ.copy(), stdout=subprocess.DEVNULL)
-
+            self._processes[index] = Popen(
+                f"s5cmd cp {remote_filepath} {local_filepath}".split(" "),
+                env=os.environ.copy(),
+                stdout=subprocess.DEVNULL,
+            )
 
     @classmethod
     def download_file_from_s3(cls, remote_filepath: str, local_filepath: str):
         import boto3
         from boto3.s3.transfer import TransferConfig
-        from botocore import UNSIGNED
         from botocore.config import Config
-        from botocore.exceptions import ClientError, NoCredentialsError
 
         obj = parse.urlparse(remote_filepath)
 
-        if obj.scheme != 's3':
-            raise ValueError(
-                f'Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_filepath}')
+        if obj.scheme != "s3":
+            raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_filepath}")
 
         extra_args = {}
 
         # Create a new session per thread
         session = boto3.session.Session()
         # Create a resource client using a thread's session object
-        s3 = session.client('s3', config=Config(read_timeout=None))
+        s3 = session.client("s3", config=Config(read_timeout=None))
         # Threads calling S3 operations return RuntimeError (cannot schedule new futures after
         # interpreter shutdown). Temporary solution is to have `use_threads` as `False`.
         # Issue: https://github.com/boto/boto3/issues/3113
         s3.download_file(
             obj.netloc,
-            obj.path.lstrip('/'),
+            obj.path.lstrip("/"),
             local_filepath,
             ExtraArgs=extra_args,
-            Config=TransferConfig(use_threads=False)
+            Config=TransferConfig(use_threads=False),
         )
