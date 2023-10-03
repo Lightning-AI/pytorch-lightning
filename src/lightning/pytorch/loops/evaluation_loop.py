@@ -241,7 +241,7 @@ class _EvaluationLoop(_Loop):
         self._verify_dataloader_idx_requirement()
 
         self._on_evaluation_model_eval()
-        self.trainer.lightning_module.zero_grad()
+        # self.trainer.lightning_module.zero_grad()
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 
