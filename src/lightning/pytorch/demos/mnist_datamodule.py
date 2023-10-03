@@ -38,6 +38,7 @@ class _MNIST(Dataset):
     See https://github.com/Lightning-AI/lightning/pull/7614#discussion_r671183652 for more context.
 
     .. warning::  This is meant for testing/debugging and is experimental.
+
     """
 
     RESOURCES = (

@@ -74,6 +74,7 @@ class ParallelStrategy(Strategy, ABC):
         """Arguments for the ``DistributedSampler``.
 
         If this method is not defined, or it returns ``None``, then the ``DistributedSampler`` will not be used.
+
         """
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
@@ -82,9 +83,9 @@ class ParallelStrategy(Strategy, ABC):
         return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
-        """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the
-        standard library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to
-        ``False``, it behaves like ``any`` instead.
+        """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the standard
+        library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to ``False``,
+        it behaves like ``any`` instead.
 
         Args:
             decision: A single input decision.
@@ -92,6 +93,7 @@ class ParallelStrategy(Strategy, ABC):
 
         Returns:
             bool: The reduced boolean decision.
+
         """
         decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.all_reduce(

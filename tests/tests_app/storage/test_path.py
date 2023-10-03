@@ -161,6 +161,7 @@ def test_path_with_stem_replacement():
     """Test that the ``Path.with_stem`` modifier keep the properties.
 
     This is only available in Python 3.9+.
+
     """
     file = Path("x", "y", "file.txt")
     file._origin = "origin"
@@ -172,8 +173,8 @@ def test_path_with_stem_replacement():
 
 
 def test_path_parents():
-    """Test that the ``Path.parent`` and ``Path.parent`` properties return Paths that inherit the origin and
-    consumer attributes."""
+    """Test that the ``Path.parent`` and ``Path.parent`` properties return Paths that inherit the origin and consumer
+    attributes."""
     path = Path("a", "b", "c", "d")
     path._origin = "origin"
     path._consumer = "consumer"

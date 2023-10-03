@@ -75,6 +75,7 @@ class LearningRateFinder(Callback):
         MisconfigurationException:
             If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden, or if you are using more than
             one optimizer.
+
     """
 
     SUPPORTED_MODES = ("linear", "exponential")

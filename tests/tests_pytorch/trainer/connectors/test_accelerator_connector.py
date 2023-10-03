@@ -270,7 +270,7 @@ def test_accelerator_cpu(cuda_count_0, mps_count_0):
 
 
 @pytest.mark.parametrize("device_count", [["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]])
-def test_accelererator_invalid_type_devices(cuda_count_2, device_count):
+def test_accelerator_invalid_type_devices(cuda_count_2, device_count):
     with pytest.raises(TypeError, match=r"must be an int, a string, a sequence of ints, but you"):
         _ = Trainer(accelerator="gpu", devices=device_count)
 

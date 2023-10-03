@@ -207,6 +207,7 @@ def _disable_module_memory_sharing(data: Any) -> Any:
     """Disables memory sharing on parameters and buffers of `nn.Module`s contained in the given collection.
 
     Note: This is only required when running on CPU.
+
     """
     # PyTorch enables memory sharing automatically on all tensors that are passed through `mp.spawn`.
     # For model weights and buffers, this is undesired and can lead to race conditions between processes.

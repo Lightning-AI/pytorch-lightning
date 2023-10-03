@@ -26,6 +26,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
     Args:
         checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
+
     """
 
     def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:

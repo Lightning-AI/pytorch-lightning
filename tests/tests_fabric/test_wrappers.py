@@ -382,8 +382,8 @@ def test_fabric_optimizer_state_dict():
 
 
 def test_fabric_optimizer_load_state_dict():
-    """Test that the FabricOptimizer can load the state dict on the wrapped optimizer and update its
-    internal `__dict__`."""
+    """Test that the FabricOptimizer can load the state dict on the wrapped optimizer and update its internal
+    `__dict__`."""
     model = torch.nn.Linear(1, 1)
     optimizer = torch.optim.Adam(model.parameters())
     assert not optimizer.state  # a fresh optimizer has no state

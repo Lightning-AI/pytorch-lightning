@@ -402,6 +402,7 @@ class Fabric:
         Note:
             When using ``strategy="deepspeed"`` and multiple models were set up, it is required to pass in the
             model as argument here.
+
         """
         module = model._forward_module if model is not None else model
         if isinstance(self._strategy, DeepSpeedStrategy):
@@ -482,8 +483,8 @@ class Fabric:
         ...
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
-        r"""Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
-        on that device.
+        r"""Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already on
+        that device.
 
         Args:
             obj: An object to move to the device. Can be an instance of :class:`torch.nn.Module`, a tensor, or a

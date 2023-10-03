@@ -108,6 +108,7 @@ class LightningFlow:
             >>> flow.run()
             >>> assert flow.counter == 1
             >>> assert flow.state["vars"]["counter"] == 1
+
         """
         self._state: set = set()
         self._name: str = ""
@@ -363,6 +364,7 @@ class LightningFlow:
         Arguments:
             provided_state: The state to be reloaded
             recurse: Whether to apply the state down children.
+
         """
         for k, v in provided_state["vars"].items():
             if isinstance(v, Dict):
