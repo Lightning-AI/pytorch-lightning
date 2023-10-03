@@ -139,7 +139,7 @@ def test_bitsandbytes_layers(args, expected):
     model = MyModel()
     # When ignore_modules is set, we only quantize on `setup`
     assert model.l.weight.device.type == "cpu"
-    assert model.l.weight.dtype == args[1]
+    assert model.l.weight.dtype == torch.float32
     # this quantizes now
     model = fabric.setup(model)
     assert model.l.weight.device.type == "cuda"
