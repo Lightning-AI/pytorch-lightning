@@ -30,19 +30,22 @@ class Cache:
         self,
         cache_dir: str,
         compression: Optional[str] = None,
-        chunk_size: int = 2 << 26,
+        chunk_size: Optional[int] = None,
+        chunk_bytes: Optional[int] = None,
     ):
         """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements
         together in order to accelerate fetching.
 
         Arguments:
             cache_dir: The path to where the chunks will be stored.
-            compression: The name of the algorithm to reduce the size of the chunks
-            chunk_size: The maximum byte size of chunk.
+            compression: The name of the algorithm to reduce the size of the chunks.
+            chunk_bytes: The maximum number of bytes within a chunk.
+            chunk_size: The maximum number of items within a chunk.
+
 
         """
         super().__init__()
-        self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, compression=compression)
+        self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
         self._reader = BinaryReader(cache_dir, compression=compression)
         self._cache_dir = cache_dir
         self._is_done = False

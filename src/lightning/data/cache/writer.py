@@ -24,16 +24,6 @@ from lightning.data.cache.worker import get_worker_info
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
 
-def cloud_path(cache_dir: str) -> Optional[str]:
-    cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
-    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
-    cloud_space_id = os.getenv("LIGHTNING_CLOUD_SPACE_ID", None)
-
-    if cluster_id is None or project_id is None or cloud_space_id is None:
-        return None
-    return f"s3://{cluster_id}/projects/{project_id}/cloudspaces/{cloud_space_id}/content/{cache_dir}/"
-
-
 def get_cloud_path(cache_dir: str) -> Optional[str]:
     """Returns the s3 URL to the cache_dir."""
     cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
@@ -45,21 +35,23 @@ def get_cloud_path(cache_dir: str) -> Optional[str]:
     cache_dir = cache_dir.replace("~/", "").replace("~", "").replace("/teamspace/studios/this_studio/", "")
     if cache_dir.startswith("/"):
         cache_dir = cache_dir[1:]
-    return os.path.join(f"s3://{cluster_id}/projects/{project_id}/cloudspaces/{cloud_space_id}/code/content", cache_dir)
+    return os.path.join(f"s3://{cluster_id}/projects/{project_id}/cloudspaces/{cloud_space_id}/code/content", cache_dir, "/")
 
 
 class BinaryWriter:
     def __init__(
         self,
         cache_dir: str,
-        chunk_size: int = 1 << 26,
+        chunk_size: Optional[int] = None,
+        chunk_bytes: Optional[int] = None,
         compression: Optional[str] = None,
     ):
         """The BinaryWriter enables to chunk dataset into an efficient streaming format for cloud training.
 
         Arguments:
             cache_dir: The path to where the chunks will be saved.
-            chunk_size: The maximum number of bytes to store within a chunk.
+            chunk_bytes: The maximum number of bytes within a chunk.
+            chunk_size: The maximum number of items within a chunk.
             compression: The compression algorithm to use.
 
         """
@@ -68,8 +60,12 @@ class BinaryWriter:
         if not os.path.exists(self._cache_dir):
             raise FileNotFoundError(f"The provided cache directory `{self._cache_dir}` doesn't exist.")
 
+        if (chunk_size is None and chunk_bytes is None) or (chunk_size and chunk_bytes):
+            raise ValueError("Either one of the `chunk_size` or the `chunk_bytes` need to be provided.")
+
         self._serializers: Dict[str, Serializer] = _SERIALIZERS
         self._chunk_size = chunk_size
+        self._chunk_bytes = chunk_bytes
         self._compression = compression
 
         self._data_format = None
@@ -117,7 +113,7 @@ class BinaryWriter:
         """Returns the config of the writer."""
         out = {
             "compression": self._compression,
-            "chunk_size": self._chunk_size,
+            "chunk_size": self._chunk_bytes,
             "data_format": self._data_format,
             "data_spec": treespec_dumps(self._data_spec) if self._data_spec else None,
         }
@@ -221,10 +217,12 @@ class BinaryWriter:
         serialized_items = self.serialize(items)
         serialized_items_size = len(serialized_items)
 
-        if self._chunk_size < self._current_chunk_size + serialized_items_size:
+        should_write = (self._chunk_bytes and self._chunk_bytes < self._current_chunk_size + serialized_items_size) or (self._chunk_size and len(self._indexes) >= self._chunk_size)
+
+        if should_write:
             if self._current_chunk_size == 0:
                 raise Exception(
-                    f"The provided chunk_size {self._chunk_size} is too small."
+                    f"The provided chunk_size {self._chunk_bytes} is too small."
                     f" You should use a multiple of {serialized_items_size} bytes."
                 )
             self.write_chunk()
