@@ -45,7 +45,7 @@ jobs:
     env:
       DOCS_COPY_NOTEBOOKS: 1
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           # only Pytorch has/uses notebooks
           submodules: ${{ matrix.pkg-name == 'pytorch' }}

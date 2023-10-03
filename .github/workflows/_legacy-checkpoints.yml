@@ -55,7 +55,7 @@ jobs:
     outputs:
       pl-version: ${{ steps.decide-version.outputs.pl-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         with:
@@ -127,7 +127,7 @@ jobs:
     if: inputs.create_pr
     needs: create-legacy-ckpts
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: master
 
