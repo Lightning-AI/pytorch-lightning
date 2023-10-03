@@ -46,7 +46,6 @@ def open_single_file(
     return None
 
 
-
 # Necessary to support both a context manager and a call
 class OpenCloudFileObj:
     """File object wrapper that streams files on open.
