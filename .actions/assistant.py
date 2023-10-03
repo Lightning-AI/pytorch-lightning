@@ -442,6 +442,7 @@ class AssistantCLI:
         target_dir: str = "docs/source-pytorch/XXX",
         checkout: str = "tags/1.0.0",
         source_dir: str = "docs/source",
+        as_orphan: bool = False
     ) -> None:
         """Pull docs pages from external source and append to local docs."""
         import zipfile
@@ -473,7 +474,18 @@ class AssistantCLI:
                 if os.path.isfile(new_rst):
                     logging.warning(f"Page {new_rst} already exists in the local tree so it will be skipped.")
                     continue
-                shutil.copy(rst, new_rst)
+                AssistantCLI._copy_rst(rst, new_rst, as_orphan=as_orphan)
+
+    @staticmethod
+    def _copy_rst(rst_in, rst_out, as_orphan: bool = False):
+        """Copy RST page with optional inserting orphan statement."""
+        with open(rst_in, encoding="utf-8") as fopen:
+            page = fopen.read()
+        if as_orphan and ":orphan:" not in page:
+            page = f":orphan:\n\n" + page
+        with open(rst_in, "w", encoding="utf-8") as fopen:
+            fopen.write(page)
+
 
 
 if __name__ == "__main__":
