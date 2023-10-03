@@ -24,6 +24,7 @@ jobs:
       (startsWith(github.event_name, 'pull_request') && contains(github.event.pull_request.title, 'TPU'))
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         pkg-name: ["fabric", "pytorch"]
         runtime: ["xrt", "pjrt"]
