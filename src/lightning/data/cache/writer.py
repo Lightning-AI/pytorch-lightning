@@ -13,6 +13,7 @@
 
 import json
 import os
+from time import sleep
 from typing import Any, Dict, Optional
 
 import numpy as np
@@ -55,6 +56,7 @@ class BinaryWriter:
 
         self._data_format = None
         self._data_spec = None
+        self._num_workers = None
 
         if self._compression:
             if len(_COMPRESSORS) == 0:
@@ -70,10 +72,10 @@ class BinaryWriter:
         self._serialized_items = []
         self._chunks_info = []
         self._indexes = []
-        self._env = _DistributedEnv.detect()
         self._worker_env = None
         self._rank = None
         self._is_done = False
+        self._distributed_env = _DistributedEnv.detect()
 
     @property
     def filled(self) -> bool:
@@ -83,7 +85,7 @@ class BinaryWriter:
         files = os.listdir(self._cache_dir)
         index_files = [f for f in files if f.endswith("index.json")]
         worker_end = _WorkerEnv.detect()
-        self._is_done = len(index_files) == self._env.world_size * worker_end.world_size
+        self._is_done = len(index_files) == self._distributed_env.world_size * worker_end.world_size
         return self._is_done
 
     @property
@@ -91,7 +93,7 @@ class BinaryWriter:
         """Returns the rank of the writer."""
         if self._rank is None:
             self._worker_env = _WorkerEnv.detect()
-            self._rank = self._env.global_rank * self._worker_env.world_size + self._worker_env.rank
+            self._rank = self._distributed_env.global_rank * self._worker_env.world_size + self._worker_env.rank
         return self._rank
 
     def get_config(self) -> Dict[str, Any]:
@@ -252,3 +254,39 @@ class BinaryWriter:
         self.write_chunks_index()
         self.reset()
         self._is_done = True
+
+    def merge(self):
+        if self.rank != 0:
+            while not os.path.exists(os.path.join(self._cache_dir, "index.json")):
+                sleep(0.001)
+            return
+
+        num_workers = _WorkerEnv.detect().world_size
+
+        is_done = False
+        while not is_done:
+            files = os.listdir(self._cache_dir)
+            if "index.json" in files:
+                return
+            index_files = [f for f in files if f.endswith("index.json") and f != "index.json"]
+            is_done = len(index_files) == self._distributed_env.world_size * num_workers
+
+        chunks_info = []
+        config = None
+        for index_filename in sorted(index_files):
+            chunk_path = os.path.join(self._cache_dir, index_filename)
+            with open(chunk_path) as f:
+                data = json.load(f)
+
+                if config is None:
+                    config = data["config"]
+
+                elif config != data["config"]:
+                    raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
+
+                chunks_info.extend(data["chunks"])
+
+            os.remove(chunk_path)
+
+        with open(os.path.join(self._cache_dir, "index.json"), "w") as f:
+            json.dump({"chunks": chunks_info, "config": config}, f, sort_keys=True)
