@@ -14,6 +14,7 @@
 import glob
 import os
 import shutil
+import urllib.request
 import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
@@ -106,6 +107,12 @@ assist_local.AssistantCLI.pull_docs_files(
     target_dir="docs/source-pytorch/integrations/ipu",
     checkout="tags/v0.1.0",
 )
+# the IPU also need one image
+URL_RAW_DOCS_GRAPHCORE = "https://raw.githubusercontent.com/Lightning-AI/lightning-Graphcore/v0.1.0/docs/source"
+for img in ["_static/images/ipu/profiler.png"]:
+    os.makedirs(os.path.dirname(os.path.join(_PATH_HERE, img)), exist_ok=True)
+    urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", os.path.join(_PATH_HERE, img))
+
 
 if _FETCH_S3_ASSETS:
     fetch_external_assets(
