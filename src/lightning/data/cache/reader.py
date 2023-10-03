@@ -50,6 +50,8 @@ class BinaryReader:
 
         self._env = _DistributedEnv.detect()
         self._config: Optional[ChunksConfig] = None
+        self._latest_chunk_index = None
+        self._keep_in_memory = False
 
     def _try_load_config(self):
         """Try to load the chunks config if the index files are available."""
@@ -69,8 +71,15 @@ class BinaryReader:
         if self._config is None:
             raise Exception("The reader index isn't defined.")
 
+        if self._keep_in_memory:
+            if self._latest_chunk_index is None:
+                self._latest_chunk_index = index.chunk_index
+            elif self._latest_chunk_index != index.chunk_index:
+                del self._chunks_data[self._latest_chunk_index]
+                self._latest_chunk_index = index.chunk_index
+
         chunk_filepath, begin, end = self._config[index]
-        raw_item_data = self.load_item_from_chunk(chunk_filepath, begin, end, keep_in_memory=False)
+        raw_item_data = self.load_item_from_chunk(index.chunk_index, chunk_filepath, begin, end, keep_in_memory=self._keep_in_memory)
         return self.deserialize(raw_item_data)
 
     def deserialize(self, raw_item_data: bytes) -> Any:
@@ -90,16 +99,14 @@ class BinaryReader:
             idx += size
         return tree_unflatten(data, self._config.config["data_spec"])
 
-    def load_item_from_chunk(self, chunk_filepath: str, begin: int, end: int, keep_in_memory: bool = False):
-        if chunk_filepath in self._chunks_data:
-            return self._chunks_data[chunk_filepath][begin:end]
+    def load_item_from_chunk(self, chunk_index: int, chunk_filepath: str, begin: int, end: int, keep_in_memory: bool = False):
+        if chunk_index in self._chunks_data:
+            return self._chunks_data[chunk_index][begin:end]
 
         if keep_in_memory:
             with open(chunk_filepath, "rb") as fp:
-                fp.seek(0)
-                data = fp.read()
-            self._chunks_data[chunk_filepath] = data
-            return data[begin:end]
+                self._chunks_data[chunk_index] = fp.read()
+            return self._chunks_data[chunk_index][begin:end]
 
         with open(chunk_filepath, "rb", 0) as fp:
             fp.seek(begin)

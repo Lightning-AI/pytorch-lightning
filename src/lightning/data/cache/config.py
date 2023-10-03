@@ -21,6 +21,8 @@ from lightning.data.cache.pytree import tree_unflatten, treespec_loads
 from lightning.data.cache.sampler import BatchIndex
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv
+from subprocess import Popen
+import subprocess
 
 
 class ChunksConfig:
@@ -56,6 +58,7 @@ class ChunksConfig:
             self._intervals.append(chunk["interval"])
 
         self._length = sum([chunk["samples"] for chunk in self._chunks])
+        self._downloader = Downloader(source_dir, cache_dir, self._chunks)
 
     @property
     def intervals(self):
@@ -69,6 +72,23 @@ class ChunksConfig:
     def config(self):
         return self._config
 
+    @property
+    def credentials(self):
+        if self._credentials:
+            return
+
+        from botocore.credentials import InstanceMetadataProvider
+        from botocore.utils import InstanceMetadataFetcher
+
+        provider = InstanceMetadataProvider(iam_role_fetcher=InstanceMetadataFetcher(timeout=1000, num_attempts=2))
+
+        credentials = provider.load()
+
+        os.environ["AWS_ACCESS_KEY"] = credentials.access_key
+        os.environ["AWS_SECRET_ACCESS_KEY"] = credentials.secret_key
+        os.environ["AWS_SESSION_TOKEN"] = credentials.token
+        self._credentials = credentials
+
     def __getitem__(self, index: Union[int, BatchIndex]) -> Tuple[str, int, int]:
         """Find the associated chunk metadata."""
         if isinstance(index, int):
@@ -79,7 +99,7 @@ class ChunksConfig:
                     chunk_filepath = os.path.join(self._cache_dir, chunk["filename"])
 
                     if self._source_dir:
-                        handle_file(chunk_filepath, os.path.join(self._source_dir, chunk["filename"]))
+                        self._downloader.handle_index(index)
 
                     return chunk_filepath, *mapping
         # Note: Optimisation to avoid doing the interval search.
@@ -89,15 +109,15 @@ class ChunksConfig:
             chunk_filepath = os.path.join(self._cache_dir, chunk["filename"])
 
             if self._source_dir:
-                handle_file(chunk_filepath, os.path.join(self._source_dir, chunk["filename"]))
+                self._downloader.handle_index(index)
 
-            return chunk_filepath, *mapping
+            return os.path.join(self._cache_dir, chunk["filename"]), *mapping
         raise Exception(f"The chunk interval weren't properly defined. Found {self._intervals} for index {index}.")
 
     @classmethod
     def load(cls, cache_dir: str, source_dir: Optional[str] = None) -> Optional["ChunksConfig"]:
         if isinstance(source_dir, str):
-            handle_file(os.path.join(cache_dir, "index.json"), os.path.join(source_dir, "index.json"))
+            Downloader.download_file_from_s3(os.path.join(source_dir, "index.json"), os.path.join(cache_dir, "index.json"))
         files = os.listdir(cache_dir)
         index_filenames = sorted([f for f in files if f.endswith("index.json")])
         if not index_filenames:
@@ -108,42 +128,96 @@ class ChunksConfig:
         return self._length
 
 
-def handle_file(local_filepath: str, remote_filepath: Optional[str] = None) -> None:
-    if os.path.exists(local_filepath):
-        return
+class Downloader:
 
-    if remote_filepath.startswith("s3://"):
-        return download_file_from_s3(remote_filepath, local_filepath)
-    
-    raise ValueError(f"The provided remote_filepath isn't supported. Found {remote_filepath}")
+    def __init__(self, source_dir: str, cache_dir: str, chunks):
+        self._processes = {}
+        self._credentials = None
+        self._source_dir = source_dir
+        self._cache_dir = cache_dir
+        self._chunks = chunks
+
+    @property
+    def credentials(self):
+        if self._credentials:
+            return
+
+        from botocore.credentials import InstanceMetadataProvider
+        from botocore.utils import InstanceMetadataFetcher
+
+        provider = InstanceMetadataProvider(iam_role_fetcher=InstanceMetadataFetcher(timeout=1000, num_attempts=2))
+
+        credentials = provider.load()
+
+        os.environ["AWS_ACCESS_KEY"] = credentials.access_key
+        os.environ["AWS_SECRET_ACCESS_KEY"] = credentials.secret_key
+        os.environ["AWS_SESSION_TOKEN"] = credentials.token
+        self._credentials = credentials
 
 
-def download_file_from_s3(remote_filepath: str, local_filepath: str):
-    import boto3
-    from boto3.s3.transfer import TransferConfig
-    from botocore import UNSIGNED
-    from botocore.config import Config
-    from botocore.exceptions import ClientError, NoCredentialsError
+    def handle_index(self, index: BatchIndex) -> None:
+        local_filepath = os.path.join(self._cache_dir, self._chunks[index.chunk_index]["filename"])
 
-    obj = parse.urlparse(remote_filepath)
+        if os.path.exists(local_filepath):
+            return
 
-    if obj.scheme != 's3':
-        raise ValueError(
-            f'Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote}')
+        remote_filepath = os.path.join(self._source_dir, self._chunks[index.chunk_index]["filename"])
 
-    extra_args = {}
+        if remote_filepath.startswith("s3://"):
+            self.download_file_from_s3_with_s5cmd(index.chunk_index, remote_filepath, local_filepath)
 
-    # Create a new session per thread
-    session = boto3.session.Session()
-    # Create a resource client using a thread's session object
-    s3 = session.client('s3', config=Config(read_timeout=None))
-    # Threads calling S3 operations return RuntimeError (cannot schedule new futures after
-    # interpreter shutdown). Temporary solution is to have `use_threads` as `False`.
-    # Issue: https://github.com/boto/boto3/issues/3113
-    s3.download_file(
-        obj.netloc,
-        obj.path.lstrip('/'),
-        local_filepath,
-        ExtraArgs=extra_args,
-        Config=TransferConfig(use_threads=False)
-    )
+            if index.next_chunk_index:
+                next_chunk_filename = self._chunks[index.next_chunk_index]["filename"]
+                self.download_file_from_s3_with_s5cmd(
+                    index.next_chunk_index,
+                    os.path.join(self._source_dir, next_chunk_filename),
+                    os.path.join(self._cache_dir, next_chunk_filename)
+                )
+
+            self._processes[index.chunk_index].wait()
+            
+            return
+
+        if remote_filepath.startswith("s3://"):
+            self.download_file_from_s3(remote_filepath, local_filepath)
+
+            return
+        
+        raise ValueError(f"The provided remote_filepath isn't supported. Found {remote_filepath}")
+
+
+    def download_file_from_s3_with_s5cmd(self, index, remote_filepath: str, local_filepath: str):
+        if index not in self._processes:
+            self._processes[index] = Popen(f"s5cmd cp {remote_filepath} {local_filepath}".split(" "), env=os.environ.copy(), stdout=subprocess.DEVNULL)
+
+
+    @classmethod
+    def download_file_from_s3(cls, remote_filepath: str, local_filepath: str):
+        import boto3
+        from boto3.s3.transfer import TransferConfig
+        from botocore import UNSIGNED
+        from botocore.config import Config
+        from botocore.exceptions import ClientError, NoCredentialsError
+
+        obj = parse.urlparse(remote_filepath)
+
+        if obj.scheme != 's3':
+            raise ValueError(
+                f'Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_filepath}')
+
+        extra_args = {}
+
+        # Create a new session per thread
+        session = boto3.session.Session()
+        # Create a resource client using a thread's session object
+        s3 = session.client('s3', config=Config(read_timeout=None))
+        # Threads calling S3 operations return RuntimeError (cannot schedule new futures after
+        # interpreter shutdown). Temporary solution is to have `use_threads` as `False`.
+        # Issue: https://github.com/boto/boto3/issues/3113
+        s3.download_file(
+            obj.netloc,
+            obj.path.lstrip('/'),
+            local_filepath,
+            ExtraArgs=extra_args,
+            Config=TransferConfig(use_threads=False)
+        )
