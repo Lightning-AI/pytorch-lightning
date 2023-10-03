@@ -170,7 +170,9 @@ class DistributedCacheSampler(BaseCacheSampler):
 @dataclass
 class BatchIndex:
     index: int
+    previous_chunk_index: Optional[int]
     chunk_index: int
+    next_chunk_index: Optional[int]
 
 
 class CacheBatchSampler(BatchSampler):

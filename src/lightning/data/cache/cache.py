@@ -26,6 +26,7 @@ class Cache:
     def __init__(
         self,
         cache_dir: str,
+        source_dir: Optional[str] = None,
         compression: Optional[str] = None,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
@@ -42,7 +43,7 @@ class Cache:
         """
         super().__init__()
         self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
-        self._reader = BinaryReader(cache_dir, compression=compression)
+        self._reader = BinaryReader(cache_dir, source_dir=source_dir, compression=compression)
         self._cache_dir = cache_dir
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
