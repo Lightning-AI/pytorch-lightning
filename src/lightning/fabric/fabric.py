@@ -16,7 +16,21 @@ import os
 from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    ContextManager,
+    Dict,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
 import torch
 import torch.nn as nn
@@ -27,12 +41,10 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
-from lightning.fabric.loggers import Logger
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-
-from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.accelerators.accelerator import Accelerator
-from lightning.fabric.connector import _Connector, _is_using_cli, _PLUGIN_INPUT, _PRECISION_INPUT
+from lightning.fabric.connector import _PLUGIN_INPUT, _PRECISION_INPUT, _Connector, _is_using_cli
+from lightning.fabric.loggers import Logger
+from lightning.fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning.fabric.strategies import (
     DataParallelStrategy,
     DeepSpeedStrategy,
@@ -44,7 +56,7 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.fsdp import _has_meta_device_parameters
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
-from lightning.fabric.strategies.strategy import _Sharded, TBroadcast
+from lightning.fabric.strategies.strategy import TBroadcast, _Sharded
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, convert_to_tensors
 from lightning.fabric.utilities.data import (
@@ -54,6 +66,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.utilities.types import ReduceOp
@@ -447,16 +460,14 @@ class Fabric:
             )
         raise ValueError("You have to specify either `clip_val` or `max_norm` to do gradient clipping!")
 
-    @contextmanager
-    def autocast(self) -> Generator[None, None, None]:
+    def autocast(self) -> ContextManager:
         """A context manager to automatically convert operations for the chosen precision.
 
         Use this only if the `forward` method of your model does not cover all operations you wish to run with the
         chosen precision setting.
 
         """
-        with self._precision.forward_context():
-            yield
+        return self._precision.forward_context()
 
     @overload
     def to_device(self, obj: nn.Module) -> nn.Module:
@@ -601,8 +612,7 @@ class Fabric:
             self.barrier()
         self.barrier()
 
-    @contextmanager
-    def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> Generator:
+    def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> ContextManager:
         r"""Skip gradient synchronization during backward to avoid redundant communication overhead.
 
         Use this context manager when performing gradient accumulation to speed up training with multiple devices.
@@ -632,24 +642,17 @@ class Fabric:
                 " `model = fabric.setup(model, ...)`"
             )
         if not enabled or isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
-            context = nullcontext()
-        elif self._strategy._backward_sync_control is None:
+            return nullcontext()
+        if self._strategy._backward_sync_control is None:
             rank_zero_warn(
                 f"The `{self._strategy.__class__.__name__}` does not support skipping the gradient synchronization."
                 f" Remove `.no_backward_sync()` from your code or choose a different strategy.",
                 category=PossibleUserWarning,
             )
-            context = nullcontext()
-        else:
-            context = self._strategy._backward_sync_control.no_backward_sync(  # type: ignore[assignment]
-                module._forward_module
-            )
+            return nullcontext()
+        return self._strategy._backward_sync_control.no_backward_sync(module._forward_module)
 
-        with context:
-            yield
-
-    @contextmanager
-    def sharded_model(self) -> Generator:
+    def sharded_model(self) -> ContextManager:
         r"""Instantiate a model under this context manager to prepare it for model-parallel sharding.
 
         .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
@@ -658,13 +661,10 @@ class Fabric:
         rank_zero_deprecation("`Fabric.sharded_model()` is deprecated in favor of `Fabric.init_module()`.")
         self._validate_launched()
         if isinstance(self.strategy, _Sharded):
-            with self.strategy.module_sharded_context():
-                yield
-        else:
-            yield
+            return self.strategy.module_sharded_context()
+        return nullcontext()
 
-    @contextmanager
-    def init_tensor(self) -> Generator:
+    def init_tensor(self) -> ContextManager:
         """Tensors that you instantiate under this context manager will be created on the device right away and have
         the right data type depending on the precision setting in Fabric.
 
@@ -678,11 +678,9 @@ class Fabric:
                 " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
                 category=PossibleUserWarning,
             )
-        with self._strategy.tensor_init_context():
-            yield
+        return self._strategy.tensor_init_context()
 
-    @contextmanager
-    def init_module(self, empty_init: Optional[bool] = None) -> Generator:
+    def init_module(self, empty_init: Optional[bool] = None) -> ContextManager:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
@@ -703,8 +701,7 @@ class Fabric:
                 " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
                 category=PossibleUserWarning,
             )
-        with self._strategy.module_init_context(empty_init=empty_init):
-            yield
+        return self._strategy.module_init_context(empty_init=empty_init)
 
     def save(
         self,

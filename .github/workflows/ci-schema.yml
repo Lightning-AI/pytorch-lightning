@@ -12,4 +12,4 @@ jobs:
     with:
       # skip azure due to the wrong schema file by MSFT
       # https://github.com/Lightning-AI/lightning-flash/pull/1455#issuecomment-1244793607
-      azure-dir: ''
+      azure-dir: ""

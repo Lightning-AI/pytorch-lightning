@@ -17,7 +17,7 @@ import cloudpickle
 import pytest
 
 from tests_pytorch import _PATH_DATASETS
-from tests_pytorch.helpers.datasets import AverageDataset, MNIST, TrialMNIST
+from tests_pytorch.helpers.datasets import MNIST, AverageDataset, TrialMNIST
 
 
 @pytest.mark.parametrize(

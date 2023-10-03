@@ -5,7 +5,6 @@ on:
     types: [closed]
 
 jobs:
-
   pr-cleanup:
     runs-on: ubuntu-latest
     steps:

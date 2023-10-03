@@ -1,19 +1,22 @@
+import contextlib
 import logging
 import os
 import sys
+import time
 from contextlib import nullcontext
-from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
+import fsspec.utils
 import torch
 import torch.nn.functional as F
 from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
-from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.fabric.utilities.rank_zero import rank_zero_info
-from lightning.fabric.utilities.types import ReduceOp
+from lightning.fabric.utilities.types import _PATH, ReduceOp
 
 if torch.distributed.is_available():
     from torch.distributed import group
@@ -23,7 +26,71 @@ else:
         WORLD = None
 
 
+if TYPE_CHECKING:
+    from lightning.fabric.plugins import ClusterEnvironment
+    from lightning.fabric.strategies import Strategy
+
+
 log = logging.getLogger(__name__)
+
+
+def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
+    """Checks whether the filesystem under the given path is shared across all processes.
+
+    This function should only be used in a context where distributed is initialized.
+
+    Args:
+        strategy: The strategy being used, either from Fabric (``fabric.strategy``) or from Trainer
+            (``trainer.strategy``).
+        path: The path to check. Defaults to the current working directory. The user must have permissions to write
+            to this path or the parent folder, and the filesystem must be writable.
+        timeout: If any of the processes can't list the file created by rank 0 within this many seconds, the
+            filesystem is determined to be not shared.
+
+    """
+    # Fast path: Any non-local filesystem is considered shared (e.g., S3)
+    if path is not None and fsspec.utils.get_protocol(str(path)) != "file":
+        return True
+
+    path = Path(Path.cwd() if path is None else path).resolve()
+
+    # Fast path: Only distributed strategies can detect shared filesystems
+    if not hasattr(strategy, "world_size") or strategy.world_size == 1:
+        return True
+
+    # Fast path: If the path is not the same on all ranks we know it's not a shared filesystem
+    rank_zero_path = strategy.broadcast(path)
+    if not strategy.reduce_boolean_decision(rank_zero_path == path, all=True):
+        return False
+
+    if not strategy.reduce_boolean_decision(path.exists(), all=True):
+        raise FileNotFoundError(
+            f"Unable to determine if the path belongs to a shared filesystem. The path does not exist: {path}"
+        )
+
+    path = path.parent if path.is_file() else path
+    check_file = path / ".lightning_shared_fs_check"
+    check_file.unlink(missing_ok=True)
+
+    strategy.barrier()
+    if strategy.is_global_zero:
+        # Rank 0 creates the file
+        check_file.touch()
+        found = True
+    else:
+        # All other ranks will wait until they find the file or timeout
+        start = time.perf_counter()
+        found = False
+        while not found and (time.perf_counter() - start) < timeout:
+            found = check_file.exists()
+    strategy.barrier()
+
+    all_found = strategy.reduce_boolean_decision(found, all=True)
+
+    with contextlib.suppress(OSError):  # handle race condition on deletion
+        check_file.unlink()
+
+    return all_found
 
 
 def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
@@ -218,7 +285,7 @@ def _all_gather_ddp_if_available(
 
 
 def _init_dist_connection(
-    cluster_environment: ClusterEnvironment,
+    cluster_environment: "ClusterEnvironment",
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,

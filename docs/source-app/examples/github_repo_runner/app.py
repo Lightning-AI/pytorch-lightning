@@ -11,7 +11,7 @@ from lightning import BuildConfig, CloudCompute, LightningApp, LightningFlow
 from lightning.app import structures
 from lightning.app.components import TracerPythonScript
 from lightning.app.frontend import StreamlitFrontend
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 from lightning.app.utilities.state import AppState
 
 

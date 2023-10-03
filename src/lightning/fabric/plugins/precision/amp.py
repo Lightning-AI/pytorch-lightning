@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from typing import Any, Dict, Generator, Literal, Optional
+from typing import Any, ContextManager, Dict, Literal, Optional
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -59,10 +58,8 @@ class MixedPrecision(Precision):
 
         self._desired_input_dtype = torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16
 
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        with self._autocast_context_manager():
-            yield
+    def forward_context(self) -> ContextManager:
+        return torch.autocast(self.device, dtype=self._desired_input_dtype)
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
@@ -98,11 +95,6 @@ class MixedPrecision(Precision):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
-
-    def _autocast_context_manager(self) -> torch.autocast:
-        # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
-        # https://github.com/pytorch/pytorch/issues/67233
-        return torch.autocast(self.device, dtype=self._desired_input_dtype)
 
     def unscale_gradients(self, optimizer: Optimizer) -> None:
         scaler = self.scaler

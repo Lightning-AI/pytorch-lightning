@@ -7,11 +7,10 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-from torch.utils.data import Dataset
-
 from lightning import LightningModule, Trainer
 from lightning.data import LightningDataset
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
+from torch.utils.data import Dataset
 
 parser = ArgumentParser()
 parser.add_argument("--workers", default=4, type=int)

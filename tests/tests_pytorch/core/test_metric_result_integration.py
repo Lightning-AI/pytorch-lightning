@@ -16,15 +16,9 @@ import pickle
 from contextlib import nullcontext, suppress
 from unittest import mock
 
+import lightning.pytorch as pl
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor, tensor
-from torch.nn import ModuleDict, ModuleList
-from torchmetrics import Metric, MetricCollection
-from torchmetrics.classification import Accuracy
-
-import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import OnExceptionCheckpoint
@@ -36,6 +30,12 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import (
     _Sync,
 )
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor, tensor
+from torch.nn import ModuleDict, ModuleList
+from torchmetrics import Metric, MetricCollection
+from torchmetrics.classification import Accuracy
+
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 

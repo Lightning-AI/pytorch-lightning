@@ -13,7 +13,7 @@
 # limitations under the License.
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, cast
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -27,7 +27,7 @@ from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.memory import recursive_detach
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
 _VALUE = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
@@ -180,7 +180,7 @@ class _Metadata:
 
 
 class _ResultMetric(Metric):
-    """Wraps the value provided to `:meth:`~lightning.pytorch.core.module.LightningModule.log`"""
+    """Wraps the value provided to `:meth:`~lightning.pytorch.core.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
         super().__init__()
@@ -300,13 +300,12 @@ class _ResultCollection(dict):
     """Collection (dictionary) of
     :class:`~lightning.pytorch.trainer.connectors.logger_connector.result._ResultMetric`
 
-    Example:
-
-        # `device` needs to be provided before logging
-        result = _ResultCollection(training=True, torch.device("cpu"))
+    Example::
 
         # you can log to a specific collection.
         # arguments: fx, key, value, metadata
+
+        result = _ResultCollection(training=True)
         result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
         result.log('validation_step', 'recall', torch.tensor(...), on_step=True, on_epoch=True)
     """
@@ -359,7 +358,7 @@ class _ResultCollection(dict):
         metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
     ) -> None:
-        """See :meth:`~lightning.pytorch.core.module.LightningModule.log`"""
+        """See :meth:`~lightning.pytorch.core.LightningModule.log`"""
         # no metrics should be logged with graphs
         if not enable_graph:
             value = recursive_detach(value)

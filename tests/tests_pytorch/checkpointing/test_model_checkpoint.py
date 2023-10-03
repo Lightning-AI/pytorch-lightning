@@ -22,22 +22,22 @@ from logging import INFO
 from pathlib import Path
 from typing import Union
 from unittest import mock
-from unittest.mock import call, Mock, patch
+from unittest.mock import Mock, call, patch
 
 import cloudpickle
+import lightning.pytorch as pl
 import pytest
 import torch
 import yaml
-from torch import optim
-
-import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
-from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from torch import optim
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:

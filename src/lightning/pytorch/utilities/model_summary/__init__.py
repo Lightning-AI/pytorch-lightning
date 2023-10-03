@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.pytorch.utilities.model_summary.model_summary import (  # noqa: F401
-    get_formatted_model_size,
-    get_human_readable_count,
     LayerSummary,
     ModelSummary,
+    get_formatted_model_size,
+    get_human_readable_count,
     parse_batch_shape,
     summarize,
 )

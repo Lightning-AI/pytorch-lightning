@@ -10,7 +10,7 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 * Launch and teardown of training processes (if applicable).
 * Setup communication between processes (NCCL, GLOO, MPI, and so on).
 * Provide a unified communication interface for reduction, broadcast, and so on.
-* Owns the :class:`~lightning.pytorch.core.module.LightningModule`
+* Owns the :class:`~lightning.pytorch.core.LightningModule`
 * Handles/owns optimizers and schedulers.
 
 
@@ -34,7 +34,7 @@ Built-in strategies can be selected in two ways.
 1. Pass the shorthand name to the ``strategy`` Trainer argument
 2. Import a Strategy from :mod:`lightning.pytorch.strategies`, instantiate it and pass it to the ``strategy`` Trainer argument
 
-The latter allows you to configure further options on the specifc strategy.
+The latter allows you to configure further options on the specific strategy.
 Here are some examples:
 
 .. code-block:: python

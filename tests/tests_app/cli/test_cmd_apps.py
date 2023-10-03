@@ -2,6 +2,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest as pytest
+from lightning.app.cli.cmd_apps import _AppList, _AppManager
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     V1LightningappInstanceSpec,
@@ -14,8 +15,6 @@ from lightning_cloud.openapi import (
     V1Membership,
 )
 from rich.text import Text
-
-from lightning.app.cli.cmd_apps import _AppList, _AppManager
 
 
 @pytest.mark.parametrize(

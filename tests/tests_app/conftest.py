@@ -10,9 +10,7 @@ from threading import Thread
 import psutil
 import py
 import pytest
-
 from lightning.app.core import constants
-from lightning.app.storage.path import _storage_root_dir
 from lightning.app.utilities.app_helpers import _collect_child_process_pids
 from lightning.app.utilities.component import _set_context
 from lightning.app.utilities.packaging import cloud_compute
@@ -63,7 +61,7 @@ def cleanup():
     yield
     _LightningAppRef._app_instance = None
     shutil.rmtree("./storage", ignore_errors=True)
-    shutil.rmtree(_storage_root_dir(), ignore_errors=True)
+    shutil.rmtree("./.storage", ignore_errors=True)
     shutil.rmtree("./.shared", ignore_errors=True)
     if os.path.isfile(_APP_CONFIG_FILENAME):
         os.remove(_APP_CONFIG_FILENAME)

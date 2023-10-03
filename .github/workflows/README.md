@@ -33,11 +33,11 @@ Brief description of all our automation tools used for boosting development perf
 
 ## Documentation
 
-| workflow file                                                                             | action                                                                   |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| .github/workflows/docs-build.yml                                                          | Run doctest, linkcheck and full HTML build.                              |
-| .github/workflows/ci-rtfd.yml                                                             | Append link to the PR describtion with temporaty ReadTheDocs build docs. |
-| .github/workflows/ci-check-md-links.yml <br> .github/workflows/markdown.links.config.json | Validate links in markdown files.                                        |
+| workflow file                                                                   | action                                                                   |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| .github/workflows/docs-build.yml                                                | Run doctest, linkcheck and full HTML build.                              |
+| .github/workflows/ci-rtfd.yml                                                   | Append link to the PR description with temporaty ReadTheDocs build docs. |
+| .github/workflows/ci-check-md-links.yml <br> .github/markdown.links.config.json | Validate links in markdown files.                                        |
 
 ## Code Quality
 
@@ -68,12 +68,12 @@ The published Docker Hub project is https://hub.docker.com/r/pytorchlightning/py
 
 ## Bots
 
-| workflow file                                                          | action                                                                                                                                                  |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| .github/mergify.yml                                                    | Label PRs as conflicts or ready, and request reviews if needed.                                                                                         |
-| .github/stale.yml                                                      | Close inactive issues/PRs sometimes after adding the "won't fix" label to them.                                                                         |
-| .github/workflows/probot-auto-cc.yml <br> .github/lightning-probot.yml | Notify maintainers of interest depending on labels added to an issue We utilize lightning-probot forked from PyTorch’s probot.                          |
-| .github/workflows/probot-check-group.yml <br> .github/checkgroup.yml   | Checks whether the relevant jobs were successfully run based on the changed files in the PR                                                             |
-| .pre-commit-config.yaml                                                | It applies a set of linters and formatters and can be registered with your local dev. If needed [bot](https://pre-commit.ci/) pushc chnges to each PRs. |
-| .github/workflows/labeler-pr.yml, .github/labeler.yml                  | Integration of https://github.com/actions/labeler                                                                                                       |
-| .github/workflows/labeler-issue.yml                                    | Parse user provided `lightning` version and set it as label.                                                                                            |
+| workflow file                                                          | action                                                                                                                                                   |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| .github/mergify.yml                                                    | Label PRs as conflicts or ready, and request reviews if needed.                                                                                          |
+| .github/stale.yml                                                      | Close inactive issues/PRs sometimes after adding the "won't fix" label to them.                                                                          |
+| .github/workflows/probot-auto-cc.yml <br> .github/lightning-probot.yml | Notify maintainers of interest depending on labels added to an issue We utilize lightning-probot forked from PyTorch’s probot.                           |
+| .github/workflows/probot-check-group.yml <br> .github/checkgroup.yml   | Checks whether the relevant jobs were successfully run based on the changed files in the PR                                                              |
+| .pre-commit-config.yaml                                                | It applies a set of linters and formatters and can be registered with your local dev. If needed [bot](https://pre-commit.ci/) pushc changes to each PRs. |
+| .github/workflows/labeler-pr.yml, .github/labeler.yml                  | Integration of https://github.com/actions/labeler                                                                                                        |
+| .github/workflows/labeler-issue.yml                                    | Parse user provided `lightning` version and set it as label.                                                                                             |

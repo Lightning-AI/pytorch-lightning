@@ -8,19 +8,17 @@ from functools import partial
 from time import time
 from unittest.mock import ANY
 
+import lightning.app
 import pytest
 from deepdiff import DeepDiff, Delta
-
-import lightning.app
 from lightning.app import CloudCompute, LightningApp
-from lightning.app.core.flow import _RootFlow, LightningFlow
+from lightning.app.core.flow import LightningFlow, _RootFlow
 from lightning.app.core.work import LightningWork
 from lightning.app.runners import MultiProcessRuntime
-from lightning.app.storage import Path
-from lightning.app.storage.path import _storage_root_dir
+from lightning.app.storage.path import Path, _storage_root_dir
 from lightning.app.structures import Dict as LDict
 from lightning.app.structures import List as LList
-from lightning.app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
+from lightning.app.testing.helpers import EmptyFlow, EmptyWork, _MockQueue
 from lightning.app.utilities.app_helpers import (
     _delta_to_app_state_delta,
     _LightningAppRef,
@@ -29,6 +27,7 @@ from lightning.app.utilities.app_helpers import (
 )
 from lightning.app.utilities.enum import CacheCallsKeys
 from lightning.app.utilities.exceptions import ExitAppException
+from lightning.app.utilities.imports import _IS_WINDOWS
 
 
 def test_empty_component():
@@ -608,7 +607,8 @@ def test_flow_path_assignment():
     assert flow.path == flow.lit_path
 
 
-@pytest.mark.skip(reason="Timeout")  # fixme
+@pytest.mark.skipif(_IS_WINDOWS, reason="timeout with system crash")
+@pytest.mark.xfail(strict=False, reason="Timeout")  # fixme
 def test_flow_state_change_with_path():
     """Test that type changes to a Path attribute are properly reflected within the state."""
 

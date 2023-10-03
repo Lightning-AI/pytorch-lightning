@@ -15,14 +15,11 @@ import collections
 import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import call, MagicMock, patch
-
-import pytest
-import torch
-from torch import nn
-from torch.utils.data import DataLoader
+from unittest.mock import MagicMock, call, patch
 
 import lightning.fabric
+import pytest
+import torch
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, XLAAccelerator
@@ -30,6 +27,9 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.plugins import PrecisionPlugin, XLACheckpointIO, XLAPrecisionPlugin
 from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
 from lightning.pytorch.utilities import find_shared_parameters
+from torch import nn
+from torch.utils.data import DataLoader
+
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.trainer.connectors.test_accelerator_connector import DeviceMock
 from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad

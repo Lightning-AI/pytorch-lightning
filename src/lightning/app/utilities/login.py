@@ -29,7 +29,7 @@ from fastapi import FastAPI, Query, Request
 from starlette.background import BackgroundTask
 from starlette.responses import RedirectResponse
 
-from lightning.app.core.constants import get_lightning_cloud_url, LIGHTNING_CREDENTIAL_PATH
+from lightning.app.core.constants import LIGHTNING_CREDENTIAL_PATH, get_lightning_cloud_url
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.network import find_free_network_port
 

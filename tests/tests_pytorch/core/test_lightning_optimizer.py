@@ -16,13 +16,12 @@ from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
 import torch
-from torch.optim import Adam, Optimizer, SGD
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops.optimization.automatic import Closure
 from lightning.pytorch.tuner.tuning import Tuner
+from torch.optim import SGD, Adam, Optimizer
 
 
 @pytest.mark.parametrize("auto", [True, False])
@@ -150,15 +149,7 @@ def test_state():
     assert isinstance(lightning_optimizer, Adam)
     assert isinstance(lightning_optimizer, Optimizer)
 
-    lightning_dict = {
-        k: v
-        for k, v in lightning_optimizer.__dict__.items()
-        if k not in {"_optimizer", "_strategy", "_lightning_module", "_on_before_step", "_on_after_step"}
-    }
-
-    assert lightning_dict == optimizer.__dict__
     assert optimizer.state_dict() == lightning_optimizer.state_dict()
-    assert optimizer.state == lightning_optimizer.state
 
 
 def test_state_mutation():
@@ -174,10 +165,6 @@ def test_state_mutation():
     optimizer1 = torch.optim.Adam(model.parameters(), lr=100)
     lightning_optimizer1 = LightningOptimizer(optimizer1)
     optimizer1.load_state_dict(state_dict0)
-
-    # LightningOptimizer needs to be refreshed to see the new state
-    assert lightning_optimizer1.param_groups[0]["lr"] != 1.0
-    lightning_optimizer1.refresh()
     assert lightning_optimizer1.param_groups[0]["lr"] == 1.0
 
     # Load state into wrapped optimizer

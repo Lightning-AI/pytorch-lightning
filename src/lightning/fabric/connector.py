@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from collections import Counter
-from typing import Any, cast, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import torch
 from typing_extensions import get_args
@@ -29,6 +29,7 @@ from lightning.fabric.plugins import (
     HalfPrecision,
     MixedPrecision,
     Precision,
+    TransformerEnginePrecision,
     XLAPrecision,
 )
 from lightning.fabric.plugins.environments import (
@@ -48,14 +49,13 @@ from lightning.fabric.plugins.precision.precision import (
     _PRECISION_INPUT_STR_ALIAS,
     _PRECISION_INPUT_STR_ALIAS_CONVERSION,
 )
-from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
+    STRATEGY_REGISTRY,
     DeepSpeedStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
     Strategy,
-    STRATEGY_REGISTRY,
     XLAFSDPStrategy,
     XLAStrategy,
 )
@@ -293,6 +293,9 @@ class _Connector:
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
+        if not isinstance(num_nodes, int) or num_nodes < 1:
+            raise ValueError(f"`num_nodes` must be a positive integer, but got {num_nodes}.")
+
         self._num_nodes_flag = num_nodes
         self._devices_flag = devices
 
@@ -353,15 +356,30 @@ class _Connector:
             self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
-        if self._devices_flag == "auto":
+        if self._devices_flag != "auto":
+            return
+        if (
+            _IS_INTERACTIVE
+            and isinstance(self.accelerator, CUDAAccelerator)
+            and self.accelerator.auto_device_count() > 1
+        ):
+            self._devices_flag = 1
+            rank_zero_info(
+                f"Fabric will use only 1 of {self.accelerator.auto_device_count()} GPUs because it is running inside"
+                " an interactive / notebook environment. You may try to set `Fabric(devices="
+                f"{self.accelerator.auto_device_count()})` but please note that multi-GPU inside interactive /"
+                " notebook environments is considered experimental and unstable. Your mileage may vary."
+            )
+        else:
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             return self._cluster_environment_flag
         for env_type in (
-            SLURMEnvironment,
+            # TorchElastic has the highest priority since it can also be used inside SLURM
             TorchElasticEnvironment,
+            SLURMEnvironment,
             LSFEnvironment,
             MPIEnvironment,
         ):
@@ -444,7 +462,9 @@ class _Connector:
         if self._precision_input == "64-true":
             return DoublePrecision()
         if self._precision_input == "transformer-engine":
-            return TransformerEnginePrecision()
+            return TransformerEnginePrecision(dtype=torch.bfloat16)
+        if self._precision_input == "transformer-engine-float16":
+            return TransformerEnginePrecision(dtype=torch.float16)
 
         if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(

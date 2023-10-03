@@ -2,7 +2,7 @@ import json
 import operator
 import os
 import warnings
-from typing import Any, Dict, List, Literal, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import compare_version

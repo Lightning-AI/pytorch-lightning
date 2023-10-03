@@ -2,7 +2,6 @@ import os
 import tarfile
 
 import pytest
-
 from lightning.app.components.python import PopenPythonScript, TracerPythonScript
 from lightning.app.components.python.tracer import Code
 from lightning.app.storage.drive import Drive

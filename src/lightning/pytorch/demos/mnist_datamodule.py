@@ -28,9 +28,6 @@ from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import LightningDataModule
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 
-if _TORCHVISION_AVAILABLE:
-    from torchvision import transforms as transform_lib
-
 _DATASETS_PATH = "./data"
 
 
@@ -203,7 +200,9 @@ class MNISTDataModule(LightningDataModule):
         dataset: Dataset = MNIST(self.data_dir, train=True, download=False, **extra)
         assert isinstance(dataset, Sized)
         train_length = len(dataset)
-        self.dataset_train, self.dataset_val = random_split(dataset, [train_length - self.val_split, self.val_split])
+        self.dataset_train, self.dataset_val = random_split(
+            dataset, [train_length - self.val_split, self.val_split], generator=torch.Generator().manual_seed(42)
+        )
 
     def train_dataloader(self) -> DataLoader:
         """MNIST train set removes a subset to use for validation."""
@@ -244,11 +243,14 @@ class MNISTDataModule(LightningDataModule):
     def default_transforms(self) -> Optional[Callable]:
         if not _TORCHVISION_AVAILABLE:
             return None
+
+        from torchvision import transforms
+
         if self.normalize:
-            mnist_transforms = transform_lib.Compose(
-                [transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5,), std=(0.5,))]
+            mnist_transforms = transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize(mean=(0.5,), std=(0.5,))]
             )
         else:
-            mnist_transforms = transform_lib.ToTensor()
+            mnist_transforms = transforms.ToTensor()
 
         return mnist_transforms
