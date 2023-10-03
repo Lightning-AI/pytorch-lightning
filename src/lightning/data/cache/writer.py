@@ -218,7 +218,7 @@ class BinaryWriter:
         self._current_chunk_size += serialized_items_size
 
         if self._indexes:
-            assert self._indexes[-1] == index - 1
+            assert self._indexes[-1] == index - 1, (self._indexes, index - 1)
 
         self._indexes.append(index)
 
