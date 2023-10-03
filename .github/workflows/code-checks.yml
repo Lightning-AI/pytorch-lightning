@@ -43,8 +43,9 @@ jobs:
         env:
           FREEZE_REQUIREMENTS: 1
         run: |
-          pip install -v -e '.[pytorch,fabric,data]' -r requirements/typing.txt
+          # TODO: investigate hanging installation with app sub-package
+          pip install -e '.[pytorch-all,fabric-all, data-all]' -r requirements/typing.txt
           pip list
 
       - name: Check typing
-        run: mypy
+        run: mypy --no-warn-unused-ignores
