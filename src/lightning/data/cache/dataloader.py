@@ -105,7 +105,6 @@ class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
             for v in self._dataset_fetcher.dataset.__dict__.values():
                 if isinstance(v, Cache):
                     v.done()
-                    v.merge()
             raise StopIteration()
 
 
@@ -135,7 +134,6 @@ class WorkerLoop:
             for v in fetcher.dataset.__dict__.values():
                 if isinstance(v, Cache):
                     v.done()
-                    v.merge()
 
 
 class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
