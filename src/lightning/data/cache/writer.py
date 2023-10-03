@@ -197,7 +197,9 @@ class BinaryWriter:
         serialized_items = self.serialize(items)
         serialized_items_size = len(serialized_items)
 
-        should_write = (self._chunk_bytes and self._chunk_bytes < self._current_chunk_size + serialized_items_size) or (self._chunk_size and len(self._indexes) >= self._chunk_size)
+        should_write = (self._chunk_bytes and self._chunk_bytes < self._current_chunk_size + serialized_items_size) or (
+            self._chunk_size and len(self._indexes) >= self._chunk_size
+        )
 
         if should_write:
             if self._current_chunk_size == 0:
