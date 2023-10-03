@@ -354,6 +354,7 @@ class _DataHookSelector:
     Arguments:
         model: A ``LightningModule``
         datamodule: A ``LightningDataModule``
+
     """
 
     model: "pl.LightningModule"

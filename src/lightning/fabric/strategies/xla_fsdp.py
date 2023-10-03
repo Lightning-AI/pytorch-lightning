@@ -78,6 +78,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         sequential_save: With this enabled, individual ranks consecutively save their state dictionary shards, reducing
             peak system RAM usage, although it elongates the saving process.
         \**kwargs: See available parameters in :class:`torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`.
+
     """
 
     def __init__(
@@ -644,8 +645,8 @@ def _activation_checkpointing_kwargs(policy: Optional[_POLICY_SET], kwargs: Dict
 
 class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
     def no_backward_sync(self, module: Module) -> ContextManager:
-        """Blocks gradient synchronization inside the
-        :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel` wrapper."""
+        """Blocks gradient synchronization inside the :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`
+        wrapper."""
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
         if not isinstance(module, XLAFSDP):

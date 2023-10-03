@@ -270,8 +270,8 @@ class FSDPStrategy(ParallelStrategy):
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
 
     def _setup_model(self, model: Module) -> Module:
-        """Wraps the model into a
-        :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
+        """Wraps the model into a :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel`
+        module."""
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in model.modules()):

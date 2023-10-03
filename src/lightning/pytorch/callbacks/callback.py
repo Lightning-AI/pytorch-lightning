@@ -234,6 +234,7 @@ class Callback:
 
         Returns:
             A dictionary containing callback state.
+
         """
         return {}
 
@@ -242,6 +243,7 @@ class Callback:
 
         Args:
             state_dict: the callback state returned by ``state_dict``.
+
         """
         pass
 
