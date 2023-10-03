@@ -237,7 +237,7 @@ class _TrainingEpochLoop(loops._Loop):
             with trainer.profiler.profile("run_training_batch"):
                 if trainer.lightning_module.automatic_optimization:
                     # in automatic optimization, there can only be one optimizer
-                    batch_output = self.automatic_optimization.run(trainer.optimizers[0], kwargs)
+                    batch_output = self.automatic_optimization.run(trainer.optimizers[0], batch_idx, kwargs)
                 else:
                     batch_output = self.manual_optimization.run(kwargs)
 
