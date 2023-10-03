@@ -1,4 +1,5 @@
 import os
+import time
 
 import lightning.pytorch as pl
 import timm
@@ -7,7 +8,6 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms as tfs
 from torchvision.datasets import CIFAR10
-import time
 
 epochs = 5
 epoch_size = 100
@@ -52,7 +52,9 @@ def run():
     dataset = CIFAR10(".", train=True, download=True, transform=transform)
     dataloader = DataLoader(dataset, batch_size=64)
     model = LitModel()
-    trainer = pl.Trainer(max_steps=5, max_epochs=epochs, limit_train_batches=epoch_size, accelerator="cuda", devices=2, strategy="ddp")
+    trainer = pl.Trainer(
+        max_steps=5, max_epochs=epochs, limit_train_batches=epoch_size, accelerator="cuda", devices=2, strategy="ddp"
+    )
     trainer.fit(model, dataloader)
 
 
