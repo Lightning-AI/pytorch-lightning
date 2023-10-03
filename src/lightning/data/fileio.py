@@ -2,10 +2,7 @@ import os
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 if TYPE_CHECKING:
-    try:
-        from torchdata.datapipes.utils import StreamWrapper
-    except ImportError:
-        StreamWrapper = object
+    from torchdata.datapipes.utils import StreamWrapper
 
 
 def is_url(path: str) -> bool:
@@ -48,31 +45,6 @@ def open_single_file(
         return stream
     return None
 
-
-def open_single_file_with_retry(
-    path_or_url: str, mode: str = "r", kwargs_for_open: Optional[Dict[str, Any]] = None, **kwargs: Any
-) -> "StreamWrapper":
-    """Streams the given file with a retry mechanism in case of high batch_size (>128) parallel opens.
-
-    Returns:
-        The opened file stream.
-
-    """
-    from torchdata.datapipes.iter import FSSpecFileOpener, IterableWrapper
-
-    datapipe = IterableWrapper([path_or_url], **kwargs)
-
-    num_attempts = 5
-
-    for _, stream in FSSpecFileOpener(datapipe, mode=mode, kwargs_for_open=kwargs_for_open, **kwargs):
-        curr_attempt = 0
-        while curr_attempt < num_attempts:
-            try:
-                return stream
-            except Exception:
-                curr_attempt += 1
-
-    raise RuntimeError(f"Could not open {path_or_url}")
 
 
 # Necessary to support both a context manager and a call
