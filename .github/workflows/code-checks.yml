@@ -43,6 +43,7 @@ jobs:
         env:
           FREEZE_REQUIREMENTS: 1
         run: |
+          # TODO: investigate hanging installation with app sub-package
           pip install -e '.[pytorch,fabric,data]' -r requirements/typing.txt
           pip list
 
