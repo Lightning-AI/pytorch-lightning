@@ -24,10 +24,10 @@ import torch.multiprocessing as mp
 from lightning_utilities import apply_to_collection
 from torch.nn import Module
 
-from lightning.fabric.utilities.distributed import _set_num_threads
 from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
+from lightning.fabric.utilities.distributed import _set_num_threads
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
 

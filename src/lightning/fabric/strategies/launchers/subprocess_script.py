@@ -22,9 +22,9 @@ from typing import Any, Callable, List, Optional, Sequence, Tuple
 
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.fabric.utilities.distributed import _set_num_threads
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.strategies.launchers.launcher import _Launcher
+from lightning.fabric.utilities.distributed import _set_num_threads
 from lightning.fabric.utilities.rank_zero import rank_prefixed_message
 
 _logger = logging.getLogger(__name__)
