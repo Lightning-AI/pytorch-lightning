@@ -22,7 +22,9 @@ docs/source-pytorch/notebooks
 docs/source-pytorch/_static/images/course_UvA-DL
 docs/source-pytorch/_static/images/lightning_examples
 docs/source-pytorch/_static/fetched-s3-assets
+docs/source-pytorch/_static/images/ipu/
 docs/source-pytorch/integrations/hpu
+docs/source-pytorch/integrations/ipu
 
 docs/source-fabric/*/generated
 
