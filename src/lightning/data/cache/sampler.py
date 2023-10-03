@@ -221,6 +221,27 @@ class CacheBatchSampler(BatchSampler):
         self._num_workers = num_workers
         self._shuffled_chunk_intervals = None
 
+        # self._validate()
+
+    def _validate(self):
+        if self._num_workers > 1 and not self._cache.filled:
+            batches = {}
+            for batch_index, batch_indices in enumerate(self):
+                worker_index = batch_index % self._num_workers
+                if worker_index not in batches:
+                    batches[worker_index] = []
+                    batches[worker_index].extend(batch_indices)
+                elif len(batch_indices) > 0:
+                    if batches[worker_index][-1] != (batch_indices[0] - 1):
+                        breakpoint()
+                    batches[worker_index].extend(batch_indices)
+
+            for indices in batches.values():
+                indices = np.asarray(indices)
+                diff = indices[1:] - (indices[:-1] + 1)
+                if diff.sum() != 0:
+                    raise RuntimeError("This shouldn't have happened. There is a bug in the CacheSampler.")
+
     def __iter_ordered__(self) -> Iterator[List[int]]:
         # Implemented based on the benchmarking in https://github.com/pytorch/pytorch/pull/76951
         iterator = iter(self.sampler)

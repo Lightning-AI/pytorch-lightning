@@ -211,3 +211,14 @@ def test_cache_batch_sampler(params):
     validate_batch(batches_2)
     if params[1] == 1:
         assert batches_1 != batches_2
+
+
+def test_batch_sampler_imagenet():
+    dataset_size = 1281167
+    world_size = 1
+    rank = 0
+    num_workers = 32
+    batch_size = 8
+    cache = mock.MagicMock()
+    cache.filled = False
+    CacheBatchSampler(dataset_size, world_size, rank, num_workers, batch_size, False, True, cache)

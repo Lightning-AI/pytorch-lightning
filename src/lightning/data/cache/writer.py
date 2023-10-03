@@ -286,7 +286,5 @@ class BinaryWriter:
 
                 chunks_info.extend(data["chunks"])
 
-            os.remove(chunk_path)
-
         with open(os.path.join(self._cache_dir, "index.json"), "w") as f:
             json.dump({"chunks": chunks_info, "config": config}, f, sort_keys=True)
