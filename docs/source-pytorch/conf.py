@@ -597,5 +597,6 @@ linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
 # ignore the following relative links (false positive errors during linkcheck)
 linkcheck_ignore = [
     r"installation.html$",
+    r"starter/installation.html$",
     r"^../common/trainer.html#trainer-flags$",
 ]
