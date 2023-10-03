@@ -1623,7 +1623,8 @@ class TestCloudspaceDispatch:
         mock_app.works = [mock.MagicMock()]
         cloud_runtime = cloud.CloudRuntime(app=mock_app, entrypoint=Path("."))
 
-        cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name", "cluster_id")
+        app = cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name", "cluster_id")
+        assert app.id == "instance_id"
 
         mock_client.cloud_space_service_get_cloud_space.assert_called_once_with(
             project_id="project_id", id="cloudspace_id"
