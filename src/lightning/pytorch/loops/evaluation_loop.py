@@ -241,7 +241,8 @@ class _EvaluationLoop(_Loop):
         self._verify_dataloader_idx_requirement()
 
         self._on_evaluation_model_eval()
-        self.trainer.lightning_module.zero_grad()
+        # TODO: Remove `set_to_none=True` when PyTorch 2.0 is the minimum supported version
+        self.trainer.lightning_module.zero_grad(set_to_none=True)
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 
