@@ -20,13 +20,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as T
+from lightning.fabric import Fabric, seed_everything
 from sklearn import model_selection
 from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchmetrics.classification import Accuracy
 from torchvision.datasets import MNIST
-
-from lightning.fabric import Fabric  # import Fabric
-from lightning.fabric import seed_everything
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "..", "Datasets")
 
@@ -117,7 +115,7 @@ def run(hparams):
     transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
 
     # Let rank 0 download the data first, then everyone will load MNIST
-    with fabric.rank_zero_first():
+    with fabric.rank_zero_first(local=False):  # set `local=True` if your filesystem is not shared between machines
         dataset = MNIST(DATASETS_PATH, train=True, download=True, transform=transform)
 
     # Loop over different folds (shuffle = False by default so reproducible)

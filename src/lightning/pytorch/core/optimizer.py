@@ -21,7 +21,7 @@ from torch import optim
 from torch.optim import Optimizer
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.types import _Stateful, Optimizable, ReduceLROnPlateau
+from lightning.fabric.utilities.types import Optimizable, ReduceLROnPlateau, _Stateful
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
@@ -379,7 +379,7 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
 
 class _MockOptimizer(Optimizer):
     """The `_MockOptimizer` will be used inplace of an optimizer in the event that `None` is returned from
-    `configure_optimizers`."""
+    :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`."""
 
     def __init__(self) -> None:
         super().__init__([torch.zeros(1)], {})

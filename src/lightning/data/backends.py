@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Optional, Protocol, runtime_checkable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Optional, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     try:

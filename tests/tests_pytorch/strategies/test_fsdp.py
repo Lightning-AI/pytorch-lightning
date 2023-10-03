@@ -12,7 +12,6 @@ from unittest.mock import ANY, MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
-
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_12,
@@ -22,10 +21,12 @@ from lightning.fabric.utilities.imports import (
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import HalfPrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
 from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
@@ -62,16 +63,23 @@ class TestFSDPModel(BoringModel):
         # There is some issue with SGD optimizer state in FSDP
         return torch.optim.AdamW(self.layer.parameters(), lr=0.1)
 
-    def on_train_batch_end(self, *_) -> None:
+    def on_train_batch_start(self, batch, batch_idx):
+        assert batch.dtype == torch.float32
+
+    def on_train_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_test_batch_end(self, *_) -> None:
+    def on_test_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_validation_batch_end(self, *_) -> None:
+    def on_validation_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_predict_batch_end(self, *_) -> None:
+    def on_predict_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
     def _assert_layer_fsdp_instance(self) -> None:
@@ -118,16 +126,23 @@ class TestBoringModel(BoringModel):
 
 
 class TestFSDPModelAutoWrapped(TestBoringModel):
-    def on_train_batch_end(self, *_) -> None:
+    def on_train_batch_start(self, batch, batch_idx):
+        assert batch.dtype == torch.float32
+
+    def on_train_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_test_batch_end(self, *_) -> None:
+    def on_test_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_validation_batch_end(self, *_) -> None:
+    def on_validation_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
-    def on_predict_batch_end(self, *_) -> None:
+    def on_predict_batch_end(self, _, batch, batch_idx):
+        assert batch.dtype == torch.float32
         self._assert_layer_fsdp_instance()
 
     def _assert_layer_fsdp_instance(self) -> None:
@@ -387,6 +402,16 @@ def test_fsdp_activation_checkpointing_support():
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
     with pytest.raises(ValueError, match="activation_checkpointing` requires torch >= 1.13.0"):
         FSDPStrategy(activation_checkpointing=Mock())
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_forbidden_precision_raises():
+    with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
+        FSDPStrategy(precision_plugin=HalfPrecisionPlugin())
+
+    strategy = FSDPStrategy()
+    with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
+        strategy.precision_plugin = HalfPrecisionPlugin()
 
 
 @RunIf(min_torch="1.13")

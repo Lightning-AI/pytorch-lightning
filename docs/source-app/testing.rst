@@ -112,7 +112,7 @@ These methods will skew your tests, so use them when needed.
 The Test
 ^^^^^^^^
 
-We provide ``application_testing`` as a helper funtion to get your application up and running for testing. It uses ``click``\ 's invocation tooling underneath.
+We provide ``application_testing`` as a helper function to get your application up and running for testing. It uses ``click``\ 's invocation tooling underneath.
 
 .. code-block::
 

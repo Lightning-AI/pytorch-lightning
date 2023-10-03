@@ -17,10 +17,10 @@ import logging
 import os
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any, Callable, ContextManager, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Optional, Type, Union
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.autograd.profiler import EventList, record_function
 from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 from torch.utils.hooks import RemovableHandle
@@ -28,7 +28,7 @@ from torch.utils.hooks import RemovableHandle
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.pytorch.profilers.profiler import Profiler
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 
 if TYPE_CHECKING:
     from lightning.pytorch.core.module import LightningModule

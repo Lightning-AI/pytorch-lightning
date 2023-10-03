@@ -12,21 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest.mock import call, Mock, patch
+from unittest.mock import Mock, call, patch
 
+import lightning.pytorch
 import numpy
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import RandomSampler
-from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import Dataset, IterableDataset
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import SequentialSampler
-
-import lightning.pytorch
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
-from lightning.pytorch import Callback, seed_everything, Trainer
+from lightning.pytorch import Callback, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import (
     BoringModel,
@@ -40,6 +33,13 @@ from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import RandomSampler
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import SequentialSampler
+
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
@@ -532,7 +532,7 @@ def test_warning_on_zero_len_dataloader():
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 @pytest.mark.parametrize("stage", ["train", "test", "val"])
-@patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
+@patch("lightning.fabric.utilities.data._num_cpus_available", return_value=4)
 def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
     model = BoringModel()
@@ -545,10 +545,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
 
-    with pytest.warns(
-        UserWarning,
-        match=f"The dataloader, {stage}_dataloader, does not have many workers",
-    ):
+    with pytest.warns(UserWarning, match=f"The '{stage}_dataloader' does not have many workers"):
         if stage == "test":
             if ckpt_path in ("specific", "best"):
                 trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
@@ -561,9 +558,9 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 @pytest.mark.parametrize("stage", ["train", "test", "val"])
-@patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
+@patch("lightning.fabric.utilities.data._num_cpus_available", return_value=4)
 def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
-    """Test that error is raised if dataloader with only a few workers is used."""
+    """Test that a warning is emitted if the dataloader only has a few workers."""
 
     class CustomModel(MultiEvalDataLoaderModel):
         def training_step(self, batch, batch_idx):
@@ -584,7 +581,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
 
     with pytest.warns(
         UserWarning,
-        match=f"The dataloader, {stage}_dataloader, does not have many workers",
+        match=f"The '{stage}_dataloader' does not have many workers",
     ):
         if stage == "test":
             if ckpt_path in ("specific", "best"):

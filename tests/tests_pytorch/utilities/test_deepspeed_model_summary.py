@@ -17,6 +17,7 @@ from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.utilities.model_summary import DeepSpeedSummary
+
 from tests_pytorch.helpers.runif import RunIf
 
 

@@ -19,7 +19,7 @@ from lightning.pytorch.utilities.model_summary import get_human_readable_count
 
 
 class RichModelSummary(ModelSummary):
-    r"""Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule` with `rich text
+    r"""Generates a summary of all layers in a :class:`~lightning.pytorch.core.LightningModule` with `rich text
     formatting <https://github.com/Textualize/rich>`_.
 
     Install it with pip:

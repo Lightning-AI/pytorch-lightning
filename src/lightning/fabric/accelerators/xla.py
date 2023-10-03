@@ -17,8 +17,8 @@ from typing import Any, List, Union
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.device_parser import _check_data_type
 
 
@@ -117,7 +117,7 @@ def _using_pjrt() -> bool:
 def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:
     """
     Parses the TPU devices given in the format as accepted by the
-    :class:`~lightning.pytorch.trainer.Trainer` and :class:`~lightning.fabric.Fabric`.
+    :class:`~lightning.pytorch.trainer.trainer.Trainer` and :class:`~lightning.fabric.Fabric`.
 
     Args:
         devices: An int of 1 or string '1' indicates that 1 core with multi-processing should be used

@@ -9,4 +9,5 @@ then
 else
     echo "Void build... :-]" ;
     mkdir -p ./docs/build/html
+    cp ./docs/redirect.html ./docs/build/html/index.html
 fi

@@ -7,7 +7,7 @@ on:
     tags: ["*"]
   pull_request:
     branches: ["master", "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
+    types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/*"
       - ".github/workflows/docs-build.yml"
@@ -15,7 +15,7 @@ on:
       - "docs/**"
       - "src/**"
       - "setup.py"
-      - "pyproject.toml"  # includes metadata used in the package creation
+      - "pyproject.toml" # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
 
@@ -42,10 +42,13 @@ jobs:
       matrix:
         pkg-name: ["app", "fabric", "pytorch"]
         check: ["html", "doctest", "linkcheck"]
+    env:
+      DOCS_COPY_NOTEBOOKS: 1
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: true
+          # only Pytorch has/uses notebooks
+          submodules: ${{ matrix.pkg-name == 'pytorch' }}
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
@@ -63,10 +66,12 @@ jobs:
 
       - name: Install pandoc & texlive
         if: ${{ matrix.pkg-name == 'pytorch' }}
+        timeout-minutes: 5
         run: |
           sudo apt-get update
           sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       - name: Install package & dependencies
+        timeout-minutes: 15
         run: |
           mkdir -p ${PYPI_CACHE_DIR}  # in case cache was not hit
           ls -lh ${PYPI_CACHE_DIR}
@@ -74,12 +79,13 @@ jobs:
           pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
             -f ${PYPI_LOCAL_DIR} -f ${PYPI_CACHE_DIR} -f ${TORCH_URL}
           pip list
+      - name: Install req. for Notebooks/tutorials
+        if: matrix.pkg-name == 'pytorch'
+        run: pip install -q -r _notebooks/.actions/requires.txt
 
       - name: Test Examples in Docs
         if: ${{ matrix.check == 'doctest' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        env:
-          FAST_DOCS_DEV: 1
         run: |
           make doctest
           make coverage
@@ -87,15 +93,14 @@ jobs:
       - name: Check External Links
         if: ${{ matrix.check == 'linkcheck' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        env:
-          FAST_DOCS_DEV: 1
         run: make linkcheck SPHINXOPTS="--keep-going"
 
+      - name: Full build for deployment
+        if: github.event_name == 'push'
+        run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
       - name: Make Documentation
         if: ${{ matrix.check == 'html' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        env:
-          FAST_DOCS_DEV: 0
         run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Keep artifact

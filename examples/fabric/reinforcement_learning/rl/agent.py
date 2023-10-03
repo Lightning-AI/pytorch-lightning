@@ -4,13 +4,13 @@ from typing import Dict, Tuple
 import gymnasium as gym
 import torch
 import torch.nn.functional as F
-from rl.loss import entropy_loss, policy_loss, value_loss
-from rl.utils import layer_init
+from lightning.pytorch import LightningModule
 from torch import Tensor
 from torch.distributions import Categorical
 from torchmetrics import MeanMetric
 
-from lightning.pytorch import LightningModule
+from rl.loss import entropy_loss, policy_loss, value_loss
+from rl.utils import layer_init
 
 
 class PPOAgent(torch.nn.Module):

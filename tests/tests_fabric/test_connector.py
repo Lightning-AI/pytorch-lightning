@@ -13,17 +13,14 @@
 # limitations under the License
 import inspect
 import os
-import sys
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.fabric
 import pytest
 import torch
 import torch.distributed
-from lightning_utilities.test.warning import no_warning_call
-
-import lightning.fabric
 from lightning.fabric import Fabric
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.accelerator import Accelerator
@@ -49,7 +46,6 @@ from lightning.fabric.plugins.environments import (
     XLAEnvironment,
 )
 from lightning.fabric.plugins.io import TorchCheckpointIO
-from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
     DataParallelStrategy,
     DDPStrategy,
@@ -63,6 +59,8 @@ from lightning.fabric.strategies import (
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
+from lightning_utilities.test.warning import no_warning_call
+
 from tests_fabric.conftest import mock_tpu_available
 from tests_fabric.helpers.runif import RunIf
 
@@ -312,6 +310,13 @@ def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class):
 def test_strategy_choice_multi_node_gpu(_, strategy, strategy_class, devices):
     connector = _Connector(num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(connector.strategy, strategy_class)
+
+
+def test_num_nodes_input_validation():
+    with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
+        _Connector(num_nodes=0)
+    with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
+        _Connector(num_nodes=-1)
 
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=0)
@@ -588,6 +593,26 @@ def test_strategy_choice_ddp_torchelastic(*_):
     assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
     assert connector.strategy.cluster_environment.local_rank() == 1
     assert connector.strategy.local_rank == 1
+
+
+@mock.patch.dict(
+    os.environ,
+    {
+        "TORCHELASTIC_RUN_ID": "1",
+        "SLURM_NTASKS": "2",
+        "WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+    },
+)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_torchelastic_priority_over_slurm(*_):
+    """Test that the TorchElastic cluster environment is chosen over SLURM when both are detected."""
+    assert TorchElasticEnvironment.detect()
+    assert SLURMEnvironment.detect()
+    connector = _Connector(strategy="ddp")
+    assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
 
 
 @mock.patch.dict(
@@ -1061,95 +1086,3 @@ def test_xla_fsdp_automatic_strategy_selection(monkeypatch, tpu_available):
 
     if added_fsdp:
         strategies.STRATEGY_REGISTRY.pop("fsdp")
-
-
-def test_connector_transformer_engine(monkeypatch):
-    monkeypatch.setattr(
-        lightning.fabric.plugins.precision.transformer_engine, "_TRANSFORMER_ENGINE_AVAILABLE", lambda: True
-    )
-    transformer_engine_mock = Mock()
-    monkeypatch.setitem(sys.modules, "transformer_engine", transformer_engine_mock)
-    monkeypatch.setitem(sys.modules, "transformer_engine.pytorch", Mock())
-    recipe_mock = Mock()
-    monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
-
-    connector = _Connector(precision="transformer-engine")
-    assert isinstance(connector.precision, TransformerEnginePrecision)
-
-    recipe_mock.reset_mock()
-    precision = TransformerEnginePrecision()
-    connector = _Connector(plugins=precision)
-    assert connector.precision is precision
-    assert precision.dtype == torch.float32
-    recipe_mock.DelayedScaling.assert_called_once_with()
-
-    recipe_mock.reset_mock()
-    recipe = {"foo": 0, "fp8_format": "HYBRID"}
-    precision = TransformerEnginePrecision(dtype=torch.float16, recipe=recipe)
-    connector = _Connector(plugins=precision)
-    assert connector.precision is precision
-    recipe_mock.DelayedScaling.assert_called_once_with(foo=0, fp8_format=recipe_mock.Format.HYBRID)
-    assert isinstance(recipe["fp8_format"], str)  # not modified
-
-    # same logic as in `test_default_dtype_is_restored`
-    assert torch.get_default_dtype() is torch.float32
-    with pytest.raises(RuntimeError, match="foo"), precision.init_context():
-        assert torch.get_default_dtype() is not torch.float32
-        raise RuntimeError("foo")
-    assert torch.get_default_dtype() is torch.float32
-
-    class SubModule(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.l = torch.nn.Linear(1, 3)
-
-    class MyModule(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.l1 = torch.nn.Linear(16, 48)
-            self.l2 = torch.nn.LayerNorm(1)
-            self.l3 = SubModule()
-
-    model = MyModule()
-
-    precision.replace_layers = False
-    precision.convert_module(model)
-    assert isinstance(model.l1, torch.nn.Linear)
-    assert model.l1.weight.dtype == torch.float16
-    assert isinstance(model.l3.l, torch.nn.Linear)
-    assert isinstance(model.l2, torch.nn.LayerNorm)
-
-    precision.replace_layers = True
-    setattr_mock = Mock()
-    model.__setattr__ = setattr_mock
-    with pytest.warns(match="divisible by 8 and 16"):
-        precision.convert_module(model)
-    mock_calls = setattr_mock.mock_calls
-    assert len(mock_calls) == 2
-    assert mock_calls[0][1][0] == "l1"
-    assert mock_calls[1][1][0] == "l2"
-    assert mock_calls[0][1][1]._extract_mock_name() == "mock.pytorch.Linear()"
-    assert mock_calls[1][1][1]._extract_mock_name() == "mock.pytorch.LayerNorm()"
-
-    precision.replace_layers = False
-    with precision.init_context():
-        model = MyModule()
-    assert isinstance(model.l1, torch.nn.Linear)
-    assert isinstance(model.l2, torch.nn.LayerNorm)
-    assert isinstance(model.l3.l, torch.nn.Linear)
-
-    class TELinearMock(Mock):
-        ...
-
-    class TELayerNormMock(Mock):
-        ...
-
-    transformer_engine_mock.pytorch.Linear = TELinearMock
-    transformer_engine_mock.pytorch.LayerNorm = TELayerNormMock
-    precision.replace_layers = True
-    with precision.init_context():
-        assert torch.get_default_dtype() == torch.float16
-        model = MyModule()
-    assert isinstance(model.l1, TELinearMock)
-    assert isinstance(model.l2, TELayerNormMock)
-    assert isinstance(model.l3.l, TELinearMock)

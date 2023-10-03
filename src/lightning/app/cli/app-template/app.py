@@ -1,6 +1,5 @@
-from placeholdername import ComponentA, ComponentB
-
 from lightning.app import LightningApp, LightningFlow
+from placeholdername import ComponentA, ComponentB
 
 
 class LitApp(LightningFlow):
