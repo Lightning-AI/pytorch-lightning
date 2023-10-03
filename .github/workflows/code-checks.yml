@@ -42,6 +42,7 @@ jobs:
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
+        timeout-minutes: 20
         run: |
           pip install -e '.[all]' -r requirements/typing.txt
           pip list
