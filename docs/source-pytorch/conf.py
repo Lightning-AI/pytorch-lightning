@@ -104,7 +104,7 @@ assist_local.AssistantCLI.pull_docs_files(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Graphcore",
     target_dir="docs/source-pytorch/integrations/ipu",
-    checkout="tags/0.1.0.rc3",
+    checkout="tags/v0.1.0",
 )
 
 if _FETCH_S3_ASSETS:
