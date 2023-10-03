@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import logging
+from importlib import reload
 from typing import Any, Optional
 
 import torch
@@ -114,6 +115,8 @@ class WorkerLoop:
 
         from lightning.data.cache.cache import Cache
 
+        reloaded_worker = reload(worker)
+
         create_fetcher = _DatasetKind.create_fetcher
 
         fetcher = None
@@ -125,7 +128,7 @@ class WorkerLoop:
 
         _DatasetKind.create_fetcher = create_fetcher_fn
 
-        worker._worker_loop(dataset_kind, *args, **kwargs)
+        reloaded_worker._worker_loop(dataset_kind, *args, **kwargs)
 
         if dataset_kind == _DatasetKind.Map:
             for v in fetcher.dataset.__dict__.values():
@@ -138,7 +141,6 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
         # Patch PyTorch worker loop to call the `cache.done()` method.
         from torch.utils.data._utils import worker
 
-        worker._original_worker_loop = worker._worker_loop
         worker._worker_loop = WorkerLoop()
         super().__init__(loader)
 
