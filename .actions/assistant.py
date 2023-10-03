@@ -442,7 +442,7 @@ class AssistantCLI:
         target_dir: str = "docs/source-pytorch/XXX",
         checkout: str = "tags/1.0.0",
         source_dir: str = "docs/source",
-        as_orphan: bool = False
+        as_orphan: bool = False,
     ) -> None:
         """Pull docs pages from external source and append to local docs."""
         import zipfile
@@ -482,10 +482,9 @@ class AssistantCLI:
         with open(rst_in, encoding="utf-8") as fopen:
             page = fopen.read()
         if as_orphan and ":orphan:" not in page:
-            page = f":orphan:\n\n" + page
+            page = ":orphan:\n\n" + page
         with open(rst_in, "w", encoding="utf-8") as fopen:
             fopen.write(page)
-
 
 
 if __name__ == "__main__":
