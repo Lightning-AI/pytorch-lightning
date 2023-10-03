@@ -43,7 +43,7 @@ jobs:
         env:
           FREEZE_REQUIREMENTS: 1
         run: |
-          pip install -vv -e '.[all]' -r requirements/typing.txt
+          pip install -v -e '.[all]' -r requirements/typing.txt
           pip list
 
       - name: Check typing
