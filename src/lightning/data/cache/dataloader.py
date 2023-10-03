@@ -105,6 +105,7 @@ class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
             for v in self._dataset_fetcher.dataset.__dict__.values():
                 if isinstance(v, Cache):
                     v.done()
+                if not v.filled:
                     v.merge(1)
             raise StopIteration()
 
@@ -149,7 +150,8 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
 
     def _shutdown_workers(self):
         super()._shutdown_workers()
-        self._cache.merge(self._num_workers)
+        if not self._cache.filled:
+            self._cache.merge(self._num_workers)
 
 
 class LightningDataLoader(DataLoader):
