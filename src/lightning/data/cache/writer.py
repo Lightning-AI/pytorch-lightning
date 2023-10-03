@@ -20,7 +20,6 @@ import numpy as np
 from lightning.data.cache.compression import _COMPRESSORS
 from lightning.data.cache.pytree import tree_flatten, treespec_dumps
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
-from lightning.data.cache.worker import get_worker_info
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
 
@@ -83,7 +82,7 @@ class BinaryWriter:
             return True
         files = os.listdir(self._cache_dir)
         index_files = [f for f in files if f.endswith("index.json")]
-        worker_end = _WorkerEnv.detect(get_worker_info_fn=get_worker_info)
+        worker_end = _WorkerEnv.detect()
         self._is_done = len(index_files) == self._env.world_size * worker_end.world_size
         return self._is_done
 
@@ -91,7 +90,7 @@ class BinaryWriter:
     def rank(self):
         """Returns the rank of the writer."""
         if self._rank is None:
-            self._worker_env = _WorkerEnv.detect(get_worker_info_fn=get_worker_info)
+            self._worker_env = _WorkerEnv.detect()
             self._rank = self._env.global_rank * self._worker_env.world_size + self._worker_env.rank
         return self._rank
 

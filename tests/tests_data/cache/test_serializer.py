@@ -12,15 +12,18 @@
 # limitations under the License.
 
 import os
+from time import time
 
 import numpy as np
 import pytest
 import torch
+from lightning import seed_everything
 from lightning.data.cache.serializers import (
     _SERIALIZERS,
     _TORCH_DTYPES_MAPPING,
     IntSerializer,
     JPEGSerializer,
+    PickleSerializer,
     PILSerializer,
     TensorSerializer,
 )
@@ -30,7 +33,7 @@ _PIL_AVAILABLE = RequirementCache("PIL")
 
 
 def test_serializers():
-    assert sorted(_SERIALIZERS) == ["bytes", "int", "jpeg", "pil", "tensor"]
+    assert list(_SERIALIZERS.keys()) == ["pil", "int", "jpeg", "bytes", "tensor", "pickle"]
 
 
 def test_int_serializer():
@@ -102,8 +105,13 @@ def test_pil_serializer(mode):
 
 
 def test_tensor_serializer():
-    serializer = TensorSerializer()
+    seed_everything(42)
 
+    serializer_tensor = TensorSerializer()
+    serializer_pickle = PickleSerializer()
+
+    ratio_times = []
+    ratio_bytes = []
     shapes = [(10,), (10, 10), (10, 10, 10), (10, 10, 10, 5), (10, 10, 10, 5, 4)]
     for dtype in _TORCH_DTYPES_MAPPING.values():
         for shape in shapes:
@@ -111,10 +119,30 @@ def test_tensor_serializer():
             if dtype in [torch.bfloat16]:
                 continue
             tensor = torch.ones(shape, dtype=dtype)
-            data = serializer.serialize(tensor)
-            deserialized_tensor = serializer.deserialize(data)
+
+            t0 = time()
+            data = serializer_tensor.serialize(tensor)
+            deserialized_tensor = serializer_tensor.deserialize(data)
+            tensor_time = time() - t0
+            tensor_bytes = len(data)
+
             assert deserialized_tensor.dtype == dtype
             assert torch.equal(tensor, deserialized_tensor)
+
+            t1 = time()
+            data = serializer_pickle.serialize(tensor)
+            deserialized_tensor = serializer_pickle.deserialize(data)
+            pickle_time = time() - t1
+            pickle_bytes = len(data)
+
+            assert deserialized_tensor.dtype == dtype
+            assert torch.equal(tensor, deserialized_tensor)
+
+            ratio_times.append(pickle_time / tensor_time)
+            ratio_bytes.append(pickle_bytes / tensor_bytes)
+
+    assert np.mean(ratio_times) > 4
+    assert np.mean(ratio_bytes) > 2
 
 
 def test_assert_bfloat16_tensor_serializer():

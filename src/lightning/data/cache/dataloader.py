@@ -31,6 +31,8 @@ from lightning.data.datasets.env import _DistributedEnv
 
 logger = logging.Logger(__name__)
 
+_DEFAULT_CHUNK_BYTES = 1 << 26  # 64M B
+
 
 def _equal_items(data_1: Any, data_2: Any) -> bool:
     data_1_flattened, _ = tree_flatten(data_1)
@@ -53,10 +55,15 @@ def _equal_item(d1, d2) -> bool:
 
 class CacheDataset(Dataset):
     def __init__(
-        self, dataset: Dataset, cache_dir: Optional[str], chunk_size: Optional[int], compression: Optional[str]
+        self,
+        dataset: Dataset,
+        cache_dir: Optional[str],
+        chunk_bytes: Optional[int],
+        chunk_size: int,
+        compression: Optional[str],
     ):
         self._datataset = dataset
-        self._cache = Cache(cache_dir, chunk_size=chunk_size, compression=compression)
+        self._cache = Cache(cache_dir, chunk_bytes=chunk_bytes, chunk_size=chunk_size, compression=compression)
         self._is_deterministic = False
 
     def __len__(self) -> int:
@@ -100,14 +107,39 @@ class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
             raise StopIteration()
 
 
-class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
-    def __init__(self, loader):
-        # Patch PyTorch worker loop
+class WorkerLoop:
+    def __call__(self, dataset_kind, *args, **kwargs):
+        from torch.utils.data import _DatasetKind
         from torch.utils.data._utils import worker
 
-        from lightning.data.cache.worker import _worker_loop
+        from lightning.data.cache.cache import Cache
 
-        worker._worker_loop = _worker_loop
+        create_fetcher = _DatasetKind.create_fetcher
+
+        fetcher = None
+
+        def create_fetcher_fn(*args, **kwargs):
+            nonlocal fetcher
+            fetcher = create_fetcher(*args, **kwargs)
+            return fetcher
+
+        _DatasetKind.create_fetcher = create_fetcher_fn
+
+        worker._worker_loop(dataset_kind, *args, **kwargs)
+
+        if dataset_kind == _DatasetKind.Map:
+            for v in fetcher.dataset.__dict__.values():
+                if isinstance(v, Cache):
+                    v.done()
+
+
+class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
+    def __init__(self, loader):
+        # Patch PyTorch worker loop to call the `cache.done()` method.
+        from torch.utils.data._utils import worker
+
+        worker._original_worker_loop = worker._worker_loop
+        worker._worker_loop = WorkerLoop()
         super().__init__(loader)
 
 
@@ -126,7 +158,7 @@ class LightningDataLoader(DataLoader):
         batch_size=1,
         drop_last=False,
         cache_dir: Optional[str] = None,
-        chunk_size: Optional[int] = 2 << 26,
+        chunk_bytes: Optional[int] = _DEFAULT_CHUNK_BYTES,
         compression: Optional[str] = None,
         **kwargs,
     ):
@@ -154,7 +186,7 @@ class LightningDataLoader(DataLoader):
             if cache_dir is None:
                 raise ValueError("You can provide a `cache_dir` filepath to the LightningDataLoader.")
 
-            dataset = CacheDataset(dataset, cache_dir, chunk_size, compression)
+            dataset = CacheDataset(dataset, cache_dir, chunk_bytes, batch_size if chunk_bytes else None, compression)
             cache = dataset.cache
         else:
             cache = cache[0]

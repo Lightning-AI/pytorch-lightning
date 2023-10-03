@@ -11,7 +11,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pickle
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from io import BytesIO
 
 import numpy as np
@@ -172,10 +174,26 @@ class TensorSerializer(Serializer):
         return isinstance(item, torch.Tensor)
 
 
-_SERIALIZERS = {
-    "pil": PILSerializer(),
-    "int": IntSerializer(),
-    "jpeg": JPEGSerializer(),
-    "bytes": BytesSerializer(),
-    "tensor": TensorSerializer(),
-}
+class PickleSerializer(Serializer):
+    """The PickleSerializer serialize and deserialize python objects to and from bytes."""
+
+    def serialize(self, item: any) -> bytes:
+        return pickle.dumps(item)
+
+    def deserialize(self, data: bytes) -> any:
+        return pickle.loads(data)
+
+    def can_serialize(self, item: any) -> bool:
+        return isinstance(item, any)
+
+
+_SERIALIZERS = OrderedDict(
+    **{
+        "pil": PILSerializer(),
+        "int": IntSerializer(),
+        "jpeg": JPEGSerializer(),
+        "bytes": BytesSerializer(),
+        "tensor": TensorSerializer(),
+        "pickle": PickleSerializer(),
+    }
+)
