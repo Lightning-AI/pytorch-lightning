@@ -54,7 +54,7 @@ repos:
     rev: v3.8.0
     hooks:
       - id: pyupgrade
-        args: [--py38-plus]
+        args: ["--py38-plus"]
         name: Upgrade code
 
   - repo: https://github.com/codespell-project/codespell
@@ -94,7 +94,7 @@ repos:
     rev: 1.14.0
     hooks:
       - id: blacken-docs
-        args: [--line-length=120]
+        args: ["--line-length=120"]
         exclude: docs/source-app
 
   - repo: https://github.com/executablebooks/mdformat
