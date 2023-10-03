@@ -27,10 +27,15 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.strategies.launchers.multiprocessing import _check_bad_cuda_fork
+from lightning.fabric.strategies.launchers.multiprocessing import (
+    _check_bad_cuda_fork,
+    _check_missing_main_guard,
+    _disable_module_memory_sharing,
+)
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning.fabric.utilities.types import _PATH
+from lightning.pytorch.accelerators import CPUAccelerator
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.connectors.signal_connector import _SIGNUM
 from lightning.pytorch.trainer.states import TrainerFn, TrainerState
@@ -60,6 +65,7 @@ class _MultiProcessingLauncher(_Launcher):
             - 'fork': Preferable for IPython/Jupyter environments where 'spawn' is not available. Not available on
               the Windows platform for example.
             - 'forkserver': Alternative implementation to 'fork'.
+
     """
 
     def __init__(
@@ -93,9 +99,12 @@ class _MultiProcessingLauncher(_Launcher):
             trainer: Optional reference to the :class:`~lightning.pytorch.trainer.trainer.Trainer` for which
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
+
         """
         if self._start_method in ("fork", "forkserver"):
             _check_bad_cuda_fork()
+        if self._start_method == "spawn":
+            _check_missing_main_guard()
 
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
@@ -142,6 +151,9 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
+        if self._start_method == "spawn" and isinstance(self._strategy.accelerator, CPUAccelerator):
+            args, kwargs = _disable_module_memory_sharing((args, kwargs))
+
         os.environ["LOCAL_RANK"] = str(process_idx)
         results = function(*args, **kwargs)
 
@@ -198,8 +210,8 @@ class _MultiProcessingLauncher(_Launcher):
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
 
     def get_extra_results(self, trainer: "pl.Trainer") -> Dict[str, Any]:
-        """Gather extra state from the Trainer and return it as a dictionary for sending back to the main process.
-        To avoid issues with memory sharing, we cast the data to numpy.
+        """Gather extra state from the Trainer and return it as a dictionary for sending back to the main process. To
+        avoid issues with memory sharing, we cast the data to numpy.
 
         Args:
             trainer: reference to the Trainer.
@@ -207,6 +219,7 @@ class _MultiProcessingLauncher(_Launcher):
         Returns:
             A dictionary with items to send back to the main process where :meth:`update_main_process_results` will
             process this output.
+
         """
         callback_metrics: dict = apply_to_collection(
             trainer.callback_metrics, Tensor, lambda x: x.cpu().numpy()
@@ -214,13 +227,14 @@ class _MultiProcessingLauncher(_Launcher):
         return {"callback_metrics": callback_metrics}
 
     def update_main_process_results(self, trainer: "pl.Trainer", extra: Dict[str, Any]) -> None:
-        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
-        we cast back the data to ``torch.Tensor``.
+        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency, we
+        cast back the data to ``torch.Tensor``.
 
         Args:
             trainer: reference to the Trainer.
             extra: A dictionary with trainer state that was sent from the worker process and needs to be restored
                 on the current trainer.
+
         """
         # NOTE: `get_extra_results` needs to be called before
         callback_metrics = extra["callback_metrics"]
@@ -263,6 +277,7 @@ class _GlobalStateSnapshot:
 
             # in worker process
             snapshot.restore()
+
     """
 
     use_deterministic_algorithms: bool
@@ -272,8 +287,7 @@ class _GlobalStateSnapshot:
 
     @classmethod
     def capture(cls) -> "_GlobalStateSnapshot":
-        """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker
-        process."""
+        """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker process."""
         return cls(
             use_deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
             use_deterministic_algorithms_warn_only=torch.is_deterministic_algorithms_warn_only_enabled(),

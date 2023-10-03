@@ -16,10 +16,10 @@ import json
 import logging
 import os
 import platform
-from contextlib import contextmanager, nullcontext
+from contextlib import ExitStack
 from itertools import chain
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -33,13 +33,15 @@ from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.distributed import log
+from lightning.fabric.utilities.load import _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 
+if TYPE_CHECKING:
+    from deepspeed import DeepSpeedEngine
+
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
-if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
-    import deepspeed
 
 
 # TODO(fabric): Links in the docstrings to PL-specific deepspeed user docs need to be replaced.
@@ -220,6 +222,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise ImportError(
@@ -287,7 +290,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-        self._deepspeed_engine: Optional["deepspeed.DeepSpeedEngine"] = None
+        self._deepspeed_engine: Optional["DeepSpeedEngine"] = None
 
     @property
     def zero_stage_3(self) -> bool:
@@ -300,12 +303,12 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
-    def model(self) -> "deepspeed.DeepSpeedEngine":
+    def model(self) -> "DeepSpeedEngine":
         return self._deepspeed_engine
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
-    ) -> Tuple["deepspeed.DeepSpeedEngine", List[Optimizer]]:
+    ) -> Tuple["DeepSpeedEngine", List[Optimizer]]:
         """Set up a model and multiple optimizers together.
 
         Currently, only a single optimizer is supported.
@@ -313,6 +316,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         Return:
             The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
             deepspeed optimizer.
+
         """
         if len(optimizers) != 1:
             raise ValueError(
@@ -324,10 +328,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self._set_deepspeed_activation_checkpointing()
         return self._deepspeed_engine, [optimizer]
 
-    def setup_module(self, module: Module) -> "deepspeed.DeepSpeedEngine":
+    def setup_module(self, module: Module) -> "DeepSpeedEngine":
         """Set up a module for inference (no optimizers).
 
         For training, see :meth:`setup_module_and_optimizers`.
+
         """
         self._deepspeed_engine, _ = self._initialize_engine(module)
         return self._deepspeed_engine
@@ -336,33 +341,33 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         """Optimizers can only be set up jointly with the model in this strategy.
 
         Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer together.
+
         """
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
-    @contextmanager
-    def module_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
         if self.zero_stage_3 and empty_init is False:
             raise NotImplementedError(
                 f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
             )
-        base_context = super().module_init_context(empty_init=empty_init) if not self.zero_stage_3 else nullcontext()
-        with base_context, self.module_sharded_context():
-            yield
+        stack = ExitStack()
+        if not self.zero_stage_3:
+            stack.enter_context(super().module_init_context(empty_init=empty_init))
+        stack.enter_context(self.module_sharded_context())
+        return stack
 
-    @contextmanager
-    def module_sharded_context(self) -> Generator[None, None, None]:
+    def module_sharded_context(self) -> ContextManager:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
         # manager. Later modifications through e.g. `Fabric.setup()` won't have an effect here.
 
         import deepspeed
 
         assert self._config_initialized
-        with deepspeed.zero.Init(
+        return deepspeed.zero.Init(
             enabled=self.zero_stage_3,
             remote_device=self.remote_device,
             config_dict_or_path=self.config,
-        ):
-            yield
+        )
 
     def save_checkpoint(
         self,
@@ -386,6 +391,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             ValueError:
                 When no :class:`deepspeed.DeepSpeedEngine` objects were found in the state, or when multiple
                 :class:`deepspeed.DeepSpeedEngine` objects were found.
+
         """
         if storage_options is not None:
             raise TypeError(
@@ -451,6 +457,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             RuntimeError:
                 If DeepSpeed was unable to load the checkpoint due to missing files or because the checkpoint is
                 not in the expected DeepSpeed format.
+
         """
         if isinstance(state, (Module, Optimizer)) or self.load_full_weights and self.zero_stage_3:
             # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
@@ -480,7 +487,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " states, call the load method for each model checkpoint separately."
             )
         engine = engines[0]
-        optimzer_state_requested = bool(len([item for item in state.values() if isinstance(item, Optimizer)]))
+
+        from deepspeed.runtime import DeepSpeedOptimizer
+
+        optimzer_state_requested = any(isinstance(item, (Optimizer, DeepSpeedOptimizer)) for item in state.values())
 
         torch.cuda.empty_cache()
         _, client_state = engine.load_checkpoint(
@@ -497,15 +507,15 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
 
-        for k in client_state.copy():
-            if k not in state:
-                continue
-            state[k] = client_state.pop(k)
+        # `Engine.load_checkpoint` adds useless keys 'optimizer' and 'lr_scheduler' to the client state; remove
+        # them to avoid name collision with user state
+        keys = set(client_state) & set(state) - {"optimizer", "lr_scheduler"}
+        _move_state_into(source=client_state, destination=state, keys=keys)
         return client_state
 
     def clip_gradients_norm(
         self,
-        module: "deepspeed.DeepSpeedEngine",
+        module: "DeepSpeedEngine",
         optimizer: Optimizer,
         max_norm: Union[float, int],
         norm_type: Union[float, int] = 2.0,
@@ -517,7 +527,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
 
     def clip_gradients_value(
-        self, module: "deepspeed.DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
+        self, module: "DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
     ) -> None:
         raise NotImplementedError(
             "DeepSpeed handles gradient clipping automatically within the optimizer. "
@@ -561,10 +571,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self,
         model: Module,
         optimizer: Optional[Optimizer] = None,
-    ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
+    ) -> Tuple["DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
         This calls :func:`deepspeed.initialize` internally.
+
         """
         import deepspeed
 
@@ -720,12 +731,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return cfg
 
     def _restore_zero_state(self, module: Module, ckpt: Mapping[str, Any]) -> None:
-        """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be
-        sharded across processes before loading the state dictionary when using ZeRO stage 3. This is then
-        automatically synced across processes.
+        """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be sharded
+        across processes before loading the state dictionary when using ZeRO stage 3. This is then automatically synced
+        across processes.
 
         Args:
             ckpt: The ckpt file.
+
         """
         import deepspeed
 
@@ -778,7 +790,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return config
 
 
-def _get_deepspeed_engines_from_state(state: Dict[str, Any]) -> List["deepspeed.DeepSpeedEngine"]:
+def _get_deepspeed_engines_from_state(state: Dict[str, Any]) -> List["DeepSpeedEngine"]:
     from deepspeed import DeepSpeedEngine
 
     modules = chain(*(module.modules() for module in state.values() if isinstance(module, Module)))

@@ -10,7 +10,7 @@ on:
       - ".github/workflows/code-checks.yml"
       - "requirements/**"
       - "src/**"
-      - "pyproject.toml"   # includes mypy config
+      - "pyproject.toml" # includes mypy config
       - "!requirements/docs.txt"
       - "!requirements/*/docs.txt"
       - "!*.md"
@@ -25,27 +25,28 @@ defaults:
     shell: bash
 
 jobs:
-
   mypy:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.10.6'
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10.6"
 
-    - name: Mypy cache
-      uses: actions/cache@v3
-      with:
-        path: .mypy_cache
-        key: mypy-${{ hashFiles('requirements/typing.txt') }}
+      - name: Mypy cache
+        uses: actions/cache@v3
+        with:
+          path: .mypy_cache
+          key: mypy-${{ hashFiles('requirements/typing.txt') }}
 
-    - name: Install dependencies
-      env:
-        FREEZE_REQUIREMENTS: 1
-      run: |
-        pip install -e '.[all]' -r requirements/typing.txt
-        pip list
+      - name: Install dependencies
+        env:
+          FREEZE_REQUIREMENTS: 1
+        timeout-minutes: 20
+        run: |
+          # TODO: investigate hanging installation with app sub-package
+          pip install -e '.[pytorch-all,fabric-all]' -r requirements/typing.txt
+          pip list
 
-    - name: Check typing
-      run: mypy
+      - name: Check typing
+        run: mypy --no-warn-unused-ignores

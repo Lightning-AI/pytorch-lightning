@@ -16,8 +16,9 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-
 from lightning.fabric.plugins import FSDPPrecision
+from lightning.fabric.plugins.precision.utils import _DtypeContextManager
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -31,9 +32,27 @@ def test_fsdp_precision_support(*_):
 @pytest.mark.parametrize(
     ("precision", "expected"),
     [
-        ("16-mixed", (torch.float32, torch.float16, torch.float16)),
-        ("bf16-mixed", (torch.float32, torch.bfloat16, torch.bfloat16)),
-        # TODO: add 16-true and bf16-true once supported
+        ("16-true", (torch.float16, torch.float16, torch.float16)),
+        ("bf16-true", (torch.bfloat16, torch.bfloat16, torch.bfloat16)),
+        pytest.param(
+            "16-mixed", (torch.float32, torch.float16, torch.float16), marks=RunIf(min_torch="2.0"), id="16-mixed-ge2_0"
+        ),
+        pytest.param(
+            "16-mixed", (None, torch.float16, torch.float16), marks=RunIf(max_torch="2.0"), id="16-mixed-lt2_0"
+        ),
+        pytest.param(
+            "bf16-mixed",
+            (torch.float32, torch.bfloat16, torch.bfloat16),
+            marks=RunIf(min_torch="2.0"),
+            id="bf16-mixed-ge2_0",
+        ),
+        pytest.param(
+            "bf16-mixed", (None, torch.bfloat16, torch.bfloat16), marks=RunIf(max_torch="2.0"), id="bf16-mixed-lt2_0"
+        ),
+        pytest.param(
+            "32-true", (torch.float32, torch.float32, torch.float32), marks=RunIf(min_torch="2.0"), id="32-true-ge2_0"
+        ),
+        pytest.param("32-true", (None, torch.float32, torch.float32), marks=RunIf(max_torch="2.0"), id="32-true-lt2_0"),
     ],
 )
 def test_fsdp_precision_config(precision, expected):
@@ -69,19 +88,31 @@ def test_fsdp_precision_forward_context():
     assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
     assert torch.get_default_dtype() == torch.float32
     with precision.forward_context():
-        # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
-        assert str(torch.get_autocast_gpu_dtype()) in ("torch.float16", "torch.half")
+        assert torch.get_autocast_gpu_dtype() == torch.float16
+    assert isinstance(precision.forward_context(), torch.autocast)
+    assert precision.forward_context().fast_dtype == torch.float16
+
+    precision = FSDPPrecision(precision="16-true")
+    assert precision.scaler is None
+    assert torch.get_default_dtype() == torch.float32
+    with precision.forward_context():
+        assert torch.get_default_dtype() == torch.float16
+    assert isinstance(precision.forward_context(), _DtypeContextManager)
+    assert precision.forward_context()._new_dtype == torch.float16
 
     precision = FSDPPrecision(precision="bf16-mixed")
     assert precision.scaler is None
     with precision.forward_context():
-        # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
-        assert str(torch.get_autocast_gpu_dtype()) == str(torch.bfloat16)
+        assert torch.get_autocast_gpu_dtype() == torch.bfloat16
+    assert isinstance(precision.forward_context(), torch.autocast)
+    assert precision.forward_context().fast_dtype == torch.bfloat16
 
-    context_manager = precision._autocast_context_manager()
-    assert isinstance(context_manager, torch.autocast)
-    # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
-    assert str(context_manager.fast_dtype) == str(torch.bfloat16)
+    precision = FSDPPrecision(precision="bf16-true")
+    assert precision.scaler is None
+    with precision.forward_context():  # forward context is not using autocast ctx manager
+        assert torch.get_default_dtype() == torch.bfloat16
+    assert isinstance(precision.forward_context(), _DtypeContextManager)
+    assert precision.forward_context()._new_dtype == torch.bfloat16
 
 
 @RunIf(min_torch="1.12")

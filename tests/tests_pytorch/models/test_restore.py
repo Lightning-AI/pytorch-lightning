@@ -21,16 +21,16 @@ from typing import Generic, Mapping, TypeVar
 import cloudpickle
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor
-
-import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from lightning.fabric import seed_everything
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.states import TrainerFn
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+
+import tests_pytorch.helpers.pipelines as tpipes
+import tests_pytorch.helpers.utils as tutils
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -105,8 +105,7 @@ def test_model_properties_fit_ckpt_path(tmpdir):
 
 @RunIf(sklearn=True)
 def test_trainer_properties_restore_ckpt_path(tmpdir):
-    """Test that required trainer properties are set correctly when resuming from checkpoint in different
-    phases."""
+    """Test that required trainer properties are set correctly when resuming from checkpoint in different phases."""
 
     class CustomClassifModel(ClassificationModel):
         def configure_optimizers(self):
@@ -261,7 +260,7 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
     model = BoringModel()
     trainer = Trainer()
 
-    with pytest.raises(FileNotFoundError, match="Aborting training"):
+    with pytest.raises(FileNotFoundError, match="Checkpoint file not found"):
         trainer.fit(model, ckpt_path=str(tmpdir / "non_existing.ckpt"))
 
 

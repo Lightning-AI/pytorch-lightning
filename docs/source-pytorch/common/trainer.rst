@@ -11,11 +11,11 @@
 Trainer
 =======
 
-Once you've organized your PyTorch code into a :class:`~lightning.pytorch.core.module.LightningModule`, the ``Trainer`` automates everything else.
+Once you've organized your PyTorch code into a :class:`~lightning.pytorch.core.LightningModule`, the ``Trainer`` automates everything else.
 
 The ``Trainer`` achieves the following:
 
-1. You maintain control over all aspects via PyTorch code in your :class:`~lightning.pytorch.core.module.LightningModule`.
+1. You maintain control over all aspects via PyTorch code in your :class:`~lightning.pytorch.core.LightningModule`.
 
 2. The trainer uses best practices embedded by contributors and users
    from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
@@ -257,7 +257,7 @@ benchmark
 
 The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. The value for
 ``torch.backends.cudnn.benchmark`` set in the current session will be used (``False`` if not manually set).
-If :paramref:`~lightning.pytorch.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
+If :paramref:`~lightning.pytorch.trainer.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
 You can read more about the interaction of ``torch.backends.cudnn.benchmark`` and ``torch.backends.cudnn.deterministic``
 `here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
@@ -320,7 +320,7 @@ Example::
 
 
 Model-specific callbacks can also be added inside the ``LightningModule`` through
-:meth:`~lightning.pytorch.core.module.LightningModule.configure_callbacks`.
+:meth:`~lightning.pytorch.core.LightningModule.configure_callbacks`.
 Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
 the trainer callbacks should there be two or more of the same type.
 :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
@@ -809,35 +809,40 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 precision
 ^^^^^^^^^
 
-Lightning supports either double (64), float (32), bfloat16 (bf16), or half (16) precision training.
-Half precision is using 16 bit floating point operations while mixed precision is the combined use of 32 and 16 bit floating points to reduce memory footprint during model training. Since not all operations (like batchnorm) are numerically stable in lower bit precisions, these operations will still be carried out in fp32 whereas half precision unconditionally performs all operations in 16 bit.
-This can result in improved performance, achieving +3X speedups on modern GPUs.
+There are two different techniques to set the mixed precision. "True" precision and "Mixed" precision.
 
-.. testcode::
-    :skipif: not torch.cuda.is_available()
+Lightning supports doing floating point operations in 64-bit precision ("double"), 32-bit precision ("full"), or 16-bit ("half") with both regular and `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
+This selected precision will have a direct impact in the performance and memory usage based on your hardware.
+Automatic mixed precision settings are denoted by a ``"-mixed"`` suffix, while "true" precision settings have a ``"-true"`` suffix:
 
-    # default used by the Trainer
-    trainer = Trainer(precision=32)
+.. code-block:: python
 
-    # 16-bit mixed precision
-    trainer = Trainer(precision="16-mixed")
+    # Default used by the Trainer
+    fabric = Fabric(precision="32-true", devices=1)
 
-    # bfloat16 mixed precision
-    trainer = Trainer(precision="bf16-mixed")
+    # the same as:
+    trainer = Trainer(precision="32", devices=1)
 
-    # 16-bit true precision
-    trainer = Trainer(precision="16-true")
+    # 16-bit mixed precision (model weights remain in torch.float32)
+    trainer = Trainer(precision="16-mixed", devices=1)
 
-    # bfloat16 true precision
-    trainer = Trainer(precision="bf16-true")
+    # 16-bit bfloat mixed precision (model weights remain in torch.float32)
+    trainer = Trainer(precision="bf16-mixed", devices=1)
 
-    # 64-bit precision
-    trainer = Trainer(precision=64)
+    # 8-bit mixed precision via TransformerEngine (model weights get cast to torch.bfloat16)
+    trainer = Trainer(precision="transformer-engine", devices=1)
+
+    # 16-bit precision (model weights get cast to torch.float16)
+    trainer = Trainer(precision="16-true", devices=1)
+
+    # 16-bit bfloat precision (model weights get cast to torch.bfloat16)
+    trainer = Trainer(precision="bf16-true", devices=1)
+
+    # 64-bit (double) precision (model weights get cast to torch.float64)
+    trainer = Trainer(precision="64-true", devices=1)
 
 
 See the :doc:`N-bit precision guide <../common/precision>` for more details.
-
-.. note:: When running on TPUs, torch.bfloat16 will be used but tensor printing will still show torch.float32.
 
 
 profiler
@@ -1124,7 +1129,7 @@ callback_metrics
 
 The metrics available to callbacks.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log`.
+This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log`.
 
 .. code-block:: python
 
@@ -1140,16 +1145,16 @@ logged_metrics
 
 The metrics sent to the loggers.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
-:paramref:`~lightning.pytorch.core.module.LightningModule.log.logger` argument set.
+This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.LightningModule.log.logger` argument set.
 
 progress_bar_metrics
 ********************
 
 The metrics sent to the progress bar.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
-:paramref:`~lightning.pytorch.core.module.LightningModule.log.prog_bar` argument set.
+This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.LightningModule.log.prog_bar` argument set.
 
 current_epoch
 *************

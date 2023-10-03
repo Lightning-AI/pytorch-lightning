@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Iterator, List, Optional, Union
 
 import torch
 from lightning_utilities import WarningCache
@@ -35,9 +35,10 @@ from lightning.pytorch.trainer.connectors.data_connector import (
     _request_dataloader,
 )
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.combined_loader import _Sequential, CombinedLoader
+from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
 
 
@@ -107,9 +108,18 @@ class _PredictionLoop(_Loop):
         assert data_fetcher is not None
         while True:
             try:
-                batch, batch_idx, dataloader_idx = next(data_fetcher)
+                if isinstance(data_fetcher, _DataLoaderIterDataFetcher):
+                    dataloader_iter = next(data_fetcher)
+                    # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting
+                    batch = data_fetcher._batch
+                    batch_idx = data_fetcher._batch_idx
+                    dataloader_idx = data_fetcher._dataloader_idx
+                else:
+                    dataloader_iter = None
+                    batch, batch_idx, dataloader_idx = next(data_fetcher)
                 self.batch_progress.is_last_batch = data_fetcher.done
-                self._predict_step(batch, batch_idx, dataloader_idx)
+                # run step hooks
+                self._predict_step(batch, batch_idx, dataloader_idx, dataloader_iter)
             except StopIteration:
                 # this needs to wrap the `*_step` call too (not just `next`) for `dataloader_iter` support
                 break
@@ -156,20 +166,18 @@ class _PredictionLoop(_Loop):
         """Resets the internal state of the loop for a new run."""
         self.batch_progress.reset_on_run()
 
-        data_fetcher = _select_data_fetcher(self.trainer)
-        if isinstance(data_fetcher, _DataLoaderIterDataFetcher) and self.num_dataloaders > 1:
-            raise NotImplementedError(
-                "Using `dataloader_iter` in your step method is not supported with multiple dataloaders"
-            )
+        assert self.trainer.state.stage is not None
+        data_fetcher = _select_data_fetcher(self.trainer, self.trainer.state.stage)
         combined_loader = self._combined_loader
         assert combined_loader is not None
         if combined_loader._mode != "sequential":
             raise ValueError('`trainer.predict()` only supports the `CombinedLoader(mode="sequential")` mode.')
+
+        # set the per-dataloader limits
+        combined_loader.limits = self.max_batches
         data_fetcher.setup(combined_loader)
         iter(data_fetcher)  # creates the iterator inside the fetcher
-        assert isinstance(combined_loader._iterator, _Sequential)
-        # set the per-dataloader limits
-        combined_loader._iterator.limits = self.max_batches
+
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
         data_fetcher._start_profiler = self._on_before_fetch
@@ -201,60 +209,93 @@ class _PredictionLoop(_Loop):
             self._data_fetcher.teardown()
             self._data_fetcher = None
 
-    def _predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def _predict_step(
+        self, batch: Any, batch_idx: int, dataloader_idx: int, dataloader_iter: Optional[Iterator]
+    ) -> None:
         """Runs the actual predict step together with all the necessary bookkeeping and the hooks tied to it.
 
         Args:
             batch: the current batch to run the prediction on
-            batch_idx: the index of the current batch
-            dataloader_idx: the index of the dataloader producing the current batch
+            batch_idx: The index of the current batch.
+            dataloader_idx: the index of the dataloader producing the current batch.
+            dataloader_iter: The iterator if using this step flavor.
+
         """
         trainer = self.trainer
-        batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
-        batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)
+        data_fetcher = self._data_fetcher
+        assert data_fetcher is not None
+
+        if not (using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher)):
+            batch = trainer.precision_plugin.convert_input(batch)
+            batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
+            batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
-        any_on_epoch = self._store_data_for_prediction_writer(batch_idx, dataloader_idx)
+        if not using_dataloader_iter:
+            any_on_epoch = self._store_data_for_prediction_writer(batch_idx, dataloader_idx)
 
-        step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
+        # the `_step` methods don't take a batch_idx when `dataloader_iter` is used, but all other hooks still do,
+        # so we need different kwargs
+        hook_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
 
-        call._call_callback_hooks(trainer, "on_predict_batch_start", *step_kwargs.values())
-        call._call_lightning_module_hook(trainer, "on_predict_batch_start", *step_kwargs.values())
+        call._call_callback_hooks(trainer, "on_predict_batch_start", *hook_kwargs.values())
+        call._call_lightning_module_hook(trainer, "on_predict_batch_start", *hook_kwargs.values())
 
         self.batch_progress.increment_started()
 
         # configure step_kwargs
-        predictions = call._call_strategy_hook(trainer, "predict_step", *step_kwargs.values())
-
-        self.batch_progress.increment_processed()
-
+        step_args = (
+            self._build_step_args_from_hook_kwargs(hook_kwargs, "predict_step")
+            if not using_dataloader_iter
+            else (dataloader_iter,)
+        )
+        predictions = call._call_strategy_hook(trainer, "predict_step", *step_args)
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
-        call._call_callback_hooks(trainer, "on_predict_batch_end", predictions, *step_kwargs.values())
-        call._call_lightning_module_hook(trainer, "on_predict_batch_end", predictions, *step_kwargs.values())
+        self.batch_progress.increment_processed()
+
+        if using_dataloader_iter:
+            # update the hook kwargs now that the step method might have consumed the iterator
+            batch = data_fetcher._batch
+            batch_idx = data_fetcher._batch_idx
+            dataloader_idx = data_fetcher._dataloader_idx
+            hook_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
+
+        call._call_callback_hooks(trainer, "on_predict_batch_end", predictions, *hook_kwargs.values())
+        call._call_lightning_module_hook(trainer, "on_predict_batch_end", predictions, *hook_kwargs.values())
 
         self.batch_progress.increment_completed()
 
         if self._return_predictions or any_on_epoch:
             self._predictions[dataloader_idx].append(move_data_to_device(predictions, torch.device("cpu")))
 
-    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> Dict[str, Any]:
+    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> OrderedDict:
         """Assembles the keyword arguments for the ``predict_step``
 
         Args:
             batch: the current batch to run the prediction on
-            batch_idx: the index of the current batch
-            dataloader_idx: the index of the dataloader producing the current batch. None if not multiple dataloaders.
+            batch_idx: the index of the current batch.
+            dataloader_idx: the index of the dataloader producing the current batch. None if not multiple dataloaders
+                in sequential mode.
 
         Returns:
             the dictionary containing all the keyboard arguments for the predict step
+
         """
         step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
         if dataloader_idx is not None:
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
+
+    def _build_step_args_from_hook_kwargs(self, hook_kwargs: OrderedDict, step_hook_name: str) -> tuple:
+        """Helper method to build args for `predict_step`."""
+        kwargs = hook_kwargs.copy()
+        step_hook_fx = getattr(self.trainer.lightning_module, step_hook_name)
+        if not is_param_in_hook_signature(step_hook_fx, "batch_idx", min_args=2):
+            kwargs.pop("batch_idx", None)
+        return tuple(kwargs.values())
 
     def _get_batch_indices(self, dataloader: object) -> List[List[int]]:  # batches x samples
         """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
@@ -313,6 +354,7 @@ class _PredictionLoop(_Loop):
 
         Returns:
             the results for all dataloaders
+
         """
         trainer = self.trainer
         call._call_callback_hooks(trainer, "on_predict_epoch_end")
@@ -338,7 +380,15 @@ class _PredictionLoop(_Loop):
         trainer = self.trainer
         assert self._combined_loader is not None
         _verify_dataloader_idx_requirement(
-            ("predict_step", "on_predict_batch_start", "on_predict_batch_end"),
+            ("predict_step",),
+            self._combined_loader._mode == "sequential"
+            and self.num_dataloaders > 1
+            and not isinstance(self._data_fetcher, _DataLoaderIterDataFetcher),
+            RunningStage.PREDICTING,
+            trainer.lightning_module,
+        )
+        _verify_dataloader_idx_requirement(
+            ("on_predict_batch_start", "on_predict_batch_end"),
             self._combined_loader._mode == "sequential" and self.num_dataloaders > 1,
             RunningStage.PREDICTING,
             trainer.lightning_module,

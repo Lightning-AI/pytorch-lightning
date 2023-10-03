@@ -1,9 +1,9 @@
 from time import sleep
 
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp
 
 
-class HourLongWork(L.LightningWork):
+class HourLongWork(LightningWork):
     def __init__(self):
         super().__init__(cache_calls=False)
         self.progress = 0.0
@@ -15,8 +15,8 @@ class HourLongWork(L.LightningWork):
             sleep(1)
 
 
-class RootFlow(L.LightningFlow):
-    def __init__(self, child_work: L.LightningWork):
+class RootFlow(LightningFlow):
+    def __init__(self, child_work: LightningWork):
         super().__init__()
         self.child_work = child_work
 
@@ -28,4 +28,4 @@ class RootFlow(L.LightningFlow):
             print("1 hour later!")
 
 
-app = L.LightningApp(RootFlow(HourLongWork()))
+app = LightningApp(RootFlow(HourLongWork()))

@@ -16,18 +16,18 @@ from argparse import Namespace
 from dataclasses import dataclass
 from typing import Any, Dict
 from unittest import mock
-from unittest.mock import call, Mock, PropertyMock
+from unittest.mock import Mock, PropertyMock, call
 
 import pytest
 import torch
-
-from lightning.pytorch import LightningDataModule, seed_everything, Trainer
+from lightning.pytorch import LightningDataModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.profilers.simple import SimpleProfiler
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -237,8 +237,7 @@ def test_full_loop(tmpdir):
 
 
 def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
-    """Test datamodule, where trainer argument reload_dataloaders_every_n_epochs is set to a non negative
-    integer."""
+    """Test datamodule, where trainer argument reload_dataloaders_every_n_epochs is set to a non negative integer."""
 
     class CustomBoringDataModule(BoringDataModule):
         def __init__(self):
@@ -337,6 +336,7 @@ def test_dm_init_from_datasets_with_init_params():
     """Test that extra kwargs can be passed down to the init via the ``LightningDataModule.from_datasets`` method.
 
     The two special arguments batch_size and num_workers get passed down depending on whether the __init__ accepts them.
+
     """
     # No additional parameters
     LightningDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)

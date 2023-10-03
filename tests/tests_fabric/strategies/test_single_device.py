@@ -15,9 +15,9 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-
 from lightning.fabric.strategies import SingleDeviceStrategy
 from lightning.fabric.wrappers import _FabricModule, _FabricOptimizer
+
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 

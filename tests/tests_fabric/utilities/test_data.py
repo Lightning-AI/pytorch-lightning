@@ -1,15 +1,14 @@
 import contextlib
+import os
 import random
+from unittest import mock
 from unittest.mock import Mock
 
+import lightning.fabric
 import numpy as np
 import pytest
 import torch
-from torch import Tensor
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
-
 from lightning.fabric.utilities.data import (
-    _dataloader_init_kwargs_resolve_sampler,
     _get_dataloader_init_args_and_kwargs,
     _replace_dunder_methods,
     _replace_value_in_saved_args,
@@ -18,8 +17,13 @@ from lightning.fabric.utilities.data import (
     _WrapAttrTag,
     has_iterable_dataset,
     has_len,
+    suggested_max_num_workers,
 )
 from lightning.fabric.utilities.exceptions import MisconfigurationException
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler
+
 from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
 
 
@@ -48,13 +52,13 @@ def test_has_len():
 def test_replace_dunder_methods_multiple_loaders_without_init():
     """In case of a class, that inherits from a class that we are patching, but doesn't define its own `__init__`
     method (the one we are wrapping), it can happen, that `hasattr(cls, "__old__init__")` is True because of parent
-    class, but it is impossible to delete, because that method is owned by parent class. Furthermore, the error
-    occured only sometimes because it depends on the order in which we are iterating over a set of classes we are
-    patching.
+    class, but it is impossible to delete, because that method is owned by parent class. Furthermore, the error occured
+    only sometimes because it depends on the order in which we are iterating over a set of classes we are patching.
 
     This test simulates the behavior by generating sufficient number of dummy classes, which do not define `__init__`
     and are children of `DataLoader`. We are testing that a) context manager `_replace_dunder_method` exits cleanly, and
     b) the mechanism checking for presence of `__old__init__` works as expected.
+
     """
     classes = [DataLoader]
     for i in range(100):
@@ -253,10 +257,11 @@ def test_replace_dunder_methods_extra_kwargs():
 
 
 def test_replace_dunder_methods_attrs():
-    """This test checks, that all the calls from setting and deleting attributes within `_replace_dunder_methods`
-    are correctly preserved even after reinstantiation.
+    """This test checks, that all the calls from setting and deleting attributes within `_replace_dunder_methods` are
+    correctly preserved even after reinstantiation.
 
     It also includes a custom `__setattr__`
+
     """
 
     class Loader(DataLoader):
@@ -412,12 +417,13 @@ def test_update_dataloader_typerror_custom_exception():
     assert isinstance(new_dataloader, GoodImpl)
 
 
-def test_custom_batch_sampler():
-    """This test asserts, that custom `BatchSampler`, with all the arguments, that are required in order to
-    properly reinstantiate the class, is invoked properly.
+def test_custom_torch_batch_sampler():
+    """This test asserts, that custom `BatchSampler`, with all the arguments, that are required in order to properly
+    reinstantiate the class, is invoked properly.
 
     It also asserts, that during the reinstantiation, the wrapper of `__init__` method is not present anymore, therefore
     not setting `__pl_saved_{args,arg_names,kwargs}` attributes.
+
     """
 
     class MyBatchSampler(BatchSampler):
@@ -455,9 +461,55 @@ def test_custom_batch_sampler():
     assert not hasattr(batch_sampler, "__pl_saved_default_kwargs")
 
 
+def test_custom_torch_batch_sampler_doppelganger():
+    """Test we can reinstantiate a sampler that mimics PyTorch's BatchSampler even if it does not inherit from it.
+
+    This is only possible if that sampler accepts the `batch_size` and `drop_last` arguments, and stores them
+    as attributes.
+
+    """
+
+    class BatchSamplerDoppelganger:
+        """A batch sampler that mimics `torch.utils.data.BatchSampler` but does not inherit from it."""
+
+        def __init__(self, sampler, batch_size, drop_last):
+            self.sampler = sampler
+            self.batch_size = batch_size
+            self.drop_last = drop_last
+
+        def __iter__(self):
+            while True:
+                yield [0, 1, 2, 3]
+
+        def __len__(self) -> int:
+            return 4
+
+    batch_sampler = BatchSamplerDoppelganger(sampler=Mock(), batch_size=2, drop_last=True)
+    dataloader = DataLoader(range(100), batch_sampler=batch_sampler)
+    new_sampler = Mock()
+    dataloader = _update_dataloader(dataloader, sampler=new_sampler)
+
+    batch_sampler = dataloader.batch_sampler
+    assert isinstance(batch_sampler, BatchSamplerDoppelganger)
+    assert batch_sampler.sampler == new_sampler
+
+
+def test_custom_batch_sampler():
+    """Test that a custom (non-PyTorch) batch sampler requires the user to set `use_distributed_sampler=False`."""
+
+    class CustomBatchSampler:  # not inheriting from `BatchSampler`
+        def __iter__(self):
+            while True:
+                yield [0, 1, 2, 3]
+
+    batch_sampler = CustomBatchSampler()
+    dataloader = DataLoader(range(100), batch_sampler=batch_sampler)
+    with pytest.raises(TypeError, match=r"can't inject a \(distributed\) sampler into your batch sampler"):
+        _ = _update_dataloader(dataloader, sampler=Mock())
+
+
 def test_custom_batch_sampler_no_sampler():
-    """Tests whether appropriate error is raised when the custom `BatchSampler` does not support sampler
-    argument."""
+    """Tests whether appropriate error is raised when the custom `BatchSampler` does not support sampler argument."""
 
     class MyBatchSampler(BatchSampler):
         # Custom batch sampler, without sampler argument.
@@ -478,24 +530,7 @@ def test_custom_batch_sampler_no_sampler():
 
     # Assert that error is raised
     with pytest.raises(TypeError, match="sampler into the batch sampler"):
-        dataloader = _update_dataloader(dataloader, dataloader.sampler)
-
-
-def test_dataloader_disallow_batch_sampler():
-    dataset = RandomDataset(5, 100)
-    dataloader = DataLoader(dataset, batch_size=10)
-
-    # This should not raise
-    _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
-
-    dataset = RandomDataset(5, 100)
-    sampler = SequentialSampler(dataset)
-    batch_sampler = BatchSampler(sampler, batch_size=10, drop_last=False)
-    dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
-
-    # this should raise - using batch sampler, that was not automatically instantiated by DataLoader
-    with pytest.raises(MisconfigurationException, match="when running on multiple IPU devices"):
-        _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
+        _ = _update_dataloader(dataloader, dataloader.sampler)
 
 
 def test_dataloader_kwargs_replacement_with_iterable_dataset():
@@ -511,10 +546,10 @@ def test_dataloader_kwargs_replacement_with_iterable_dataset():
 
 
 def test_dataloader_kwargs_replacement_with_array_default_comparison():
-    """Test that the comparison of attributes and default argument values works with arrays (truth value
-    ambiguous).
+    """Test that the comparison of attributes and default argument values works with arrays (truth value ambiguous).
 
     Regression test for issue #15408.
+
     """
     dataset = RandomDataset(5, 100)
 
@@ -546,3 +581,62 @@ def test_set_sampler_epoch():
     _set_sampler_epoch(dataloader, 55)
     dataloader.sampler.set_epoch.assert_called_once_with(55)
     dataloader.batch_sampler.sampler.set_epoch.assert_called_once_with(55)
+
+
+@pytest.mark.parametrize(
+    ("cpu_count", "local_world_size", "expected"),
+    [
+        (0, 1, 1),
+        (1, 1, 1),
+        (2, 1, 2),
+        (1, 2, 1),
+        (2, 2, 1),
+        (3, 2, 1),
+        (4, 2, 2),
+        (4, 3, 1),
+        (4, 1, 4),
+    ],
+)
+@pytest.mark.parametrize(
+    "affinity",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                not hasattr(os, "sched_getaffinity"), reason="OS does not support restricting CPU cores"
+            ),
+        ),
+    ],
+)
+@mock.patch("lightning.fabric.utilities.data.os.cpu_count")
+def test_suggested_max_num_workers(cpu_count_mock, affinity, cpu_count, local_world_size, expected, monkeypatch):
+    if affinity:
+        monkeypatch.setattr(lightning.fabric.utilities.data.os, "sched_getaffinity", lambda _: list(range(cpu_count)))
+    else:
+        monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
+        cpu_count_mock.return_value = cpu_count
+
+    assert suggested_max_num_workers(local_world_size) == expected
+
+
+@pytest.mark.parametrize("invalid", [-1, 0])
+def test_suggested_max_num_workers_input_validation(invalid):
+    with pytest.raises(ValueError, match="should be >= 1"):
+        suggested_max_num_workers(invalid)
+
+
+@pytest.mark.parametrize("cpu_count", [1, 2, 3])
+@pytest.mark.parametrize("local_world_size", [1, 2, 3])
+def test_suggested_max_num_workers_not_triggering_torch_warning(local_world_size, cpu_count, monkeypatch):
+    """Test that our suggestion for num workers doesn't trigger a warning in the DataLoader for too many workers."""
+    monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
+    monkeypatch.delattr(torch.utils.data.dataloader.os, "sched_getaffinity", raising=False)
+    monkeypatch.setattr(lightning.fabric.utilities.data.os, "cpu_count", lambda: cpu_count)
+    monkeypatch.setattr(torch.utils.data.dataloader.os, "cpu_count", lambda: cpu_count)
+
+    # The dataloader runs a check in `DataLoader.check_worker_number_rationality`
+    with pytest.warns(UserWarning, match="This DataLoader will create"):
+        DataLoader(range(2), num_workers=(cpu_count + 1))
+    with no_warning_call():
+        DataLoader(range(2), num_workers=suggested_max_num_workers(local_world_size))

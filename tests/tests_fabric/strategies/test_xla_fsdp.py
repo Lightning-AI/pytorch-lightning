@@ -16,14 +16,14 @@ from unittest import mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
-import torch
+import torch.nn
 import torch.nn as nn
+from lightning.fabric.accelerators import XLAAccelerator
+from lightning.fabric.plugins import XLAPrecision
+from lightning.fabric.strategies import XLAFSDPStrategy
+from lightning.fabric.strategies.xla_fsdp import _activation_checkpointing_auto_wrapper, _XLAFSDPBackwardSyncControl
 from torch.optim import Adam
 
-from lightning.fabric import Fabric
-from lightning.fabric.accelerators import XLAAccelerator
-from lightning.fabric.strategies import XLAFSDPStrategy
-from lightning.fabric.strategies.xla_fsdp import _XLAFSDPBackwardSyncControl
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -92,35 +92,6 @@ def test_xla_fsdp_activation_checkpointing_setup():
     assert auto_wrapper_callable in strategy._fsdp_kwargs.values()
 
 
-def xla_fsdp_rewrap_warning(fabric: Fabric):
-    """Fabric launch function for test_xla_fsdp_rewrap_warning."""
-    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
-
-    with fabric.init_module():
-        model = torch.nn.Sequential(
-            torch.nn.Linear(1, 1), torch.nn.ReLU(), XlaFullyShardedDataParallel(torch.nn.Linear(1, 1))
-        )
-    if fabric.node_rank:
-        with pytest.warns(match="submodule is already wrapped"):
-            model = fabric.setup_module(model)
-    else:
-        model = fabric.setup_module(model)
-    fabric.barrier("warning_check")
-    assert not isinstance(model._forward_module[0], XlaFullyShardedDataParallel)
-    assert not isinstance(model._forward_module[1], XlaFullyShardedDataParallel)
-    assert isinstance(model._forward_module[2], XlaFullyShardedDataParallel)
-
-
-@RunIf(min_torch="2.0", tpu=True, standalone=True)
-def test_xla_fsdp_rewrap_warning():
-    """Test XLAFSDP rewrap warning."""
-    from torch_xla.distributed.fsdp.wrap import always_wrap_policy
-
-    strategy = XLAFSDPStrategy(auto_wrap_policy=always_wrap_policy)
-    fabric = Fabric(accelerator="tpu", strategy=strategy)
-    fabric.launch(xla_fsdp_rewrap_warning)
-
-
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_rank_properties_access(xla_available):
     """Test that the strategy returns the expected values depending on whether we're in the main process or not."""
@@ -140,3 +111,40 @@ def test_rank_properties_access(xla_available):
     assert strategy.local_rank == strategy.cluster_environment.local_rank()
     assert strategy.node_rank == strategy.cluster_environment.node_rank()
     assert strategy.world_size == strategy.cluster_environment.world_size()
+
+
+def test_xla_fsdp_policy(xla_available):
+    strategy = XLAFSDPStrategy(foo=1)
+    assert strategy._fsdp_kwargs == {"foo": 1}
+
+    strategy = XLAFSDPStrategy(auto_wrap_policy={torch.nn.Linear})
+    kwargs = strategy._parse_fsdp_kwargs()
+    assert set(kwargs) == {"auto_wrap_policy"}
+    assert kwargs["auto_wrap_policy"].func._mock_name == "transformer_auto_wrap_policy"
+
+    strategy = XLAFSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
+    kwargs = strategy._parse_fsdp_kwargs()
+    kwargs = strategy._parse_fsdp_kwargs()  # ensure it's idempotent
+    assert set(kwargs) == {"auto_wrapper_callable"}
+    assert kwargs["auto_wrapper_callable"].func is _activation_checkpointing_auto_wrapper
+
+    strategy = XLAFSDPStrategy(
+        accelerator=Mock(),
+        auto_wrap_policy={torch.nn.Linear},
+        activation_checkpointing_policy={torch.nn.Linear},
+        precision=XLAPrecision("bf16-true"),
+    )
+    kwargs = strategy._parse_fsdp_kwargs()
+    assert set(kwargs) == {"auto_wrap_policy", "auto_wrapper_callable", "compute_dtype"}
+    assert kwargs["auto_wrap_policy"].func._mock_name == "transformer_auto_wrap_policy"
+    assert kwargs["auto_wrapper_callable"].func is _activation_checkpointing_auto_wrapper
+    assert kwargs["compute_dtype"] is torch.bfloat16
+    strategy.teardown()
+
+    strategy = XLAFSDPStrategy(activation_checkpointing_policy={torch.nn.Linear}, auto_wrapper_callable="foo")
+    with pytest.raises(ValueError, match="cannot set both"):
+        strategy._parse_fsdp_kwargs()
+
+    strategy = XLAFSDPStrategy(activation_checkpointing_policy="foo")
+    with pytest.raises(TypeError, match="must be a set"):
+        strategy._parse_fsdp_kwargs()

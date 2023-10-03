@@ -27,6 +27,7 @@ def _convert_params(params: Optional[Union[Dict[str, Any], Namespace]]) -> Dict[
 
     Returns:
         params as a dictionary
+
     """
     # in case converting from namespace
     if isinstance(params, Namespace):
@@ -46,6 +47,7 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
 
     Returns:
         dictionary with all callables sanitized
+
     """
 
     def _sanitize_callable(val: Any) -> Any:
@@ -81,6 +83,7 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
         {'a/b': 123}
         >>> _flatten_dict({5: {'a': 123}})
         {'5/a': 123}
+
     """
     result: Dict[str, Any] = {}
     for k, v in params.items():
@@ -114,6 +117,7 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         'list': '[1, 2, 3]',
         'namespace': 'Namespace(foo=3)',
         'string': 'abc'}
+
     """
     for k in params:
         # convert relevant np scalars to python types first (instead of str)
@@ -136,6 +140,7 @@ def _add_prefix(
 
     Returns:
         Dictionary with prefix and separator inserted before each key
+
     """
     if not prefix:
         return metrics

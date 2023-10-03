@@ -30,7 +30,7 @@ from typing import Dict, List, Mapping, Optional, Union
 
 import uvicorn
 from deepdiff import DeepDiff, Delta
-from fastapi import FastAPI, File, HTTPException, Request, Response, status, UploadFile, WebSocket
+from fastapi import FastAPI, File, HTTPException, Request, Response, UploadFile, WebSocket, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.params import Header
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -270,8 +270,8 @@ async def post_delta(
     x_lightning_session_uuid: Optional[str] = Header(None),  # type: ignore[assignment]
     x_lightning_session_id: Optional[str] = Header(None),  # type: ignore[assignment]
 ) -> Optional[Dict]:
-    """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to
-    update the state."""
+    """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to update
+    the state."""
 
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")

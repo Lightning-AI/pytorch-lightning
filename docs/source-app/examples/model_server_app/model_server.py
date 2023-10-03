@@ -2,7 +2,7 @@ import json
 import subprocess
 
 from lightning import BuildConfig, LightningWork
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 
 # ML_SERVER_URL = https://github.com/SeldonIO/MLServer
 
@@ -18,6 +18,7 @@ class MLServer(LightningWork):
             Example: "mlserver_sklearn.SKLearnModel".
             Learn more here: $ML_SERVER_URL/tree/master/runtimes
         workers: Number of server worker.
+
     """
 
     def __init__(
@@ -51,6 +52,7 @@ class MLServer(LightningWork):
 
         Arguments:
             model_path: The path to the trained model.
+
         """
         # 1: Use the host and port at runtime so it works in the cloud.
         # $ML_SERVER_URL/blob/master/mlserver/settings.py#L50

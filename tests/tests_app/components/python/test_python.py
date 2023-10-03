@@ -2,7 +2,6 @@ import os
 import tarfile
 
 import pytest
-
 from lightning.app.components.python import PopenPythonScript, TracerPythonScript
 from lightning.app.components.python.tracer import Code
 from lightning.app.storage.drive import Drive
@@ -77,8 +76,8 @@ def test_tracer_python_script_with_kwargs():
 
 
 def test_tracer_component_with_code():
-    """This test ensures the Tracer Component gets the latest code from the code object that is provided and
-    arguments are cleaned."""
+    """This test ensures the Tracer Component gets the latest code from the code object that is provided and arguments
+    are cleaned."""
 
     drive = Drive("lit://code")
     drive.component_name = "something"
@@ -125,8 +124,8 @@ def test_tracer_component_with_code():
 
 
 def test_tracer_component_with_code_in_dir(tmp_path):
-    """This test ensures the Tracer Component gets the latest code from the code object that is provided and
-    arguments are cleaned."""
+    """This test ensures the Tracer Component gets the latest code from the code object that is provided and arguments
+    are cleaned."""
 
     drive = Drive("lit://code")
     drive.component_name = "something"

@@ -17,12 +17,10 @@ from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.pytorch
 import pytest
 import torch
 import torch.distributed
-from lightning_utilities.core.imports import package_available
-
-import lightning.pytorch
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -36,7 +34,9 @@ from lightning.pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAcce
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision import (
+    DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
+    FSDPPrecisionPlugin,
     HalfPrecisionPlugin,
     MixedPrecisionPlugin,
     PrecisionPlugin,
@@ -54,6 +54,8 @@ from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _lightning_graphcore_available, _lightning_habana_available
+from lightning_utilities.core.imports import package_available
+
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 
@@ -268,7 +270,7 @@ def test_accelerator_cpu(cuda_count_0, mps_count_0):
 
 
 @pytest.mark.parametrize("device_count", [["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]])
-def test_accelererator_invalid_type_devices(cuda_count_2, device_count):
+def test_accelerator_invalid_type_devices(cuda_count_2, device_count):
     with pytest.raises(TypeError, match=r"must be an int, a string, a sequence of ints, but you"):
         _ = Trainer(accelerator="gpu", devices=device_count)
 
@@ -477,6 +479,26 @@ def test_strategy_choice_ddp_torchelastic(_, __, mps_count_0, cuda_count_2):
 @mock.patch.dict(
     os.environ,
     {
+        "TORCHELASTIC_RUN_ID": "1",
+        "SLURM_NTASKS": "2",
+        "WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+    },
+)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_torchelastic_priority_over_slurm(*_):
+    """Test that the TorchElastic cluster environment is chosen over SLURM when both are detected."""
+    assert TorchElasticEnvironment.detect()
+    assert SLURMEnvironment.detect()
+    connector = _AcceleratorConnector(strategy="ddp")
+    assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
+
+
+@mock.patch.dict(
+    os.environ,
+    {
         "CUDA_VISIBLE_DEVICES": "0",
         "KUBERNETES_PORT": "tcp://127.0.0.1:443",
         "MASTER_ADDR": "1.2.3.4",
@@ -547,17 +569,11 @@ def test_check_fsdp_strategy_and_fallback():
         Trainer(accelerator="cpu", strategy="fsdp")
 
 
-def test_unsupported_tpu_choice(tpu_available):
-    with pytest.raises(
-        MisconfigurationException, match=r"accelerator='tpu', precision='64-true'\)` is not implemented"
-    ):
-        Trainer(accelerator="tpu", precision="64-true")
-
-    # if user didn't set strategy, AcceleratorConnector will choose "single_xla" or "xla"
-    with pytest.raises(
-        ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"
-    ), pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16-mixed\)` but AMP with fp16 is not supported"):
-        Trainer(accelerator="tpu", precision="16-mixed", strategy="ddp")
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_unsupported_tpu_choice(xla_available, tpu_available):
+    # if user didn't set strategy, _Connector will choose the SingleDeviceXLAStrategy or XLAStrategy
+    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
+        Trainer(accelerator="tpu", precision="16-true", strategy="ddp")
 
 
 def mock_ipu_available(monkeypatch, value=True):
@@ -886,12 +902,13 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_ipu_available(monkeypatch, False)
         trainer = Trainer()
     assert isinstance(trainer.accelerator, CUDAAccelerator)
-    assert isinstance(trainer.strategy, DDPStrategy)
-    assert trainer._accelerator_connector._devices_flag == list(range(4))
-    assert trainer.num_devices == 4
-    assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
-    assert trainer.strategy._start_method == ("fork" if is_interactive else "popen")
-    assert trainer.strategy.launcher.is_interactive_compatible == is_interactive
+    assert isinstance(trainer.strategy, (SingleDeviceStrategy if is_interactive else DDPStrategy))
+    assert trainer._accelerator_connector._devices_flag == [0] if is_interactive else list(range(4))
+    assert trainer.num_devices == 1 if is_interactive else 4
+    if not is_interactive:
+        assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
+        assert trainer.strategy._start_method == ("fork" if is_interactive else "popen")
+        assert trainer.strategy.launcher.is_interactive_compatible == is_interactive
 
     # MPS (there's no distributed)
     with monkeypatch.context():
@@ -1014,17 +1031,34 @@ def test_connector_sets_num_nodes(strategy, cuda_count_2):
     assert trainer.strategy.num_nodes == 2
 
 
+def test_connector_num_nodes_input_validation():
+    with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
+        _AcceleratorConnector(num_nodes=0)
+    with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
+        _AcceleratorConnector(num_nodes=-1)
+
+
 @pytest.mark.parametrize(
-    ("precision_str", "precision_cls"),
+    ("precision_str", "strategy_str", "expected_precision_cls"),
     [
-        ("64-true", DoublePrecisionPlugin),
-        ("32-true", PrecisionPlugin),
-        ("16-true", HalfPrecisionPlugin),
-        ("bf16-true", HalfPrecisionPlugin),
-        ("16-mixed", MixedPrecisionPlugin),
-        ("bf16-mixed", MixedPrecisionPlugin),
+        ("64-true", "auto", DoublePrecisionPlugin),
+        ("32-true", "auto", PrecisionPlugin),
+        ("16-true", "auto", HalfPrecisionPlugin),
+        ("bf16-true", "auto", HalfPrecisionPlugin),
+        ("16-mixed", "auto", MixedPrecisionPlugin),
+        ("bf16-mixed", "auto", MixedPrecisionPlugin),
+        pytest.param("32-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("bf16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("bf16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("32-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("16-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("bf16-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("16-mixed", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("bf16-mixed", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
     ],
 )
-def test_precision_selection(precision_str, precision_cls):
-    connector = _AcceleratorConnector(precision=precision_str)
-    assert isinstance(connector.precision_plugin, precision_cls)
+def test_precision_selection(precision_str, strategy_str, expected_precision_cls):
+    connector = _AcceleratorConnector(precision=precision_str, strategy=strategy_str)
+    assert isinstance(connector.precision_plugin, expected_precision_cls)

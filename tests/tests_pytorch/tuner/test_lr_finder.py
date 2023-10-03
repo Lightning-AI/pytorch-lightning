@@ -20,15 +20,15 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-
-from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.tuner.lr_finder import _LRFinder
 from lightning.pytorch.tuner.tuning import Tuner
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
+from lightning_utilities.test.warning import no_warning_call
+
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -217,8 +217,7 @@ def test_datamodule_parameter(tmpdir):
 
 
 def test_accumulation_and_early_stopping(tmpdir):
-    """Test that early stopping of learning rate finder works, and that accumulation also works for this
-    feature."""
+    """Test that early stopping of learning rate finder works, and that accumulation also works for this feature."""
     seed_everything(1)
 
     class TestModel(BoringModel):

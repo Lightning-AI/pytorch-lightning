@@ -35,11 +35,7 @@ from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
-if _OMEGACONF_AVAILABLE:
-    from omegaconf import Container
-
-
-log: logging.Logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class _CheckpointConnector:
@@ -71,6 +67,7 @@ class _CheckpointConnector:
         2. from fault-tolerant auto-saved checkpoint if found
         3. from `checkpoint_path` file if provided
         4. don't restore
+
         """
         self._ckpt_path = checkpoint_path
         if not checkpoint_path:
@@ -209,8 +206,7 @@ class _CheckpointConnector:
         return ckpt_path
 
     def resume_end(self) -> None:
-        """Signal the connector that all states have resumed and memory for the checkpoint object can be
-        released."""
+        """Signal the connector that all states have resumed and memory for the checkpoint object can be released."""
         assert self.trainer.state.fn is not None
         if self._ckpt_path:
             message = "Restored all states" if self.trainer.state.fn == TrainerFn.FITTING else "Loaded model weights"
@@ -235,6 +231,7 @@ class _CheckpointConnector:
 
         Args:
             checkpoint_path: Path to a PyTorch Lightning checkpoint file.
+
         """
         self.resume_start(checkpoint_path)
 
@@ -266,6 +263,7 @@ class _CheckpointConnector:
 
         Hooks are called first to give the LightningModule a chance to modify the contents, then finally the model gets
         updated with the loaded weights.
+
         """
         if not self._loaded_checkpoint:
             return
@@ -281,6 +279,7 @@ class _CheckpointConnector:
         """Restore the trainer state from the pre-loaded checkpoint.
 
         This includes the precision settings, loop progress, optimizer states and learning rate scheduler states.
+
         """
         if not self._loaded_checkpoint:
             return
@@ -320,6 +319,7 @@ class _CheckpointConnector:
         """Restores the loop progress from the pre-loaded checkpoint.
 
         Calls hooks on the loops to give it a chance to restore its state from the checkpoint.
+
         """
         if not self._loaded_checkpoint:
             return
@@ -420,6 +420,7 @@ class _CheckpointConnector:
                 something_cool_i_want_to_save: anything you define through model.on_save_checkpoint
                 LightningDataModule.__class__.__qualname__: pl DataModule's state
             }
+
         """
         trainer = self.trainer
         model = trainer.lightning_module
@@ -458,6 +459,9 @@ class _CheckpointConnector:
             if prec_plugin_state_dict:
                 checkpoint[prec_plugin.__class__.__qualname__] = prec_plugin_state_dict
             prec_plugin.on_save_checkpoint(checkpoint)
+
+        if _OMEGACONF_AVAILABLE:
+            from omegaconf import Container
 
         # dump hyper-parameters
         for obj in (model, datamodule):
@@ -507,6 +511,7 @@ class _CheckpointConnector:
             name_key: file name prefix
         Returns:
             None if no-corresponding-file else maximum suffix number
+
         """
         # check directory existence
         fs, uri = url_to_fs(str(dir_path))

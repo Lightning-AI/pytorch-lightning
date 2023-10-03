@@ -10,7 +10,7 @@ Compile your model to ONNX
 **************************
 `ONNX <https://pytorch.org/docs/stable/onnx.html>`_ is a package developed by Microsoft to optimize inference. ONNX allows the model to be independent of PyTorch and run on any ONNX Runtime.
 
-To export your model to ONNX format call the :meth:`~lightning.pytorch.core.module.LightningModule.to_onnx` function on your :class:`~lightning.pytorch.core.module.LightningModule` with the ``filepath`` and ``input_sample``.
+To export your model to ONNX format call the :meth:`~lightning.pytorch.core.LightningModule.to_onnx` function on your :class:`~lightning.pytorch.core.LightningModule` with the ``filepath`` and ``input_sample``.
 
 .. code-block:: python
 
@@ -29,7 +29,7 @@ To export your model to ONNX format call the :meth:`~lightning.pytorch.core.modu
     input_sample = torch.randn((1, 64))
     model.to_onnx(filepath, input_sample, export_params=True)
 
-You can also skip passing the input sample if the ``example_input_array`` property is specified in your :class:`~lightning.pytorch.core.module.LightningModule`.
+You can also skip passing the input sample if the ``example_input_array`` property is specified in your :class:`~lightning.pytorch.core.LightningModule`.
 
 .. code-block:: python
 

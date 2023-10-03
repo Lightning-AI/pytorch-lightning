@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Callable, cast, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union, cast
 
 import torch
 from torch import Tensor
@@ -30,13 +30,13 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH
-from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
+from lightning.pytorch.core.optimizer import LightningOptimizer, _init_optimizers_and_lr_schedulers
 from lightning.pytorch.plugins import TorchCheckpointIO
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.types import LRSchedulerConfig, STEP_OUTPUT
+from lightning.pytorch.utilities.types import STEP_OUTPUT, LRSchedulerConfig
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -55,7 +55,9 @@ class Strategy(ABC):
     ) -> None:
         self._accelerator: Optional["pl.accelerators.Accelerator"] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision_plugin: Optional[PrecisionPlugin] = precision_plugin
+        self._precision_plugin: Optional[PrecisionPlugin] = None
+        # Call the precision setter for input validation
+        self.precision_plugin = precision_plugin  # type: ignore[assignment]
         self._lightning_module: Optional[pl.LightningModule] = None
         self._model: Optional[Module] = None
         self._launcher: Optional[_Launcher] = None
@@ -120,6 +122,7 @@ class Strategy(ABC):
 
         This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
         environment before setup is complete.
+
         """
         assert self.accelerator is not None
         self.accelerator.setup_device(self.root_device)
@@ -129,6 +132,7 @@ class Strategy(ABC):
 
         Args:
             trainer: the Trainer, these optimizers should be connected to
+
         """
         if trainer.state.fn != TrainerFn.FITTING:
             return
@@ -140,6 +144,7 @@ class Strategy(ABC):
 
         Args:
             trainer: the trainer instance
+
         """
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
@@ -161,6 +166,7 @@ class Strategy(ABC):
         """Returns state of an optimizer.
 
         Allows for syncing/collating optimizer state from processes in custom strategies.
+
         """
         if isinstance(optimizer, LightningOptimizer):
             optimizer = optimizer._optimizer
@@ -189,6 +195,7 @@ class Strategy(ABC):
             \*args: Positional arguments that get passed down to the precision plugin's backward, intended as arguments
                 for the actual function that performs the backward, like :meth:`~torch.Tensor.backward`.
             \**kwargs: Keyword arguments for the same purpose as ``*args``.
+
         """
         self.pre_backward(closure_loss)
         assert self.lightning_module is not None
@@ -215,6 +222,7 @@ class Strategy(ABC):
             closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
             \**kwargs: Keyword arguments to ``optimizer.step``
+
         """
         model = model or self.lightning_module
         # TODO(fabric): remove assertion once strategy's optimizer_step typing is fixed
@@ -226,6 +234,7 @@ class Strategy(ABC):
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
         call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
+
         """
         # TODO: standardize this across all plugins in Lightning and Fabric. Related refactor: #7324
         model = self._setup_model(model)
@@ -252,6 +261,7 @@ class Strategy(ABC):
             batch: The batch of samples to move to the correct device
             device: The target device
             dataloader_idx: The index of the dataloader to which the batch belongs.
+
         """
         model = self.lightning_module
         device = device or self.root_device
@@ -287,6 +297,7 @@ class Strategy(ABC):
             group: the process group to reduce
             reduce_op: the reduction operation. Defaults to 'mean'.
                 Can also be a string 'sum' or ReduceOp.
+
         """
 
     @abstractmethod
@@ -295,6 +306,7 @@ class Strategy(ABC):
 
         Args:
             name: an optional name to pass into barrier.
+
         """
 
     @abstractmethod
@@ -304,6 +316,7 @@ class Strategy(ABC):
         Args:
             obj: the object to broadcast
             src: source rank
+
         """
 
     @abstractmethod
@@ -314,6 +327,7 @@ class Strategy(ABC):
             tensor: the tensor to all_gather
             group: the process group to gather results from
             sync_grads: flag that allows users to synchronize gradients for all_gather op
+
         """
 
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
@@ -357,9 +371,9 @@ class Strategy(ABC):
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual training step.
 
-        See :meth:`~lightning.pytorch.core.module.LightningModule.training_step` for more details
+        See :meth:`~lightning.pytorch.core.LightningModule.training_step` for more details
+
         """
-        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.train_step_context():
@@ -371,15 +385,16 @@ class Strategy(ABC):
         """This hook is deprecated.
 
         Override :meth:`training_step` instead.
+
         """
         pass
 
     def validation_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual validation step.
 
-        See :meth:`~lightning.pytorch.core.module.LightningModule.validation_step` for more details
+        See :meth:`~lightning.pytorch.core.LightningModule.validation_step` for more details
+
         """
-        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.val_step_context():
@@ -390,9 +405,9 @@ class Strategy(ABC):
     def test_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual test step.
 
-        See :meth:`~lightning.pytorch.core.module.LightningModule.test_step` for more details
+        See :meth:`~lightning.pytorch.core.LightningModule.test_step` for more details
+
         """
-        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.test_step_context():
@@ -403,9 +418,9 @@ class Strategy(ABC):
     def predict_step(self, *args: Any, **kwargs: Any) -> Any:
         """The actual predict step.
 
-        See :meth:`~lightning.pytorch.core.module.LightningModule.predict_step` for more details
+        See :meth:`~lightning.pytorch.core.LightningModule.predict_step` for more details
+
         """
-        args, kwargs = self.precision_plugin.convert_input((args, kwargs))
         assert self.lightning_module is not None
         assert self.model is not None
         with self.precision_plugin.predict_step_context():
@@ -418,16 +433,18 @@ class Strategy(ABC):
 
         Args:
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
+
         """
         return dataloader
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:
-        """Override to delay restoring from checkpoint till after the setup phase has completed. This is useful
-        when the strategy requires all the setup hooks to run before loading checkpoint.
+        """Override to delay restoring from checkpoint till after the setup phase has completed. This is useful when
+        the strategy requires all the setup hooks to run before loading checkpoint.
 
         Returns:
             If ``True``, restore checkpoint after strategy setup.
+
         """
         return False
 
@@ -436,6 +453,7 @@ class Strategy(ABC):
         """Override to disable Lightning restoring optimizers/schedulers.
 
         This is useful for strategies which manage restoring optimizers/schedulers.
+
         """
         return True
 
@@ -458,6 +476,7 @@ class Strategy(ABC):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
+
         """
         if self.is_global_zero:
             self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
@@ -467,6 +486,7 @@ class Strategy(ABC):
 
         Args:
             filepath: Path to checkpoint
+
         """
         if self.is_global_zero:
             self.checkpoint_io.remove_checkpoint(filepath)
@@ -478,6 +498,7 @@ class Strategy(ABC):
         Args:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
+
         """
         device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
         empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
@@ -486,11 +507,11 @@ class Strategy(ABC):
 
     @contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
-        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
-        shard the model instantly, which is useful for extremely large models which can save memory and
-        initialization time.
+        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to shard
+        the model instantly, which is useful for extremely large models which can save memory and initialization time.
 
         Returns: Model parallel context.
+
         """
         yield
 
@@ -498,6 +519,7 @@ class Strategy(ABC):
         """This method is called to teardown the training process.
 
         It is the right place to release memory and free other resources.
+
         """
         _optimizers_to_device(self.optimizers, torch.device("cpu"))
 
@@ -568,6 +590,7 @@ class _ForwardRedirection:
     """Implements the `forward-redirection`.
 
     A method call to a wrapped module gets rerouted through the wrapper's `forward` method instead.
+
     """
 
     def __call__(
@@ -584,6 +607,7 @@ class _ForwardRedirection:
                 `forward` method instead.
             **kwargs: The keyword arguments to the method `method_name`. They will get passed to a patched
                 `forward` method instead.
+
         """
         assert method_name != "forward"
         original_forward = original_module.forward

@@ -21,20 +21,14 @@ from contextlib import nullcontext, suppress
 from copy import deepcopy
 from pathlib import Path
 from unittest import mock
-from unittest.mock import ANY, call, Mock, patch
+from unittest.mock import ANY, Mock, call, patch
 
 import cloudpickle
+import lightning.fabric
+import lightning.pytorch
 import pytest
 import torch
 import torch.nn as nn
-from torch.multiprocessing import ProcessRaisedException
-from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.optim import SGD
-from torch.utils.data import DataLoader, IterableDataset
-
-import lightning.fabric
-import lightning.pytorch
-import tests_pytorch.helpers.utils as tutils
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer
@@ -50,13 +44,19 @@ from lightning.pytorch.demos.boring_classes import (
     RandomIterableDatasetWithLen,
 )
 from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
 from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
+from torch.multiprocessing import ProcessRaisedException
+from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.optim import SGD
+from torch.utils.data import DataLoader, IterableDataset
+
+import tests_pytorch.helpers.utils as tutils
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -67,8 +67,7 @@ if _OMEGACONF_AVAILABLE:
 
 
 def test_trainer_error_when_input_not_lightning_module():
-    """Test that a useful error gets raised when the Trainer methods receive something other than a
-    LightningModule."""
+    """Test that a useful error gets raised when the Trainer methods receive something other than a LightningModule."""
     trainer = Trainer()
 
     for method in ("fit", "validate", "test", "predict"):
@@ -245,7 +244,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
 
 
 def test_loading_meta_tags(tmpdir):
-    """test for backward compatibility to meta_tags.csv."""
+    """Test for backward compatibility to meta_tags.csv."""
     hparams = {
         "batch_size": 32,
         "learning_rate": 0.001 * 8,
@@ -347,8 +346,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
 
 def test_model_checkpoint_only_weights(tmpdir):
-    """Tests use case where ModelCheckpoint is configured to save only model weights, and user tries to load
-    checkpoint to resume training."""
+    """Tests use case where ModelCheckpoint is configured to save only model weights, and user tries to load checkpoint
+    to resume training."""
     model = BoringModel()
 
     trainer = Trainer(
@@ -524,7 +523,6 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
         (None, 0, True, None),
         (0, -1, True, 0),
         (-1, 0, True, -1),
-        (0, -1, True, 0),
     ],
 )
 def test_trainer_max_steps_and_epochs_fit_loop_done(max_epochs, max_steps, is_done, correct_trainer_epochs):
@@ -1431,7 +1429,7 @@ def test_spawn_predict_return_predictions(tmpdir):
 
 
 @pytest.mark.parametrize("return_predictions", [None, False, True])
-@pytest.mark.parametrize("precision", ["32-true", "64-true"])
+@pytest.mark.parametrize("precision", ["32-true", pytest.param("64-true", marks=RunIf(mps=False))])
 def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
     """Test that `return_predictions=True`."""
     seed_everything(42)
@@ -1447,8 +1445,8 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
 
 @pytest.mark.parametrize(("max_steps", "max_epochs", "global_step"), [(10, 5, 10), (20, None, 20)])
 def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epochs, global_step):
-    """Ensure that the training loop is bound by `max_steps` and `max_epochs` for repeated calls of `trainer.fit`,
-    and disabled if the limit is reached."""
+    """Ensure that the training loop is bound by `max_steps` and `max_epochs` for repeated calls of `trainer.fit`, and
+    disabled if the limit is reached."""
 
     dataset_len = 200
     batch_size = 10
@@ -1872,7 +1870,7 @@ def test_detect_anomaly_nan(tmpdir):
 @pytest.mark.parametrize(
     ("trainer_kwargs", "strategy_cls", "accelerator_cls", "devices"),
     [
-        ({"strategy": "auto"}, SingleDeviceStrategy, CPUAccelerator, 1),
+        pytest.param({"strategy": "auto"}, SingleDeviceStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
         pytest.param({"strategy": "ddp"}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
         pytest.param({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
         (
@@ -1916,7 +1914,6 @@ def test_detect_anomaly_nan(tmpdir):
             2,
         ),
         pytest.param({"strategy": DDPStrategy()}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
-        ({"strategy": DDPStrategy(), "accelerator": "cuda", "devices": 2}, DDPStrategy, CUDAAccelerator, 2),
         (
             {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
             DDPStrategy,
@@ -1983,9 +1980,8 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
     [
         ({}, [0]),
         ({"devices": 1}, [0]),
-        ({"devices": 1}, [0]),
         ({"devices": "1"}, [0]),
-        ({"devices": 2}, [0, 1]),
+        pytest.param({"devices": 2}, [0, 1], marks=RunIf(mps=False)),
         ({"accelerator": "gpu", "devices": 1}, [0]),
         ({"accelerator": "cuda", "devices": 1}, [0]),
         ({"accelerator": "cuda", "devices": 2}, [0, 1]),

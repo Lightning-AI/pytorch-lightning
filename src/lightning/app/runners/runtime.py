@@ -18,13 +18,13 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Thread
-from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 
-from lightning.app import LightningApp, LightningFlow
+from lightning.app.core import LightningApp, LightningFlow
 from lightning.app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning.app.runners.backends import Backend, BackendType
 from lightning.app.utilities.app_helpers import Logger
-from lightning.app.utilities.enum import AppStage, CacheCallsKeys, make_status, WorkStageStatus
+from lightning.app.utilities.enum import AppStage, CacheCallsKeys, WorkStageStatus, make_status
 from lightning.app.utilities.load_app import load_app_from_file
 from lightning.app.utilities.proxies import WorkRunner
 
@@ -66,6 +66,7 @@ def dispatch(
         run_app_comment_commands: whether to parse commands from the entrypoint file and execute them before app startup
         enable_basic_auth: whether to enable basic authentication for the app
                            (use credentials in the format username:password as an argument)
+
     """
     from lightning.app.runners.runtime_type import RuntimeType
     from lightning.app.utilities.component import _set_flow_context

@@ -186,7 +186,7 @@ configuration files and automatic creation of objects, so you don't need to do i
 
 .. note::
 
-    Lighting automatically registers all subclasses of :class:`~lightning.pytorch.core.module.LightningModule`,
+    Lighting automatically registers all subclasses of :class:`~lightning.pytorch.core.LightningModule`,
     so the complete import path is not required for them and can be replaced by the class name.
 
 .. note::
@@ -196,7 +196,7 @@ configuration files and automatic creation of objects, so you don't need to do i
     To somewhat overcome these limitations, there is a special key ``dict_kwargs`` that can be used
     to provide arguments that will not be validated during parsing, but will be used for class instantiation.
 
-    For example, then using the ``pytorch_lightning.profilers.PyTorchProfiler`` profiler,
+    For example, then using the ``lightning.pytorch.profilers.PyTorchProfiler`` profiler,
     the ``profile_memory`` argument has a type that is determined dynamically. As a result, it's not possible
     to know the expected type during parsing. To account for this, your config file should be set up like this:
 
@@ -204,7 +204,7 @@ configuration files and automatic creation of objects, so you don't need to do i
 
         trainer:
           profiler:
-            class_path: pytorch_lightning.profilers.PyTorchProfiler
+            class_path: lightning.pytorch.profilers.PyTorchProfiler
             dict_kwargs:
               profile_memory: true
 

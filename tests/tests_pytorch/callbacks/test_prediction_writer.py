@@ -11,15 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import ANY, call, Mock
+from unittest.mock import ANY, Mock, call
 
 import pytest
-from torch.utils.data import DataLoader
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from torch.utils.data import DataLoader
 
 
 class DummyPredictionWriter(BasePredictionWriter):
@@ -37,8 +36,7 @@ def test_prediction_writer_invalid_write_interval():
 
 
 def test_prediction_writer_hook_call_intervals():
-    """Test that the `write_on_batch_end` and `write_on_epoch_end` hooks get invoked based on the defined
-    interval."""
+    """Test that the `write_on_batch_end` and `write_on_epoch_end` hooks get invoked based on the defined interval."""
     DummyPredictionWriter.write_on_batch_end = Mock()
     DummyPredictionWriter.write_on_epoch_end = Mock()
 

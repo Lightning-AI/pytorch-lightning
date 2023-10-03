@@ -21,15 +21,14 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
-
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from lightning.pytorch.profilers.pytorch import RegisterRecordFunction, warning_cache
+from lightning.pytorch.profilers.pytorch import _KINETO_AVAILABLE, RegisterRecordFunction, warning_cache
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
+
 from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
@@ -40,7 +39,7 @@ def _get_python_cprofile_total_duration(profile):
 
 
 def _sleep_generator(durations):
-    """the profile_iterable method needs an iterable in which we can ensure that we're properly timing how long it
+    """The profile_iterable method needs an iterable in which we can ensure that we're properly timing how long it
     takes to call __next__"""
     for duration in durations:
         time.sleep(duration)
@@ -277,7 +276,7 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
 
 @pytest.mark.flaky(reruns=3)
 def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
-    """ensure that the profiler doesn't introduce too much overhead during training."""
+    """Ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
         with advanced_profiler.profile("no-op"):
             pass
@@ -289,7 +288,7 @@ def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
 
 
 def test_advanced_profiler_describe(tmpdir, advanced_profiler):
-    """ensure the profiler won't fail when reporting the summary."""
+    """Ensure the profiler won't fail when reporting the summary."""
     # record at least one event
     with advanced_profiler.profile("test"):
         pass
@@ -457,6 +456,7 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
     multiple loggers.
 
     See issue #8157.
+
     """
 
     def look_for_trace(trace_dir):

@@ -15,15 +15,13 @@
 import functools
 import sys
 
-import torch
-from lightning_utilities.core.imports import package_available, RequirementCache
+from lightning_utilities.core.imports import RequirementCache, package_available
 from lightning_utilities.core.rank_zero import rank_zero_warn
 
 _PYTHON_GREATER_EQUAL_3_11_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 11)
 _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
 _TORCHMETRICS_GREATER_EQUAL_0_11 = RequirementCache("torchmetrics>=0.11.0")  # using new API with task
 
-_KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 _LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")

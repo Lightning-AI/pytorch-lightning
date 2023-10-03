@@ -17,12 +17,14 @@
    ../advanced/model_parallel
    Train on single or multiple GPUs <../accelerators/gpu>
    Train on single or multiple HPUs <../integrations/hpu/index>
-   Train on single or multiple IPUs <../accelerators/ipu>
+   Train on single or multiple IPUs <../integrations/ipu/index>
    Train on single or multiple TPUs <../accelerators/tpu>
    Train on MPS <../accelerators/mps>
    Use a pretrained model <../advanced/pretrained>
    ../data/data
    ../model/own_your_loop
+   ../advanced/model_init
+
 
 #############
 How-to Guides
@@ -132,8 +134,15 @@ How-to Guides
     :height: 180
 
 .. displayitem::
-    :header: Train 1 trillion+ parameter models
-    :description: Scale GPU training to 1 trillion + parameter models
+    :header: Set up large models efficiently
+    :description: Avoid memory peaks and speed up the initialization of large models
+    :button_link: ../advanced/model_init.html
+    :col_css: col-md-4
+    :height: 180
+
+.. displayitem::
+    :header: Train models with billions of parameters
+    :description: Scale GPU training for models with billions of parameters
     :button_link: ../advanced/model_parallel.html
     :col_css: col-md-4
     :height: 180
@@ -162,7 +171,7 @@ How-to Guides
 .. displayitem::
     :header: Train on single or multiple IPUs
     :description: Train models faster with IPU accelerators
-    :button_link: ../accelerators/ipu.html
+    :button_link: ../integrations/ipu/index.html
     :col_css: col-md-4
     :height: 180
 
@@ -189,7 +198,7 @@ How-to Guides
 
 .. displayitem::
     :header: Use a pretrained model
-    :description: Improve results with transer learning on pretrained models
+    :description: Improve results with transfer learning on pretrained models
     :button_link: ../advanced/pretrained.html
     :col_css: col-md-4
     :height: 180

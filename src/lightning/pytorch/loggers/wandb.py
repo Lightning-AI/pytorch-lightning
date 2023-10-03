@@ -18,7 +18,7 @@ Weights and Biases Logger
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Mapping, Optional, Union
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
@@ -32,13 +32,10 @@ from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
-try:
-    import wandb
+if TYPE_CHECKING:
+    from wandb import Artifact
     from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
-except ModuleNotFoundError:
-    # needed for test mocks, these tests shall be updated
-    wandb, Run, RunDisabled = None, None, None
 
 _WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
 
@@ -72,7 +69,7 @@ class WandbLogger(Logger):
 
     **Log metrics**
 
-    Log from :class:`~lightning.pytorch.core.module.LightningModule`:
+    Log from :class:`~lightning.pytorch.core.LightningModule`:
 
     .. code-block:: python
 
@@ -88,7 +85,7 @@ class WandbLogger(Logger):
 
     **Log hyper-parameters**
 
-    Save :class:`~lightning.pytorch.core.module.LightningModule` parameters:
+    Save :class:`~lightning.pytorch.core.LightningModule` parameters:
 
     .. code-block:: python
 
@@ -205,7 +202,8 @@ class WandbLogger(Logger):
 
     **Log Tables**
 
-    `W&B Tables <https://docs.wandb.ai/guides/data-vis>`_ can be used to log, query and analyze tabular data.
+    `W&B Tables <https://docs.wandb.ai/guides/tables/visualize-tables>`_ can be used to log,
+    query and analyze tabular data.
 
     They support any type of media (text, image, video, audio, molecule, html, etc) and are great for storing,
     understanding and sharing any form of data, from datasets to model predictions.
@@ -279,6 +277,7 @@ class WandbLogger(Logger):
             If required WandB package is not installed on the device.
         MisconfigurationException:
             If both ``log_model`` and ``offline`` is set to ``True``.
+
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -293,13 +292,13 @@ class WandbLogger(Logger):
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
         project: Optional[str] = None,
-        log_model: Union[str, bool] = False,
-        experiment: Union[Run, RunDisabled, None] = None,
+        log_model: Union[Literal["all"], bool] = False,
+        experiment: Union["Run", "RunDisabled", None] = None,
         prefix: str = "",
         checkpoint_name: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
-        if wandb is None or not _WANDB_AVAILABLE:
+        if not _WANDB_AVAILABLE:
             raise ModuleNotFoundError(str(_WANDB_AVAILABLE))
 
         if offline and log_model:
@@ -343,6 +342,8 @@ class WandbLogger(Logger):
         self._checkpoint_name = checkpoint_name
 
     def __getstate__(self) -> Dict[str, Any]:
+        import wandb
+
         # Hack: If the 'spawn' launch method is used, the logger will get pickled and this `__getstate__` gets called.
         # We create an experiment here in the main process, and attach to it in the worker process.
         # Using wandb-service, we persist the same experiment even if multiple `Trainer.fit/test/validate` calls
@@ -363,11 +364,9 @@ class WandbLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Union[Run, RunDisabled]:
-        r"""
-
-        Actual wandb object. To use wandb features in your
-        :class:`~lightning.pytorch.core.module.LightningModule` do the following.
+    def experiment(self) -> Union["Run", "RunDisabled"]:
+        r"""Actual wandb object. To use wandb features in your :class:`~lightning.pytorch.core.LightningModule` do the
+        following.
 
         Example::
 
@@ -376,6 +375,10 @@ class WandbLogger(Logger):
             self.logger.experiment.some_wandb_function()
 
         """
+        import wandb
+        from wandb.sdk.lib import RunDisabled
+        from wandb.wandb_run import Run
+
         if self._experiment is None:
             if self._offline:
                 os.environ["WANDB_MODE"] = "dryrun"
@@ -402,7 +405,6 @@ class WandbLogger(Logger):
                     self._experiment.define_metric("trainer/global_step")
                     self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
-        assert isinstance(self._experiment, (Run, RunDisabled))
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True) -> None:
@@ -436,7 +438,9 @@ class WandbLogger(Logger):
         """Log a Table containing any object type (text, image, audio, video, molecule, html, etc).
 
         Can be defined either with `columns` and `data` or with `dataframe`.
+
         """
+        import wandb
 
         metrics = {key: wandb.Table(columns=columns, data=data, dataframe=dataframe)}
         self.log_metrics(metrics, step)
@@ -453,6 +457,7 @@ class WandbLogger(Logger):
         """Log text as a Table.
 
         Can be defined either with `columns` and `data` or with `dataframe`.
+
         """
 
         self.log_table(key, columns, data, dataframe, step)
@@ -462,6 +467,7 @@ class WandbLogger(Logger):
         """Log images (tensors, numpy arrays, PIL Images or file paths).
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
+
         """
         if not isinstance(images, list):
             raise TypeError(f'Expected a list as "images", found {type(images)}')
@@ -470,6 +476,9 @@ class WandbLogger(Logger):
             if len(v) != n:
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
         kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
+
+        import wandb
+
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
         self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
@@ -479,6 +488,7 @@ class WandbLogger(Logger):
 
         Returns:
             The path to the save directory.
+
         """
         return self._save_dir
 
@@ -489,6 +499,7 @@ class WandbLogger(Logger):
         Returns:
             The name of the project the current experiment belongs to. This name is not the same as `wandb.Run`'s
             name. To access wandb's internal experiment name, use ``logger.experiment.name`` instead.
+
         """
         return self._project
 
@@ -498,6 +509,7 @@ class WandbLogger(Logger):
 
         Returns:
             The id of the experiment if the experiment exists else the id given to the constructor.
+
         """
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
@@ -527,7 +539,10 @@ class WandbLogger(Logger):
 
         Returns:
             The path to the downloaded artifact.
+
         """
+        import wandb
+
         if wandb.run is not None and use_artifact:
             artifact = wandb.run.use_artifact(artifact)
         else:
@@ -537,7 +552,7 @@ class WandbLogger(Logger):
         save_dir = None if save_dir is None else os.fspath(save_dir)
         return artifact.download(root=save_dir)
 
-    def use_artifact(self, artifact: str, artifact_type: Optional[str] = None) -> "wandb.Artifact":
+    def use_artifact(self, artifact: str, artifact_type: Optional[str] = None) -> "Artifact":
         """Logs to the wandb dashboard that the mentioned artifact is used by the run.
 
         Args:
@@ -546,6 +561,7 @@ class WandbLogger(Logger):
 
         Returns:
             wandb Artifact object for the artifact.
+
         """
         return self.experiment.use_artifact(artifact, type=artifact_type)
 
@@ -559,6 +575,8 @@ class WandbLogger(Logger):
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
     def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
+        import wandb
+
         # get checkpoints to be saved with associated score
         checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
 

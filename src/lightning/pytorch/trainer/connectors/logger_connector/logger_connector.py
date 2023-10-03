@@ -34,9 +34,9 @@ class _LoggerConnector:
         self._progress_bar_metrics: _PBAR_DICT = {}
         self._logged_metrics: _OUT_DICT = {}
         self._callback_metrics: _OUT_DICT = {}
-        self._epoch_end_reached = False
         self._current_fx: Optional[str] = None
-        self._batch_idx: Optional[int] = None
+        # None: hasn't started, True: first loop iteration, False: subsequent iterations
+        self._first_loop_iter: Optional[bool] = None
 
     def on_trainer_init(
         self,
@@ -86,6 +86,7 @@ class _LoggerConnector:
             metrics: Metric values
             step: Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
+
         """
         if not self.trainer.loggers or not metrics:
             return
@@ -118,12 +119,12 @@ class _LoggerConnector:
         results.dataloader_idx = None
 
     def update_eval_step_metrics(self, step: int) -> None:
-        assert not self._epoch_end_reached
+        assert isinstance(self._first_loop_iter, bool)
         # logs user requested information to logger
         self.log_metrics(self.metrics["log"], step=step)
 
     def update_eval_epoch_metrics(self) -> _OUT_DICT:
-        assert self._epoch_end_reached
+        assert self._first_loop_iter is None
         if self.trainer.sanity_checking:
             return {}
         metrics = self.metrics
@@ -133,7 +134,7 @@ class _LoggerConnector:
         return metrics["log"]
 
     def log_eval_end_metrics(self, metrics: _OUT_DICT) -> None:
-        assert self._epoch_end_reached
+        assert self._first_loop_iter is None
         if self.trainer.sanity_checking:
             return
 
@@ -149,13 +150,13 @@ class _LoggerConnector:
             return
 
         # when metrics should be logged
-        assert not self._epoch_end_reached
+        assert isinstance(self._first_loop_iter, bool)
         if self.should_update_logs or self.trainer.fast_dev_run:
             self.log_metrics(self.metrics["log"])
 
     def update_train_epoch_metrics(self) -> None:
         # add the metrics to the loggers
-        assert self._epoch_end_reached
+        assert self._first_loop_iter is None
         self.log_metrics(self.metrics["log"])
 
         # reset result collection for next epoch
@@ -165,12 +166,11 @@ class _LoggerConnector:
     Utilities and properties
     """
 
-    def on_epoch_start(self) -> None:
-        self._epoch_end_reached = False
-
-    def on_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> None:
-        self._batch_idx = batch_idx
-        self._epoch_end_reached = False
+    def on_batch_start(self, batch: Any, dataloader_idx: Optional[int] = None) -> None:
+        if self._first_loop_iter is None:
+            self._first_loop_iter = True
+        elif self._first_loop_iter is True:
+            self._first_loop_iter = False
 
         results = self.trainer._results
         assert results is not None
@@ -180,11 +180,10 @@ class _LoggerConnector:
         results.dataloader_idx = dataloader_idx
 
     def epoch_end_reached(self) -> None:
-        self._epoch_end_reached = True
-        self._batch_idx = None
+        self._first_loop_iter = None
 
     def on_epoch_end(self) -> None:
-        assert self._epoch_end_reached
+        assert self._first_loop_iter is None
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
@@ -192,7 +191,7 @@ class _LoggerConnector:
         self._current_fx = None
 
     def on_batch_end(self) -> None:
-        assert not self._epoch_end_reached
+        assert isinstance(self._first_loop_iter, bool)
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
@@ -204,9 +203,7 @@ class _LoggerConnector:
         self.trainer._results.batch_size = None
 
     def should_reset_tensors(self, fx: str) -> bool:
-        is_different_fx = self._current_fx != fx
-        is_first_batch = self._batch_idx in (None, 0)
-        return is_different_fx and is_first_batch
+        return self._current_fx != fx and self._first_loop_iter in (None, True)
 
     def reset_metrics(self) -> None:
         self._progress_bar_metrics = {}
@@ -218,13 +215,13 @@ class _LoggerConnector:
         if results is not None:
             results.reset()
 
-        self._batch_idx = None
+        self._first_loop_iter = None
         self._current_fx = None
 
     @property
     def metrics(self) -> _METRICS:
-        """This function returns either batch or epoch metrics depending on ``_epoch_end_reached``."""
-        on_step = not self._epoch_end_reached
+        """This function returns either batch or epoch metrics."""
+        on_step = self._first_loop_iter is not None
         assert self.trainer._results is not None
         return self.trainer._results.metrics(on_step)
 

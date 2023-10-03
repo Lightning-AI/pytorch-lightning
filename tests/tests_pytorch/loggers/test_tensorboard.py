@@ -21,12 +21,12 @@ import numpy as np
 import pytest
 import torch
 import yaml
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -210,7 +210,7 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
 
 @pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
 def test_tensorboard_log_graph(tmpdir, example_input_array):
-    """test that log graph works with both model.example_input_array and if array is passed externally."""
+    """Test that log graph works with both model.example_input_array and if array is passed externally."""
     model = BoringModel()
     if example_input_array is not None:
         model.example_input_array = None
@@ -221,7 +221,7 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
 
 @pytest.mark.skipif(not _TENSORBOARD_AVAILABLE, reason=str(_TENSORBOARD_AVAILABLE))
 def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
-    """test that log graph throws warning if model.example_input_array is None."""
+    """Test that log graph throws warning if model.example_input_array is None."""
     model = BoringModel()
     model.example_input_array = None
     logger = TensorBoardLogger(tmpdir, log_graph=True)
@@ -312,8 +312,8 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
 
 @mock.patch("lightning.pytorch.loggers.tensorboard.log")
 def test_tensorboard_with_symlink(log, tmpdir):
-    """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``,
-    and relative paths."""
+    """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
+    relative paths."""
     os.chdir(tmpdir)  # need to use relative paths
     source = os.path.join(".", "lightning_logs")
     dest = os.path.join(".", "sym_lightning_logs")

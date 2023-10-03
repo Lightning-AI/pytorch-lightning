@@ -12,23 +12,21 @@ from time import sleep, time
 from unittest import mock
 
 import aiohttp
+import lightning.app
 import pytest
 import requests
 from deepdiff import DeepDiff, Delta
 from fastapi import HTTPException, Request
 from httpx import AsyncClient
-from pydantic import BaseModel
-
-import lightning.app
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.api.http_methods import Post
 from lightning.app.core import api
 from lightning.app.core.api import (
+    UIRefresher,
     fastapi_service,
     global_app_state_store,
     register_global_routes,
     start_server,
-    UIRefresher,
 )
 from lightning.app.core.constants import APP_SERVER_PORT
 from lightning.app.runners import MultiProcessRuntime
@@ -40,6 +38,7 @@ from lightning.app.utilities.enum import AppStage
 from lightning.app.utilities.load_app import extract_metadata_from_app
 from lightning.app.utilities.redis import check_if_redis_running
 from lightning.app.utilities.state import AppState, headers_for
+from pydantic import BaseModel
 
 register_global_routes()
 
@@ -179,10 +178,10 @@ class AppStageTestingApp(LightningApp):
 
 
 # FIXME: This test doesn't assert anything
-@pytest.mark.skip(reason="TODO: Resolve flaky test.")
+@pytest.mark.xfail(strict=False, reason="TODO: Resolve flaky test.")
 def test_app_stage_from_frontend():
-    """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would
-    start and stop the app."""
+    """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would start
+    and stop the app."""
     app = AppStageTestingApp(FlowA(), log_level="debug")
     app.stage = AppStage.BLOCKING
     MultiProcessRuntime(app, start_server=True).dispatch()
@@ -193,6 +192,7 @@ def test_update_publish_state_and_maybe_refresh_ui():
 
     - receives the state from the `publish_state_queue` and populates the app_state_store
     - receives a notification to refresh the UI and makes a GET Request (streamlit).
+
     """
     app = AppStageTestingApp(FlowA(), log_level="debug")
     publish_state_queue = _MockQueue("publish_state_queue")
@@ -215,6 +215,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
 
     - the state on GET /api/v1/state
     - push a delta when making a POST request to /api/v1/state
+
     """
 
     class InfiniteQueue(_MockQueue):
@@ -499,9 +500,8 @@ def target():
 
 
 async def async_request(url: str, data: InputRequestModel):
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=data.dict()) as result:
-            return await result.json()
+    async with aiohttp.ClientSession() as session, session.post(url, json=data.dict()) as result:
+        return await result.json()
 
 
 @pytest.mark.xfail(strict=False, reason="No idea why... need to be fixed")  # fixme

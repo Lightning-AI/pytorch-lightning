@@ -20,7 +20,7 @@ from shutil import copytree, rmtree
 from typing import List, Optional
 
 from lightning.app.core.constants import DOT_IGNORE_FILENAME, SYS_CUSTOMIZATIONS_SYNC_PATH
-from lightning.app.source_code.copytree import _copytree, _IGNORE_FUNCTION
+from lightning.app.source_code.copytree import _IGNORE_FUNCTION, _copytree
 from lightning.app.source_code.tar import _tar_path
 from lightning.app.source_code.uploader import FileUploader
 
@@ -125,7 +125,7 @@ class LocalSourceCodeDir:
         return self.package_path
 
     def upload(self, url: str) -> None:
-        """Uploads package to URL, usually pre-signed URL.
+        """Uploads package to URL, usually pre-signed UR.
 
         Notes
         -----
@@ -133,6 +133,7 @@ class LocalSourceCodeDir:
         packaged repository files which have a size > 2GB.
 
         This limitation should be removed during the datastore upload redesign
+
         """
         if self.package_path.stat().st_size > 2e9:
             raise OSError(

@@ -4,13 +4,13 @@
 - to access and change the App state.
 
 This is particularly useful for the PanelFrontend, but can be used by other Frontends too.
+
 """
 # pylint: disable=protected-access
 import os
 from unittest import mock
 
 import pytest
-
 from lightning.app.frontend.panel.app_state_watcher import AppStateWatcher
 from lightning.app.utilities.state import AppState
 
@@ -38,6 +38,7 @@ def test_init(flow_state_state: dict):
 
     - the .state is set
     - the .state is scoped to the flow state
+
     """
     # When
     app = AppStateWatcher()
@@ -54,6 +55,7 @@ def test_update_flow_state(flow_state_state: dict):
     """We can update the state.
 
     - the .state is scoped to the flow state
+
     """
     app = AppStateWatcher()
     org_state = app.state
@@ -67,6 +69,7 @@ def test_is_singleton():
 
     Its key that __new__ and __init__ of AppStateWatcher is only called once. See
     https://github.com/holoviz/param/issues/643
+
     """
     # When
     app1 = AppStateWatcher()

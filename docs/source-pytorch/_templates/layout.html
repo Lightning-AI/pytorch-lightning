@@ -1,10 +1,18 @@
 {% extends "!layout.html" %}
 <link rel="canonical" href="{{ theme_canonical_url }}{{ pagename }}.html" />
 
-{% block footer %}
-{{ super() }}
+{% block footer %} {{ super() }}
 <script script type="text/javascript">
-  var collapsedSections = ['Best practices', 'Optional Extensions', 'Tutorials', 'API References', 'Bolts', 'Examples', 'Partner Domain Frameworks', 'Community'];
+  var collapsedSections = [
+    "Best practices",
+    "Optional Extensions",
+    "Tutorials",
+    "API References",
+    "Bolts",
+    "Examples",
+    "Partner Domain Frameworks",
+    "Community",
+  ];
 </script>
 
 {% endblock %}

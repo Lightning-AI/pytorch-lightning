@@ -17,9 +17,6 @@ from unittest import mock
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
-
-import tests_pytorch.helpers.pipelines as tpipes
 from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import XLAAccelerator
@@ -29,6 +26,9 @@ from lightning.pytorch.strategies import XLAStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from torch.utils.data import DataLoader
+
+import tests_pytorch.helpers.pipelines as tpipes
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -102,7 +102,7 @@ def test_model_multiple_tpu_devices(tmpdir):
 def test_model_16bit_tpu_devices_1(tmpdir):
     trainer_options = {
         "default_root_dir": tmpdir,
-        "precision": "16-mixed",
+        "precision": "16-true",
         "enable_progress_bar": False,
         "max_epochs": 2,
         "accelerator": "tpu",
@@ -121,7 +121,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
     trainer_options = {
         "default_root_dir": tmpdir,
-        "precision": "16-mixed",
+        "precision": "16-true",
         "enable_progress_bar": False,
         "max_epochs": 2,
         "accelerator": "tpu",
@@ -143,7 +143,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 def test_model_16bit_multiple_tpu_devices(tmpdir):
     trainer_options = {
         "default_root_dir": tmpdir,
-        "precision": "16-mixed",
+        "precision": "16-true",
         "enable_progress_bar": False,
         "max_epochs": 1,
         "accelerator": "tpu",

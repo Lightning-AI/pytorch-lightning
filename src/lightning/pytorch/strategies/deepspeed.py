@@ -19,11 +19,9 @@ import platform
 from collections import OrderedDict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
-from lightning_utilities.core.apply_func import apply_to_collection
-from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -43,18 +41,17 @@ from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
-from lightning.pytorch.strategies.utils import _fp_to_half
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_info, rank_zero_warn
 from lightning.pytorch.utilities.types import LRSchedulerConfig
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
-if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
+if TYPE_CHECKING:
     import deepspeed
 
 
@@ -249,6 +246,7 @@ class DeepSpeedStrategy(DDPStrategy):
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -392,6 +390,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Return:
             The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
             deepspeed optimizer.
+
         """
         if len(optimizers) != 1:
             raise ValueError(
@@ -417,6 +416,7 @@ class DeepSpeedStrategy(DDPStrategy):
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
         This calls :func:`deepspeed.initialize` internally.
+
         """
         import deepspeed
 
@@ -580,6 +580,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         Args:
             trainer: the Trainer, these optimizers should be connected to
+
         """
         if trainer.state.fn != TrainerFn.FITTING:
             return
@@ -742,6 +743,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Raises:
             TypeError:
                 If ``storage_options`` arg is passed in
+
         """
         # broadcast the filepath from rank 0 to ensure all the states are saved in a common filepath
         filepath = self.broadcast(filepath)
@@ -811,12 +813,13 @@ class DeepSpeedStrategy(DDPStrategy):
             self._restore_zero_state(checkpoint)
 
     def _restore_zero_state(self, ckpt: Mapping[str, Any]) -> None:
-        """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be
-        sharded across processes before loading the state dictionary when using ZeRO stage 3. This is then
-        automatically synced across processes.
+        """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be sharded
+        across processes before loading the state dictionary when using ZeRO stage 3. This is then automatically synced
+        across processes.
 
         Args:
             ckpt: The ckpt file.
+
         """
         import deepspeed
 
@@ -857,7 +860,7 @@ class DeepSpeedStrategy(DDPStrategy):
         load(self.lightning_module, prefix="")
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint()`
+        # Override to do nothing, the deepspeed engine already loaded the states in `load_checkpoint()`
         pass
 
     @classmethod
@@ -892,7 +895,3 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
-
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
-        batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
-        return super().batch_to_device(batch, device, dataloader_idx)

@@ -13,16 +13,17 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from lightning.app import LightningFlow
+    from lightning.app.core.flow import LightningFlow
 
 
 class Frontend(ABC):
     """Base class for any frontend that gets exposed by LightningFlows.
 
     The flow attribute will be set by the app while bootstrapping.
+
     """
 
     def __init__(self) -> None:
@@ -48,6 +49,7 @@ class Frontend(ABC):
 
                 def start_server(self, host, port, root_path=""):
                     self._process = subprocess.Popen(["flask", "run" "--host", host, "--port", str(port)])
+
         """
 
     @abstractmethod
@@ -62,4 +64,5 @@ class Frontend(ABC):
 
                 def stop_server(self):
                     self._process.kill()
+
         """
