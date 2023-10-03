@@ -43,6 +43,7 @@ class StrEnum(str, Enum):
         Raises:
             ValueError:
                 if requested string does not match any option based on selected source.
+
         """
         if source in ("key", "any"):
             for enum_key in cls.__members__:

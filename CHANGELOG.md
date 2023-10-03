@@ -105,7 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Apply local actions in re-usable workflows ([#51](https://github.com/Lightning-AI/utilities/pull/51))
+- Apply local actions in reusable workflows ([#51](https://github.com/Lightning-AI/utilities/pull/51))
 - CI: abstract package actions ([#48](https://github.com/Lightning-AI/utilities/pull/48))
 - CI: Checkout submodules recursive ([#82](https://github.com/Lightning-AI/utilities/pull/82))
 

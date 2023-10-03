@@ -77,7 +77,7 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Pull re-usable 🤖 actions️
+      - name: Pull reusable 🤖 actions️
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.actions-ref }}
@@ -105,7 +105,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Pull re-usable 🤖 actions️
+      - name: Pull reusable 🤖 actions️
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.actions-ref }}

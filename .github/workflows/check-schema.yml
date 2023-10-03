@@ -28,7 +28,7 @@ jobs:
           submodules: recursive
 
       # if actions version is given install defined versions
-      - name: "[optional] Pull re-usable 🤖 actions"
+      - name: "[optional] Pull reusable 🤖 actions"
         if: inputs.actions-ref != ''
         uses: actions/checkout@v4
         with:

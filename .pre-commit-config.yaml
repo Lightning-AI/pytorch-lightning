@@ -22,28 +22,28 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.10.1
+    rev: v3.14.0
     hooks:
       - id: pyupgrade
         args: ["--py37-plus"]
         name: Upgrade code
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.5
+    rev: v2.2.6
     hooks:
       - id: codespell
         additional_dependencies: [tomli]
         #args: ["--write-changes"] # uncomment if you want to get automatic fixing
 
   - repo: https://github.com/PyCQA/docformatter
-    rev: v1.7.3
+    rev: v1.7.5
     hooks:
       - id: docformatter
         additional_dependencies: [tomli]
         args: ["--in-place"]
 
   - repo: https://github.com/psf/black
-    rev: 23.7.0
+    rev: 23.9.1
     hooks:
       - id: black
         name: Black code
@@ -77,7 +77,7 @@ repos:
           - flake8-bugbear
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.287
+    rev: v0.0.292
     hooks:
       - id: ruff
         args: ["--fix"]

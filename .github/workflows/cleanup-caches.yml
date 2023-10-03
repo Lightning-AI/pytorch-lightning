@@ -41,7 +41,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Pull re-usable 🤖 actions️
+      - name: Pull reusable 🤖 actions️
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.scripts-ref }}

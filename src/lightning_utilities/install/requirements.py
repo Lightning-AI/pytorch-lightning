@@ -71,6 +71,7 @@ def _parse_requirements(strs: Union[str, Iterable[str]]) -> Iterator[_Requiremen
     >>> txt = '\\n'.join(txt)
     >>> [r.adjust('none') for r in _parse_requirements(txt)]
     ['this', 'example', 'foo  # strict', 'thing']
+
     """
     lines = yield_lines(strs)
     pip_argument = None
