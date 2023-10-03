@@ -27,6 +27,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.distributed import _set_num_threads
 from lightning.fabric.strategies.launchers.multiprocessing import (
     _check_bad_cuda_fork,
     _check_missing_main_guard,
@@ -153,6 +154,8 @@ class _MultiProcessingLauncher(_Launcher):
             global_states.restore()
         if self._start_method == "spawn" and isinstance(self._strategy.accelerator, CPUAccelerator):
             args, kwargs = _disable_module_memory_sharing((args, kwargs))
+
+        _set_num_threads(num_processes=self._strategy.num_processes)
 
         os.environ["LOCAL_RANK"] = str(process_idx)
         results = function(*args, **kwargs)

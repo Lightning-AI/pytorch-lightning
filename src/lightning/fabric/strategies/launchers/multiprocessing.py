@@ -24,6 +24,7 @@ import torch.multiprocessing as mp
 from lightning_utilities import apply_to_collection
 from torch.nn import Module
 
+from lightning.fabric.utilities.distributed import _set_num_threads
 from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.utilities.apply_func import move_data_to_device
@@ -129,9 +130,10 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
-
         if self._start_method == "spawn" and isinstance(self._strategy.accelerator, CPUAccelerator):
             args, kwargs = _disable_module_memory_sharing((args, kwargs))
+
+        _set_num_threads(num_processes=self._strategy.num_processes)
 
         os.environ["LOCAL_RANK"] = str(process_idx)
         results = function(*args, **kwargs)

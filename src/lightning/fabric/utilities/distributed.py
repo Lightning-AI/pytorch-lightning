@@ -393,3 +393,10 @@ class DistributedSamplerWrapper(DistributedSampler):
 
 def _suggested_max_num_threads(num_processes: int = 1) -> int:
     return max(1, _num_cpus_available() // num_processes)
+
+
+def _set_num_threads(num_processes: int = 1) -> None:
+    if "OMP_NUM_THREADS" not in os.environ:
+        num_threads = _suggested_max_num_threads(num_processes)
+        torch.set_num_threads(num_threads)
+        os.environ["OMP_NUM_THREADS"] = str(num_threads)
