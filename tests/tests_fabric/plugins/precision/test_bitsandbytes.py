@@ -134,10 +134,11 @@ def test_bitsandbytes_layers(args, expected):
     assert model.l.weight.dtype == expected
 
     fabric = Fabric(devices=1, plugins=BitsandbytesPrecision(*args, ignore_modules={"foo"}))
-    with fabric.init_module():
-        model = MyModel()
+    with pytest.raises(RuntimeError, match="not supported.*non-CPU device"), fabric.init_module():
+        pass
+    model = MyModel()
     # When ignore_modules is set, we only quantize on `setup`
-    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.device.type == "cpu"
     assert model.l.weight.dtype == args[1]
     # this quantizes now
     model = fabric.setup(model)
