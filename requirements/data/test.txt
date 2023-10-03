@@ -4,3 +4,6 @@ pytest-cov ==4.1.0
 pytest-timeout ==2.1.0
 pytest-rerunfailures ==12.0
 pytest-random-order ==1.1.0
+
+# to be able to include also 0.6 and preserve `>` needed for CI min version bypass
+torchdata >0.5.9, <0.7.0
