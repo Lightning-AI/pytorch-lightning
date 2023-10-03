@@ -297,8 +297,7 @@ class _ResultMetric(Metric):
 
 
 class _ResultCollection(dict):
-    """Collection (dictionary) of
-    :class:`~lightning.pytorch.trainer.connectors.logger_connector.result._ResultMetric`
+    """Collection (dictionary) of :class:`~lightning.pytorch.trainer.connectors.logger_connector.result._ResultMetric`
 
     Example::
 
@@ -308,6 +307,7 @@ class _ResultCollection(dict):
         result = _ResultCollection(training=True)
         result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
         result.log('validation_step', 'recall', torch.tensor(...), on_step=True, on_epoch=True)
+
     """
 
     DATALOADER_SUFFIX = "/dataloader_idx_{}"

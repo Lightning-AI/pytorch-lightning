@@ -278,6 +278,7 @@ class _AutomaticOptimization(_Loop):
 
         Args:
             optimizer: the current optimizer
+
         """
         trainer = self.trainer
         self.optim_progress.optimizer.zero_grad.increment_ready()

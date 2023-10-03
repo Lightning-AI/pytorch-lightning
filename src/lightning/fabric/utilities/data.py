@@ -328,9 +328,8 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
 
 
 def _wrap_attr_method(method: Callable, tag: _WrapAttrTag) -> Callable:
-    """Wraps the ``__setattr__`` or ``__delattr__`` method of classes (currently
-    :class:`~torch.utils.data.DataLoader` and :class:`~torch.utils.data.BatchSampler`) in order to enable re-
-    instantiation of custom subclasses."""
+    """Wraps the ``__setattr__`` or ``__delattr__`` method of classes (currently :class:`~torch.utils.data.DataLoader`
+    and :class:`~torch.utils.data.BatchSampler`) in order to enable re- instantiation of custom subclasses."""
 
     @functools.wraps(method)
     def wrapper(obj: Any, *args: Any) -> None:
@@ -418,6 +417,7 @@ def _set_sampler_epoch(dataloader: object, epoch: int) -> None:
     Every PyTorch dataloader has either a sampler or a batch sampler. If the sampler is wrapped by a
     :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
     of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
+
     """
     # cannot use a set because samplers might be unhashable: use a dict based on the id to drop duplicates
     objects: Dict[int, Any] = {}
@@ -442,6 +442,7 @@ def suggested_max_num_workers(local_world_size: int) -> int:
     Args:
         local_world_size: The number of distributed processes running on the current machine. Set this to the number
             of devices configured in Fabric/Trainer.
+
     """
     if local_world_size < 1:
         raise ValueError(f"`local_world_size` should be >= 1, got {local_world_size}.")

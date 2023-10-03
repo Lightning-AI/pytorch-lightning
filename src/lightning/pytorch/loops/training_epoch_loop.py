@@ -34,8 +34,7 @@ _BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_
 
 
 class _TrainingEpochLoop(loops._Loop):
-    """
-    Iterates over all batches in the dataloader (one epoch) that the user returns in their
+    """Iterates over all batches in the dataloader (one epoch) that the user returns in their
     :meth:`~lightning.pytorch.core.LightningModule.train_dataloader` method.
 
     Its main responsibilities are calling the ``*_epoch_{start,end}`` hooks, accumulating outputs if the user request
@@ -53,6 +52,7 @@ class _TrainingEpochLoop(loops._Loop):
     Args:
         min_steps: The minimum number of steps (batches) to process
         max_steps: The maximum number of steps (batches) to process
+
     """
 
     def __init__(self, trainer: "pl.Trainer", min_steps: Optional[int] = None, max_steps: int = -1) -> None:

@@ -312,8 +312,8 @@ class WorkStateObserver(Thread):
 
 @dataclass
 class LightningWorkSetAttrProxy:
-    """This wrapper around the ``LightningWork.__setattr__`` ensures that state changes get sent to the delta queue
-    to be reflected in the Flow.
+    """This wrapper around the ``LightningWork.__setattr__`` ensures that state changes get sent to the delta queue to
+    be reflected in the Flow.
 
     Example:
 
@@ -322,6 +322,7 @@ class LightningWorkSetAttrProxy:
 
             def run(self):
                 self.var += 1  # This update gets sent to the Flow immediately
+
     """
 
     work_name: str
@@ -640,6 +641,7 @@ class WorkRunner:
 
         Returns:
             The positional and keyword arguments in the same order they were passed in.
+
         """
 
         def _attach_work_and_get(transporter: Union[Path, Payload, dict]) -> Union[Path, Drive, dict, Any]:
