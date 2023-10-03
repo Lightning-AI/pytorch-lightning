@@ -1127,7 +1127,8 @@ def test_hparams_type(tmpdir, use_omegaconf):
         assert isinstance(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY], Container)
     else:
         # make sure it's not AttributeDict
-        assert isinstance(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY], str)
+        ckpt_params_type = type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY])
+        assert ckpt_params_type is dict
 
 
 def test_ckpt_version_after_rerun_new_trainer(tmpdir):
