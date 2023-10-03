@@ -152,7 +152,7 @@ def test_if_inference_output_is_valid(tmpdir):
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path, model.example_input_array, export_params=True)
 
-    ort_kwargs = {"providers": "CPUExecutionProvider"} if compare_version("onnxruntime", operator.ge, "0.16.0") else {}
+    ort_kwargs = {"providers": "CPUExecutionProvider"} if compare_version("onnxruntime", operator.ge, "1.16.0") else {}
     ort_session = onnxruntime.InferenceSession(file_path, **ort_kwargs)
 
     def to_numpy(tensor):
