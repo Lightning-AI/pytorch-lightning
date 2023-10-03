@@ -116,7 +116,7 @@ lightning run model --devices=3 train_fabric_decoupled.py --num-envs 4 --cuda --
 
 > **Warning**
 >
-> With this second example, there is no need for the user to provide the `accellerator` and the `strategy` to the `lightning run model` script.
+> With this second example, there is no need for the user to provide the `accelerator` and the `strategy` to the `lightning run model` script.
 
 ## Number of updates, environment steps and share data
 

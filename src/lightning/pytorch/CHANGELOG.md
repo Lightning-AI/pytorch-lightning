@@ -48,7 +48,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `SaveConfigCallback.save_config` to ease use cases such as saving the config to a logger ([#17475](https://github.com/Lightning-AI/lightning/pull/17475))
 
 
-- Enabled optional file versioning of model checkpoints ([#17320](hhttps://github.com/Lightning-AI/lightning/pull/17320))
+- Enabled optional file versioning of model checkpoints ([#17320](https://github.com/Lightning-AI/lightning/pull/17320))
 
 
 - Added the process group timeout argument `FSDPStrategy(timeout=...)` for the FSDP strategy ([#17274](https://github.com/Lightning-AI/lightning/pull/17274))
@@ -4482,7 +4482,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed an issue where the number of batches was off by one during training
-- Fixed a bug that occurred when setting a ckeckpoint callback and `early_stop_callback=False`
+- Fixed a bug that occurred when setting a checkpoint callback and `early_stop_callback=False`
 - Fixed an error when importing CometLogger
 - Fixed a bug where the `gpus` argument had some unexpected behaviour
 - Fixed a bug where the computed total number of batches was sometimes incorrect

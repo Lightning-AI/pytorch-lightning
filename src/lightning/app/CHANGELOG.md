@@ -432,7 +432,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Improved the show logs command to be standalone and re-usable ([#15343](https://github.com/Lightning-AI/lightning/pull/15343)
+- Improved the show logs command to be standalone and reusable ([#15343](https://github.com/Lightning-AI/lightning/pull/15343)
 - Removed the `--instance-types` option when creating clusters ([#15314](https://github.com/Lightning-AI/lightning/pull/15314))
 
 ### Fixed
