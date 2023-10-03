@@ -541,7 +541,9 @@ class _AcceleratorConnector:
         if self._precision_flag == "64-true":
             return DoublePrecisionPlugin()
         if self._precision_flag == "transformer-engine":
-            return TransformerEnginePrecisionPlugin()
+            return TransformerEnginePrecisionPlugin(dtype=torch.bfloat16)
+        if self._precision_flag == "transformer-engine-float16":
+            return TransformerEnginePrecisionPlugin(dtype=torch.float16)
 
         if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(

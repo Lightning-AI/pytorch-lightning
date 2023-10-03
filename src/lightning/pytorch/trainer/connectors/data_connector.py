@@ -443,6 +443,14 @@ def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
             category=PossibleUserWarning,
         )
 
+    if dataloader.persistent_workers and dataloader.pin_memory and trainer.reload_dataloaders_every_n_epochs > 0:
+        rank_zero_warn(
+            "The combination of `DataLoader(`pin_memory=True`, `persistent_workers=True`) and `Trainer("
+            "reload_dataloaders_every_n_epochs > 0)` can lead to instability due to limitations in PyTorch"
+            " (https://github.com/pytorch/pytorch/issues/91252). We recommend setting `pin_memory=False` in this case.",
+            category=PossibleUserWarning,
+        )
+
 
 def _parse_num_batches(
     stage: RunningStage, length: Union[int, float], limit_batches: Union[int, float]
