@@ -23,14 +23,14 @@ from lightning_utilities.core.imports import RequirementCache
 _PIL_AVAILABLE = RequirementCache("PIL")
 
 
-def test_binary_writer_with_ints(tmpdir):
+def test_binary_writer_with_ints_and_chunk_bytes(tmpdir):
     with pytest.raises(FileNotFoundError, match="The provided cache directory `dontexists` doesn't exist."):
         BinaryWriter("dontexists", {})
 
     with pytest.raises(ValueError, match="No compresion algorithms are installed."):
         BinaryWriter(tmpdir, {"i": "int"}, compression="something_else")
 
-    binary_writer = BinaryWriter(tmpdir, chunk_size=90)
+    binary_writer = BinaryWriter(tmpdir, chunk_bytes=90)
 
     for i in range(100):
         binary_writer[i] = {"i": i, "i+1": i + 1, "i+2": i + 2}
@@ -52,6 +52,35 @@ def test_binary_writer_with_ints(tmpdir):
         assert data == {"i": i, "i+1": i + 1, "i+2": i + 2}
 
 
+def test_binary_writer_with_ints_and_chunk_size(tmpdir):
+    with pytest.raises(FileNotFoundError, match="The provided cache directory `dontexists` doesn't exist."):
+        BinaryWriter("dontexists", {})
+
+    with pytest.raises(ValueError, match="No compresion algorithms are installed."):
+        BinaryWriter(tmpdir, {"i": "int"}, compression="something_else")
+
+    binary_writer = BinaryWriter(tmpdir, chunk_size=25)
+
+    for i in range(100):
+        binary_writer[i] = {"i": i, "i+1": i + 1, "i+2": i + 2}
+
+    assert len(os.listdir(tmpdir)) == 3
+    binary_writer.done()
+    assert len(os.listdir(tmpdir)) == 5
+
+    with open(os.path.join(tmpdir, "0.index.json")) as f:
+        data = json.load(f)
+
+    assert data["chunks"][0]["samples"] == 25
+    assert data["chunks"][1]["samples"] == 25
+    assert data["chunks"][-1]["samples"] == 25
+
+    reader = BinaryReader(tmpdir)
+    for i in range(100):
+        data = reader.read(i)
+        assert data == {"i": i, "i+1": i + 1, "i+2": i + 2}
+
+
 @pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
 def test_binary_writer_with_jpeg_and_int(tmpdir):
     """Validate the writer and reader can serialize / deserialize a pair of image and label."""
@@ -59,7 +88,7 @@ def test_binary_writer_with_jpeg_and_int(tmpdir):
 
     cache_dir = os.path.join(tmpdir, "chunks")
     os.makedirs(cache_dir, exist_ok=True)
-    binary_writer = BinaryWriter(cache_dir, chunk_size=2 << 12)
+    binary_writer = BinaryWriter(cache_dir, chunk_bytes=2 << 12)
 
     imgs = []
 

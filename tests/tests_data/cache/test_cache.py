@@ -78,7 +78,7 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
     cache_dir = os.path.join(tmpdir, "cache")
     distributed_env = _DistributedEnv.detect()
 
-    cache = Cache(cache_dir, chunk_size=2 << 12)
+    cache = Cache(cache_dir, chunk_bytes=2 << 12)
     dataset = ImageDataset(tmpdir, cache, dataset_size, 10)
     dataloader = LightningDataLoader(dataset, num_workers=num_workers, batch_size=4)
 
@@ -158,7 +158,7 @@ def test_cache_with_simple_format(tmpdir):
     cache_dir = os.path.join(tmpdir, "cache1")
     os.makedirs(cache_dir)
 
-    cache = Cache(cache_dir, chunk_size=90)
+    cache = Cache(cache_dir, chunk_bytes=90)
 
     for i in range(100):
         cache[i] = i
@@ -171,7 +171,7 @@ def test_cache_with_simple_format(tmpdir):
     cache_dir = os.path.join(tmpdir, "cache2")
     os.makedirs(cache_dir)
 
-    cache = Cache(cache_dir, chunk_size=90)
+    cache = Cache(cache_dir, chunk_bytes=90)
 
     for i in range(100):
         cache[i] = [i, {0: [i + 1]}]
@@ -186,7 +186,7 @@ def test_cache_with_auto_wrapping(tmpdir):
     os.makedirs(os.path.join(tmpdir, "cache_1"), exist_ok=True)
 
     dataset = RandomDataset(64, 64)
-    dataloader = LightningDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_1"), chunk_size=2 << 12)
+    dataloader = LightningDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_1"), chunk_bytes=2 << 12)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
     assert sorted(os.listdir(os.path.join(tmpdir, "cache_1"))) == [
@@ -210,7 +210,7 @@ def test_cache_with_auto_wrapping(tmpdir):
 
     os.makedirs(os.path.join(tmpdir, "cache_2"), exist_ok=True)
     dataset = RandomDatasetAtRuntime(64, 64)
-    dataloader = LightningDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_2"), chunk_size=2 << 12)
+    dataloader = LightningDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_2"), chunk_bytes=2 << 12)
     with pytest.raises(ValueError, match="Your dataset items aren't deterministic"):
         for batch in dataloader:
             pass

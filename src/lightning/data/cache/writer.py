@@ -99,7 +99,8 @@ class BinaryWriter:
         """Returns the config of the writer."""
         out = {
             "compression": self._compression,
-            "chunk_size": self._chunk_bytes,
+            "chunk_size": self._chunk_size,
+            "chunk_bytes": self._chunk_bytes,
             "data_format": self._data_format,
             "data_spec": treespec_dumps(self._data_spec) if self._data_spec else None,
         }
@@ -158,6 +159,7 @@ class BinaryWriter:
         assert (self._indexes[-1] - self._indexes[0] + 1) == len(self._serialized_items)
 
         chunk_info = {
+            "chunk_bytes": self._current_chunk_size,
             "samples": len(self._serialized_items),
             "filename": filename,
             "mapping": mapping,
