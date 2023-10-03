@@ -350,6 +350,7 @@ class DistributedSamplerWrapper(DistributedSampler):
         The purpose of this wrapper is to take care of sharding the sampler indices. It is up to the underlying
         sampler to handle randomness and shuffling. The ``shuffle`` and ``seed`` arguments on this wrapper won't
         have any effect.
+
     """
 
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:

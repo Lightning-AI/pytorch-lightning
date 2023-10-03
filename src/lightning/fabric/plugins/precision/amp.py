@@ -32,6 +32,7 @@ class MixedPrecision(Precision):
         precision: Whether to use ``torch.float16`` (``'16-mixed'``) or ``torch.bfloat16`` (``'bf16-mixed'``).
         device: The device for ``torch.autocast``.
         scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
+
     """
 
     def __init__(
@@ -110,5 +111,6 @@ def _optimizer_handles_unscaling(optimizer: Any) -> bool:
 
     Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
     value will only be reliable for built-in PyTorch optimizers.
+
     """
     return getattr(optimizer, "_step_supports_amp_scaling", False)

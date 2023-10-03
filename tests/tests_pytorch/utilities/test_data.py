@@ -143,6 +143,7 @@ def test_custom_torch_batch_sampler(predicting):
 
     It also asserts, that during the reinstantiation, the wrapper of `__init__` method is not present anymore, therefore
     not setting `__pl_saved_{args,arg_names,kwargs}` attributes.
+
     """
 
     class MyBatchSampler(BatchSampler):

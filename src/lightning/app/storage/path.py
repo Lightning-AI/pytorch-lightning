@@ -62,6 +62,7 @@ class Path(PathlibPath):
 
         The Lightning Path overrides this to validate the instantiation in the case parts are passed in individually. In
         such a case we need to validate that all parts have the same `origin` and if not, an error is raised.
+
         """
         if args and isinstance(args[0], str) and args[0].startswith("lit://"):
             parts = list(args)

@@ -19,6 +19,7 @@ import torch
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
@@ -184,6 +185,15 @@ def test_fabric_module_state_dict_access():
     fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias})
     assert torch.equal(fabric_module.layer.weight, weight)
     assert torch.equal(fabric_module.layer.bias, bias)
+
+    if _TORCH_GREATER_EQUAL_2_1:
+        # Can use additional `assign` argument in PyTorch >= 2.1
+        with torch.device("meta"):
+            original_module = OriginalModule()
+        fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
+        assert fabric_module.layer.weight.is_meta
+        fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias}, assign=True)
+        assert not fabric_module.layer.weight.is_meta
 
 
 @pytest.mark.parametrize(
@@ -370,8 +380,8 @@ def test_fabric_optimizer_state_dict():
 
 
 def test_fabric_optimizer_load_state_dict():
-    """Test that the FabricOptimizer can load the state dict on the wrapped optimizer and update its
-    internal `__dict__`."""
+    """Test that the FabricOptimizer can load the state dict on the wrapped optimizer and update its internal
+    `__dict__`."""
     model = torch.nn.Linear(1, 1)
     optimizer = torch.optim.Adam(model.parameters())
     assert not optimizer.state  # a fresh optimizer has no state

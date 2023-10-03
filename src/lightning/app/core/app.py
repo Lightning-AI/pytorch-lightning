@@ -79,8 +79,8 @@ class LightningApp:
     ) -> None:
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
         applications. There are two kinds of components: :class:`~lightning.app.core.flow.LightningFlow` and
-        :class:`~lightning.app.core.work.LightningWork`. This modular design enables you to reuse components
-        created by other users.
+        :class:`~lightning.app.core.work.LightningWork`. This modular design enables you to reuse components created by
+        other users.
 
         The Lightning App alternatively run an event loop triggered by delta changes sent from
         either :class:`~lightning.app.core.work.LightningWork` or from the Lightning UI.
@@ -99,6 +99,7 @@ class LightningApp:
                 For instance, if you want to run your app at `https://customdomain.com/myapp`,
                 set `root_path` to `/myapp`.
                 You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
+
         """
 
         self.root_path = root_path  # when running behind a proxy

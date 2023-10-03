@@ -344,8 +344,7 @@ class NeptuneLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> "Run":
-        r"""
-        Actual Neptune run object. Allows you to use neptune logging features in your
+        r"""Actual Neptune run object. Allows you to use neptune logging features in your
         :class:`~lightning.pytorch.core.LightningModule`.
 
         Example::
@@ -368,6 +367,7 @@ class NeptuneLogger(Logger):
         for more detailed explanations.
         You can also use the regular logger methods ``log_metrics()``, and ``log_hyperparams()``
         with NeptuneLogger.
+
         """
         return self.run
 
@@ -475,6 +475,7 @@ class NeptuneLogger(Logger):
 
         Returns:
             the root directory where experiment logs get saved
+
         """
         return os.path.join(os.getcwd(), ".neptune")
 

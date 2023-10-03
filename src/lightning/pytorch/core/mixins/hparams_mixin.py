@@ -101,6 +101,7 @@ class HyperparametersMixin:
             >>> model.hparams
             "arg1": 1
             "arg3": 3.14
+
         """
         self._log_hyperparams = logger
         # the frame needs to be created in this file.

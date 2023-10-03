@@ -21,6 +21,7 @@ class _WrappingCheckpointIO(CheckpointIO):
 
     Args:
         checkpoint_io: A checkpoint IO plugin that is used as the basis.
+
     """
 
     def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:

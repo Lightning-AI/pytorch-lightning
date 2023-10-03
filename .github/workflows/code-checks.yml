@@ -28,7 +28,7 @@ jobs:
   mypy:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10.6"
@@ -42,6 +42,7 @@ jobs:
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
+        timeout-minutes: 20
         run: |
           # TODO: investigate hanging installation with app sub-package
           pip install -e '.[pytorch-all,fabric-all]' -r requirements/typing.txt

@@ -186,6 +186,7 @@ def _collect_work_layout(work: "lightning.app.LightningWork") -> Union[None, str
 
     Raises:
         TypeError: If the value returned by ``configure_layout`` is not of a supported format.
+
     """
     work_layout = work.configure_layout() if is_overridden("configure_layout", work) else work.url
 

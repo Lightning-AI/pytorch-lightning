@@ -312,8 +312,8 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
 
 @mock.patch("lightning.pytorch.loggers.tensorboard.log")
 def test_tensorboard_with_symlink(log, tmpdir):
-    """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``,
-    and relative paths."""
+    """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
+    relative paths."""
     os.chdir(tmpdir)  # need to use relative paths
     source = os.path.join(".", "lightning_logs")
     dest = os.path.join(".", "sym_lightning_logs")

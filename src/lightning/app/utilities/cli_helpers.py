@@ -249,8 +249,8 @@ def _arrow_time_callback(
 
 @functools.lru_cache(maxsize=1)
 def _get_newer_version() -> Optional[str]:
-    """Check PyPI for newer versions of ``lightning``, returning the newest version if different from the current
-    or ``None`` otherwise."""
+    """Check PyPI for newer versions of ``lightning``, returning the newest version if different from the current or
+    ``None`` otherwise."""
     if packaging.version.parse(__version__).is_prerelease:
         return None
     try:
@@ -283,6 +283,7 @@ def _check_version_and_upgrade():
     """Checks that the current version of ``lightning`` is the latest on PyPI.
 
     If not, prompt the user to upgrade ``lightning`` for them and re-run the current call in the new version.
+
     """
     new_version = _get_newer_version()
     if new_version:
@@ -305,11 +306,11 @@ def _check_version_and_upgrade():
 
 
 def _check_environment_and_redirect():
-    """Checks that the current ``sys.executable`` is the same as the executable resolved from the current
-    environment.
+    """Checks that the current ``sys.executable`` is the same as the executable resolved from the current environment.
 
     If not, this utility tries to redirect the ``lightning`` call to the environment executable (prompting the user to
     install lightning for them there if needed).
+
     """
     process = subprocess.run(
         ["python", "-c", "import sys; print(sys.executable)"],

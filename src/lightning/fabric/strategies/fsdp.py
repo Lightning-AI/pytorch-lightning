@@ -250,11 +250,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple[Module, List[Optimizer]]:
-        """Wraps the model into a
-        :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module
-        and sets `use_orig_params=True` to keep the reference to the original parameters in the
-        optimizer.
-        """
+        """Wraps the model into a :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel`
+        module and sets `use_orig_params=True` to keep the reference to the original parameters in the optimizer."""
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
                 f"The `{type(self).__name__}` does not support the joint setup of module and optimizer(s)."
@@ -273,8 +270,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return module, optimizers
 
     def setup_module(self, module: Module) -> Module:
-        """Wraps the model into a
-        :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
+        """Wraps the model into a :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel`
+        module."""
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
@@ -760,8 +757,8 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
 
 class _FSDPBackwardSyncControl(_BackwardSyncControl):
     def no_backward_sync(self, module: Module) -> ContextManager:
-        """Blocks gradient synchronization inside the
-        :class:`~torch.distributed.fsdp.FullyShardedDataParallel` wrapper."""
+        """Blocks gradient synchronization inside the :class:`~torch.distributed.fsdp.FullyShardedDataParallel`
+        wrapper."""
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
         if not isinstance(module, FullyShardedDataParallel):
