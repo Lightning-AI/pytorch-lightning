@@ -105,6 +105,7 @@ class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
             for v in self._dataset_fetcher.dataset.__dict__.values():
                 if isinstance(v, Cache):
                     v.done()
+                    v.merge(1)
             raise StopIteration()
 
 
@@ -138,11 +139,17 @@ class WorkerLoop:
 
 class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
     def __init__(self, loader):
+        self._cache = loader._cache
+        self._num_workers = loader.num_workers
         # Patch PyTorch worker loop to call the `cache.done()` method.
         from torch.utils.data._utils import worker
 
         worker._worker_loop = WorkerLoop()
         super().__init__(loader)
+
+    def _shutdown_workers(self):
+        super()._shutdown_workers()
+        self._cache.merge(self._num_workers)
 
 
 class LightningDataLoader(DataLoader):
@@ -197,6 +204,8 @@ class LightningDataLoader(DataLoader):
 
         if not cache.filled and shuffle:
             logger.info("Shuffle is ignored during the caching phase phase")
+
+        self._cache = cache
 
         distributed_env = _DistributedEnv.detect()
         batch_sampler = CacheBatchSampler(
