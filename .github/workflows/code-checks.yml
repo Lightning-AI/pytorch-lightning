@@ -44,7 +44,7 @@ jobs:
           FREEZE_REQUIREMENTS: 1
         run: |
           # TODO: investigate hanging installation with app sub-package
-          pip install -e '.[pytorch-all,fabric-all, data-all]' -r requirements/typing.txt
+          pip install -e '.[pytorch-all,fabric-all, data-all, app-all]' -r requirements/typing.txt
           pip list
 
       - name: Check typing
