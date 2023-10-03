@@ -118,6 +118,13 @@ class BitsandbytesPrecision(Precision):
     def init_context(self) -> ContextManager:
         dtype_ctx = _DtypeContextManager(self.dtype)
         if self.ignore_modules:
+            if torch.tensor(0).device.type != "cpu":
+                raise RuntimeError(
+                    "Instantiating your model under the `init_module` context manager is not supported when used with"
+                    f" `BitsandbytesPrecision(..., ignore_modules={self.ignore_modules})` and non-CPU device, as this"
+                    " would initialize the layers on-device, defeating the purpose of quantization. You can remove"
+                    " `ignore_modules` or remove the `init_module` context manager."
+                )
             # cannot patch the Linear class if the user wants to skip some submodules
             return dtype_ctx
         stack = ExitStack()
