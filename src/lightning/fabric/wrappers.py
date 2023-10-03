@@ -140,8 +140,10 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             keep_vars=keep_vars,
         )
 
-    def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True) -> _IncompatibleKeys:
-        return self._original_module.load_state_dict(state_dict=state_dict, strict=strict)
+    def load_state_dict(  # type: ignore[override]
+        self, state_dict: Mapping[str, Any], strict: bool = True, **kwargs: Any
+    ) -> _IncompatibleKeys:
+        return self._original_module.load_state_dict(state_dict=state_dict, strict=strict, **kwargs)
 
     def _redirection_through_forward(self, method_name: str) -> Callable:
         assert method_name != "forward"
