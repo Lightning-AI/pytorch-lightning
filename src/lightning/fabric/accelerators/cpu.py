@@ -66,7 +66,7 @@ class CPUAccelerator(Accelerator):
 
 def _parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
     """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
-    :class:`~lightning.pytorch.trainer.Trainer`.
+    :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
     Args:
         cpu_cores: An int > 0.
@@ -77,6 +77,7 @@ def _parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
     Raises:
         MisconfigurationException:
             If cpu_cores is not an int > 0
+
     """
     if isinstance(cpu_cores, str) and cpu_cores.strip().isdigit():
         cpu_cores = int(cpu_cores)

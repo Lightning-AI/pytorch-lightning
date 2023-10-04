@@ -39,10 +39,11 @@ build:
   commands:
     - printenv
     - pwd ; ls -lh
+    - pip install -U pip awscli --user
+    - python -m awscli s3 sync --no-sign-request s3://sphinx-packages/ dist/ ; ls -lh dist/
     - >
-      pip install -U pip ;
-      pip install -e . -q -r requirements/pytorch/docs.txt \
-          -f 'https://download.pytorch.org/whl/cpu/torch_stable.html' ;
+      pip install -e . -q -r requirements/pytorch/docs.txt -r _notebooks/.actions/requires.txt \
+          -f 'https://download.pytorch.org/whl/cpu/torch_stable.html' -f dist/ ;
       pip list
     # this need to be split so `sphinx-build` is picked from previous installation
     - bash docs/rtfd-build.sh

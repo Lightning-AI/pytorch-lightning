@@ -1,11 +1,10 @@
 import torch
-
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 def test_param_in_hook_signature():
     class LightningModule:
-        def validation_step(self, dataloader_iter, batch_idx):
+        def validation_step(self, dataloader_iter):
             ...
 
     model = LightningModule()
@@ -13,7 +12,7 @@ def test_param_in_hook_signature():
 
     class LightningModule:
         @torch.no_grad()
-        def validation_step(self, dataloader_iter, batch_idx):
+        def validation_step(self, dataloader_iter):
             ...
 
     model = LightningModule()

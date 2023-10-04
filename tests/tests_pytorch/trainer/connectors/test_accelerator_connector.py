@@ -17,12 +17,10 @@ from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.pytorch
 import pytest
 import torch
 import torch.distributed
-from lightning_utilities.core.imports import package_available
-
-import lightning.pytorch
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -56,6 +54,8 @@ from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _lightning_graphcore_available, _lightning_habana_available
+from lightning_utilities.core.imports import package_available
+
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 
@@ -270,7 +270,7 @@ def test_accelerator_cpu(cuda_count_0, mps_count_0):
 
 
 @pytest.mark.parametrize("device_count", [["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]])
-def test_accelererator_invalid_type_devices(cuda_count_2, device_count):
+def test_accelerator_invalid_type_devices(cuda_count_2, device_count):
     with pytest.raises(TypeError, match=r"must be an int, a string, a sequence of ints, but you"):
         _ = Trainer(accelerator="gpu", devices=device_count)
 
@@ -474,6 +474,26 @@ def test_strategy_choice_ddp_torchelastic(_, __, mps_count_0, cuda_count_2):
     assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
     assert trainer.strategy.cluster_environment.local_rank() == 1
     assert trainer.strategy.local_rank == 1
+
+
+@mock.patch.dict(
+    os.environ,
+    {
+        "TORCHELASTIC_RUN_ID": "1",
+        "SLURM_NTASKS": "2",
+        "WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+    },
+)
+@mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_torchelastic_priority_over_slurm(*_):
+    """Test that the TorchElastic cluster environment is chosen over SLURM when both are detected."""
+    assert TorchElasticEnvironment.detect()
+    assert SLURMEnvironment.detect()
+    connector = _AcceleratorConnector(strategy="ddp")
+    assert isinstance(connector.strategy.cluster_environment, TorchElasticEnvironment)
 
 
 @mock.patch.dict(
@@ -882,12 +902,13 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_ipu_available(monkeypatch, False)
         trainer = Trainer()
     assert isinstance(trainer.accelerator, CUDAAccelerator)
-    assert isinstance(trainer.strategy, DDPStrategy)
-    assert trainer._accelerator_connector._devices_flag == list(range(4))
-    assert trainer.num_devices == 4
-    assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
-    assert trainer.strategy._start_method == ("fork" if is_interactive else "popen")
-    assert trainer.strategy.launcher.is_interactive_compatible == is_interactive
+    assert isinstance(trainer.strategy, (SingleDeviceStrategy if is_interactive else DDPStrategy))
+    assert trainer._accelerator_connector._devices_flag == [0] if is_interactive else list(range(4))
+    assert trainer.num_devices == 1 if is_interactive else 4
+    if not is_interactive:
+        assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
+        assert trainer.strategy._start_method == ("fork" if is_interactive else "popen")
+        assert trainer.strategy.launcher.is_interactive_compatible == is_interactive
 
     # MPS (there's no distributed)
     with monkeypatch.context():
@@ -1008,6 +1029,13 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
 def test_connector_sets_num_nodes(strategy, cuda_count_2):
     trainer = Trainer(accelerator="cuda", strategy=strategy, devices=2, num_nodes=2)
     assert trainer.strategy.num_nodes == 2
+
+
+def test_connector_num_nodes_input_validation():
+    with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
+        _AcceleratorConnector(num_nodes=0)
+    with pytest.raises(ValueError, match="`num_nodes` must be a positive integer"):
+        _AcceleratorConnector(num_nodes=-1)
 
 
 @pytest.mark.parametrize(

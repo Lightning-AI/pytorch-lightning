@@ -15,10 +15,10 @@
 import ast
 import inspect
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type, Union
 
 if TYPE_CHECKING:
-    from lightning.app import LightningFlow, LightningWork
+    from lightning.app.core import LightningFlow, LightningWork
 
 
 class LightningVisitor(ast.NodeVisitor):
@@ -396,6 +396,5 @@ def _is_init_context(component: Union["LightningFlow", "LightningWork"]) -> bool
 
 
 def _is_run_context(component: Union["LightningFlow", "LightningWork"]) -> bool:
-    """Checks whether the call to a component originates from within the context of the component's ``run``
-    method."""
+    """Checks whether the call to a component originates from within the context of the component's ``run`` method."""
     return _is_method_context(component, "run") or _is_method_context(component, "load_state_dict")

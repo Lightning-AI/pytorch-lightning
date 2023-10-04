@@ -165,6 +165,14 @@ Advanced Topics
     :height: 160
     :tag: advanced
 
+.. displayitem::
+    :header: Initialize models efficiently
+    :description: Reduce the time and peak memory usage for model initialization
+    :button_link: ../advanced/model_init.html
+    :col_css: col-md-4
+    :height: 160
+    :tag: advanced
+
 .. raw:: html
 
         </div>

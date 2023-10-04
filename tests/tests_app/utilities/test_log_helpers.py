@@ -1,4 +1,4 @@
-from unittest import mock, TestCase
+from unittest import TestCase, mock
 
 from lightning.app.utilities.log_helpers import _error_callback
 

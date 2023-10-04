@@ -19,7 +19,7 @@
    Half precision <../common/precision>
    HPU <../integrations/hpu/index>
    Inference <../deploy/production_intermediate>
-   IPU <../accelerators/ipu>
+   IPU <../integrations/ipu/index>
    Lightning CLI <../cli/lightning_cli>
    LightningDataModule <../data/datamodule>
    LightningModule <../common/lightning_module>
@@ -147,7 +147,7 @@ Glossary
 
 .. displayitem::
    :header: Half precision
-   :description: Using different numerical formats to save memory and run fatser
+   :description: Using different numerical formats to save memory and run faster
    :col_css: col-md-12
    :button_link: ../common/precision.html
    :height: 100
@@ -170,7 +170,7 @@ Glossary
    :header: IPU
    :description: Graphcore Intelligence Processing Unit for faster training
    :col_css: col-md-12
-   :button_link: ../accelerators/ipu.html
+   :button_link: ../integrations/ipu/index.html
    :height: 100
 
 .. displayitem::
@@ -196,7 +196,7 @@ Glossary
 
 .. displayitem::
    :header: Log
-   :description: Outpus or results used for visualization and tracking
+   :description: Outputs or results used for visualization and tracking
    :col_css: col-md-12
    :button_link: ../visualize/loggers.html
    :height: 100
@@ -301,7 +301,7 @@ Glossary
 
 .. displayitem::
    :header: Style guide
-   :description: Best practices to improve readability and reproducability
+   :description: Best practices to improve readability and reproducibility
    :col_css: col-md-12
    :button_link: ../starter/style_guide.html
    :height: 100

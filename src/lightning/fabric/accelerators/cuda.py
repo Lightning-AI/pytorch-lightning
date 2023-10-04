@@ -15,7 +15,7 @@ import os
 import warnings
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import cast, Generator, List, Optional, Union
+from typing import Generator, List, Optional, Union, cast
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_info
@@ -231,7 +231,7 @@ def _parse_visible_devices() -> Union[List[int], List[str]]:
 # TODO: Remove once minimum supported PyTorch version is 2.0
 def _raw_device_count_nvml() -> int:
     """Return number of devices as reported by NVML or negative value if NVML discovery/initialization failed."""
-    from ctypes import byref, c_int, CDLL
+    from ctypes import CDLL, byref, c_int
 
     nvml_h = CDLL("libnvidia-ml.so.1")
     rc = nvml_h.nvmlInit()
@@ -250,7 +250,7 @@ def _raw_device_count_nvml() -> int:
 # TODO: Remove once minimum supported PyTorch version is 2.0
 def _raw_device_uuid_nvml() -> Optional[List[str]]:
     """Return list of device UUID as reported by NVML or None if NVM discovery/initialization failed."""
-    from ctypes import byref, c_int, c_void_p, CDLL, create_string_buffer
+    from ctypes import CDLL, byref, c_int, c_void_p, create_string_buffer
 
     nvml_h = CDLL("libnvidia-ml.so.1")
     rc = nvml_h.nvmlInit()
@@ -320,7 +320,7 @@ def _device_count_nvml() -> int:
     if not visible_devices:
         return 0
     try:
-        if type(visible_devices[0]) is str:
+        if isinstance(visible_devices[0], str):
             # Skip MIG parsing
             if visible_devices[0].startswith("MIG-"):
                 return -1

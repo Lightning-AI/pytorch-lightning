@@ -51,7 +51,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
-    log.info(rank_prefixed_message(f"Global seed set to {seed}", _get_rank()))
+    log.info(rank_prefixed_message(f"Seed set to {seed}", _get_rank()))
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -86,6 +86,7 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
 
     See also the PyTorch documentation on
     `randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_.
+
     """
     # implementation notes: https://github.com/pytorch/pytorch/issues/5059#issuecomment-817392562
     global_rank = rank if rank is not None else rank_zero_only.rank

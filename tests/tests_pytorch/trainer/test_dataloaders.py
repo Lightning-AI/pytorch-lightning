@@ -12,20 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest.mock import call, Mock, patch
+from unittest.mock import Mock, call, patch
 
+import lightning.pytorch
 import numpy
 import pytest
 import torch
-from torch.utils.data import RandomSampler
-from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import Dataset, IterableDataset
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import SequentialSampler
-
-import lightning.pytorch
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
-from lightning.pytorch import Callback, seed_everything, Trainer
+from lightning.pytorch import Callback, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import (
     BoringModel,
@@ -39,6 +33,13 @@ from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import RandomSampler
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import SequentialSampler
+
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
@@ -158,8 +159,6 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     assert trainer.num_training_batches == 2
     assert trainer.train_dataloader == train_loader
 
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
 
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 @pytest.mark.parametrize("n", [1, 2])
@@ -263,7 +262,7 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir):
             assert sum(1 for _ in dl) == num_batches
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
     assert trainer.num_training_batches == float("inf")
     assert epoch_cb.train_epoch_count == 1
 
@@ -301,7 +300,7 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
     val_dl = DataLoader(dataset=dataset, batch_size=batch_size)
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
     assert trainer.num_training_batches == limit_train_batches
     assert epoch_cb.train_epoch_count == max_epochs
     assert epoch_cb.train_batches_seen == limit_train_batches * max_epochs
@@ -338,13 +337,11 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset):
     val_dl = DataLoader(dataset=dataset, batch_size=batch_size)
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.num_val_batches[0] == limit_val_batches
     assert epoch_cb.val_epoch_count == max_epochs
     assert epoch_cb.val_batches_seen == limit_val_batches * max_epochs
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize(
     "dataset",
     [
@@ -375,7 +372,7 @@ def test_datasets_dataloaders_with_limit_num_batches(tmpdir, dataset):
     test_dl = DataLoader(dataset=dataset, batch_size=batch_size)
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
     assert trainer.num_training_batches == limit_batches
     assert trainer.num_val_batches[0] == limit_batches
     assert epoch_cb.train_epoch_count == max_epochs
@@ -388,7 +385,6 @@ def test_datasets_dataloaders_with_limit_num_batches(tmpdir, dataset):
     assert epoch_cb.test_epoch_count == 1
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize(
     ("limit_train_batches", "limit_val_batches", "limit_test_batches"),
     [(1.0, 1.0, 1.0), (0.2, 0.4, 0.4)],
@@ -536,7 +532,7 @@ def test_warning_on_zero_len_dataloader():
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 @pytest.mark.parametrize("stage", ["train", "test", "val"])
-@patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
+@patch("lightning.fabric.utilities.data._num_cpus_available", return_value=4)
 def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
     model = BoringModel()
@@ -549,10 +545,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
 
-    with pytest.warns(
-        UserWarning,
-        match=f"The dataloader, {stage}_dataloader, does not have many workers",
-    ):
+    with pytest.warns(UserWarning, match=f"The '{stage}_dataloader' does not have many workers"):
         if stage == "test":
             if ckpt_path in ("specific", "best"):
                 trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
@@ -565,9 +558,9 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 @pytest.mark.parametrize("stage", ["train", "test", "val"])
-@patch("lightning.pytorch.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
+@patch("lightning.fabric.utilities.data._num_cpus_available", return_value=4)
 def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
-    """Test that error is raised if dataloader with only a few workers is used."""
+    """Test that a warning is emitted if the dataloader only has a few workers."""
 
     class CustomModel(MultiEvalDataLoaderModel):
         def training_step(self, batch, batch_idx):
@@ -588,7 +581,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
 
     with pytest.warns(
         UserWarning,
-        match=f"The dataloader, {stage}_dataloader, does not have many workers",
+        match=f"The '{stage}_dataloader' does not have many workers",
     ):
         if stage == "test":
             if ckpt_path in ("specific", "best"):
@@ -688,6 +681,10 @@ def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
         trainer = Trainer(
             default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=2, limit_train_batches=1, logger=CSVLogger(".")
         )
+        trainer.fit(model)
+
+    with no_warning_call(UserWarning, match="The number of training batches"):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, log_every_n_steps=2)
         trainer.fit(model)
 
 
@@ -917,7 +914,6 @@ def test_train_dataloader_not_implemented_error(tmpdir, check_interval, dataload
     trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, val_check_interval=check_interval)
     trainer.fit(model)
     # verify training completed
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize(

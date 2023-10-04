@@ -3,7 +3,7 @@ import sys
 from unittest import mock
 
 import lightning.app
-from lightning.app.components.serve.streamlit import _build_model, _PatchedWork, ServeStreamlit
+from lightning.app.components.serve.streamlit import ServeStreamlit, _build_model, _PatchedWork
 
 
 class ServeStreamlitTest(ServeStreamlit):

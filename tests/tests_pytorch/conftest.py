@@ -21,14 +21,14 @@ from pathlib import Path
 from typing import List
 from unittest.mock import Mock
 
-import pytest
-import torch.distributed
-
 import lightning.fabric
 import lightning.pytorch
+import pytest
+import torch.distributed
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
+
 from tests_pytorch import _PATH_DATASETS
 
 
@@ -178,7 +178,6 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
 
 

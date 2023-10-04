@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from typing import Any, Dict, Generator, Literal, Optional, Union
+from contextlib import nullcontext
+from typing import Any, ContextManager, Dict, Literal, Optional, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -24,7 +24,14 @@ _PRECISION_INPUT_INT = Literal[64, 32, 16]
 _PRECISION_INPUT_STR_ALIAS_CONVERSION = {"64": "64-true", "32": "32-true", "16": "16-mixed", "bf16": "bf16-mixed"}
 _PRECISION_INPUT_STR_ALIAS = Literal["64", "32", "16", "bf16"]
 _PRECISION_INPUT_STR = Literal[
-    "transformer-engine", "16-true", "16-mixed", "bf16-true", "bf16-mixed", "32-true", "64-true"
+    "transformer-engine",
+    "transformer-engine-float16",
+    "16-true",
+    "16-mixed",
+    "bf16-true",
+    "bf16-mixed",
+    "32-true",
+    "64-true",
 ]
 _PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS]
 
@@ -46,19 +53,17 @@ class Precision:
         """
         return module
 
-    @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
+    def init_context(self) -> ContextManager:
         """Instantiate module parameters or tensors in the precision type this plugin handles.
 
         This is optional and depends on the precision limitations during optimization.
 
         """
-        yield
+        return nullcontext()
 
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
+    def forward_context(self) -> ContextManager:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
-        yield
+        return nullcontext()
 
     def convert_input(self, data: Any) -> Any:
         """Convert model inputs (forward) to the floating point precision type of this plugin.

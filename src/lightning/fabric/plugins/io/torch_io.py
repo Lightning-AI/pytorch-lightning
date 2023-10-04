@@ -16,9 +16,8 @@ import os
 from typing import Any, Callable, Dict, Optional
 
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
-from lightning.fabric.utilities.cloud_io import _atomic_save
+from lightning.fabric.utilities.cloud_io import _atomic_save, get_filesystem
 from lightning.fabric.utilities.cloud_io import _load as pl_load
-from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _PATH
 
 log = logging.getLogger(__name__)
@@ -58,8 +57,7 @@ class TorchCheckpointIO(CheckpointIO):
     def load_checkpoint(
         self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
     ) -> Dict[str, Any]:
-        """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of
-        files.
+        """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of files.
 
         Args:
             path: Path to checkpoint
@@ -70,12 +68,13 @@ class TorchCheckpointIO(CheckpointIO):
 
         Raises:
             FileNotFoundError: If ``path`` is not found by the ``fsspec`` filesystem
+
         """
 
         # Try to read the checkpoint at `path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(path)
         if not fs.exists(path):
-            raise FileNotFoundError(f"Checkpoint at {path} not found. Aborting training.")
+            raise FileNotFoundError(f"Checkpoint file not found: {path}")
 
         return pl_load(path, map_location=map_location)
 

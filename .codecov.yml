@@ -16,7 +16,6 @@
 # Validation check:
 # $ curl --data-binary @.codecov.yml https://codecov.io/validate
 
-
 # https://docs.codecov.io/docs/codecovyml-reference
 codecov:
   bot: "codecov-io"
@@ -29,7 +28,7 @@ codecov:
   max_report_age: off
 
 coverage:
-  precision: 0  # 2 = xx.xx%, 0 = xx%
+  precision: 0 # 2 = xx.xx%, 0 = xx%
   round: nearest # how coverage is rounded: down/up/nearest
   range: 40...100 # custom range of coverage colors from red -> yellow -> green
   status:
@@ -52,7 +51,7 @@ coverage:
 
 # https://docs.codecov.com/docs/github-checks#disabling-github-checks-patch-annotations
 github_checks:
-    annotations: false
+  annotations: false
 
 parsers:
   gcov:
@@ -67,5 +66,5 @@ parsers:
 comment:
   layout: header, diff
   require_changes: false
-  behavior: default  # update if exists else create new
+  behavior: default # update if exists else create new
   after_n_builds: 23

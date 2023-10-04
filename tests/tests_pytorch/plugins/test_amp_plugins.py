@@ -18,11 +18,11 @@ from unittest import mock
 
 import pytest
 import torch
-from torch import Tensor
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import MixedPrecisionPlugin
+from torch import Tensor
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -192,8 +192,7 @@ def test_cpu_amp_precision_context_manager():
     assert plugin.scaler is None
     context_manager = plugin.autocast_context_manager()
     assert isinstance(context_manager, torch.autocast)
-    # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
-    assert str(context_manager.fast_dtype) == str(torch.bfloat16)
+    assert context_manager.fast_dtype == torch.bfloat16
 
 
 def test_amp_precision_plugin_parameter_validation():

@@ -19,14 +19,12 @@ from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
+import lightning.fabric
 import pytest
 import torch
 import torch.nn as nn
-from lightning_utilities.core.imports import RequirementCache
-from torch.optim import Adam
-
-import lightning.fabric
 from lightning.fabric import Fabric
+from lightning.fabric.plugins import HalfPrecision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import (
@@ -36,6 +34,9 @@ from lightning.fabric.strategies.fsdp import (
     fsdp_overlap_step_with_backward,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_1
+from lightning_utilities.core.imports import RequirementCache
+from torch.optim import Adam
+
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
 
@@ -88,6 +89,20 @@ def test_fsdp_sharding_strategy():
     assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
     strategy = FSDPStrategy(sharding_strategy="no_shard")
     assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
+
+
+@RunIf(min_torch="2.0")
+@pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
+def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
+    """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
+    with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to either set"):
+        FSDPStrategy(sharding_strategy=sharding_strategy)
+
+    strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, sharding_strategy=sharding_strategy)
+    assert strategy.sharding_strategy.name == sharding_strategy
+
+    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, process_group=(Mock(), Mock()))
+    assert strategy.sharding_strategy.name == sharding_strategy
 
 
 @RunIf(min_torch="1.12")
@@ -234,6 +249,16 @@ def test_fsdp_grad_clipping_value_error():
 
 
 @RunIf(min_torch="1.13")
+def test_fsdp_forbidden_precision_raises():
+    with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
+        FSDPStrategy(precision=HalfPrecision())
+
+    strategy = FSDPStrategy()
+    with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
+        strategy.precision = HalfPrecision()
+
+
+@RunIf(min_torch="1.13")
 def test_fsdp_grad_clipping_norm_error():
     strategy = FSDPStrategy()
     with pytest.raises(
@@ -319,6 +344,7 @@ def test_fsdp_load_checkpoint_no_state(tmp_path):
 
 @RunIf(min_torch="2.0.0")
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+@mock.patch("lightning.fabric.strategies.fsdp._lazy_load", Mock())
 def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
     """Test that the FSDP strategy can only load one FSDP model per checkpoint."""
     strategy = FSDPStrategy()
@@ -336,6 +362,12 @@ def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
     model2.modules.return_value = [model2]
     with pytest.raises(ValueError, match="Found multiple FSDP models in the given state."):
         strategy.load_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
+
+    # A raw nn.Module instead of a dictionary is ok
+    model = Mock(spec=nn.Module)
+    path = tmp_path / "full.ckpt"
+    path.touch()
+    strategy.load_checkpoint(path=path, state=model)
 
 
 @RunIf(min_torch="2.0.0")
@@ -509,7 +541,7 @@ class StatusChecker:
         self.finalize()
 
 
-@pytest.mark.skip(reason="Flaky test")  # See also: https://github.com/Lightning-AI/lightning/pull/17774
+@pytest.mark.xfail(strict=False, reason="Flaky test")  # See also: https://github.com/Lightning-AI/lightning/pull/17774
 @RunIf(min_torch="2.0.0", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not RequirementCache("psutil"), reason="psutil is needed to help prevent deadlocks.")
 @pytest.mark.parametrize(

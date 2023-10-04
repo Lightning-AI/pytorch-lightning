@@ -237,6 +237,7 @@ class ModelHooks:
 
         Args:
             optimizer: The optimizer for which grads should be zeroed.
+
         """
 
     def on_before_backward(self, loss: Tensor) -> None:
@@ -244,6 +245,7 @@ class ModelHooks:
 
         Args:
             loss: Loss divided by number of batches for gradient accumulation and scaled if using AMP.
+
         """
         pass
 
@@ -253,13 +255,14 @@ class ModelHooks:
         Note:
             If using native AMP, the gradients will not be unscaled at this point.
             Use the ``on_before_optimizer_step`` if you need the unscaled gradients.
+
         """
 
     def on_before_optimizer_step(self, optimizer: Optimizer) -> None:
         """Called before ``optimizer.step()``.
 
         If using gradient accumulation, the hook is called once the gradients have been accumulated.
-        See: :paramref:`~lightning.pytorch.trainer.Trainer.accumulate_grad_batches`.
+        See: :paramref:`~lightning.pytorch.trainer.trainer.Trainer.accumulate_grad_batches`.
 
         If using AMP, the loss will be unscaled before calling this hook.
         See these `docs <https://pytorch.org/docs/stable/notes/amp_examples.html#working-with-unscaled-gradients>`__
@@ -279,6 +282,7 @@ class ModelHooks:
                         self.logger.experiment.add_histogram(
                             tag=k, values=v.grad, global_step=self.trainer.global_step
                         )
+
         """
 
     def configure_sharded_model(self) -> None:
@@ -416,7 +420,7 @@ class DataHooks:
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         The dataloader you return will not be reloaded unless you set
-        :paramref:`~lightning.pytorch.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        :paramref:`~lightning.pytorch.trainer.trainer.Trainer.reload_dataloaders_every_n_epochs` to
         a positive integer.
 
         For data processing use the following pattern:
@@ -475,7 +479,7 @@ class DataHooks:
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         The dataloader you return will not be reloaded unless you set
-        :paramref:`~lightning.pytorch.trainer.Trainer.reload_dataloaders_every_n_epochs` to
+        :paramref:`~lightning.pytorch.trainer.trainer.Trainer.reload_dataloaders_every_n_epochs` to
         a positive integer.
 
         It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.

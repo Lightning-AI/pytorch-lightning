@@ -47,11 +47,11 @@ class _FastApiMockRequest:
 
     Example:
 
-        import lightning as L
+        from lightning.app import LightningFlow
         from fastapi import Request
         from lightning.app.api import Post
 
-        class Flow(L.LightningFlow):
+        class Flow(LightningFlow):
 
             def request(self, request: Request) -> OutputRequestModel:
                 ...

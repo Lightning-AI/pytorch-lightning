@@ -2,12 +2,11 @@ import os
 from unittest import mock
 from unittest.mock import MagicMock
 
+import lightning.data.datasets.index as dataset_index
 import numpy as np
 import pytest
-from lightning_utilities.core.imports import package_available
-
-import lightning.data.datasets.index as dataset_index
 from lightning.data.datasets.index import get_index
+from lightning_utilities.core.imports import package_available
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -53,7 +52,7 @@ def image_set(tmp_path_factory):
     return tmp_path_factory.getbasetemp()._str
 
 
-@pytest.mark.skip(reason="Need a valid AWS key and AWS secret key in CI for this to work")
+@pytest.mark.xfail(strict=False, reason="Need a valid AWS key and AWS secret key in CI for this to work")
 @mock.patch("lightning.data.datasets.index.LightningClient", MagicMock())
 def test_get_index_generate_for_s3_bucket(monkeypatch):
     """Can generate an index as s3 bucket mounted localled on the Lightning AI platform."""
@@ -113,7 +112,7 @@ def test_get_index_generate_for_local_folder(image_set, monkeypatch):
     assert sorted(test_index_data) == sorted(item_from_gen_list)
 
 
-@pytest.mark.skip(reason="Not required at the moment")
+@pytest.mark.xfail(strict=False, reason="Not required at the moment")
 def test_get_index_generate_for_mounted_s3_bucket():
     """Can generate an index for an s3 bucket."""
     test_index_path = f"{THIS_DIR}/test_data/test_index_s3.txt"

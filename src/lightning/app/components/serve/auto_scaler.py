@@ -17,9 +17,8 @@ import logging
 import time
 import uuid
 from itertools import cycle
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 from typing import SupportsFloat as Numeric
-from typing import Tuple, Type, Union
 
 import requests
 import uvicorn
@@ -487,9 +486,8 @@ class _LoadBalancer(LightningWork):
 
 
 class AutoScaler(LightningFlow):
-    """The ``AutoScaler`` can be used to automatically change the number of replicas of the given server in
-    response to changes in the number of incoming requests. Incoming requests will be batched and balanced across
-    the replicas.
+    """The ``AutoScaler`` can be used to automatically change the number of replicas of the given server in response to
+    changes in the number of incoming requests. Incoming requests will be batched and balanced across the replicas.
 
     Args:
         min_replicas: The number of works to start when app initializes.
@@ -505,11 +503,12 @@ class AutoScaler(LightningFlow):
 
     .. testcode::
 
-        import lightning as L
+        from lightning.app import LightningApp
+        from lightning.app.components import AutoScaler
 
         # Example 1: Auto-scaling serve component out-of-the-box
-        app = L.LightningApp(
-            L.app.components.AutoScaler(
+        app = LightningApp(
+            app.components.AutoScaler(
                 MyPythonServer,
                 min_replicas=1,
                 max_replicas=8,
@@ -520,7 +519,7 @@ class AutoScaler(LightningFlow):
 
 
         # Example 2: Customizing the scaling logic
-        class MyAutoScaler(L.app.components.AutoScaler):
+        class MyAutoScaler(AutoScaler):
             def scale(self, replicas: int, metrics: dict) -> int:
                 pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
                     replicas + metrics["pending_works"]
@@ -539,7 +538,7 @@ class AutoScaler(LightningFlow):
                 return replicas
 
 
-        app = L.LightningApp(
+        app = LightningApp(
             MyAutoScaler(
                 MyPythonServer,
                 min_replicas=1,
@@ -550,6 +549,7 @@ class AutoScaler(LightningFlow):
                 timeout_batching=1,  # for auto batching
             )
         )
+
     """
 
     def __init__(

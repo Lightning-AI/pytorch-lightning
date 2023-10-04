@@ -9,7 +9,6 @@ from typing import List, Optional
 from uuid import uuid4
 
 import pytest
-
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.components.database import Database, DatabaseClient
 from lightning.app.components.database.utilities import _GeneralModel, _pydantic_column_type

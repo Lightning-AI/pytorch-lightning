@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Union
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -24,7 +24,6 @@ from typing_extensions import get_args
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
-from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning.fabric.utilities.types import Steppable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities import GradClipAlgorithmType
@@ -32,7 +31,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
-if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
+if TYPE_CHECKING:
     import deepspeed
 
 warning_cache = WarningCache()
@@ -86,8 +85,10 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(self._desired_dtype)
-        yield
-        torch.set_default_dtype(default_dtype)
+        try:
+            yield
+        finally:
+            torch.set_default_dtype(default_dtype)
 
     def backward(  # type: ignore[override]
         self,

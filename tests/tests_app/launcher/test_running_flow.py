@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import requests
-
 from lightning.app.launcher import launcher, lightning_backend
 from lightning.app.utilities.app_helpers import convert_print_to_logger_info
 from lightning.app.utilities.enum import AppStage

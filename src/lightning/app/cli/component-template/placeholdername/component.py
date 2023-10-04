@@ -1,7 +1,7 @@
-import lightning as L
+from lightning.app import LightningWork
 
 
-class TemplateComponent(L.LightningWork):
+class TemplateComponent(LightningWork):
     def __init__(self) -> None:
         super().__init__()
         self.value = 0

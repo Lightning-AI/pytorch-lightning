@@ -14,7 +14,7 @@ import pickle
 import warnings
 from functools import partial
 from io import BytesIO
-from typing import Any, Callable, Dict, IO, Optional, OrderedDict, Sequence, TYPE_CHECKING, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, OrderedDict, Sequence, Set, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -23,7 +23,7 @@ from torch._C import _TensorMeta
 from torch.nn import Parameter
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.utilities.types import _PATH, _Stateful
 
 if TYPE_CHECKING:
     from torch.storage import TypedStorage
@@ -140,6 +140,7 @@ class _NotYetLoadedTensor:
             "dtype",
             "grad",
             "grad_fn",
+            "is_meta",
             "layout",
             "names",
             "ndim",
@@ -203,3 +204,20 @@ def _materialize_tensors(collection: Any) -> Any:
         return t._load_tensor()
 
     return apply_to_collection(collection, dtype=_NotYetLoadedTensor, function=_load_tensor)
+
+
+def _move_state_into(
+    source: Dict[str, Any], destination: Dict[str, Union[Any, _Stateful]], keys: Optional[Set[str]] = None
+) -> None:
+    """Takes the state from the source destination and moves it into the destination dictionary.
+
+    If an object in the destination follows the stateful protocol, it loads the source state via ``load_state_dict``.
+
+    """
+    keys = set(source) if keys is None else keys & set(source)
+    for key in keys:
+        state = source.pop(key)
+        if key in destination and isinstance(destination[key], _Stateful):
+            destination[key].load_state_dict(state)
+        else:
+            destination[key] = state

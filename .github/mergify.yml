@@ -13,7 +13,6 @@
 # limitations under the License.
 
 pull_request_rules:
-
   - name: warn on conflicts
     conditions:
       - conflict
@@ -23,7 +22,7 @@ pull_request_rules:
       # comment:
       #   message: This pull request is now in conflict... :(
       label:
-        add: [ "has conflicts" ]
+        add: ["has conflicts"]
 
   - name: resolved conflicts
     conditions:
@@ -34,7 +33,7 @@ pull_request_rules:
       - -closed
     actions:
       label:
-        remove: [ "has conflicts" ]
+        remove: ["has conflicts"]
 
   - name: Ready to Go
     conditions:
@@ -45,18 +44,18 @@ pull_request_rules:
       - "#changes-requested-reviews-by=0" # no requested changes
     actions:
       label:
-        add: [ "ready" ]
+        add: ["ready"]
 
   - name: Not ready yet
     conditions:
       - or:
-        - draft # filter-out GH draft PRs
-        - label="has conflicts"
-        - "#approved-reviews-by=0" # number of review approvals
-        - "#changes-requested-reviews-by>=1" # no requested changes
+          - draft # filter-out GH draft PRs
+          - label="has conflicts"
+          - "#approved-reviews-by=0" # number of review approvals
+          - "#changes-requested-reviews-by>=1" # no requested changes
     actions:
       label:
-        remove: [ "ready" ]
+        remove: ["ready"]
 
   - name: add core reviewer
     conditions:

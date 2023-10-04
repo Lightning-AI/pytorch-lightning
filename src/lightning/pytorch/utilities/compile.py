@@ -31,6 +31,7 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
     like a LightningModule, but it doesn't inherit from it (i.e. `isinstance` will fail).
 
     Use this method to obtain a LightningModule that still runs with all the optimizations from ``torch.compile``.
+
     """
     if not _TORCH_GREATER_EQUAL_2_0:
         raise ModuleNotFoundError("`from_compiled` requires torch>=2.0")
