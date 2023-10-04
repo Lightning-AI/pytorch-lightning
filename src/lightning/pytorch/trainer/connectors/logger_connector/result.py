@@ -265,7 +265,7 @@ class _ResultMetric(Metric):
         # Override to avoid syncing - we handle it ourselves.
         @wraps(compute)
         def wrapped_func(*args: Any, **kwargs: Any) -> Optional[Any]:
-            if not self._update_called:
+            if not self.update_called:
                 rank_zero_warn(
                     f"The ``compute`` method of metric {self.__class__.__name__}"
                     " was called before the ``update`` method which may lead to errors,"
