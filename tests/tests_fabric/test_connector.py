@@ -58,7 +58,7 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning_utilities.test.warning import no_warning_call
 
 from tests_fabric.conftest import mock_tpu_available
@@ -771,7 +771,6 @@ def test_gpu_accelerator_backend_choice_cuda(*_):
     assert isinstance(connector.accelerator, CUDAAccelerator)
 
 
-@RunIf(min_torch="1.12")
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=True)
 @mock.patch("lightning.fabric.accelerators.mps._get_all_available_mps_gpus", return_value=[0])
 @mock.patch("torch.device", DeviceMock)
@@ -808,11 +807,11 @@ def test_ddp_fork_on_unsupported_platform(_, __, strategy):
         ("bf16-true", "auto", HalfPrecision),
         ("16-mixed", "auto", MixedPrecision),
         ("bf16-mixed", "auto", MixedPrecision),
-        pytest.param("32-true", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("16-true", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("bf16-true", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("bf16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("32-true", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("16-true", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16-true", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
         pytest.param("32-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
         pytest.param("16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
         pytest.param("bf16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
@@ -947,7 +946,6 @@ def test_arguments_from_environment_collision():
         _Connector(precision="64-true")
 
 
-@RunIf(min_torch="1.12")
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_fsdp_unsupported_on_cpu(_):
     """Test that we raise an error if attempting to run FSDP without GPU."""
@@ -1019,8 +1017,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     # MPS (there's no distributed)
     with no_cuda, single_mps, monkeypatch.context():
         mock_tpu_available(monkeypatch, False)
-        if not _TORCH_GREATER_EQUAL_1_12:
-            monkeypatch.setattr(torch, "device", Mock())
         connector = _Connector()
     assert isinstance(connector.accelerator, MPSAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)
