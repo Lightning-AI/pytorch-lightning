@@ -11,10 +11,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
-from typing import Any, Dict, Optional, Tuple, Union
-from urllib import parse
+from typing import Any, Dict, Optional, Union
+
 import numpy as np
 from time import time, sleep
 from contextlib import contextmanager
@@ -130,11 +129,15 @@ class BinaryReader:
         # Fetch the element
         chunk_filepath, begin, end = self._config[index]
         raw_item_data = self.load_item_from_chunk(
+<<<<<<< HEAD
             index.chunk_index,
             index.index,
             chunk_filepath,
             begin,
             keep_in_memory=self._keep_in_memory
+=======
+            index.chunk_index, chunk_filepath, begin, end, keep_in_memory=self._keep_in_memory
+>>>>>>> 83514f365985e108ce0bd215ff56206328e1f535
         )
         return self.deserialize(raw_item_data)
 
@@ -150,6 +153,7 @@ class BinaryReader:
             idx += size
         return tree_unflatten(data, self._config.config["data_spec"])
 
+<<<<<<< HEAD
     def load_chunk(self, chunk_filepath: str):
         while not os.path.exists(chunk_filepath):
             sleep(0.0001)
@@ -158,6 +162,11 @@ class BinaryReader:
         return data
 
     def load_item_from_chunk(self, chunk_index: int, index: int, chunk_filepath: str, begin: int, keep_in_memory: bool = False):
+=======
+    def load_item_from_chunk(
+        self, chunk_index: int, chunk_filepath: str, begin: int, end: int, keep_in_memory: bool = False
+    ):
+>>>>>>> 83514f365985e108ce0bd215ff56206328e1f535
         if chunk_index in self._chunks_data:
             return self._chunks_data[chunk_index][begin:end]
 
