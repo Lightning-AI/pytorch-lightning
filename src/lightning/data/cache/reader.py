@@ -11,91 +11,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 
-from lightning.data.cache.pytree import tree_unflatten, treespec_loads
+from lightning.data.cache.config import ChunksConfig
+from lightning.data.cache.pytree import tree_unflatten
 from lightning.data.cache.sampler import BatchIndex
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv
 
 
-class ChunksConfig:
-    def __init__(self, cache_dir: str, index_filenames: str):
-        self._cache_dir = cache_dir
-        self.index_filenames = sorted(index_filenames)
-        self._intervals = []
-        self._config = None
-        self._chunks = []
-
-        for filename in self.index_filenames:
-            with open(os.path.join(self._cache_dir, filename)) as f:
-                data = json.load(f)
-
-                if self._config is None:
-                    self._config = data["config"]
-
-                elif self._config != data["config"]:
-                    raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
-
-                self._chunks.extend(data["chunks"])
-
-        self._config["data_spec"] = treespec_loads(self._config["data_spec"])
-
-        for chunk in self._chunks:
-            start, end = chunk["interval"]
-            if (end - start) != chunk["samples"]:
-                raise Exception(
-                    "The config intervals doesn't match the number of samples. This shouldn't have happened."
-                )
-            self._intervals.append(chunk["interval"])
-
-        self._length = sum([chunk["samples"] for chunk in self._chunks])
-
-    @property
-    def intervals(self):
-        return self._intervals
-
-    @property
-    def data_format(self):
-        return self._config["data_format"]
-
-    @property
-    def config(self):
-        return self._config
-
-    def __getitem__(self, index: Union[int, BatchIndex]) -> Tuple[str, int, int]:
-        """Find the associated chunk metadata."""
-        if isinstance(index, int):
-            for interval_config, internal in enumerate(self._intervals):
-                if internal[0] <= index and index < internal[1]:
-                    chunk = self._chunks[interval_config]
-                    mapping = chunk["mapping"][str(index)]
-                    return os.path.join(self._cache_dir, chunk["filename"]), *mapping
-        # Note: Optimisation to avoid doing the interval search.
-        elif isinstance(index, BatchIndex):
-            chunk = self._chunks[index.chunk_index]
-            mapping = chunk["mapping"][str(index.index)]
-            return os.path.join(self._cache_dir, chunk["filename"]), *mapping
-        raise Exception(f"The chunk interval weren't properly defined. Found {self._intervals} for index {index}.")
-
-    @classmethod
-    def load(cls, cache_dir: str) -> Optional["ChunksConfig"]:
-        files = os.listdir(cache_dir)
-        index_filenames = sorted([f for f in files if f.endswith("index.json")])
-        if not index_filenames:
-            return None
-        return ChunksConfig(cache_dir, index_filenames)
-
-    def __len__(self) -> int:
-        return self._length
-
-
 class BinaryReader:
-    def __init__(self, cache_dir: str, compression: Optional[str] = None):
+    def __init__(self, cache_dir: str, source_dir: Optional[str] = None, compression: Optional[str] = None):
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
         Arguments:
@@ -106,6 +35,7 @@ class BinaryReader:
 
         super().__init__()
         self._cache_dir = cache_dir
+        self._source_dir = source_dir
 
         if not os.path.exists(self._cache_dir):
             raise FileNotFoundError(f"The provided cache_dir `{self._cache_dir}` doesn't exist.")
@@ -119,10 +49,12 @@ class BinaryReader:
 
         self._env = _DistributedEnv.detect()
         self._config: Optional[ChunksConfig] = None
+        self._latest_chunk_index = None
+        self._keep_in_memory = False
 
     def _try_load_config(self):
         """Try to load the chunks config if the index files are available."""
-        self._config = ChunksConfig.load(self._cache_dir)
+        self._config = ChunksConfig.load(self._cache_dir, self._source_dir)
 
     def read(self, index: Union[int, BatchIndex]):
         """Read an item for the given from a chunk.
@@ -138,8 +70,17 @@ class BinaryReader:
         if self._config is None:
             raise Exception("The reader index isn't defined.")
 
+        if self._keep_in_memory:
+            if self._latest_chunk_index is None:
+                self._latest_chunk_index = index.chunk_index
+            elif self._latest_chunk_index != index.chunk_index:
+                del self._chunks_data[self._latest_chunk_index]
+                self._latest_chunk_index = index.chunk_index
+
         chunk_filepath, begin, end = self._config[index]
-        raw_item_data = self.load_item_from_chunk(chunk_filepath, begin, end, keep_in_memory=True)
+        raw_item_data = self.load_item_from_chunk(
+            index.chunk_index, chunk_filepath, begin, end, keep_in_memory=self._keep_in_memory
+        )
         return self.deserialize(raw_item_data)
 
     def deserialize(self, raw_item_data: bytes) -> Any:
@@ -159,15 +100,16 @@ class BinaryReader:
             idx += size
         return tree_unflatten(data, self._config.config["data_spec"])
 
-    def load_item_from_chunk(self, chunk_filepath: str, begin: int, end: int, keep_in_memory: bool = False):
-        if chunk_filepath in self._chunks_data:
-            return self._chunks_data[chunk_filepath][begin:end]
+    def load_item_from_chunk(
+        self, chunk_index: int, chunk_filepath: str, begin: int, end: int, keep_in_memory: bool = False
+    ):
+        if chunk_index in self._chunks_data:
+            return self._chunks_data[chunk_index][begin:end]
 
         if keep_in_memory:
-            with open(chunk_filepath, "rb", 0) as fp:
-                data = fp.read()
-            self._chunks_data[chunk_filepath] = data
-            return data[begin:end]
+            with open(chunk_filepath, "rb") as fp:
+                self._chunks_data[chunk_index] = fp.read()
+            return self._chunks_data[chunk_index][begin:end]
 
         with open(chunk_filepath, "rb", 0) as fp:
             fp.seek(begin)

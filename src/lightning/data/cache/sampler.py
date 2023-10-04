@@ -13,7 +13,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
 import numpy as np
 from torch.utils.data.distributed import DistributedSampler
@@ -171,6 +171,8 @@ class DistributedCacheSampler(BaseCacheSampler):
 class BatchIndex:
     index: int
     chunk_index: int
+    previous_chunk_index: Optional[int] = None
+    next_chunk_index: Optional[int] = None
 
 
 class CacheBatchSampler(BatchSampler):
@@ -273,10 +275,20 @@ class CacheBatchSampler(BatchSampler):
 
         if self._num_replicas == 1:
             indices = []
-            for interval, chunk_index in zip(self._shuffled_chunk_intervals, shuffled_indices):
+            for i, (interval, chunk_index) in enumerate(zip(self._shuffled_chunk_intervals, shuffled_indices)):
                 interval_indices = np.arange(interval[0], interval[1])
                 shuffled_interval_indices = np.random.permutation(interval_indices).tolist()
-                indices.extend([BatchIndex(index, chunk_index) for index in shuffled_interval_indices])
+                not_boundary = i > 0 and i < len(shuffled_indices) - 1
+                indices.extend(
+                    [
+                        BatchIndex(
+                            index,
+                            chunk_index,
+                            next_chunk_index=shuffled_indices[i + 1] if not_boundary else None,
+                        )
+                        for j, index in enumerate(shuffled_interval_indices)
+                    ]
+                )
 
             if len(indices) != len(self.sampler):
                 raise Exception("The generated indices don't match the initial length of the sampler.")
