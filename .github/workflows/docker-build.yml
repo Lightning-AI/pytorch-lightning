@@ -2,9 +2,9 @@ name: Docker builds
 
 on:
   push:
-    branches: ["*"]
+    branches: [master, "release/*"]
   pull_request:
-    branches: ["*"]
+    branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/*"
@@ -29,7 +29,7 @@ concurrency:
 
 env:
   PUSH_NIGHTLY: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
-  PUSH_RELEASE: "true" # ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' }}
+  PUSH_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' }}
 
 jobs:
   build-pl:
