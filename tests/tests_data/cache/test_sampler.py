@@ -174,10 +174,10 @@ def test_cache_batch_sampler(params):
 
     def validate_batch(data):
         if params[1] == 1:
-            assert all([b[0].chunk_indexes is not None for b in data[:3]])
-            assert all([b[1].chunk_indexes is None for b in data[:3]])
-            assert all([b[2].chunk_indexes is None for b in data[:3]])
-            assert all([b[0].chunk_indexes is None if len(b) else True for b in data[3:]])
+            assert all(b[0].chunk_indexes is not None for b in data[:3])
+            assert all(b[1].chunk_indexes is None for b in data[:3])
+            assert all(b[2].chunk_indexes is None for b in data[:3])
+            assert all(b[0].chunk_indexes is None if len(b) else True for b in data[3:])
         else:
             chunks_per_replica = len(chunks) // params[1]
             for replica_idx in range(params[1]):

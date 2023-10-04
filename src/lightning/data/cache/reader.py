@@ -110,7 +110,7 @@ class BinaryReader:
         Prefetching should reduce the wait time to be the batch available.
 
         """
-        # Load the config containing the index 
+        # Load the config containing the index
         if self._config is None:
             self._try_load_config()
 
