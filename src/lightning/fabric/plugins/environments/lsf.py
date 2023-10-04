@@ -120,8 +120,8 @@ class LSFEnvironment(ClusterEnvironment):
         return int(local_rank)
 
     def node_rank(self) -> int:
-        """The node rank is determined by the position of the current hostname in the OpenMPI host rank file stored
-        in ``LSB_DJOB_RANKFILE``."""
+        """The node rank is determined by the position of the current hostname in the OpenMPI host rank file stored in
+        ``LSB_DJOB_RANKFILE``."""
         return self._node_rank
 
     def _get_node_rank(self) -> int:

@@ -62,6 +62,7 @@ def extract_batch_size(batch: BType) -> int:
 
     Returns:
         ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
+
     """
     error_msg = (
         "We could not infer the batch_size from the batch. Either simplify its structure"

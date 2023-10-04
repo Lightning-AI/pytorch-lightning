@@ -17,6 +17,7 @@
 - to access and change the App state.
 
 This is particularly useful for the ``PanelFrontend`` but can be used by other frontends too.
+
 """
 from __future__ import annotations
 

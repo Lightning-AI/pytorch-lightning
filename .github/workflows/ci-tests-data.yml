@@ -48,7 +48,7 @@ jobs:
       # PYPI_CACHE_DIR: "_pip-wheels"
       TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -85,6 +85,7 @@ jobs:
       #     ls -lh $PYPI_CACHE_DIR
 
       - name: Install package & dependencies
+        timeout-minutes: 20
         run: |
           python -m pip install -q pip -U
           pip install -e ".[data-dev]" -U --prefer-binary -f ${TORCH_URL}

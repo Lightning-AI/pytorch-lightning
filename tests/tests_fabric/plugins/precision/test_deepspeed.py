@@ -41,6 +41,7 @@ def test_deepspeed_engine_is_steppable(engine):
     """Test that the ``DeepSpeedEngine`` conforms to the Steppable API.
 
     If this fails, then optimization will be broken for DeepSpeed.
+
     """
     assert isinstance(engine, Steppable)
 

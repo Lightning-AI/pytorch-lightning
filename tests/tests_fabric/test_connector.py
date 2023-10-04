@@ -345,7 +345,7 @@ def test_tpu_accelerator_can_not_run_on_system():
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @pytest.mark.parametrize("device_count", [["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]])
-def test_accelererator_invalid_type_devices(_, device_count):
+def test_accelerator_invalid_type_devices(_, device_count):
     with pytest.raises(TypeError, match=r"must be an int, a string, a sequence of ints, but you"):
         _ = _Connector(accelerator="gpu", devices=device_count)
 
