@@ -15,6 +15,7 @@ from lightning.fabric.utilities.distributed import (
     _set_num_threads_if_needed,
     _sync_ddp,
     is_shared_filesystem,
+    _suggested_max_num_threads,
 )
 
 from tests_fabric.helpers.runif import RunIf
@@ -164,6 +165,12 @@ def _test_is_shared_filesystem(strategy, tmp_path, monkeypatch):
 
     # Remote path is considered shared
     assert is_shared_filesystem(strategy, path="s3://my-bucket/data")
+
+
+@pytest.mark.parametrize("invalid", [-1, 0])
+def test_suggested_max_num_threads(invalid):
+    with pytest.raises(ValueError, match="should be >= 1"):
+        _suggested_max_num_threads(invalid)
 
 
 @mock.patch.dict(os.environ, {}, clear=True)

@@ -393,6 +393,8 @@ class DistributedSamplerWrapper(DistributedSampler):
 
 
 def _suggested_max_num_threads(num_processes: int = 1) -> int:
+    if num_processes < 1:
+        raise ValueError(f"`num_processes` should be >= 1, got {num_processes}.")
     return max(1, _num_cpus_available() // num_processes)
 
 
