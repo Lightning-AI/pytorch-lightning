@@ -459,6 +459,7 @@ class CloudRuntime(Runtime):
 
         If the entrypoint is a file, return an ignore function that will ignore everything except that file so only the
         file gets uploaded.
+
         """
         entrypoint = self.entrypoint.absolute()
         if entrypoint.is_file():
@@ -473,8 +474,7 @@ class CloudRuntime(Runtime):
         package_source: bool = True,
         sys_customizations_root: Optional[Path] = None,
     ) -> LocalSourceCodeDir:
-        """Gather and merge all lightningignores from the app children and create the ``LocalSourceCodeDir``
-        object."""
+        """Gather and merge all lightningignores from the app children and create the ``LocalSourceCodeDir`` object."""
         if ignore_functions is None:
             ignore_functions = []
 

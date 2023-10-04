@@ -230,13 +230,14 @@ class _MultiProcessingLauncher(_Launcher):
         return {"callback_metrics": callback_metrics}
 
     def update_main_process_results(self, trainer: "pl.Trainer", extra: Dict[str, Any]) -> None:
-        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
-        we cast back the data to ``torch.Tensor``.
+        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency, we
+        cast back the data to ``torch.Tensor``.
 
         Args:
             trainer: reference to the Trainer.
             extra: A dictionary with trainer state that was sent from the worker process and needs to be restored
                 on the current trainer.
+
         """
         # NOTE: `get_extra_results` needs to be called before
         callback_metrics = extra["callback_metrics"]

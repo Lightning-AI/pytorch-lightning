@@ -33,8 +33,8 @@ if _RICH_AVAILABLE:
     from rich.text import Text
 
     class CustomBarColumn(BarColumn):
-        """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size)
-        such as ``IterableDataset``."""
+        """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size) such as
+        ``IterableDataset``."""
 
         def render(self, task: "Task") -> _RichProgressBar:
             """Gets a progress bar widget for a task."""
@@ -57,6 +57,7 @@ if _RICH_AVAILABLE:
         """Overrides ``Task`` to define an infinite task.
 
         This is useful for datasets that do not define a size (infinite size) such as ``IterableDataset``.
+
         """
 
         @property

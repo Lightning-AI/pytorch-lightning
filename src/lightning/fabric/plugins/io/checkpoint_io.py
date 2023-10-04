@@ -32,6 +32,7 @@ class CheckpointIO(ABC):
 
         For some plugins, it is not possible to use a custom checkpoint plugin as checkpointing logic is not
         modifiable.
+
     """
 
     @abstractmethod

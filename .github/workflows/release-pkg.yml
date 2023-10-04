@@ -35,7 +35,7 @@ jobs:
     needs: build-packages
     if: github.event_name == 'release'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
         with:
           name: dist-packages-${{ github.sha }}
@@ -52,7 +52,7 @@ jobs:
     outputs:
       tag: ${{ steps.lai-package.outputs.version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VER }}
@@ -72,7 +72,7 @@ jobs:
       TAG: ${{ needs.release-version.outputs.tag }}
       BRANCH_NAME: "trigger/lightning-${{ needs.release-version.outputs.tag }}"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: gridai/base-images
           token: ${{ secrets.PAT_GHOST }}
@@ -107,7 +107,7 @@ jobs:
       TAG: ${{ needs.release-version.outputs.tag }}
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VER }}
@@ -136,7 +136,7 @@ jobs:
       matrix:
         name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
-      - uses: actions/checkout@v3 # needed for local action below
+      - uses: actions/checkout@v4 # needed for local action below
       - uses: actions/download-artifact@v3
         with:
           name: dist-packages-${{ github.sha }}
@@ -161,7 +161,7 @@ jobs:
       matrix:
         name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
-      - uses: actions/checkout@v3 # needed for local action below
+      - uses: actions/checkout@v4 # needed for local action below
       - uses: actions/download-artifact@v3
         with:
           name: dist-packages-${{ github.sha }}

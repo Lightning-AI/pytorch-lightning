@@ -320,7 +320,7 @@ def _device_count_nvml() -> int:
     if not visible_devices:
         return 0
     try:
-        if type(visible_devices[0]) is str:
+        if isinstance(visible_devices[0], str):
             # Skip MIG parsing
             if visible_devices[0].startswith("MIG-"):
                 return -1
