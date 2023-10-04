@@ -254,6 +254,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed experimental support for `torchdistx` due to a lack of project maintenance ([#17995](https://github.com/Lightning-AI/lightning/pull/17995))
 
+
+- Removed support for PyTorch 1.11 ([#18691](https://github.com/Lightning-AI/lightning/pull/18691))
+
+
 ### Fixed
 
 - Fixed an issue with reusing the same model across multiple trainer stages when using the `DeepSpeedStrategy` ([#17531](https://github.com/Lightning-AI/lightning/pull/17531))

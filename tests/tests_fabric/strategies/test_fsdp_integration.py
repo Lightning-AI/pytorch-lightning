@@ -21,21 +21,15 @@ import torch
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_12,
-    _TORCH_GREATER_EQUAL_2_0,
-    _TORCH_GREATER_EQUAL_2_1,
-)
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import _FabricOptimizer
+from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
+from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 from torch.nn import Parameter
 
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
-
-if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
-    from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 
 
 class _MyFabric(BoringFabric):
@@ -286,7 +280,7 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     assert torch.equal(params_before, params_after)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("move_to_device", [True, False])
 @mock.patch("lightning.fabric.wrappers._FabricModule")
 def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
@@ -469,7 +463,7 @@ def test_fsdp_manual_activation_checkpointing():
     assert wrappers == {"_fsdp_wrapped_module.0", "_fsdp_wrapped_module.1"}
 
 
-@RunIf(min_torch="1.12", min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_rewrap_warnings():
     from torch.distributed.fsdp import FullyShardedDataParallel
     from torch.distributed.fsdp.wrap import wrap

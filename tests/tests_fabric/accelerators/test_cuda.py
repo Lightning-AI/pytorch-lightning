@@ -87,7 +87,6 @@ def test_force_nvml_based_cuda_check():
     assert os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] == "1"
 
 
-@RunIf(min_torch="1.12")
 @mock.patch("torch.cuda.get_device_capability", return_value=(10, 1))
 @mock.patch("torch.cuda.get_device_name", return_value="Z100")
 def test_tf32_message(_, __, caplog, monkeypatch):
