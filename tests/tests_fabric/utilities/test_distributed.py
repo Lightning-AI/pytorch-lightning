@@ -13,9 +13,9 @@ from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessi
 from lightning.fabric.utilities.distributed import (
     _gather_all_tensors,
     _set_num_threads_if_needed,
+    _suggested_max_num_threads,
     _sync_ddp,
     is_shared_filesystem,
-    _suggested_max_num_threads,
 )
 
 from tests_fabric.helpers.runif import RunIf
