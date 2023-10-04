@@ -126,10 +126,10 @@ class BitsandbytesPrecision(Precision):
                 " `ignore_modules` or remove the `init_module` context manager."
             )
         dtype_ctx = _DtypeContextManager(self.dtype)
-        stack = ExitStack()
-        stack.enter_context(dtype_ctx)
         # TODO: this could also support replacing `Embedding` and `Conv1D`
         context_manager = _ClassReplacementContextManager({"torch.nn.Linear": self._linear_cls})
+        stack = ExitStack()
+        stack.enter_context(dtype_ctx)
         stack.enter_context(context_manager)
         return stack
 
