@@ -10,8 +10,12 @@ from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAc
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning.fabric.utilities.distributed import _gather_all_tensors, _sync_ddp, is_shared_filesystem, \
-    _set_num_threads_if_needed
+from lightning.fabric.utilities.distributed import (
+    _gather_all_tensors,
+    _set_num_threads_if_needed,
+    _sync_ddp,
+    is_shared_filesystem,
+)
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -165,7 +169,7 @@ def _test_is_shared_filesystem(strategy, tmp_path, monkeypatch):
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch("lightning.fabric.utilities.distributed.torch.set_num_threads")
 @mock.patch("lightning.fabric.utilities.distributed._num_cpus_available", return_value=4)
-@pytest.mark.parametrize("num_processes, expected", [(1, 4), (2, 2), (3, 1), (4, 1), (8, 1)])
+@pytest.mark.parametrize(("num_processes", "expected"), [(1, 4), (2, 2), (3, 1), (4, 1), (8, 1)])
 def test_set_num_threads_if_needed(_, set_num_threads_mock, num_processes, expected):
     assert "OMP_NUM_THREADS" not in os.environ
     _set_num_threads_if_needed(num_processes)
