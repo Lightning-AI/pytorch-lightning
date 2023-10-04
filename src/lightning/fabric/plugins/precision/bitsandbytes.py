@@ -172,9 +172,8 @@ def _import_bitsandbytes() -> ModuleType:
         del os.environ["BITSANDBYTES_NOWELCOME"]
 
     class _Linear8bitLt(bnb.nn.Linear8bitLt):
-        """Wraps `bnb.nn.Linear8bitLt` and enables instantiation directly on the device and
-        re-quantizaton when loading the state dict.
-        """
+        """Wraps `bnb.nn.Linear8bitLt` and enables instantiation directly on the device and re-quantizaton when loading
+        the state dict."""
 
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, threshold: float = 6.0, **kwargs: Any) -> None:
             super().__init__(*args, device=device, threshold=threshold, **kwargs)
@@ -196,9 +195,8 @@ def _import_bitsandbytes() -> ModuleType:
             setattr(self.weight, "SCB", SCB)
 
     class _Linear4bit(bnb.nn.Linear4bit):
-        """Wraps `bnb.nn.Linear4bit` and enables instantiation directly on the device and
-        re-quantizaton when loading the state dict.
-        """
+        """Wraps `bnb.nn.Linear4bit` and enables instantiation directly on the device and re-quantizaton when loading
+        the state dict."""
 
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
             super().__init__(*args, device=device, **kwargs)

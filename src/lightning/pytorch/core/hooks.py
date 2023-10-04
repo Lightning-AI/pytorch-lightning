@@ -237,6 +237,7 @@ class ModelHooks:
 
         Args:
             optimizer: The optimizer for which grads should be zeroed.
+
         """
 
     def on_before_backward(self, loss: Tensor) -> None:
@@ -244,6 +245,7 @@ class ModelHooks:
 
         Args:
             loss: Loss divided by number of batches for gradient accumulation and scaled if using AMP.
+
         """
         pass
 
@@ -253,6 +255,7 @@ class ModelHooks:
         Note:
             If using native AMP, the gradients will not be unscaled at this point.
             Use the ``on_before_optimizer_step`` if you need the unscaled gradients.
+
         """
 
     def on_before_optimizer_step(self, optimizer: Optimizer) -> None:
@@ -279,6 +282,7 @@ class ModelHooks:
                         self.logger.experiment.add_histogram(
                             tag=k, values=v.grad, global_step=self.trainer.global_step
                         )
+
         """
 
     def configure_sharded_model(self) -> None:

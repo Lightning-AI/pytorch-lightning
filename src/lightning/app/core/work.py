@@ -265,8 +265,8 @@ class LightningWork:
 
     @property
     def cache_calls(self) -> bool:
-        """Returns whether the ``run`` method should cache its input arguments and not run again when provided with
-        the same arguments in subsequent calls."""
+        """Returns whether the ``run`` method should cache its input arguments and not run again when provided with the
+        same arguments in subsequent calls."""
         return self._cache_calls
 
     @property

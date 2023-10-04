@@ -57,8 +57,7 @@ class TorchCheckpointIO(CheckpointIO):
     def load_checkpoint(
         self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
     ) -> Dict[str, Any]:
-        """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of
-        files.
+        """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of files.
 
         Args:
             path: Path to checkpoint
@@ -69,6 +68,7 @@ class TorchCheckpointIO(CheckpointIO):
 
         Raises:
             FileNotFoundError: If ``path`` is not found by the ``fsspec`` filesystem
+
         """
 
         # Try to read the checkpoint at `path`. If not exist, do not restore checkpoint.

@@ -74,6 +74,7 @@ class LightningDoublePrecisionModule(_DeviceDtypeModuleMixin, nn.Module):
 
     Args:
         pl_module: the model to wrap
+
     """
 
     def __init__(self, pl_module: "pl.LightningModule") -> None:

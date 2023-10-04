@@ -182,12 +182,13 @@ def _get_fit_loop_initial_state_1_6_0() -> Dict:
 
 def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
     """The ``save_on_train_epoch_end`` was removed from the state-key of ``ModelCheckpoint`` in 1.9.0, and this
-    migration drops it from the state-keys saved in the checkpoint dict so that the keys match when the Trainer
-    loads the callback state.
+    migration drops it from the state-keys saved in the checkpoint dict so that the keys match when the Trainer loads
+    the callback state.
 
     Version: 1.9.0
     Commit: f4ca56
     PR: #15300, #15606
+
     """
     if "callbacks" not in checkpoint:
         return checkpoint
@@ -305,12 +306,13 @@ def _migrate_loop_structure_after_optimizer_loop_removal(checkpoint: _CHECKPOINT
 
 
 def _migrate_loop_structure_after_dataloader_loop_removal(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """The dataloader loops (``_DataLoaderLoop``, ``_PredictionLoop`, and ``_EvaluationLoop``) were flattened into
-    the ``_EvaluationEpochLoop`` (now ``_EvaluationLoop``) and ``_PredictionEpochLoop`` (now ``_PredictionLoop``).
+    """The dataloader loops (``_DataLoaderLoop``, ``_PredictionLoop`, and ``_EvaluationLoop``) were flattened into the
+    ``_EvaluationEpochLoop`` (now ``_EvaluationLoop``) and ``_PredictionEpochLoop`` (now ``_PredictionLoop``).
 
     Version: 2.0.0
     Commit: ec4f592ecfe238edd83185f6c6905fb1e2406d61
     PR: #16726
+
     """
     if "loops" not in checkpoint:
         return checkpoint

@@ -86,6 +86,7 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
 
     See also the PyTorch documentation on
     `randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_.
+
     """
     # implementation notes: https://github.com/pytorch/pytorch/issues/5059#issuecomment-817392562
     global_rank = rank if rank is not None else rank_zero_only.rank
