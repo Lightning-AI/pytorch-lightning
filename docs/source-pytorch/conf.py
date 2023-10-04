@@ -477,6 +477,7 @@ nitpick_ignore = [
     ("py:class", "torch.utils.data.DistributedSampler"),
     ("py:class", "torch_xla.distributed.parallel_loader.MpDeviceLoader"),
     ("py:func", "torch_xla.distributed.xla_multiprocessing.spawn"),
+    ("py:class", "torch._dynamo.OptimizedModule"),
     ("py:mod", "tqdm"),
     ("py:meth", "training_step"),
     ("py:meth", "transfer_batch_to_device"),
