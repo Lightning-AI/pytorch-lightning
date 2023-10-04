@@ -171,3 +171,9 @@ def test_set_num_threads_if_needed(_, set_num_threads_mock, num_processes, expec
     _set_num_threads_if_needed(num_processes)
     set_num_threads_mock.assert_called_with(expected)
     assert os.environ["OMP_NUM_THREADS"] == str(expected)
+
+    # if env variable is already set, no change
+    set_num_threads_mock.reset_mock()
+    _set_num_threads_if_needed(1)
+    set_num_threads_mock.assert_not_called()
+    assert os.environ["OMP_NUM_THREADS"] == str(expected)
