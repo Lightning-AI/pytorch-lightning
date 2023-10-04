@@ -161,9 +161,8 @@ class BinaryWriter:
 
         chunk_info = {
             "chunk_bytes": self._current_chunk_size,
-            "samples": len(self._serialized_items),
+            "chunk_size": len(self._serialized_items),
             "filename": filename,
-            "mapping": mapping,
             "interval": [self._indexes[0], self._indexes[-1] + 1],
         }
 

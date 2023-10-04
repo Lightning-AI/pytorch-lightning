@@ -28,7 +28,7 @@ from torch.utils.data.dataloader import (
 from lightning.data.cache import Cache
 from lightning.data.cache.pytree import tree_flatten
 from lightning.data.cache.sampler import CacheBatchSampler
-from lightning.data.datasets.env import _DistributedEnv
+from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
 logger = logging.Logger(__name__)
 
@@ -122,6 +122,8 @@ class WorkerLoop:
         create_fetcher = _DatasetKind.create_fetcher
 
         fetcher = None
+
+        rank = _WorkerEnv.detect().rank
 
         def create_fetcher_fn(*args, **kwargs):
             nonlocal fetcher

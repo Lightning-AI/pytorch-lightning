@@ -23,6 +23,7 @@ from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv
 from subprocess import Popen
 import subprocess
+from threading import Lock
 
 
 class ChunksConfig:
@@ -72,46 +73,26 @@ class ChunksConfig:
     def config(self):
         return self._config
 
-    @property
-    def credentials(self):
-        if self._credentials:
-            return
-
-        from botocore.credentials import InstanceMetadataProvider
-        from botocore.utils import InstanceMetadataFetcher
-
-        provider = InstanceMetadataProvider(iam_role_fetcher=InstanceMetadataFetcher(timeout=1000, num_attempts=2))
-
-        credentials = provider.load()
-
-        os.environ["AWS_ACCESS_KEY"] = credentials.access_key
-        os.environ["AWS_SECRET_ACCESS_KEY"] = credentials.secret_key
-        os.environ["AWS_SESSION_TOKEN"] = credentials.token
-        self._credentials = credentials
-
     def __getitem__(self, index: Union[int, BatchIndex]) -> Tuple[str, int, int]:
         """Find the associated chunk metadata."""
         if isinstance(index, int):
             for interval_config, internal in enumerate(self._intervals):
                 if internal[0] <= index and index < internal[1]:
                     chunk = self._chunks[interval_config]
-                    mapping = chunk["mapping"][str(index)]
+                    mapping = chunk["mapping"][index]
                     chunk_filepath = os.path.join(self._cache_dir, chunk["filename"])
 
                     if self._source_dir:
-                        self._downloader.handle_index(index)
+                        self._downloader.download_on_chunk_index(index)
 
                     return chunk_filepath, *mapping
+
         # Note: Optimisation to avoid doing the interval search.
         elif isinstance(index, BatchIndex):
             chunk = self._chunks[index.chunk_index]
-            mapping = chunk["mapping"][str(index.index)]
             chunk_filepath = os.path.join(self._cache_dir, chunk["filename"])
+            return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]
 
-            if self._source_dir:
-                self._downloader.handle_index(index)
-
-            return os.path.join(self._cache_dir, chunk["filename"]), *mapping
         raise Exception(f"The chunk interval weren't properly defined. Found {self._intervals} for index {index}.")
 
     @classmethod
@@ -136,9 +117,9 @@ class Downloader:
         self._source_dir = source_dir
         self._cache_dir = cache_dir
         self._chunks = chunks
+        self._lock = Lock()
 
-    @property
-    def credentials(self):
+    def create_credentials(self):
         if self._credentials:
             return
 
@@ -154,28 +135,20 @@ class Downloader:
         os.environ["AWS_SESSION_TOKEN"] = credentials.token
         self._credentials = credentials
 
-
-    def handle_index(self, index: BatchIndex) -> None:
-        local_filepath = os.path.join(self._cache_dir, self._chunks[index.chunk_index]["filename"])
+    def chunk_index_download(self, index: int) -> None:
+        local_filepath = os.path.join(self._cache_dir, self._chunks[int(index)]["filename"])
 
         if os.path.exists(local_filepath):
             return
 
-        remote_filepath = os.path.join(self._source_dir, self._chunks[index.chunk_index]["filename"])
+        self.create_credentials()
+
+
+        remote_filepath = os.path.join(self._source_dir, self._chunks[int(index)]["filename"])
 
         if remote_filepath.startswith("s3://"):
-            self.download_file_from_s3_with_s5cmd(index.chunk_index, remote_filepath, local_filepath)
+            self.download_file_from_s3_with_s5cmd(int(index), remote_filepath, local_filepath)
 
-            if index.next_chunk_index:
-                next_chunk_filename = self._chunks[index.next_chunk_index]["filename"]
-                self.download_file_from_s3_with_s5cmd(
-                    index.next_chunk_index,
-                    os.path.join(self._source_dir, next_chunk_filename),
-                    os.path.join(self._cache_dir, next_chunk_filename)
-                )
-
-            self._processes[index.chunk_index].wait()
-            
             return
 
         if remote_filepath.startswith("s3://"):
@@ -188,8 +161,7 @@ class Downloader:
 
     def download_file_from_s3_with_s5cmd(self, index, remote_filepath: str, local_filepath: str):
         if index not in self._processes:
-            self._processes[index] = Popen(f"s5cmd cp {remote_filepath} {local_filepath}".split(" "), env=os.environ.copy(), stdout=subprocess.DEVNULL)
-
+            self._processes[index] = Popen(f"s5cmd cp {remote_filepath} {local_filepath}".split(" "), env=os.environ.copy(), stdout=subprocess.DEVNULL).wait()
 
     @classmethod
     def download_file_from_s3(cls, remote_filepath: str, local_filepath: str):
