@@ -851,3 +851,30 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
             3,  # teardown on epoch 2, workers from epoch 2 get destroyed
         ]
     assert val_dataloader.shutdown_workers_epochs == expected
+
+
+def test_validation_during_gradient_accumulation_window(tmp_path):
+    """Test that gradients don't get erased when the validation interval falls within the gradient accumulation phase."""
+
+    class ValidationModel(BoringModel):
+        def on_validation_start(self):
+            grad_expected = self.trainer.fit_loop.epoch_loop.batch_progress.current.completed % self.trainer.accumulate_grad_batches != 0
+            if grad_expected:
+                assert all(p.grad is not None for p in self.parameters())
+            else:
+                assert all(p.grad is None for p in self.parameters())
+            self.ran_assert = True
+
+    model = ValidationModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=6,
+        limit_val_batches=1,
+        accumulate_grad_batches=3,
+        val_check_interval=2,
+        max_epochs=1,
+        num_sanity_val_steps=0,
+        # barebones=True,
+    )
+    trainer.fit(model)
+    assert model.ran_assert
