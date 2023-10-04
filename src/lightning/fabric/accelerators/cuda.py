@@ -22,7 +22,7 @@ from lightning_utilities.core.rank_zero import rank_zero_info
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
 
 class CUDAAccelerator(Accelerator):
@@ -343,9 +343,6 @@ def _device_count_nvml() -> int:
 
 @lru_cache(1)  # show the warning only ever once
 def _check_cuda_matmul_precision(device: torch.device) -> None:
-    if not _TORCH_GREATER_EQUAL_1_12:
-        # before 1.12, tf32 was used by default
-        return
     major, _ = torch.cuda.get_device_capability(device)
     ampere_or_later = major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
     if not ampere_or_later:

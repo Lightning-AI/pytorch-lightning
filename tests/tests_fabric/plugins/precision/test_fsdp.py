@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import mock
 from unittest.mock import Mock
 
 import pytest
@@ -22,13 +21,6 @@ from lightning.fabric.plugins.precision.utils import _DtypeContextManager
 from tests_fabric.helpers.runif import RunIf
 
 
-@mock.patch("lightning.fabric.plugins.precision.fsdp._TORCH_GREATER_EQUAL_1_12", False)
-def test_fsdp_precision_support(*_):
-    with pytest.raises(NotImplementedError, match="`FSDPPrecision` is supported from PyTorch v1.12.0"):
-        FSDPPrecision(precision="16-mixed")
-
-
-@RunIf(min_torch="1.12")
 @pytest.mark.parametrize(
     ("precision", "expected"),
     [
@@ -64,7 +56,6 @@ def test_fsdp_precision_config(precision, expected):
     assert config.reduce_dtype == expected[2]
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_precision_default_scaler():
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
@@ -72,7 +63,6 @@ def test_fsdp_precision_default_scaler():
     assert isinstance(precision.scaler, ShardedGradScaler)
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_precision_scaler_with_bf16():
     with pytest.raises(ValueError, match="`precision='bf16-mixed'` does not use a scaler"):
         FSDPPrecision(precision="bf16-mixed", scaler=Mock())
@@ -81,7 +71,7 @@ def test_fsdp_precision_scaler_with_bf16():
     assert precision.scaler is None
 
 
-@RunIf(min_torch="1.12", min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_fsdp_precision_forward_context():
     """Test to ensure that the context manager correctly is set to bfloat16."""
     precision = FSDPPrecision(precision="16-mixed")
@@ -115,7 +105,6 @@ def test_fsdp_precision_forward_context():
     assert precision.forward_context()._new_dtype == torch.bfloat16
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_precision_backward():
     precision = FSDPPrecision(precision="16-mixed")
     precision.scaler = Mock()
@@ -127,7 +116,6 @@ def test_fsdp_precision_backward():
     tensor.backward.assert_called_once_with("positional-arg", keyword="arg")
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_precision_optimizer_step_with_scaler():
     precision = FSDPPrecision(precision="16-mixed")
     precision.scaler = Mock()
@@ -138,7 +126,6 @@ def test_fsdp_precision_optimizer_step_with_scaler():
     precision.scaler.update.assert_called_once()
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_precision_optimizer_step_without_scaler():
     precision = FSDPPrecision(precision="bf16-mixed")
     assert precision.scaler is None
@@ -148,7 +135,6 @@ def test_fsdp_precision_optimizer_step_without_scaler():
     optimizer.step.assert_called_once_with(keyword="arg")
 
 
-@RunIf(min_torch="1.12")
 def test_invalid_precision_with_fsdp_precision():
     FSDPPrecision("16-mixed")
     FSDPPrecision("bf16-mixed")

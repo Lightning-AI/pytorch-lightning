@@ -303,7 +303,7 @@ def test_fabric_dataloader_iterator():
         ("cpu", "cpu"),
         pytest.param("cpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("cuda:0", "cpu", marks=RunIf(min_cuda_gpus=1)),
-        # pytest.param("cpu", "mps", marks=RunIf(mps=True)),  # TODO: Add once torch.equal is supported
+        pytest.param("cpu", "mps", marks=RunIf(mps=True)),
         pytest.param("mps", "cpu", marks=RunIf(mps=True)),
     ],
 )
@@ -321,11 +321,9 @@ def test_fabric_dataloader_device_placement(src_device_str, dest_device_str):
     iterator = iter(fabric_dataloader)
 
     batch0 = next(iterator)
-    # TODO: torch.equal is not supported on MPS at this time (torch 1.12)
     assert torch.equal(batch0, torch.tensor([0, 1], device=dest_device))
 
     batch1 = next(iterator)
-    # TODO: torch.equal is not supported on MPS at this time (torch 1.12)
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 

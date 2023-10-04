@@ -242,8 +242,7 @@ class Trainer:
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
-                that don't support deterministic mode (requires PyTorch 1.11+). If not set, defaults to ``False``.
-                Default: ``None``.
+                that don't support deterministic mode. If not set, defaults to ``False``. Default: ``None``.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used

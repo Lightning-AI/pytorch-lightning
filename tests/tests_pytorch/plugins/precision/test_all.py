@@ -7,8 +7,6 @@ from lightning.pytorch.plugins import (
     HalfPrecisionPlugin,
 )
 
-from tests_pytorch.helpers.runif import RunIf
-
 
 @pytest.mark.parametrize(
     "precision",
@@ -16,7 +14,7 @@ from tests_pytorch.helpers.runif import RunIf
         DeepSpeedPrecisionPlugin("16-true"),
         DoublePrecisionPlugin(),
         HalfPrecisionPlugin(),
-        pytest.param("fsdp", marks=RunIf(min_torch="1.12")),
+        "fsdp",
     ],
 )
 def test_default_dtype_is_restored(precision):
