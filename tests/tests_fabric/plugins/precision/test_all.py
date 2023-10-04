@@ -2,8 +2,6 @@ import pytest
 import torch
 from lightning.fabric.plugins import DeepSpeedPrecision, DoublePrecision, FSDPPrecision, HalfPrecision
 
-from tests_fabric.helpers.runif import RunIf
-
 
 @pytest.mark.parametrize(
     "precision",
@@ -11,7 +9,7 @@ from tests_fabric.helpers.runif import RunIf
         DeepSpeedPrecision("16-true"),
         DoublePrecision(),
         HalfPrecision(),
-        pytest.param("fsdp", marks=RunIf(min_torch="1.12")),
+        "fsdp",
     ],
 )
 def test_default_dtype_is_restored(precision):

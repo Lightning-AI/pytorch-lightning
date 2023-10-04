@@ -1,11 +1,10 @@
 import contextlib
 import logging
 import os
-import sys
 import time
 from contextlib import nullcontext
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union
 
 import fsspec.utils
 import torch
@@ -15,7 +14,6 @@ from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning.fabric.utilities.data import _num_cpus_available
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
@@ -232,37 +230,6 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     return result.div_(world_size)
 
 
-class _AllGather(torch.autograd.Function):
-    @staticmethod
-    def forward(  # type: ignore[override]
-        ctx: Any,
-        tensor: Tensor,
-        group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
-    ) -> Tensor:
-        ctx.group = group
-        gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size(group=group))]
-        torch.distributed.all_gather(gathered_tensor, tensor, group=group)
-        gathered_tensor = torch.stack(gathered_tensor, dim=0)
-        return gathered_tensor
-
-    @staticmethod
-    def backward(ctx: Any, *grad_output: Tensor) -> Tuple[Tensor, None]:
-        grad_output = torch.cat(grad_output)
-        torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
-        return grad_output[torch.distributed.get_rank()], None
-
-
-def _functional_all_gather(tensor: Any, group: Any) -> Any:
-    """Compatibility layer with Windows."""
-    if sys.platform == "win32" and not _TORCH_GREATER_EQUAL_1_12:
-        # TODO: also remove `_AllGather` when support for 1.12 is dropped
-        return _AllGather.apply(tensor, group)
-
-    import torch.distributed.nn
-
-    return torch.distributed.nn.functional.all_gather(tensor, group)
-
-
 def _all_gather_ddp_if_available(
     tensor: Tensor, group: Optional["torch.distributed.ProcessGroup"] = None, sync_grads: bool = False
 ) -> Tensor:
@@ -279,9 +246,12 @@ def _all_gather_ddp_if_available(
     """
     if not torch.distributed.is_initialized():
         return tensor
+
+    from torch.distributed.nn.functional import all_gather
+
     tensor = tensor.contiguous()  # https://github.com/pytorch/pytorch/issues/73515
     with nullcontext() if sync_grads else torch.no_grad():
-        gathered_tensors = _functional_all_gather(tensor, group)
+        gathered_tensors = all_gather(tensor, group)
     return torch.stack(gathered_tensors)
 
 
