@@ -286,12 +286,16 @@ class CacheBatchSampler(BatchSampler):
                 interval_indices = np.arange(chunk_interval[0], chunk_interval[1])
                 shuffled_interval_indices = np.random.permutation(interval_indices).tolist()
                 is_empty = len(indices_per_workers[worker_id]) == 0
-                indices_per_workers[worker_id].extend([
-                    BatchIndex(
-                        index,
-                        chunk_index,
-                        chunk_indexes=chunks_per_workers[worker_id] if j == 0 and is_empty else None, 
-                ) for j, index in enumerate(shuffled_interval_indices)])  
+                indices_per_workers[worker_id].extend(
+                    [
+                        BatchIndex(
+                            index,
+                            chunk_index,
+                            chunk_indexes=chunks_per_workers[worker_id] if j == 0 and is_empty else None,
+                        )
+                        for j, index in enumerate(shuffled_interval_indices)
+                    ]
+                )
 
             num_indices = sum([len(v) for v in indices_per_workers])
 
@@ -311,8 +315,7 @@ class CacheBatchSampler(BatchSampler):
                     batches.append(worker_indices.pop(0))
                 counter += 1
 
-            for batch in batches:
-                yield batch
+            yield from batches
             return
         else:
             chunks_per_replica = len(shuffled_chunk_intervals) // self._num_replicas

@@ -123,7 +123,7 @@ class WorkerLoop:
 
         fetcher = None
 
-        rank = _WorkerEnv.detect().rank
+        _WorkerEnv.detect().rank
 
         def create_fetcher_fn(*args, **kwargs):
             nonlocal fetcher
