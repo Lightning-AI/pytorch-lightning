@@ -277,6 +277,10 @@ class _TrainingEpochLoop(loops._Loop):
             self.trainer.validating = True
             # save and reset this state in case validation runs inside training loop (val_check_interval<1.0)
             first_loop_iter = self.trainer._logger_connector._first_loop_iter
+
+            if not self._should_accumulate():
+                self.trainer.lightning_module.zero_grad(set_to_none=True)
+
             self.val_loop.run()
             self.trainer.training = True
             self.trainer._logger_connector._first_loop_iter = first_loop_iter
