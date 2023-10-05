@@ -263,6 +263,11 @@ def test_interactive_incompatible_backend_error(_, monkeypatch):
         _Connector(strategy="dp", accelerator="cpu")
 
 
+def test_precision_and_precision_plugin_raises():
+    with pytest.raises(ValueError, match="both `precision=16-true` and `plugins"):
+        _Connector(precision="16-true", plugins=Precision())
+
+
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_interactive_compatible_dp_strategy_gpu(_, __, monkeypatch):
@@ -844,11 +849,14 @@ class MyAMP(MixedPrecision):
 )
 def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
     plugin = None
+    precision = None
     if is_custom_plugin:
         plugin = plugin_cls("16-mixed", "cpu")
+    else:
+        precision = "16-mixed"
     connector = _Connector(
         accelerator="cpu",
-        precision="16-mixed",
+        precision=precision,
         devices=devices,
         strategy=strategy,
         plugins=plugin,
