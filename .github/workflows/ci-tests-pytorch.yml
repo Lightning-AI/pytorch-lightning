@@ -192,9 +192,6 @@ jobs:
           bash generate_checkpoints.sh
           ls -l checkpoints/
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-
       - name: Testing Warnings
         working-directory: tests/tests_pytorch
         # needs to run outside of `pytest`
