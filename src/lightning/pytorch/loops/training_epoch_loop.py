@@ -279,7 +279,8 @@ class _TrainingEpochLoop(loops._Loop):
             first_loop_iter = self.trainer._logger_connector._first_loop_iter
 
             if not self._should_accumulate():
-                self.trainer.lightning_module.zero_grad(set_to_none=True)
+                # clear gradients to not leave any unused memory during validation
+                call._call_lightning_module_hook(self.trainer, "on_validation_model_zero_grad", set_to_none=True)
 
             self.val_loop.run()
             self.trainer.training = True

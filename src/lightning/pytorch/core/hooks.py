@@ -151,6 +151,10 @@ class ModelHooks:
 
         """
 
+    def on_validation_model_zero_grad(self, set_to_none: bool = True):
+        """Called by the training loop to release gradients before entering the validation loop."""
+        self.zero_grad(set_to_none=set_to_none)
+
     def on_validation_model_eval(self) -> None:
         """Sets the model to eval during the val loop."""
         self.trainer.model.eval()
