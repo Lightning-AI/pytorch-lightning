@@ -208,7 +208,7 @@ class UnusedParametersModel(BoringModel):
     # TODO: investigate threading issue in this configuration
     _IS_WINDOWS
     and (sys.version_info.major, sys.version_info.minor) == (3, 11)
-    and compare_version("torch", operator.eq, "2.1.0"),
+    and compare_version("torch", operator.eq, "2.1.0", use_base_version=True),
     reason="threading issue",
 )
 def test_find_unused_parameters_exception():
