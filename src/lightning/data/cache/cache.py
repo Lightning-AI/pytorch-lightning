@@ -18,7 +18,6 @@ from typing import Any, Dict, Optional
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.writer import BinaryWriter
 from lightning.data.datasets.env import _DistributedEnv
-from urllib import parse
 
 logger = logging.Logger(__name__)
 

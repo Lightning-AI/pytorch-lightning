@@ -272,7 +272,7 @@ class CacheBatchSampler(BatchSampler):
         shuffled_indexes = np.random.permutation(range(len(chunk_intervals)))
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
 
-        num_workers = (self._num_workers or 1)
+        num_workers = self._num_workers or 1
 
         if self._num_replicas == 1:
             chunks_per_workers = [[] for _ in range(num_workers)]
@@ -303,11 +303,13 @@ class CacheBatchSampler(BatchSampler):
                 raise Exception("The generated indices don't match the initial length of the sampler.")
 
             # Note: Reserve to ensure the first workers gets more work
-            indices_per_workers_splitted = [self._chunk_list(indices,  self.batch_size) for indices in indices_per_workers][::-1]
+            indices_per_workers_splitted = [
+                self._chunk_list(indices, self.batch_size) for indices in indices_per_workers
+            ][::-1]
 
             batches = []
             counter = 0
-            while  sum([len(v) for v in indices_per_workers_splitted]) != 0:
+            while sum([len(v) for v in indices_per_workers_splitted]) != 0:
                 worker_indices = indices_per_workers_splitted[counter % num_workers]
                 if len(worker_indices) == 0:
                     batches.append([])
@@ -338,7 +340,6 @@ class CacheBatchSampler(BatchSampler):
 
     def __len__(self) -> int:
         return super().__len__()
-
 
     def _chunk_list(self, arr, chunk_size):
         out = []

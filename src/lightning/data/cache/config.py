@@ -14,11 +14,11 @@
 import json
 import os
 import subprocess
-from threading import Lock
-from lightning.data.cache.sampler import BatchIndex
 from subprocess import Popen
+from threading import Lock
 from typing import Optional, Tuple, Union
 from urllib import parse
+
 from lightning.data.cache.pytree import treespec_loads
 from lightning.data.cache.sampler import BatchIndex
 
@@ -156,7 +156,11 @@ class Downloader:
 
     def download_file_from_s3_with_s5cmd(self, index, remote_filepath: str, local_filepath: str):
         if index not in self._processes:
-            self._processes[index] = Popen(f"s5cmd cp {remote_filepath} {local_filepath}".split(" "), env=os.environ.copy(), stdout=subprocess.DEVNULL).wait()
+            self._processes[index] = Popen(
+                f"s5cmd cp {remote_filepath} {local_filepath}".split(" "),
+                env=os.environ.copy(),
+                stdout=subprocess.DEVNULL,
+            ).wait()
 
     @classmethod
     def download_file_from_s3(cls, remote_filepath: str, local_filepath: str):

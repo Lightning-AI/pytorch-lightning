@@ -12,22 +12,21 @@
 # limitations under the License.
 
 import os
+from contextlib import contextmanager
+from threading import Lock, Thread
+from time import sleep, time
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
-from time import time, sleep
-from contextlib import contextmanager
-from lightning.data.cache.pytree import tree_unflatten, treespec_loads
+
+from lightning.data.cache.config import ChunksConfig
+from lightning.data.cache.pytree import tree_unflatten
 from lightning.data.cache.sampler import BatchIndex
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
-from lightning.data.cache.config import ChunksConfig
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, wait
-from threading import Thread, Lock
 
 
 class PrepareChunksThread(Thread):
-
     def __init__(self, config):
         super().__init__(daemon=True)
         self.config = config
@@ -47,7 +46,6 @@ class PrepareChunksThread(Thread):
                     continue
                 chunk_index = self.chunks_index_to_be_processed.pop(0)
             self.config._downloader.chunk_index_download(chunk_index)
-
 
 
 class BinaryReader:
@@ -109,7 +107,7 @@ class BinaryReader:
         Prefetching should reduce the wait time to be the batch available.
 
         """
-        # Load the config containing the index
+        # Load the config containing the index
         if self._config is None:
             self._try_load_config()
 
@@ -125,21 +123,17 @@ class BinaryReader:
         if index.chunk_indexes is not None:
             self._prepare_thread.add(index.chunk_indexes)
 
-        # Fetch the element
+        # Fetch the element
         chunk_filepath, begin, end = self._config[index]
         raw_item_data = self.load_item_from_chunk(
-            index.chunk_index,
-            index.index,
-            chunk_filepath,
-            begin,
-            keep_in_memory=self._keep_in_memory
+            index.chunk_index, index.index, chunk_filepath, begin, keep_in_memory=self._keep_in_memory
         )
         return self.deserialize(raw_item_data)
 
     def deserialize(self, raw_item_data: bytes) -> Any:
         """Deserialize the raw bytes into their python equivalent."""
         idx = len(self._config.data_format) * 4
-        sizes = np.frombuffer(raw_item_data[: idx], np.uint32)
+        sizes = np.frombuffer(raw_item_data[:idx], np.uint32)
         data = []
         for size, data_format in zip(sizes, self._config.data_format):
             serializer = self._serializers[data_format]
@@ -148,7 +142,9 @@ class BinaryReader:
             idx += size
         return tree_unflatten(data, self._config.config["data_spec"])
 
-    def load_item_from_chunk(self, chunk_index: int, index: int, chunk_filepath: str, begin: int, keep_in_memory: bool = False):
+    def load_item_from_chunk(
+        self, chunk_index: int, index: int, chunk_filepath: str, begin: int, keep_in_memory: bool = False
+    ):
         if chunk_index in self._chunks_data:
             return self._chunks_data[chunk_index][begin:end]
 
