@@ -12,10 +12,12 @@
 # limitations under the License.
 
 import logging
+import os
 from importlib import reload
 from typing import Any, Optional
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import Dataset, IterableDataset
 from torch.utils.data._utils.collate import default_collate
 from torch.utils.data.dataloader import (
@@ -29,6 +31,8 @@ from lightning.data.cache import Cache
 from lightning.data.cache.pytree import tree_flatten
 from lightning.data.cache.sampler import CacheBatchSampler
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
+
+_VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
 
 logger = logging.Logger(__name__)
 
@@ -111,19 +115,31 @@ class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
 
 
 class WorkerLoop:
+    """Wrap the PyTorch DataLoader WorkerLoop to perform caching and profiling."""
+
+    def __init__(self, global_rank: int, profile: bool = False) -> None:
+        self._global_rank = global_rank
+        self._profile = profile
+
     def __call__(self, dataset_kind, *args, **kwargs):
         from torch.utils.data import _DatasetKind
         from torch.utils.data._utils import worker
 
         from lightning.data.cache.cache import Cache
 
+        rank = _WorkerEnv.detect().rank
+        enable_profiling = self._global_rank == 0 and rank == 0 and _VIZ_TRACKER_AVAILABLE
+
+        if enable_profiling:
+            from viztracer import VizTracer
+
+            tracer = VizTracer(output_file=os.path.join(os.getcwd(), "trace.json"))
+            tracer.start()
+
+        # Reload to remove the patching
         reloaded_worker = reload(worker)
-
         create_fetcher = _DatasetKind.create_fetcher
-
         fetcher = None
-
-        _WorkerEnv.detect().rank
 
         def create_fetcher_fn(*args, **kwargs):
             nonlocal fetcher
@@ -139,6 +155,10 @@ class WorkerLoop:
                 if isinstance(v, Cache):
                     v.done()
 
+        if enable_profiling:
+            tracer.stop()
+            tracer.save()
+
 
 class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
     def __init__(self, loader):
@@ -147,7 +167,7 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
         # Patch PyTorch worker loop to call the `cache.done()` method.
         from torch.utils.data._utils import worker
 
-        worker._worker_loop = WorkerLoop()
+        worker._worker_loop = WorkerLoop(loader._profile, loader._global_rank)
         super().__init__(loader)
 
     def _shutdown_workers(self):
@@ -173,6 +193,7 @@ class LightningDataLoader(DataLoader):
         cache_dir: Optional[str] = None,
         chunk_bytes: Optional[int] = _DEFAULT_CHUNK_BYTES,
         compression: Optional[str] = None,
+        profile: bool = False,
         **kwargs,
     ):
         if sampler:
@@ -187,6 +208,9 @@ class LightningDataLoader(DataLoader):
 
         if isinstance(dataset, IterableDataset):
             raise ValueError("Only map-based dataset are supported by the LightningDataLoader for now.")
+
+        if profile and not _VIZ_TRACKER_AVAILABLE:
+            raise ModuleNotFoundError("To enable DataLoader profiling, run `pip install viztracer`.")
 
         cache = [v for v in dataset.__dict__.values() if isinstance(v, Cache)]
 
@@ -212,16 +236,20 @@ class LightningDataLoader(DataLoader):
         self._cache = cache
 
         distributed_env = _DistributedEnv.detect()
+        self._global_rank = distributed_env.global_rank
+
         batch_sampler = CacheBatchSampler(
             len(dataset),
             distributed_env.world_size,
-            distributed_env.global_rank,
+            self._global_rank,
             num_workers,
             batch_size,
             drop_last,
             shuffle,
             cache,
         )
+
+        self._profile = profile
 
         super().__init__(
             dataset,
