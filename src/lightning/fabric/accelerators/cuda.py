@@ -90,6 +90,8 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
         both processes determine that the device is unoccupied, leading into one of them crashing later on.
 
     """
+    if num_devices == 0:
+        raise ValueError("`num_devices=0` is not a valid number of devices to look for. Pass a positive number.")
     visible_devices = _get_all_visible_cuda_devices()
     if not visible_devices:
         raise ValueError(

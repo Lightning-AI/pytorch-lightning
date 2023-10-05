@@ -157,3 +157,7 @@ def test_find_usable_cuda_devices_error_handling():
         "lightning.fabric.accelerators.cuda.torch.tensor"
     ):
         assert find_usable_cuda_devices(-1) == [0, 1, 2, 3, 4]
+
+    # Asking to find 0 usable GPUs is something only a philosopher would be interested in
+    with pytest.raises(ValueError, match="`num_devices=0` is not a valid number"):
+        find_usable_cuda_devices(0)
