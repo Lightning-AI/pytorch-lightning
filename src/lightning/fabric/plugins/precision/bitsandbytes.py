@@ -190,14 +190,17 @@ def _import_bitsandbytes() -> ModuleType:
             self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
 
         def _quantize_weight(self, weight: torch.Tensor) -> None:
-            # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L296-L302
-            B = weight.contiguous().half().cuda()
-            CB, CBt, SCB, SCBt, coo_tensorB = bnb.functional.double_quant(B)
-            del CBt
-            del SCBt
-            self.weight.data = CB
-            setattr(self.weight, "CB", CB)
-            setattr(self.weight, "SCB", SCB)
+            # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L291-L302
+            if self.state.has_fp16_weights:
+                self.weight.data = weight.cuda()
+            else:
+                B = weight.contiguous().half().cuda()
+                CB, CBt, SCB, SCBt, coo_tensorB = bnb.functional.double_quant(B)
+                del CBt
+                del SCBt
+                self.weight.data = CB
+                setattr(self.weight, "CB", CB)
+                setattr(self.weight, "SCB", SCB)
 
     class _Linear4bit(bnb.nn.Linear4bit):
         """Wraps `bnb.nn.Linear4bit` and enables instantiation directly on the device and re-quantizaton when loading
