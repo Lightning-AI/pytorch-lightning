@@ -16,7 +16,7 @@ import fnmatch
 import os
 from functools import partial
 from pathlib import Path
-from shutil import copy2, copystat, Error
+from shutil import Error, copy2, copystat
 from typing import Callable, List, Optional, Set, Tuple, Union
 
 from lightning.app.core.constants import DOT_IGNORE_FILENAME

@@ -4,12 +4,12 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.core import constants
 from lightning.app.frontend import StaticWebFrontend, StreamlitFrontend
 from lightning.app.runners import MultiProcessRuntime
 from lightning.app.utilities.component import _get_context
+from lightning.app.utilities.imports import _IS_WINDOWS
 
 
 def _streamlit_render_fn():
@@ -48,7 +48,8 @@ class StartFrontendServersTestFlow(LightningFlow):
         self.stop()
 
 
-@pytest.mark.skip(reason="hanging with timeout")  # fixme
+@pytest.mark.skipif(_IS_WINDOWS, reason="strange TimeOut exception")
+@pytest.mark.xfail(strict=False, reason="hanging with timeout")  # fixme
 @pytest.mark.parametrize(
     ("cloudspace_host", "port", "expected_host", "expected_target"),
     [
@@ -103,7 +104,8 @@ class ContextFlow(LightningFlow):
         self.stop()
 
 
-@pytest.mark.skip(reason="hanging with timeout")  # fixme
+@pytest.mark.skipif(_IS_WINDOWS, reason="strange TimeOut exception")
+@pytest.mark.xfail(strict=False, reason="hanging with timeout")  # fixme
 def test_multiprocess_runtime_sets_context():
     """Test that the runtime sets the global variable COMPONENT_CONTEXT in Flow and Work."""
     MultiProcessRuntime(LightningApp(ContextFlow())).dispatch()

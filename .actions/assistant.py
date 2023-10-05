@@ -26,7 +26,7 @@ from os.path import dirname, isfile
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
-from pkg_resources import parse_requirements, Requirement, yield_lines
+from pkg_resources import Requirement, parse_requirements, yield_lines
 
 REQUIREMENT_FILES = {
     "pytorch": (
@@ -36,9 +36,9 @@ REQUIREMENT_FILES = {
         "requirements/pytorch/examples.txt",
     ),
     "app": (
-        "requirements/app/base.txt",
-        "requirements/app/ui.txt",
+        "requirements/app/app.txt",
         "requirements/app/cloud.txt",
+        "requirements/app/ui.txt",
     ),
     "fabric": (
         "requirements/fabric/base.txt",
@@ -220,7 +220,7 @@ def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
         shutil.copy2(ver_template, fpath)
 
 
-def _download_frontend(pkg_path: str):
+def _download_frontend(pkg_path: str, version: str = "v0.0.0"):
     """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
     directory."""
 
@@ -230,13 +230,13 @@ def _download_frontend(pkg_path: str):
 
         shutil.rmtree(frontend_dir, ignore_errors=True)
         # TODO: remove this once lightning-ui package is ready as a dependency
-        frontend_release_url = "https://storage.googleapis.com/grid-packages/lightning-ui/v0.0.0/build.tar.gz"
+        frontend_release_url = f"https://lightning-packages.s3.amazonaws.com/ui/{version}.tar.gz"
         response = urllib.request.urlopen(frontend_release_url)
 
         file = tarfile.open(fileobj=response, mode="r|gz")
         file.extractall(path=download_dir)
 
-        shutil.move(os.path.join(download_dir, "build"), frontend_dir)
+        shutil.move(download_dir, frontend_dir)
         print("The Lightning UI has successfully been downloaded!")
 
     # If installing from source without internet connection, we don't want to break the installation
@@ -442,6 +442,7 @@ class AssistantCLI:
         target_dir: str = "docs/source-pytorch/XXX",
         checkout: str = "tags/1.0.0",
         source_dir: str = "docs/source",
+        as_orphan: bool = False,
     ) -> None:
         """Pull docs pages from external source and append to local docs."""
         import zipfile
@@ -450,7 +451,10 @@ class AssistantCLI:
 
         with tempfile.TemporaryDirectory() as tmp:
             zip_file = os.path.join(tmp, "repo.zip")
-            urllib.request.urlretrieve(zip_url, zip_file)
+            try:
+                urllib.request.urlretrieve(zip_url, zip_file)
+            except urllib.error.HTTPError:
+                raise RuntimeError(f"Requesting file '{zip_url}' does not exist or it is just unavailable.")
 
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
                 zip_ref.extractall(tmp)
@@ -470,7 +474,17 @@ class AssistantCLI:
                 if os.path.isfile(new_rst):
                     logging.warning(f"Page {new_rst} already exists in the local tree so it will be skipped.")
                     continue
-                shutil.copy(rst, new_rst)
+                AssistantCLI._copy_rst(rst, new_rst, as_orphan=as_orphan)
+
+    @staticmethod
+    def _copy_rst(rst_in, rst_out, as_orphan: bool = False):
+        """Copy RST page with optional inserting orphan statement."""
+        with open(rst_in, encoding="utf-8") as fopen:
+            page = fopen.read()
+        if as_orphan and ":orphan:" not in page:
+            page = ":orphan:\n\n" + page
+        with open(rst_in, "w", encoding="utf-8") as fopen:
+            fopen.write(page)
 
 
 if __name__ == "__main__":

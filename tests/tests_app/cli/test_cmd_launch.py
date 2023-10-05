@@ -8,15 +8,15 @@ from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
 from click.testing import CliRunner
-
 from lightning.app.cli.lightning_cli_launch import run_flow, run_flow_and_servers, run_frontend, run_server
 from lightning.app.core.queues import QueuingSystem
 from lightning.app.frontend.web import StaticWebFrontend
 from lightning.app.launcher import launcher
 from lightning.app.runners.runtime import load_app_from_file
-from lightning.app.testing.helpers import _RunIf, EmptyWork
+from lightning.app.testing.helpers import EmptyWork, _RunIf
 from lightning.app.utilities.app_commands import run_app_commands
 from lightning.app.utilities.network import find_free_network_port
+
 from tests_app import _PROJECT_ROOT
 
 _FILE_PATH = os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py")

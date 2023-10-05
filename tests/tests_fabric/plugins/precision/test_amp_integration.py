@@ -15,8 +15,8 @@
 import pytest
 import torch
 import torch.nn as nn
-
 from lightning.fabric import Fabric, seed_everything
+
 from tests_fabric.helpers.runif import RunIf
 
 

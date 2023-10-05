@@ -18,17 +18,17 @@ from re import escape
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.fabric
 import pytest
 import torch
-
-import lightning.fabric
 from lightning.fabric.accelerators.cuda import (
-    _check_cuda_matmul_precision,
     CUDAAccelerator,
+    _check_cuda_matmul_precision,
     find_usable_cuda_devices,
     is_cuda_available,
     num_cuda_devices,
 )
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -87,7 +87,6 @@ def test_force_nvml_based_cuda_check():
     assert os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] == "1"
 
 
-@RunIf(min_torch="1.12")
 @mock.patch("torch.cuda.get_device_capability", return_value=(10, 1))
 @mock.patch("torch.cuda.get_device_name", return_value="Z100")
 def test_tf32_message(_, __, caplog, monkeypatch):

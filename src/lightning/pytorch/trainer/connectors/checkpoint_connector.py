@@ -35,11 +35,7 @@ from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
-if _OMEGACONF_AVAILABLE:
-    from omegaconf import Container
-
-
-log: logging.Logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class _CheckpointConnector:
@@ -463,6 +459,9 @@ class _CheckpointConnector:
             if prec_plugin_state_dict:
                 checkpoint[prec_plugin.__class__.__qualname__] = prec_plugin_state_dict
             prec_plugin.on_save_checkpoint(checkpoint)
+
+        if _OMEGACONF_AVAILABLE:
+            from omegaconf import Container
 
         # dump hyper-parameters
         for obj in (model, datamodule):

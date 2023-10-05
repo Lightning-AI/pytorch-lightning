@@ -28,8 +28,7 @@ from os import path
 import torch
 import torchvision
 import torchvision.transforms as T
-
-from lightning.pytorch import cli_lightning_logo, LightningDataModule, LightningModule
+from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.profilers.pytorch import PyTorchProfiler
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model

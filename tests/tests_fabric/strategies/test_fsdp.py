@@ -19,14 +19,12 @@ from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
+import lightning.fabric
 import pytest
 import torch
 import torch.nn as nn
-from lightning_utilities.core.imports import RequirementCache
-from torch.optim import Adam
-
-import lightning.fabric
 from lightning.fabric import Fabric
+from lightning.fabric.plugins import HalfPrecision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import (
@@ -35,21 +33,15 @@ from lightning.fabric.strategies.fsdp import (
     _has_meta_device_parameters,
     fsdp_overlap_step_with_backward,
 )
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
+from lightning_utilities.core.imports import RequirementCache
+from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+from torch.optim import Adam
+
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
 
-if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 
-
-@mock.patch("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_1_12", False)
-def test_fsdp_support(*_):
-    with pytest.raises(NotImplementedError, match="`FSDPStrategy` is supported from PyTorch v1.12.0"):
-        FSDPStrategy()
-
-
-@RunIf(min_torch="1.12")
 def test_fsdp_custom_mixed_precision():
     """Test that passing a custom mixed precision config works."""
     config = MixedPrecision()
@@ -57,7 +49,6 @@ def test_fsdp_custom_mixed_precision():
     assert strategy.mixed_precision_config == config
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_cpu_offload():
     """Test the different ways cpu offloading can be enabled."""
     # bool
@@ -70,7 +61,6 @@ def test_fsdp_cpu_offload():
     assert strategy.cpu_offload == config
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_sharding_strategy():
     """Test the different ways the sharding strategy can be set."""
     from torch.distributed.fsdp import ShardingStrategy
@@ -90,7 +80,20 @@ def test_fsdp_sharding_strategy():
     assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
 
 
-@RunIf(min_torch="1.12")
+@RunIf(min_torch="2.0")
+@pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
+def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
+    """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
+    with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to either set"):
+        FSDPStrategy(sharding_strategy=sharding_strategy)
+
+    strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, sharding_strategy=sharding_strategy)
+    assert strategy.sharding_strategy.name == sharding_strategy
+
+    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, process_group=(Mock(), Mock()))
+    assert strategy.sharding_strategy.name == sharding_strategy
+
+
 def test_fsdp_checkpoint_io_unsupported():
     """Test that the FSDP strategy does not support the `CheckpointIO` plugin."""
     strategy = FSDPStrategy()
@@ -101,7 +104,6 @@ def test_fsdp_checkpoint_io_unsupported():
         strategy.checkpoint_io = Mock()
 
 
-@RunIf(min_torch="1.12")
 @pytest.mark.parametrize("torch_ge_2_0", [False, True])
 def test_fsdp_setup_optimizer_validation(torch_ge_2_0):
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
@@ -140,7 +142,6 @@ def test_fsdp_setup_use_orig_params(_):
     assert strategy._fsdp_kwargs["use_orig_params"]
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     FullyShardedDataParallel."""
@@ -160,7 +161,6 @@ def test_fsdp_no_backward_sync():
     module.no_sync.assert_called_once()
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_activation_checkpointing_support(monkeypatch):
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
     monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_1_13", False)
@@ -231,6 +231,16 @@ def test_fsdp_grad_clipping_value_error():
         ),
     ):
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
+
+
+@RunIf(min_torch="1.13")
+def test_fsdp_forbidden_precision_raises():
+    with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
+        FSDPStrategy(precision=HalfPrecision())
+
+    strategy = FSDPStrategy()
+    with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
+        strategy.precision = HalfPrecision()
 
 
 @RunIf(min_torch="1.13")
@@ -319,6 +329,7 @@ def test_fsdp_load_checkpoint_no_state(tmp_path):
 
 @RunIf(min_torch="2.0.0")
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+@mock.patch("lightning.fabric.strategies.fsdp._lazy_load", Mock())
 def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
     """Test that the FSDP strategy can only load one FSDP model per checkpoint."""
     strategy = FSDPStrategy()
@@ -336,6 +347,12 @@ def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
     model2.modules.return_value = [model2]
     with pytest.raises(ValueError, match="Found multiple FSDP models in the given state."):
         strategy.load_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
+
+    # A raw nn.Module instead of a dictionary is ok
+    model = Mock(spec=nn.Module)
+    path = tmp_path / "full.ckpt"
+    path.touch()
+    strategy.load_checkpoint(path=path, state=model)
 
 
 @RunIf(min_torch="2.0.0")
@@ -382,7 +399,6 @@ def test_fsdp_load_raw_checkpoint_optimizer_unsupported(tmp_path):
         strategy.load_checkpoint(path=tmp_path, state=optimizer)
 
 
-@RunIf(min_torch="1.12")
 @mock.patch("torch.distributed.init_process_group")
 def test_set_timeout(init_process_group_mock):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
@@ -509,7 +525,7 @@ class StatusChecker:
         self.finalize()
 
 
-@pytest.mark.skip(reason="Flaky test")  # See also: https://github.com/Lightning-AI/lightning/pull/17774
+@pytest.mark.xfail(strict=False, reason="Flaky test")  # See also: https://github.com/Lightning-AI/lightning/pull/17774
 @RunIf(min_torch="2.0.0", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not RequirementCache("psutil"), reason="psutil is needed to help prevent deadlocks.")
 @pytest.mark.parametrize(

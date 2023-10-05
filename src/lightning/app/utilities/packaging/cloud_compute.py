@@ -16,7 +16,7 @@ from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
-from lightning.app.core.constants import enable_interruptible_works, ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER
+from lightning.app.core.constants import ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER, enable_interruptible_works
 from lightning.app.storage.mount import Mount
 
 __CLOUD_COMPUTE_IDENTIFIER__ = "__cloud_compute__"

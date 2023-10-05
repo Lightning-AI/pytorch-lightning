@@ -246,7 +246,7 @@ class RedisQueue(BaseQueue):
         self.redis = redis.Redis(host=self.host, port=self.port, password=self.password)
 
     def put(self, item: Any) -> None:
-        from lightning.app import LightningWork
+        from lightning.app.core.work import LightningWork
 
         is_work = isinstance(item, LightningWork)
 

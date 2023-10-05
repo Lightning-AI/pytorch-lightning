@@ -43,8 +43,10 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(torch.float64)
-        yield
-        torch.set_default_dtype(default_dtype)
+        try:
+            yield
+        finally:
+            torch.set_default_dtype(default_dtype)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
@@ -55,8 +57,10 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(torch.float64)
-        yield
-        torch.set_default_dtype(default_dtype)
+        try:
+            yield
+        finally:
+            torch.set_default_dtype(default_dtype)
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.double)
@@ -70,6 +74,7 @@ class LightningDoublePrecisionModule(_DeviceDtypeModuleMixin, nn.Module):
 
     Args:
         pl_module: the model to wrap
+
     """
 
     def __init__(self, pl_module: "pl.LightningModule") -> None:

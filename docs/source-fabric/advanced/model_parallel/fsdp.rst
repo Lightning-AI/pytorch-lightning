@@ -84,9 +84,11 @@ Here is a full code example:
 
     # 1B parameters
     model = Transformer(vocab_size=dataset.vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
-    model, optimizer = fabric.setup(model, optimizer)
+    model = fabric.setup(model)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    optimizer = fabric.setup_optimizers(optimizer)
+
 
     for i in range(10):
         input, target = fabric.to_device(dataset[i])
@@ -188,6 +190,14 @@ After:
     with fabric.init_module():
         model = Transformer(vocab_size=dataset.vocab_size)
 
+    # Recommended for FSDP:
+    with fabric.init_module(empty_init=True):
+        model = Transformer(vocab_size=dataset.vocab_size)
+
+For FSDP specifically, we recommend setting ``empty_init=True`` as it will allow you to initialize even larger models.
+Empty-init creates fake parameters that don't allocate any memory, their actual initialization gets delayed until ``Fabric.setup()`` where FSDP will shard and recreate the real parameters.
+For more use cases of ``empty_init=True`` outside of FSDP, read the guide on :doc:`model initialization <../model_init>`.
+
 
 ----
 
@@ -206,6 +216,8 @@ You can configure the following options to trade-off memory for speed:
         sharding_strategy="FULL_SHARD",
         # Shard gradients, optimizer state (2 + 3)
         sharding_strategy="SHARD_GRAD_OP",
+        # Full-shard within a machine, replicate across machines
+        sharding_strategy="HYBRID_SHARD",
         # Don't shard anything (similar to DDP)
         sharding_strategy="NO_SHARD",
     )
@@ -216,6 +228,7 @@ You can configure the following options to trade-off memory for speed:
 
 1. Try the default settings first (FULL_SHARD). This is the slowest but will save you the most memory.
 2. Try SHARD_GRAD_OP. If you run out of memory, revert back to the default (FULL_SHARD). Otherwise you should expect to see an increase in iteration speed.
+3. If you are training across many machines, try HYBRID_SHARD.
 
 |
 
@@ -386,6 +399,8 @@ You can easily load checkpoints saved by Fabric to resume training:
     # model.load_state_dict(torch.load("path/to/checkpoint/file"))
 
 Fabric will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
+Checkpoints saved with ``state_dict_type="full"`` can be loaded by all strategies, but sharded checkpoints can only be loaded by FSDP.
+Read :doc:`the checkpoints guide <../../guide/checkpoint>` to explore more features.
 
 
 ----

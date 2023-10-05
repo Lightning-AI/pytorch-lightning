@@ -3,11 +3,11 @@ import os
 from datetime import datetime
 from time import sleep
 
-import lightning as L
+from lightning.app import LightningApp, LightningFlow
 from lightning.app.frontend.web import StaticWebFrontend
 
 
-class Word(L.LightningFlow):
+class Word(LightningFlow):
     def __init__(self, letter):
         super().__init__()
         self.letter = letter
@@ -20,7 +20,7 @@ class Word(L.LightningFlow):
         return StaticWebFrontend(serve_dir=os.path.join(os.path.dirname(__file__), f"ui/{self.letter}"))
 
 
-class V0App(L.LightningFlow):
+class V0App(LightningFlow):
     def __init__(self):
         super().__init__()
         self.aas = Word("a")
@@ -48,4 +48,4 @@ class V0App(L.LightningFlow):
         return [tab1, tab2, tab3]
 
 
-app = L.LightningApp(V0App())
+app = LightningApp(V0App())

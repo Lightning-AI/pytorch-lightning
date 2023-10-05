@@ -19,7 +19,7 @@ from argparse import Namespace
 from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
-from typing import Any, Callable, cast, Type, TypeVar
+from typing import Any, Callable, Type, TypeVar, cast
 
 _T = TypeVar("_T", bound=Callable[..., Any])
 

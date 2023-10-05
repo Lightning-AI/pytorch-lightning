@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, overload, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload
 
 import torch
 from lightning_utilities import WarningCache
 from lightning_utilities.core.apply_func import apply_to_collection
-from torch import nn as nn
 from torch import Tensor
+from torch import nn as nn
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -48,15 +48,12 @@ class _FabricOptimizer:
             optimizer: The optimizer to wrap
             strategy: Reference to the strategy for handling the optimizer step
 
-
         """
-        # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
-        # not want to call on destruction of the `_FabricOptimizer
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "__del__")}
-        self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._strategy = strategy
         self._callbacks = callbacks or []
+        # imitate the class of the wrapped object to make isinstance checks work
+        self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
     @property
     def optimizer(self) -> Optimizer:
@@ -64,6 +61,9 @@ class _FabricOptimizer:
 
     def state_dict(self) -> Dict[str, Tensor]:
         return self._strategy.get_optimizer_state(self.optimizer)
+
+    def load_state_dict(self, state_dict: Dict[str, Tensor]) -> None:
+        self.optimizer.load_state_dict(state_dict)
 
     def step(self, closure: Optional[Callable] = None) -> Any:
         kwargs = {"closure": closure} if closure is not None else {}
@@ -81,6 +81,9 @@ class _FabricOptimizer:
             if callable(hook):
                 hook(strategy=self._strategy, optimizer=optimizer)
         return output
+
+    def __getattr__(self, item: Any) -> Any:
+        return getattr(self._optimizer, item)
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
@@ -137,8 +140,10 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             keep_vars=keep_vars,
         )
 
-    def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True) -> _IncompatibleKeys:
-        return self._original_module.load_state_dict(state_dict=state_dict, strict=strict)
+    def load_state_dict(  # type: ignore[override]
+        self, state_dict: Mapping[str, Any], strict: bool = True, **kwargs: Any
+    ) -> _IncompatibleKeys:
+        return self._original_module.load_state_dict(state_dict=state_dict, strict=strict, **kwargs)
 
     def _redirection_through_forward(self, method_name: str) -> Callable:
         assert method_name != "forward"

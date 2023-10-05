@@ -13,7 +13,7 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 import inspect
-from typing import Any, cast, Dict, IO, Iterable, Optional, Union
+from typing import IO, Any, Dict, Iterable, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
 from torch.utils.data import DataLoader, Dataset, IterableDataset
@@ -24,6 +24,7 @@ from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.pytorch.core.hooks import DataHooks
 from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.saving import _load_from_checkpoint
+from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
@@ -47,7 +48,9 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
                 dataset = RandomDataset(1, 100)
-                self.train, self.val, self.test = data.random_split(dataset, [80, 10, 10])
+                self.train, self.val, self.test = data.random_split(
+                    dataset, [80, 10, 10], generator=torch.Generator().manual_seed(42)
+                )
 
             def train_dataloader(self):
                 return data.DataLoader(self.train)
@@ -157,7 +160,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         """
         pass
 
-    @classmethod
+    @_restricted_classmethod
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[_PATH, IO],
@@ -165,9 +168,8 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         hparams_file: Optional[_PATH] = None,
         **kwargs: Any,
     ) -> Self:
-        r"""
-        Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint
-        it stores the arguments passed to ``__init__``  in the checkpoint under ``"datamodule_hyper_parameters"``.
+        r"""Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint it stores the
+        arguments passed to ``__init__``  in the checkpoint under ``"datamodule_hyper_parameters"``.
 
         Any arguments specified through \*\*kwargs will override args stored in ``"datamodule_hyper_parameters"``.
 
@@ -200,8 +202,9 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             :class:`LightningDataModule` instance with loaded weights and hyperparameters (if available).
 
         Note:
-            ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningDataModule`
-            **class** to call it instead of the :class:`LightningDataModule` instance.
+            ``load_from_checkpoint`` is a **class** method. You must use your :class:`LightningDataModule`
+            **class** to call it instead of the :class:`LightningDataModule` instance, or a
+            ``TypeError`` will be raised.
 
         Example::
 
@@ -223,7 +226,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         """
         loaded = _load_from_checkpoint(
-            cls,
+            cls,  # type: ignore[arg-type]
             checkpoint_path,
             map_location=map_location,
             hparams_file=hparams_file,

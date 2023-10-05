@@ -3,6 +3,7 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
+from lightning.app.cli.commands import cd, ls
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     V1LightningappInstanceArtifact,
@@ -12,8 +13,6 @@ from lightning_cloud.openapi import (
     V1ListMembershipsResponse,
     V1Membership,
 )
-
-from lightning.app.cli.commands import cd, ls
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")

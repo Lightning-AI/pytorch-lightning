@@ -36,7 +36,7 @@ Accelerator: GPU training
 
 .. displayitem::
    :header: Advanced
-   :description: Train 1 trillion+ parameter models with these techniques.
+   :description: Train models with billions of parameters
    :col_css: col-md-4
    :button_link: gpu_advanced.html
    :height: 150

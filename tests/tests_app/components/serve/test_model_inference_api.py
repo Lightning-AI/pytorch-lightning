@@ -4,7 +4,6 @@ import os
 from unittest.mock import ANY, MagicMock
 
 import pytest
-
 from lightning.app.components.serve import serve
 from lightning.app.testing.helpers import _RunIf
 from lightning.app.utilities.imports import _is_numpy_available, _is_torch_available

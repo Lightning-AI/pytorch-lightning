@@ -16,9 +16,9 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-
 from lightning.fabric.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning.fabric.utilities.types import Steppable
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -41,6 +41,7 @@ def test_deepspeed_engine_is_steppable(engine):
     """Test that the ``DeepSpeedEngine`` conforms to the Steppable API.
 
     If this fails, then optimization will be broken for DeepSpeed.
+
     """
     assert isinstance(engine, Steppable)
 

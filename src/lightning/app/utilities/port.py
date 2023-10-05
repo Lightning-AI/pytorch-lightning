@@ -18,7 +18,7 @@ from typing import Optional
 
 from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance, V1NetworkConfig
 
-from lightning.app.utilities.network import find_free_network_port, LightningClient
+from lightning.app.utilities.network import LightningClient, find_free_network_port
 
 
 def is_port_in_use(port: int) -> bool:
@@ -46,9 +46,9 @@ def _find_lit_app_port(default_port: int) -> int:
     list_apps_resp = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
     lit_app: Optional[Externalv1LightningappInstance] = None
 
-    for lightningapp in list_apps_resp.lightningapps:
-        if lightningapp.id == app_id:
-            lit_app = lightningapp
+    for lapp in list_apps_resp.lightningapps:
+        if lapp.id == app_id:
+            lit_app = lapp
 
     if not lit_app:
         raise RuntimeError(
@@ -92,9 +92,9 @@ def enable_port() -> V1NetworkConfig:
     list_apps_resp = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
     lit_app: Optional[Externalv1LightningappInstance] = None
 
-    for lightningapp in list_apps_resp.lightningapps:
-        if lightningapp.id == app_id:
-            lit_app = lightningapp
+    for lapp in list_apps_resp.lightningapps:
+        if lapp.id == app_id:
+            lit_app = lapp
 
     if not lit_app:
         raise RuntimeError(
@@ -135,9 +135,9 @@ def disable_port(port: int, ignore_disabled: bool = True) -> None:
     list_apps_resp = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
     lit_app: Optional[Externalv1LightningappInstance] = None
 
-    for lightningapp in list_apps_resp.lightningapps:
-        if lightningapp.id == app_id:
-            lit_app = lightningapp
+    for lapp in list_apps_resp.lightningapps:
+        if lapp.id == app_id:
+            lit_app = lapp
 
     if not lit_app:
         raise RuntimeError(

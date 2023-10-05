@@ -19,15 +19,15 @@ import traceback
 import types
 from contextlib import contextmanager
 from copy import copy
-from typing import Any, Dict, List, Tuple, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Type, Union
 
 from lightning.app.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
-    from lightning.app import LightningApp, LightningFlow, LightningWork
+    from lightning.app.core import LightningApp, LightningFlow, LightningWork
     from lightning.app.plugin.plugin import LightningPlugin
 
-from lightning.app.utilities.app_helpers import _mock_missing_imports, Logger
+from lightning.app.utilities.app_helpers import Logger, _mock_missing_imports
 
 logger = Logger(__name__)
 
@@ -236,11 +236,12 @@ def _add_to_env(envs: Dict[str, str]):
 
 @contextmanager
 def _patch_sys_argv():
-    """This function modifies the ``sys.argv`` by extracting the arguments after ``--app_args`` and removed
-    everything else before executing the user app script.
+    """This function modifies the ``sys.argv`` by extracting the arguments after ``--app_args`` and removed everything
+    else before executing the user app script.
 
     The command: ``lightning run app app.py --without-server --app_args --use_gpu --env ...`` will be converted into
     ``app.py --use_gpu``
+
     """
     from lightning.app.cli.lightning_cli import run_app
 
@@ -277,7 +278,7 @@ def _patch_sys_argv():
 
 
 def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:
-    from lightning.app import LightningWork
+    from lightning.app.core import LightningWork
 
     extras = {}
 

@@ -7,9 +7,10 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-
-import lightning as L
+from lightning import LightningModule, Trainer
+from lightning.data import LightningDataset
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
+from torch.utils.data import Dataset
 
 parser = ArgumentParser()
 parser.add_argument("--workers", default=4, type=int)
@@ -22,7 +23,7 @@ args = parser.parse_args()
 # --------------------------------
 
 
-class ImageNetLightningModel(L.LightningModule):
+class ImageNetLightningModel(LightningModule):
     """
     >>> ImageNetLightningModel(data_path='missing')  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ImageNetLightningModel(
@@ -121,7 +122,7 @@ class ImageNetLightningModel(L.LightningModule):
 # -------------------
 
 
-class S3LightningImagenetDataset(L.LightningDataset):
+class S3LightningImagenetDataset(LightningDataset):
     def __init__(
         self,
         data_source: str,
@@ -181,7 +182,7 @@ if __name__ == "__main__":
         batch_size=args.batchsize,
         workers=args.workers,
     )
-    trainer = L.Trainer()
+    trainer = Trainer()
 
     print("Train Model")
     if args.evaluate:
