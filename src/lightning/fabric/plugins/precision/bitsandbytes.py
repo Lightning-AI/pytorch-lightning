@@ -191,10 +191,10 @@ def _import_bitsandbytes() -> ModuleType:
 
         def _quantize_weight(self, weight: torch.Tensor) -> None:
             # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L291-L302
+            B = weight.contiguous().to(device="cuda", dtype=torch.float16)
             if self.state.has_fp16_weights:
-                self.weight.data = weight.cuda()
+                self.weight.data = B
             else:
-                B = weight.contiguous().half().cuda()
                 CB, CBt, SCB, SCBt, coo_tensorB = bnb.functional.double_quant(B)
                 del CBt
                 del SCBt
