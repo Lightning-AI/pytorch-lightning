@@ -30,6 +30,11 @@
      - use ``batch, batch_idx, dataloader_idx = next(dataloader_iter)``
      - `PR18390`_
 
+   * - relied on automatic detection of Kubeflow environment
+     - use ``Trainer(plugins=KubeflowEnvironment())`` to explicitly set it on a Kubeflow cluster
+     - `PR18137`_
+
 
 .. _pr17995: https://github.com/Lightning-AI/lightning/pull/17995
 .. _pr18390: https://github.com/Lightning-AI/lightning/pull/18390
+.. _pr18137: https://github.com/Lightning-AI/lightning/pull/18390

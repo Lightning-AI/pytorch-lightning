@@ -42,6 +42,10 @@
      - use ``Trainer(devices=-1)``
      - `PR18291`_
 
+   * - ``pip install lightning`` to install ``lightning.app`` dependencies
+     - use ``pip install lightning[app]`` if you need ``lightning.app``
+     - `PR18386`_
+
 
 .. _pr18691: https://github.com/Lightning-AI/lightning/pull/18691
 .. _pr16579: https://github.com/Lightning-AI/lightning/pull/16579
@@ -50,3 +54,4 @@
 .. _pr17368: https://github.com/Lightning-AI/lightning/pull/17368
 .. _pr18441: https://github.com/Lightning-AI/lightning/pull/18441
 .. _pr18291: https://github.com/Lightning-AI/lightning/pull/18291
+.. _pr18386: https://github.com/Lightning-AI/lightning/pull/18386
