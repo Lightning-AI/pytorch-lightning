@@ -6,11 +6,11 @@
      - Then
      - Ref
 
-   * - used the `XLAStrategy.is_distributed` property
+   * - used the ``XLAStrategy.is_distributed`` property
      - it was removed because it was always True
      - `PR17381`_
 
-   * - used the `SingleTPUStrategy.is_distributed` property
+   * - used the ``SingleTPUStrategy.is_distributed`` property
      - it was removed because it was always False
      - `PR17381`_
 
