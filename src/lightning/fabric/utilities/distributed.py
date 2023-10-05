@@ -13,6 +13,7 @@ from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
+from lightning.fabric.utilities.data import _num_cpus_available
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
@@ -359,3 +360,16 @@ class DistributedSamplerWrapper(DistributedSampler):
     def __iter__(self) -> Iterator:
         self.dataset.reset()
         return (self.dataset[index] for index in super().__iter__())
+
+
+def _suggested_max_num_threads(num_processes: int = 1) -> int:
+    if num_processes < 1:
+        raise ValueError(f"`num_processes` should be >= 1, got {num_processes}.")
+    return max(1, _num_cpus_available() // num_processes)
+
+
+def _set_num_threads_if_needed(num_processes: int = 1) -> None:
+    if "OMP_NUM_THREADS" not in os.environ:
+        num_threads = _suggested_max_num_threads(num_processes)
+        torch.set_num_threads(num_threads)
+        os.environ["OMP_NUM_THREADS"] = str(num_threads)
