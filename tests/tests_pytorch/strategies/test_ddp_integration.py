@@ -11,10 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import operator
 import os
+import sys
 from unittest import mock
 from unittest.mock import Mock
+
+from lightning_utilities import compare_version
 
 import lightning.pytorch as pl
 import pytest
@@ -202,6 +205,13 @@ class UnusedParametersModel(BoringModel):
         return super().training_step(batch, batch_idx)
 
 
+@pytest.mark.skipif(
+    # TODO: investigate threading issue in this configuration
+    sys.platform == "win32"
+    and (sys.version_info.major, sys.version_info.minor) == (3, 11)
+    and compare_version("torch", operator.eq, "2.1.0"),
+    reason="threading issue",
+)
 def test_find_unused_parameters_exception():
     """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning users."""
     trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp_spawn", max_steps=2)
