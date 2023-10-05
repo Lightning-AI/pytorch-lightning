@@ -34,7 +34,7 @@ from lightning.data.cache.sampler import CacheBatchSampler
             [[0, 1, 2], [6, 7, 8], [12, 13, 14], [3, 4, 5], [9, 10, 11], [15, 16, 17], [], [], [18]],
             [[0, 0, 0], [1, 1, 1], [5, 5, 5], [2, 2, 2], [4, 4, 4], [3, 3, 3], [6]],
         ),
-        (19, 2, [[0, 1, 2], [3, 4, 5], [6, 7, 8]], [[0, 0, 0], [2, 2, 2]], [[0, 0, 0], [5, 5, 5], [4, 4, 4], [6]]),
+        (19, 2, [[0, 1, 2], [3, 4, 5], [6, 7, 8]], [[0, 0, 0], [5, 5, 5], [4, 4, 4], [6]]),
     ],
 )
 def test_cache_batch_sampler(params):
@@ -87,7 +87,6 @@ def test_cache_batch_sampler(params):
             assert all(b[1].chunk_indexes is None if len(b) > 1 else True for b in data[:3])
             assert all(b[0].chunk_indexes is None if len(b) else True for b in data[3:])
             if check_values:
-                breakpoint()
                 assert [[x.chunk_index for x in d] for d in data] == params[3]
 
     validate_batch(batches_1, True)
