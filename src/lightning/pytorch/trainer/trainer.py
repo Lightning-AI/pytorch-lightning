@@ -1023,8 +1023,10 @@ class Trainer:
         # wait for all to join if on distributed
         self.strategy.barrier("run-stage")
 
-        # TODO: Remove `set_to_none=True` when PyTorch 2.0 is the minimum supported version
-        self.lightning_module.zero_grad(set_to_none=True)
+        if _TORCH_GREATER_EQUAL_2_0:
+            self.lightning_module.zero_grad()
+        else:
+            self.lightning_module.zero_grad(set_to_none=True)
 
         if self.evaluating:
             return self._evaluation_loop.run()
