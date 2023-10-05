@@ -20,7 +20,7 @@ from typing import Optional, Tuple, Union
 from urllib import parse
 
 from lightning.data.cache.pytree import treespec_loads
-from lightning.data.cache.sampler import BatchIndex
+from lightning.data.cache.sampler import ChunkedIndex
 
 
 class ChunksConfig:
@@ -48,13 +48,13 @@ class ChunksConfig:
 
         for chunk in self._chunks:
             start, end = chunk["interval"]
-            if (end - start) != chunk["samples"]:
+            if (end - start) != chunk["chunk_size"]:
                 raise Exception(
                     "The config intervals doesn't match the number of samples. This shouldn't have happened."
                 )
             self._intervals.append(chunk["interval"])
 
-        self._length = sum([chunk["samples"] for chunk in self._chunks])
+        self._length = sum([chunk["chunk_size"] for chunk in self._chunks])
         self._downloader = Downloader(_remote_dir, cache_dir, self._chunks)
 
     @property
@@ -69,7 +69,7 @@ class ChunksConfig:
     def config(self):
         return self._config
 
-    def __getitem__(self, index: Union[int, BatchIndex]) -> Tuple[str, int, int]:
+    def __getitem__(self, index: Union[int, ChunkedIndex]) -> Tuple[str, int, int]:
         """Find the associated chunk metadata."""
         if isinstance(index, int):
             for interval_config, internal in enumerate(self._intervals):
@@ -84,7 +84,7 @@ class ChunksConfig:
                     return chunk_filepath, *mapping
 
         # Note: Optimisation to avoid doing the interval search.
-        elif isinstance(index, BatchIndex):
+        elif isinstance(index, ChunkedIndex):
             chunk = self._chunks[index.chunk_index]
             chunk_filepath = os.path.join(self._cache_dir, chunk["filename"])
             return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]

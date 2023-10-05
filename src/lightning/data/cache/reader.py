@@ -15,13 +15,13 @@ import os
 from contextlib import contextmanager
 from threading import Lock, Thread
 from time import sleep, time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import numpy as np
 
 from lightning.data.cache.config import ChunksConfig
 from lightning.data.cache.pytree import tree_unflatten
-from lightning.data.cache.sampler import BatchIndex
+from lightning.data.cache.sampler import ChunkedIndex
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
@@ -78,7 +78,6 @@ class BinaryReader:
         self._latest_chunk_index = None
         self._executor = None
         self._prepare_thread = None
-        self._keep_in_memory = False
 
     def _try_load_config(self):
         """Try to load the chunks config if the index files are available."""
@@ -99,7 +98,7 @@ class BinaryReader:
             yield
             print(msg, time() - t0)
 
-    def read(self, index: Union[int, BatchIndex]):
+    def read(self, index: ChunkedIndex):
         """Read an item for the given from a chunk.
 
         If the chunk isn't available locally or in memory, it will be downloaded.
@@ -107,6 +106,9 @@ class BinaryReader:
         Prefetching should reduce the wait time to be the batch available.
 
         """
+        if not isinstance(index, ChunkedIndex):
+            raise ValueError("The Reader.read(...) method expects a chunked Index.")
+
         # Load the config containing the index
         if self._config is None:
             self._try_load_config()
@@ -125,9 +127,7 @@ class BinaryReader:
 
         # Fetch the element
         chunk_filepath, begin, end = self._config[index]
-        raw_item_data = self.load_item_from_chunk(
-            index.chunk_index, index.index, chunk_filepath, begin, keep_in_memory=self._keep_in_memory
-        )
+        raw_item_data = self.load_item_from_chunk(index.index, chunk_filepath, begin)
         return self.deserialize(raw_item_data)
 
     def deserialize(self, raw_item_data: bytes) -> Any:
@@ -142,17 +142,7 @@ class BinaryReader:
             idx += size
         return tree_unflatten(data, self._config.config["data_spec"])
 
-    def load_item_from_chunk(
-        self, chunk_index: int, index: int, chunk_filepath: str, begin: int, keep_in_memory: bool = False
-    ):
-        if chunk_index in self._chunks_data:
-            return self._chunks_data[chunk_index][begin:end]
-
-        if keep_in_memory:
-            with open(chunk_filepath, "rb", 0) as fp:
-                self._chunks_data[chunk_index] = fp.read()
-            return self._chunks_data[chunk_index][begin:end]
-
+    def load_item_from_chunk(self, index: int, chunk_filepath: str, begin: int):
         offset = (1 + (index - begin)) * 4
 
         while not os.path.exists(chunk_filepath):

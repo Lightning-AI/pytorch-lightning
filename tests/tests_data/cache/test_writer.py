@@ -17,6 +17,7 @@ import os
 import numpy as np
 import pytest
 from lightning.data.cache.reader import BinaryReader
+from lightning.data.cache.sampler import ChunkedIndex
 from lightning.data.cache.writer import BinaryWriter
 from lightning_utilities.core.imports import RequirementCache
 
@@ -42,13 +43,19 @@ def test_binary_writer_with_ints_and_chunk_bytes(tmpdir):
     with open(os.path.join(tmpdir, "0.index.json")) as f:
         data = json.load(f)
 
-    assert data["chunks"][0]["samples"] == 6
-    assert data["chunks"][1]["samples"] == 5
-    assert data["chunks"][-1]["samples"] == 4
+    assert data["chunks"][0]["chunk_size"] == 6
+    assert data["chunks"][1]["chunk_size"] == 5
+    assert data["chunks"][-1]["chunk_size"] == 4
+
+    chunk_sizes = np.cumsum([chunk["chunk_size"] for chunk in data["chunks"]])
 
     reader = BinaryReader(tmpdir)
     for i in range(100):
-        data = reader.read(i)
+        for chunk_index, chunk_start in enumerate(chunk_sizes):
+            if i >= chunk_start:
+                continue
+            break
+        data = reader.read(ChunkedIndex(i, chunk_index=chunk_index))
         assert data == {"i": i, "i+1": i + 1, "i+2": i + 2}
 
 
@@ -71,13 +78,13 @@ def test_binary_writer_with_ints_and_chunk_size(tmpdir):
     with open(os.path.join(tmpdir, "0.index.json")) as f:
         data = json.load(f)
 
-    assert data["chunks"][0]["samples"] == 25
-    assert data["chunks"][1]["samples"] == 25
-    assert data["chunks"][-1]["samples"] == 25
+    assert data["chunks"][0]["chunk_size"] == 25
+    assert data["chunks"][1]["chunk_size"] == 25
+    assert data["chunks"][-1]["chunk_size"] == 25
 
     reader = BinaryReader(tmpdir)
     for i in range(100):
-        data = reader.read(i)
+        data = reader.read(ChunkedIndex(i, chunk_index=i // 25))
         assert data == {"i": i, "i+1": i + 1, "i+2": i + 2}
 
 
@@ -108,12 +115,12 @@ def test_binary_writer_with_jpeg_and_int(tmpdir):
     with open(os.path.join(cache_dir, "0.index.json")) as f:
         data = json.load(f)
 
-    assert data["chunks"][0]["samples"] == 4
-    assert data["chunks"][1]["samples"] == 4
-    assert data["chunks"][-1]["samples"] == 4
+    assert data["chunks"][0]["chunk_size"] == 4
+    assert data["chunks"][1]["chunk_size"] == 4
+    assert data["chunks"][-1]["chunk_size"] == 4
 
     reader = BinaryReader(cache_dir)
     for i in range(100):
-        data = reader.read(i)
+        data = reader.read(ChunkedIndex(i, chunk_index=i // 4))
         assert data["x"] == imgs[i]
         assert data["y"] == i

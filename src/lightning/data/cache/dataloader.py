@@ -128,7 +128,7 @@ class WorkerLoop:
         from lightning.data.cache.cache import Cache
 
         rank = _WorkerEnv.detect().rank
-        enable_profiling = self._global_rank == 0 and rank == 0 and _VIZ_TRACKER_AVAILABLE
+        enable_profiling = self._global_rank == 0 and rank == 0 and _VIZ_TRACKER_AVAILABLE and self._profile
 
         if enable_profiling:
             from viztracer import VizTracer
@@ -221,7 +221,7 @@ class LightningDataLoader(DataLoader):
 
         if len(cache) == 0:
             if cache_dir is None:
-                raise ValueError("You can provide a `cache_dir` filepath to the LightningDataLoader.")
+                raise ValueError("You should provide a `cache_dir` filepath to the LightningDataLoader.")
 
             dataset = CacheDataset(dataset, cache_dir, chunk_bytes, batch_size if chunk_bytes else None, compression)
             cache = dataset.cache
