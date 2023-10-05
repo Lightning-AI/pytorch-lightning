@@ -97,6 +97,11 @@ def test_invalid_strategy_choice(invalid_strategy):
         _AcceleratorConnector(strategy=invalid_strategy)
 
 
+def test_precision_and_precision_plugin_raises():
+    with pytest.raises(ValueError, match="both `precision=16-true` and `plugins"):
+        _AcceleratorConnector(precision="16-true", plugins=PrecisionPlugin())
+
+
 @RunIf(skip_windows=True, standalone=True)
 def test_strategy_choice_ddp_on_cpu(tmpdir):
     """Test that selecting DDPStrategy on CPU works."""
@@ -560,7 +565,6 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
     assert trainer.strategy.local_rank == 0
 
 
-@RunIf(min_torch="1.12")
 def test_check_fsdp_strategy_and_fallback():
     with pytest.raises(
         MisconfigurationException,
@@ -1023,7 +1027,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         "ddp",
         "ddp_spawn",
         pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
-        pytest.param("fsdp", marks=RunIf(min_torch="1.12.0")),
+        "fsdp",
     ],
 )
 def test_connector_sets_num_nodes(strategy, cuda_count_2):
@@ -1047,11 +1051,11 @@ def test_connector_num_nodes_input_validation():
         ("bf16-true", "auto", HalfPrecisionPlugin),
         ("16-mixed", "auto", MixedPrecisionPlugin),
         ("bf16-mixed", "auto", MixedPrecisionPlugin),
-        pytest.param("32-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("bf16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("bf16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("32-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_cuda_gpus=1)),
         pytest.param("32-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
         pytest.param("16-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
         pytest.param("bf16-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),

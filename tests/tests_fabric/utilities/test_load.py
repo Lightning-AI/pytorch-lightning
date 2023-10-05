@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch
 import torch.nn as nn
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _move_state_into, _NotYetLoadedTensor
@@ -74,6 +75,12 @@ def test_lazy_load_mixed_state(tmp_path):
     loaded_checkpoint = _lazy_load(tmp_path / "checkpoint.pt")
     model1.load_state_dict(loaded_checkpoint["model"])
     optim1.load_state_dict(loaded_checkpoint["optimizer"])
+
+
+@RunIf(min_torch="2.0.0")
+def test_lazy_load_raises():
+    with pytest.raises(FileNotFoundError, match="foo' does not exist"):
+        _lazy_load("foo")
 
 
 @RunIf(min_torch="2.0.0")

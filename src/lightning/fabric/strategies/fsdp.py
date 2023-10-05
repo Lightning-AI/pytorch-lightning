@@ -62,7 +62,6 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_12,
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
@@ -159,9 +158,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         state_dict_type: Literal["full", "sharded"] = "sharded",
         **kwargs: Any,
     ) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12:
-            raise NotImplementedError("`FSDPStrategy` is supported from PyTorch v1.12.0 onwards.")
-
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -337,6 +333,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+        precision_init_ctx = self.precision.init_context()
+        module_sharded_ctx = self.module_sharded_context()
         stack = ExitStack()
         if _TORCH_GREATER_EQUAL_2_1 and empty_init:
             # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
@@ -345,8 +343,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             stack.enter_context(torch.device("meta"))
         elif _TORCH_GREATER_EQUAL_1_13:
             stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
-        stack.enter_context(self.precision.init_context())
-        stack.enter_context(self.module_sharded_context())
+        stack.enter_context(precision_init_ctx)
+        stack.enter_context(module_sharded_ctx)
         return stack
 
     def module_sharded_context(self) -> ContextManager:
@@ -652,7 +650,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12 or not torch.distributed.is_available():
+        if not torch.distributed.is_available():
             return
 
         strategy_registry.register(
