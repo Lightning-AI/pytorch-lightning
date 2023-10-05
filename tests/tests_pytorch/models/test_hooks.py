@@ -486,6 +486,8 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
         {"name": "on_train_epoch_start"},
         *model._train_batch(trainer, model, train_batches, device=device, **kwargs),
+        {"name": "zero_grad", "kwargs": {"set_to_none": True}},
+        {"name": "on_validation_model_zero_grad", "kwargs": {"set_to_none": True}},
         {"name": "train", "args": (False,)},
         {"name": "on_validation_model_eval"},
         {"name": "Callback.on_validation_start", "args": (trainer, model)},
