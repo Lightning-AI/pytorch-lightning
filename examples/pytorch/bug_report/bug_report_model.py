@@ -31,7 +31,6 @@ class BoringModel(LightningModule):
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
-        assert any(p.grad is not None for p in self.layer.parameters())
         loss = self(batch).sum()
         self.log("valid_loss", loss)
 
@@ -46,19 +45,20 @@ class BoringModel(LightningModule):
 def run():
     train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
+    test_data = DataLoader(RandomDataset(32, 64), batch_size=2)
 
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=os.getcwd(),
-        accumulate_grad_batches=3,
-        limit_train_batches=6,
+        limit_train_batches=1,
         limit_val_batches=1,
+        limit_test_batches=1,
         num_sanity_val_steps=0,
         max_epochs=1,
-        val_check_interval=2,
         enable_model_summary=False,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+    trainer.test(model, dataloaders=test_data)
 
 
 if __name__ == "__main__":
