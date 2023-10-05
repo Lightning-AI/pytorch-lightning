@@ -79,6 +79,16 @@ class BinaryReader:
         self._executor = None
         self._prepare_thread = None
 
+    def _get_chunk_index_from_index(self, index: int):
+        # Load the config containing the index
+        if self._config is None:
+            self._try_load_config()
+
+            if self._config is None:
+                raise Exception("The reader index isn't defined.")
+
+        return self._config._get_chunk_index_from_index(index)
+
     def _try_load_config(self):
         """Try to load the chunks config if the index files are available."""
         self._config = ChunksConfig.load(self._cache_dir, self._remote_dir)
@@ -117,16 +127,13 @@ class BinaryReader:
                 raise Exception("The reader index isn't defined.")
 
         # Create and start the prepare chunks thread
-        if self._prepare_thread is None:
+        if index.chunk_indexes is not None and self._prepare_thread is None:
             self._prepare_thread = PrepareChunksThread(self._config)
             self._prepare_thread.start()
-
-        # Register the chunks to be downloaded
-        if index.chunk_indexes is not None:
             self._prepare_thread.add(index.chunk_indexes)
 
         # Fetch the element
-        chunk_filepath, begin, end = self._config[index]
+        chunk_filepath, begin, _ = self._config[index]
         raw_item_data = self.load_item_from_chunk(index.index, chunk_filepath, begin)
         return self.deserialize(raw_item_data)
 

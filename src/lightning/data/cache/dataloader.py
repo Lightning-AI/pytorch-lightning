@@ -96,7 +96,7 @@ class CacheCollateFn:
     def __call__(self, items):
         if all(item is None for item in items):
             return None
-        return self.collate_fn([item for item in items if item is not None])
+        return self.collate_fn(items)
 
 
 class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
@@ -104,13 +104,16 @@ class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
 
     def _next_data(self):
         try:
-            return super()._next_data()
+            data = None
+            while data is None:
+                data = super()._next_data()
+            return data
         except StopIteration:
             for v in self._dataset_fetcher.dataset.__dict__.values():
                 if isinstance(v, Cache):
                     v.done()
-                if not v.filled:
-                    v.merge(1)
+                    if not v.filled:
+                        v.merge(1)
             raise StopIteration()
 
 
@@ -175,6 +178,15 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
         if not self._cache.filled:
             self._cache.merge(self._num_workers)
 
+    def _next_data(self):
+        try:
+            data = None
+            while data is None:
+                data = super()._next_data()
+            return data
+        except StopIteration as e:
+            raise e
+
 
 class LightningDataLoader(DataLoader):
     __doc__ = DataLoader.__doc__
@@ -188,7 +200,7 @@ class LightningDataLoader(DataLoader):
         num_workers=0,
         shuffle: bool = False,
         generator=None,
-        batch_size=1,
+        batch_size=None,
         drop_last=False,
         cache_dir: Optional[str] = None,
         chunk_bytes: Optional[int] = _DEFAULT_CHUNK_BYTES,
@@ -223,8 +235,8 @@ class LightningDataLoader(DataLoader):
             if cache_dir is None:
                 raise ValueError("You should provide a `cache_dir` filepath to the LightningDataLoader.")
 
-            dataset = CacheDataset(dataset, cache_dir, chunk_bytes, batch_size if chunk_bytes else None, compression)
-            cache = dataset.cache
+            dataset = CacheDataset(dataset, cache_dir, chunk_bytes, batch_size, compression)
+            cache = dataset._cache
         else:
             cache = cache[0]
 
@@ -243,7 +255,7 @@ class LightningDataLoader(DataLoader):
             distributed_env.world_size,
             self._global_rank,
             num_workers,
-            batch_size,
+            batch_size or 1,
             drop_last,
             shuffle,
             cache,

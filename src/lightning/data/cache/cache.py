@@ -13,9 +13,10 @@
 
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from lightning.data.cache.reader import BinaryReader
+from lightning.data.cache.sampler import ChunkedIndex
 from lightning.data.cache.writer import BinaryWriter
 from lightning.data.datasets.env import _DistributedEnv
 
@@ -36,6 +37,7 @@ class Cache:
 
         Arguments:
             cache_dir: The path to where the chunks will be stored.
+            remote_dir: The path to a remote folder where the data are located.
             compression: The name of the algorithm to reduce the size of the chunks.
             chunk_bytes: The maximum number of bytes within a chunk.
             chunk_size: The maximum number of items within a chunk.
@@ -67,8 +69,10 @@ class Cache:
         """Store an item in the writer."""
         self._writer[index] = data
 
-    def __getitem__(self, index) -> Dict[str, Any]:
+    def __getitem__(self, index: Union[int, ChunkedIndex]) -> Dict[str, Any]:
         """Read an item in the reader."""
+        if isinstance(index, int):
+            index = ChunkedIndex(index, self._get_chunk_index_from_index(index))
         return self._reader.read(index)
 
     def done(self) -> None:
@@ -84,3 +88,6 @@ class Cache:
 
     def get_chunk_interval(self):
         return self._reader.get_chunk_interval()
+
+    def _get_chunk_index_from_index(self, index: int) -> int:
+        return self._reader._get_chunk_index_from_index(index)

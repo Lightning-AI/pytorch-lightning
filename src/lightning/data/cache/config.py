@@ -15,8 +15,7 @@ import json
 import os
 import subprocess
 from subprocess import Popen
-from threading import Lock
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 from urllib import parse
 
 from lightning.data.cache.pytree import treespec_loads
@@ -69,27 +68,18 @@ class ChunksConfig:
     def config(self):
         return self._config
 
-    def __getitem__(self, index: Union[int, ChunkedIndex]) -> Tuple[str, int, int]:
+    def _get_chunk_index_from_index(self, index: int) -> int:
+        for chunk_index, internal in enumerate(self._intervals):
+            if internal[0] <= index < internal[1]:
+                return chunk_index
+        raise ValueError(
+            f"The provided index {index} didn't find a match within the chunk intervals {self._intervals}."
+        )
+
+    def __getitem__(self, index: ChunkedIndex) -> Tuple[str, int, int]:
         """Find the associated chunk metadata."""
-        if isinstance(index, int):
-            for interval_config, internal in enumerate(self._intervals):
-                if internal[0] <= index and index < internal[1]:
-                    chunk = self._chunks[interval_config]
-                    mapping = chunk["mapping"][index]
-                    chunk_filepath = os.path.join(self._cache_dir, chunk["filename"])
-
-                    if self._remote_dir:
-                        self._downloader.download_on_chunk_index(index)
-
-                    return chunk_filepath, *mapping
-
-        # Note: Optimisation to avoid doing the interval search.
-        elif isinstance(index, ChunkedIndex):
-            chunk = self._chunks[index.chunk_index]
-            chunk_filepath = os.path.join(self._cache_dir, chunk["filename"])
-            return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]
-
-        raise Exception(f"The chunk interval weren't properly defined. Found {self._intervals} for index {index}.")
+        chunk = self._chunks[index.chunk_index]
+        return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]
 
     @classmethod
     def load(cls, cache_dir: str, _remote_dir: Optional[str] = None) -> Optional["ChunksConfig"]:
@@ -114,7 +104,6 @@ class Downloader:
         self._remote_dir = _remote_dir
         self._cache_dir = cache_dir
         self._chunks = chunks
-        self._lock = Lock()
 
     def create_credentials(self):
         if self._credentials:
