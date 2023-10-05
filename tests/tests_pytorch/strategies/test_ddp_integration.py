@@ -17,8 +17,6 @@ import sys
 from unittest import mock
 from unittest.mock import Mock
 
-from lightning_utilities import compare_version
-
 import lightning.pytorch as pl
 import pytest
 import torch
@@ -31,6 +29,7 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer import seed_everything
+from lightning_utilities import compare_version
 from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
