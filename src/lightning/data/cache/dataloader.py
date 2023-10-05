@@ -170,7 +170,7 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
         # Patch PyTorch worker loop to call the `cache.done()` method.
         from torch.utils.data._utils import worker
 
-        worker._worker_loop = WorkerLoop(loader._profile, loader._global_rank)
+        worker._worker_loop = WorkerLoop(loader._global_rank, loader._profile)
         super().__init__(loader)
 
     def _shutdown_workers(self):
