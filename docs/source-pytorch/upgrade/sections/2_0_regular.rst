@@ -26,11 +26,11 @@
      - use `sum(trainer.num_val_batches)`
      - `PR18441`_
 
-   * - used `trainer.num_test_batches` to get the total size of all validation dataloaders
+   * - used `trainer.num_test_batches` to get the total size of all test dataloaders
      - use `sum(trainer.num_test_batches)`
      - `PR18441`_
 
-   * - used `trainer.num_sanity_val_batches` to get the total size of all validation dataloaders
+   * - used `trainer.num_sanity_val_batches` to get the total size of all validation dataloaders for sanity checking
      - use `sum(trainer.num_sanity_val_batches)`
      - `PR18441`_
 
