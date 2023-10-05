@@ -18,6 +18,7 @@ from unittest.mock import ANY, PropertyMock
 
 import pytest
 import torch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from torch import Tensor
@@ -486,8 +487,8 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
         {"name": "on_train_epoch_start"},
         *model._train_batch(trainer, model, train_batches, device=device, **kwargs),
-        {"name": "zero_grad", "kwargs": {"set_to_none": True}},
-        {"name": "on_validation_model_zero_grad", "kwargs": {"set_to_none": True}},
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "on_validation_model_zero_grad"},
         {"name": "train", "args": (False,)},
         {"name": "on_validation_model_eval"},
         {"name": "Callback.on_validation_start", "args": (trainer, model)},
