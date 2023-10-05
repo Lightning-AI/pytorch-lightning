@@ -21,7 +21,7 @@ import lightning.pytorch as pl
 import pytest
 import torch
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import Callback, EarlyStopping
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
@@ -206,7 +206,7 @@ class UnusedParametersModel(BoringModel):
 
 @pytest.mark.skipif(
     # TODO: investigate threading issue in this configuration
-    sys.platform == "win32"
+    _IS_WINDOWS
     and (sys.version_info.major, sys.version_info.minor) == (3, 11)
     and compare_version("torch", operator.eq, "2.1.0"),
     reason="threading issue",
