@@ -272,15 +272,17 @@ class CacheBatchSampler(BatchSampler):
         shuffled_indexes = np.random.permutation(range(len(chunk_intervals)))
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
 
-        if self._num_replicas == 1:
-            chunks_per_workers = [[] for _ in range(self._num_workers)]
-            for i, chunk_index in enumerate(shuffled_indexes):
-                chunks_per_workers[i % self._num_workers].append(chunk_index)
+        num_workers = (self._num_workers or 1)
 
-            indices_per_workers = [[] for _ in range(self._num_workers)]
+        if self._num_replicas == 1:
+            chunks_per_workers = [[] for _ in range(num_workers)]
+            for i, chunk_index in enumerate(shuffled_indexes):
+                chunks_per_workers[i % num_workers].append(chunk_index)
+
+            indices_per_workers = [[] for _ in range(num_workers)]
 
             for i, (chunk_index, chunk_interval) in enumerate(zip(shuffled_indexes, shuffled_chunk_intervals)):
-                worker_id = i % self._num_workers
+                worker_id = i % num_workers
                 interval_indices = np.arange(chunk_interval[0], chunk_interval[1])
                 shuffled_interval_indices = np.random.permutation(interval_indices).tolist()
                 is_empty = len(indices_per_workers[worker_id]) == 0
@@ -296,12 +298,13 @@ class CacheBatchSampler(BatchSampler):
             if num_indices != len(self.sampler):
                 raise Exception("The generated indices don't match the initial length of the sampler.")
 
-            indices_per_workers = [np.array_split(np.asarray(indices),  self.batch_size) for indices in indices_per_workers]
+            # Note: Reserve to ensure the first workers gets more work
+            indices_per_workers_splitted = [self._chunk_list(indices,  self.batch_size) for indices in indices_per_workers][::-1]
 
             batches = []
             counter = 0
-            while  sum([len(v) for v in indices_per_workers]) != 0:
-                worker_indices = indices_per_workers[counter % self._num_workers]
+            while  sum([len(v) for v in indices_per_workers_splitted]) != 0:
+                worker_indices = indices_per_workers_splitted[counter % num_workers]
                 if len(worker_indices) == 0:
                     batches.append([])
                 else:
@@ -332,3 +335,11 @@ class CacheBatchSampler(BatchSampler):
 
     def __len__(self) -> int:
         return super().__len__()
+
+
+    def _chunk_list(self, arr, chunk_size):
+        out = []
+        for i in range(0, len(arr), chunk_size):
+            slice_item = slice(i, i + chunk_size, 1)
+            out.append(arr[slice_item])
+        return out

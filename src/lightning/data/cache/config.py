@@ -14,26 +14,23 @@
 import json
 import os
 import subprocess
-<<<<<<< HEAD
 from threading import Lock
-=======
+from lightning.data.cache.sampler import BatchIndex
 from subprocess import Popen
 from typing import Optional, Tuple, Union
 from urllib import parse
-
 from lightning.data.cache.pytree import treespec_loads
 from lightning.data.cache.sampler import BatchIndex
->>>>>>> 83514f365985e108ce0bd215ff56206328e1f535
 
 
 class ChunksConfig:
-    def __init__(self, cache_dir: str, index_filenames: str, source_dir: Optional[str]):
+    def __init__(self, cache_dir: str, index_filenames: str, _remote_dir: Optional[str]):
         self._cache_dir = cache_dir
         self.index_filenames = sorted(index_filenames)
         self._intervals = []
         self._config = None
         self._chunks = []
-        self._source_dir = source_dir
+        self._remote_dir = _remote_dir
 
         for filename in self.index_filenames:
             with open(os.path.join(self._cache_dir, filename)) as f:
@@ -58,7 +55,7 @@ class ChunksConfig:
             self._intervals.append(chunk["interval"])
 
         self._length = sum([chunk["samples"] for chunk in self._chunks])
-        self._downloader = Downloader(source_dir, cache_dir, self._chunks)
+        self._downloader = Downloader(_remote_dir, cache_dir, self._chunks)
 
     @property
     def intervals(self):
@@ -81,7 +78,7 @@ class ChunksConfig:
                     mapping = chunk["mapping"][index]
                     chunk_filepath = os.path.join(self._cache_dir, chunk["filename"])
 
-                    if self._source_dir:
+                    if self._remote_dir:
                         self._downloader.download_on_chunk_index(index)
 
                     return chunk_filepath, *mapping
@@ -95,26 +92,26 @@ class ChunksConfig:
         raise Exception(f"The chunk interval weren't properly defined. Found {self._intervals} for index {index}.")
 
     @classmethod
-    def load(cls, cache_dir: str, source_dir: Optional[str] = None) -> Optional["ChunksConfig"]:
-        if isinstance(source_dir, str):
+    def load(cls, cache_dir: str, _remote_dir: Optional[str] = None) -> Optional["ChunksConfig"]:
+        if isinstance(_remote_dir, str):
             Downloader.download_file_from_s3(
-                os.path.join(source_dir, "index.json"), os.path.join(cache_dir, "index.json")
+                os.path.join(_remote_dir, "index.json"), os.path.join(cache_dir, "index.json")
             )
         files = os.listdir(cache_dir)
         index_filenames = sorted([f for f in files if f.endswith("index.json")])
         if not index_filenames:
             return None
-        return ChunksConfig(cache_dir, index_filenames, source_dir)
+        return ChunksConfig(cache_dir, index_filenames, _remote_dir)
 
     def __len__(self) -> int:
         return self._length
 
 
 class Downloader:
-    def __init__(self, source_dir: str, cache_dir: str, chunks):
+    def __init__(self, _remote_dir: str, cache_dir: str, chunks):
         self._processes = {}
         self._credentials = None
-        self._source_dir = source_dir
+        self._remote_dir = _remote_dir
         self._cache_dir = cache_dir
         self._chunks = chunks
         self._lock = Lock()
@@ -135,21 +132,15 @@ class Downloader:
         os.environ["AWS_SESSION_TOKEN"] = credentials.token
         self._credentials = credentials
 
-<<<<<<< HEAD
     def chunk_index_download(self, index: int) -> None:
         local_filepath = os.path.join(self._cache_dir, self._chunks[int(index)]["filename"])
-=======
-    def handle_index(self, index: BatchIndex) -> None:
-        local_filepath = os.path.join(self._cache_dir, self._chunks[index.chunk_index]["filename"])
->>>>>>> 83514f365985e108ce0bd215ff56206328e1f535
 
         if os.path.exists(local_filepath):
             return
 
         self.create_credentials()
 
-
-        remote_filepath = os.path.join(self._source_dir, self._chunks[int(index)]["filename"])
+        remote_filepath = os.path.join(self._remote_dir, self._chunks[int(index)]["filename"])
 
         if remote_filepath.startswith("s3://"):
             self.download_file_from_s3_with_s5cmd(int(index), remote_filepath, local_filepath)
@@ -161,7 +152,7 @@ class Downloader:
 
             return
 
-        raise ValueError(f"The provided remote_filepath isn't supported. Found {remote_filepath}")
+        raise ValueError(f"The provided `remote_filepath` isn't supported. Found {remote_filepath}.")
 
     def download_file_from_s3_with_s5cmd(self, index, remote_filepath: str, local_filepath: str):
         if index not in self._processes:

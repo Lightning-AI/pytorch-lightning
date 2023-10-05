@@ -46,7 +46,6 @@ class PrepareChunksThread(Thread):
                     sleep(0.007)
                     continue
                 chunk_index = self.chunks_index_to_be_processed.pop(0)
-            print(chunk_index)
             self.config._downloader.chunk_index_download(chunk_index)
 
 
@@ -129,15 +128,11 @@ class BinaryReader:
         # Fetch the element
         chunk_filepath, begin, end = self._config[index]
         raw_item_data = self.load_item_from_chunk(
-<<<<<<< HEAD
             index.chunk_index,
             index.index,
             chunk_filepath,
             begin,
             keep_in_memory=self._keep_in_memory
-=======
-            index.chunk_index, chunk_filepath, begin, end, keep_in_memory=self._keep_in_memory
->>>>>>> 83514f365985e108ce0bd215ff56206328e1f535
         )
         return self.deserialize(raw_item_data)
 
@@ -153,20 +148,7 @@ class BinaryReader:
             idx += size
         return tree_unflatten(data, self._config.config["data_spec"])
 
-<<<<<<< HEAD
-    def load_chunk(self, chunk_filepath: str):
-        while not os.path.exists(chunk_filepath):
-            sleep(0.0001)
-        with open(chunk_filepath, "rb", 0) as fp:
-            data = fp.read()
-        return data
-
     def load_item_from_chunk(self, chunk_index: int, index: int, chunk_filepath: str, begin: int, keep_in_memory: bool = False):
-=======
-    def load_item_from_chunk(
-        self, chunk_index: int, chunk_filepath: str, begin: int, end: int, keep_in_memory: bool = False
-    ):
->>>>>>> 83514f365985e108ce0bd215ff56206328e1f535
         if chunk_index in self._chunks_data:
             return self._chunks_data[chunk_index][begin:end]
 

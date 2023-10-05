@@ -92,7 +92,7 @@ class CacheCollateFn:
     def __call__(self, items):
         if all(item is None for item in items):
             return None
-        return self.collate_fn(items)
+        return self.collate_fn([item for item in items if item is not None])
 
 
 class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
