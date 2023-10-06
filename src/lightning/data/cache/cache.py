@@ -50,17 +50,10 @@ class Cache:
         self._cache_dir = cache_dir
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
-        self._num_workers: Optional[int] = None
-
-    def _setup(self, num_workers: int) -> None:
-        """Called by the LightningDataLoader to ensure the num_workers is known."""
-        self._num_workers = num_workers
 
     @property
     def filled(self) -> bool:
         """Returns whether the caching phase is done."""
-        if self._num_workers is None:
-            raise Exception("The Cache wasn't setup properly. HINT: Did you use the LightningDataLoader ?")
         if self._is_done:
             return True
         self._is_done = os.path.exists(os.path.join(self._cache_dir, INDEX_FILENAME))

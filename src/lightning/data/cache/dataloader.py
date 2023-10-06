@@ -275,9 +275,6 @@ class LightningDataLoader(DataLoader):
         else:
             cache = cache_list[0]
 
-        # This is required in the main thread.
-        cache._setup(num_workers)
-
         if not cache.filled and shuffle:
             logger.info("Shuffle is ignored during the caching phase phase")
 
