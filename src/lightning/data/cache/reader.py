@@ -47,8 +47,9 @@ class PrepareChunksThread(Thread):
                     sleep(0.007)
                     continue
 
-            # TODO: Implement chunk eviction
-            chunk_index = self._chunks_index_to_be_processed.pop(0)
+                chunk_index = self._chunks_index_to_be_processed.pop(0)
+
+            # TODO: Implement eviction
             self._config.download_chunk_from_index(chunk_index)
             self._chunks_index_to_ready.append(chunk_index)
 
