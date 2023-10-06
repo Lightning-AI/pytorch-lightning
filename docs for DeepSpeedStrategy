@@ -5,7 +5,7 @@ Model Parallelism and Activation Partitioning
 Compatibility with Pipeline Parallelism
 Clarifying Usage Conditions
 Conclusion
-Introduction <a name="introduction"></a>
+Introduction 
 Deepspeed activation partitioning is a powerful tool to optimize training for large deep learning models. This documentation aims to provide clarity on when and how to use activation partitioning in conjunction with model parallelism and zero-3.
 
 Activation Partitioning Basics <a name="activation-partitioning-basics"></a>
