@@ -360,7 +360,7 @@ class FSDPStrategy(ParallelStrategy):
             empty_init_context = _EmptyInit(enabled=bool(empty_init))
         else:
             empty_init_context = nullcontext()
-        with empty_init_context, self.precision_plugin.init_context():
+        with empty_init_context, self.precision_plugin.tensor_init_context():
             yield
 
     @contextmanager
