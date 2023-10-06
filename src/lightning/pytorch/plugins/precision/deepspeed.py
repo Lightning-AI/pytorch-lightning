@@ -78,7 +78,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
 
     @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
+    def module_init_context(self) -> Generator[None, None, None]:
         if "true" not in self.precision:
             yield
             return

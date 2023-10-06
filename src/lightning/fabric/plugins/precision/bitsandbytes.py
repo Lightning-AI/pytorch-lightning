@@ -116,7 +116,7 @@ class BitsandbytesPrecision(Precision):
                 m.compute_type_is_set = False
         return module
 
-    def init_context(self) -> ContextManager:
+    def module_init_context(self) -> ContextManager:
         if self.ignore_modules:
             # cannot patch the Linear class if the user wants to skip some submodules
             raise RuntimeError(

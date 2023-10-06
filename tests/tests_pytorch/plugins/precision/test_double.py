@@ -186,7 +186,7 @@ def test_convert_module():
 
 def test_init_context():
     plugin = DoublePrecisionPlugin()
-    with plugin.init_context():
+    with plugin.module_init_context():
         model = torch.nn.Linear(2, 2)
         assert torch.get_default_dtype() == torch.double
     assert model.weight.dtype == torch.double

@@ -53,7 +53,11 @@ class Precision:
         """
         return module
 
-    def init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> ContextManager:
+        """Controls how tensors get created (device, dtype)."""
+        return nullcontext()
+
+    def module_init_context(self) -> ContextManager:
         """Instantiate module parameters or tensors in the precision type this plugin handles.
 
         This is optional and depends on the precision limitations during optimization.

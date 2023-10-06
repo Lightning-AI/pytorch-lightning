@@ -66,7 +66,7 @@ class DeepSpeedPrecision(Precision):
             return module.to(dtype=self._desired_dtype)
         return module
 
-    def init_context(self) -> ContextManager:
+    def module_init_context(self) -> ContextManager:
         if "true" not in self.precision:
             return nullcontext()
         return _DtypeContextManager(self._desired_dtype)

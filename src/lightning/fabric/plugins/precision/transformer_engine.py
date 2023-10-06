@@ -93,7 +93,7 @@ class TransformerEnginePrecision(Precision):
         module = module.to(dtype=self.dtype)
         return module
 
-    def init_context(self) -> ContextManager:
+    def module_init_context(self) -> ContextManager:
         dtype_ctx = _DtypeContextManager(self.dtype)
         stack = ExitStack()
         if self.replace_layers:

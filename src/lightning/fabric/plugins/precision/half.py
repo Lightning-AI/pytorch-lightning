@@ -39,7 +39,7 @@ class HalfPrecision(Precision):
     def convert_module(self, module: Module) -> Module:
         return module.to(dtype=self._desired_input_dtype)
 
-    def init_context(self) -> ContextManager:
+    def module_init_context(self) -> ContextManager:
         return _DtypeContextManager(self._desired_input_dtype)
 
     def forward_context(self) -> ContextManager:

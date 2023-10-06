@@ -112,7 +112,7 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
             buffer_dtype=buffer_dtype,
         )
 
-    def init_context(self) -> ContextManager:
+    def module_init_context(self) -> ContextManager:
         return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
 
     def forward_context(self) -> ContextManager:
