@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Generator, Literal, ContextManager
+from typing import Any, ContextManager, Generator, Literal
 
 import torch
 import torch.nn as nn
@@ -39,7 +39,6 @@ class DoublePrecisionPlugin(PrecisionPlugin):
 
     def module_init_context(self) -> ContextManager:
         return _DtypeContextManager(torch.float64)
-
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:

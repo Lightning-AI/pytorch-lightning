@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager, nullcontext
-from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Union, ContextManager
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Optional, Union
 
 import torch
 from lightning_utilities import apply_to_collection
