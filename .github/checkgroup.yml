@@ -161,8 +161,8 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "docs-checks (fabric, doctest)"
-      - "make-html (fabric)"
+      - "docs-make (fabric, doctest)"
+      - "docs-make (fabric, html)"
 
   - id: "pytorch_lightning: Docs"
     paths:
@@ -178,8 +178,8 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "docs-checks (pytorch, doctest)"
-      - "make-html (pytorch)"
+      - "docs-make (pytorch, doctest)"
+      - "docs-make (pytorch, html)"
 
   - id: "pytorch_lightning: Docker"
     paths:
