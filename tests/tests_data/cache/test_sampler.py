@@ -101,6 +101,11 @@ def test_cache_batch_sampler(params):
 
 
 def test_batch_sampler_imagenet():
+    dataset_size = 1281167
+    world_size = 1
+    rank = 0
+    num_workers = 32
+    batch_size = 8
     cache = mock.MagicMock()
     cache.filled = False
-    CacheBatchSampler(1_281_167, 1, 0, 32, 8, False, False, cache)
+    CacheBatchSampler(dataset_size, world_size, rank, num_workers, batch_size, False, True, cache)

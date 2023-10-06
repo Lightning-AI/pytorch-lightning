@@ -217,7 +217,7 @@ class BinaryWriter:
         self._current_chunk_size += serialized_items_size
 
         if self._indexes:
-            assert self._indexes[-1] == index - 1
+            assert self._indexes[-1] == index - 1, (self._indexes, index - 1)
 
         self._indexes.append(index)
 
@@ -284,8 +284,6 @@ class BinaryWriter:
                     raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
 
                 chunks_info.extend(data["chunks"])
-
-            os.remove(chunk_path)
 
         with open(os.path.join(self._cache_dir, "index.json"), "w") as f:
             json.dump({"chunks": chunks_info, "config": config}, f, sort_keys=True)
