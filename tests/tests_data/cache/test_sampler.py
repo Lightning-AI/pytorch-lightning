@@ -101,6 +101,7 @@ def test_cache_batch_sampler(params):
 
 
 def test_batch_sampler_imagenet():
+    """Validate the Imagenet dataset is valid."""
     dataset_size = 1281167
     world_size = 1
     rank = 0

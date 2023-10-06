@@ -13,7 +13,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any, Iterator, List, Optional
 
 import numpy as np
 
@@ -64,7 +64,8 @@ class CacheBatchSampler:
         self._shuffled_chunk_intervals = None
         self._batch_size = batch_size
 
-        # self._validate()
+        # Before starting, ensures the chunk indices are properly defined.
+        self._validate()
 
     def _validate(self):
         if self._num_workers > 1 and not self._cache.filled:
@@ -75,8 +76,6 @@ class CacheBatchSampler:
                     batches[worker_index] = []
                     batches[worker_index].extend(batch_indices)
                 elif len(batch_indices) > 0:
-                    if batches[worker_index][-1] != (batch_indices[0] - 1):
-                        breakpoint()
                     batches[worker_index].extend(batch_indices)
 
             for indices in batches.values():
