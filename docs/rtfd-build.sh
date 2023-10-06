@@ -15,6 +15,7 @@ then
     cd $root/docs ;
     mv build/html build/pytorch ;
     # cross-road
+    rm -rf build/doctrees ;
     cp crossroad.html build/index.html
 else
     echo "Void build... :-]" ;
