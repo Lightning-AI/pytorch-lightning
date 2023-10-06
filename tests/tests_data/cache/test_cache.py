@@ -165,6 +165,7 @@ def test_cache_with_simple_format(tmpdir):
         cache[i] = i
 
     cache.done()
+    cache.merge()
 
     for i in range(100):
         assert i == cache[i]
@@ -178,6 +179,7 @@ def test_cache_with_simple_format(tmpdir):
         cache[i] = [i, {0: [i + 1]}]
 
     cache.done()
+    cache.merge()
 
     for i in range(100):
         assert [i, {0: [i + 1]}] == cache[i]

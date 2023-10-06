@@ -79,7 +79,7 @@ class Cache:
         """Inform the writer the chunking phase is finished."""
         self._writer.done()
 
-    def merge(self, num_workers: int) -> None:
+    def merge(self, num_workers: int = 1) -> None:
         """Inform the writer the chunking phase is finished."""
         self._writer.merge(num_workers)
 

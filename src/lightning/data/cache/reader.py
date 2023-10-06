@@ -15,7 +15,7 @@ import os
 from contextlib import contextmanager
 from threading import Lock, Thread
 from time import sleep, time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -27,25 +27,31 @@ from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
 
 class PrepareChunksThread(Thread):
-    def __init__(self, config):
-        super().__init__(daemon=True)
-        self.config = config
-        self.chunks_index_to_be_processed = []
-        self.chunks_index_to_ready = []
-        self.lock = Lock()
+    """This thread is responsible to download the chunks associated to a given worker."""
 
-    def add(self, chunk_indices):
-        with self.lock:
-            self.chunks_index_to_be_processed.extend(chunk_indices)
+    def __init__(self, config: ChunksConfig):
+        super().__init__(daemon=True)
+        self._config = config
+        self._chunks_index_to_be_processed = []
+        self._chunks_index_to_ready = []
+        self._lock = Lock()
+
+    def add(self, chunk_indices: List[int]) -> None:
+        """Receive the list of the chunk indices to download for the current epoch."""
+        with self._lock:
+            self._chunks_index_to_be_processed.extend(chunk_indices)
 
     def run(self):
         while True:
-            with self.lock:
-                if len(self.chunks_index_to_be_processed) == 0:
+            with self._lock:
+                if len(self._chunks_index_to_be_processed) == 0:
                     sleep(0.007)
                     continue
-                chunk_index = self.chunks_index_to_be_processed.pop(0)
-            self.config._downloader.chunk_index_download(chunk_index)
+                chunk_index = self._chunks_index_to_be_processed.pop(0)
+
+            # TODO: Implement eviction
+            self._config.download_chunk_from_index(chunk_index)
+            self._chunks_index_to_ready.append(chunk_index)
 
 
 class BinaryReader:
@@ -92,6 +98,7 @@ class BinaryReader:
     def _try_load_config(self):
         """Try to load the chunks config if the index files are available."""
         self._config = ChunksConfig.load(self._cache_dir, self._remote_dir)
+        return self._config
 
     @property
     def rank(self):
@@ -120,11 +127,8 @@ class BinaryReader:
             raise ValueError("The Reader.read(...) method expects a chunked Index.")
 
         # Load the config containing the index
-        if self._config is None:
-            self._try_load_config()
-
-            if self._config is None:
-                raise Exception("The reader index isn't defined.")
+        if self._config is None and self._try_load_config() is None:
+            raise Exception("The reader index isn't defined.")
 
         # Create and start the prepare chunks thread
         if index.chunk_indexes is not None and self._prepare_thread is None:
@@ -165,20 +169,14 @@ class BinaryReader:
 
     def get_length(self) -> int:
         """Get the number of samples across all chunks."""
-        if self._config is None:
-            self._try_load_config()
-
-        if self._config is None:
+        if self._config is None and self._try_load_config() is None:
             raise Exception("The reader index isn't defined.")
 
         return len(self._config)
 
     def get_chunk_interval(self):
         """Get the index interval of each chunk."""
-        if self._config is None:
-            self._try_load_config()
-
-        if self._config is None:
+        if self._config is None and self._try_load_config() is None:
             raise Exception("The reader index isn't defined.")
 
         return self._config.intervals

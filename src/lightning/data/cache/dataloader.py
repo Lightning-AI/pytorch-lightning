@@ -11,10 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
+import inspect
 import logging
 import os
 from importlib import reload
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -90,12 +92,19 @@ class CacheDataset(Dataset):
 
 
 class CacheCollateFn:
-    def __init__(self):
-        self.collate_fn = default_collate
+    def __init__(self, collate_fn: Optional[Callable] = None):
+        self.collate_fn = collate_fn or default_collate
 
     def __call__(self, items):
         if all(item is None for item in items):
             return None
+
+        # If the __getitem__ method is asynchornous, collect all the items.
+        if all(inspect.iscoroutine(item) for item in items):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            items = loop.run_until_complete(asyncio.gather(*items))
+
         return self.collate_fn(items)
 
 
@@ -206,6 +215,7 @@ class LightningDataLoader(DataLoader):
         chunk_bytes: Optional[int] = _DEFAULT_CHUNK_BYTES,
         compression: Optional[str] = None,
         profile: bool = False,
+        collate_fn: Optional[Callable] = None,
         **kwargs,
     ):
         if sampler:
@@ -269,7 +279,7 @@ class LightningDataLoader(DataLoader):
             sampler=None,
             batch_sampler=batch_sampler,
             generator=generator,
-            collate_fn=CacheCollateFn(),
+            collate_fn=CacheCollateFn(collate_fn),
             num_workers=num_workers,
             **kwargs,
         )

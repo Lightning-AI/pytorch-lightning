@@ -255,6 +255,7 @@ class BinaryWriter:
         self._is_done = True
 
     def merge(self, num_workers: int):
+        num_workers = num_workers or 1
         if self.rank != 0:
             while not os.path.exists(os.path.join(self._cache_dir, "index.json")):
                 sleep(0.001)

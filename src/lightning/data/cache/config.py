@@ -13,35 +13,36 @@
 
 import json
 import os
-import subprocess
-from subprocess import Popen
 from typing import Optional, Tuple
-from urllib import parse
 
+from lightning.data.cache.constants import INDEX_FILENAME
+from lightning.data.cache.downloader import get_downloader_cls
 from lightning.data.cache.pytree import treespec_loads
 from lightning.data.cache.sampler import ChunkedIndex
 
 
 class ChunksConfig:
-    def __init__(self, cache_dir: str, index_filenames: str, _remote_dir: Optional[str]):
+    def __init__(self, cache_dir: str, remote_dir: Optional[str]):
+        """The ChunksConfig reads the index files associated a chunked dataset and enables to map an index to its
+        chunk.
+
+        Arguments:
+            cache_dir: The path to cache folder.
+            remote_dir: The remote folder where the data are stored.
+
+        """
         self._cache_dir = cache_dir
-        self.index_filenames = sorted(index_filenames)
         self._intervals = []
         self._config = None
         self._chunks = []
-        self._remote_dir = _remote_dir
+        self._remote_dir = remote_dir
 
-        for filename in self.index_filenames:
-            with open(os.path.join(self._cache_dir, filename)) as f:
-                data = json.load(f)
+        with open(os.path.join(self._cache_dir, INDEX_FILENAME)) as f:
+            data = json.load(f)
 
-                if self._config is None:
-                    self._config = data["config"]
+            self._config = data["config"]
 
-                elif self._config != data["config"]:
-                    raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
-
-                self._chunks.extend(data["chunks"])
+            self._chunks.extend(data["chunks"])
 
         self._config["data_spec"] = treespec_loads(self._config["data_spec"])
 
@@ -54,7 +55,20 @@ class ChunksConfig:
             self._intervals.append(chunk["interval"])
 
         self._length = sum([chunk["chunk_size"] for chunk in self._chunks])
-        self._downloader = Downloader(_remote_dir, cache_dir, self._chunks)
+
+        self._downloader = None
+        if remote_dir:
+            self._downloader = get_downloader_cls(remote_dir)(remote_dir, cache_dir, self._chunks)
+
+    def download_chunk_from_index(self, chunk_index: int) -> None:
+        chunk_filename = self._chunks[chunk_index]["filename"]
+
+        local_chunkpath = os.path.join(self._cache_dir, chunk_filename)
+
+        if os.path.exists(local_chunkpath):
+            return None
+
+        return self._downloader.download_chunk_from_index(chunk_index)
 
     @property
     def intervals(self):
@@ -82,99 +96,17 @@ class ChunksConfig:
         return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]
 
     @classmethod
-    def load(cls, cache_dir: str, _remote_dir: Optional[str] = None) -> Optional["ChunksConfig"]:
-        if isinstance(_remote_dir, str):
-            Downloader.download_file_from_s3(
-                os.path.join(_remote_dir, "index.json"), os.path.join(cache_dir, "index.json")
-            )
-        files = os.listdir(cache_dir)
-        index_filenames = sorted([f for f in files if f.endswith("index.json")])
-        if not index_filenames:
+    def load(cls, cache_dir: str, remote_dir: Optional[str] = None) -> Optional["ChunksConfig"]:
+        cache_index_filepath = os.path.join(cache_dir, INDEX_FILENAME)
+
+        if isinstance(remote_dir, str):
+            downloader = get_downloader_cls(remote_dir)(remote_dir, cache_dir, [])
+            downloader.download_file(os.path.join(remote_dir, INDEX_FILENAME), cache_index_filepath)
+
+        if not os.path.exists(cache_index_filepath):
             return None
-        return ChunksConfig(cache_dir, index_filenames, _remote_dir)
+
+        return ChunksConfig(cache_dir, remote_dir)
 
     def __len__(self) -> int:
         return self._length
-
-
-class Downloader:
-    def __init__(self, _remote_dir: str, cache_dir: str, chunks):
-        self._processes = {}
-        self._credentials = None
-        self._remote_dir = _remote_dir
-        self._cache_dir = cache_dir
-        self._chunks = chunks
-
-    def create_credentials(self):
-        if self._credentials:
-            return
-
-        from botocore.credentials import InstanceMetadataProvider
-        from botocore.utils import InstanceMetadataFetcher
-
-        provider = InstanceMetadataProvider(iam_role_fetcher=InstanceMetadataFetcher(timeout=1000, num_attempts=2))
-
-        credentials = provider.load()
-
-        os.environ["AWS_ACCESS_KEY"] = credentials.access_key
-        os.environ["AWS_SECRET_ACCESS_KEY"] = credentials.secret_key
-        os.environ["AWS_SESSION_TOKEN"] = credentials.token
-        self._credentials = credentials
-
-    def chunk_index_download(self, index: int) -> None:
-        local_filepath = os.path.join(self._cache_dir, self._chunks[int(index)]["filename"])
-
-        if os.path.exists(local_filepath):
-            return
-
-        self.create_credentials()
-
-        remote_filepath = os.path.join(self._remote_dir, self._chunks[int(index)]["filename"])
-
-        if remote_filepath.startswith("s3://"):
-            self.download_file_from_s3_with_s5cmd(int(index), remote_filepath, local_filepath)
-
-            return
-
-        if remote_filepath.startswith("s3://"):
-            self.download_file_from_s3(remote_filepath, local_filepath)
-
-            return
-
-        raise ValueError(f"The provided `remote_filepath` isn't supported. Found {remote_filepath}.")
-
-    def download_file_from_s3_with_s5cmd(self, index, remote_filepath: str, local_filepath: str):
-        if index not in self._processes:
-            self._processes[index] = Popen(
-                f"s5cmd cp {remote_filepath} {local_filepath}".split(" "),
-                env=os.environ.copy(),
-                stdout=subprocess.DEVNULL,
-            ).wait()
-
-    @classmethod
-    def download_file_from_s3(cls, remote_filepath: str, local_filepath: str):
-        import boto3
-        from boto3.s3.transfer import TransferConfig
-        from botocore.config import Config
-
-        obj = parse.urlparse(remote_filepath)
-
-        if obj.scheme != "s3":
-            raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_filepath}")
-
-        extra_args = {}
-
-        # Create a new session per thread
-        session = boto3.session.Session()
-        # Create a resource client using a thread's session object
-        s3 = session.client("s3", config=Config(read_timeout=None))
-        # Threads calling S3 operations return RuntimeError (cannot schedule new futures after
-        # interpreter shutdown). Temporary solution is to have `use_threads` as `False`.
-        # Issue: https://github.com/boto/boto3/issues/3113
-        s3.download_file(
-            obj.netloc,
-            obj.path.lstrip("/"),
-            local_filepath,
-            ExtraArgs=extra_args,
-            Config=TransferConfig(use_threads=False),
-        )
