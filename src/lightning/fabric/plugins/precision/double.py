@@ -30,6 +30,9 @@ class DoublePrecision(Precision):
     def convert_module(self, module: Module) -> Module:
         return module.double()
 
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(torch.double)
+
     def module_init_context(self) -> ContextManager:
         return _DtypeContextManager(torch.double)
 

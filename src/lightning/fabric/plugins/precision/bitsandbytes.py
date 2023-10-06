@@ -116,6 +116,9 @@ class BitsandbytesPrecision(Precision):
                 m.compute_type_is_set = False
         return module
 
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self.dtype)
+
     def module_init_context(self) -> ContextManager:
         if self.ignore_modules:
             # cannot patch the Linear class if the user wants to skip some submodules
