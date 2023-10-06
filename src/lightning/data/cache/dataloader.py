@@ -276,7 +276,7 @@ class LightningDataLoader(DataLoader):
             cache = cache_list[0]
 
         if not cache.filled and shuffle:
-            logger.info("Shuffle is ignored during the caching phase phase")
+            logger.info("Shuffle is ignored during the caching phase phase.")
 
         self._cache = cache
 
