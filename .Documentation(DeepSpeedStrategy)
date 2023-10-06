@@ -1,0 +1,22 @@
+Table of Contents
+Introduction
+Activation Partitioning Basics
+Model Parallelism and Activation Partitioning
+Compatibility with Pipeline Parallelism
+Clarifying Usage Conditions
+Conclusion
+Introduction <a name="introduction"></a>
+Deepspeed activation partitioning is a powerful tool to optimize training for large deep learning models. This documentation aims to provide clarity on when and how to use activation partitioning in conjunction with model parallelism and zero-3.
+
+Activation Partitioning Basics <a name="activation-partitioning-basics"></a>
+Activation partitioning is a technique used to enhance training efficiency by splitting and managing activations across multiple devices or GPUs. It's a valuable tool when working with large models.
+
+Model Parallelism and Activation Partitioning <a name="model-parallelism-and-activation-partitioning"></a>
+Activation partitioning is closely linked to model parallelism, often implemented using the mpu object in Deepspeed. It's crucial to understand that activation partitioning primarily relies on the correct configuration of model parallelism, regardless of whether you're using zero-3.
+
+Key Steps:
+Configure Model Parallelism: Start by setting up model parallelism (mpu) following Deepspeed guidelines. This is the foundation for activation partitioning.
+
+Pipeline Design: Design your model and training pipeline to accommodate model parallelism effectively.
+
+Activate Partitioning: Once you have model parallelism correctly configured, enable activation partitioning to boost training performance.
