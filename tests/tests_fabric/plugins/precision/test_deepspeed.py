@@ -79,7 +79,7 @@ def test_selected_dtype(precision, expected_dtype):
         ("16-true", torch.float16),
     ],
 )
-def test_init_context(precision, expected_dtype):
+def test_module_init_context(precision, expected_dtype):
     plugin = DeepSpeedPrecision(precision=precision)
     with plugin.module_init_context():
         model = torch.nn.Linear(2, 2)
