@@ -26,7 +26,7 @@ import lightning.pytorch
 import pytest
 import torch.distributed
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 
 from tests_pytorch import _PATH_DATASETS
@@ -78,6 +78,7 @@ def restore_env_variables():
         "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # leaked by tensorboardX
         "TRITON_CACHE_DIR",  # leaked by torch.compile
+        "OMP_NUM_THREADS",  # set by our launchers
         # leaked by XLA
         "ALLOW_MULTIPLE_LIBTPU_LOAD",
         "GRPC_VERBOSITY",
@@ -148,14 +149,6 @@ def cuda_count_4(monkeypatch):
 
 
 def mock_mps_count(monkeypatch, n: int) -> None:
-    if n > 0 and not _TORCH_GREATER_EQUAL_1_12:
-
-        class MpsDeviceMock:
-            def __new__(cls, self, *args, **kwargs):
-                return "mps"
-
-        # torch doesn't allow creation of mps devices on older versions
-        monkeypatch.setattr("torch.device", MpsDeviceMock)
     monkeypatch.setattr(lightning.fabric.accelerators.mps, "_get_all_available_mps_gpus", lambda: [0] if n > 0 else [])
     monkeypatch.setattr(lightning.fabric.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
 

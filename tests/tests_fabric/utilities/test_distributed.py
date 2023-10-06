@@ -2,6 +2,7 @@ import functools
 import os
 from functools import partial
 from pathlib import Path
+from unittest import mock
 
 import pytest
 import torch
@@ -9,7 +10,13 @@ from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAc
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning.fabric.utilities.distributed import _gather_all_tensors, _sync_ddp, is_shared_filesystem
+from lightning.fabric.utilities.distributed import (
+    _gather_all_tensors,
+    _set_num_threads_if_needed,
+    _suggested_max_num_threads,
+    _sync_ddp,
+    is_shared_filesystem,
+)
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -158,3 +165,26 @@ def _test_is_shared_filesystem(strategy, tmp_path, monkeypatch):
 
     # Remote path is considered shared
     assert is_shared_filesystem(strategy, path="s3://my-bucket/data")
+
+
+@pytest.mark.parametrize("invalid", [-1, 0])
+def test_suggested_max_num_threads(invalid):
+    with pytest.raises(ValueError, match="should be >= 1"):
+        _suggested_max_num_threads(invalid)
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+@mock.patch("lightning.fabric.utilities.distributed.torch.set_num_threads")
+@mock.patch("lightning.fabric.utilities.distributed._num_cpus_available", return_value=4)
+@pytest.mark.parametrize(("num_processes", "expected"), [(1, 4), (2, 2), (3, 1), (4, 1), (8, 1)])
+def test_set_num_threads_if_needed(_, set_num_threads_mock, num_processes, expected):
+    assert "OMP_NUM_THREADS" not in os.environ
+    _set_num_threads_if_needed(num_processes)
+    set_num_threads_mock.assert_called_with(expected)
+    assert os.environ["OMP_NUM_THREADS"] == str(expected)
+
+    # if env variable is already set, no change
+    set_num_threads_mock.reset_mock()
+    _set_num_threads_if_needed(1)
+    set_num_threads_mock.assert_not_called()
+    assert os.environ["OMP_NUM_THREADS"] == str(expected)

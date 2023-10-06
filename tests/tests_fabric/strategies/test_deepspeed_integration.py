@@ -391,6 +391,7 @@ def test_deepspeed_init_module_with_stage_3(empty_init):
 
     with mock.patch("deepspeed.zero.Init") as zero_init_mock, fabric.init_module(empty_init=empty_init):
         BoringModel()
+    fabric.barrier()
     zero_init_mock.assert_called_once_with(enabled=True, remote_device=None, config_dict_or_path=ANY)
 
 
