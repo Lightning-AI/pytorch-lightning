@@ -299,7 +299,7 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
   # when all done, push back to the open PR
   git push -f
   ```
-- **Rebasing way**, see more about [rebase onto usage](https://womanonrails.com/git-rebase-onto)
+- **Rebasing way**, see more about [rebase onto usage](https://git-scm.com/book/en/v2/Git-Branching-Rebasing)
   ```bash
   git checkout my-branch
   # rebase your commits on the correct branch
