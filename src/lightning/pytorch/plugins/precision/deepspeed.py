@@ -78,7 +78,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
 
     @contextmanager
-    def module_init_context(self) -> Generator[None, None, None]:
+    def tensor_init_context(self) -> Generator[None, None, None]:
         if "true" not in self.precision:
             yield
             return
@@ -89,6 +89,11 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             yield
         finally:
             torch.set_default_dtype(default_dtype)
+
+    @contextmanager
+    def module_init_context(self) -> Generator[None, None, None]:
+        with self.tensor_init_context():
+            yield
 
     def backward(  # type: ignore[override]
         self,
