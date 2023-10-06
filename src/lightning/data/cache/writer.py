@@ -20,7 +20,7 @@ import numpy as np
 
 from lightning.data.cache.compression import _COMPRESSORS, Compressor
 from lightning.data.cache.constants import INDEX_FILENAME
-from lightning.data.cache.pytree import tree_flatten, treespec_dumps
+from lightning.data.cache.pytree import PyTree, tree_flatten, treespec_dumps
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
@@ -55,9 +55,8 @@ class BinaryWriter:
         self._chunk_bytes = chunk_bytes
         self._compression = compression
 
-        self._data_format = None
-        self._data_spec = None
-        self._num_workers = None
+        self._data_format: Optional[List[str]] = None
+        self._data_spec: Optional[PyTree] = None
 
         if self._compression:
             if len(_COMPRESSORS) == 0:
@@ -71,10 +70,10 @@ class BinaryWriter:
         self._current_chunk_bytes = 0
         self._chunk_index = 0
         self._serialized_items: List[bytes] = []
-        self._chunks_info = []
+        self._chunks_info: List[Dict[str, Any]] = []
         self._indexes: List[int] = []
-        self._worker_env = None
-        self._rank = None
+        self._worker_env: Optional[_WorkerEnv] = None
+        self._rank: Optional[int] = None
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
 
@@ -90,7 +89,7 @@ class BinaryWriter:
         return self._is_done
 
     @property
-    def rank(self):
+    def rank(self) -> int:
         """Returns the rank of the writer."""
         if self._rank is None:
             self._worker_env = _WorkerEnv.detect()
@@ -115,10 +114,10 @@ class BinaryWriter:
         flattened, data_spec = tree_flatten(items)
 
         # Collect the sizes and associated bytes for each item
-        sizes = []
-        data = []
+        sizes: List[int] = []
+        data: List[bytes] = []
 
-        data_format = []
+        data_format: List[str] = []
         for item in flattened:
             data_format.append(self._serialize(item, sizes, data))
 
@@ -139,7 +138,7 @@ class BinaryWriter:
         body = b"".join(data)
         return head + body
 
-    def _serialize(self, item: Any, sizes: List[int], data: List[bytes]) -> None:
+    def _serialize(self, item: Any, sizes: List[int], data: List[bytes]) -> str:
         """Serialize a given item and append its size and bytes to the sizes and data array."""
         for serializer_name, serializer in self._serializers.items():
             if serializer.can_serialize(item):
@@ -243,14 +242,14 @@ class BinaryWriter:
         with open(os.path.join(self._cache_dir, filename), "wb") as out:
             out.write(raw_data)
 
-    def write_chunks_index(self):
+    def write_chunks_index(self) -> None:
         """Write the chunks index to a JSON file."""
         filepath = os.path.join(self._cache_dir, f"{self.rank}.{INDEX_FILENAME}")
         config = self.get_config()
         with open(filepath, "w") as out:
             json.dump({"chunks": self._chunks_info, "config": config}, out, sort_keys=True)
 
-    def done(self):
+    def done(self) -> None:
         """Called when StopIteration is triggered."""
         if self.filled:
             return

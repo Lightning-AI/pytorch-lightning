@@ -26,7 +26,7 @@ class Downloader(ABC):
         chunk_filename = self._chunks[chunk_index]["filename"]
         local_chunkpath = os.path.join(self._cache_dir, chunk_filename)
         remote_chunkpath = os.path.join(self._remote_dir, chunk_filename)
-        return self.download_file(remote_chunkpath, local_chunkpath)
+        self.download_file(remote_chunkpath, local_chunkpath)
 
     @abstractmethod
     def download_file(self, remote_chunkpath: str, local_chunkpath: str) -> None:
@@ -35,7 +35,7 @@ class Downloader(ABC):
 
 class S3Downloader(Downloader):
     @classmethod
-    def downldownload_fileoad_file_from_s3(cls, remote_filepath: str, local_filepath: str):
+    def downldownload_fileoad_file_from_s3(cls, remote_filepath: str, local_filepath: str) -> None:
         import boto3
         from boto3.s3.transfer import TransferConfig
         from botocore.config import Config
@@ -45,7 +45,7 @@ class S3Downloader(Downloader):
         if obj.scheme != "s3":
             raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_filepath}")
 
-        extra_args = {}
+        extra_args: Dict[str, Any] = {}
 
         # Create a new session per thread
         session = boto3.session.Session()

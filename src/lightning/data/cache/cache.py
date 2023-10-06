@@ -13,7 +13,7 @@
 
 import logging
 import os
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from lightning.data.cache.constants import INDEX_FILENAME
 from lightning.data.cache.reader import BinaryReader
@@ -66,7 +66,7 @@ class Cache:
         self._is_done = os.path.exists(os.path.join(self._cache_dir, INDEX_FILENAME))
         return self._is_done
 
-    def __setitem__(self, index, data) -> None:
+    def __setitem__(self, index: int, data: Any) -> None:
         """Store an item in the writer."""
         self._writer[index] = data
 
@@ -87,7 +87,7 @@ class Cache:
     def __len__(self) -> int:
         return self._reader.get_length()
 
-    def get_chunk_interval(self):
+    def get_chunk_interval(self) -> List[Tuple[int, int]]:
         return self._reader.get_chunk_interval()
 
     def _get_chunk_index_from_index(self, index: int) -> int:

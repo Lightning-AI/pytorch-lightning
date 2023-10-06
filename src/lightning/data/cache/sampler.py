@@ -13,7 +13,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 import numpy as np
 
@@ -37,7 +37,7 @@ class CacheBatchSampler:
         batch_size: int,
         drop_last: bool,
         shuffle: bool,
-        cache: any,
+        cache: Any,
     ):
         """The CacheBatchSampler handles the generation of batch indices.
 
@@ -64,13 +64,18 @@ class CacheBatchSampler:
         self._shuffled_chunk_intervals = None
         self._batch_size = batch_size
 
+        self._drop_last = drop_last
+        self._length = 0
+
         # Before starting, ensures the chunk indices are properly defined.
         self._validate()
 
-    def _validate(self):
+    def _validate(self) -> None:
+        """Checks each worker is getting sucessive indices."""
         if self._num_workers > 1 and not self._cache.filled:
-            batches = {}
+            batches: Dict[int, Any] = {}
             for batch_index, batch_indices in enumerate(self):
+                self._length += 1
                 worker_index = batch_index % self._num_workers
                 if worker_index not in batches:
                     batches[worker_index] = []
@@ -84,25 +89,7 @@ class CacheBatchSampler:
                 if diff.sum() != 0:
                     raise RuntimeError("This shouldn't have happened. There is a bug in the CacheSampler.")
 
-    def __iter_ordered__(self) -> Iterator[List[int]]:
-        # Implemented based on the benchmarking in https://github.com/pytorch/pytorch/pull/76951
-        iterator = iter(self.sampler)
-        batch = []
-        while not self.sampler.done:
-            try:
-                idx = next(iterator)
-                batch.append(idx)
-                if len(batch) == self.batch_size:
-                    yield batch
-                    batch = []
-            except StopIteration:
-                if self.sampler.done:
-                    yield batch
-                    return
-                yield batch
-                batch = []
-
-    def __iter__(self):
+    def __iter__(self) -> Iterator[List[Union[int, ChunkedIndex]]]:
         # When the cache is filled, we need to iterate though the chunks
         if self._cache.filled:
             if self._num_replicas == 1:
@@ -114,9 +101,8 @@ class CacheBatchSampler:
             return self.__iter_non_distributed__()
         return self.__iter_distributed__()
 
-    def __iter_non_distributed__(self):
+    def __iter_non_distributed__(self) -> Iterator[List[Union[int, ChunkedIndex]]]:
         worker_size = self._dataset_size // self._num_workers
-        self.samplers = []
         indices = list(range(self._dataset_size))
         worker_indices = []
         for worker_idx in range(self._num_workers):
@@ -131,11 +117,10 @@ class CacheBatchSampler:
 
         yield from self.__iter_indices_per_workers__(worker_indices_batches)
 
-    def __iter_distributed__(self):
+    def __iter_distributed__(self) -> Iterator[List[Union[int, ChunkedIndex]]]:
         self.indices = list(range(self._dataset_size))
         replica_size = self._dataset_size // self._num_replicas
         worker_size = self._dataset_size // (self._num_replicas * self._num_workers)
-        self.samplers = []
         for rank in range(self._num_replicas):
             if rank != self._global_rank:
                 continue
@@ -160,13 +145,13 @@ class CacheBatchSampler:
 
         yield from self.__iter_indices_per_workers__(worker_indices_batches)
 
-    def __iter_from_chunks_non_distributed__(self):
+    def __iter_from_chunks_non_distributed__(self) -> Iterator[List[Union[int, ChunkedIndex]]]:
         chunk_intervals = self._cache.get_chunk_interval()
         shuffled_indexes = np.random.permutation(range(len(chunk_intervals)))
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
-        yield from self.__iter_from_shuffled_chunks(shuffled_indexes, shuffled_chunk_intervals)
+        yield from self.__iter_from_shuffled_chunks(shuffled_indexes.tolist(), shuffled_chunk_intervals)
 
-    def __iter_from_chunks_distributed__(self):
+    def __iter_from_chunks_distributed__(self) -> Iterator[List[Union[int, ChunkedIndex]]]:
         chunk_intervals = self._cache.get_chunk_interval()
         shuffled_indexes = np.random.permutation(range(len(chunk_intervals)))
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
@@ -180,12 +165,14 @@ class CacheBatchSampler:
 
         yield from self.__iter_from_shuffled_chunks(replica_chunks, replica_intervals)
 
-    def __iter_from_shuffled_chunks(self, shuffled_indexes, shuffled_chunk_intervals):
-        chunks_per_workers = [[] for _ in range(self._num_workers)]
+    def __iter_from_shuffled_chunks(
+        self, shuffled_indexes: List[int], shuffled_chunk_intervals: List[List[int]]
+    ) -> Iterator[List[Union[int, ChunkedIndex]]]:
+        chunks_per_workers: List[List[int]] = [[] for _ in range(self._num_workers)]
         for i, chunk_index in enumerate(shuffled_indexes):
             chunks_per_workers[i % self._num_workers].append(chunk_index)
 
-        indices_per_workers = [[] for _ in range(self._num_workers)]
+        indices_per_workers: List[List[ChunkedIndex]] = [[] for _ in range(self._num_workers)]
 
         for i, (chunk_index, chunk_interval) in enumerate(zip(shuffled_indexes, shuffled_chunk_intervals)):
             worker_id = i % self._num_workers
@@ -208,10 +195,12 @@ class CacheBatchSampler:
         yield from self.__iter_indices_per_workers__(indices_per_workers_splitted)
 
     def __len__(self) -> int:
-        return super().__len__()
+        return self._length
 
-    def __iter_indices_per_workers__(self, indices_per_workers):
-        batches = []
+    def __iter_indices_per_workers__(
+        self, indices_per_workers: List[List[List[Union[int, ChunkedIndex]]]]
+    ) -> Iterator[List[Union[int, ChunkedIndex]]]:
+        batches: List[List[Union[int, ChunkedIndex]]] = []
         counter = 0
         while sum([len(v) for v in indices_per_workers]) != 0:
             worker_indices = indices_per_workers[counter % self._num_workers]

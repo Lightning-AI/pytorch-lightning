@@ -12,15 +12,14 @@
 # limitations under the License.
 
 import os
-from contextlib import contextmanager
 from threading import Lock, Thread
-from time import sleep, time
-from typing import Any, Dict, List, Optional
+from time import sleep
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
 from lightning.data.cache.config import ChunksConfig
-from lightning.data.cache.pytree import tree_unflatten
+from lightning.data.cache.pytree import PyTree, tree_unflatten
 from lightning.data.cache.sampler import ChunkedIndex
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
@@ -29,11 +28,11 @@ from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 class PrepareChunksThread(Thread):
     """This thread is responsible to download the chunks associated to a given worker."""
 
-    def __init__(self, config: ChunksConfig):
+    def __init__(self, config: ChunksConfig) -> None:
         super().__init__(daemon=True)
         self._config = config
-        self._chunks_index_to_be_processed = []
-        self._chunks_index_to_ready = []
+        self._chunks_index_to_be_processed: List[int] = []
+        self._chunks_index_to_ready: List[int] = []
         self._lock = Lock()
 
     def add(self, chunk_indices: List[int]) -> None:
@@ -41,7 +40,7 @@ class PrepareChunksThread(Thread):
         with self._lock:
             self._chunks_index_to_be_processed.extend(chunk_indices)
 
-    def run(self):
+    def run(self) -> None:
         while True:
             with self._lock:
                 if len(self._chunks_index_to_be_processed) == 0:
@@ -55,7 +54,7 @@ class PrepareChunksThread(Thread):
 
 
 class BinaryReader:
-    def __init__(self, cache_dir: str, remote_dir: Optional[str] = None, compression: Optional[str] = None):
+    def __init__(self, cache_dir: str, remote_dir: Optional[str] = None, compression: Optional[str] = None) -> None:
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
         Arguments:
@@ -72,50 +71,41 @@ class BinaryReader:
             raise FileNotFoundError(f"The provided cache_dir `{self._cache_dir}` doesn't exist.")
 
         self._compression = compression
-        self._config = None
-        self._intervals = None
+        self._intervals: Optional[List[str]] = None
 
-        self._chunks_data = {}
         self._serializers: Dict[str, Serializer] = _SERIALIZERS
-
         self._distributed_env = _DistributedEnv.detect()
-        self._rank = None
+        self._rank: Optional[int] = None
         self._config: Optional[ChunksConfig] = None
-        self._latest_chunk_index = None
-        self._executor = None
-        self._prepare_thread = None
+        self._prepare_thread: Optional[PrepareChunksThread] = None
 
-    def _get_chunk_index_from_index(self, index: int):
+    def _get_chunk_index_from_index(self, index: int) -> int:
         # Load the config containing the index
-        if self._config is None:
-            self._try_load_config()
+        if self._config is None and self._try_load_config() is None:
+            raise Exception("The reader index isn't defined.")
 
-            if self._config is None:
-                raise Exception("The reader index isn't defined.")
+        return self._config._get_chunk_index_from_index(index)  # type: ignore
 
-        return self._config._get_chunk_index_from_index(index)
-
-    def _try_load_config(self):
+    def _try_load_config(self) -> Optional[ChunksConfig]:
         """Try to load the chunks config if the index files are available."""
         self._config = ChunksConfig.load(self._cache_dir, self._remote_dir)
         return self._config
 
     @property
-    def rank(self):
+    def config(self) -> ChunksConfig:
+        if self._config is None:
+            raise RuntimeError("The config should be defined.")
+        return self._config
+
+    @property
+    def rank(self) -> int:
         """Returns the rank of the writer."""
         if self._rank is None:
             self._worker_env = _WorkerEnv.detect()
             self._rank = self._distributed_env.global_rank * self._worker_env.world_size + self._worker_env.rank
         return self._rank
 
-    @contextmanager
-    def measure_on_rank_0(self, msg: str):
-        if self.rank == 0:
-            t0 = time()
-            yield
-            print(msg, time() - t0)
-
-    def read(self, index: ChunkedIndex):
+    def read(self, index: ChunkedIndex) -> Any:
         """Read an item for the given from a chunk.
 
         If the chunk isn't available locally or in memory, it will be downloaded.
@@ -131,29 +121,29 @@ class BinaryReader:
             raise Exception("The reader index isn't defined.")
 
         # Create and start the prepare chunks thread
-        if index.chunk_indexes is not None and self._prepare_thread is None:
+        if index.chunk_indexes is not None and self._prepare_thread is None and self._config:
             self._prepare_thread = PrepareChunksThread(self._config)
             self._prepare_thread.start()
             self._prepare_thread.add(index.chunk_indexes)
 
         # Fetch the element
-        chunk_filepath, begin, _ = self._config[index]
+        chunk_filepath, begin, _ = self.config[index]
         raw_item_data = self.load_item_from_chunk(index.index, chunk_filepath, begin)
         return self.deserialize(raw_item_data)
 
-    def deserialize(self, raw_item_data: bytes) -> Any:
+    def deserialize(self, raw_item_data: bytes) -> PyTree:
         """Deserialize the raw bytes into their python equivalent."""
-        idx = len(self._config.data_format) * 4
+        idx = len(self.config.data_format) * 4
         sizes = np.frombuffer(raw_item_data[:idx], np.uint32)
         data = []
-        for size, data_format in zip(sizes, self._config.data_format):
+        for size, data_format in zip(sizes, self.config.data_format):
             serializer = self._serializers[data_format]
             data_bytes = raw_item_data[idx : idx + size]
             data.append(serializer.deserialize(data_bytes))
             idx += size
-        return tree_unflatten(data, self._config.config["data_spec"])
+        return tree_unflatten(data, self.config.config["data_spec"])
 
-    def load_item_from_chunk(self, index: int, chunk_filepath: str, begin: int):
+    def load_item_from_chunk(self, index: int, chunk_filepath: str, begin: int) -> bytes:
         offset = (1 + (index - begin)) * 4
 
         while not os.path.exists(chunk_filepath):
@@ -172,11 +162,11 @@ class BinaryReader:
         if self._config is None and self._try_load_config() is None:
             raise Exception("The reader index isn't defined.")
 
-        return len(self._config)
+        return len(self.config)
 
-    def get_chunk_interval(self):
+    def get_chunk_interval(self) -> List[Tuple[int, int]]:
         """Get the index interval of each chunk."""
         if self._config is None and self._try_load_config() is None:
             raise Exception("The reader index isn't defined.")
 
-        return self._config.intervals
+        return self.config.intervals

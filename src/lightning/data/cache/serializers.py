@@ -15,6 +15,7 @@ import pickle
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from io import BytesIO
+from typing import Any
 
 import numpy as np
 import torch
@@ -38,15 +39,15 @@ class Serializer(ABC):
     """
 
     @abstractmethod
-    def serialize(self, data: any) -> bytes:
+    def serialize(self, data: Any) -> bytes:
         pass
 
     @abstractmethod
-    def deserialize(self, data: bytes) -> any:
+    def deserialize(self, data: bytes) -> Any:
         pass
 
     @abstractmethod
-    def can_serialize(self, data: any) -> bool:
+    def can_serialize(self, data: Any) -> bool:
         pass
 
 
@@ -60,7 +61,7 @@ class PILSerializer(Serializer):
         ints = np.array([width, height, len(mode)], np.uint32)
         return ints.tobytes() + mode + raw
 
-    def deserialize(self, data: bytes) -> any:
+    def deserialize(self, data: bytes) -> Any:
         idx = 3 * 4
         width, height, mode_size = np.frombuffer(data[:idx], np.uint32)
         idx2 = idx + mode_size
@@ -69,7 +70,7 @@ class PILSerializer(Serializer):
         raw = data[idx2:]
         return Image.frombytes(mode, size, raw)  # pyright: ignore
 
-    def can_serialize(self, item) -> bool:
+    def can_serialize(self, item: Any) -> bool:
         return isinstance(item, Image.Image) and not isinstance(item, JpegImageFile)
 
 
@@ -82,7 +83,7 @@ class IntSerializer(Serializer):
     def deserialize(self, data: bytes) -> int:
         return int(data.decode("utf-8"))
 
-    def can_serialize(self, item) -> bool:
+    def can_serialize(self, item: Any) -> bool:
         return isinstance(item, int)
 
 
@@ -103,7 +104,7 @@ class JPEGSerializer(Serializer):
         inp = BytesIO(data)
         return Image.open(inp)
 
-    def can_serialize(self, item) -> bool:
+    def can_serialize(self, item: Any) -> bool:
         return isinstance(item, JpegImageFile)
 
 
@@ -147,7 +148,7 @@ _TORCH_DTYPES_MAPPING = {
 class TensorSerializer(Serializer):
     """The TensorSerializer serialize and deserialize tensor to and from bytes."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
 
@@ -177,14 +178,14 @@ class TensorSerializer(Serializer):
 class PickleSerializer(Serializer):
     """The PickleSerializer serialize and deserialize python objects to and from bytes."""
 
-    def serialize(self, item: any) -> bytes:
+    def serialize(self, item: Any) -> bytes:
         return pickle.dumps(item)
 
-    def deserialize(self, data: bytes) -> any:
+    def deserialize(self, data: bytes) -> Any:
         return pickle.loads(data)
 
-    def can_serialize(self, item: any) -> bool:
-        return isinstance(item, any)
+    def can_serialize(self, _: Any) -> bool:
+        return True
 
 
 _SERIALIZERS = OrderedDict(

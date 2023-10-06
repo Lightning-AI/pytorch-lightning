@@ -36,7 +36,7 @@ class Compressor(ABC):
         pass
 
     @abstractclassmethod
-    def register(cls, compressors: Dict[str, TCompressor]):
+    def register(cls, compressors: Dict[str, "Compressor"]) -> None:
         pass
 
 
@@ -44,13 +44,13 @@ class ZSTDCompressor(Compressor):
     """Compressor for the zstd package."""
 
     @requires("zstd")
-    def __init__(self, level):
+    def __init__(self, level: int) -> None:
         super().__init__()
         self.level = level
         self.extension = "zstd"
 
     @property
-    def name(self):
+    def name(self) -> str:
         return f"{self.extension}:{self.level}"
 
     def compress(self, data: bytes) -> bytes:
@@ -60,7 +60,7 @@ class ZSTDCompressor(Compressor):
         return zstd.decompress(data)
 
     @classmethod
-    def register(cls, compressors):
+    def register(cls, compressors: Dict[str, "Compressor"]) -> None:  # type: ignore
         if not _ZSTD_AVAILABLE:
             return
 
@@ -71,6 +71,6 @@ class ZSTDCompressor(Compressor):
             compressors[f"zstd:{level}"] = ZSTDCompressor(level)
 
 
-_COMPRESSORS = {}
+_COMPRESSORS: Dict[str, Compressor] = {}
 
 ZSTDCompressor.register(_COMPRESSORS)

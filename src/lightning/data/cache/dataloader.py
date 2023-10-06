@@ -16,18 +16,21 @@ import inspect
 import logging
 import os
 from importlib import reload
-from typing import Any, Callable, Optional
+from typing import Any, Callable, List, Optional
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import Dataset, IterableDataset
 from torch.utils.data._utils.collate import default_collate
+from torch.utils.data._utils.fetch import _BaseDatasetFetcher
 from torch.utils.data.dataloader import (
     DataLoader,
     _BaseDataLoaderIter,
+    _DatasetKind,
     _MultiProcessingDataLoaderIter,
     _SingleProcessDataLoaderIter,
 )
+from torch.utils.data.sampler import BatchSampler, Sampler
 
 from lightning.data.cache import Cache
 from lightning.data.cache.pytree import tree_flatten
@@ -51,22 +54,24 @@ def _equal_items(data_1: Any, data_2: Any) -> bool:
     return all(_equal_item(d1, d2) for d1, d2 in zip(data_1_flattened, data_2_flattened))
 
 
-def _equal_item(d1, d2) -> bool:
+def _equal_item(d1: Any, d2: Any) -> bool:
     if not isinstance(d1, type(d2)):
-        raise False
+        return False
     equality = d1 == d2
     if isinstance(equality, torch.Tensor):
-        return equality.all()
-    return equality
+        return bool(equality.all().item())
+    if equality is True:
+        return True
+    return False
 
 
 class CacheDataset(Dataset):
     def __init__(
         self,
-        dataset: Dataset,
-        cache_dir: Optional[str],
+        dataset: Any,
+        cache_dir: str,
         chunk_bytes: Optional[int],
-        chunk_size: int,
+        chunk_size: Optional[int],
         compression: Optional[str],
     ):
         """The `CacheDataset` is a dataset wraper to provide a beginner experience with the Cache.
@@ -79,18 +84,18 @@ class CacheDataset(Dataset):
             compression: The compression algorithm to use to reduce the size of the chunk.
 
         """
-        self._datataset = dataset
+        self._dataset = dataset
         self._cache = Cache(cache_dir, chunk_bytes=chunk_bytes, chunk_size=chunk_size, compression=compression)
         self._is_deterministic = False
 
     def __len__(self) -> int:
-        return len(self._cache) if self._cache.filled else len(self._datataset)
+        return len(self._cache) if self._cache.filled else len(self._dataset)
 
-    def __getitem__(self, index):
-        data_1 = self._cache[index] if self._cache.filled else self._datataset[index]
+    def __getitem__(self, index: int) -> Any:
+        data_1 = self._cache[index] if self._cache.filled else self._dataset[index]
         if not self._cache.filled:
             if not self._is_deterministic:
-                data2 = self._datataset[index]
+                data2 = self._dataset[index]
                 if not _equal_items(data_1, data2):
                     raise ValueError(
                         f"Your dataset items aren't deterministic. Found {data_1} and {data2} for index {index}."
@@ -110,10 +115,10 @@ class CacheCollateFn:
 
     """
 
-    def __init__(self, collate_fn: Optional[Callable] = None):
+    def __init__(self, collate_fn: Optional[Callable] = None) -> None:
         self.collate_fn = collate_fn or default_collate
 
-    def __call__(self, items):
+    def __call__(self, items: List[Any]) -> Any:
         if all(item is None for item in items):
             return None
 
@@ -129,7 +134,7 @@ class CacheCollateFn:
 class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
     """This is overriden to inform the cache is done chunking."""
 
-    def _next_data(self):
+    def _next_data(self) -> Any:
         try:
             data = None
             while data is None:
@@ -151,8 +156,7 @@ class WorkerLoop:
         self._global_rank = global_rank
         self._profile = profile
 
-    def __call__(self, dataset_kind, *args, **kwargs):
-        from torch.utils.data import _DatasetKind
+    def __call__(self, dataset_kind: _DatasetKind, *args: Any, **kwargs: Any) -> None:
         from torch.utils.data._utils import worker
 
         from lightning.data.cache.cache import Cache
@@ -171,16 +175,17 @@ class WorkerLoop:
         create_fetcher = _DatasetKind.create_fetcher
         fetcher = None
 
-        def create_fetcher_fn(*args, **kwargs):
+        def create_fetcher_fn(*args: Any, **kwargs: Any) -> "_BaseDatasetFetcher":
             nonlocal fetcher
             fetcher = create_fetcher(*args, **kwargs)
             return fetcher
 
-        _DatasetKind.create_fetcher = create_fetcher_fn
+        _DatasetKind.create_fetcher = create_fetcher_fn  # type: ignore
 
         reloaded_worker._worker_loop(dataset_kind, *args, **kwargs)
 
         if dataset_kind == _DatasetKind.Map:
+            assert fetcher
             for v in fetcher.dataset.__dict__.values():
                 if isinstance(v, Cache):
                     v.done()
@@ -191,7 +196,7 @@ class WorkerLoop:
 
 
 class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
-    def __init__(self, loader):
+    def __init__(self, loader: DataLoader) -> None:
         self._cache = loader._cache
         self._num_workers = loader.num_workers
         # Patch PyTorch worker loop to call the `cache.done()` method.
@@ -200,14 +205,14 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
         worker._worker_loop = WorkerLoop(loader._global_rank, loader._profile)
         super().__init__(loader)
 
-    def _shutdown_workers(self):
+    def _shutdown_workers(self) -> None:
         super()._shutdown_workers()
 
         # If the data isn't filled, we trigger an indedm merge
         if not self._cache.filled:
             self._cache.merge(self._num_workers)
 
-    def _next_data(self):
+    def _next_data(self) -> Any:
         try:
             data = None
             while data is None:
@@ -222,22 +227,22 @@ class LightningDataLoader(DataLoader):
 
     def __init__(
         self,
-        dataset,
-        *args,
-        sampler=None,
-        batch_sampler=None,
-        num_workers=0,
+        dataset: Any,
+        *args: Any,
+        sampler: Optional[Sampler] = None,
+        batch_sampler: Optional[BatchSampler] = None,
+        num_workers: int = 0,
         shuffle: bool = False,
-        generator=None,
-        batch_size=None,
-        drop_last=False,
+        generator: Optional[torch.Generator] = None,
+        batch_size: Optional[int] = None,
+        drop_last: bool = False,
         cache_dir: Optional[str] = None,
         chunk_bytes: Optional[int] = _DEFAULT_CHUNK_BYTES,
         compression: Optional[str] = None,
         profile: bool = False,
         collate_fn: Optional[Callable] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         if sampler:
             raise ValueError(
                 "The LightningDataLoader relies on its own internal sampler. Passing a sampler isn't supported."
@@ -254,21 +259,21 @@ class LightningDataLoader(DataLoader):
         if profile and not _VIZ_TRACKER_AVAILABLE:
             raise ModuleNotFoundError("To enable DataLoader profiling, run `pip install viztracer`.")
 
-        cache = [v for v in dataset.__dict__.values() if isinstance(v, Cache)]
+        cache_list = [v for v in dataset.__dict__.values() if isinstance(v, Cache)]
 
-        if len(cache) > 1:
+        if len(cache_list) > 1:
             raise ValueError(
                 "We found several Cache used as attributes from your dataset. Only one is support for now."
             )
 
-        if len(cache) == 0:
+        if len(cache_list) == 0:
             if cache_dir is None:
                 raise ValueError("You should provide a `cache_dir` filepath to the LightningDataLoader.")
 
             dataset = CacheDataset(dataset, cache_dir, chunk_bytes, batch_size, compression)
             cache = dataset._cache
         else:
-            cache = cache[0]
+            cache = cache_list[0]
 
         cache._setup(num_workers)
 
@@ -296,9 +301,7 @@ class LightningDataLoader(DataLoader):
         super().__init__(
             dataset,
             *args,
-            sampler=None,
-            batch_sampler=batch_sampler,
-            generator=generator,
+            batch_sampler=batch_sampler,  # type: ignore
             collate_fn=CacheCollateFn(collate_fn),
             num_workers=num_workers,
             **kwargs,
