@@ -24,6 +24,7 @@ from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.strategies.launchers.launcher import _Launcher
+from lightning.fabric.utilities.distributed import _set_num_threads_if_needed
 from lightning.fabric.utilities.rank_zero import rank_prefixed_message
 
 _logger = logging.getLogger(__name__)
@@ -98,6 +99,8 @@ class _SubprocessScriptLauncher(_Launcher):
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
             _launch_process_observer(self.procs)
+
+        _set_num_threads_if_needed(num_processes=self.num_processes)
         return function(*args, **kwargs)
 
     def _call_children_scripts(self) -> None:

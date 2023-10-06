@@ -60,9 +60,8 @@ class Tqdm(_tqdm):
 
 
 class TQDMProgressBar(ProgressBar):
-    r"""
-    This is the default progress bar used by Lightning. It prints to ``stdout`` using the
-    :mod:`tqdm` package and shows up to four different bars:
+    r"""This is the default progress bar used by Lightning. It prints to ``stdout`` using the :mod:`tqdm` package and
+    shows up to four different bars:
 
         - **sanity check progress:** the progress during the sanity check run
         - **train progress:** shows the training progress. It will pause if validation starts and will resume
@@ -98,6 +97,7 @@ class TQDMProgressBar(ProgressBar):
             together. This corresponds to
             :paramref:`~lightning.pytorch.trainer.trainer.Trainer.process_position` in the
             :class:`~lightning.pytorch.trainer.trainer.Trainer`.
+
     """
 
     BAR_FORMAT = "{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_noinv_fmt}{postfix}]"

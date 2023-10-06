@@ -89,7 +89,7 @@ The below table lists all relevant strategies available in Lightning with their 
      - Strategy for training on a single HPU device. :doc:`Learn more. <../integrations/hpu/index>`
    * - ipu_strategy
      - ``IPUStrategy``
-     - Plugin for training on IPU devices. :doc:`Learn more. <../accelerators/ipu>`
+     - Plugin for training on IPU devices. :doc:`Learn more. <../integrations/ipu/index>`
    * - xla
      - :class:`~lightning.pytorch.strategies.XLAStrategy`
      - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method. :doc:`Learn more. <../accelerators/tpu>`

@@ -22,7 +22,7 @@ jobs:
   init:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: |
           mkdir dist && touch dist/.placeholder
       - name: Keep artifact
@@ -42,7 +42,7 @@ jobs:
       matrix:
         pkg-name: ${{ fromJSON(inputs.pkg-names) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.artifact-name }}

@@ -4,6 +4,7 @@ from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, TorchChec
 from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision.amp import MixedPrecisionPlugin
+from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecisionPlugin
 from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from lightning.pytorch.plugins.precision.double import DoublePrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin, FSDPPrecisionPlugin
@@ -20,6 +21,7 @@ __all__ = [
     "CheckpointIO",
     "TorchCheckpointIO",
     "XLACheckpointIO",
+    "BitsandbytesPrecisionPlugin",
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
     "HalfPrecisionPlugin",

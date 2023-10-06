@@ -63,7 +63,7 @@ class _DefaultOutputData(BaseModel):
 
 
 class Image(BaseModel):
-    image: Optional[str]
+    image: Optional[str] = None
 
     @staticmethod
     def get_sample_data() -> Dict[Any, Any]:
@@ -74,27 +74,19 @@ class Image(BaseModel):
 
     @staticmethod
     def request_code_sample(url: str) -> str:
-        return (
-            """import base64
+        return f"""
+import base64
 from pathlib import Path
 import requests
 
 imgurl = "https://raw.githubusercontent.com/Lightning-AI/LAI-Triton-Server-Component/main/catimage.png"
 img = requests.get(imgurl).content
 img = base64.b64encode(img).decode("UTF-8")
-response = requests.post('"""
-            + url
-            + """', json={
-"image": img
-})
+response = requests.post('{url}', json={{"image": img}})
 # If you are using basic authentication for your app, you should add your credentials to the request:
-# response = requests.post('"""
-            + url
-            + """', json={
-# "image": img
-# }, auth=requests.auth.HTTPBasicAuth('your_username', 'your_password'))
+# auth = requests.auth.HTTPBasicAuth('your_username', 'your_password')
+# response = requests.post('{url}', json={{"image": img}}, auth=auth)
 """
-        )
 
     @staticmethod
     def response_code_sample() -> str:
@@ -105,11 +97,11 @@ Path("response.png").write_bytes(img)
 
 
 class Category(BaseModel):
-    category: Optional[int]
+    category: Optional[int] = None
 
     @staticmethod
     def get_sample_data() -> Dict[Any, Any]:
-        return {"prediction": 463}
+        return {"category": 463}
 
     @staticmethod
     def response_code_sample() -> str:
@@ -118,7 +110,7 @@ class Category(BaseModel):
 
 
 class Text(BaseModel):
-    text: Optional[str]
+    text: Optional[str] = None
 
     @staticmethod
     def get_sample_data() -> Dict[Any, Any]:
@@ -126,30 +118,24 @@ class Text(BaseModel):
 
     @staticmethod
     def request_code_sample(url: str) -> str:
-        return (
-            """import base64
+        return f"""
+import base64
 from pathlib import Path
 import requests
 
-response = requests.post('"""
-            + url
-            + """', json={
-"text": "A portrait of a person looking away from the camera"
-})
+response = requests.post('{url}', json={{
+    "text": "A portrait of a person looking away from the camera"
+}})
 # If you are using basic authentication for your app, you should add your credentials to the request:
-# response = requests.post('"""
-            + url
-            + """', json={
-# "text": "A portrait of a person looking away from the camera"
-# }, auth=requests.auth.HTTPBasicAuth('your_username', 'your_password'))
+# response = requests.post('{url}', json={{
+#     "text": "A portrait of a person looking away from the camera"
+# }}, auth=requests.auth.HTTPBasicAuth('your_username', 'your_password'))
 """
-        )
 
 
 class Number(BaseModel):
-    # deprecated
-    # TODO remove this in favour of Category
-    prediction: Optional[int]
+    # deprecated - TODO remove this in favour of Category
+    prediction: Optional[int] = None
 
     @staticmethod
     def get_sample_data() -> Dict[Any, Any]:

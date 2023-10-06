@@ -29,6 +29,7 @@ from lightning.fabric.plugins import (
     HalfPrecision,
     MixedPrecision,
     Precision,
+    TransformerEnginePrecision,
     XLAPrecision,
 )
 from lightning.fabric.plugins.environments import (
@@ -48,7 +49,6 @@ from lightning.fabric.plugins.precision.precision import (
     _PRECISION_INPUT_STR_ALIAS,
     _PRECISION_INPUT_STR_ALIAS_CONVERSION,
 )
-from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
     STRATEGY_REGISTRY,
     DeepSpeedStrategy,
@@ -106,7 +106,7 @@ class _Connector:
         strategy: Union[str, Strategy] = "auto",
         devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
-        precision: _PRECISION_INPUT = "32-true",
+        precision: Optional[_PRECISION_INPUT] = None,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
         # These arguments can be set through environment variables set by the CLI
@@ -169,7 +169,7 @@ class _Connector:
         self,
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
-        precision: _PRECISION_INPUT,
+        precision: Optional[_PRECISION_INPUT],
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
     ) -> None:
         """This method checks:
@@ -226,7 +226,7 @@ class _Connector:
 
         self._accelerator_flag = accelerator
 
-        self._precision_input = _convert_precision_to_unified_args(precision)
+        precision_input = _convert_precision_to_unified_args(precision)
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -252,6 +252,14 @@ class _Connector:
                     f"Received multiple values for {', '.join(duplicated_plugin_key)} flags in `plugins`."
                     " Expected one value for each type at most."
                 )
+
+            if plugins_flags_types.get(Precision.__name__) and precision_input is not None:
+                raise ValueError(
+                    f"Received both `precision={precision_input}` and `plugins={self._precision_instance}`."
+                    f" Choose one."
+                )
+
+        self._precision_input = "32-true" if precision_input is None else precision_input
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
@@ -462,7 +470,9 @@ class _Connector:
         if self._precision_input == "64-true":
             return DoublePrecision()
         if self._precision_input == "transformer-engine":
-            return TransformerEnginePrecision()
+            return TransformerEnginePrecision(dtype=torch.bfloat16)
+        if self._precision_input == "transformer-engine-float16":
+            return TransformerEnginePrecision(dtype=torch.float16)
 
         if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(
@@ -551,7 +561,10 @@ class _Connector:
         return env_value
 
 
-def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISION_INPUT_STR:
+def _convert_precision_to_unified_args(precision: Optional[_PRECISION_INPUT]) -> Optional[_PRECISION_INPUT_STR]:
+    if precision is None:
+        return None
+
     supported_precision = (
         get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT) + get_args(_PRECISION_INPUT_STR_ALIAS)
     )

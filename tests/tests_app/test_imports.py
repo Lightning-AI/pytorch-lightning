@@ -54,6 +54,7 @@ def test_import_depth(
 
     Args:
         ignore: Sub-module paths to ignore (usually sub-modules that are not intended to be user-facing).
+
     """
     exports = _find_exports(lightning.app)
     depths = {export: len(path.replace("lightning.app", "").split(".")) for export, path in exports.items()}
