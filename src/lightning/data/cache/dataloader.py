@@ -69,8 +69,7 @@ class CacheDataset(Dataset):
         chunk_size: int,
         compression: Optional[str],
     ):
-        """
-        The `CacheDataset` is a dataset wraper to provide a beginner experience with the Cache.
+        """The `CacheDataset` is a dataset wraper to provide a beginner experience with the Cache.
 
         Arguments:
             dataset: The dataset of the user
@@ -78,6 +77,7 @@ class CacheDataset(Dataset):
             chunk_bytes: The maximal number of bytes to write within a chunk.
             chunk_sie: The maximal number of items to write to a chunk.
             compression: The compression algorithm to use to reduce the size of the chunk.
+
         """
         self._datataset = dataset
         self._cache = Cache(cache_dir, chunk_bytes=chunk_bytes, chunk_size=chunk_size, compression=compression)
