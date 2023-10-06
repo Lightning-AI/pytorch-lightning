@@ -35,7 +35,7 @@ class Downloader(ABC):
 
 class S3Downloader(Downloader):
     @classmethod
-    def downldownload_fileoad_file_from_s3(cls, remote_filepath: str, local_filepath: str) -> None:
+    def download_file(cls, remote_filepath: str, local_filepath: str) -> None:
         import boto3
         from boto3.s3.transfer import TransferConfig
         from botocore.config import Config
