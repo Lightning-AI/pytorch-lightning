@@ -443,6 +443,7 @@ class ModelPruning(Callback):
             MisconfigurationException:
                 If ``parameters_to_prune`` doesn't exist in the model, or
                 if ``parameters_to_prune`` is neither a list nor a tuple.
+
         """
         parameters = parameter_names or ModelPruning.PARAMETER_NAMES
 

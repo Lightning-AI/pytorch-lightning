@@ -894,8 +894,8 @@ def test_deepspeed_multigpu_test(tmpdir):
 @pytest.mark.xfail(strict=False, reason="Partial parameter partitioning for DeepSpeed is currently broken.")
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
-    """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_model``
-    correctly converts all parameters to float16 when ``precision=16`` and runs successfully."""
+    """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_model`` correctly
+    converts all parameters to float16 when ``precision=16`` and runs successfully."""
 
     class TestModel(ModelParallelBoringModel):
         def __init__(self):

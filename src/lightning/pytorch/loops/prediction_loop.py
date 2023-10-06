@@ -282,6 +282,7 @@ class _PredictionLoop(_Loop):
 
         Returns:
             the dictionary containing all the keyboard arguments for the predict step
+
         """
         step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
         if dataloader_idx is not None:
@@ -353,6 +354,7 @@ class _PredictionLoop(_Loop):
 
         Returns:
             the results for all dataloaders
+
         """
         trainer = self.trainer
         call._call_callback_hooks(trainer, "on_predict_epoch_end")

@@ -154,15 +154,16 @@ class _AutomaticOptimization(_Loop):
         self.optim_progress: _OptimizationProgress = _OptimizationProgress()
         self._skip_backward: bool = False
 
-    def run(self, optimizer: Optimizer, kwargs: OrderedDict) -> _OUTPUTS_TYPE:
+    def run(self, optimizer: Optimizer, batch_idx: int, kwargs: OrderedDict) -> _OUTPUTS_TYPE:
         """Runs closure (train step + backward) together with optimization if necessary.
 
         Args:
             kwargs: the kwargs passed down to the hooks
+            batch_idx: the current batch index.
             optimizer: the optimizer
 
         """
-        closure = self._make_closure(kwargs, optimizer)
+        closure = self._make_closure(kwargs, optimizer, batch_idx)
 
         if (
             # when the strategy handles accumulation, we want to always call the optimizer step
@@ -183,19 +184,19 @@ class _AutomaticOptimization(_Loop):
         # ------------------------------
         # gradient update with accumulated gradients
         else:
-            self._optimizer_step(kwargs.get("batch_idx", 0), closure)
+            self._optimizer_step(batch_idx, closure)
 
         result = closure.consume_result()
         if result.loss is None:
             return {}
         return result.asdict()
 
-    def _make_closure(self, kwargs: OrderedDict, optimizer: Optimizer) -> Closure:
+    def _make_closure(self, kwargs: OrderedDict, optimizer: Optimizer, batch_idx: int) -> Closure:
         """Build a closure object that captures the given arguments and runs the `training_step` function and
         optionally other functions such as `backward` and `zero_grad`."""
         step_fn = self._make_step_fn(kwargs)
         backward_fn = self._make_backward_fn(optimizer)
-        zero_grad_fn = self._make_zero_grad_fn(kwargs.get("batch_idx", 0), optimizer)
+        zero_grad_fn = self._make_zero_grad_fn(batch_idx, optimizer)
         return Closure(step_fn=step_fn, backward_fn=backward_fn, zero_grad_fn=zero_grad_fn)
 
     def _make_step_fn(self, kwargs: OrderedDict) -> Callable[[], ClosureResult]:
@@ -278,6 +279,7 @@ class _AutomaticOptimization(_Loop):
 
         Args:
             optimizer: the current optimizer
+
         """
         trainer = self.trainer
         self.optim_progress.optimizer.zero_grad.increment_ready()

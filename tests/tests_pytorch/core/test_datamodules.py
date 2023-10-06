@@ -336,6 +336,7 @@ def test_dm_init_from_datasets_with_init_params():
     """Test that extra kwargs can be passed down to the init via the ``LightningDataModule.from_datasets`` method.
 
     The two special arguments batch_size and num_workers get passed down depending on whether the __init__ accepts them.
+
     """
     # No additional parameters
     LightningDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)

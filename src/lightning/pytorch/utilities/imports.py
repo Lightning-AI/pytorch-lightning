@@ -21,6 +21,7 @@ from lightning_utilities.core.rank_zero import rank_zero_warn
 _PYTHON_GREATER_EQUAL_3_11_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 11)
 _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
 _TORCHMETRICS_GREATER_EQUAL_0_11 = RequirementCache("torchmetrics>=0.11.0")  # using new API with task
+_TORCHMETRICS_GREATER_EQUAL_1_0_0 = RequirementCache("torchmetrics>=1.0.0")
 
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")

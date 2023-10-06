@@ -101,6 +101,7 @@ class SLURMEnvironment(ClusterEnvironment):
         different environment. For this, the user can set the job name in SLURM to 'bash' or 'interactive' (srun --job-
         name=interactive). This will then avoid the detection of ``SLURMEnvironment`` and another environment can be
         detected automatically.
+
         """
         SLURMEnvironment._validate_srun_used()
         return _is_srun_used()
@@ -198,7 +199,8 @@ class SLURMEnvironment(ClusterEnvironment):
         """Checks for conflicting or incorrectly set variables set through `srun` and raises a useful error message.
 
         Right now, we only check for the most common user errors. See
-        `the srun docs <https://slurm.schedmd.com/srun.html>`_ for a complete list of supported srun variables.
+        `the srun docs <https://slurm.schedmd.com/srun.html>`_
+        for a complete list of supported srun variables.
 
         """
         ntasks = int(os.environ.get("SLURM_NTASKS", "1"))

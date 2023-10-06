@@ -31,3 +31,28 @@ ci:
   - ".github/**"
   - "dockers/**"
   - ".pre-commit-config.yml"
+
+docs:
+  - ".github/workflows/docs-build.yml"
+  - "docs/**"
+  - "requirements/docs.txt"
+  - "requirements/*/docs.txt"
+
+package:
+  - ".github/workflows/ci-pkg-install.yml"
+  - "setup.py"
+  - "pyproject.toml"
+  - "src/version.info"
+  - "src/lightning/*/__setup__.py"
+  - "src/lightning/*/__version__.py"
+  - "src/lightning_app/*"
+  - "src/lightning_fabric/*"
+  - "src/pytorch_lightning/*"
+
+dockers:
+  - "dockers/**"
+  - ".github/workflows/docker-build.yml"
+
+dependencies:
+  - "requirements.txt"
+  - "requirements/**"

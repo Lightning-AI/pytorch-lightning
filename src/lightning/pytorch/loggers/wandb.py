@@ -365,10 +365,8 @@ class WandbLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> Union["Run", "RunDisabled"]:
-        r"""
-
-        Actual wandb object. To use wandb features in your
-        :class:`~lightning.pytorch.core.LightningModule` do the following.
+        r"""Actual wandb object. To use wandb features in your :class:`~lightning.pytorch.core.LightningModule` do the
+        following.
 
         Example::
 

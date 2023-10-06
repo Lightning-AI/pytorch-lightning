@@ -24,6 +24,7 @@ from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAc
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
+from lightning.fabric.utilities.distributed import _suggested_max_num_threads
 
 _log = logging.getLogger(__name__)
 
@@ -177,7 +178,7 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     torchrun_args.extend(script_args)
 
     # set a good default number of threads for OMP to avoid warnings being emitted to the user
-    os.environ.setdefault("OMP_NUM_THREADS", str(max(1, (os.cpu_count() or 1) // num_processes)))
+    os.environ.setdefault("OMP_NUM_THREADS", str(_suggested_max_num_threads()))
     torchrun.main(torchrun_args)
 
 

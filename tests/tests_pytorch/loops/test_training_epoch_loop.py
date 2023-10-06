@@ -136,3 +136,24 @@ def test_training_loop_dataloader_iter_multiple_dataloaders(tmp_path):
     assert model.batch_start_ins == [(None, 0, 0)] + model.step_outs[:-1]
     assert model.step_outs == [({"a": 0, "b": 2}, 0, 0), ({"a": 1, "b": 3}, 1, 0)]
     assert model.batch_end_ins == model.step_outs
+
+
+def test_no_batch_idx_gradient_accumulation():
+    """Regression test for an issue where excluding the batch_idx from training_step would disable gradient
+    accumulation."""
+
+    class MyModel(BoringModel):
+        last_batch_idx = -1
+
+        def training_step(self, batch):  # no batch_idx
+            return self.step(batch)
+
+        def optimizer_step(self, epoch, batch_idx, *args, **kwargs):
+            assert batch_idx in (1, 3)
+            self.last_batch_idx = batch_idx
+            return super().optimizer_step(epoch, batch_idx, *args, **kwargs)
+
+    trainer = Trainer(fast_dev_run=4, accumulate_grad_batches=2, limit_val_batches=0)
+    model = MyModel()
+    trainer.fit(model)
+    assert model.last_batch_idx == 3
