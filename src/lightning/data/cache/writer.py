@@ -261,7 +261,7 @@ class BinaryWriter:
         self._is_done = True
 
     def merge(self, num_workers: int) -> None:
-        """ "Once all the workers have written their own index, the merge function is responsible to read and merge them
+        """Once all the workers have written their own index, the merge function is responsible to read and merge them
         into a single index."""
         num_workers = num_workers or 1
 
