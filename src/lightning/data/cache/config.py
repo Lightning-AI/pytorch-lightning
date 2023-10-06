@@ -13,7 +13,7 @@
 
 import json
 import os
-from typing import Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from lightning.data.cache.constants import INDEX_FILENAME
 from lightning.data.cache.downloader import get_downloader_cls
@@ -71,15 +71,15 @@ class ChunksConfig:
         return self._downloader.download_chunk_from_index(chunk_index)
 
     @property
-    def intervals(self):
+    def intervals(self) -> List[List[int]]:
         return self._intervals
 
     @property
-    def data_format(self):
+    def data_format(self) -> List[str]:
         return self._config["data_format"]
 
     @property
-    def config(self):
+    def config(self) -> Dict[str, Any]:
         return self._config
 
     def _get_chunk_index_from_index(self, index: int) -> int:

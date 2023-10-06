@@ -69,6 +69,16 @@ class CacheDataset(Dataset):
         chunk_size: int,
         compression: Optional[str],
     ):
+        """
+        The `CacheDataset` is a dataset wraper to provide a beginner experience with the Cache.
+
+        Arguments:
+            dataset: The dataset of the user
+            cache_dir: The folder where the chunks are written to.
+            chunk_bytes: The maximal number of bytes to write within a chunk.
+            chunk_sie: The maximal number of items to write to a chunk.
+            compression: The compression algorithm to use to reduce the size of the chunk.
+        """
         self._datataset = dataset
         self._cache = Cache(cache_dir, chunk_bytes=chunk_bytes, chunk_size=chunk_size, compression=compression)
         self._is_deterministic = False
@@ -92,6 +102,14 @@ class CacheDataset(Dataset):
 
 
 class CacheCollateFn:
+    """This CacheCollateFn is used to accelerate the processing of the data generated using the Cache.
+
+    During the chunking phase, there is no need to return any data from the DataLoader reducing some time.
+
+    Additionally, if the user makes their __getitem__ asynchronous, the collate executes them in parallel.
+
+    """
+
     def __init__(self, collate_fn: Optional[Callable] = None):
         self.collate_fn = collate_fn or default_collate
 
@@ -184,6 +202,8 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
 
     def _shutdown_workers(self):
         super()._shutdown_workers()
+
+        # If the data isn't filled, we trigger an indedm merge
         if not self._cache.filled:
             self._cache.merge(self._num_workers)
 

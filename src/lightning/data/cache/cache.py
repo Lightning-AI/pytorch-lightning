@@ -15,6 +15,7 @@ import logging
 import os
 from typing import Any, Dict, Optional, Union
 
+from lightning.data.cache.constants import INDEX_FILENAME
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.sampler import ChunkedIndex
 from lightning.data.cache.writer import BinaryWriter
@@ -62,7 +63,7 @@ class Cache:
             raise Exception("The Cache wasn't setup properly. HINT: Did you use the LightningDataLoader ?")
         if self._is_done:
             return True
-        self._is_done = os.path.exists(os.path.join(self._cache_dir, "index.json"))
+        self._is_done = os.path.exists(os.path.join(self._cache_dir, INDEX_FILENAME))
         return self._is_done
 
     def __setitem__(self, index, data) -> None:
