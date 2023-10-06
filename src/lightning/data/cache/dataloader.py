@@ -11,11 +11,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
+import inspect
 import logging
+import os
 from importlib import reload
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import Dataset, IterableDataset
 from torch.utils.data._utils.collate import default_collate
 from torch.utils.data.dataloader import (
@@ -28,7 +32,9 @@ from torch.utils.data.dataloader import (
 from lightning.data.cache import Cache
 from lightning.data.cache.pytree import tree_flatten
 from lightning.data.cache.sampler import CacheBatchSampler
-from lightning.data.datasets.env import _DistributedEnv
+from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
+
+_VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
 
 logger = logging.Logger(__name__)
 
@@ -86,12 +92,19 @@ class CacheDataset(Dataset):
 
 
 class CacheCollateFn:
-    def __init__(self):
-        self.collate_fn = default_collate
+    def __init__(self, collate_fn: Optional[Callable] = None):
+        self.collate_fn = collate_fn or default_collate
 
     def __call__(self, items):
         if all(item is None for item in items):
             return None
+
+        # If the __getitem__ method is asynchornous, collect all the items.
+        if all(inspect.iscoroutine(item) for item in items):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            items = loop.run_until_complete(asyncio.gather(*items))
+
         return self.collate_fn(items)
 
 
@@ -100,25 +113,44 @@ class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):
 
     def _next_data(self):
         try:
-            return super()._next_data()
+            data = None
+            while data is None:
+                data = super()._next_data()
+            return data
         except StopIteration:
             for v in self._dataset_fetcher.dataset.__dict__.values():
                 if isinstance(v, Cache):
                     v.done()
+                    if not v.filled:
+                        v.merge(1)
             raise StopIteration()
 
 
 class WorkerLoop:
+    """Wrap the PyTorch DataLoader WorkerLoop to perform caching and profiling."""
+
+    def __init__(self, global_rank: int, profile: bool = False) -> None:
+        self._global_rank = global_rank
+        self._profile = profile
+
     def __call__(self, dataset_kind, *args, **kwargs):
         from torch.utils.data import _DatasetKind
         from torch.utils.data._utils import worker
 
         from lightning.data.cache.cache import Cache
 
+        rank = _WorkerEnv.detect().rank
+        enable_profiling = self._global_rank == 0 and rank == 0 and _VIZ_TRACKER_AVAILABLE and self._profile
+
+        if enable_profiling:
+            from viztracer import VizTracer
+
+            tracer = VizTracer(output_file=os.path.join(os.getcwd(), "trace.json"))
+            tracer.start()
+
+        # Reload to remove the patching
         reloaded_worker = reload(worker)
-
         create_fetcher = _DatasetKind.create_fetcher
-
         fetcher = None
 
         def create_fetcher_fn(*args, **kwargs):
@@ -135,14 +167,34 @@ class WorkerLoop:
                 if isinstance(v, Cache):
                     v.done()
 
+        if enable_profiling:
+            tracer.stop()
+            tracer.save()
+
 
 class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
     def __init__(self, loader):
+        self._cache = loader._cache
+        self._num_workers = loader.num_workers
         # Patch PyTorch worker loop to call the `cache.done()` method.
         from torch.utils.data._utils import worker
 
-        worker._worker_loop = WorkerLoop()
+        worker._worker_loop = WorkerLoop(loader._global_rank, loader._profile)
         super().__init__(loader)
+
+    def _shutdown_workers(self):
+        super()._shutdown_workers()
+        if not self._cache.filled:
+            self._cache.merge(self._num_workers)
+
+    def _next_data(self):
+        try:
+            data = None
+            while data is None:
+                data = super()._next_data()
+            return data
+        except StopIteration as e:
+            raise e
 
 
 class LightningDataLoader(DataLoader):
@@ -157,11 +209,13 @@ class LightningDataLoader(DataLoader):
         num_workers=0,
         shuffle: bool = False,
         generator=None,
-        batch_size=1,
+        batch_size=None,
         drop_last=False,
         cache_dir: Optional[str] = None,
         chunk_bytes: Optional[int] = _DEFAULT_CHUNK_BYTES,
         compression: Optional[str] = None,
+        profile: bool = False,
+        collate_fn: Optional[Callable] = None,
         **kwargs,
     ):
         if sampler:
@@ -177,6 +231,9 @@ class LightningDataLoader(DataLoader):
         if isinstance(dataset, IterableDataset):
             raise ValueError("Only map-based dataset are supported by the LightningDataLoader for now.")
 
+        if profile and not _VIZ_TRACKER_AVAILABLE:
+            raise ModuleNotFoundError("To enable DataLoader profiling, run `pip install viztracer`.")
+
         cache = [v for v in dataset.__dict__.values() if isinstance(v, Cache)]
 
         if len(cache) > 1:
@@ -186,10 +243,10 @@ class LightningDataLoader(DataLoader):
 
         if len(cache) == 0:
             if cache_dir is None:
-                raise ValueError("You can provide a `cache_dir` filepath to the LightningDataLoader.")
+                raise ValueError("You should provide a `cache_dir` filepath to the LightningDataLoader.")
 
-            dataset = CacheDataset(dataset, cache_dir, chunk_bytes, batch_size if chunk_bytes else None, compression)
-            cache = dataset.cache
+            dataset = CacheDataset(dataset, cache_dir, chunk_bytes, batch_size, compression)
+            cache = dataset._cache
         else:
             cache = cache[0]
 
@@ -198,17 +255,23 @@ class LightningDataLoader(DataLoader):
         if not cache.filled and shuffle:
             logger.info("Shuffle is ignored during the caching phase phase")
 
+        self._cache = cache
+
         distributed_env = _DistributedEnv.detect()
+        self._global_rank = distributed_env.global_rank
+
         batch_sampler = CacheBatchSampler(
             len(dataset),
             distributed_env.world_size,
-            distributed_env.global_rank,
+            self._global_rank,
             num_workers,
-            batch_size,
+            batch_size or 1,
             drop_last,
             shuffle,
             cache,
         )
+
+        self._profile = profile
 
         super().__init__(
             dataset,
@@ -216,7 +279,7 @@ class LightningDataLoader(DataLoader):
             sampler=None,
             batch_sampler=batch_sampler,
             generator=generator,
-            collate_fn=CacheCollateFn(),
+            collate_fn=CacheCollateFn(collate_fn),
             num_workers=num_workers,
             **kwargs,
         )

@@ -161,9 +161,8 @@ class BinaryWriter:
 
         chunk_info = {
             "chunk_bytes": self._current_chunk_size,
-            "samples": len(self._serialized_items),
+            "chunk_size": len(self._serialized_items),
             "filename": filename,
-            "mapping": mapping,
             "interval": [self._indexes[0], self._indexes[-1] + 1],
         }
 
@@ -255,21 +254,21 @@ class BinaryWriter:
         self.reset()
         self._is_done = True
 
-    def merge(self):
+    def merge(self, num_workers: int):
+        num_workers = num_workers or 1
         if self.rank != 0:
             while not os.path.exists(os.path.join(self._cache_dir, "index.json")):
                 sleep(0.001)
             return
-
-        num_workers = _WorkerEnv.detect().world_size
 
         is_done = False
         while not is_done:
             files = os.listdir(self._cache_dir)
             if "index.json" in files:
                 return
-            index_files = [f for f in files if f.endswith("index.json") and f != "index.json"]
+            index_files = [f for f in files if f.endswith("index.json")]
             is_done = len(index_files) == self._distributed_env.world_size * num_workers
+            sleep(0.001)
 
         chunks_info = []
         config = None

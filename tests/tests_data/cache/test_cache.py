@@ -78,7 +78,7 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
     cache_dir = os.path.join(tmpdir, "cache")
     distributed_env = _DistributedEnv.detect()
 
-    cache = Cache(cache_dir, chunk_bytes=2 << 12)
+    cache = Cache(cache_dir, chunk_size=10)
     dataset = ImageDataset(tmpdir, cache, dataset_size, 10)
     dataloader = LightningDataLoader(dataset, num_workers=num_workers, batch_size=4)
 
@@ -102,9 +102,10 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 
     if distributed_env.world_size == 1:
         indexes = []
-        for batch in LightningDataLoader(dataset, num_workers=num_workers, batch_size=4):
-            indexes.extend(batch["index"].numpy().tolist())
-
+        dataloader = LightningDataLoader(dataset, num_workers=num_workers, batch_size=4)
+        for batch in dataloader:
+            if batch:
+                indexes.extend(batch["index"].numpy().tolist())
         assert len(indexes) == dataset_size
 
     seed_everything(42)
@@ -164,6 +165,7 @@ def test_cache_with_simple_format(tmpdir):
         cache[i] = i
 
     cache.done()
+    cache.merge()
 
     for i in range(100):
         assert i == cache[i]
@@ -177,6 +179,7 @@ def test_cache_with_simple_format(tmpdir):
         cache[i] = [i, {0: [i + 1]}]
 
     cache.done()
+    cache.merge()
 
     for i in range(100):
         assert [i, {0: [i + 1]}] == cache[i]
@@ -190,10 +193,10 @@ def test_cache_with_auto_wrapping(tmpdir):
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
     assert sorted(os.listdir(os.path.join(tmpdir, "cache_1"))) == [
-        "0.index.json",
         "chunk-0-0.bin",
         "chunk-0-1.bin",
         "chunk-0-2.bin",
+        "index.json",
     ]
     # Your dataset is optimised for the cloud
 
