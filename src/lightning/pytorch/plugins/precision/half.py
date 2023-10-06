@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Generator, Literal
+from typing import Any, Generator, Literal, ContextManager
 
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 
 
@@ -40,19 +40,11 @@ class HalfPrecisionPlugin(PrecisionPlugin):
     def convert_module(self, module: Module) -> Module:
         return module.to(dtype=self._desired_input_dtype)
 
-    @contextmanager
-    def tensor_init_context(self) -> Generator[None, None, None]:
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self._desired_input_dtype)
-        try:
-            yield
-        finally:
-            torch.set_default_dtype(default_dtype)
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self._desired_input_dtype)
 
-    @contextmanager
-    def module_init_context(self) -> Generator[None, None, None]:
-        with self.tensor_init_context():
-            yield
+    def module_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self._desired_input_dtype)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
