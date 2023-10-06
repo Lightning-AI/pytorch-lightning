@@ -49,5 +49,5 @@ build:
       pip list
     # this need to be split so `sphinx-build` is picked from previous installation
     - bash docs/rtfd-build.sh
-    - cd docs/build ; py-tree --depth_limit=1
+    - cd docs/build ; python -m py_tree --depth_limit=1
     - mkdir -p _readthedocs ; mv docs/build _readthedocs/html
