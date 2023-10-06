@@ -7,7 +7,7 @@
      - Ref
 
    * - used the ``torchdistx`` package and integration in Trainer
-     - materialize the model weights manually, or follow our guide for initializing large models
+     - materialize the model weights manually, or follow our :doc:`guide for initializing large models <../../advanced/model_init>`
      - `PR17995`_
 
    * - defined ``def training_step(self, dataloader_iter, batch_idx)`` in LightningModule
