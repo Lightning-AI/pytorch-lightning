@@ -97,7 +97,7 @@ class TransformerEnginePrecision(Precision):
         return _DtypeContextManager(self.dtype)
 
     def module_init_context(self) -> ContextManager:
-        dtype_ctx = _DtypeContextManager(self.dtype)
+        dtype_ctx = self.tensor_init_context()
         stack = ExitStack()
         if self.replace_layers:
             import transformer_engine.pytorch as te

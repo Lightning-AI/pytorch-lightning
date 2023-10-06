@@ -112,7 +112,7 @@ class FSDPPrecision(Precision):
     def forward_context(self) -> ContextManager:
         if "mixed" in self.precision:
             return torch.autocast("cuda", dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
-        return _DtypeContextManager(self._desired_input_dtype)
+        return self.tensor_init_context()
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)

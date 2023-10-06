@@ -38,7 +38,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         return _DtypeContextManager(torch.float64)
 
     def module_init_context(self) -> ContextManager:
-        return _DtypeContextManager(torch.float64)
+        return self.tensor_init_context()
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
@@ -47,12 +47,8 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         See: :func:`torch.set_default_dtype`
 
         """
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(torch.float64)
-        try:
+        with self.tensor_init_context():
             yield
-        finally:
-            torch.set_default_dtype(default_dtype)
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.double)

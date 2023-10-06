@@ -128,7 +128,7 @@ class BitsandbytesPrecision(Precision):
                 " may initialize the layers on-device, defeating the purpose of quantization. You can remove"
                 " `ignore_modules` or remove the `init_module` context manager."
             )
-        dtype_ctx = _DtypeContextManager(self.dtype)
+        dtype_ctx = self.tensor_init_context()
         # TODO: this could also support replacing `Embedding` and `Conv1D`
         context_manager = _ClassReplacementContextManager({"torch.nn.Linear": self._linear_cls})
         stack = ExitStack()

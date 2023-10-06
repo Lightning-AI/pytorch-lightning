@@ -44,7 +44,7 @@ class HalfPrecisionPlugin(PrecisionPlugin):
         return _DtypeContextManager(self._desired_input_dtype)
 
     def module_init_context(self) -> ContextManager:
-        return _DtypeContextManager(self._desired_input_dtype)
+        return self.tensor_init_context()
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
