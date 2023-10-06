@@ -259,7 +259,7 @@ class BinaryWriter:
         self.reset()
         self._is_done = True
 
-    def merge(self, num_workers: int) -> None:
+    def merge(self, num_workers: int = 1) -> None:
         """Once all the workers have written their own index, the merge function is responsible to read and merge them
         into a single index."""
         num_workers = num_workers or 1
@@ -295,6 +295,8 @@ class BinaryWriter:
                     raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
 
                 chunks_info.extend(data["chunks"])
+
+            os.remove(chunk_path)
 
         # Write down the collected index
         with open(os.path.join(self._cache_dir, INDEX_FILENAME), "w") as f:
