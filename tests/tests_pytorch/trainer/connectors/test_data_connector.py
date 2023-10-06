@@ -150,7 +150,7 @@ def test_dataloader_persistent_workers_performance_warning(num_workers, tmp_path
         (1, 1, 8, True),
         (1, 2, 8, True),
         (1, 3, 8, False),
-        (4, 1, 8, True),
+        (4, 1, 8, False),
         (4, 2, 8, False),
         (8, 2, 8, False),
     ],
