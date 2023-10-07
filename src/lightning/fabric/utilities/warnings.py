@@ -23,6 +23,14 @@ warnings.simplefilter("default", category=LightningDeprecationWarning)
 _default_format_warning = warnings.formatwarning
 
 
+def disable_possible_user_warnings(module: str = "") -> None:
+    """Ignore warnings of the category :class:`PossibleUserWarnings` from Lightning.
+
+    For more granual control over which warnings to ignore, use :func:`warnings.filterwarnings` directly.
+    """
+    warnings.filterwarnings("ignore", module=module, category=PossibleUserWarning)
+
+
 def _custom_format_warning(
     message: Union[Warning, str], category: Type[Warning], filename: str, lineno: int, line: Optional[str] = None
 ) -> str:
