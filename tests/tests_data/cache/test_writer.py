@@ -125,5 +125,5 @@ def test_binary_writer_with_jpeg_and_int(tmpdir):
     reader = BinaryReader(cache_dir)
     for i in range(100):
         data = reader.read(ChunkedIndex(i, chunk_index=i // 4))
-        assert data["x"] == imgs[i]
+        np.testing.assert_array_equal(np.asarray(data["x"]).squeeze(0), imgs[i])
         assert data["y"] == i
