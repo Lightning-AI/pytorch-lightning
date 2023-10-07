@@ -107,7 +107,7 @@ We STRONGLY discourage this use because it has limitations (due to Python and Py
     # setup.py
     #!/usr/bin/env python
 
-    from setuptools import setup, find_packages
+    from setuptools import setup, find_namespace_packages
 
     setup(
         name="src",
@@ -117,7 +117,7 @@ We STRONGLY discourage this use because it has limitations (due to Python and Py
         author_email="",
         url="https://github.com/YourSeed",  # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
         install_requires=["lightning"],
-        packages=find_packages(),
+        packages=find_namespace_packages(),
     )
 
 2. Setup your project like so:

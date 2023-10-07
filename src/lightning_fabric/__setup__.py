@@ -6,7 +6,7 @@ from types import ModuleType
 from typing import Any, Dict
 
 from pkg_resources import parse_requirements
-from setuptools import find_packages
+from setuptools import find_namespace_packages
 
 _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
@@ -66,7 +66,7 @@ def _setup_args() -> Dict[str, Any]:
         "url": about.__homepage__,
         "download_url": "https://github.com/Lightning-AI/lightning",
         "license": about.__license__,
-        "packages": find_packages(where="src", include=["lightning_fabric", "lightning_fabric.*"]),
+        "packages": find_namespace_packages(where="src", include=["lightning_fabric", "lightning_fabric.*"]),
         "package_dir": {"": "src"},
         "long_description": long_description,
         "long_description_content_type": "text/markdown",

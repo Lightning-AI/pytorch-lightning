@@ -1,7 +1,7 @@
 import os
 from typing import List
 
-from setuptools import find_packages, setup
+from setuptools import find_namespace_packages, setup
 
 _PROJECT_ROOT = os.path.dirname(__file__)
 
@@ -29,6 +29,6 @@ def _load_requirements(path_dir: str, file_name: str = "requirements.txt", comme
 setup(
     name="{{ app_name }}",
     version="0.0.1",
-    packages=find_packages(exclude=["ui"]),
+    packages=find_namespace_packages(exclude=["ui"]),
     python_requires=">=3.8",
 )

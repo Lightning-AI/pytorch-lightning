@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from setuptools import find_packages, setup
+from setuptools import find_namespace_packages, setup
 
 setup(
     name="placeholdername",
@@ -11,5 +11,5 @@ setup(
     # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
     url="https://github.com/Lightning-AI/lightning-component-template",
     install_requires=[],
-    packages=find_packages(),
+    packages=find_namespace_packages(),
 )

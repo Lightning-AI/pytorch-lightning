@@ -1,7 +1,7 @@
 import json
 import os
 
-from setuptools import find_packages, setup
+from setuptools import find_namespace_packages, setup
 from setuptools.command.install import install
 
 LIGHTNING_COMPONENT_INFO = {
@@ -26,7 +26,7 @@ setup(
     url="grid.ai",
     download_url="https://github.com/Lightning-AI/lightning",
     license="TBD",
-    packages=find_packages(exclude=["tests", "docs"]),
+    packages=find_namespace_packages(exclude=["tests", "docs"]),
     long_description="example of an external lightning package that contains lightning components",
     long_description_content_type="text/markdown",
     include_package_data=True,
