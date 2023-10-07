@@ -221,6 +221,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed redundant input-type casting in FSDP precision ([#18630](https://github.com/Lightning-AI/lightning/pull/18630))
 
 
+- Fixed an issue with `find_usable_cuda_devices(0)` incorrectly returning a list of devices ([#18722](https://github.com/Lightning-AI/lightning/pull/18722))
+
+
 ## [2.0.9] - 2023-09-14
 
 ### Fixed
