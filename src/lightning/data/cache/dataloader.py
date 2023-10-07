@@ -128,7 +128,7 @@ class CacheCollateFn:
             asyncio.set_event_loop(loop)
             items = loop.run_until_complete(asyncio.gather(*items))
 
-        return self.collate_fn(items)
+        return self.collate_fn([item for item in items if item is not None])
 
 
 class _SingleProcessDataLoaderIterPatch(_SingleProcessDataLoaderIter):

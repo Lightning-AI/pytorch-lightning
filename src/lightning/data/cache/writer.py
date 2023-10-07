@@ -142,10 +142,10 @@ class BinaryWriter:
         """Serialize a given item and append its size and bytes to the sizes and data array."""
         for serializer_name, serializer in self._serializers.items():
             if serializer.can_serialize(item):
-                serialized_item = serializer.serialize(item)
+                serialized_item, name = serializer.serialize(item)
                 data.append(serialized_item)
                 sizes.append(len(serialized_item))
-                return serializer_name
+                return name or serializer_name
         raise ValueError(f"The provided item isn't serializable. Found {item}")
 
     def _create_chunk(self, filename: str) -> bytes:

@@ -32,14 +32,14 @@ _PIL_AVAILABLE = RequirementCache("PIL")
 
 
 def test_serializers():
-    assert list(_SERIALIZERS.keys()) == ["pil", "int", "jpeg", "bytes", "tensor", "pickle"]
+    assert list(_SERIALIZERS.keys()) == ["file", "pil", "int", "jpeg", "bytes", "tensor", "pickle"]
 
 
 def test_int_serializer():
     serializer = IntSerializer()
 
     for i in range(100):
-        data = serializer.serialize(i)
+        data, _ = serializer.serialize(i)
         assert isinstance(data, bytes)
         assert i == serializer.deserialize(data)
 
@@ -54,7 +54,7 @@ def test_pil_serializer(mode):
     np_data = np.random.randint(255, size=(28, 28), dtype=np.uint32)
     img = Image.fromarray(np_data).convert(mode)
 
-    data = serializer.serialize(img)
+    data, _ = serializer.serialize(img)
     assert isinstance(data, bytes)
 
     deserialized_img = serializer.deserialize(data)
@@ -84,7 +84,7 @@ def test_tensor_serializer():
             tensor = torch.ones(shape, dtype=dtype)
 
             t0 = time()
-            data = serializer_tensor.serialize(tensor)
+            data, _ = serializer_tensor.serialize(tensor)
             deserialized_tensor = serializer_tensor.deserialize(data)
             tensor_time = time() - t0
             tensor_bytes = len(data)
@@ -93,7 +93,7 @@ def test_tensor_serializer():
             assert torch.equal(tensor, deserialized_tensor)
 
             t1 = time()
-            data = serializer_pickle.serialize(tensor)
+            data, _ = serializer_pickle.serialize(tensor)
             deserialized_tensor = serializer_pickle.deserialize(data)
             pickle_time = time() - t1
             pickle_bytes = len(data)

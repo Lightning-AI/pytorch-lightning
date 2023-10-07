@@ -11,11 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import pickle
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from io import BytesIO
-from typing import Any, Union
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -43,7 +44,7 @@ class Serializer(ABC):
     """
 
     @abstractmethod
-    def serialize(self, data: Any) -> bytes:
+    def serialize(self, data: Any) -> Tuple[bytes, Optional[str]]:
         pass
 
     @abstractmethod
@@ -58,12 +59,12 @@ class Serializer(ABC):
 class PILSerializer(Serializer):
     """The PILSerializer serialize and deserialize PIL Image to and from bytes."""
 
-    def serialize(self, item: Image) -> bytes:
+    def serialize(self, item: Image) -> Tuple[bytes, Optional[str]]:
         mode = item.mode.encode("utf-8")
         width, height = item.size
         raw = item.tobytes()
         ints = np.array([width, height, len(mode)], np.uint32)
-        return ints.tobytes() + mode + raw
+        return ints.tobytes() + mode + raw, None
 
     def deserialize(self, data: bytes) -> Any:
         idx = 3 * 4
@@ -81,8 +82,8 @@ class PILSerializer(Serializer):
 class IntSerializer(Serializer):
     """The IntSerializer serialize and deserialize integer to and from bytes."""
 
-    def serialize(self, item: int) -> bytes:
-        return str(item).encode("utf-8")
+    def serialize(self, item: int) -> Tuple[bytes, Optional[str]]:
+        return str(item).encode("utf-8"), None
 
     def deserialize(self, data: bytes) -> int:
         return int(data.decode("utf-8"))
@@ -94,14 +95,14 @@ class IntSerializer(Serializer):
 class JPEGSerializer(Serializer):
     """The JPEGSerializer serialize and deserialize JPEG image to and from bytes."""
 
-    def serialize(self, item: Image) -> bytes:
+    def serialize(self, item: Image) -> Tuple[bytes, Optional[str]]:
         if isinstance(item, JpegImageFile):
             if not hasattr(item, "filename"):
                 raise ValueError(
                     "The JPEG Image's filename isn't defined. HINT: Open the image in your Dataset __getitem__ method."
                 )
             with open(item.filename, "rb") as f:
-                return f.read()
+                return f.read(), None
         raise TypeError(f"The provided itemect should be of type {JpegImageFile}. Found {item}.")
 
     def deserialize(self, data: bytes) -> Union[JpegImageFile, torch.Tensor]:
@@ -119,8 +120,8 @@ class JPEGSerializer(Serializer):
 class BytesSerializer(Serializer):
     """The BytesSerializer serialize and deserialize integer to and from bytes."""
 
-    def serialize(self, item: bytes) -> bytes:
-        return item
+    def serialize(self, item: bytes) -> Tuple[bytes, Optional[str]]:
+        return item, None
 
     def deserialize(self, item: bytes) -> bytes:
         return item
@@ -160,14 +161,14 @@ class TensorSerializer(Serializer):
         super().__init__()
         self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
 
-    def serialize(self, item: torch.Tensor) -> bytes:
+    def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
         dtype_indice = self._dtype_to_indice[item.dtype]
         data = [np.uint32(dtype_indice).tobytes()]
         data.append(np.uint32(len(item.shape)).tobytes())
         for dim in item.shape:
             data.append(np.uint32(dim).tobytes())
         data.append(item.numpy().tobytes())
-        return b"".join(data)
+        return b"".join(data), None
 
     def deserialize(self, data: bytes) -> torch.Tensor:
         dtype_indice = np.frombuffer(data[0:4], np.uint32).item()
@@ -186,8 +187,8 @@ class TensorSerializer(Serializer):
 class PickleSerializer(Serializer):
     """The PickleSerializer serialize and deserialize python objects to and from bytes."""
 
-    def serialize(self, item: Any) -> bytes:
-        return pickle.dumps(item)
+    def serialize(self, item: Any) -> Tuple[bytes, Optional[str]]:
+        return pickle.dumps(item), None
 
     def deserialize(self, data: bytes) -> Any:
         return pickle.loads(data)
@@ -196,8 +197,22 @@ class PickleSerializer(Serializer):
         return True
 
 
+class FileSerializer(Serializer):
+    def serialize(self, filepath: str) -> Tuple[bytes, Optional[str]]:
+        _, file_extension = os.path.splitext(filepath)
+        with open(filepath, "rb") as f:
+            return f.read(), file_extension.replace(".", "")
+
+    def deserialize(self, data: bytes) -> Any:
+        pass
+
+    def can_serialize(self, data: Any) -> bool:
+        return isinstance(data, str) and os.path.exists(data)
+
+
 _SERIALIZERS = OrderedDict(
     **{
+        "file": FileSerializer(),
         "pil": PILSerializer(),
         "int": IntSerializer(),
         "jpeg": JPEGSerializer(),
