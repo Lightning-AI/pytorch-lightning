@@ -97,9 +97,9 @@ For debugging purposes or for dataloaders that load very small datasets, it is d
     warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*")
 
     # or to ignore all warnings that could be false positives
-    from lightning.pytorch.utilities.warnings import PossibleUserWarning
+    import lightning as L
 
-    warnings.filterwarnings("ignore", category=PossibleUserWarning)
+    L.disable_possible_user_warnings()
 
 
 Persistent Workers
