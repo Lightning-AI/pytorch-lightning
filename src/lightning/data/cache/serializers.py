@@ -15,13 +15,14 @@ import pickle
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from io import BytesIO
-from typing import Any
+from typing import Any, Union
 
 import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
+_TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
 
 if _PIL_AVAILABLE:
     from PIL import Image
@@ -29,6 +30,9 @@ if _PIL_AVAILABLE:
 else:
     Image = None
     JpegImageFile = None
+
+if _TORCH_VISION_AVAILABLE:
+    from torchvision.io import decode_jpeg
 
 
 class Serializer(ABC):
@@ -100,7 +104,11 @@ class JPEGSerializer(Serializer):
                 return f.read()
         raise TypeError(f"The provided itemect should be of type {JpegImageFile}. Found {item}.")
 
-    def deserialize(self, data: bytes) -> Image:
+    def deserialize(self, data: bytes) -> Union[JpegImageFile, torch.Tensor]:
+        if _TORCH_VISION_AVAILABLE:
+            array = torch.frombuffer(data, dtype=torch.uint8)
+            return decode_jpeg(array)
+
         inp = BytesIO(data)
         return Image.open(inp)
 
