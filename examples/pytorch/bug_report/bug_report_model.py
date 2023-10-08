@@ -1,11 +1,8 @@
 import os
 
-import lightning.pytorch as pl
 import torch
 from lightning.pytorch import LightningModule, Trainer
 from torch.utils.data import DataLoader, Dataset
-
-pl.disable_possible_user_warnings()
 
 
 class RandomDataset(Dataset):
