@@ -40,5 +40,5 @@ __all__ = ["Fabric", "seed_everything", "is_wrapped"]
 __import__("pkg_resources").declare_namespace(__name__)
 
 
-if os.environ.get("POSSIBLE_USER_WARNINGS", "").lower() in ("0", "off", "false"):
+if os.environ.get("POSSIBLE_USER_WARNINGS", "").lower() in ("0", "off"):
     disable_possible_user_warnings()

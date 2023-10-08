@@ -31,5 +31,5 @@ __all__ = [
     "Fabric",
 ]
 
-if os.environ.get("POSSIBLE_USER_WARNINGS", "").lower() in ("0", "off", "false"):
+if os.environ.get("POSSIBLE_USER_WARNINGS", "").lower() in ("0", "off"):
     disable_possible_user_warnings()

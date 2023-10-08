@@ -58,7 +58,7 @@ if __name__ == "__main__":
     assert output == "test2\n", repr(output)
 
 
-@pytest.mark.parametrize("setting", ["0", "off", "false"])
+@pytest.mark.parametrize("setting", ["0", "off"])
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_disable_possible_user_warnings_from_environment(setting):
     with pytest.warns(PossibleUserWarning):
