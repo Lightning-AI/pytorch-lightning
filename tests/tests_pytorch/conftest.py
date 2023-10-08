@@ -84,6 +84,10 @@ def restore_env_variables():
         "TF_CPP_MIN_LOG_LEVEL",
         "TF_GRPC_DEFAULT_OPTIONS",
         "XLA_FLAGS",
+        "XLA_USE_BF16",
+        # set by XLA FSDP on XRT
+        "XRT_TORCH_DIST_ROOT",
+        "XRT_MESH_SERVICE_ADDRESS",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"

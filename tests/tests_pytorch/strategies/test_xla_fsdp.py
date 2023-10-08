@@ -18,7 +18,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.strategies.xla_fsdp import _activation_checkpointing_auto_wrapper
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -26,14 +25,6 @@ from lightning.pytorch.plugins.precision import XLAPrecisionPlugin
 from lightning.pytorch.strategies import XLAFSDPStrategy
 
 from tests_pytorch.helpers.runif import RunIf
-
-
-class BoringModelTPU(BoringModel):
-    def on_train_start(self) -> None:
-        index = 0 if _using_pjrt() else 1
-        # assert strategy attributes for device setting
-        assert self.device == torch.device("xla", index=index)
-        assert os.environ.get("PT_XLA_DEBUG") == "1"
 
 
 class TestFSDPModel(BoringModel):
