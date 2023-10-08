@@ -65,7 +65,7 @@ def test_disable_possible_user_warnings_from_environment(setting):
         warnings.warn("test", PossibleUserWarning)
     os.environ["POSSIBLE_USER_WARNINGS"] = setting
     sys.modules.pop("lightning.pytorch")
-    import lightning.pytorch  # noqa: F401
+    import lightning.pytorch  # noqa: F401, F811
 
     with no_warning_call(PossibleUserWarning):
         warnings.warn("test", PossibleUserWarning)

@@ -17,7 +17,7 @@ from lightning.__about__ import *  # noqa: E402, F403
 from lightning.__version__ import version as __version__  # noqa: E402, F401
 from lightning.fabric.fabric import Fabric  # noqa: E402
 from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
-from lightning.fabric.utilities.warnings import disable_possible_user_warnings
+from lightning.fabric.utilities.warnings import disable_possible_user_warnings  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402
