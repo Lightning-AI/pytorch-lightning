@@ -174,6 +174,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         assert self.lightning_module
 
         if trainer.state.fn == TrainerFn.FITTING:
+            assert self.model is not None
             self.model = self._setup_model(self.model)
             self.setup_optimizers(trainer)
             _optimizers_to_device(self.optimizers, self.root_device)
@@ -220,7 +221,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         self,
         optimizer: Optimizer,
         closure: Callable[[], Any],
-        model: "pl.LightningModule" = None,
+        model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
     ) -> Any:
         """Overrides default tpu optimizer_step since FSDP should not call `torch_xla.core.xla_model.optimizer_step`.
