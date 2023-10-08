@@ -663,7 +663,7 @@ class ModelCheckpoint(Checkpoint):
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
         self._save_checkpoint(trainer, filepath)
-        if self._should_remove_checkpoint(previous, filepath):
+        if self._should_remove_checkpoint(trainer, previous, filepath):
             self._remove_checkpoint(trainer, previous)
 
     def _save_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
@@ -683,7 +683,7 @@ class ModelCheckpoint(Checkpoint):
         previous, self.best_model_path = self.best_model_path, filepath
         self._save_checkpoint(trainer, filepath)
 
-        if self.save_top_k == 1 and self._should_remove_checkpoint(previous, filepath):
+        if self.save_top_k == 1 and self._should_remove_checkpoint(trainer, previous, filepath):
             self._remove_checkpoint(trainer, previous)
 
     def _update_best_and_save(
@@ -725,7 +725,7 @@ class ModelCheckpoint(Checkpoint):
             )
         self._save_checkpoint(trainer, filepath)
 
-        if self._should_remove_checkpoint(del_filepath, filepath):
+        if self._should_remove_checkpoint(trainer, del_filepath, filepath):
             self._remove_checkpoint(trainer, del_filepath)
 
     def to_yaml(self, filepath: Optional[_PATH] = None) -> None:
@@ -744,15 +744,25 @@ class ModelCheckpoint(Checkpoint):
         exists = self._fs.exists(filepath)
         return trainer.strategy.broadcast(exists)
 
-    def _should_remove_checkpoint(self, previous: str, current: str) -> bool:
-        """Checks if the previous checkpoint should be deleted. A checkpoint won't be deleted if it originates from
-        a directory that is not the current checkpoint directory."""
+    def _should_remove_checkpoint(self, trainer: "pl.Trainer", previous: str, current: str) -> bool:
+        """Checks if the previous checkpoint should be deleted.
+
+        A checkpoint won't be deleted if it is a local file and any of the following cases apply:
+        - The previous checkpoint is the same as the current checkpoint
+        - The previous checkpoint is not in the current checkpoint directory
+        - The previous checkpoint is the checkpoint the Trainer resumed from
+
+        """
         if not previous or previous == current:
             return False
         if self._fs.protocol != "file":
             return True
-
-        return Path(self.dirpath).absolute() in Path(previous).absolute().parents
+        previous = Path(previous).absolute()
+        resume_path = Path(trainer.ckpt_path).absolute() if trainer.ckpt_path is not None else None
+        if resume_path is not None and previous == resume_path:
+            return False
+        dirpath = Path(self.dirpath).absolute()
+        return dirpath in previous.parents
 
     def _remove_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
         """Calls the strategy to remove the checkpoint file."""
