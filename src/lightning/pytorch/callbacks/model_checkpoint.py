@@ -240,6 +240,7 @@ class ModelCheckpoint(Checkpoint):
         self.best_model_score: Optional[Tensor] = None
         self.best_model_path = ""
         self.last_model_path = ""
+        self._last_checkpoint_saved = ""
 
         self.kth_value: Tensor
         self.dirpath: Optional[_PATH]
@@ -367,6 +368,7 @@ class ModelCheckpoint(Checkpoint):
             self._save_none_monitor_checkpoint(trainer, monitor_candidates)
 
     def _save_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
+        self._last_checkpoint_saved = filepath
         trainer.save_checkpoint(filepath, self.save_weights_only)
 
         self._last_global_step_saved = trainer.global_step
@@ -375,6 +377,14 @@ class ModelCheckpoint(Checkpoint):
         if trainer.is_global_zero:
             for logger in trainer.loggers:
                 logger.after_save_checkpoint(proxy(self))
+
+    @staticmethod
+    def _link_checkpoint(trainer: "pl.Trainer", filepath: str, linkpath: str) -> None:
+        if trainer.is_global_zero:
+            if os.path.exists(linkpath):
+                os.remove(linkpath)
+            os.symlink(filepath, linkpath)
+        trainer.strategy.barrier()
 
     def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:
         from lightning.pytorch.trainer.states import TrainerFn
@@ -661,7 +671,10 @@ class ModelCheckpoint(Checkpoint):
 
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
-        self._save_checkpoint(trainer, filepath)
+        if self._fs.protocol == "file" and self._last_checkpoint_saved and self.save_top_k != 0:
+            self._link_checkpoint(trainer, self._last_checkpoint_saved, filepath)
+        else:
+            self._save_checkpoint(trainer, filepath)
         if previous and previous != filepath:
             self._remove_checkpoint(trainer, previous)
 
