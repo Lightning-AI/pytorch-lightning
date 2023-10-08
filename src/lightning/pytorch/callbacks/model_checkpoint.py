@@ -24,6 +24,7 @@ import time
 import warnings
 from copy import deepcopy
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, Dict, Optional, Set
 from weakref import proxy
 
@@ -662,7 +663,7 @@ class ModelCheckpoint(Checkpoint):
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
         self._save_checkpoint(trainer, filepath)
-        if previous and previous != filepath:
+        if self._should_remove_checkpoint(previous, filepath):
             self._remove_checkpoint(trainer, previous)
 
     def _save_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
@@ -681,7 +682,8 @@ class ModelCheckpoint(Checkpoint):
         # set the best model path before saving because it will be part of the state.
         previous, self.best_model_path = self.best_model_path, filepath
         self._save_checkpoint(trainer, filepath)
-        if self.save_top_k == 1 and previous and previous != filepath:
+
+        if self.save_top_k == 1 and self._should_remove_checkpoint(previous, filepath):
             self._remove_checkpoint(trainer, previous)
 
     def _update_best_and_save(
@@ -723,7 +725,7 @@ class ModelCheckpoint(Checkpoint):
             )
         self._save_checkpoint(trainer, filepath)
 
-        if del_filepath is not None and filepath != del_filepath:
+        if self._should_remove_checkpoint(del_filepath, filepath):
             self._remove_checkpoint(trainer, del_filepath)
 
     def to_yaml(self, filepath: Optional[_PATH] = None) -> None:
@@ -741,6 +743,16 @@ class ModelCheckpoint(Checkpoint):
         state to diverge between ranks."""
         exists = self._fs.exists(filepath)
         return trainer.strategy.broadcast(exists)
+
+    def _should_remove_checkpoint(self, previous: str, current: str) -> bool:
+        """Checks if the previous checkpoint should be deleted. A checkpoint won't be deleted if it originates from
+        a directory that is not the current checkpoint directory."""
+        if not previous or previous == current:
+            return False
+        if self._fs.protocol != "file":
+            return True
+
+        return Path(self.dirpath).absolute() in Path(previous).absolute().parents
 
     def _remove_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
         """Calls the strategy to remove the checkpoint file."""
