@@ -73,6 +73,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         sequential_save: With this enabled, individual ranks consecutively save their state dictionary shards, reducing
             peak system RAM usage, although it elongates the saving process.
         \**kwargs: See available parameters in :class:`torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`.
+
     """
 
     strategy_name = "xla_fsdp"
@@ -178,8 +179,7 @@ class XLAFSDPStrategy(ParallelStrategy):
             _optimizers_to_device(self.optimizers, self.root_device)
 
     def _setup_model(self, model: Module) -> Module:  # type: ignore
-        """Wraps the model into a
-        :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel` module."""
+        """Wraps the model into a :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel` module."""
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
         kwargs = self._parse_fsdp_kwargs()
@@ -223,11 +223,13 @@ class XLAFSDPStrategy(ParallelStrategy):
         model: "pl.LightningModule" = None,
         **kwargs: Any,
     ) -> Any:
-        """Overrides default tpu optimizer_step since FSDP should not call
-        `torch_xla.core.xla_model.optimizer_step`. Performs the actual optimizer step.
+        """Overrides default tpu optimizer_step since FSDP should not call `torch_xla.core.xla_model.optimizer_step`.
+
+        Performs the actual optimizer step.
         Args:
             optimizer: the optimizer performing the step
             **kwargs: Any extra arguments to ``optimizer.step``
+
         """
         return optimizer.step(closure=closure, **kwargs)
 
@@ -574,8 +576,8 @@ class XLAFSDPStrategy(ParallelStrategy):
 
 class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
     def no_backward_sync(self, module: Module) -> ContextManager:
-        """Blocks gradient synchronization inside the
-        :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel` wrapper."""
+        """Blocks gradient synchronization inside the :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`
+        wrapper."""
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
         if not isinstance(module, XLAFSDP):
