@@ -1423,6 +1423,7 @@ def test_train_epoch_end_ckpt_with_no_validation():
 
 
 def test_resume_and_old_checkpoint_files_remain(tmp_path):
+    """Test that checkpoints saved in the resume-folder won't be delteded under the save-top-k mechanism."""
     model = BoringModel()
     trainer_kwargs = dict(
         default_root_dir=tmp_path,

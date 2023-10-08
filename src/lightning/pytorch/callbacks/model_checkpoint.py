@@ -663,7 +663,7 @@ class ModelCheckpoint(Checkpoint):
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
         self._save_checkpoint(trainer, filepath)
-        if self._should_remove_checkpoint(trainer, previous, filepath):
+        if previous and self._should_remove_checkpoint(trainer, previous, filepath):
             self._remove_checkpoint(trainer, previous)
 
     def _save_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
@@ -683,7 +683,7 @@ class ModelCheckpoint(Checkpoint):
         previous, self.best_model_path = self.best_model_path, filepath
         self._save_checkpoint(trainer, filepath)
 
-        if self.save_top_k == 1 and self._should_remove_checkpoint(trainer, previous, filepath):
+        if self.save_top_k == 1 and previous and self._should_remove_checkpoint(trainer, previous, filepath):
             self._remove_checkpoint(trainer, previous)
 
     def _update_best_and_save(
@@ -725,7 +725,7 @@ class ModelCheckpoint(Checkpoint):
             )
         self._save_checkpoint(trainer, filepath)
 
-        if self._should_remove_checkpoint(trainer, del_filepath, filepath):
+        if del_filepath and self._should_remove_checkpoint(trainer, del_filepath, filepath):
             self._remove_checkpoint(trainer, del_filepath)
 
     def to_yaml(self, filepath: Optional[_PATH] = None) -> None:
@@ -753,7 +753,7 @@ class ModelCheckpoint(Checkpoint):
         - The previous checkpoint is the checkpoint the Trainer resumed from
 
         """
-        if not previous or previous == current:
+        if previous == current:
             return False
         if self._fs.protocol != "file":
             return True
@@ -761,6 +761,7 @@ class ModelCheckpoint(Checkpoint):
         resume_path = Path(trainer.ckpt_path).absolute() if trainer.ckpt_path is not None else None
         if resume_path is not None and previous == resume_path:
             return False
+        assert self.dirpath is not None
         dirpath = Path(self.dirpath).absolute()
         return dirpath in previous.parents
 
