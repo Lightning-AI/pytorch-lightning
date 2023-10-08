@@ -42,7 +42,8 @@ on:
         type: boolean
 
 env:
-  legacy_dir: tests/legacy
+  legacy_dir: "tests/legacy"
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
 
 defaults:
   run:
@@ -54,7 +55,7 @@ jobs:
     outputs:
       pl-version: ${{ steps.decide-version.outputs.pl-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         with:
@@ -65,11 +66,13 @@ jobs:
         env:
           PACKAGE_NAME: pytorch
           FREEZE_REQUIREMENTS: 1
-        run: pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        timeout-minutes: 20
+        run: pip install . -f ${TORCH_URL}
         if: inputs.pl_version == ''
 
       - name: Install PL version
-        run: pip install "pytorch-lightning==${{ inputs.pl_version }}" -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        timeout-minutes: 20
+        run: pip install "pytorch-lightning==${{ inputs.pl_version }}" -f ${TORCH_URL}
         if: inputs.pl_version != ''
 
       - name: Adjust tests -> PL
@@ -124,7 +127,7 @@ jobs:
     if: inputs.create_pr
     needs: create-legacy-ckpts
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: master
 

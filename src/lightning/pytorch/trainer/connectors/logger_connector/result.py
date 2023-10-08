@@ -26,6 +26,7 @@ from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.pytorch.utilities.memory import recursive_detach
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
@@ -194,8 +195,8 @@ class _ResultMetric(Metric):
                 default = float("inf")
             else:
                 default = 0.0
-            # do not set a dtype in case the default dtype was changed
-            self.add_state("value", torch.tensor(default), dist_reduce_fx=torch.sum)
+            # the logged value will be stored in float32 or higher to maintain accuracy
+            self.add_state("value", torch.tensor(default, dtype=_get_default_dtype()), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
                 self.cumulated_batch_size: Tensor
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
@@ -205,13 +206,15 @@ class _ResultMetric(Metric):
     def update(self, value: _VALUE, batch_size: int) -> None:
         if self.is_tensor:
             value = cast(Tensor, value)
+            dtype = _get_default_dtype()
             if not torch.is_floating_point(value):
-                dtype = torch.get_default_dtype()
                 warning_cache.warn(
                     # do not include the value to avoid cache misses
                     f"You called `self.log({self.meta.name!r}, ...)` in your `{self.meta.fx}` but the value needs to"
                     f" be floating point. Converting it to {dtype}."
                 )
+                value = value.to(dtype)
+            if value.dtype not in (torch.float32, torch.float64):
                 value = value.to(dtype)
 
             if self.meta.on_step:
@@ -263,7 +266,8 @@ class _ResultMetric(Metric):
         # Override to avoid syncing - we handle it ourselves.
         @wraps(compute)
         def wrapped_func(*args: Any, **kwargs: Any) -> Optional[Any]:
-            if not self._update_called:
+            update_called = self.update_called if _TORCHMETRICS_GREATER_EQUAL_1_0_0 else self._update_called
+            if not update_called:
                 rank_zero_warn(
                     f"The ``compute`` method of metric {self.__class__.__name__}"
                     " was called before the ``update`` method which may lead to errors,"
@@ -297,8 +301,7 @@ class _ResultMetric(Metric):
 
 
 class _ResultCollection(dict):
-    """Collection (dictionary) of
-    :class:`~lightning.pytorch.trainer.connectors.logger_connector.result._ResultMetric`
+    """Collection (dictionary) of :class:`~lightning.pytorch.trainer.connectors.logger_connector.result._ResultMetric`
 
     Example::
 
@@ -308,6 +311,7 @@ class _ResultCollection(dict):
         result = _ResultCollection(training=True)
         result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
         result.log('validation_step', 'recall', torch.tensor(...), on_step=True, on_epoch=True)
+
     """
 
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
@@ -517,3 +521,9 @@ class _ResultCollection(dict):
 
     def __repr__(self) -> str:
         return f"{{{self.training}, {super().__repr__()}}}"
+
+
+def _get_default_dtype() -> torch.dtype:
+    """The default dtype for new tensors, but no lower than float32."""
+    dtype = torch.get_default_dtype()
+    return dtype if dtype in (torch.float32, torch.float64) else torch.float32

@@ -119,7 +119,7 @@ class Fabric:
         strategy: Union[str, Strategy] = "auto",
         devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
-        precision: _PRECISION_INPUT = "32-true",
+        precision: Optional[_PRECISION_INPUT] = None,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         callbacks: Optional[Union[List[Any], Any]] = None,
         loggers: Optional[Union[Logger, List[Logger]]] = None,
@@ -402,6 +402,7 @@ class Fabric:
         Note:
             When using ``strategy="deepspeed"`` and multiple models were set up, it is required to pass in the
             model as argument here.
+
         """
         module = model._forward_module if model is not None else model
         if isinstance(self._strategy, DeepSpeedStrategy):
@@ -482,8 +483,8 @@ class Fabric:
         ...
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
-        r"""Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
-        on that device.
+        r"""Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already on
+        that device.
 
         Args:
             obj: An object to move to the device. Can be an instance of :class:`torch.nn.Module`, a tensor, or a

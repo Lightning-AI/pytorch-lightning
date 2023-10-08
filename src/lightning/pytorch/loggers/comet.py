@@ -259,9 +259,8 @@ class CometLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> Union["Experiment", "ExistingExperiment", "OfflineExperiment"]:
-        r"""
-        Actual Comet object. To use Comet features in your
-        :class:`~lightning.pytorch.core.LightningModule` do the following.
+        r"""Actual Comet object. To use Comet features in your :class:`~lightning.pytorch.core.LightningModule` do the
+        following.
 
         Example::
 
@@ -327,14 +326,13 @@ class CometLogger(Logger):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        r"""
-        When calling ``self.experiment.end()``, that experiment won't log any more data to Comet.
-        That's why, if you need to log any more data, you need to create an ExistingCometExperiment.
-        For example, to log data when testing your model after training, because when training is
-        finalized :meth:`CometLogger.finalize` is called.
+        r"""When calling ``self.experiment.end()``, that experiment won't log any more data to Comet. That's why, if you
+        need to log any more data, you need to create an ExistingCometExperiment. For example, to log data when testing
+        your model after training, because when training is finalized :meth:`CometLogger.finalize` is called.
 
         This happens automatically in the :meth:`~CometLogger.experiment` property, when
         ``self._experiment`` is set to ``None``, i.e. ``self.reset_experiment()``.
+
         """
         if self._experiment is None:
             # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been

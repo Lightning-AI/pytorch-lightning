@@ -523,7 +523,6 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
         (None, 0, True, None),
         (0, -1, True, 0),
         (-1, 0, True, -1),
-        (0, -1, True, 0),
     ],
 )
 def test_trainer_max_steps_and_epochs_fit_loop_done(max_epochs, max_steps, is_done, correct_trainer_epochs):
@@ -1915,7 +1914,6 @@ def test_detect_anomaly_nan(tmpdir):
             2,
         ),
         pytest.param({"strategy": DDPStrategy()}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
-        ({"strategy": DDPStrategy(), "accelerator": "cuda", "devices": 2}, DDPStrategy, CUDAAccelerator, 2),
         (
             {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
             DDPStrategy,
@@ -1982,7 +1980,6 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
     [
         ({}, [0]),
         ({"devices": 1}, [0]),
-        ({"devices": 1}, [0]),
         ({"devices": "1"}, [0]),
         pytest.param({"devices": 2}, [0, 1], marks=RunIf(mps=False)),
         ({"accelerator": "gpu", "devices": 1}, [0]),
@@ -1993,7 +1990,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         ({"accelerator": "cuda", "devices": "2,"}, [2]),
         ({"accelerator": "cuda", "devices": [0, 2]}, [0, 2]),
         ({"accelerator": "cuda", "devices": "0, 2"}, [0, 2]),
-        pytest.param({"accelerator": "mps", "devices": 1}, [0], marks=RunIf(min_torch="1.12")),
+        ({"accelerator": "mps", "devices": 1}, [0]),
     ],
 )
 def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):

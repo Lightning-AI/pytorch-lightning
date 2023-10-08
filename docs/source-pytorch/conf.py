@@ -14,6 +14,7 @@
 import glob
 import os
 import shutil
+import urllib.request
 import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
@@ -101,6 +102,18 @@ assist_local.AssistantCLI.pull_docs_files(
     target_dir="docs/source-pytorch/integrations/hpu",
     checkout="tags/1.1.0",
 )
+assist_local.AssistantCLI.pull_docs_files(
+    gh_user_repo="Lightning-AI/lightning-Graphcore",
+    target_dir="docs/source-pytorch/integrations/ipu",
+    checkout="tags/v0.1.0",
+    as_orphan=True,  # todo: this can be dropped after new IPU release
+)
+# the IPU also need one image
+URL_RAW_DOCS_GRAPHCORE = "https://raw.githubusercontent.com/Lightning-AI/lightning-Graphcore/v0.1.0/docs/source"
+for img in ["_static/images/ipu/profiler.png"]:
+    os.makedirs(os.path.dirname(os.path.join(_PATH_HERE, img)), exist_ok=True)
+    urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", os.path.join(_PATH_HERE, img))
+
 
 if _FETCH_S3_ASSETS:
     fetch_external_assets(
@@ -464,6 +477,7 @@ nitpick_ignore = [
     ("py:class", "torch.utils.data.DistributedSampler"),
     ("py:class", "torch_xla.distributed.parallel_loader.MpDeviceLoader"),
     ("py:func", "torch_xla.distributed.xla_multiprocessing.spawn"),
+    ("py:class", "torch._dynamo.OptimizedModule"),
     ("py:mod", "tqdm"),
     ("py:meth", "training_step"),
     ("py:meth", "transfer_batch_to_device"),
@@ -596,8 +610,8 @@ linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
 
 # ignore the following relative links (false positive errors during linkcheck)
 linkcheck_ignore = [
-    r"^starter/installation.html$",
-    r"^installation.html$",
-    r"^../cli/lightning_cli.html$",
+    r"installation.html$",
+    r"starter/installation.html$",
     r"^../common/trainer.html#trainer-flags$",
+    "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
 ]

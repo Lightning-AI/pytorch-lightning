@@ -49,7 +49,6 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_12,
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
@@ -66,7 +65,6 @@ from lightning.pytorch.strategies.launchers.subprocess_script import _Subprocess
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 
@@ -157,9 +155,6 @@ class FSDPStrategy(ParallelStrategy):
         state_dict_type: Literal["full", "sharded"] = "full",
         **kwargs: Any,
     ) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException("`FSDPStrategy` is supported from PyTorch v1.12.0 onwards.")
-
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -270,8 +265,8 @@ class FSDPStrategy(ParallelStrategy):
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
 
     def _setup_model(self, model: Module) -> Module:
-        """Wraps the model into a
-        :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
+        """Wraps the model into a :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel`
+        module."""
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in model.modules()):
@@ -452,7 +447,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12 or not torch.distributed.is_available():
+        if not torch.distributed.is_available():
             return
         strategy_registry.register(
             "fsdp",

@@ -18,7 +18,7 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 
 from tests_fabric.helpers.runif import RunIf
 
-_MAYBE_MPS = "mps" if MPSAccelerator.is_available() else "cpu"  # torch.device(mps) only works on torch>=1.12
+_MAYBE_MPS = "mps" if MPSAccelerator.is_available() else "cpu"
 
 
 def test_auto_device_count():
