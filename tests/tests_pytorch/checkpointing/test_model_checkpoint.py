@@ -1420,3 +1420,30 @@ def test_train_epoch_end_ckpt_with_no_validation():
     assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
     trainer.val_check_interval = 0.8
     assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
+
+
+def test_resume_and_old_checkpoint_files_remain(tmp_path):
+    model = BoringModel()
+    trainer_kwargs = dict(
+        default_root_dir=tmp_path,
+        limit_train_batches=5,
+        limit_val_batches=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
+    trainer = Trainer(
+        callbacks=ModelCheckpoint(dirpath=(tmp_path / "first"), every_n_train_steps=2),
+        max_epochs=1,
+        **trainer_kwargs,
+    )
+    trainer.fit(model)
+    assert os.listdir(tmp_path / "first") == ["epoch=0-step=4.ckpt"]
+
+    trainer = Trainer(
+        callbacks=ModelCheckpoint(dirpath=(tmp_path / "second"), every_n_train_steps=2),
+        max_epochs=2,
+        **trainer_kwargs,
+    )
+    trainer.fit(model, ckpt_path=str(tmp_path / "first" / "epoch=0-step=4.ckpt"))
+    assert os.listdir(tmp_path / "first") == ["epoch=0-step=4.ckpt"]
