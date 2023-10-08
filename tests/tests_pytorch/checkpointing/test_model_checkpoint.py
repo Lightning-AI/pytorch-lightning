@@ -511,6 +511,7 @@ def test_model_checkpoint_save_last(tmpdir):
         [f"epoch={i}-step={j}.ckpt" for i, j in zip(range(epochs), [10, 20, 30])] + [last_filename]
     )
     assert os.path.islink(tmpdir / last_filename)
+    assert os.path.realpath(tmpdir / last_filename) == model_checkpoint._last_checkpoint_saved
     ModelCheckpoint.CHECKPOINT_NAME_LAST = "last"
 
 
