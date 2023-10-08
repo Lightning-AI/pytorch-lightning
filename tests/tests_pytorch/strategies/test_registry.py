@@ -77,6 +77,7 @@ def test_xla_fsdp_strategy_registry(_, tpu_available):
     assert isinstance(trainer.strategy, XLAFSDPStrategy)
 
 
+@RunIf(min_torch="1.12")
 def test_fsdp_strategy_registry(cuda_count_1):
     strategy = "fsdp"
     assert strategy in StrategyRegistry
