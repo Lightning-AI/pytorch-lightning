@@ -26,8 +26,8 @@ from io import StringIO
 from pathlib import Path
 from unittest import mock
 
-import pytest
 import lightning.fabric
+import pytest
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.fabric.utilities.warnings import (
     PossibleUserWarning,
