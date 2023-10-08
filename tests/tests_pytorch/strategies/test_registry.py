@@ -16,7 +16,14 @@ from unittest import mock
 import pytest
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import CheckpointIO
-from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, StrategyRegistry, XLAStrategy
+from lightning.pytorch.strategies import (
+    DDPStrategy,
+    DeepSpeedStrategy,
+    FSDPStrategy,
+    StrategyRegistry,
+    XLAFSDPStrategy,
+    XLAStrategy,
+)
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -57,6 +64,17 @@ def test_xla_debug_strategy_registry(_, tpu_available):
 
     trainer = Trainer(strategy=strategy)
     assert isinstance(trainer.strategy, XLAStrategy)
+
+
+@RunIf(skip_windows=True)
+def test_xla_fsdp_strategy_registry(_, tpu_available):
+    strategy = "xla_fsdp"
+
+    assert strategy in StrategyRegistry
+    assert StrategyRegistry[strategy]["strategy"] == XLAFSDPStrategy
+
+    trainer = Trainer(strategy=strategy)
+    assert isinstance(trainer.strategy, XLAFSDPStrategy)
 
 
 @RunIf(min_torch="1.12")

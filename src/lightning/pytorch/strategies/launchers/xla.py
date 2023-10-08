@@ -47,7 +47,7 @@ class _XLALauncher(_MultiProcessingLauncher):
 
     """
 
-    def __init__(self, strategy: "pl.strategies.XLAStrategy") -> None:
+    def __init__(self, strategy: Union["pl.strategies.XLAStrategy", "pl.strategies.XLAFSDPStrategy"]) -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(strategy=strategy, start_method="fork")
