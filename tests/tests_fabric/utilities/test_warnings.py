@@ -16,6 +16,7 @@
 Needs to be run outside of `pytest` as it captures all the warnings.
 
 """
+import importlib
 import inspect
 import os
 import sys
@@ -26,6 +27,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+import lightning.fabric
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.fabric.utilities.warnings import (
     PossibleUserWarning,
@@ -139,8 +141,7 @@ def test_disable_possible_user_warnings_from_environment(setting):
     with pytest.warns(PossibleUserWarning):
         warnings.warn("test", PossibleUserWarning)
     os.environ["POSSIBLE_USER_WARNINGS"] = setting
-    sys.modules.pop("lightning.fabric")
-    import lightning.fabric  # noqa: F401
+    importlib.reload(lightning.fabric)
 
     with no_warning_call(PossibleUserWarning):
         warnings.warn("test", PossibleUserWarning)
