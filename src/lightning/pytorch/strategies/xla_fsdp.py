@@ -24,8 +24,8 @@ import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
-from lightning.fabric.strategies import _StrategyRegistry, _validate_keys_for_strict_loading
-from lightning.fabric.strategies.strategy import _BackwardSyncControl
+from lightning.fabric.strategies import _StrategyRegistry
+from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate_keys_for_strict_loading
 from lightning.fabric.strategies.xla_fsdp import _activation_checkpointing_kwargs, _auto_wrap_policy_kwargs
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
