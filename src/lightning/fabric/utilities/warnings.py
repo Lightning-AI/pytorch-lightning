@@ -27,6 +27,7 @@ def disable_possible_user_warnings(module: str = "") -> None:
     """Ignore warnings of the category :class:`PossibleUserWarnings` from Lightning.
 
     For more granular control over which warnings to ignore, use :func:`warnings.filterwarnings` directly.
+
     """
     warnings.filterwarnings("ignore", module=module, category=PossibleUserWarning)
 

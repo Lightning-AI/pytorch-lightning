@@ -23,9 +23,8 @@ from contextlib import redirect_stderr
 from io import StringIO
 from unittest import mock
 
-import pytest
-
 import lightning.pytorch  # noqa: F401
+import pytest
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning_utilities.test.warning import no_warning_call
 
@@ -67,6 +66,7 @@ def test_disable_possible_user_warnings_from_environment(setting):
     os.environ["POSSIBLE_USER_WARNINGS"] = setting
     sys.modules.pop("lightning.pytorch")
     import lightning.pytorch  # noqa: F401
+
     with no_warning_call(PossibleUserWarning):
         warnings.warn("test", PossibleUserWarning)
     warnings.resetwarnings()

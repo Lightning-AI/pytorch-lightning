@@ -26,10 +26,12 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
-from lightning.fabric.utilities.warnings import disable_possible_user_warnings, _is_path_in_lightning, \
-    PossibleUserWarning
+from lightning.fabric.utilities.warnings import (
+    PossibleUserWarning,
+    _is_path_in_lightning,
+    disable_possible_user_warnings,
+)
 from lightning_utilities.core.rank_zero import WarningCache, _warn
 from lightning_utilities.test.warning import no_warning_call
 
@@ -139,6 +141,7 @@ def test_disable_possible_user_warnings_from_environment(setting):
     os.environ["POSSIBLE_USER_WARNINGS"] = setting
     sys.modules.pop("lightning.fabric")
     import lightning.fabric  # noqa: F401
+
     with no_warning_call(PossibleUserWarning):
         warnings.warn("test", PossibleUserWarning)
     warnings.resetwarnings()
