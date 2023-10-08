@@ -1424,14 +1424,14 @@ def test_train_epoch_end_ckpt_with_no_validation():
 
 def test_resume_and_old_checkpoint_files_remain(tmp_path):
     model = BoringModel()
-    trainer_kwargs = dict(
-        default_root_dir=tmp_path,
-        limit_train_batches=5,
-        limit_val_batches=0,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-        logger=False,
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "limit_train_batches": 5,
+        "limit_val_batches": 0,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+        "logger": False,
+    }
     trainer = Trainer(
         callbacks=ModelCheckpoint(dirpath=(tmp_path / "first"), every_n_train_steps=2),
         max_epochs=1,
