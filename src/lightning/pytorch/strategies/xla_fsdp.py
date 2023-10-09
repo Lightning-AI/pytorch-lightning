@@ -185,7 +185,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
         kwargs = self._parse_fsdp_kwargs()
-        if any(isinstance(mod, XLAFSDP) for mod in model.modules()) and "auto_wrap_policy" in self._fsdp_kwargs:
+        if any(isinstance(mod, XLAFSDP) for mod in model.modules()) and "auto_wrap_policy" in kwargs:
             rank_zero_warn(
                 "A XLAFSDP `auto_wrap_policy` is set, but at least one submodule is already wrapped."
                 " The policy will be ignored."
@@ -544,11 +544,7 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        strategy_registry.register(
-            "xla_fsdp",
-            cls,
-            description=cls.__class__.__name__,
-        )
+        strategy_registry.register("xla_fsdp", cls, description=cls.__name__)
 
     def _parse_fsdp_kwargs(self) -> Dict:
         # this needs to be delayed because `self.precision` isn't available at init

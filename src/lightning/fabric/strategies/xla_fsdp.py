@@ -24,7 +24,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _using_pjrt
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
@@ -93,6 +93,8 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         sequential_save: bool = False,
         **kwargs: Any,
     ) -> None:
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
