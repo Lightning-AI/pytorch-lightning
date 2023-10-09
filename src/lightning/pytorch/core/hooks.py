@@ -154,7 +154,7 @@ class ModelHooks:
 
     def on_validation_model_zero_grad(self) -> None:
         """Called by the training loop to release gradients before entering the validation loop."""
-        zero_grad_kwargs = {} if _TORCH_GREATER_EQUAL_2_0 else dict(set_to_none=True)
+        zero_grad_kwargs = {} if _TORCH_GREATER_EQUAL_2_0 else {"set_to_none": True}
         self.zero_grad(**zero_grad_kwargs)
 
     def on_validation_model_eval(self) -> None:
