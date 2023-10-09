@@ -52,6 +52,7 @@ jobs:
         run: |
           pip install awscli
           aws s3 sync --no-sign-request s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
+          pip install lai-sphinx-theme -f ${PYPI_LOCAL_DIR}
 
       - name: pip wheels cache
         uses: actions/cache/restore@v3
@@ -68,7 +69,6 @@ jobs:
         run: |
           mkdir -p ${PYPI_CACHE_DIR}  # in case cache was not hit
           ls -lh ${PYPI_CACHE_DIR}
-          mkdir -p ${PYPI_LOCAL_DIR}  # in case template is not pulled
           pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
             -f ${PYPI_LOCAL_DIR} -f ${PYPI_CACHE_DIR} -f ${TORCH_URL}
           pip list
