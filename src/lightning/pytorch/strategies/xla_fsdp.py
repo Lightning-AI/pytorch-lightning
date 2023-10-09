@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Literal, Optional, Set, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Literal, Optional, Union
 
 import torch
 from torch import Tensor
@@ -26,7 +26,12 @@ from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate_keys_for_strict_loading
-from lightning.fabric.strategies.xla_fsdp import _activation_checkpointing_kwargs, _auto_wrap_policy_kwargs
+from lightning.fabric.strategies.xla_fsdp import (
+    _POLICY,
+    _POLICY_SET,
+    _activation_checkpointing_kwargs,
+    _auto_wrap_policy_kwargs,
+)
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -41,9 +46,6 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
-
-_POLICY_SET = Set[Type[Module]]
-_POLICY = Union[_POLICY_SET, Callable[[Module, bool, int], bool]]
 
 
 class XLAFSDPStrategy(ParallelStrategy):

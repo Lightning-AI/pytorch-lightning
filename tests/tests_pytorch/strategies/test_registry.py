@@ -67,7 +67,7 @@ def test_xla_debug_strategy_registry(_, tpu_available):
 
 
 @RunIf(skip_windows=True)
-def test_xla_fsdp_strategy_registry(_, tpu_available):
+def test_xla_fsdp_strategy_registry(tpu_available):
     strategy = "xla_fsdp"
 
     assert strategy in StrategyRegistry
