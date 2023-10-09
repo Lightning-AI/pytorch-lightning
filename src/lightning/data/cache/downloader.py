@@ -63,6 +63,7 @@ class S3Downloader(Downloader):
         )
 
 
+# TODO: Add fsspec support
 _DOWNLOADERS = {"s3://": S3Downloader}
 
 

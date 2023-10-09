@@ -11,4 +11,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-INDEX_FILENAME = "index.json"
+from lightning_utilities.core.imports import RequirementCache
+
+_INDEX_FILENAME = "index.json"
+_DEFAULT_CHUNK_BYTES = 1 << 26  # 64M B
+
+# This is required for full pytree serialization / deserialization support
+_TORCH_2_1_0_AVAILABLE = RequirementCache("torch>=2.1.0")
+_VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")

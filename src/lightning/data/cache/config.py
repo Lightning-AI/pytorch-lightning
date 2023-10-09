@@ -15,10 +15,12 @@ import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from lightning.data.cache.constants import INDEX_FILENAME
+from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_2_1_0_AVAILABLE
 from lightning.data.cache.downloader import get_downloader_cls
-from lightning.data.cache.pytree import treespec_loads
 from lightning.data.cache.sampler import ChunkedIndex
+
+if _TORCH_2_1_0_AVAILABLE:
+    from torch.utils._pytree import treespec_loads
 
 
 class ChunksConfig:
@@ -28,7 +30,8 @@ class ChunksConfig:
 
         Arguments:
             cache_dir: The path to cache folder.
-            remote_dir: The remote folder where the data are stored.
+            remote_dir: The path to a remote folder where the data are located.
+                The scheme needs to be added to the path.
 
         """
         self._cache_dir = cache_dir
@@ -37,7 +40,7 @@ class ChunksConfig:
         self._chunks = []
         self._remote_dir = remote_dir
 
-        with open(os.path.join(self._cache_dir, INDEX_FILENAME)) as f:
+        with open(os.path.join(self._cache_dir, _INDEX_FILENAME)) as f:
             data = json.load(f)
 
             self._config = data["config"]
@@ -107,11 +110,11 @@ class ChunksConfig:
 
     @classmethod
     def load(cls, cache_dir: str, remote_dir: Optional[str] = None) -> Optional["ChunksConfig"]:
-        cache_index_filepath = os.path.join(cache_dir, INDEX_FILENAME)
+        cache_index_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
 
         if isinstance(remote_dir, str):
             downloader = get_downloader_cls(remote_dir)(remote_dir, cache_dir, [])
-            downloader.download_file(os.path.join(remote_dir, INDEX_FILENAME), cache_index_filepath)
+            downloader.download_file(os.path.join(remote_dir, _INDEX_FILENAME), cache_index_filepath)
 
         if not os.path.exists(cache_index_filepath):
             return None

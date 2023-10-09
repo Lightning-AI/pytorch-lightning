@@ -181,7 +181,7 @@ class TensorSerializer(Serializer):
         return torch.reshape(tensor, torch.Size(shape))
 
     def can_serialize(self, item: torch.Tensor) -> bool:
-        return isinstance(item, torch.Tensor)
+        return isinstance(item, torch.Tensor) and type(item) == torch.Tensor
 
 
 class PickleSerializer(Serializer):
@@ -201,7 +201,7 @@ class FileSerializer(Serializer):
     def serialize(self, filepath: str) -> Tuple[bytes, Optional[str]]:
         _, file_extension = os.path.splitext(filepath)
         with open(filepath, "rb") as f:
-            return f.read(), file_extension.replace(".", "")
+            return f.read(), file_extension.replace(".", "").lower()
 
     def deserialize(self, data: bytes) -> Any:
         pass

@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import io
 import os
 import sys
 from functools import partial
@@ -33,9 +32,8 @@ _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
 
 
 class ImageDataset(Dataset):
-    def __init__(self, tmpdir, cache, size, num_classes, use_transform: bool = False):
+    def __init__(self, tmpdir, cache, size, num_classes):
         from PIL import Image
-        from torchvision import transforms as T
 
         self.data = []
         self.cache = cache
@@ -47,31 +45,21 @@ class ImageDataset(Dataset):
             np_data = np.random.randint(255, size=(28, 28), dtype=np.uint8)
             img = Image.fromarray(np_data).convert("L")
             img.save(path, format="jpeg", quality=100)
-            # read bytes from the file
-            with open(path, "rb") as f:
-                data = f.read()
-            self.data.append({"image": data, "class": np.random.randint(num_classes)})
-
-        self.use_transform = use_transform
-        self.transform = T.Compose([T.ToTensor()])
+            self.data.append({"image": path, "class": np.random.randint(num_classes)})
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
-        from PIL import Image
-
         if self.cache.filled:
-            data = self.cache[index]
-            if self.use_transform:
-                data["image"] = self.transform(Image.open(io.BytesIO(data["image"]))).unsqueeze(0)
-            return data
+            return self.cache[index]
         self.cache[index] = {**self.data[index], "index": index}
         return None
 
 
 def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
     from PIL import Image
+    from torchvision.transforms import PILToTensor
 
     dataset_size = 85
 
@@ -95,10 +83,8 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
         cached_data = dataset[i]
         original_data = dataset.data[i]
         assert cached_data["class"] == original_data["class"]
-        original_image = Image.open(io.BytesIO(original_data["image"]))
-        assert Image.open(io.BytesIO(cached_data["image"])) == original_image
-
-    dataset.use_transform = True
+        original_array = PILToTensor()(Image.open(original_data["image"]))
+        assert torch.equal(original_array, cached_data["image"])
 
     if distributed_env.world_size == 1:
         indexes = []

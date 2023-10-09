@@ -15,7 +15,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from lightning.data.cache.constants import INDEX_FILENAME
+from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_2_1_0_AVAILABLE
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.sampler import ChunkedIndex
 from lightning.data.cache.writer import BinaryWriter
@@ -39,12 +39,15 @@ class Cache:
         Arguments:
             cache_dir: The path to where the chunks will be stored.
             remote_dir: The path to a remote folder where the data are located.
+                The scheme needs to be added to the path.
             compression: The name of the algorithm to reduce the size of the chunks.
             chunk_bytes: The maximum number of bytes within a chunk.
             chunk_size: The maximum number of items within a chunk.
 
         """
         super().__init__()
+        if not _TORCH_2_1_0_AVAILABLE:
+            raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
         self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
         self._reader = BinaryReader(cache_dir, remote_dir=remote_dir, compression=compression)
         self._cache_dir = cache_dir
@@ -56,7 +59,7 @@ class Cache:
         """Returns whether the caching phase is done."""
         if self._is_done:
             return True
-        self._is_done = os.path.exists(os.path.join(self._cache_dir, INDEX_FILENAME))
+        self._is_done = os.path.exists(os.path.join(self._cache_dir, _INDEX_FILENAME))
         return self._is_done
 
     def __setitem__(self, index: int, data: Any) -> None:

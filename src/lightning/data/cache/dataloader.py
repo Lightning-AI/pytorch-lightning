@@ -19,7 +19,6 @@ from importlib import reload
 from typing import Any, Callable, List, Optional
 
 import torch
-from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import Dataset, IterableDataset
 from torch.utils.data._utils.collate import default_collate
 from torch.utils.data._utils.fetch import _BaseDatasetFetcher
@@ -33,15 +32,14 @@ from torch.utils.data.dataloader import (
 from torch.utils.data.sampler import BatchSampler, Sampler
 
 from lightning.data.cache import Cache
-from lightning.data.cache.pytree import tree_flatten
+from lightning.data.cache.constants import _DEFAULT_CHUNK_BYTES, _TORCH_2_1_0_AVAILABLE, _VIZ_TRACKER_AVAILABLE
 from lightning.data.cache.sampler import CacheBatchSampler
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
-_VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
+if _TORCH_2_1_0_AVAILABLE:
+    from torch.utils._pytree import tree_flatten
 
 logger = logging.Logger(__name__)
-
-_DEFAULT_CHUNK_BYTES = 1 << 26  # 64M B
 
 
 def _equal_items(data_1: Any, data_2: Any) -> bool:

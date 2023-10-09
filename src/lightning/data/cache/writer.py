@@ -19,10 +19,12 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 from lightning.data.cache.compression import _COMPRESSORS, Compressor
-from lightning.data.cache.constants import INDEX_FILENAME
-from lightning.data.cache.pytree import PyTree, tree_flatten, treespec_dumps
+from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_2_1_0_AVAILABLE
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
+
+if _TORCH_2_1_0_AVAILABLE:
+    from torch.utils._pytree import PyTree, tree_flatten, treespec_dumps
 
 
 class BinaryWriter:
@@ -83,7 +85,7 @@ class BinaryWriter:
         if self._is_done:
             return True
         files = os.listdir(self._cache_dir)
-        index_files = [f for f in files if f.endswith(INDEX_FILENAME)]
+        index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
         worker_end = _WorkerEnv.detect()
         self._is_done = len(index_files) == self._distributed_env.world_size * worker_end.world_size
         return self._is_done
@@ -244,7 +246,7 @@ class BinaryWriter:
 
     def write_chunks_index(self) -> None:
         """Write the chunks index to a JSON file."""
-        filepath = os.path.join(self._cache_dir, f"{self.rank}.{INDEX_FILENAME}")
+        filepath = os.path.join(self._cache_dir, f"{self.rank}.{_INDEX_FILENAME}")
         config = self.get_config()
         with open(filepath, "w") as out:
             json.dump({"chunks": self._chunks_info, "config": config}, out, sort_keys=True)
@@ -266,7 +268,7 @@ class BinaryWriter:
 
         # Only for non rank 0
         if self.rank != 0:
-            while not os.path.exists(os.path.join(self._cache_dir, INDEX_FILENAME)):
+            while not os.path.exists(os.path.join(self._cache_dir, _INDEX_FILENAME)):
                 sleep(0.001)
             return
 
@@ -274,9 +276,9 @@ class BinaryWriter:
         is_done = False
         while not is_done:
             files = os.listdir(self._cache_dir)
-            if INDEX_FILENAME in files:
+            if _INDEX_FILENAME in files:
                 return
-            index_files = [f for f in files if f.endswith(INDEX_FILENAME)]
+            index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
             is_done = len(index_files) == self._distributed_env.world_size * num_workers
             sleep(0.001)
 
@@ -299,5 +301,5 @@ class BinaryWriter:
             os.remove(chunk_path)
 
         # Write down the collected index
-        with open(os.path.join(self._cache_dir, INDEX_FILENAME), "w") as f:
+        with open(os.path.join(self._cache_dir, _INDEX_FILENAME), "w") as f:
             json.dump({"chunks": chunks_info, "config": config}, f, sort_keys=True)

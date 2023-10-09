@@ -19,10 +19,13 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 from lightning.data.cache.config import ChunksConfig
-from lightning.data.cache.pytree import PyTree, tree_unflatten
+from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE
 from lightning.data.cache.sampler import ChunkedIndex
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
+
+if _TORCH_2_1_0_AVAILABLE:
+    from torch.utils._pytree import PyTree, tree_unflatten
 
 
 class PrepareChunksThread(Thread):
@@ -61,6 +64,7 @@ class BinaryReader:
         Arguments:
             cache_dir: The path to cache folder.
             remote_dir: The path to a remote folder where the data are located.
+                The scheme needs to be added to the path.
             compression: The algorithm to decompress the chunks.
 
         """
