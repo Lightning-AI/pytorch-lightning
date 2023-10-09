@@ -52,7 +52,7 @@ jobs:
         run: |
           pip install awscli
           aws s3 sync --no-sign-request s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
-          pip install lai-sphinx-theme -f ${PYPI_LOCAL_DIR}
+          pip install lai-sphinx-theme -U -f ${PYPI_LOCAL_DIR}
 
       - name: pip wheels cache
         uses: actions/cache/restore@v3
