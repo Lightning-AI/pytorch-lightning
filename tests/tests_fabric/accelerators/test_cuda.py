@@ -157,3 +157,6 @@ def test_find_usable_cuda_devices_error_handling():
         "lightning.fabric.accelerators.cuda.torch.tensor"
     ):
         assert find_usable_cuda_devices(-1) == [0, 1, 2, 3, 4]
+
+    # Edge case
+    assert find_usable_cuda_devices(0) == []
