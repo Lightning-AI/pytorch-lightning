@@ -36,7 +36,7 @@ def find_latest(ver: str) -> Dict[str, str]:
     ver = re.search(r"([\.\d]+)", ver).groups()[0]
     # in case there remaining dot at the end - e.g "1.9.0.dev20210504"
     ver = ver[:-1] if ver[-1] == "." else ver
-    logging.info(f"finding ecosystem versions for: {ver}")
+    logging.debug(f"finding ecosystem versions for: {ver}")
 
     # find first match
     for option in VERSIONS:
@@ -58,12 +58,20 @@ def adjust(requires: str, torch_version: Optional[str] = None) -> str:
     # remove comments and strip whitespace
     requires = re.sub(rf"\s*#.*{os.linesep}", os.linesep, requires).strip()
 
-    latest = find_latest(torch_version)
-    for lib, version in latest.items():
+    options = find_latest(torch_version)
+    logging.debug(f"determined ecosystem alignment: {options}")
+    for lib, version in options.items():
         replace = f"{lib}=={version}" if version else ""
         requires = re.sub(rf"\b{lib}(?![-_\w]).*", replace, requires)
 
     return requires
+
+
+def _offset_print(req: str, offset: str = "\t|\t") -> str:
+    """Adding offset to each line for the printing requirements."""
+    reqs = req.split(os.linesep)
+    reqs = [offset + r for r in reqs]
+    return os.linesep.join(reqs)
 
 
 if __name__ == "__main__":
@@ -73,11 +81,13 @@ if __name__ == "__main__":
         requirements_path, torch_version = sys.argv[1:]
     else:
         requirements_path, torch_version = sys.argv[1], None
-    logging.info(f"requirements_path='{requirements_path}' with arg torch_version='{torch_version}'")
 
     with open(requirements_path) as fp:
         requirements = fp.read()
     requirements = adjust(requirements, torch_version)
-    logging.info(requirements)  # on purpose - to debug
+    logging.info(
+        f"requirements_path='{requirements_path}' with arg torch_version='{torch_version}' >>\n"
+        f"{_offset_print(requirements)}"
+    )
     with open(requirements_path, "w") as fp:
         fp.write(requirements)
