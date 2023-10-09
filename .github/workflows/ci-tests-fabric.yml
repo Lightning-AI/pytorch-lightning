@@ -100,7 +100,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: basic setup
-        run: pip install -q -r .actions/requirements.txt
+        run: exit 1
 
       - name: Set min. dependencies
         if: ${{ matrix.requires == 'oldest' }}
