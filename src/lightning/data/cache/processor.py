@@ -183,14 +183,14 @@ class DataProcessor:
 
     def run(self, root: str, remote_root: str) -> None:
         filepaths = self._cache_list_filepaths(root)
+        num_filepaths = len(filepaths)
         user_items = self.setup(root, filepaths)
-
-        worker_size = len(user_items) // self.num_workers
+        worker_size = num_filepaths // self.num_workers
         workers_user_items = []
         for worker_idx in range(self.num_workers):
             is_last = worker_idx == self.num_workers - 1
             start = worker_idx * worker_size
-            end = len(user_items) if is_last else (worker_idx + 1) * worker_size
+            end = num_filepaths if is_last else (worker_idx + 1) * worker_size
             workers_user_items.append(user_items[start:end])
 
         for worker_idx, worker_user_items in enumerate(workers_user_items):
@@ -218,6 +218,8 @@ class DataProcessor:
                 pbar.update(new_total - current_total)
                 current_total = new_total
                 sleep(1)
+                if current_total == num_filepaths:
+                    break
 
     def _cache_list_filepaths(self, root: str) -> List[str]:
         algo = hashlib.new("sha256")
