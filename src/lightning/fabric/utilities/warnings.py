@@ -24,7 +24,7 @@ _default_format_warning = warnings.formatwarning
 
 
 def disable_possible_user_warnings(module: str = "") -> None:
-    """Ignore warnings of the category :class:`PossibleUserWarnings` from Lightning.
+    """Ignore warnings of the category :class:`PossibleUserWarning` from Lightning.
 
     For more granular control over which warnings to ignore, use :func:`warnings.filterwarnings` directly.
 
