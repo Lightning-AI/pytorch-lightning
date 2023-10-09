@@ -39,10 +39,10 @@ Suppressing all warnings of the :class:`~lightning.pytorch.utilities.warnings.Po
 
 .. code-block:: python
 
-    import lightning as L
+    from lightning.pytorch.utilities import disable_possible_user_warnings
 
     # ignore all warnings that could be false positives
-    L.disable_possible_user_warnings()
+    disable_possible_user_warnings()
 
 or through the environment variable ``POSSIBLE_USER_WARNINGS``:
 

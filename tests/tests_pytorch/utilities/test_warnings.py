@@ -25,7 +25,7 @@ from unittest import mock
 
 import lightning.pytorch
 import pytest
-from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch.utilities.warnings import PossibleUserWarning
 from lightning_utilities.test.warning import no_warning_call
 
 if __name__ == "__main__":
