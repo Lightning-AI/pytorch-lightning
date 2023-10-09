@@ -18,7 +18,6 @@ import re
 import time
 from argparse import Namespace
 from datetime import timedelta
-from logging import INFO
 from pathlib import Path
 from typing import Union
 from unittest import mock
