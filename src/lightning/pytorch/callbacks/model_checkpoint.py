@@ -369,10 +369,10 @@ class ModelCheckpoint(Checkpoint):
             self._save_none_monitor_checkpoint(trainer, monitor_candidates)
 
     def _save_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
-        self._last_checkpoint_saved = filepath
         trainer.save_checkpoint(filepath, self.save_weights_only)
 
         self._last_global_step_saved = trainer.global_step
+        self._last_checkpoint_saved = filepath
 
         # notify loggers
         if trainer.is_global_zero:
