@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Callable, Optional
 
 import torch
-from torch.utils.data import get_worker_info
+from torch.utils.data import get_worker_info as torch_get_worker_info
 
 
 class _DistributedEnv:
@@ -60,7 +60,7 @@ class _WorkerEnv:
         self.rank = rank
 
     @classmethod
-    def detect(cls) -> "_WorkerEnv":
+    def detect(cls, get_worker_info_fn: Optional[Callable] = None) -> "_WorkerEnv":
         """Automatically detects the number of workers and the current rank.
 
         Note:
@@ -68,6 +68,7 @@ class _WorkerEnv:
             In such a case it will default to 1 worker
 
         """
+        get_worker_info = get_worker_info_fn or torch_get_worker_info
         worker_info = get_worker_info()
         num_workers = worker_info.num_workers if worker_info is not None else 1
         current_worker_rank = worker_info.id if worker_info is not None else 0
