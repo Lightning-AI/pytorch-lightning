@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 import torch
 from torch import Tensor
@@ -131,6 +131,20 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         return self._checkpoint_io
 
+    @property
+    def precision_plugin(self) -> XLAPrecisionPlugin:
+        return self._precision_plugin if self._precision_plugin is not None else XLAPrecisionPlugin()
+
+    @precision_plugin.setter
+    def precision_plugin(self, precision_plugin: Optional[XLAPrecisionPlugin]) -> None:
+        if precision_plugin is not None:
+            if not isinstance(precision_plugin, XLAPrecisionPlugin):
+                raise TypeError(
+                    f"The FSDP strategy can only work with the `XLAPrecisionPlugin` plugin, found {precision_plugin}"
+                )
+            precision_plugin._using_fsdp = True
+        self._precision_plugin = precision_plugin
+
     @checkpoint_io.setter
     def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
@@ -240,27 +254,6 @@ class XLAFSDPStrategy(ParallelStrategy):
                 " `configure_optimizers()` hook."
             )
         return
-
-    def optimizer_step(
-        self,
-        optimizer: Optimizer,
-        closure: Callable[[], Any],
-        model: Optional[Union["pl.LightningModule", Module]] = None,
-        **kwargs: Any,
-    ) -> Any:
-        """Overrides default tpu optimizer_step since FSDP should not call `torch_xla.core.xla_model.optimizer_step`.
-        Performs the actual optimizer step.
-
-        Args:
-            optimizer: the optimizer performing the step
-            **kwargs: Any extra arguments to ``optimizer.step``
-
-        """
-        loss = optimizer.step(closure=closure, **kwargs)
-        import torch_xla.core.xla_model as xm
-
-        xm.mark_step()
-        return loss
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
