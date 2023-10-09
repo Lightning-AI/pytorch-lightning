@@ -5,33 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2023-MM-DD
+## [2.1.0] - 2023-10-11
 
 ### Added
 
-- Allow customize `gradio` components with lightning colors ([#17054](https://github.com/Lightning-AI/lightning/pull/17054))
-
-
--
-
+- Allow customizing `gradio` components with lightning colors ([#17054](https://github.com/Lightning-AI/lightning/pull/17054))
 
 ### Changed
 
 - Changed `LocalSourceCodeDir` cache_location to not use home in some certain cases ([#17491](https://github.com/Lightning-AI/lightning/pull/17491))
 
-
-### Deprecated
-
--
-
-
 ### Removed
 
 - Remove cluster commands from the CLI ([#18151](https://github.com/Lightning-AI/lightning/pull/18151))
-
-
-
-### Fixed
 
 
 ## [2.0.9] - 2023-09-14
