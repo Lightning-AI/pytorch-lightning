@@ -2,10 +2,9 @@ import hashlib
 import os
 from multiprocessing import Process, Queue
 from threading import Lock, Thread
-from time import sleep
+from time import sleep, time
 from typing import Any, Callable, List, Optional
 from urllib import parse
-
 import boto3
 from torch.utils._pytree import tree_flatten, tree_unflatten
 from tqdm import tqdm
@@ -53,6 +52,7 @@ class DataThread(Thread):
     def __init__(
         self,
         index: int,
+        start_index: int,
         prepare_item: Callable,
         root: str,
         remote_root: str,
@@ -65,6 +65,8 @@ class DataThread(Thread):
     ):
         super().__init__(daemon=True)
         self.index = index
+        self.start_index = start_index
+
         self.prepare_item = prepare_item
         self.root = root
         if root.startswith("/"):
@@ -80,7 +82,8 @@ class DataThread(Thread):
         self.to_download_queues = []
         self.download_is_ready_queue = Queue()
         self.remove_queue = Queue()
-        self.counter = 0
+        self._collected_items = 0
+        self.counter = 0 
         self.num_downloaders = num_downloaders
 
         algo = hashlib.new("sha256")
@@ -91,10 +94,16 @@ class DataThread(Thread):
         os.makedirs(cache_dir, exist_ok=True)
 
         self.cache = Cache(cache_dir, chunk_bytes=chunk_bytes, chunk_size=chunk_size, compression=compression)
+        self._is_ready = False
 
     def __len__(self):
         with self.lock:
             return self.counter
+
+    @property
+    def collected_items(self):
+        with self.lock:
+            return self._collected_items        
 
     def run(self):
         self.collect_paths()
@@ -128,7 +137,8 @@ class DataThread(Thread):
                 continue
 
             # TODO: Add support non-ordered
-            self.cache[r] = self.prepare_item(self.items[r])
+            self.cache[r + self.start_index] = self.prepare_item(self.items[r]) if self.prepare_item else self.items[r]
+
             with self.lock:
                 self.counter += 1
             if self.cleanup:
@@ -156,6 +166,9 @@ class DataThread(Thread):
 
             items.append(tree_unflatten(flattened_item, spec))
 
+            with self.lock:
+                self._collected_items += 1
+
         self.items = items
 
 
@@ -182,37 +195,61 @@ class DataProcessor:
         self.workers = []
 
     def run(self, root: str, remote_root: str) -> None:
+        print("Setup started")
+        t0 = time()
         filepaths = self._cache_list_filepaths(root)
         num_filepaths = len(filepaths)
         user_items = self.setup(root, filepaths)
         worker_size = num_filepaths // self.num_workers
         workers_user_items = []
+        begins = []
         for worker_idx in range(self.num_workers):
             is_last = worker_idx == self.num_workers - 1
-            start = worker_idx * worker_size
+            begin = worker_idx * worker_size
             end = num_filepaths if is_last else (worker_idx + 1) * worker_size
-            workers_user_items.append(user_items[start:end])
+            workers_user_items.append(user_items[begin:end])
+            begins.append(begin)
 
-        for worker_idx, worker_user_items in enumerate(workers_user_items):
-            self.workers.append(
-                DataThread(
-                    worker_idx,
-                    self.prepare_item,
-                    root,
-                    remote_root,
-                    worker_user_items.tolist(),
-                    self.num_downloaders,
-                    self.cleanup,
-                    self.chunk_size,
-                    self.chunk_bytes,
-                    self.compression,
-                )
-            )
-            self.workers[-1].start()
+        print(f"Setup finished in {time() - t0}. Found {num_filepaths} items to process.")
+
+        print(f"Starting {self.num_workers} workers")
 
         num_items = len(user_items)
         current_total = 0
-        with tqdm(total=num_items) as pbar:
+        with tqdm(total=num_items, smoothing=0) as pbar:
+            for worker_idx, worker_user_items in enumerate(workers_user_items):
+                new_total = sum([w.collected_items for w in self.workers])
+                pbar.update(new_total - current_total)
+                current_total = new_total
+                thread = DataThread(
+                        worker_idx,
+                        begins[worker_idx],
+                        self.prepare_item,
+                        root,
+                        remote_root,
+                        worker_user_items.tolist(),
+                        self.num_downloaders,
+                        self.cleanup,
+                        self.chunk_size,
+                        self.chunk_bytes,
+                        self.compression,
+                )
+                thread.start()
+                self.workers.append(thread)
+
+            while True:
+                new_total = sum([w.collected_items for w in self.workers])
+                pbar.update(new_total - current_total)
+                current_total = new_total
+                sleep(1)
+                if current_total == num_filepaths:
+                    break
+
+        print("Workers are ready. Starting processing")
+
+        num_items = len(user_items)
+        current_total = 0
+        with tqdm(total=num_items, smoothing=0) as pbar:
             while True:
                 new_total = sum([len(w) for w in self.workers])
                 pbar.update(new_total - current_total)
