@@ -34,7 +34,10 @@ runs:
         fp = 'requirements.dump'
         with open(fp) as fopen:
           lines = [ln.strip() for ln in fopen.readlines()]
+        # prevent collisions with version appendix
         lines = [ln.split('+')[0] for ln in lines if '-e ' not in ln]
+        # drop sphinx theme package
+        lines = [ln for ln in lines if 'sphinx-theme' not in ln]
         with open(fp, 'w') as fopen:
           fopen.writelines([ln + os.linesep for ln in lines])
       shell: python
