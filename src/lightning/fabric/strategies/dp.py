@@ -98,4 +98,4 @@ class DataParallelStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        strategy_registry.register("dp", cls, description=cls.__class__.__name__)
+        strategy_registry.register("dp", cls, description=cls.__name__)

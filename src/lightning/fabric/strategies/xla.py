@@ -264,4 +264,4 @@ class XLAStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        strategy_registry.register("xla", cls, description=cls.__class__.__name__)
+        strategy_registry.register("xla", cls, description=cls.__name__)
