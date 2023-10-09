@@ -372,8 +372,8 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "docs-checks (app, doctest)"
-      - "make-html (app)"
+      - "docs-make (app, doctest)"
+      - "docs-make (app, html)"
 
   # SECTION: common
 
