@@ -111,6 +111,18 @@ class XLAFSDPStrategy(ParallelStrategy):
         self._launched = False
 
     @property
+    def root_device(self) -> torch.device:
+        if not self._launched:
+            raise RuntimeError("Accessing the XLA device before processes have spawned is not allowed.")
+        import torch_xla.core.xla_model as xm
+
+        return xm.xla_device()
+
+    @property
+    def num_processes(self) -> int:
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
+
+    @property
     def checkpoint_io(self) -> CheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = XLACheckpointIO()
@@ -122,18 +134,6 @@ class XLAFSDPStrategy(ParallelStrategy):
     @checkpoint_io.setter
     def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
-
-    @property
-    def root_device(self) -> torch.device:
-        if not self._launched:
-            raise RuntimeError("Accessing the XLA device before processes have spawned is not allowed.")
-        import torch_xla.core.xla_model as xm
-
-        return xm.xla_device()
-
-    @property
-    def num_processes(self) -> int:
-        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def global_rank(self) -> int:
@@ -196,6 +196,29 @@ class XLAFSDPStrategy(ParallelStrategy):
             XLAFSDP(module=model, **kwargs)
         return model
 
+    def configure_ddp(self) -> None:
+        pass
+
+    def model_to_device(self) -> None:
+        pass
+
+    @property
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
+
+    def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
+        from torch_xla.distributed.parallel_loader import MpDeviceLoader
+
+        if isinstance(dataloader, MpDeviceLoader):
+            # dataloader is already wrapped by MpDeviceLoader
+            return dataloader
+
+        dataloader = MpDeviceLoader(dataloader, self.root_device)
+        # Mimic interface to torch.utils.data.DataLoader
+        dataloader.dataset = dataloader._loader.dataset
+        dataloader.batch_sampler = getattr(dataloader._loader, "batch_sampler", None)
+        return dataloader
+
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         invalid_params_error = False
         try:
@@ -226,42 +249,73 @@ class XLAFSDPStrategy(ParallelStrategy):
         **kwargs: Any,
     ) -> Any:
         """Overrides default tpu optimizer_step since FSDP should not call `torch_xla.core.xla_model.optimizer_step`.
-
         Performs the actual optimizer step.
+
         Args:
             optimizer: the optimizer performing the step
             **kwargs: Any extra arguments to ``optimizer.step``
 
         """
-        return optimizer.step(closure=closure, **kwargs)
+        loss = optimizer.step(closure=closure, **kwargs)
+        import torch_xla.core.xla_model as xm
 
-    @property
-    def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return {"num_replicas": self.world_size, "rank": self.global_rank}
+        xm.mark_step()
+        return loss
 
-    def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
-        from torch_xla.distributed.parallel_loader import MpDeviceLoader
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+        """Function to gather a tensor from several distributed processes.
 
-        if isinstance(dataloader, MpDeviceLoader):
-            # dataloader is already wrapped by MpDeviceLoader
-            return dataloader
+        Args:
+            tensor: tensor to all-gather.
+            group: unused.
+            sync_grads: flag that allows users to synchronize gradients for the all-gather operation.
+        Return:
+            A tensor of shape (world_size, ...)
 
-        dataloader = MpDeviceLoader(dataloader, self.root_device)
-        # Mimic interface to torch.utils.data.DataLoader
-        dataloader.dataset = dataloader._loader.dataset
-        dataloader.batch_sampler = getattr(dataloader._loader, "batch_sampler", None)
-        return dataloader
+        """
+        if not self._launched:
+            return tensor
+        if not isinstance(tensor, Tensor):
+            raise NotImplementedError(
+                f"`{type(self).__name__}.all_gather` is only implemented for tensors. Given {tensor}"
+            )
+        if tensor.dim() == 0:
+            tensor = tensor.unsqueeze(0)
+        original_device = tensor.device
+        tensor = tensor.to(self.root_device)
 
-    def configure_ddp(self) -> None:
-        pass
+        import torch_xla.core.functions as xf
+        import torch_xla.core.xla_model as xm
 
-    def model_to_device(self) -> None:
-        pass
+        tensor = xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
+        tensor = tensor.to(original_device)
+        return tensor
+
+    def reduce(
+        self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+    ) -> Tensor:
+        if not isinstance(output, Tensor):
+            output = torch.tensor(output, device=self.root_device)
+
+        invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
+        invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
+        if invalid_reduce_op or invalid_reduce_op_str:
+            raise ValueError(
+                "Currently, the XLAFSDPStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
+                f" {reduce_op}"
+            )
+        import torch_xla.core.xla_model as xm
+
+        output = xm.mesh_reduce("reduce", output, sum)
+
+        if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
+            output = output / self.world_size
+
+        return output
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         if not self._launched:
             return
-
         import torch_xla.core.xla_model as xm
 
         if name is None:
@@ -302,29 +356,6 @@ class XLAFSDPStrategy(ParallelStrategy):
             obj = obj.to(original_device)
 
         return obj
-
-    def reduce(
-        self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
-    ) -> Tensor:
-        if not isinstance(output, Tensor):
-            output = torch.tensor(output, device=self.root_device)
-
-        invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
-        invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
-        if invalid_reduce_op or invalid_reduce_op_str:
-            raise ValueError(
-                "Currently, the XLAStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
-                f" {reduce_op}"
-            )
-
-        import torch_xla.core.xla_model as xm
-
-        output = xm.mesh_reduce("reduce", output, sum)
-
-        if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
-            output = output / self.world_size
-
-        return output
 
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         self._pod_progress_bar_force_stdout()
@@ -512,35 +543,6 @@ class XLAFSDPStrategy(ParallelStrategy):
             return full_ckpt
 
         raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
-
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
-        """Function to gather a tensor from several distributed processes.
-
-        Args:
-            tensor: tensor to all-gather.
-            group: unused.
-            sync_grads: flag that allows users to synchronize gradients for the all-gather operation.
-        Return:
-            A tensor of shape (world_size, ...)
-
-        """
-        if not self._launched:
-            return tensor
-        if not isinstance(tensor, Tensor):
-            raise NotImplementedError(
-                f"`{type(self).__name__}.all_gather` is only implemented for tensors. Given {tensor}"
-            )
-        if tensor.dim() == 0:
-            tensor = tensor.unsqueeze(0)
-        original_device = tensor.device
-        tensor = tensor.to(self.root_device)
-
-        import torch_xla.core.functions as xf
-        import torch_xla.core.xla_model as xm
-
-        tensor = xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
-        tensor = tensor.to(original_device)
-        return tensor
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
