@@ -284,6 +284,8 @@ class BinaryWriter:
         """Called when StopIteration is triggered."""
         if self.filled:
             return
+        while self._should_write():
+            self.write_chunk()
         if self._serialized_items:
             self.write_chunk(True)
         self.write_chunks_index()

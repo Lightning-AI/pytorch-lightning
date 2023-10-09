@@ -16,6 +16,7 @@ import os
 
 import numpy as np
 import pytest
+from lightning import seed_everything
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.sampler import ChunkedIndex
 from lightning.data.cache.writer import BinaryWriter
@@ -61,6 +62,8 @@ def test_binary_writer_with_ints_and_chunk_bytes(tmpdir):
 
 
 def test_binary_writer_with_ints_and_chunk_size(tmpdir):
+    seed_everything(42)
+
     with pytest.raises(FileNotFoundError, match="The provided cache directory `dontexists` doesn't exist."):
         BinaryWriter("dontexists", {})
 
@@ -69,10 +72,13 @@ def test_binary_writer_with_ints_and_chunk_size(tmpdir):
 
     binary_writer = BinaryWriter(tmpdir, chunk_size=25)
 
-    for i in range(100):
+    indices = list(range(100))
+    indices = indices[:5] + np.random.permutation(indices[5:]).tolist()
+
+    for i in indices:
         binary_writer[i] = {"i": i, "i+1": i + 1, "i+2": i + 2}
 
-    assert len(os.listdir(tmpdir)) == 3
+    assert len(os.listdir(tmpdir)) >= 2
     binary_writer.done()
     binary_writer.merge()
     assert len(os.listdir(tmpdir)) == 5
