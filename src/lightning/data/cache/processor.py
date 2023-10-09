@@ -159,7 +159,7 @@ class DataThread(Thread):
         self.items = items
 
 
-class DataOptimizer:
+class DataProcessor:
     def __init__(
         self,
         setup: Callable,
