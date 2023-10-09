@@ -1023,10 +1023,8 @@ class Trainer:
         # wait for all to join if on distributed
         self.strategy.barrier("run-stage")
 
-        if _TORCH_GREATER_EQUAL_2_0:
-            self.lightning_module.zero_grad()
-        else:
-            self.lightning_module.zero_grad(set_to_none=True)
+        zero_grad_kwargs = {} if _TORCH_GREATER_EQUAL_2_0 else dict(set_to_none=True)
+        self.lightning_module.zero_grad(**zero_grad_kwargs)
 
         if self.evaluating:
             return self._evaluation_loop.run()
