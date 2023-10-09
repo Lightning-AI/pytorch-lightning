@@ -134,6 +134,20 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
 
+    @property  # type: ignore[override]
+    def precision(self) -> XLAPrecision:
+        plugin = self._precision
+        if plugin is not None:
+            assert isinstance(plugin, XLAPrecision)
+            return plugin
+        return XLAPrecision("32-true")
+
+    @precision.setter
+    def precision(self, precision: Optional[XLAPrecision]) -> None:
+        if precision is not None and not isinstance(precision, XLAPrecision):
+            raise TypeError(f"The XLA FSDP strategy can only work with the `XLAPrecision` plugin, found {precision}")
+        self._precision = precision
+
     @property
     def global_rank(self) -> int:
         return super().global_rank if self._launched else 0

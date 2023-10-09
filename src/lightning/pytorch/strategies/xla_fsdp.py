@@ -131,9 +131,17 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         return self._checkpoint_io
 
-    @property
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: CheckpointIO) -> None:
+        self._checkpoint_io = io
+
+    @property  # type: ignore[override]
     def precision_plugin(self) -> XLAPrecisionPlugin:
-        return self._precision_plugin if self._precision_plugin is not None else XLAPrecisionPlugin()
+        plugin = self._precision_plugin
+        if plugin is not None:
+            assert isinstance(plugin, XLAPrecisionPlugin)
+            return plugin
+        return XLAPrecisionPlugin()
 
     @precision_plugin.setter
     def precision_plugin(self, precision_plugin: Optional[XLAPrecisionPlugin]) -> None:
@@ -144,10 +152,6 @@ class XLAFSDPStrategy(ParallelStrategy):
                 )
             precision_plugin._using_fsdp = True
         self._precision_plugin = precision_plugin
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, io: CheckpointIO) -> None:
-        self._checkpoint_io = io
 
     @property
     def global_rank(self) -> int:
@@ -209,9 +213,6 @@ class XLAFSDPStrategy(ParallelStrategy):
         if not isinstance(model, XLAFSDP):
             XLAFSDP(module=model, **kwargs)
         return model
-
-    def configure_ddp(self) -> None:
-        pass
 
     def model_to_device(self) -> None:
         pass
