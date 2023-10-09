@@ -590,10 +590,7 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
         max_epochs=epochs,
         logger=False,
     )
-
-    with caplog.at_level(INFO):
-        trainer.fit(model)
-        assert "will duplicate the last checkpoint saved" in caplog.text
+    trainer.fit(model)
 
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None

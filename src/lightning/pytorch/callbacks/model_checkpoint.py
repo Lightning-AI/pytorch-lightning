@@ -445,12 +445,6 @@ class ModelCheckpoint(Checkpoint):
                     " configuration. No quantity for top_k to track."
                 )
 
-            if self.save_top_k == -1 and self.save_last:
-                rank_zero_info(
-                    "ModelCheckpoint(save_last=True, save_top_k=-1, monitor=None)"
-                    " will duplicate the last checkpoint saved."
-                )
-
     def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
         self._fs = get_filesystem(dirpath if dirpath else "")
 
