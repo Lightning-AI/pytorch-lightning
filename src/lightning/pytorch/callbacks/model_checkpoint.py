@@ -382,7 +382,7 @@ class ModelCheckpoint(Checkpoint):
     @staticmethod
     def _link_checkpoint(trainer: "pl.Trainer", filepath: str, linkpath: str) -> None:
         if trainer.is_global_zero:
-            if os.path.islink(linkpath) or os.path.exists(linkpath):
+            if os.path.lexists(linkpath):
                 os.remove(linkpath)
             os.symlink(filepath, linkpath)
         trainer.strategy.barrier()
