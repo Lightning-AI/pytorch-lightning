@@ -1,15 +1,19 @@
 import hashlib
+import logging
 import os
 from multiprocessing import Process, Queue
 from threading import Lock, Thread
 from time import sleep, time
 from typing import Any, Callable, List, Optional
 from urllib import parse
+
 import boto3
 from torch.utils._pytree import tree_flatten, tree_unflatten
 from tqdm import tqdm
 
 from lightning.data.cache import Cache
+
+logger = logging.Logger(__name__)
 
 
 def _download_data(queue_in: Queue, queue_out: Queue) -> None:
@@ -83,7 +87,7 @@ class DataThread(Thread):
         self.download_is_ready_queue = Queue()
         self.remove_queue = Queue()
         self._collected_items = 0
-        self.counter = 0 
+        self.counter = 0
         self.num_downloaders = num_downloaders
 
         algo = hashlib.new("sha256")
@@ -103,7 +107,7 @@ class DataThread(Thread):
     @property
     def collected_items(self):
         with self.lock:
-            return self._collected_items        
+            return self._collected_items
 
     def run(self):
         self.collect_paths()
@@ -195,11 +199,17 @@ class DataProcessor:
         self.workers = []
 
     def run(self, root: str, remote_root: str) -> None:
-        print("Setup started")
         t0 = time()
+        logger.info("Setup started")
+
+        # Get the filepaths
         filepaths = self._cache_list_filepaths(root)
         num_filepaths = len(filepaths)
+
+        # Call the setup method of the user
         user_items = self.setup(root, filepaths)
+
+        # Associate the items to the workers
         worker_size = num_filepaths // self.num_workers
         workers_user_items = []
         begins = []
@@ -210,9 +220,9 @@ class DataProcessor:
             workers_user_items.append(user_items[begin:end])
             begins.append(begin)
 
-        print(f"Setup finished in {time() - t0}. Found {num_filepaths} items to process.")
+        logger.info(f"Setup finished in {round(time() - t0, 3)} seconds. Found {num_filepaths} items to process.")
 
-        print(f"Starting {self.num_workers} workers")
+        logger.info(f"Starting {self.num_workers} workers")
 
         num_items = len(user_items)
         current_total = 0
@@ -222,17 +232,17 @@ class DataProcessor:
                 pbar.update(new_total - current_total)
                 current_total = new_total
                 thread = DataThread(
-                        worker_idx,
-                        begins[worker_idx],
-                        self.prepare_item,
-                        root,
-                        remote_root,
-                        worker_user_items.tolist(),
-                        self.num_downloaders,
-                        self.cleanup,
-                        self.chunk_size,
-                        self.chunk_bytes,
-                        self.compression,
+                    worker_idx,
+                    begins[worker_idx],
+                    self.prepare_item,
+                    root,
+                    remote_root,
+                    worker_user_items.tolist(),
+                    self.num_downloaders,
+                    self.cleanup,
+                    self.chunk_size,
+                    self.chunk_bytes,
+                    self.compression,
                 )
                 thread.start()
                 self.workers.append(thread)
@@ -245,7 +255,7 @@ class DataProcessor:
                 if current_total == num_filepaths:
                     break
 
-        print("Workers are ready. Starting processing")
+        logger.info("Workers are ready ! Starting data processing...")
 
         num_items = len(user_items)
         current_total = 0
@@ -257,6 +267,8 @@ class DataProcessor:
                 sleep(1)
                 if current_total == num_filepaths:
                     break
+
+        logger.info("Finished data processing! ")
 
     def _cache_list_filepaths(self, root: str) -> List[str]:
         algo = hashlib.new("sha256")

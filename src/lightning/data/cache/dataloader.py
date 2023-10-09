@@ -154,7 +154,22 @@ class WorkerLoop:
         self._global_rank = global_rank
         self._profile = profile
 
-    def __call__(self, dataset_kind: _DatasetKind, *args: Any, worker_id, **kwargs: Any) -> None:
+    def __call__(
+        self,
+        dataset_kind,
+        dataset,
+        index_queue,
+        data_queue,
+        done_event,
+        auto_collation,
+        collate_fn,
+        drop_last,
+        base_seed,
+        init_fn,
+        worker_id,
+        *args,
+        **kwargs: Any,
+    ) -> None:
         from torch.utils.data._utils import worker
 
         from lightning.data.cache.cache import Cache
@@ -179,7 +194,21 @@ class WorkerLoop:
 
         _DatasetKind.create_fetcher = create_fetcher_fn  # type: ignore
 
-        reloaded_worker._worker_loop(dataset_kind, *args, worker_id=worker_id, **kwargs)
+        reloaded_worker._worker_loop(
+            dataset_kind,
+            dataset,
+            index_queue,
+            data_queue,
+            done_event,
+            auto_collation,
+            collate_fn,
+            drop_last,
+            base_seed,
+            init_fn,
+            worker_id,
+            *args,
+            **kwargs,
+        )
 
         if dataset_kind == _DatasetKind.Map:
             assert fetcher

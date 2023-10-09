@@ -219,14 +219,6 @@ class BinaryWriter:
 
         """
         # Track the minimum index provided to the writer
-        if self._min_index is None:
-            if self._serialized_items:
-                self._min_index = min(index, *self._serialized_items.keys())
-            else:
-                self._min_index = index
-        else:
-            self._min_index = min(index, self._min_index)
-
         # Serialize the items and store an Item object.
         data = self.serialize(items)
         self._serialized_items[index] = Item(
@@ -242,7 +234,10 @@ class BinaryWriter:
             self._max_index = None
 
     def _should_write(self) -> bool:
-        index = self._min_index
+        if not self._serialized_items:
+            return False
+        indexes = list(self._serialized_items.keys())
+        self._min_index = index = indexes[0] if len(indexes) == 1 else min(*indexes)
         num_bytes = 0
         num_items = 0
         while True:
