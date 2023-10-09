@@ -255,6 +255,7 @@ class XLAFSDPStrategy(ParallelStrategy):
                 raise
             invalid_params_error = True
 
+        assert self.lightning_module is not None
         if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             assert len(self.optimizers) == 1, "XLAFSDP only supports using exactly 1 optimizer."
             from torch_xla.distributed.fsdp.xla_flatten_params_wrapper import FlatParameter
