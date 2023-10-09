@@ -13,6 +13,7 @@
 
 import json
 import os
+from dataclasses import dataclass
 from time import sleep
 from typing import Any, Dict, List, Optional
 
@@ -25,6 +26,16 @@ from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
 if _TORCH_2_1_0_AVAILABLE:
     from torch.utils._pytree import PyTree, tree_flatten, treespec_dumps
+
+
+@dataclass
+class Item:
+    index: int
+    data: bytes
+    bytes: int
+
+    def __len__(self):
+        return self.bytes
 
 
 class BinaryWriter:
@@ -69,11 +80,11 @@ class BinaryWriter:
                 )
             self._compressor: Compressor = _COMPRESSORS[self._compression]
 
-        self._current_chunk_bytes = 0
+        self._serialized_items: Dict[str, Item] = {}
         self._chunk_index = 0
-        self._serialized_items: List[bytes] = []
+        self._min_index: Optional[int] = None
+        self._max_index: Optional[int] = None
         self._chunks_info: List[Dict[str, Any]] = []
-        self._indexes: List[int] = []
         self._worker_env: Optional[_WorkerEnv] = None
         self._rank: Optional[int] = None
         self._is_done = False
@@ -150,46 +161,54 @@ class BinaryWriter:
                 return name or serializer_name
         raise ValueError(f"The provided item isn't serializable. Found {item}")
 
-    def _create_chunk(self, filename: str) -> bytes:
+    def _create_chunk(self, filename: str, on_done: bool = False) -> bytes:
         """Create a binary chunk from all the binarized items."""
-        num_items = np.uint32(len(self._serialized_items))
-        sizes = list(map(len, self._serialized_items))
+        if on_done:
+            indices = sorted(self._serialized_items.keys())
+            for i in range(len(indices) - 1):
+                assert indices[i] == indices[i + 1] - 1
+            min_index = indices[0]
+            max_index = indices[-1] + 1
+            num_items = np.uint32(max_index - min_index)
+            items = [self._serialized_items.pop(index) for index in indices]
+        else:
+            num_items = np.uint32(self._max_index - self._min_index)
+            items = [self._serialized_items.pop(index) for index in range(self._min_index, self._max_index)]
+            min_index = self._min_index
+            max_index = self._max_index
+        sizes = list(map(len, items))
         offsets = np.array([0] + sizes).cumsum().astype(np.uint32)
         offsets += len(num_items.tobytes()) + len(offsets.tobytes())
-        sample_data = b"".join(self._serialized_items)
+        sample_data = b"".join([item.data for item in items])
         data = num_items.tobytes() + offsets.tobytes() + sample_data
         offsets = offsets.tolist()
-        mapping = {}
-        for i in range(len(self._indexes)):
-            mapping[self._indexes[i]] = [offsets[i], offsets[i + 1]]
 
-        assert len(mapping) == len(self._indexes)
-        assert (self._indexes[-1] - self._indexes[0] + 1) == len(self._serialized_items)
+        current_chunk_bytes = sum([item.bytes for item in items])
+
+        if self._chunk_bytes:
+            assert current_chunk_bytes <= self._chunk_bytes
+
+        if self._chunk_size:
+            assert num_items.item() <= self._chunk_size
 
         chunk_info = {
-            "chunk_bytes": self._current_chunk_bytes,
-            "chunk_size": len(self._serialized_items),
+            "chunk_bytes": current_chunk_bytes,
+            "chunk_size": num_items.item(),
             "filename": filename,
-            "interval": [self._indexes[0], self._indexes[-1] + 1],
+            "interval": [min_index, max_index],
         }
 
         self._chunks_info.append(chunk_info)
 
         return data
 
-    def write_chunk(self) -> None:
+    def write_chunk(self, on_done: bool = False) -> None:
         """Write a chunk to the filesystem."""
         if self._compression:
             filename = f"chunk-{self.rank}-{self._chunk_index}.{self._compression}.bin"
         else:
             filename = f"chunk-{self.rank}-{self._chunk_index}.bin"
-        self.write_chunk_to_file(self._create_chunk(filename), filename)
-
-    def reset(self) -> None:
-        """Reset the writer to handle the next chunk."""
-        self._serialized_items = []
-        self._indexes = []
-        self._current_chunk_bytes = 0
+        self.write_chunk_to_file(self._create_chunk(filename, on_done=on_done), filename)
 
     def __setitem__(self, index: int, items: Any) -> None:
         """Store an item to a chunk.
@@ -199,36 +218,46 @@ class BinaryWriter:
         This is handled by the samplers automatically. This ensures we can map an index to a shard from an interval.
 
         """
-        # Serialize the items
-        serialized_items = self.serialize(items)
-        serialized_items_size = len(serialized_items)
+        # Track the minimum index provided to the writer
+        if self._min_index is None:
+            if self._serialized_items:
+                self._min_index = min(index, *self._serialized_items.keys())
+            else:
+                self._min_index = index
+        else:
+            self._min_index = min(index, self._min_index)
 
-        # Check whether it is time to write a chunk
-        should_write = (
-            self._chunk_bytes and self._chunk_bytes < self._current_chunk_bytes + serialized_items_size
-        ) or (self._chunk_size and len(self._indexes) >= self._chunk_size)
+        # Serialize the items and store an Item object.
+        data = self.serialize(items)
+        self._serialized_items[index] = Item(
+            index=index,
+            data=data,
+            bytes=len(data),
+        )
 
-        if should_write:
-            if self._current_chunk_bytes == 0:
-                raise Exception(
-                    f"The provided chunk_size {self._chunk_bytes} is too small."
-                    f" You should use a multiple of {serialized_items_size} bytes."
-                )
+        if self._should_write():
             self.write_chunk()
-            self.reset()
             self._chunk_index += 1
+            self._min_index = None
+            self._max_index = None
 
-        # Store the serialized items into the chunk.
-        self._serialized_items.append(serialized_items)
-        self._current_chunk_bytes += serialized_items_size
-
-        # Validate the index are provided in an incremental order
-        # This is required to ensure we can find efficiently a chunk index from an index using the chunk interval
-        if self._indexes:
-            assert self._indexes[-1] == index - 1, (self._indexes, index - 1)
-
-        # Store the index
-        self._indexes.append(index)
+    def _should_write(self) -> bool:
+        index = self._min_index
+        num_bytes = 0
+        num_items = 0
+        while True:
+            item = self._serialized_items.get(index, None)
+            if item:
+                num_bytes += item.bytes
+                num_items += 1
+                index += 1
+                if (self._chunk_bytes and self._chunk_bytes < num_bytes) or (
+                    self._chunk_size and num_items > self._chunk_size
+                ):
+                    self._max_index = index - 1
+                    return True
+            else:
+                return False
 
     def write_chunk_to_file(
         self,
@@ -256,9 +285,8 @@ class BinaryWriter:
         if self.filled:
             return
         if self._serialized_items:
-            self.write_chunk()
+            self.write_chunk(True)
         self.write_chunks_index()
-        self.reset()
         self._is_done = True
 
     def merge(self, num_workers: int = 1) -> None:

@@ -54,6 +54,7 @@ class ChunksConfig:
             if (end - start) != chunk["chunk_size"]:
                 raise Exception(
                     "The config intervals doesn't match the number of samples. This shouldn't have happened."
+                    f" Found {end} {start} {chunk['chunk_size']}"
                 )
             self._intervals.append((chunk["interval"][0], chunk["interval"][1]))
 
