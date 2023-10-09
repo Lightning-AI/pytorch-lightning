@@ -120,7 +120,7 @@ class Strategy(ABC):
 
     def tensor_init_context(self) -> ContextManager:
         """Controls how tensors get created (device, dtype)."""
-        precision_init_ctx = self.precision.init_context()
+        precision_init_ctx = self.precision.tensor_init_context()
         stack = ExitStack()
         if _TORCH_GREATER_EQUAL_2_0:
             stack.enter_context(self.root_device)

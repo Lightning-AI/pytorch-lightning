@@ -116,7 +116,10 @@ class BitsandbytesPrecision(Precision):
                 m.compute_type_is_set = False
         return module
 
-    def init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self.dtype)
+
+    def module_init_context(self) -> ContextManager:
         if self.ignore_modules:
             # cannot patch the Linear class if the user wants to skip some submodules
             raise RuntimeError(
@@ -125,7 +128,7 @@ class BitsandbytesPrecision(Precision):
                 " may initialize the layers on-device, defeating the purpose of quantization. You can remove"
                 " `ignore_modules` or remove the `init_module` context manager."
             )
-        dtype_ctx = _DtypeContextManager(self.dtype)
+        dtype_ctx = self.tensor_init_context()
         # TODO: this could also support replacing `Embedding` and `Conv1D`
         context_manager = _ClassReplacementContextManager({"torch.nn.Linear": self._linear_cls})
         stack = ExitStack()
