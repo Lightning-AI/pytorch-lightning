@@ -22,7 +22,7 @@ import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.fsdp import _PRECISION_INPUT
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
@@ -50,9 +50,6 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(self, precision: _PRECISION_INPUT, scaler: Optional["ShardedGradScaler"] = None) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12:
-            raise NotImplementedError("`FSDPPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
-
         supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:
             raise ValueError(
@@ -115,7 +112,10 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
             buffer_dtype=buffer_dtype,
         )
 
-    def init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self._desired_input_dtype)
+
+    def module_init_context(self) -> ContextManager:
         return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
 
     def forward_context(self) -> ContextManager:
@@ -188,6 +188,4 @@ class FSDPMixedPrecisionPlugin(FSDPPrecisionPlugin):
             f"The `{type(self).__name__}` is deprecated."
             " Use `lightning.pytorch.plugins.precision.FSDPPrecisionPlugin` instead."
         )
-        if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException("`FSDPMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
         super().__init__(precision=precision, scaler=scaler)

@@ -26,6 +26,7 @@ from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.pytorch.utilities.memory import recursive_detach
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
@@ -265,7 +266,8 @@ class _ResultMetric(Metric):
         # Override to avoid syncing - we handle it ourselves.
         @wraps(compute)
         def wrapped_func(*args: Any, **kwargs: Any) -> Optional[Any]:
-            if not self._update_called:
+            update_called = self.update_called if _TORCHMETRICS_GREATER_EQUAL_1_0_0 else self._update_called
+            if not update_called:
                 rank_zero_warn(
                     f"The ``compute`` method of metric {self.__class__.__name__}"
                     " was called before the ``update`` method which may lead to errors,"

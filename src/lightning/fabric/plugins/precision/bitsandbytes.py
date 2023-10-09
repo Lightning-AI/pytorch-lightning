@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import logging
 import os
 import warnings
@@ -68,8 +69,7 @@ class BitsandbytesPrecision(Precision):
         dtype: Optional[torch.dtype] = None,
         ignore_modules: Optional[Set[str]] = None,
     ) -> None:
-        if not _BITSANDBYTES_AVAILABLE:
-            raise ModuleNotFoundError(str(_BITSANDBYTES_AVAILABLE))
+        _import_bitsandbytes()
 
         if dtype is None:
             # try to be smart about the default selection
@@ -83,13 +83,14 @@ class BitsandbytesPrecision(Precision):
             # this limitation is mentioned in https://huggingface.co/blog/hf-bitsandbytes-integration#usage
             raise ValueError(f"{mode!r} only works with `dtype=torch.float16`, but you chose `{dtype}`")
 
+        globals_ = globals()
         mode_to_cls = {
-            "nf4": _NF4Linear,
-            "nf4-dq": _NF4DQLinear,
-            "fp4": _FP4Linear,
-            "fp4-dq": _FP4DQLinear,
-            "int8-training": _Linear8bitLt,
-            "int8": _Int8LinearInference,
+            "nf4": globals_["_NF4Linear"],
+            "nf4-dq": globals_["_NF4DQLinear"],
+            "fp4": globals_["_FP4Linear"],
+            "fp4-dq": globals_["_FP4DQLinear"],
+            "int8-training": globals_["_Linear8bitLt"],
+            "int8": globals_["_Int8LinearInference"],
         }
         self._linear_cls = mode_to_cls[mode]
         self.dtype = dtype
@@ -110,20 +111,28 @@ class BitsandbytesPrecision(Precision):
 
         # set the compute dtype if necessary
         for m in module.modules():
-            if isinstance(m, _Linear4bit):
+            if isinstance(m, bnb.nn.Linear4bit):
                 m.compute_dtype = self.dtype
                 m.compute_type_is_set = False
         return module
 
-    def init_context(self) -> ContextManager:
-        dtype_ctx = _DtypeContextManager(self.dtype)
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self.dtype)
+
+    def module_init_context(self) -> ContextManager:
         if self.ignore_modules:
             # cannot patch the Linear class if the user wants to skip some submodules
-            return dtype_ctx
-        stack = ExitStack()
-        stack.enter_context(dtype_ctx)
+            raise RuntimeError(
+                "Instantiating your model under the `init_module` context manager is not supported when used with"
+                f" `BitsandbytesPrecision(..., ignore_modules={self.ignore_modules})` as this"
+                " may initialize the layers on-device, defeating the purpose of quantization. You can remove"
+                " `ignore_modules` or remove the `init_module` context manager."
+            )
+        dtype_ctx = self.tensor_init_context()
         # TODO: this could also support replacing `Embedding` and `Conv1D`
         context_manager = _ClassReplacementContextManager({"torch.nn.Linear": self._linear_cls})
+        stack = ExitStack()
+        stack.enter_context(dtype_ctx)
         stack.enter_context(context_manager)
         return stack
 
@@ -135,25 +144,6 @@ class BitsandbytesPrecision(Precision):
 
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
-
-
-def _import_bitsandbytes() -> ModuleType:
-    if not _BITSANDBYTES_AVAILABLE:
-        raise ModuleNotFoundError(str(_BITSANDBYTES_AVAILABLE))
-    # configuration for bitsandbytes before import
-    nowelcome_set = "BITSANDBYTES_NOWELCOME" in os.environ
-    if not nowelcome_set:
-        os.environ["BITSANDBYTES_NOWELCOME"] = "1"
-    warnings.filterwarnings("ignore", message=r".*bitsandbytes was compiled without GPU support.*")
-    warnings.filterwarnings(
-        "ignore", message=r"MatMul8bitLt: inputs will be cast from .* to float16 during quantization"
-    )
-    import bitsandbytes
-
-    if not nowelcome_set:
-        del os.environ["BITSANDBYTES_NOWELCOME"]
-
-    return bitsandbytes
 
 
 def _quantize_on_load_hook(quantize_fn: Callable[[torch.Tensor], None], state_dict: OrderedDict, *_: Any) -> None:
@@ -172,10 +162,24 @@ def _ignore_missing_weights_hook(module: torch.nn.Module, incompatible_keys: _In
             incompatible_keys.missing_keys.remove(key)
 
 
-if _BITSANDBYTES_AVAILABLE:
-    bnb = _import_bitsandbytes()
+@functools.lru_cache(maxsize=1)
+def _import_bitsandbytes() -> ModuleType:
+    if not _BITSANDBYTES_AVAILABLE:
+        raise ModuleNotFoundError(str(_BITSANDBYTES_AVAILABLE))
+    # configuration for bitsandbytes before import
+    nowelcome_set = "BITSANDBYTES_NOWELCOME" in os.environ
+    if not nowelcome_set:
+        os.environ["BITSANDBYTES_NOWELCOME"] = "1"
+    warnings.filterwarnings("ignore", message=r".*bitsandbytes was compiled without GPU support.*")
+    warnings.filterwarnings(
+        "ignore", message=r"MatMul8bitLt: inputs will be cast from .* to float16 during quantization"
+    )
+    import bitsandbytes as bnb
 
-    class _Linear8bitLt(bnb.nn.Linear8bitLt):  # type: ignore[name-defined]
+    if not nowelcome_set:
+        del os.environ["BITSANDBYTES_NOWELCOME"]
+
+    class _Linear8bitLt(bnb.nn.Linear8bitLt):
         """Wraps `bnb.nn.Linear8bitLt` and enables instantiation directly on the device and re-quantizaton when loading
         the state dict."""
 
@@ -189,16 +193,19 @@ if _BITSANDBYTES_AVAILABLE:
             self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
 
         def _quantize_weight(self, weight: torch.Tensor) -> None:
-            # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L296-L302
-            B = weight.contiguous().half().cuda()
-            CB, CBt, SCB, SCBt, coo_tensorB = bnb.functional.double_quant(B)
-            del CBt
-            del SCBt
-            self.weight.data = CB
-            setattr(self.weight, "CB", CB)
-            setattr(self.weight, "SCB", SCB)
+            # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L291-L302
+            B = weight.contiguous().to(device="cuda", dtype=torch.float16)
+            if self.state.has_fp16_weights:
+                self.weight.data = B
+            else:
+                CB, CBt, SCB, SCBt, coo_tensorB = bnb.functional.double_quant(B)
+                del CBt
+                del SCBt
+                self.weight.data = CB
+                setattr(self.weight, "CB", CB)
+                setattr(self.weight, "SCB", SCB)
 
-    class _Linear4bit(bnb.nn.Linear4bit):  # type: ignore[name-defined]
+    class _Linear4bit(bnb.nn.Linear4bit):
         """Wraps `bnb.nn.Linear4bit` and enables instantiation directly on the device and re-quantizaton when loading
         the state dict."""
 
@@ -244,6 +251,21 @@ if _BITSANDBYTES_AVAILABLE:
     class _NF4DQLinear(_Linear4bit):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, quant_type="nf4", compress_statistics=True, **kwargs)
+
+    # these classes are defined programatically like this to avoid importing bitsandbytes in environments that have
+    # it available but will not use it
+    classes = {
+        "_Linear8bitLt": _Linear8bitLt,
+        "_Linear4bit": _Linear4bit,
+        "_Int8LinearInference": _Int8LinearInference,
+        "_FP4Linear": _FP4Linear,
+        "_FP4DQLinear": _FP4DQLinear,
+        "_NF4Linear": _NF4Linear,
+        "_NF4DQLinear": _NF4DQLinear,
+    }
+    globals().update(classes)
+
+    return bnb
 
 
 def _convert_layers(module: torch.nn.Module, linear_cls: Type, ignore_modules: Set[str], prefix: str = "") -> None:

@@ -49,7 +49,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for meta-device initialization with `Fabric.init_module(empty_init=True)` in FSDP ([#18122](https://github.com/Lightning-AI/lightning/pull/18122))
 
 
-- Added `lightning.fabric.plugins.Precision.init_context()` and `lightning.fabric.strategies.Strategy.module_init_context()` context managers to control model and tensor instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
+- Added `lightning.fabric.plugins.Precision.module_init_context()` and `lightning.fabric.strategies.Strategy.module_init_context()` context managers to control model and tensor instantiation ([#17462](https://github.com/Lightning-AI/lightning/pull/17462))
 
 
 - `lightning.fabric.strategies.Strategy.tensor_init_context()` context manager to instantiate tensors efficiently directly on device and dtype ([#17607](https://github.com/Lightning-AI/lightning/pull/17607))
@@ -136,6 +136,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `lightning.fabric.utilities.is_shared_filesystem` utility function to automatically check whether the filesystem is shared between machines ([#18586](https://github.com/Lightning-AI/lightning/pull/18586))
 
 
+- Removed support for PyTorch 1.11 ([#18691](https://github.com/Lightning-AI/lightning/pull/18691))
+
+
 - Added support for passing the argument `.load_state_dict(..., assign=True|False)` on Fabric-wrapped modules in PyTorch 2.1 or newer ([#18690](https://github.com/Lightning-AI/lightning/pull/18690))
 
 
@@ -163,6 +166,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Enabled launching via `torchrun` in a SLURM environment; the `TorchElasticEnvironment` now gets chosen over the `SLURMEnvironment` if both are detected ([#18618](https://github.com/Lightning-AI/lightning/pull/18618))
+
+
+- If not set by the user, Lightning will set `OMP_NUM_THREADS` to `num_cpus / num_processes` when launching subprocesses (e.g. when DDP is used) to avoid system overload for CPU-intensive tasks ([#18677](https://github.com/Lightning-AI/lightning/pull/18677))
+
 
 
 ### Deprecated
@@ -212,6 +219,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed redundant input-type casting in FSDP precision ([#18630](https://github.com/Lightning-AI/lightning/pull/18630))
+
+
+- Fixed an issue with `find_usable_cuda_devices(0)` incorrectly returning a list of devices ([#18722](https://github.com/Lightning-AI/lightning/pull/18722))
 
 
 ## [2.0.9] - 2023-09-14

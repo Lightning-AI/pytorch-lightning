@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import threading
-from contextlib import ExitStack, contextmanager
+from contextlib import ExitStack
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
@@ -24,7 +23,6 @@ from typing import (
     ContextManager,
     Dict,
     Generator,
-    Iterable,
     List,
     Literal,
     Optional,
@@ -62,7 +60,6 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_12,
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
@@ -76,8 +73,6 @@ from lightning.fabric.utilities.types import _PATH, _Stateful
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
-
-    from lightning.fabric.wrappers import _FabricModule
 
     if _TORCH_GREATER_EQUAL_2_0:
         from torch.distributed.fsdp.wrap import ModuleWrapPolicy
@@ -159,9 +154,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         state_dict_type: Literal["full", "sharded"] = "sharded",
         **kwargs: Any,
     ) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12:
-            raise NotImplementedError("`FSDPStrategy` is supported from PyTorch v1.12.0 onwards.")
-
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -337,6 +329,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+        precision_init_ctx = self.precision.module_init_context()
+        module_sharded_ctx = self.module_sharded_context()
+        empty_ctx = _EmptyInit(enabled=bool(empty_init))
         stack = ExitStack()
         if _TORCH_GREATER_EQUAL_2_1 and empty_init:
             # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
@@ -344,9 +339,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
             stack.enter_context(torch.device("meta"))
         elif _TORCH_GREATER_EQUAL_1_13:
-            stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
-        stack.enter_context(self.precision.init_context())
-        stack.enter_context(self.module_sharded_context())
+            stack.enter_context(empty_ctx)
+        stack.enter_context(precision_init_ctx)
+        stack.enter_context(module_sharded_ctx)
         return stack
 
     def module_sharded_context(self) -> ContextManager:
@@ -652,7 +647,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12 or not torch.distributed.is_available():
+        if not torch.distributed.is_available():
             return
 
         strategy_registry.register(
@@ -894,123 +889,3 @@ def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
     if isinstance(obj, Module):
         return any(t.is_meta for t in obj.parameters())
     raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
-
-
-def _no_op() -> None:
-    pass
-
-
-@contextmanager
-def _apply_optimizers_during_fsdp_backward(
-    optimizers: Union[Optimizer, Iterable[Optimizer]],
-    module: Module,
-) -> Generator[None, None, None]:
-    """Call `Optimizer.step` as gradients become available.
-
-    NOTE: This is an EXPERIMENTAL utility and exploits behavior which is not
-          part of the FSDP public API. Use at your own risk.
-
-    By moving optimizer step invocation into the backward call we can free
-    gradients earlier and reduce peak memory.
-
-    """
-    from torch.distributed.fsdp._common_utils import _get_module_fsdp_state
-    from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
-    from torch.distributed.fsdp.flat_param import FlatParameter, FlatParamHandle
-
-    apply_lock = threading.Lock()
-
-    param_handles = _get_fsdp_handles(module)
-    assert param_handles, f"Module {module} does not appear to contain any FSDP modules."
-    fsdp_state = _get_module_fsdp_state(module)
-    assert fsdp_state is not None
-    fsdp_stream = fsdp_state._post_backward_stream if _TORCH_GREATER_EQUAL_2_1 else fsdp_state._streams["post_backward"]
-
-    if isinstance(optimizers, Optimizer):
-        optimizers = [optimizers]
-
-    # We cannot trigger the optimizer step until all parameters are ready.
-    remaining = {}
-    for optimizer in optimizers:
-        unfinished: Dict[torch.nn.Parameter, None] = {}  # Use Dict as an ordered set.
-        for group in optimizer.param_groups:
-            for p in group["params"]:
-                if p not in unfinished:
-                    assert p not in remaining, f"{p=} is shared between two optimizers."
-                    unfinished[p] = None
-                    remaining[p] = (optimizer, unfinished)
-
-    def maybe_step(parameters: Iterable[torch.nn.Parameter], post_step: Callable[[], None] = _no_op) -> None:
-        for p in tuple(parameters):
-            optimizer, unfinished = remaining.pop(p)
-            unfinished.pop(p)
-            if not unfinished:
-                optimizer.step()
-                optimizer.zero_grad()
-
-                # Used to call `_reset_flat_param_grad_info_if_needed`. Otherwise FSDP might hold on to the memory.
-                post_step()
-
-    try:
-        hook_handles = []
-        for h in param_handles:
-            assert isinstance(h, FlatParamHandle)
-            flat_param = h.flat_param
-            fsdp_acc_grad, _ = flat_param._post_backward_hook_state  # type: ignore
-
-            # We must take `h` and `flat_param` as arguments because Python
-            # late binds closures.
-            def _opt_hook(h: FlatParamHandle, flat_param: FlatParameter, *_unused: Any) -> None:
-                assert flat_param._post_backward_called
-                assert h.flat_param is flat_param
-                with apply_lock, torch.cuda.stream(fsdp_stream):
-                    # We invoke `prepare_gradient_for_optim` earlier than usual.
-                    # We also need to prevent the later "normal" invocation,
-                    # otherwise the double call will trigger FSDP asserts.
-                    prepare_gradient = h.prepare_gradient_for_optim
-                    assert hasattr(prepare_gradient, "__func__"), prepare_gradient
-                    assert prepare_gradient.__func__ is FlatParamHandle.prepare_gradient_for_optim
-                    prepare_gradient()
-                    h.prepare_gradient_for_optim = _no_op  # type: ignore[method-assign]
-                    post_step = (
-                        h._reset_flat_param_grad_info_if_needed
-                        if _TORCH_GREATER_EQUAL_2_1
-                        else h._clear_grads_if_needed
-                    )
-                    maybe_step(flat_param._params or (), post_step=post_step)
-
-            hook = partial(_opt_hook, h, flat_param)
-            hook_handles.append(fsdp_acc_grad.register_hook(hook))
-
-        yield
-
-    finally:
-        # Non-FSDP parameters won't have a grad hook, so handle them here.
-        with apply_lock:
-            maybe_step(remaining)
-
-        # Unregister the grad hooks.
-        for hook_handle in hook_handles:
-            hook_handle.remove()
-
-        # And lastly back out the handle monkey patches.
-        for h in param_handles:
-            if h.prepare_gradient_for_optim is _no_op:
-                del h.prepare_gradient_for_optim
-
-
-def fsdp_overlap_step_with_backward(
-    optimizers: Union[Optimizer, Iterable[Optimizer]],
-    fabric_module: "_FabricModule",
-) -> Generator[None, None, None]:
-    if not _TORCH_GREATER_EQUAL_2_0:
-        raise NotImplementedError(
-            "`fsdp_overlap_step_with_backward` requires torch >= 2.0.0. HINT: `pip install -U torch`"
-        )
-
-    from lightning.fabric.wrappers import _FabricModule
-
-    assert isinstance(fabric_module, _FabricModule)
-    return _apply_optimizers_during_fsdp_backward(  # type: ignore[return-value]
-        optimizers, fabric_module._forward_module
-    )

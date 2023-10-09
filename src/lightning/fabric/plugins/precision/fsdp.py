@@ -23,7 +23,7 @@ from typing_extensions import get_args
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
 
 if TYPE_CHECKING:
@@ -50,9 +50,6 @@ class FSDPPrecision(Precision):
     """
 
     def __init__(self, precision: _PRECISION_INPUT, scaler: Optional["ShardedGradScaler"] = None) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12:
-            raise NotImplementedError("`FSDPPrecision` is supported from PyTorch v1.12.0 onwards.")
-
         supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:
             raise ValueError(
@@ -106,13 +103,16 @@ class FSDPPrecision(Precision):
             buffer_dtype=buffer_dtype,
         )
 
-    def init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self._desired_input_dtype)
+
+    def module_init_context(self) -> ContextManager:
         return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
 
     def forward_context(self) -> ContextManager:
         if "mixed" in self.precision:
             return torch.autocast("cuda", dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
-        return _DtypeContextManager(self._desired_input_dtype)
+        return self.tensor_init_context()
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
