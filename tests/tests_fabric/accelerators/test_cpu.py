@@ -18,6 +18,7 @@ from lightning.fabric.accelerators.cpu import CPUAccelerator, _parse_cpu_cores
 
 
 def test_auto_device_count():
+    assert False
     assert CPUAccelerator.auto_device_count() == 1
 
 
