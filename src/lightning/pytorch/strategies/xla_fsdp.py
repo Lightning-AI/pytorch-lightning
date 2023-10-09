@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Union
 
 import torch
 from torch import Tensor
@@ -25,19 +25,20 @@ from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
-from lightning.fabric.strategies.strategy import _BackwardSyncControl, _validate_keys_for_strict_loading
+from lightning.fabric.strategies.strategy import _validate_keys_for_strict_loading
 from lightning.fabric.strategies.xla_fsdp import (
     _POLICY,
     _POLICY_SET,
     _activation_checkpointing_kwargs,
     _auto_wrap_policy_kwargs,
+    _XLAFSDPBackwardSyncControl,
 )
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
-from lightning.pytorch.plugins.precision import PrecisionPlugin, XLAPrecisionPlugin
+from lightning.pytorch.plugins.precision import XLAPrecisionPlugin
 from lightning.pytorch.strategies.ddp import ParallelStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.strategies.strategy import TBroadcast
@@ -78,14 +79,12 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     """
 
-    strategy_name = "xla_fsdp"
-
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[XLAPrecisionPlugin] = None,
         auto_wrap_policy: Optional[_POLICY] = None,
         activation_checkpointing_policy: Optional[_POLICY_SET] = None,
         state_dict_type: Literal["full", "sharded"] = "sharded",
@@ -543,15 +542,12 @@ class XLAFSDPStrategy(ParallelStrategy):
         tensor = tensor.to(original_device)
         return tensor
 
-    def teardown(self) -> None:
-        super().teardown()
-
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register(
-            cls.strategy_name,
+            "xla_fsdp",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
 
     def _parse_fsdp_kwargs(self) -> Dict:
@@ -575,18 +571,3 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         if self.global_rank == 0 and getenv_as(xenv.TPUVM_MODE, int, 0) == 1:
             print()
-
-
-class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
-    def no_backward_sync(self, module: Module) -> ContextManager:
-        """Blocks gradient synchronization inside the :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`
-        wrapper."""
-        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
-
-        if not isinstance(module, XLAFSDP):
-            raise TypeError(
-                "Blocking backward sync is only possible if the module passed to"
-                f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `XlaFullyShardedDataParallel`."
-                f" Got: {module.__class__.__name__}."
-            )
-        return module.no_sync()
