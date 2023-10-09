@@ -136,7 +136,7 @@ class BinaryReader:
         raw_item_data = self.load_item_from_chunk(index.index, chunk_filepath, begin)
         return self.deserialize(raw_item_data)
 
-    def deserialize(self, raw_item_data: bytes) -> PyTree:
+    def deserialize(self, raw_item_data: bytes) -> "PyTree":
         """Deserialize the raw bytes into their python equivalent."""
         idx = len(self.config.data_format) * 4
         sizes = np.frombuffer(raw_item_data[:idx], np.uint32)
