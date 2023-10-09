@@ -16,7 +16,7 @@ from functools import partial
 from typing import Any, Callable, Union
 
 import torch
-from keras_core import Optimizer
+from torch.optim import Optimizer
 from typing_extensions import get_args
 
 import lightning.pytorch as pl

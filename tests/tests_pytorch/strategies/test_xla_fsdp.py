@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import re
 from typing import Optional
 from unittest import mock
 from unittest.mock import Mock
@@ -55,30 +56,36 @@ class TestFSDPModel(BoringModel):
         assert batch.dtype == torch.float32
 
 
-def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
+def _run_multiple_stages(trainer, model, state_dict_type, model_path: Optional[str] = None):
+    local_process_count = len(trainer.strategy.parallel_devices)
+    world_size = 4
+    is_multihost = local_process_count < world_size
+
+    if state_dict_type == "full" and is_multihost:
+        with pytest.raises(OSError, match="Multihost setups do not have a shared filesystem"):
+            trainer.fit(model)
+        return
     trainer.fit(model)
 
     model_path = trainer.strategy.broadcast(model_path)
     model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
 
-    trainer.save_checkpoint(model_path, weights_only=False)
+    if state_dict_type == "sharded":
+        pattern = rf"checkpoint_rank-0000000\d-of-{world_size:08d}.pth"
+        shards = os.listdir(model_path)
+        assert len(shards) == world_size
+        for name in shards:
+            assert re.match(pattern, name)
 
+    if state_dict_type == "full":
+        assert set(os.listdir(model_path)) == {"consolidated.ckpt"}
 
-# TODO (gkroiz): can uncomment after full checkpointing works
-# _assert_save_equality(trainer, model_path, cls=model.__class__)
+    with torch.inference_mode():
+        # Test entry point
+        trainer.test(model)  # model is wrapped, will not call `configure_model`
 
-# with torch.inference_mode():
-#     # Test entry point
-#     trainer.test(model)  # model is wrapped, will not call `configure_model`
-
-#     # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
-#     trainer.test(ckpt_path=model_path)
-
-#     # Predict entry point
-#     trainer.predict(model)  # model is wrapped, will not call `configure_model`
-
-#     # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
-#     trainer.predict(ckpt_path=model_path)
+        # Predict entry point
+        trainer.predict(model)  # model is wrapped, will not call `configure_model`
 
 
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
@@ -103,19 +110,25 @@ def test_rank_properties_access(xla_available):
 
 
 @RunIf(min_torch="2.0", tpu=True, standalone=True)
-def test_xla_fsdp_strategy_full_checkpoint(tmpdir):
+@pytest.mark.parametrize(
+    ("state_dict_type", "ckpt_location"),
+    [
+        ("full", "lightning_logs/version_0/checkpoints"),
+        ("sharded", "lightning_logs/version_0/checkpoints/epoch=0-step=64.ckpt"),
+    ],
+)
+def test_xla_fsdp_strategy_checkpoint(tmpdir, state_dict_type, ckpt_location):
     """Test to ensure that checkpoint is saved correctly when using TPUs, and all stages can be run."""
     model = TestFSDPModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="tpu",
-        # TODO (gkroiz): switch to full when full checkpointing works
-        strategy=XLAFSDPStrategy(state_dict_type="sharded"),
+        strategy=XLAFSDPStrategy(state_dict_type=state_dict_type),
         precision="bf16-true",
         max_epochs=1,
     )
-    _run_multiple_stages(trainer, model, tmpdir + "last_checkpoint")
+    _run_multiple_stages(trainer, model, state_dict_type, os.path.join(tmpdir, ckpt_location))
 
 
 @RunIf(min_torch="2.0", tpu=True)

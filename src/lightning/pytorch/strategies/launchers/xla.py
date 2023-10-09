@@ -147,12 +147,11 @@ class _XLALauncher(_MultiProcessingLauncher):
             else None
         )
 
-        # requires to compute the state_dict on all processes in case Metrics are present
-        state_dict = trainer.lightning_module.state_dict()
-
         # save the last weights
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
+            # requires to compute the state_dict on all processes in case Metrics are present
+            state_dict = self._strategy.lightning_module_state_dict()
             weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
             self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
