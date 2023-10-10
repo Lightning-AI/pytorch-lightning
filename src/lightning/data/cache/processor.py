@@ -2,6 +2,7 @@ import hashlib
 import logging
 import os
 import signal
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from enum import Enum
 from multiprocessing import Process, Queue
@@ -14,6 +15,7 @@ from urllib import parse
 import boto3
 from tqdm import tqdm
 
+from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
 from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE
 
@@ -21,6 +23,91 @@ if _TORCH_2_1_0_AVAILABLE:
     from torch.utils._pytree import tree_flatten, tree_unflatten
 
 logger = logging.Logger(__name__)
+
+
+class _Resolver(ABC):
+    @abstractmethod
+    def __call__(self, root: str) -> Optional[str]:
+        pass
+
+
+class _LightningResolver(_Resolver):
+    """The `_LightningResolver` enables to retrieve a cloud storage path from a directory."""
+
+    def __call__(self, root: str) -> Optional[str]:
+        root = str(Path(root).absolute())
+
+        if root.startswith("/teamspace/studios/this_studio"):
+            return None
+
+        if root.startswith("/teamspace/studios") and len(root.split("/")) > 3:
+            return self._resolve_studio(root)
+
+        if root.startswith("/teamspace/s3_connections") and len(root.split("/")) > 3:
+            return self._resolve_s3_connections(root)
+
+        return None
+
+    def _resolve_studio(self, root: str) -> str:
+        client = LightningClient()
+
+        # Get the ids from env variables
+        cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
+        project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+
+        if cluster_id is None:
+            raise RuntimeError("The `cluster_id` couldn't be found from the environement variables.")
+
+        if project_id is None:
+            raise RuntimeError("The `project_id` couldn't be found from the environement variables.")
+
+        target_name = root.split("/")[3]
+
+        clusters = client.cluster_service_list_clusters().clusters
+
+        target_cloud_space = [
+            cloudspace
+            for cloudspace in client.cloud_space_service_list_cloud_spaces(
+                project_id=project_id, cluster_id=cluster_id
+            ).cloudspaces
+            if cloudspace.name == target_name
+        ]
+
+        if not target_cloud_space:
+            raise ValueError(f"We didn't find any matching Studio for the provided name `{target_name}`.")
+
+        target_cluster = [cluster for cluster in clusters if cluster.id == target_cloud_space[0].cluster_id]
+
+        if not target_cluster:
+            raise ValueError(
+                f"We didn't find a matching cluster associated with the id {target_cloud_space[0].cluster_id}."
+            )
+
+        bucket_name = target_cluster[0].spec.aws_v1.bucket_name
+
+        return os.path.join(
+            f"s3://{bucket_name}/projects/{project_id}/cloudspaces/{target_cloud_space[0].id}/code/content",
+            *root.split("/")[4:],
+        )
+
+    def _resolve_s3_connections(self, root: str) -> str:
+        client = LightningClient()
+
+        # Get the ids from env variables
+        project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+        if project_id is None:
+            raise RuntimeError("The `project_id` couldn't be found from the environement variables.")
+
+        target_name = root.split("/")[3]
+
+        data_connections = client.data_connection_service_list_data_connections(project_id).data_connections
+
+        data_connection = [dc for dc in data_connections if dc.name == target_name]
+
+        if not data_connection:
+            raise ValueError(f"We didn't find any matching data connection with the provided name `{target_name}`.")
+
+        return os.path.join(data_connection[0].aws.source, *root.split("/")[4:])
 
 
 def _download_data_target(root: str, remote_root: str, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
@@ -263,7 +350,7 @@ class DataProcessor:
         chunk_bytes: Optional[int] = 1 << 26,
         compression: Optional[str] = None,
         delete_cached_files: bool = True,
-        resolver: Optional[Callable[[str], str]] = None,
+        resolver: Optional[Callable[[str], str]] = _LightningResolver(),
         worker_type: Literal["thread", "process"] = "process",
     ):
         """The `DataProcessor` provides an efficient way to process data across multiple nodes in the cloud into
