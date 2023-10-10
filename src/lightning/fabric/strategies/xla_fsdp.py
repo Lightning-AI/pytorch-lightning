@@ -475,7 +475,8 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             # convert the state
             if isinstance(obj, Module) and isinstance(obj, XLAFSDP):
                 converted = obj.state_dict()
-                # add shard_metadata to state
+                # add shard_metadata to state. this format is defined by
+                # https://github.com/pytorch/xla/blob/v2.1.0/torch_xla/distributed/fsdp/state_dict_utils.py#L122-L125
                 converted_state["shard_metadata"] = obj.get_shard_metadata()
             elif isinstance(obj, Optimizer):
                 converted = obj.state_dict()
@@ -566,11 +567,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             if len(loaded_metadata_keys):
                 for key in loaded_metadata_keys:
                     metadata[key] = sharded_ckpt[key]
-
-            # remove "shard_metadata" that is loaded in
-            if "shard_metadata" in metadata:
-                metadata.pop("shard_metadata")
-
+            metadata.pop("shard_metadata", None)
             return metadata
 
         if self._state_dict_type == "full":

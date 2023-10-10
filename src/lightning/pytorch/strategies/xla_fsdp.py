@@ -171,7 +171,7 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:
-        return True
+        return self._state_dict_type == "sharded"
 
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
@@ -381,9 +381,8 @@ class XLAFSDPStrategy(ParallelStrategy):
         if path.is_dir() and any(path.iterdir()):
             raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
 
-        # temporary solution since state_dict will include
-        # model.state_dict(), model.get_shard_metadata(), and optimizer.state_dict()
-        converted_state = checkpoint.pop("state_dict")
+        # this is the output of `self.lightning_module_state_dict`
+        state_dict = checkpoint.pop("state_dict")
 
         import torch_xla.core.xla_model as xm
 
@@ -396,10 +395,10 @@ class XLAFSDPStrategy(ParallelStrategy):
             # each host runs this in parallel, but the ranks in the host run it sequentially
             for rank in range(len(parallel_devices)):
                 if rank == self.local_rank:
-                    self._save_checkpoint_shard(path, converted_state, storage_options)
+                    self._save_checkpoint_shard(path, state_dict, storage_options)
                 self.barrier(f"wait-for-{rank}-save")
         else:
-            self._save_checkpoint_shard(path, converted_state, storage_options)
+            self._save_checkpoint_shard(path, state_dict, storage_options)
 
         if self._state_dict_type == "full":
             ckpt_prefix = str(path / "checkpoint")
@@ -439,19 +438,51 @@ class XLAFSDPStrategy(ParallelStrategy):
             storage_options=storage_options,
         )
 
-    def load_checkpoint(
-        self,
-        path: _PATH,
-        strict: bool = True,
-    ) -> Dict[str, Any]:
-        raise NotImplementedError("`load_checkpoint` is not implemented for `XLAFSDPStrategy.")
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+        if not self._launched:
+            raise NotImplementedError(
+                "Saving checkpoints with `XLAFSDPStrategy` is not supported outside of the Trainer's execution"
+            )
+        if not _TORCH_GREATER_EQUAL_2_0:
+            raise NotImplementedError(
+                "Saving and loading checkpoints with the `FSDPStrategy` is not supported in PyTorch < 2.0."
+                " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
+            )
+
+        # broadcast the path from rank 0 to ensure all the states are loaded from a common path
+        path = Path(self.broadcast(checkpoint_path))
+
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
+        if self.model is None or not isinstance(self.model, XLAFSDP):
+            raise ValueError(f"Could not find a XLAFSDP model in the provided checkpoint state: {type(self.model)}")
+
+        if self._state_dict_type == "sharded":
+            file = path / f"checkpoint_rank-{self.global_rank:08d}-of-{self.world_size:08d}.pth"
+            if not file.is_file():
+                raise ValueError(
+                    f"The path {str(file)!r} does not point to valid sharded checkpoints. Make sure the path points to"
+                    " a directory with XLAFSDP checkpoint shards."
+                )
+            sharded_ckpt = torch.load(file)
+            self.model.load_state_dict(sharded_ckpt.pop("model"))
+            sharded_ckpt.pop("shard_metadata", None)
+            return sharded_ckpt
+
+        if self._state_dict_type == "full":
+            if not path.is_file():
+                raise ValueError(
+                    f"The path {str(path)!r} does not point to a valid full checkpoint. Make sure the path points to a"
+                    " directory with a full XLAFSDP checkpoint."
+                )
+            full_ckpt = torch.load(path)
+            self.model.load_state_dict(full_ckpt.pop("model"))
+            return full_ckpt
+
+        raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # Override to do nothing, FSDP already loaded the states in `load_checkpoint()`
-        pass
-
-    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        # Override to do nothing, the FSDP already loaded the states in `load_checkpoint()`
         pass
 
     @classmethod
@@ -460,6 +491,8 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     def lightning_module_state_dict(self) -> Dict[str, Any]:
         assert self.model is not None
+        # this format is defined by:
+        # https://github.com/pytorch/xla/blob/v2.1.0/torch_xla/distributed/fsdp/state_dict_utils.py#L122-L125
         return {
             "model": self.model.state_dict(),
             "shard_metadata": self.model.get_shard_metadata(),
