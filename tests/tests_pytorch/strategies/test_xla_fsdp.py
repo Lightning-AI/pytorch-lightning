@@ -131,35 +131,22 @@ def test_xla_fsdp_strategy_checkpoint(tmpdir, state_dict_type, ckpt_location):
     _run_multiple_stages(trainer, model, state_dict_type, os.path.join(tmpdir, ckpt_location))
 
 
-@RunIf(min_torch="2.0", tpu=True)
-def test_xla_fsdp_activation_checkpointing_setup():
-    """Test XLAFSDP activation checkpointing setup."""
-    from torch_xla.distributed.fsdp import checkpoint_module
-    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
-
-    auto_wrapper_callable = lambda m, *args, **kwargs: XlaFullyShardedDataParallel(
-        checkpoint_module(m), *args, **kwargs
-    )
-
-    strategy = XLAFSDPStrategy(auto_wrapper_callable=auto_wrapper_callable)
-
-    assert auto_wrapper_callable in strategy._fsdp_kwargs.values()
-
-
 def test_xla_fsdp_policy(xla_available):
     strategy = XLAFSDPStrategy(foo=1)
     assert strategy._fsdp_kwargs == {"foo": 1}
 
     strategy = XLAFSDPStrategy(auto_wrap_policy={torch.nn.Linear})
     kwargs = strategy._parse_fsdp_kwargs()
-
+    assert set(kwargs) == {"auto_wrap_policy", "compute_dtype"}
     assert kwargs["auto_wrap_policy"].func._mock_name == "transformer_auto_wrap_policy"
+    assert kwargs["compute_dtype"] is torch.float32
 
     strategy = XLAFSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
-    kwargs = strategy._parse_fsdp_kwargs()
+    _ = strategy._parse_fsdp_kwargs()
     kwargs = strategy._parse_fsdp_kwargs()  # ensure it's idempotent
-    assert set(kwargs) == {"auto_wrapper_callable"}
+    assert set(kwargs) == {"auto_wrapper_callable", "compute_dtype"}
     assert kwargs["auto_wrapper_callable"].func is _activation_checkpointing_auto_wrapper
+    assert kwargs["compute_dtype"] is torch.float32
 
     strategy = XLAFSDPStrategy(
         accelerator=Mock(),
