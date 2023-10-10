@@ -245,20 +245,13 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
 
 def test_tpu_invalid_raises(tpu_available, mps_count_0):
-    strategy = XLAStrategy(accelerator=XLAAccelerator(), precision_plugin=PrecisionPlugin())
-    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `XLAPrecisionPlugin"):
-        Trainer(strategy=strategy, devices=8)
-
     strategy = DDPStrategy(accelerator=XLAAccelerator(), precision_plugin=XLAPrecisionPlugin())
     with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         Trainer(strategy=strategy, devices=8)
 
-
-def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available, mps_count_0):
     accelerator = XLAAccelerator()
-    strategy = XLAStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
-    with pytest.raises(ValueError, match="`XLAAccelerator` can only be used with a `XLAPrecisionPlugin`"):
-        Trainer(strategy=strategy, devices=8)
+    with pytest.raises(TypeError, match="can only work with the `XLAPrecisionPlugin` plugin"):
+        XLAStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
 
     accelerator = XLAAccelerator()
     strategy = DDPStrategy(accelerator=accelerator, precision_plugin=XLAPrecisionPlugin())

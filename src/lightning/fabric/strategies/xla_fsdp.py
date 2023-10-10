@@ -27,7 +27,6 @@ from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
-from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
 from lightning.fabric.strategies.fsdp import _apply_filter
@@ -85,7 +84,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         self,
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[XLACheckpointIO] = None,
         precision: Optional[XLAPrecision] = None,
         auto_wrap_policy: Optional[_POLICY] = None,
         activation_checkpointing_policy: Optional[_POLICY_SET] = None,
@@ -102,7 +101,6 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             checkpoint_io=checkpoint_io,
             precision=precision,
         )
-        self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = _XLAFSDPBackwardSyncControl()
 
         self._auto_wrap_policy = auto_wrap_policy
@@ -124,14 +122,18 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        if self._checkpoint_io is None:
-            self._checkpoint_io = XLACheckpointIO()
-        return self._checkpoint_io
+    @property  # type: ignore[override]
+    def checkpoint_io(self) -> XLACheckpointIO:
+        plugin = self._checkpoint_io
+        if plugin is not None:
+            assert isinstance(plugin, XLACheckpointIO)
+            return plugin
+        return XLACheckpointIO()
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: CheckpointIO) -> None:
+    def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
+        if io is not None and not isinstance(io, XLACheckpointIO):
+            raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
     @property  # type: ignore[override]
@@ -243,9 +245,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         flattened parameters.
 
         """
-        from torch_xla.distributed.fsdp.xla_flatten_params_wrapper import FlatParameter
-
-        if any(isinstance(param, FlatParameter) for group in optimizer.param_groups for param in group["params"]):
+        if any(getattr(p, "_is_sharded", False) for group in optimizer.param_groups for p in group["params"]):
             return optimizer
         raise ValueError(
             "The optimizer does not seem to reference any XLAFSDP parameters. HINT: Make sure to create the optimizer"

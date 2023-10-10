@@ -28,26 +28,15 @@ from tests_fabric.helpers.runif import RunIf
 
 
 @RunIf(min_torch="2.0", tpu=True)
-@pytest.mark.parametrize("torch_ge_2_0", [False, True])
-def test_xla_fsdp_setup_optimizer_validation(torch_ge_2_0):
+def test_xla_fsdp_setup_optimizer_validation():
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
     module = nn.Linear(2, 2)
     strategy = XLAFSDPStrategy(
         parallel_devices=XLAAccelerator.get_parallel_devices(XLAAccelerator.auto_device_count()),
     )
-
-    with mock.patch("lightning.fabric.strategies.xla_fsdp._TORCH_GREATER_EQUAL_2_0", torch_ge_2_0):
-        bad_optimizer_1 = Adam([{"params": [module.weight]}, {"params": [module.bias], "lr": 1e-3}])
-        bad_optimizer_2 = Adam(module.parameters())
-
-        if torch_ge_2_0:
-            strategy.setup_optimizer(bad_optimizer_1)
-            strategy.setup_optimizer(bad_optimizer_2)
-        else:
-            with pytest.raises(ValueError, match="does not support multiple param groups"):
-                strategy.setup_optimizer(bad_optimizer_1)
-            with pytest.raises(ValueError, match="The optimizer does not seem to reference any XLAFSDP parameter"):
-                strategy.setup_optimizer(bad_optimizer_2)
+    bad_optimizer = Adam(module.parameters())
+    with pytest.raises(ValueError, match="The optimizer does not seem to reference any XLAFSDP parameter"):
+        strategy.setup_optimizer(bad_optimizer)
 
 
 @RunIf(min_torch="2.0", tpu=True)
