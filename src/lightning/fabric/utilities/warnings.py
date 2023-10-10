@@ -28,6 +28,9 @@ def disable_possible_user_warnings(module: str = "") -> None:
 
     For more granular control over which warnings to ignore, use :func:`warnings.filterwarnings` directly.
 
+    Args:
+        module: Name of the module for which the warnings should be ignored (e.g., ``'lightning.pytorch.strategies'``).
+            Default: Disables warnings from all modules.
     """
     warnings.filterwarnings("ignore", module=module, category=PossibleUserWarning)
 
