@@ -43,8 +43,8 @@ jobs:
       import-name: "lightning_utilities"
       testing-matrix: |
         {
-          "os": ["ubuntu-20.04", "macos-11", "windows-2022"],
-          "python-version": ["3.7", "3.11"]
+          "os": ["ubuntu-22.04", "macos-12", "windows-2022"],
+          "python-version": ["3.7", "3.12"]
         }
 
   check-docs:
