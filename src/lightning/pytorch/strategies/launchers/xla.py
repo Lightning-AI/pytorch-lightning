@@ -13,11 +13,10 @@
 # limitations under the License.
 import os
 import queue
-from typing import Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch.multiprocessing as mp
 
-import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
 from lightning.fabric.utilities import move_data_to_device
@@ -28,6 +27,9 @@ from lightning.pytorch.strategies.launchers.multiprocessing import (
 )
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug
+
+if TYPE_CHECKING:
+    import lightning.pytorch as pl
 
 
 class _XLALauncher(_MultiProcessingLauncher):
@@ -145,12 +147,11 @@ class _XLALauncher(_MultiProcessingLauncher):
             else None
         )
 
-        # requires to compute the state_dict on all processes in case Metrics are present
-        state_dict = trainer.lightning_module.state_dict()
-
         # save the last weights
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
+            # requires to compute the state_dict on all processes in case Metrics are present
+            state_dict = self._strategy.lightning_module_state_dict()
             weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
             self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 

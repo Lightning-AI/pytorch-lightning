@@ -78,20 +78,6 @@ def test_xla_fsdp_grad_clipping_value_error():
         strategy.clip_gradients_value(Mock(), Mock(), Mock())
 
 
-@RunIf(min_torch="2.0", tpu=True)
-def test_xla_fsdp_activation_checkpointing_setup():
-    """Test XLAFSDP activation checkpointing setup."""
-    from torch_xla.distributed.fsdp import checkpoint_module
-    from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
-
-    auto_wrapper_callable = lambda m, *args, **kwargs: XlaFullyShardedDataParallel(
-        checkpoint_module(m), *args, **kwargs
-    )
-    strategy = XLAFSDPStrategy(auto_wrapper_callable=auto_wrapper_callable)
-
-    assert auto_wrapper_callable in strategy._fsdp_kwargs.values()
-
-
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_rank_properties_access(xla_available):
     """Test that the strategy returns the expected values depending on whether we're in the main process or not."""
@@ -119,14 +105,16 @@ def test_xla_fsdp_policy(xla_available):
 
     strategy = XLAFSDPStrategy(auto_wrap_policy={torch.nn.Linear})
     kwargs = strategy._parse_fsdp_kwargs()
-    assert set(kwargs) == {"auto_wrap_policy"}
+    assert set(kwargs) == {"auto_wrap_policy", "compute_dtype"}
     assert kwargs["auto_wrap_policy"].func._mock_name == "transformer_auto_wrap_policy"
+    assert kwargs["compute_dtype"] is torch.float32
 
     strategy = XLAFSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
-    kwargs = strategy._parse_fsdp_kwargs()
+    _ = strategy._parse_fsdp_kwargs()
     kwargs = strategy._parse_fsdp_kwargs()  # ensure it's idempotent
-    assert set(kwargs) == {"auto_wrapper_callable"}
+    assert set(kwargs) == {"auto_wrapper_callable", "compute_dtype"}
     assert kwargs["auto_wrapper_callable"].func is _activation_checkpointing_auto_wrapper
+    assert kwargs["compute_dtype"] is torch.float32
 
     strategy = XLAFSDPStrategy(
         accelerator=Mock(),

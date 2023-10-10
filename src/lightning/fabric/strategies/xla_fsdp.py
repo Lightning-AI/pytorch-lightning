@@ -24,7 +24,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _using_pjrt
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
@@ -93,6 +93,8 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         sequential_save: bool = False,
         **kwargs: Any,
     ) -> None:
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -129,8 +131,22 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
+
+    @property  # type: ignore[override]
+    def precision(self) -> XLAPrecision:
+        plugin = self._precision
+        if plugin is not None:
+            assert isinstance(plugin, XLAPrecision)
+            return plugin
+        return XLAPrecision("32-true")
+
+    @precision.setter
+    def precision(self, precision: Optional[XLAPrecision]) -> None:
+        if precision is not None and not isinstance(precision, XLAPrecision):
+            raise TypeError(f"The XLA FSDP strategy can only work with the `XLAPrecision` plugin, found {precision}")
+        self._precision = precision
 
     @property
     def global_rank(self) -> int:
@@ -227,21 +243,10 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         flattened parameters.
 
         """
-        if _TORCH_GREATER_EQUAL_2_0:
-            return optimizer
-
         from torch_xla.distributed.fsdp.xla_flatten_params_wrapper import FlatParameter
 
-        num_groups = len(optimizer.param_groups)
-        if num_groups > 1:
-            raise ValueError(
-                "An optimizer used with an XLAFSDP model does not support multiple param groups."
-                f" Found {num_groups} parameter groups."
-            )
-
-        if any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"]):
+        if any(isinstance(param, FlatParameter) for group in optimizer.param_groups for param in group["params"]):
             return optimizer
-
         raise ValueError(
             "The optimizer does not seem to reference any XLAFSDP parameters. HINT: Make sure to create the optimizer"
             " after setting up the model."
