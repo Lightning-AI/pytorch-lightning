@@ -14,6 +14,7 @@ from tqdm import tqdm
 from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
 from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE
+import signal
 
 if _TORCH_2_1_0_AVAILABLE:
     from torch.utils._pytree import tree_flatten, tree_unflatten
@@ -21,7 +22,7 @@ if _TORCH_2_1_0_AVAILABLE:
 logger = logging.Logger(__name__)
 
 
-def _download_data(root: str, remote_root: str, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
+def _download_data_target(root: str, remote_root: str, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
     """This function is used to download data from a remote directory to a cache directory."""
     s3 = boto3.client("s3")
     while True:
@@ -34,7 +35,7 @@ def _download_data(root: str, remote_root: str, cache_dir: str, queue_in: Queue,
         index, paths = r
 
         # Check whether all the files are already downloaded
-        if all(os.path.exists(p) for p in paths):
+        if all(os.path.exists(p.replace(root, cache_dir)) for p in paths):
             queue_out.put(index)
             continue
 
@@ -58,15 +59,18 @@ def _download_data(root: str, remote_root: str, cache_dir: str, queue_in: Queue,
         queue_out.put(index)
 
 
-def remove(queue_in: Queue):
+def _remove_target(root: str, cache_dir: str, queue_in: Queue) -> None:
     while True:
-        r = queue_in.get()
+        paths = queue_in.get()
 
-        if r is None:
+        if paths is None:
             return
 
-        if os.path.exists(r):
-            os.remove(r)
+        for path in paths:
+            cached_filepath = path.replace(root, cache_dir)
+
+            if os.path.exists(cached_filepath):
+                os.remove(cached_filepath)
 
 
 class DataWorker(Thread):
@@ -99,6 +103,7 @@ class DataWorker(Thread):
         self.compression = compression
         self._lock = Lock()
         self._paths = []
+        self._remover = None
         self._downloaders = []
         self._to_download_queues = []
         self._download_is_ready_queue = Queue()
@@ -107,6 +112,15 @@ class DataWorker(Thread):
         self._counter = 0
 
         self._create_cache()
+
+    def join(self, timeout=None):
+        for w in self._downloaders:
+            w.kill()
+
+        if self._remover:
+            self._remover.kill()
+
+        super().join(timeout)
 
     def _create_cache(self):
         algo = hashlib.new("sha256")
@@ -143,7 +157,7 @@ class DataWorker(Thread):
             if r is None:
                 is_none += 1
                 if is_none == self.num_downloaders:
-                    self.remove_queue.put(None)
+                    self._remove_queue.put(None)
                     self.cache.done()
                     return
                 continue
@@ -154,7 +168,7 @@ class DataWorker(Thread):
                 self._counter += 1
 
             if self.remove:
-                self._remove_queue.put(r)
+                self._remove_queue.put(self._paths[r])
 
     def _collect_paths(self):
         items = []
@@ -179,7 +193,7 @@ class DataWorker(Thread):
                 flattened_item[index] = tmp_path
                 paths.append(path)
 
-            self._paths.append(path)
+            self._paths.append(paths)
 
             items.append(tree_unflatten(flattened_item, spec))
 
@@ -192,23 +206,23 @@ class DataWorker(Thread):
         for _ in range(self.num_downloaders):
             to_download_queue = Queue()
             p = Process(
-                target=_download_data,
+                target=_download_data_target,
                 args=(self.root, self.remote_root, self.cache_dir, to_download_queue, self._download_is_ready_queue),
             )
             p.start()
             self._downloaders.append(p)
             self._to_download_queues.append(to_download_queue)
 
-        for index, path in enumerate(self._paths):
-            self._to_download_queues[index % self.num_downloaders].put((index, *path))
+        for index, paths in enumerate(self._paths):
+            self._to_download_queues[index % self.num_downloaders].put((index, paths))
 
         for downloader_index in range(self.num_downloaders):
             self._to_download_queues[downloader_index].put(None)
 
     def _start_remover(self):
         if self.remove:
-            self.remover = Process(target=remove, args=(self._remove_queue))
-            self.remover.start()
+            self._remover = Process(target=_remove_target, args=(self.root, self.cache_dir, self._remove_queue,))
+            self._remover.start()
 
 
 class DataProcessor:
@@ -217,7 +231,7 @@ class DataProcessor:
         setup: Callable[[str, str], List[str]],
         prepare_item: Optional[Callable] = None,
         num_workers: int = os.cpu_count() * 4,
-        num_downloaders: int = 3,
+        num_downloaders: int = 1,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = 1 << 26,
         compression: Optional[str] = None,
@@ -253,6 +267,9 @@ class DataProcessor:
         t0 = time()
         logger.info("Setup started")
 
+        world_size = self._get_world_size()
+        node_rank = self._get_node_rank()
+
         # Get the filepaths
         root = str(Path(root).resolve())
         filepaths = self._cached_list_filepaths(root)
@@ -261,7 +278,7 @@ class DataProcessor:
         # Call the setup method of the user
         user_items = self.setup(root, filepaths)
 
-        # Associate the items to the workers
+        # Associate the items to the workers based on world_size and node_rank
         worker_size = num_filepaths // self.num_workers
         workers_user_items = []
         begins = []
@@ -277,7 +294,9 @@ class DataProcessor:
         logger.info(f"Starting {self.num_workers} workers")
 
         if remote_root is None and self.resolver is not None:
-            remote_root = self.resolver.resolve(root)
+            remote_root = self.resolver(root)
+
+        signal.signal(signal.SIGINT, self._signal_handler)
 
         num_items = len(user_items)
         current_total = 0
@@ -286,7 +305,7 @@ class DataProcessor:
                 new_total = sum([w.collected_items for w in self.workers])
                 pbar.update(new_total - current_total)
                 current_total = new_total
-                thread = DataWorker(
+                worker = DataWorker(
                     worker_idx,
                     begins[worker_idx],
                     self.prepare_item,
@@ -299,15 +318,15 @@ class DataProcessor:
                     self.chunk_bytes,
                     self.compression,
                 )
-                thread.start()
-                self.workers.append(thread)
+                worker.start()
+                self.workers.append(worker)
 
             while True:
                 new_total = sum([w.collected_items for w in self.workers])
                 pbar.update(new_total - current_total)
                 current_total = new_total
                 sleep(1)
-                if current_total == num_filepaths:
+                if current_total == num_items:
                     break
 
         logger.info("Workers are ready ! Starting data processing...")
@@ -319,8 +338,11 @@ class DataProcessor:
                 pbar.update(new_total - current_total)
                 current_total = new_total
                 sleep(1)
-                if current_total == num_filepaths:
+                if current_total == num_items:
                     break
+
+        for w in self.workers:
+            w.join(0)
 
         logger.info("Finished data processing!")
 
@@ -351,6 +373,17 @@ class DataProcessor:
 
         return filepaths
 
+    def _signal_handler(signal, frame):
+        for w in self.workers:
+            w.join(0)
+        sys.exit(0)
+
+    def _get_world_size(self) -> int:
+        return os.getenv('WORLD_SIZE', 1)
+
+    def _get_node_rank(self) -> int:
+        return os.getenv('NODE_RANK', 1)
+
 
 class LightningResolver:
     def __call__(self, root: str) -> str:
@@ -361,15 +394,32 @@ class LightningResolver:
             return self._resolve_s3_connections(root)
 
     def _resolve_studio(self, root: str) -> str:
-        LightningClient()
+        client = LightningClient()
 
         # Get the ids from env variables
-        os.getenv("LIGHTNING_CLUSTER_ID", None)
-        os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
-        os.getenv("LIGHTNING_CLOUD_SPACE_ID", None)
+        cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
+        project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+        cloud_space_id = os.getenv("LIGHTNING_CLOUD_SPACE_ID", None)
+        
+        target_name = root.split("/")[3]
 
-        breakpoint()
-        return root
+        clusters = client.cluster_service_list_clusters().clusters
+
+        target_cloud_space = [cloudspace 
+            for cloudspace in client.cloud_space_service_list_cloud_spaces(project_id=project_id, cluster_id=cluster_id).cloudspaces
+            if cloudspace.name == root.split("/")[3]]
+
+        if not target_cloud_space:
+            raise ValueError(f"We didn't find a matching Studio for the provided {root}.")
+
+        target_cluster = [cluster for cluster in clusters if cluster.id == target_cloud_space[0].cluster_id]
+
+        if not target_cluster:
+            raise ValueError(f"We didn't find a matching cluster for the provided {root}.")
+
+        bucket_name = target_cluster[0].spec.aws_v1.bucket_name
+
+        return os.path.join(f"s3://{bucket_name}/projects/{project_id}/cloudspaces/{target_cloud_space[0].id}/code/content", *root.split("/")[4:])
 
     def _resolve_s3_connections(self, root: str) -> str:
         raise NotImplementedError
