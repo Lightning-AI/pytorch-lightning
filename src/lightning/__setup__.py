@@ -76,14 +76,25 @@ def _setup_args() -> Dict[str, Any]:
     long_description = _ASSISTANT.load_readme_description(
         _PROJECT_ROOT, homepage=about.__homepage__, version=version.version
     )
-    # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    _ASSISTANT._download_frontend(os.path.join(_SOURCE_ROOT, "lightning", "app"))
+    ui_ver_file = os.path.join(_SOURCE_ROOT, "app-ui-version.info")
+    if os.path.isfile(ui_ver_file):
+        with open(ui_ver_file, encoding="utf-8") as fo:
+            ui_version = fo.readlines()[0].strip()
+        download_fe_version = {"version": ui_version}
+    else:
+        print(f"Missing file with FE version: {ui_ver_file}")
+        download_fe_version = {}
+    _ASSISTANT._download_frontend(os.path.join(_PACKAGE_ROOT, "app"), **download_fe_version)
+
+    # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
 
     install_requires = _ASSISTANT.load_requirements(
         _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
-    ) + ["pytorch-lightning"]
+    )
+    # toto: remove when we realize that this is making confusion as cross pkg import is not fully compatible
+    install_requires += ["pytorch-lightning"]
 
     return {
         "name": "lightning",
