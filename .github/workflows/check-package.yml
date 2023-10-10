@@ -130,3 +130,7 @@ jobs:
       - name: failing...
         if: needs.pkg-check.result == 'failure'
         run: exit 1
+      - name: cancelled or skipped...
+        if: contains(fromJSON('["cancelled", "skipped"]'), needs.pkg-check.result)
+        timeout-minutes: 1
+        run: sleep 90

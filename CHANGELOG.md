@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: optional freeze version of schema check ([148](https://github.com/Lightning-AI/utilities/pull/148))
 
 
+- CI: fixed guard for `pkg-check` workflow on canceled  ([180](https://github.com/Lightning-AI/utilities/pull/180))
+
+
 ## [0.9.0] - 2023-06-29
 
 ### Added
