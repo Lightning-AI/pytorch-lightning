@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Generator, Literal
+from typing import Any, ContextManager, Generator, Literal
 
 import torch
 import torch.nn as nn
@@ -20,7 +20,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation
@@ -34,19 +34,11 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     def convert_module(self, module: nn.Module) -> nn.Module:
         return module.double()
 
-    @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type when initializing module parameters or tensors.
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(torch.float64)
 
-        See: :func:`torch.set_default_dtype`
-
-        """
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(torch.float64)
-        try:
-            yield
-        finally:
-            torch.set_default_dtype(default_dtype)
+    def module_init_context(self) -> ContextManager:
+        return self.tensor_init_context()
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
@@ -55,12 +47,8 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         See: :func:`torch.set_default_dtype`
 
         """
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(torch.float64)
-        try:
+        with self.tensor_init_context():
             yield
-        finally:
-            torch.set_default_dtype(default_dtype)
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.double)

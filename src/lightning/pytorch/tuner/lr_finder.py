@@ -154,7 +154,7 @@ class _LRFinder:
         if ax is None:
             fig, ax = plt.subplots()
         else:
-            fig = ax.figure
+            fig = ax.figure  # type: ignore[assignment]
 
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
