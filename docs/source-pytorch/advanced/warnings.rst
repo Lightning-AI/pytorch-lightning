@@ -50,3 +50,5 @@ or through the environment variable ``POSSIBLE_USER_WARNINGS``:
 .. code-block:: bash
 
     export POSSIBLE_USER_WARNINGS=off
+    # or
+    export POSSIBLE_USER_WARNINGS=0
