@@ -747,10 +747,10 @@ class ModelCheckpoint(Checkpoint):
     def _should_remove_checkpoint(self, trainer: "pl.Trainer", previous: str, current: str) -> bool:
         """Checks if the previous checkpoint should be deleted.
 
-        A checkpoint won't be deleted if it is a local file and any of the following cases apply:
+        A checkpoint won't be deleted if any of the cases apply:
         - The previous checkpoint is the same as the current checkpoint
-        - The previous checkpoint is not in the current checkpoint directory
-        - The previous checkpoint is the checkpoint the Trainer resumed from
+        - The previous checkpoint is not in the current checkpoint directory and the filesystem is local
+        - The previous checkpoint is the checkpoint the Trainer resumed from and the filesystem is local
 
         """
         if previous == current:
