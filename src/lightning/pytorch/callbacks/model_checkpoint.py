@@ -757,10 +757,9 @@ class ModelCheckpoint(Checkpoint):
             return False
         if self._fs.protocol != "file":
             return True
-        if trainer.ckpt_path is None:
-            return False
         previous = Path(previous).absolute()
-        if previous == Path(trainer.ckpt_path).absolute():
+        resume_path = Path(trainer.ckpt_path).absolute() if trainer.ckpt_path is not None else None
+        if resume_path is not None and previous == resume_path:
             return False
         assert self.dirpath is not None
         dirpath = Path(self.dirpath).absolute()
