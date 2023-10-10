@@ -249,18 +249,17 @@ class XLAFSDPStrategy(ParallelStrategy):
         if trainer.state.fn != TrainerFn.FITTING:
             return
 
-        if len(self.optimizers) != 1:
-            raise NotImplementedError("XLAFSDP only supports using exactly 1 optimizer.")
-        optimizer = self.optimizers[0]
-
         from torch_xla.distributed.fsdp.xla_flatten_params_wrapper import FlatParameter
 
-        if not any(isinstance(param, FlatParameter) for group in optimizer.param_groups for param in group["params"]):
-            raise ValueError(
-                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
-                " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
-                " `configure_optimizers()` hook."
-            )
+        for optimizer in self.optimizers:
+            if not any(
+                isinstance(param, FlatParameter) for group in optimizer.param_groups for param in group["params"]
+            ):
+                raise ValueError(
+                    f"The optimizer {optimizer} does not seem to reference any FSDP parameters. HINT: Make sure to"
+                    f" create the optimizer after setting up the model by referencing `self.trainer.model.parameters()`"
+                    f" in the `configure_optimizers()` hook."
+                )
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
@@ -461,16 +460,10 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     def lightning_module_state_dict(self) -> Dict[str, Any]:
         assert self.model is not None
-        assert self.optimizers is not None
         return {
             "model": self.model.state_dict(),
             "shard_metadata": self.model.get_shard_metadata(),
-            "optimizer": self.optimizers[0].state_dict(),
         }
-
-    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
-        # Override to do nothing, already saved with the lightning_module state_dict
-        pass
 
     def _parse_fsdp_kwargs(self) -> Dict:
         # this needs to be delayed because `self.precision` isn't available at init
