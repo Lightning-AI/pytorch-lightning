@@ -1,22 +1,21 @@
 import hashlib
 import logging
 import os
+import signal
+from copy import deepcopy
+from enum import Enum
 from multiprocessing import Process, Queue
 from pathlib import Path
 from threading import Thread
 from time import sleep, time
-from typing import Any, Callable, List, Optional, Literal
+from typing import Any, Callable, List, Literal, Optional
 from urllib import parse
-from enum import Enum
+
 import boto3
 from tqdm import tqdm
-import sys
 
-from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
 from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE
-import signal
-from copy import deepcopy
 
 if _TORCH_2_1_0_AVAILABLE:
     from torch.utils._pytree import tree_flatten, tree_unflatten
@@ -74,8 +73,8 @@ def _remove_target(root: str, cache_dir: str, queue_in: Queue) -> None:
             if os.path.exists(cached_filepath):
                 os.remove(cached_filepath)
 
-class BaseWorker:
 
+class BaseWorker:
     def __init__(
         self,
         index: int,
@@ -207,9 +206,15 @@ class BaseWorker:
 
     def _start_remover(self):
         if self.remove:
-            self._remover = Process(target=_remove_target, args=(self.root, self.cache_dir, self._remove_queue,))
+            self._remover = Process(
+                target=_remove_target,
+                args=(
+                    self.root,
+                    self.cache_dir,
+                    self._remove_queue,
+                ),
+            )
             self._remover.start()
-
 
 
 class DataWorkerThread(BaseWorker, Thread):
@@ -236,7 +241,6 @@ class DataWorkerThread(BaseWorker, Thread):
 
 
 class DataWorkerProcess(BaseWorker, Process):
-
     def __init__(self, *args, **kwargs):
         """The DataWorkerProcess is responsible to process the user data inside processes."""
         BaseWorker.__init__(self, *args, **kwargs)
@@ -261,7 +265,6 @@ class DataProcessor:
         delete_cached_files: bool = True,
         resolver: Optional[Callable[[str], str]] = None,
         worker_type: Literal["thread", "process"] = "process",
-        
     ):
         """The `DataProcessor` provides an efficient way to process data across multiple nodes in the cloud into
         chunks.
@@ -416,7 +419,8 @@ class DataProcessor:
         workers_user_items = []
         begins = []
         for node_rank in range(num_nodes):
-            if node_rank != current_node_rank: continue
+            if node_rank != current_node_rank:
+                continue
             is_last_node = node_rank == num_nodes - 1
             start_node = node_rank * node_size
             end_node = len(user_items) if is_last_node else (node_rank + 1) * node_size
@@ -466,7 +470,7 @@ class DataProcessor:
         os._exit(0)
 
     def _get_num_nodes(self) -> int:
-        return int(os.getenv('NUM_NODES', 1))
+        return int(os.getenv("NUM_NODES", 1))
 
     def _get_node_rank(self) -> int:
-        return int(os.getenv('NODE_RANK', 0))
+        return int(os.getenv("NODE_RANK", 0))
