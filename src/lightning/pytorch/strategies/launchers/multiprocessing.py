@@ -81,6 +81,8 @@ class _MultiProcessingLauncher(_Launcher):
             )
         self.procs: List[mp.Process] = []
 
+        self._already_fit = False
+
     @property
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
@@ -106,6 +108,13 @@ class _MultiProcessingLauncher(_Launcher):
             _check_bad_cuda_fork()
         if self._start_method == "spawn":
             _check_missing_main_guard()
+        if self._already_fit and trainer.state.fn == TrainerFn.FITTING:
+            # resolving https://github.com/Lightning-AI/lightning/issues/18775 will lift this restriction
+            raise NotImplementedError(
+                "Calling `trainer.fit()` twice on the same Trainer instance using a spawn-based strategy is not"
+                " supported. You can work around this limitation by creating a new Trainer instance and passing the"
+                " `fit(ckpt_path=...)` argument."
+            )
 
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
@@ -181,6 +190,8 @@ class _MultiProcessingLauncher(_Launcher):
             self._strategy.checkpoint_io.remove_checkpoint(worker_output.weights_path)
 
         trainer.state = worker_output.trainer_state
+
+        self._already_fit |= trainer.state.fn == TrainerFn.FITTING
 
         # get the `callback_metrics` and set it to the trainer
         self.update_main_process_results(trainer, worker_output.extra)
