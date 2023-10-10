@@ -3,7 +3,7 @@ import logging
 import os
 from multiprocessing import Process, Queue
 from pathlib import Path
-from threading import Lock, Thread
+from threading import Thread
 from time import sleep, time
 from typing import Any, Callable, List, Optional
 from urllib import parse
@@ -15,6 +15,7 @@ from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
 from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE
 import signal
+from copy import deepcopy
 
 if _TORCH_2_1_0_AVAILABLE:
     from torch.utils._pytree import tree_flatten, tree_unflatten
@@ -78,6 +79,7 @@ class DataWorker(Thread):
         self,
         index: int,
         start_index: int,
+        node_rank: int,
         prepare_item: Callable,
         root: str,
         remote_root: str,
@@ -92,6 +94,7 @@ class DataWorker(Thread):
         super().__init__(daemon=True)
         self.index = index
         self.start_index = start_index
+        self.node_rank = node_rank
         self.prepare_item = prepare_item
         self.root = root
         self.remote_root = remote_root
@@ -101,7 +104,6 @@ class DataWorker(Thread):
         self.chunk_bytes = chunk_bytes
         self.chunk_size = chunk_size
         self.compression = compression
-        self._lock = Lock()
         self._paths = []
         self._remover = None
         self._downloaders = []
@@ -127,7 +129,7 @@ class DataWorker(Thread):
         algo.update(self.root.encode("utf-8"))
         root_hash = algo.hexdigest()
 
-        cache_dir = f"/cache/{root_hash}/w_{self.index}"
+        cache_dir = f"/cache/{root_hash}/w_{self.node_rank}_{self.index}"
         os.makedirs(cache_dir, exist_ok=True)
 
         self.cache = Cache(
@@ -138,13 +140,11 @@ class DataWorker(Thread):
         os.makedirs(self.cache_dir, exist_ok=True)
 
     def __len__(self):
-        with self._lock:
-            return self._counter
+        return self._counter
 
     @property
     def collected_items(self):
-        with self._lock:
-            return self._collected_items
+        return self._collected_items
 
     def run(self):
         self._collect_paths()
@@ -164,8 +164,7 @@ class DataWorker(Thread):
 
             self.cache[r + self.start_index] = self.prepare_item(self.items[r]) if self.prepare_item else self.items[r]
 
-            with self._lock:
-                self._counter += 1
+            self._counter += 1
 
             if self.remove:
                 self._remove_queue.put(self._paths[r])
@@ -197,8 +196,7 @@ class DataWorker(Thread):
 
             items.append(tree_unflatten(flattened_item, spec))
 
-            with self._lock:
-                self._collected_items += 1
+            self._collected_items += 1
 
         self.items = items
 
@@ -267,9 +265,6 @@ class DataProcessor:
         t0 = time()
         logger.info("Setup started")
 
-        world_size = self._get_world_size()
-        node_rank = self._get_node_rank()
-
         # Get the filepaths
         root = str(Path(root).resolve())
         filepaths = self._cached_list_filepaths(root)
@@ -279,16 +274,7 @@ class DataProcessor:
         user_items = self.setup(root, filepaths)
 
         # Associate the items to the workers based on world_size and node_rank
-        worker_size = num_filepaths // self.num_workers
-        workers_user_items = []
-        begins = []
-        for worker_idx in range(self.num_workers):
-            is_last = worker_idx == self.num_workers - 1
-            begin = worker_idx * worker_size
-            end = num_filepaths if is_last else (worker_idx + 1) * worker_size
-            workers_user_items.append(user_items[begin:end])
-            begins.append(begin)
-
+        begins, workers_user_items = self._associated_items_to_workers(user_items)
         logger.info(f"Setup finished in {round(time() - t0, 3)} seconds. Found {num_filepaths} items to process.")
 
         logger.info(f"Starting {self.num_workers} workers")
@@ -308,7 +294,8 @@ class DataProcessor:
                 worker = DataWorker(
                     worker_idx,
                     begins[worker_idx],
-                    self.prepare_item,
+                    self._get_node_rank(),
+                    deepcopy(self.prepare_item),
                     root,
                     remote_root,
                     worker_user_items.tolist(),
@@ -346,6 +333,28 @@ class DataProcessor:
 
         logger.info("Finished data processing!")
 
+    def _associated_items_to_workers(self, user_items: List[Any]):
+        # Associate the items to the workers based on world_size and node_rank
+        num_nodes = self._get_num_nodes()
+        current_node_rank = self._get_node_rank()
+        node_size = len(user_items) // num_nodes
+        workers_user_items = []
+        begins = []
+        for node_rank in range(num_nodes):
+            if node_rank != current_node_rank: continue
+            is_last_node = node_rank == num_nodes - 1
+            start_node = node_rank * node_size
+            end_node = len(user_items) if is_last_node else (node_rank + 1) * node_size
+            node_user_items = user_items[start_node:end_node]
+            worker_size = len(node_user_items) // self.num_workers
+            for worker_idx in range(self.num_workers):
+                is_last = worker_idx == self.num_workers - 1
+                begin = worker_idx * worker_size
+                end = len(node_user_items) if is_last else (worker_idx + 1) * worker_size
+                workers_user_items.append(user_items[begin:end])
+                begins.append(begin)
+            return begins, workers_user_items
+
     def _cached_list_filepaths(self, root: str) -> List[str]:
         algo = hashlib.new("sha256")
         algo.update(root.encode("utf-8"))
@@ -378,12 +387,11 @@ class DataProcessor:
             w.join(0)
         sys.exit(0)
 
-    def _get_world_size(self) -> int:
-        return os.getenv('WORLD_SIZE', 1)
+    def _get_num_nodes(self) -> int:
+        return int(os.getenv('NUM_NODES', 1))
 
     def _get_node_rank(self) -> int:
-        return os.getenv('NODE_RANK', 1)
-
+        return int(os.getenv('NODE_RANK', 0))
 
 class LightningResolver:
     def __call__(self, root: str) -> str:
