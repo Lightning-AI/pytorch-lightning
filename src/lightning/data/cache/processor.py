@@ -17,7 +17,7 @@ from lightning.data.cache import Cache
 logger = logging.Logger(__name__)
 
 
-def _download_data(queue_in: Queue, queue_out: Queue) -> None:
+def _download_data(root: str, remote_root: str, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
     s3 = boto3.client("s3")
     while True:
         r = queue_in.get()
@@ -26,23 +26,29 @@ def _download_data(queue_in: Queue, queue_out: Queue) -> None:
             queue_out.put(None)
             return
 
-        index, remote_path, local_path = r
+        index, paths = r
 
-        if os.path.exists(local_path):
+        # Check whether all the files are already downloaded
+        if all(os.path.exists(p) for p in paths):
             queue_out.put(index)
             continue
 
-        obj = parse.urlparse(remote_path)
+        # Download all the required paths to unblock the current index
+        for path in paths:
+            remote_path = path.replace(root, remote_root)
+            obj = parse.urlparse(remote_path)
 
-        if obj.scheme != "s3":
-            raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_path}")
+            if obj.scheme != "s3":
+                raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_path}")
 
-        dirpath = os.path.dirname(local_path)
+            local_path = path.replace(root, cache_dir)
 
-        os.makedirs(dirpath, exist_ok=True)
+            dirpath = os.path.dirname(local_path)
 
-        with open(local_path, "wb") as f:
-            s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
+            os.makedirs(dirpath, exist_ok=True)
+
+            with open(local_path, "wb") as f:
+                s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
 
         queue_out.put(index)
 
@@ -99,17 +105,14 @@ class DataWorker(Thread):
         algo.update(self.root.encode("utf-8"))
         root_hash = algo.hexdigest()
 
-        cache_dir = f"/cache/{root_hash}_{self.index}"
+        cache_dir = f"/cache/{root_hash}/w_{self.index}"
         os.makedirs(cache_dir, exist_ok=True)
 
         self.cache = Cache(
             cache_dir, chunk_bytes=self.chunk_bytes, chunk_size=self.chunk_size, compression=self.compression
         )
 
-        root = self.root
-        if root.startswith("/"):
-            root = root[1:]
-        self.cache_dir = os.path.join("/cache", root)
+        self.cache_dir = f"/cache/{root_hash}/data"
         os.makedirs(self.cache_dir, exist_ok=True)
 
     def __len__(self):
@@ -150,20 +153,25 @@ class DataWorker(Thread):
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
 
+            # For speed reasons, we assume starting with `self.root` is enough to be a real file.
+            # Other alternative would be too slow.
+            # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
                 index: element
                 for index, element in enumerate(flattened_item)
-                if isinstance(element, str) and element.startswith(self.root)
+                if isinstance(element, str) and element.startswith(self.root)  # For speed reasons
             }
 
             if len(indexed_paths) == 0:
                 raise ValueError(f"The provided item {item} didn't contain any filepaths.")
 
+            paths = []
             for index, path in indexed_paths.items():
                 tmp_path = path.replace(self.root, self.cache_dir)
-                remote_path = path.replace(self.root, self.remote_root)
-                self.paths.append((remote_path, tmp_path))
                 flattened_item[index] = tmp_path
+                paths.append(path)
+
+            self._paths.append(path)
 
             items.append(tree_unflatten(flattened_item, spec))
 
@@ -175,7 +183,10 @@ class DataWorker(Thread):
     def _start_downloaders(self):
         for _ in range(self.num_downloaders):
             to_download_queue = Queue()
-            p = Process(target=_download_data, args=(to_download_queue, self._download_is_ready_queue))
+            p = Process(
+                target=_download_data,
+                args=(self.root, self.remote_root, self.cache_dir, to_download_queue, self._download_is_ready_queue),
+            )
             p.start()
             self._downloaders.append(p)
             self._to_download_queues.append(to_download_queue)
