@@ -1,30 +1,13 @@
 set -e  # exit on error
 
-if [[ "{ACCELERATOR_TYPE}" = v5litepod* ]]; then
-  sudo apt-get update -y
-  sudo apt-get install libomp5 -y
-  pip3 install mkl mkl-include
-  pip3 install tf-nightly tb-nightly tbp-nightly
-  pip3 install numpy
-  sudo apt-get install numactl libopenblas-dev -y
-  pip3 install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch-nightly-cp310-cp310-linux_x86_64.whl
-  pip3 install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch_xla-nightly-cp310-cp310-linux_x86_64.whl
-  gsutil cp gs://cloud-tpu-tpuvm-artifacts/v5litepod-preview/pytorch/wheels/torchvision-0.16.0a0+c9ac3a5-cp310-cp310-linux_x86_64.whl .
-  pip3 install torchvision-0.16.0a0+c9ac3a5-cp310-cp310-linux_x86_64.whl
-  pip3 install torch_xla[tpuvm]
+if [[ "{PYTORCH_VERSION}" = "2.1" ]]; then
+  pip install "torch=={PYTORCH_VERSION}" -f https://storage.googleapis.com/libtpu-releases/index.html
+  pip install "torch_xla[tpu]=={PYTORCH_VERSION}" -f https://storage.googleapis.com/libtpu-releases/index.html
 fi
 
 echo "--- Install packages ---"
 # show what's already installed
 pip3 list
-if [[ "{ACCELERATOR_TYPE}" != v5litepod* ]]; then
-  # set particular PyTorch version
-  pip3 install -q wget packaging
-  python3 -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
-  for fpath in `ls requirements/**/*.txt`; do
-    python3 adjust-torch-versions.py $fpath {PYTORCH_VERSION};
-  done
-fi
 pip3 install .[fabric-test] pytest-timeout
 if [[ "{ACCELERATOR_TYPE}" == v5litepod* ]]; then
   # xla requires google-api-core which itself requires protobuf 3.20.3
