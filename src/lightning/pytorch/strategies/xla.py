@@ -81,7 +81,7 @@ class XLAStrategy(DDPStrategy):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: CheckpointIO) -> None:
+    def checkpoint_io(self, io: Union[_WrappingCheckpointIO, XLACheckpointIO]) -> None:
         self._checkpoint_io = io
 
     @property  # type: ignore[override]
