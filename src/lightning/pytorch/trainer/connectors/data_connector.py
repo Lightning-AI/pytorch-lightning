@@ -437,7 +437,7 @@ def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
             f"Consider setting `persistent_workers=True` in '{name}' to speed up the dataloader worker initialization."
         )
     elif dataloader.num_workers < 2:
-        # if changed, update the `filterwarnings` snippet in 'speed.html#num-workers'
+        # if changed, update the `filterwarnings` snippet in 'advanced/warnings.rst'
         rank_zero_warn(
             f"The '{name}' does not have many workers which may be a bottleneck. Consider increasing the value of the"
             f" `num_workers` argument` to `num_workers={upper_bound}` in the `DataLoader` to improve performance.",
