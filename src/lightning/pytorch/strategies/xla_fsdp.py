@@ -186,9 +186,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         super().setup_environment()
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.accelerator is not None
-        assert self.model is not None
-
+        assert self.accelerator
         self.accelerator.setup(trainer)
 
         # we set the device so that optimizers can be created with distributed comms.
@@ -247,28 +245,21 @@ class XLAFSDPStrategy(ParallelStrategy):
         return dataloader
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        invalid_params_error = False
-        try:
-            super().setup_optimizers(trainer)
-        except ValueError as ex:
-            if "optimizer got an empty parameter list" not in str(ex):
-                raise
-            invalid_params_error = True
+        if trainer.state.fn != TrainerFn.FITTING:
+            return
 
-        assert self.lightning_module is not None
-        if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-            assert len(self.optimizers) == 1, "XLAFSDP only supports using exactly 1 optimizer."
-            from torch_xla.distributed.fsdp.xla_flatten_params_wrapper import FlatParameter
+        if len(self.optimizers) != 1:
+            raise NotImplementedError("XLAFSDP only supports using exactly 1 optimizer.")
+        optimizer = self.optimizers[0]
 
-            if invalid_params_error or any(
-                isinstance(param, FlatParameter) for param in self.optimizers[0].param_groups[0]["params"]
-            ):
-                raise ValueError(
-                    "The optimizer does not seem to reference any XLAFSDP parameters. HINT: Make sure to create the"
-                    " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
-                    " `configure_optimizers()` hook."
-                )
-        return
+        from torch_xla.distributed.fsdp.xla_flatten_params_wrapper import FlatParameter
+
+        if not any(isinstance(param, FlatParameter) for group in optimizer.param_groups for param in group["params"]):
+            raise ValueError(
+                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
+                " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
+                " `configure_optimizers()` hook."
+            )
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
