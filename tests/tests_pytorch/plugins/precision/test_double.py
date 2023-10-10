@@ -184,9 +184,9 @@ def test_convert_module():
     assert model.layer.weight.dtype == model.layer.bias.dtype == torch.float64
 
 
-def test_init_context():
+def test_module_init_context():
     plugin = DoublePrecisionPlugin()
-    with plugin.init_context():
+    with plugin.module_init_context():
         model = torch.nn.Linear(2, 2)
         assert torch.get_default_dtype() == torch.double
     assert model.weight.dtype == torch.double

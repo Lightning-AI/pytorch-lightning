@@ -44,6 +44,8 @@
    Transfer learning <../advanced/transfer_learning>
    Trainer <../common/trainer>
    Torch distributed <../clouds/cluster_intermediate_2>
+   Warnings <../advanced/warnings>
+
 
 ########
 Glossary
@@ -339,6 +341,13 @@ Glossary
    :description: Setup for running on distributed environments
    :col_css: col-md-12
    :button_link: ../clouds/cluster_intermediate_2.html
+   :height: 100
+
+.. displayitem::
+   :header: Warnings
+   :description: Disable false-positive warnings emitted by Lightning
+   :col_css: col-md-12
+   :button_link: ../advanced/warnings.html
    :height: 100
 
 .. raw:: html
