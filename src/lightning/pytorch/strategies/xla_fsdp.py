@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
-from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
+from lightning.fabric.plugins import XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.xla_fsdp import (
@@ -42,7 +42,6 @@ from lightning.pytorch.strategies.ddp import ParallelStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.strategies.xla import _pod_progress_bar_force_stdout
-from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 
@@ -84,7 +83,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]] = None,
         precision_plugin: Optional[XLAPrecisionPlugin] = None,
         auto_wrap_policy: Optional[_POLICY] = None,
         activation_checkpointing_policy: Optional[_POLICY_SET] = None,
@@ -101,7 +100,6 @@ class XLAFSDPStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-        self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = _XLAFSDPBackwardSyncControl()
 
         self._auto_wrap_policy = auto_wrap_policy
@@ -123,17 +121,18 @@ class XLAFSDPStrategy(ParallelStrategy):
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        if self._checkpoint_io is None:
-            self._checkpoint_io = XLACheckpointIO()
-        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
-            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
-
-        return self._checkpoint_io
+    @property  # type: ignore[override]
+    def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
+        plugin = self._checkpoint_io
+        if plugin is not None:
+            assert isinstance(plugin, (XLACheckpointIO, _WrappingCheckpointIO))
+            return plugin
+        return XLACheckpointIO()
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: CheckpointIO) -> None:
+    def checkpoint_io(self, io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]]) -> None:
+        if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
+            raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
     @property  # type: ignore[override]
@@ -247,15 +246,9 @@ class XLAFSDPStrategy(ParallelStrategy):
         return dataloader
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        if trainer.state.fn != TrainerFn.FITTING:
-            return
-
-        from torch_xla.distributed.fsdp.xla_flatten_params_wrapper import FlatParameter
-
+        super().setup_optimizers(trainer)
         for optimizer in self.optimizers:
-            if not any(
-                isinstance(param, FlatParameter) for group in optimizer.param_groups for param in group["params"]
-            ):
+            if not any(getattr(p, "_is_sharded", False) for group in optimizer.param_groups for p in group["params"]):
                 raise ValueError(
                     f"The optimizer {optimizer} does not seem to reference any FSDP parameters. HINT: Make sure to"
                     f" create the optimizer after setting up the model by referencing `self.trainer.model.parameters()`"
