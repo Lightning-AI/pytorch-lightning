@@ -28,6 +28,7 @@ os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] = "1"
 
 from lightning.fabric.fabric import Fabric  # noqa: E402
 from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
+from lightning.fabric.utilities.warnings import disable_possible_user_warnings  # noqa: E402
 from lightning.fabric.wrappers import is_wrapped  # noqa: E402
 
 # this import needs to go last as it will patch other modules
@@ -37,3 +38,7 @@ __all__ = ["Fabric", "seed_everything", "is_wrapped"]
 
 # for compatibility with namespace packages
 __import__("pkg_resources").declare_namespace(__name__)
+
+
+if os.environ.get("POSSIBLE_USER_WARNINGS", "").lower() in ("0", "off"):
+    disable_possible_user_warnings()

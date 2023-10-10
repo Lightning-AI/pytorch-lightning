@@ -70,7 +70,7 @@ class MPSAccelerator(Accelerator):
         accelerator_registry.register(
             "mps",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
 

@@ -23,3 +23,4 @@ from lightning.fabric.utilities.rank_zero import (  # noqa: F401
     rank_zero_only,
     rank_zero_warn,
 )
+from lightning.fabric.utilities.warnings import disable_possible_user_warnings  # noqa: F401

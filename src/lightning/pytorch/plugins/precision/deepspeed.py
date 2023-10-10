@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Union
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Optional, Union
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -23,7 +23,7 @@ from typing_extensions import get_args
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.types import Steppable
 from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
 from lightning.pytorch.utilities import GradClipAlgorithmType
@@ -77,18 +77,13 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
 
-    @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
+    def tensor_init_context(self) -> ContextManager:
         if "true" not in self.precision:
-            yield
-            return
+            return nullcontext()
+        return _DtypeContextManager(self._desired_dtype)
 
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self._desired_dtype)
-        try:
-            yield
-        finally:
-            torch.set_default_dtype(default_dtype)
+    def module_init_context(self) -> ContextManager:
+        return self.tensor_init_context()
 
     def backward(  # type: ignore[override]
         self,

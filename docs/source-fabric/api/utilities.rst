@@ -13,3 +13,5 @@ lightning.fabric.utilities
 .. autofunction:: lightning.fabric.utilities.data.suggested_max_num_workers
 
 .. autofunction:: lightning.fabric.utilities.distributed.is_shared_filesystem
+
+.. autofunction:: lightning.fabric.utilities.warnings.disable_possible_user_warnings

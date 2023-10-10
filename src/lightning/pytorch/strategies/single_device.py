@@ -92,5 +92,5 @@ class SingleDeviceStrategy(Strategy):
         strategy_registry.register(
             cls.strategy_name,
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
