@@ -11,6 +11,7 @@ from urllib import parse
 import boto3
 from tqdm import tqdm
 
+from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
 from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE
 
@@ -104,6 +105,8 @@ class DataWorker(Thread):
         self._remove_queue = Queue()
         self._collected_items = 0
         self._counter = 0
+
+        self._create_cache()
 
     def _create_cache(self):
         algo = hashlib.new("sha256")
@@ -211,7 +214,7 @@ class DataWorker(Thread):
 class DataProcessor:
     def __init__(
         self,
-        setup: Callable,
+        setup: Callable[[str, str], List[str]],
         prepare_item: Optional[Callable] = None,
         num_workers: int = os.cpu_count() * 4,
         num_downloaders: int = 3,
@@ -219,6 +222,7 @@ class DataProcessor:
         chunk_bytes: Optional[int] = 1 << 26,
         compression: Optional[str] = None,
         delete_cached_files: bool = True,
+        resolver: Optional[Callable[[str], str]] = None,
     ):
         """The `DataProcessor` provides an efficient way to process data across multiple nodes in the cloud into
         chunks.
@@ -243,8 +247,9 @@ class DataProcessor:
         self.delete_cached_files = delete_cached_files
         self.compression = compression
         self.workers = []
+        self.resolver = resolver
 
-    def run(self, root: str, remote_root: str) -> None:
+    def run(self, root: str, remote_root: Optional[str] = None) -> None:
         t0 = time()
         logger.info("Setup started")
 
@@ -270,6 +275,9 @@ class DataProcessor:
         logger.info(f"Setup finished in {round(time() - t0, 3)} seconds. Found {num_filepaths} items to process.")
 
         logger.info(f"Starting {self.num_workers} workers")
+
+        if remote_root is None and self.resolver is not None:
+            remote_root = self.resolver.resolve(root)
 
         num_items = len(user_items)
         current_total = 0
@@ -335,8 +343,33 @@ class DataProcessor:
             for filename in filenames:
                 filepaths.append(os.path.join(dirpath, filename))
 
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
         with open(filepath, "w") as f:
             for filepath in filepaths:
                 f.write(f"{filepath}\n")
 
         return filepaths
+
+
+class LightningResolver:
+    def __call__(self, root: str) -> str:
+        if root.startswith("/teamspace/studios") and not root.startswith("/teamspace/studios/this_studio"):
+            return self._resolve_studio(root)
+
+        if root.startswith("/teamspace/s3_connections"):
+            return self._resolve_s3_connections(root)
+
+    def _resolve_studio(self, root: str) -> str:
+        LightningClient()
+
+        # Get the ids from env variables
+        os.getenv("LIGHTNING_CLUSTER_ID", None)
+        os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+        os.getenv("LIGHTNING_CLOUD_SPACE_ID", None)
+
+        breakpoint()
+        return root
+
+    def _resolve_s3_connections(self, root: str) -> str:
+        raise NotImplementedError
