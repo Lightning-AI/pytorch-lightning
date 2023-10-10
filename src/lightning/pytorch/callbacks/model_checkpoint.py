@@ -438,13 +438,12 @@ class ModelCheckpoint(Checkpoint):
                 "should be mutually exclusive."
             )
 
-        if self.monitor is None:
+        if self.monitor is None and self.save_top_k not in (-1, 0, 1):
             # -1: save all epochs, 0: nothing is saved, 1: save last epoch
-            if self.save_top_k not in (-1, 0, 1):
-                raise MisconfigurationException(
-                    f"ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid"
-                    " configuration. No quantity for top_k to track."
-                )
+            raise MisconfigurationException(
+                f"ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid"
+                " configuration. No quantity for top_k to track."
+            )
 
     def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
         self._fs = get_filesystem(dirpath if dirpath else "")
