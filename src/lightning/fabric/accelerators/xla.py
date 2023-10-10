@@ -95,7 +95,7 @@ class XLAAccelerator(Accelerator):
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register("tpu", cls, description=cls.__class__.__name__)
+        accelerator_registry.register("tpu", cls, description=cls.__name__)
 
 
 # PJRT support requires this minimum version
