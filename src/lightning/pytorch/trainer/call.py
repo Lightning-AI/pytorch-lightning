@@ -105,7 +105,7 @@ def _call_configure_model(trainer: "pl.Trainer") -> None:
     # we don't normally check for this before calling the hook. it is done here to avoid instantiating the context
     # managers
     if is_overridden("configure_model", trainer.lightning_module):
-        with trainer.strategy.tensor_init_context(), trainer.strategy.model_sharded_context():
+        with trainer.strategy.tensor_init_context(), trainer.strategy.model_sharded_context(), trainer.precision_plugin.module_init_context():  # noqa: E501
             _call_lightning_module_hook(trainer, "configure_model")
 
 

@@ -53,6 +53,7 @@ Examples
     :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/reinforcement_learning
     :col_css: col-md-4
     :height: 150
+    :tag: intermediate
 
 .. displayitem::
     :header: K-Fold Cross Validation
@@ -60,12 +61,14 @@ Examples
     :button_link: https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/kfold_cv
     :col_css: col-md-4
     :height: 150
+    :tag: intermediate
 
 .. displayitem::
     :header: Active Learning
     :description: Coming soon
     :col_css: col-md-4
     :height: 150
+    :tag: intermediate
 
 
 .. raw:: html

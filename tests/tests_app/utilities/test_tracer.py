@@ -3,6 +3,7 @@ import sys
 
 from lightning.app.testing.helpers import _RunIf
 from lightning.app.utilities.tracer import Tracer
+
 from tests_app import _PROJECT_ROOT
 
 

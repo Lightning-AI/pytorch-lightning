@@ -17,12 +17,11 @@ import sys
 from unittest import mock
 from unittest.mock import ANY, Mock
 
-import pytest
-
 import lightning.fabric
+import pytest
 from lightning.fabric.strategies.launchers.subprocess_script import (
-    _ChildProcessObserver,
     _HYDRA_AVAILABLE,
+    _ChildProcessObserver,
     _SubprocessScriptLauncher,
 )
 

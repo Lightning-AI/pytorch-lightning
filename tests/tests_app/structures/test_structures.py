@@ -2,13 +2,13 @@ import os
 from copy import deepcopy
 
 import pytest
-
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.runners import MultiProcessRuntime
 from lightning.app.storage.payload import Payload
 from lightning.app.structures import Dict, List
 from lightning.app.testing.helpers import EmptyFlow
 from lightning.app.utilities.enum import CacheCallsKeys, WorkStageStatus
+from lightning.app.utilities.imports import _IS_WINDOWS
 
 
 def test_dict():
@@ -332,7 +332,8 @@ class CounterWork(LightningWork):
         self.counter += 1
 
 
-@pytest.mark.skip(reason="tchaton: Resolve this test.")
+@pytest.mark.skipif(_IS_WINDOWS, reason="strange TimeOut exception")
+@pytest.mark.xfail(strict=False, reason="tchaton: Resolve this test.")
 @pytest.mark.parametrize("run_once_iterable", [False, True])
 @pytest.mark.parametrize("cache_calls", [False, True])
 @pytest.mark.parametrize("use_list", [False, True])

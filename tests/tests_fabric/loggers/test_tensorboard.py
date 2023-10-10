@@ -20,10 +20,10 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 import torch
-
 from lightning.fabric.loggers import TensorBoardLogger
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.fabric.wrappers import _FabricModule
+
 from tests_fabric.test_fabric import BoringModel
 
 
@@ -213,8 +213,8 @@ def test_tensorboard_finalize(monkeypatch, tmpdir):
 
 @mock.patch("lightning.fabric.loggers.tensorboard.log")
 def test_tensorboard_with_symlink(log, tmpdir):
-    """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``,
-    and relative paths."""
+    """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
+    relative paths."""
     os.chdir(tmpdir)  # need to use relative paths
     source = os.path.join(".", "lightning_logs")
     dest = os.path.join(".", "sym_lightning_logs")

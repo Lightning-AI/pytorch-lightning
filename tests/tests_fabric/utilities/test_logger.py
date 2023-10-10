@@ -16,7 +16,6 @@ from argparse import Namespace
 
 import numpy as np
 import torch
-
 from lightning.fabric.utilities.logger import (
     _add_prefix,
     _convert_params,
@@ -67,7 +66,8 @@ def test_flatten_dict():
     wrapping_dict = {"params": params}
     params = _flatten_dict(wrapping_dict)
 
-    assert type(params) == dict
+    params_type = type(params)  # way around needed for Ruff's `isinstance` suggestion
+    assert params_type is dict
     assert params["params/a"] == 1
     assert params["params/b"] == 2
     assert "a" not in params

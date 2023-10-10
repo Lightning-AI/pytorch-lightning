@@ -1,9 +1,10 @@
 import os
 import sys
 
-from integrations_app.public import _PATH_EXAMPLES
 from lightning.app.testing.testing import application_testing
 from lightning.app.utilities.load_app import _patch_sys_argv
+
+from integrations_app.public import _PATH_EXAMPLES
 
 
 def test_app_argparse_example():

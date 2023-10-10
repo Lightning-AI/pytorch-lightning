@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import call, Mock
+from unittest.mock import Mock, call
 
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import BatchSampler, DistributedSampler
-from torch.utils.data.dataloader import DataLoader
-
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
@@ -31,6 +28,10 @@ from lightning.fabric.wrappers import (
     is_wrapped,
     warning_cache,
 )
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import BatchSampler, DistributedSampler
+from torch.utils.data.dataloader import DataLoader
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -185,6 +186,15 @@ def test_fabric_module_state_dict_access():
     assert torch.equal(fabric_module.layer.weight, weight)
     assert torch.equal(fabric_module.layer.bias, bias)
 
+    if _TORCH_GREATER_EQUAL_2_1:
+        # Can use additional `assign` argument in PyTorch >= 2.1
+        with torch.device("meta"):
+            original_module = OriginalModule()
+        fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
+        assert fabric_module.layer.weight.is_meta
+        fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias}, assign=True)
+        assert not fabric_module.layer.weight.is_meta
+
 
 @pytest.mark.parametrize(
     ("precision", "input_type", "expected_type", "accelerator", "device_str"),
@@ -293,7 +303,7 @@ def test_fabric_dataloader_iterator():
         ("cpu", "cpu"),
         pytest.param("cpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("cuda:0", "cpu", marks=RunIf(min_cuda_gpus=1)),
-        # pytest.param("cpu", "mps", marks=RunIf(mps=True)),  # TODO: Add once torch.equal is supported
+        pytest.param("cpu", "mps", marks=RunIf(mps=True)),
         pytest.param("mps", "cpu", marks=RunIf(mps=True)),
     ],
 )
@@ -311,11 +321,9 @@ def test_fabric_dataloader_device_placement(src_device_str, dest_device_str):
     iterator = iter(fabric_dataloader)
 
     batch0 = next(iterator)
-    # TODO: torch.equal is not supported on MPS at this time (torch 1.12)
     assert torch.equal(batch0, torch.tensor([0, 1], device=dest_device))
 
     batch1 = next(iterator)
-    # TODO: torch.equal is not supported on MPS at this time (torch 1.12)
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 
@@ -358,20 +366,41 @@ def test_fabric_optimizer_wraps():
     fabric_optimizer = _FabricOptimizer(optimizer, Mock())
     assert fabric_optimizer.optimizer is optimizer
     assert isinstance(fabric_optimizer, optimizer_cls)
+    assert isinstance(fabric_optimizer, _FabricOptimizer)
+    assert type(fabric_optimizer).__name__ == "FabricSGD"
 
 
 def test_fabric_optimizer_state_dict():
     """Test that the FabricOptimizer calls into the strategy to collect the state."""
-    optimizer = Mock()
+    optimizer = Mock(spec=torch.optim.Adam)
     strategy = Mock()
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)
     fabric_optimizer.state_dict()
     strategy.get_optimizer_state.assert_called_with(optimizer)
 
 
+def test_fabric_optimizer_load_state_dict():
+    """Test that the FabricOptimizer can load the state dict on the wrapped optimizer and update its internal
+    `__dict__`."""
+    model = torch.nn.Linear(1, 1)
+    optimizer = torch.optim.Adam(model.parameters())
+    assert not optimizer.state  # a fresh optimizer has no state
+    model(torch.rand(1)).backward()
+    optimizer.step()
+    assert optimizer.state
+    state_dict = optimizer.state_dict()
+
+    optimizer = torch.optim.Adam(model.parameters())  # fresh optimizer
+    fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=Mock())
+    assert not fabric_optimizer.state  # a fresh optimizer has no state
+    fabric_optimizer.load_state_dict(state_dict)
+    assert fabric_optimizer.state
+    assert fabric_optimizer.optimizer.state_dict()["state"] == state_dict["state"]
+
+
 def test_fabric_optimizer_steps():
     """Test that the FabricOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
-    optimizer = Mock()
+    optimizer = Mock(spec=torch.optim.Adam)
     strategy = Mock(spec=["optimizer_step"])
     strategy.optimizer_step.return_value = 123
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)

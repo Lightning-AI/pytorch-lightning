@@ -17,9 +17,8 @@ import logging
 import time
 import uuid
 from itertools import cycle
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 from typing import SupportsFloat as Numeric
-from typing import Tuple, Type, Union
 
 import requests
 import uvicorn
@@ -487,9 +486,8 @@ class _LoadBalancer(LightningWork):
 
 
 class AutoScaler(LightningFlow):
-    """The ``AutoScaler`` can be used to automatically change the number of replicas of the given server in
-    response to changes in the number of incoming requests. Incoming requests will be batched and balanced across
-    the replicas.
+    """The ``AutoScaler`` can be used to automatically change the number of replicas of the given server in response to
+    changes in the number of incoming requests. Incoming requests will be batched and balanced across the replicas.
 
     Args:
         min_replicas: The number of works to start when app initializes.
@@ -551,6 +549,7 @@ class AutoScaler(LightningFlow):
                 timeout_batching=1,  # for auto batching
             )
         )
+
     """
 
     def __init__(

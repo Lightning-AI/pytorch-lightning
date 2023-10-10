@@ -1,18 +1,17 @@
 import os
 from collections.abc import Mapping
 from functools import partial
-from typing import Any, cast, Iterable, List, Literal, Optional, Tuple, Union
-
-import torch
-from lightning_utilities import apply_to_collection
-from tqdm import tqdm
+from typing import Any, Iterable, List, Literal, Optional, Tuple, Union, cast
 
 import lightning as L
+import torch
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.loggers import Logger
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.wrappers import _unwrap_objects
 from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning_utilities import apply_to_collection
+from tqdm import tqdm
 
 
 class MyCustomTrainer:
@@ -84,6 +83,7 @@ class MyCustomTrainer:
 
         Warning:
             callbacks written for the lightning trainer (especially making assumptions on the trainer), won't work!
+
         """
 
         self.fabric = L.Fabric(
@@ -205,9 +205,10 @@ class MyCustomTrainer:
             optimizer: the optimizer, optimizing the LightningModule.
             train_loader: The dataloader yielding the training batches.
             limit_batches: Limits the batches during this training epoch.
-                If greater then the number of batches in the ``train_loader``, this has no effect.
+                If greater than the number of batches in the ``train_loader``, this has no effect.
             scheduler_cfg: The learning rate scheduler configuration.
-                Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
+                Have a look at :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`
+                for supported values.
 
         """
         self.fabric.call("on_train_epoch_start")
@@ -269,7 +270,7 @@ class MyCustomTrainer:
             model: the LightningModule to evaluate
             val_loader: The dataloader yielding the validation batches.
             limit_batches: Limits the batches during this validation epoch.
-                If greater then the number of batches in the ``val_loader``, this has no effect.
+                If greater than the number of batches in the ``val_loader``, this has no effect.
 
         """
         # no validation if val_loader wasn't passed
@@ -429,6 +430,7 @@ class MyCustomTrainer:
 
         Args:
             state: A mapping containing model, optimizer and lr scheduler.
+
         """
         if state is None:
             state = {}
@@ -443,6 +445,7 @@ class MyCustomTrainer:
 
         Args:
             checkpoint_dir: the directory to search for checkpoints
+
         """
         if not os.path.isdir(checkpoint_dir):
             return None

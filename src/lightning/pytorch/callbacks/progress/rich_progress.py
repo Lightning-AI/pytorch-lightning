@@ -14,7 +14,7 @@
 import math
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, cast, Dict, Generator, Optional, Union
+from typing import Any, Dict, Generator, Optional, Union, cast
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -33,8 +33,8 @@ if _RICH_AVAILABLE:
     from rich.text import Text
 
     class CustomBarColumn(BarColumn):
-        """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size)
-        such as ``IterableDataset``."""
+        """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size) such as
+        ``IterableDataset``."""
 
         def render(self, task: "Task") -> _RichProgressBar:
             """Gets a progress bar widget for a task."""
@@ -57,6 +57,7 @@ if _RICH_AVAILABLE:
         """Overrides ``Task`` to define an infinite task.
 
         This is useful for datasets that do not define a size (infinite size) such as ``IterableDataset``.
+
         """
 
         @property
@@ -141,7 +142,7 @@ if _RICH_AVAILABLE:
             trainer: "pl.Trainer",
             style: Union[str, "Style"],
             text_delimiter: str,
-            metrics_format: Union[str, None],
+            metrics_format: str,
         ):
             self._trainer = trainer
             self._tasks: Dict[Union[int, TaskID], Any] = {}
@@ -182,7 +183,7 @@ if _RICH_AVAILABLE:
         def _generate_metrics_texts(self) -> Generator[str, None, None]:
             for name, value in self._metrics.items():
                 if not isinstance(value, str):
-                    value = round(value, 3) if self._metrics_format is None else f"{value:{self._metrics_format}}"
+                    value = f"{value:{self._metrics_format}}"
                 yield f"{name}: {value}"
 
 else:
@@ -216,7 +217,7 @@ class RichProgressBarTheme:
     processing_speed: Union[str, Style] = "grey70"
     metrics: Union[str, Style] = "white"
     metrics_text_delimiter: str = " "
-    metrics_format: Union[str, None] = None
+    metrics_format: str = ".3f"
 
 
 class RichProgressBar(ProgressBar):

@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""Stochastic Weight Averaging Callback ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"""
+r"""
+Stochastic Weight Averaging Callback
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""
 from copy import deepcopy
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.optim.swa_utils import SWALR
 
 import lightning.pytorch as pl

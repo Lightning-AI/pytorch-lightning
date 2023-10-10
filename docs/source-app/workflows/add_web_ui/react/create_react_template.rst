@@ -32,7 +32,7 @@ Run this command to set up a react-ui template for a component:
 
     lightning init react-ui
 
-If everything was succesful, run the example_app.py listed in the output of the command:
+If everything was successful, run the example_app.py listed in the output of the command:
 
 .. code:: bash
 

@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 from torch.utils.data import Dataset as TorchDataset
 
-from lightning.data.backends import _DatasetBackend, LocalDatasetBackend, S3DatasetBackend
+from lightning.data.backends import LocalDatasetBackend, S3DatasetBackend, _DatasetBackend
 from lightning.data.fileio import OpenCloudFileObj
 
 

@@ -14,7 +14,7 @@
 """Enumerated utilities."""
 from __future__ import annotations
 
-from lightning.fabric.utilities.enums import LightningEnum
+from lightning_utilities.core.enums import StrEnum as LightningEnum
 
 
 class GradClipAlgorithmType(LightningEnum):

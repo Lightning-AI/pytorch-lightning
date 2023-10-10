@@ -3,9 +3,9 @@ name: Test PyTorch - TPU
 on:
   push:
     branches: [master, "release/*"]
-  pull_request:  # _target FIXME
+  pull_request: # _target FIXME
     branches: [master, "release/*"]
-    types: [ opened, reopened, edited, ready_for_review, synchronize ]
+    types: [opened, reopened, edited, ready_for_review, synchronize]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -30,228 +30,228 @@ jobs:
         accelerator_type: ["v4-8"]
         include:
           # our v5 quota only allows for 2 v16 pods at the moment
-          - {pkg-name: "fabric", runtime: "pjrt", accelerator_type: "v5litepod-16"}
-          - {pkg-name: "pytorch", runtime: "pjrt", accelerator_type: "v5litepod-16"}
+          - { pkg-name: "fabric", runtime: "pjrt", accelerator_type: "v5litepod-16" }
+          - { pkg-name: "pytorch", runtime: "pjrt", accelerator_type: "v5litepod-16" }
     timeout-minutes: 30
     env:
-      XLA_VER: '2.0'
+      XLA_VER: "2.0"
       PR_NUMBER: ${{ github.event.pull_request.number && github.event.pull_request.number || 'master' }}
       SHA: ${{ github.event.pull_request.head.sha && github.event.pull_request.head.sha || github.sha }}
-      CLOUDSDK_CORE_DISABLE_PROMPTS: 1  # default to --quiet
+      CLOUDSDK_CORE_DISABLE_PROMPTS: 1 # default to --quiet
     steps:
-    - name: Set env
-      run: |
-        # define --zone: https://cloud.google.com/tpu/docs/regions-zones
-        if [[ "${{ matrix.accelerator_type }}" == v4* ]]; then
-          echo "CLOUDSDK_COMPUTE_ZONE=us-central2-b" >> $GITHUB_ENV
-        else
-          echo "CLOUDSDK_COMPUTE_ZONE=us-west4-a" >> $GITHUB_ENV
-        fi
-
-    - uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-
-    - uses: google-github-actions/auth@v1
-      with:
-        credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
-
-    - uses: 'google-github-actions/setup-gcloud@v1'
-      with:
-        install_components: 'alpha'  # only relevant for v5 preview
-
-    - name: Alias gcloud
-      if: startsWith(matrix.accelerator_type, 'v5')
-      run: |
-        echo 'shopt -s expand_aliases; gcloud() {
-          command gcloud alpha "$@"
-        }; alias gcloud="gcloud"' >> .rcfile
-
-    - name: Time-based job cleanup
-      if: always()
-      run: |
-        [ -f ".rcfile" ] && source .rcfile
-
-        gcloud compute tpus tpu-vm list --format='value(name,createTime)' > creation_times.txt
-        cat creation_times.txt
-
-        if [ ! -s "creation_times.txt" ]; then
-          echo "No existing jobs"
-          exit 0
-        fi
-
-        jobs_deleted=false
-        while read -r job_name created_at; do
-          # Skip jobs with "keepalive" in the name
-          if [[ "$job_name" == *"keepalive"* ]]; then
-            echo "Skipping $job_name, has keepalive in name"
-            continue
-          fi
-
-          # Convert the creation time to Unix timestamp
-          created_timestamp=$(date -d "${created_at}" +%s)
-
-          # Calculate the difference between the current time and the creation time
-          current_timestamp=$(date +%s)
-          age=$((current_timestamp - created_timestamp))
-
-          # Check if the age has surpassed a timeout
-          if ((age > 35 * 60)); then
-            # delete the job
-            if [[ "${{ matrix.accelerator_type }}" == v5* ]]; then
-              gcloud compute tpus queued-resources delete "$job_name-resource" --async --force
-            else
-              gcloud compute tpus tpu-vm delete "$job_name" --async
-            fi
-            jobs_deleted=true
+      - name: Set env
+        run: |
+          # define --zone: https://cloud.google.com/tpu/docs/regions-zones
+          if [[ "${{ matrix.accelerator_type }}" == v4* ]]; then
+            echo "CLOUDSDK_COMPUTE_ZONE=us-central2-b" >> $GITHUB_ENV
           else
-            echo "Skipping $job_name, alive for $age seconds"
+            echo "CLOUDSDK_COMPUTE_ZONE=us-west4-a" >> $GITHUB_ENV
           fi
-        done < creation_times.txt
 
-        if [ "$jobs_deleted" = true ]; then
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
+
+      - uses: "google-github-actions/setup-gcloud@v1"
+        with:
+          install_components: "alpha" # only relevant for v5 preview
+
+      - name: Alias gcloud
+        if: startsWith(matrix.accelerator_type, 'v5')
+        run: |
+          echo 'shopt -s expand_aliases; gcloud() {
+            command gcloud alpha "$@"
+          }; alias gcloud="gcloud"' >> .rcfile
+
+      - name: Time-based job cleanup
+        if: always()
+        run: |
+          [ -f ".rcfile" ] && source .rcfile
+
+          gcloud compute tpus tpu-vm list --format='value(name,createTime)' > creation_times.txt
+          cat creation_times.txt
+
+          if [ ! -s "creation_times.txt" ]; then
+            echo "No existing jobs"
+            exit 0
+          fi
+
+          jobs_deleted=false
+          while read -r job_name created_at; do
+            # Skip jobs with "keepalive" in the name
+            if [[ "$job_name" == *"keepalive"* ]]; then
+              echo "Skipping $job_name, has keepalive in name"
+              continue
+            fi
+
+            # Convert the creation time to Unix timestamp
+            created_timestamp=$(date -d "${created_at}" +%s)
+
+            # Calculate the difference between the current time and the creation time
+            current_timestamp=$(date +%s)
+            age=$((current_timestamp - created_timestamp))
+
+            # Check if the age has surpassed a timeout
+            if ((age > 35 * 60)); then
+              # delete the job
+              if [[ "${{ matrix.accelerator_type }}" == v5* ]]; then
+                gcloud compute tpus queued-resources delete "$job_name-resource" --async --force
+              else
+                gcloud compute tpus tpu-vm delete "$job_name" --async
+              fi
+              jobs_deleted=true
+            else
+              echo "Skipping $job_name, alive for $age seconds"
+            fi
+          done < creation_times.txt
+
+          if [ "$jobs_deleted" = true ]; then
+            sleep 5
+            # diagnostics
+            gcloud compute tpus tpu-vm list
+          fi
+
+      # deleting queued-resources is not working correctly. delete if necessary until they fix it
+      - name: Zombie resource cleanup
+        if: startsWith(matrix.accelerator_type, 'v5')
+        run: |
+          [ -f ".rcfile" ] && source .rcfile
+
+          gcloud compute tpus queued-resources list --format='value(name,state)' > states.txt
+          cat states.txt
+
+          if [ ! -s "states.txt" ]; then
+            echo "No existing jobs"
+            exit 0
+          fi
+
+          jobs_deleted=false
+          while read -r resource_name state; do
+            if [[ $state == *SUSPENDED ]]; then
+              # delete the job
+              gcloud compute tpus queued-resources delete $resource_name --async --force
+              jobs_deleted=true
+            else
+              echo "Skipping $resource_name, $state"
+            fi
+          done < states.txt
+
+          if [ "$jobs_deleted" = true ]; then
+            sleep 5
+            # diagnostics
+            gcloud compute tpus queued-resources list
+          fi
+
+      - name: Update script
+        run: |
+          import os
+          fname = f'tests/tests_${{ matrix.pkg-name }}/run_tpu_tests.sh'
+          with open(fname) as fp:
+              data = fp.read()
+          data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
+          data = data.replace('{RUNTIME}', '${{ matrix.runtime }}')
+          data = data.replace('{ACCELERATOR_TYPE}', '${{ matrix.accelerator_type }}')
+          print(data)
+          with open(fname, "w") as fw:
+              fw.write(data)
+        shell: python
+
+      - name: Create node
+        id: tpu-create
+        # TPU capacity is very limited so this workflow's success is optional. continue normally if creation fails
+        continue-on-error: true
+        env:
+          JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
+        run: |
+          if [[ "${{ matrix.accelerator_type }}" == v4* ]]; then
+            gcloud compute tpus tpu-vm create "$JOB_NAME" \
+              --accelerator-type=${{ matrix.accelerator_type }} \
+              --version="tpu-vm-v4-pt-$XLA_VER" \
+              --preemptible
+
+          else
+            source .rcfile
+            resource_name="${JOB_NAME}-resource"
+            gcloud compute tpus queued-resources create $resource_name \
+              --node-id "$JOB_NAME" \
+              --accelerator-type=${{ matrix.accelerator_type }} \
+              --runtime-version="v2-alpha-tpuv5-lite" \
+              --best-effort
+
+            while true; do
+              state=$(gcloud compute tpus queued-resources describe $resource_name | awk '/state: /{print $2}')
+                if [[ $state == "PROVISIONING" || $state == "ACCEPTED" ]]; then
+                  echo "$state..."; sleep 5
+                elif [[ $state == "ACTIVE" ]]; then
+                  break
+                else
+                  echo "Error: Invalid state $state"; exit 1
+                fi
+            done
+          fi
+
+      - name: Run tests
+        if: steps.tpu-create.outcome == 'success'
+        env:
+          JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
+        run: |
+          [ -f ".rcfile" ] && source .rcfile
+          set -uex
+
+          # zip-copy-unzip the repository
+          zip -q -r repo.zip . -x .git/
+          gcloud compute tpus tpu-vm scp --worker=all repo.zip "$JOB_NAME":~
+          gcloud compute tpus tpu-vm ssh "$JOB_NAME" --worker=all --command="cd ~; unzip -q -o repo.zip"
+
+          # run script
+          gcloud compute tpus tpu-vm ssh "$JOB_NAME" --worker=all --command="cd ~; bash tests/tests_${{ matrix.pkg-name }}/run_tpu_tests.sh"
+          exit_code=$?
+
+          # pull out the coverage file
+          gcloud compute tpus tpu-vm scp "$JOB_NAME":~/coverage.xml .
+
+          exit $exit_code
+
+      - name: Cleanup job
+        if: always()
+        env:
+          JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
+        run: |
+          [ -f ".rcfile" ] && source .rcfile
+
+          if ! gcloud compute tpus tpu-vm list | grep -q "$JOB_NAME"; then
+            echo "$JOB_NAME wasn't created"
+            exit 0
+          fi
+
+          # diagnostics
+          gcloud compute tpus tpu-vm describe "$JOB_NAME"
+
+          # delete the job
+          if [[ "${{ matrix.accelerator_type }}" == v5* ]]; then
+            gcloud compute tpus queued-resources delete "$JOB_NAME-resource" --async --force
+          else
+            gcloud compute tpus tpu-vm delete "$JOB_NAME" --async
+          fi
           sleep 5
+
           # diagnostics
           gcloud compute tpus tpu-vm list
-        fi
 
-    # deleting queued-resources is not working correctly. delete if necessary until they fix it
-    - name: Zombie resource cleanup
-      if: startsWith(matrix.accelerator_type, 'v5')
-      run: |
-        [ -f ".rcfile" ] && source .rcfile
-
-        gcloud compute tpus queued-resources list --format='value(name,state)' > states.txt
-        cat states.txt
-
-        if [ ! -s "states.txt" ]; then
-          echo "No existing jobs"
-          exit 0
-        fi
-
-        jobs_deleted=false
-        while read -r resource_name state; do
-          if [[ $state == *SUSPENDED ]]; then
-            # delete the job
-            gcloud compute tpus queued-resources delete $resource_name --async --force
-            jobs_deleted=true
-          else
-            echo "Skipping $resource_name, $state"
-          fi
-        done < states.txt
-
-        if [ "$jobs_deleted" = true ]; then
-          sleep 5
-          # diagnostics
-          gcloud compute tpus queued-resources list
-        fi
-
-    - name: Update script
-      run: |
-        import os
-        fname = f'tests/tests_${{ matrix.pkg-name }}/run_tpu_tests.sh'
-        with open(fname) as fo:
-            data = fo.read()
-        data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
-        data = data.replace('{RUNTIME}', '${{ matrix.runtime }}')
-        data = data.replace('{ACCELERATOR_TYPE}', '${{ matrix.accelerator_type }}')
-        print(data)
-        with open(fname, "w") as fw:
-            fw.write(data)
-      shell: python
-
-    - name: Create node
-      id: tpu-create
-      # TPU capacity is very limited so this workflow's success is optional. continue normally if creation fails
-      continue-on-error: true
-      env:
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
-      run: |
-        if [[ "${{ matrix.accelerator_type }}" == v4* ]]; then
-          gcloud compute tpus tpu-vm create "$JOB_NAME" \
-            --accelerator-type=${{ matrix.accelerator_type }} \
-            --version="tpu-vm-v4-pt-$XLA_VER" \
-            --preemptible
-
-        else
-          source .rcfile
-          resource_name="${JOB_NAME}-resource"
-          gcloud compute tpus queued-resources create $resource_name \
-            --node-id "$JOB_NAME" \
-            --accelerator-type=${{ matrix.accelerator_type }} \
-            --runtime-version="v2-alpha-tpuv5-lite" \
-            --best-effort
-
-          while true; do
-            state=$(gcloud compute tpus queued-resources describe $resource_name | awk '/state: /{print $2}')
-              if [[ $state == "PROVISIONING" || $state == "ACCEPTED" ]]; then
-                echo "$state..."; sleep 5
-              elif [[ $state == "ACTIVE" ]]; then
-                break
-              else
-                echo "Error: Invalid state $state"; exit 1
-              fi
-          done
-        fi
-
-    - name: Run tests
-      if: steps.tpu-create.outcome == 'success'
-      env:
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
-      run: |
-        [ -f ".rcfile" ] && source .rcfile
-        set -uex
-
-        # zip-copy-unzip the repository
-        zip -q -r repo.zip . -x .git/
-        gcloud compute tpus tpu-vm scp --worker=all repo.zip "$JOB_NAME":~
-        gcloud compute tpus tpu-vm ssh "$JOB_NAME" --worker=all --command="cd ~; unzip -q -o repo.zip"
-
-        # run script
-        gcloud compute tpus tpu-vm ssh "$JOB_NAME" --worker=all --command="cd ~; bash tests/tests_${{ matrix.pkg-name }}/run_tpu_tests.sh"
-        exit_code=$?
-
-        # pull out the coverage file
-        gcloud compute tpus tpu-vm scp "$JOB_NAME":~/coverage.xml .
-
-        exit $exit_code
-
-    - name: Cleanup job
-      if: always()
-      env:
-        JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.runtime }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
-      run: |
-        [ -f ".rcfile" ] && source .rcfile
-
-        if ! gcloud compute tpus tpu-vm list | grep -q "$JOB_NAME"; then
-          echo "$JOB_NAME wasn't created"
-          exit 0
-        fi
-
-        # diagnostics
-        gcloud compute tpus tpu-vm describe "$JOB_NAME"
-
-        # delete the job
-        if [[ "${{ matrix.accelerator_type }}" == v5* ]]; then
-          gcloud compute tpus queued-resources delete "$JOB_NAME-resource" --async --force
-        else
-          gcloud compute tpus tpu-vm delete "$JOB_NAME" --async
-        fi
-        sleep 5
-
-        # diagnostics
-        gcloud compute tpus tpu-vm list
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      continue-on-error: true
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: coverage.xml
-        flags: tpu,pytest
-        name: TPU-coverage
-        fail_ci_if_error: false
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: coverage.xml
+          flags: tpu,pytest
+          name: TPU-coverage
+          fail_ci_if_error: false

@@ -78,7 +78,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        strategy_registry.register("single_xla", cls, description=cls.__class__.__name__)
+        strategy_registry.register("single_xla", cls, description=cls.__name__)
 
     def teardown(self) -> None:
         super().teardown()

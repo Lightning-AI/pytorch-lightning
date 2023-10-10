@@ -2,7 +2,7 @@ import os
 
 from lightning.app import CloudCompute, LightningApp, LightningFlow, LightningWork
 from lightning.app.components import TracerPythonScript
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 
 FILE_CONTENT = """
 Hello there!

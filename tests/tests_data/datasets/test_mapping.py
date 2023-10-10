@@ -6,11 +6,10 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
-from lightning_utilities.core.imports import package_available
-
-from lightning.data.datasets import index as dataset_index
 from lightning.data.datasets import LightningDataset
+from lightning.data.datasets import index as dataset_index
 from lightning.data.fileio import OpenCloudFileObj
+from lightning_utilities.core.imports import package_available
 
 
 def isConnectedWithInternet():
@@ -71,7 +70,7 @@ class TestLightningDataset(LightningDataset):
 @pytest.mark.skipif(not isConnectedWithInternet(), reason="Not connected to internet")
 @pytest.mark.skipif(not package_available("lightning"), reason="Supported only with mono-package")
 @mock.patch("lightning.data.datasets.index.LightningClient", MagicMock())
-def test_lightning_dataset(tmpdir, image_set, monkeypatch):
+def test_lightning_dataset(tmp_path, image_set, monkeypatch):
     client = MagicMock()
     client.projects_service_list_project_cluster_bindings.return_value = None
     client.data_connection_service_list_data_connections.return_value = None
@@ -80,7 +79,7 @@ def test_lightning_dataset(tmpdir, image_set, monkeypatch):
 
     monkeypatch.setattr(dataset_index, "LightningClient", MagicMock(return_value=client))
 
-    index_path = os.path.join(tmpdir, "index.txt")
+    index_path = os.path.join(tmp_path, "index.txt")
 
     dset = TestLightningDataset(image_set, backend="local", path_to_index_file=index_path)
     tuple_of_files = dset.get_index()
@@ -98,7 +97,7 @@ def test_lightning_dataset(tmpdir, image_set, monkeypatch):
 
     assert isinstance(dset.open(index_path), OpenCloudFileObj)
 
-    foo_path = os.path.join(tmpdir, "foo.txt")
+    foo_path = os.path.join(tmp_path, "foo.txt")
     with open(foo_path, "w") as f:
         f.write("bar!")
 
