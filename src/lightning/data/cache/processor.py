@@ -28,6 +28,10 @@ def _download_data(queue_in: Queue, queue_out: Queue) -> None:
 
         index, remote_path, local_path = r
 
+        if os.path.exists(local_path):
+            queue_out.put(index)
+            continue
+
         obj = parse.urlparse(remote_path)
 
         if obj.scheme != "s3":
@@ -193,10 +197,10 @@ class DataProcessor:
         self,
         setup: Callable,
         prepare_item: Optional[Callable] = None,
-        num_workers: int = os.cpu_count(),
-        num_downloaders: int = 2,
+        num_workers: int = os.cpu_count() * 3,
+        num_downloaders: int = 3,
         chunk_size: Optional[int] = None,
-        chunk_bytes: Optional[int] = None,
+        chunk_bytes: Optional[int] = 1 << 26,
         compression: Optional[str] = None,
         remove: bool = False,
     ):
