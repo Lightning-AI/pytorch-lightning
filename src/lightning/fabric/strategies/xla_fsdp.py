@@ -245,9 +245,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         flattened parameters.
 
         """
-        from torch_xla.distributed.fsdp.xla_flatten_params_wrapper import FlatParameter
-
-        if any(isinstance(param, FlatParameter) for group in optimizer.param_groups for param in group["params"]):
+        if any(getattr(p, "_is_sharded", False) for group in optimizer.param_groups for p in group["params"]):
             return optimizer
         raise ValueError(
             "The optimizer does not seem to reference any XLAFSDP parameters. HINT: Make sure to create the optimizer"
