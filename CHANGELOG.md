@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: unified/extended docs makes flows ([#162](https://github.com/Lightning-AI/utilities/pull/162))
 
 
+- CI: allow Other targets for building docs ([#179](https://github.com/Lightning-AI/utilities/pull/179))
+
+
 ### Deprecated
 
 - Deprecated `ModuleAvailableCache` in favor of `RequirementCache` ([#147](https://github.com/Lightning-AI/utilities/pull/147))

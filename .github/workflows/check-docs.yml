@@ -48,16 +48,19 @@ defaults:
     shell: bash
 
 env:
+  # just use CPU version since running on CPU machine
   TORCH_URL: "https://download.pytorch.org/whl/torch_stable.html"
+  # default 0 means to keep for the maximum time
+  KEEP_DAYS: 0
 
 jobs:
   make-docs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env: ${{ fromJSON(inputs.env-vars) }}
     strategy:
       fail-fast: false
       matrix:
-        check: ${{ fromJSON(inputs.make-target) }}
+        target: ${{ fromJSON(inputs.make-target) }}
     steps:
       - name: Checkout 🛎
         uses: actions/checkout@v4
@@ -71,11 +74,11 @@ jobs:
 
       - name: Install pandoc & texlive
         if: inputs.install-tex == 'true'
-        timeout-minutes: 20
+        timeout-minutes: 10
         run: |
           sudo apt-get update --fix-missing
           sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
-      # todo: consider adding cache with separate restore/dave
+      # todo: consider adding cache with separate restore/save
       - name: Install dependencies
         timeout-minutes: 20
         run: |
@@ -86,30 +89,16 @@ jobs:
       # TODO: re-enable after the external usage is resolved, see #51
       # - uses: ./.github/actions/pip-list
 
-      - name: Test Documentation
-        if: ${{ matrix.check == 'doctest' }}
-        working-directory: ${{ inputs.docs-dir }}
-        run: |
-          make doctest
-          make coverage
-
-      - name: Check External Links
-        if: ${{ matrix.check == 'linkcheck' }}
-        working-directory: ${{ inputs.docs-dir }}
-        run: make  linkcheck SPHINXOPTS="--keep-going"
-
       - name: Build documentation
-        if: ${{ matrix.check == 'html' }}
         working-directory: ${{ inputs.docs-dir }}
-        run: make html --debug SPHINXOPTS="-W --keep-going"
+        run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
-      - name: Keep artifact
-        id: keep-artifact
-        run: python -c "print('DAYS=' + str(7 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
+      - name: Shorten keep artifact
+        if: startsWith(github.event_name, 'pull_request')
+        run: echo "KEEP_DAYS=7" >> $GITHUB_ENV
       - name: Upload built docs
-        if: ${{ matrix.check == 'html' }}
         uses: actions/upload-artifact@v3
         with:
-          name: docs-${{ github.sha }}
-          path: ${{ inputs.docs-dir }}/build/html/
-          retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
+          name: docs-${{ matrix.target }}-${{ github.sha }}
+          path: ${{ inputs.docs-dir }}/build/
+          retention-days: ${{ env.KEEP_DAYS }}
