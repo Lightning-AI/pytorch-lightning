@@ -5,11 +5,12 @@ from multiprocessing import Process, Queue
 from pathlib import Path
 from threading import Thread
 from time import sleep, time
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Literal
 from urllib import parse
-
+from enum import Enum
 import boto3
 from tqdm import tqdm
+import sys
 
 from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
@@ -73,8 +74,8 @@ def _remove_target(root: str, cache_dir: str, queue_in: Queue) -> None:
             if os.path.exists(cached_filepath):
                 os.remove(cached_filepath)
 
+class BaseWorker:
 
-class DataWorker(Thread):
     def __init__(
         self,
         index: int,
@@ -84,14 +85,14 @@ class DataWorker(Thread):
         root: str,
         remote_root: str,
         items: List[Any],
+        worker_queue: Queue,
         num_downloaders: int,
         remove: bool,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
         compression: Optional[str] = None,
     ):
-        """The DataWorker is responsible to process the user data."""
-        super().__init__(daemon=True)
+        """The BaseWorker is responsible to process the user data."""
         self.index = index
         self.start_index = start_index
         self.node_rank = node_rank
@@ -112,41 +113,10 @@ class DataWorker(Thread):
         self._remove_queue = Queue()
         self._collected_items = 0
         self._counter = 0
-
-        self._create_cache()
-
-    def join(self, timeout=None):
-        for w in self._downloaders:
-            w.kill()
-
-        if self._remover:
-            self._remover.kill()
-
-        super().join(timeout)
-
-    def _create_cache(self):
-        algo = hashlib.new("sha256")
-        algo.update(self.root.encode("utf-8"))
-        root_hash = algo.hexdigest()
-
-        cache_dir = f"/cache/{root_hash}/w_{self.node_rank}_{self.index}"
-        os.makedirs(cache_dir, exist_ok=True)
-
-        self.cache = Cache(
-            cache_dir, chunk_bytes=self.chunk_bytes, chunk_size=self.chunk_size, compression=self.compression
-        )
-
-        self.cache_dir = f"/cache/{root_hash}/data"
-        os.makedirs(self.cache_dir, exist_ok=True)
-
-    def __len__(self):
-        return self._counter
-
-    @property
-    def collected_items(self):
-        return self._collected_items
+        self._worker_queue = worker_queue
 
     def run(self):
+        self._create_cache()
         self._collect_paths()
         self._start_downloaders()
         self._start_remover()
@@ -166,8 +136,26 @@ class DataWorker(Thread):
 
             self._counter += 1
 
+            if self._worker_queue:
+                self._worker_queue.put((self.index, self._counter))
+
             if self.remove:
                 self._remove_queue.put(self._paths[r])
+
+    def _create_cache(self):
+        algo = hashlib.new("sha256")
+        algo.update(self.root.encode("utf-8"))
+        root_hash = algo.hexdigest()
+
+        cache_dir = f"/cache/{root_hash}/w_{self.node_rank}_{self.index}"
+        os.makedirs(cache_dir, exist_ok=True)
+
+        self.cache = Cache(
+            cache_dir, chunk_bytes=self.chunk_bytes, chunk_size=self.chunk_size, compression=self.compression
+        )
+
+        self.cache_dir = f"/cache/{root_hash}/data"
+        os.makedirs(self.cache_dir, exist_ok=True)
 
     def _collect_paths(self):
         items = []
@@ -223,18 +211,57 @@ class DataWorker(Thread):
             self._remover.start()
 
 
+
+class DataWorkerThread(BaseWorker, Thread):
+    def __init__(self, *args, **kwargs):
+        """The DataWorkerThread is responsible to process the user data."""
+        BaseWorker.__init__(self, *args, **kwargs)
+        Thread.__init__(self, daemon=True)
+
+    def join(self, timeout=None):
+        for w in self._downloaders:
+            w.kill()
+
+        if self._remover is not None:
+            self._remover.kill()
+
+        super().join(timeout)
+
+    def __len__(self):
+        return self._counter
+
+    @property
+    def collected_items(self):
+        return self._collected_items
+
+
+class DataWorkerProcess(BaseWorker, Process):
+
+    def __init__(self, *args, **kwargs):
+        """The DataWorkerProcess is responsible to process the user data inside processes."""
+        BaseWorker.__init__(self, *args, **kwargs)
+        Process.__init__(self)
+
+
+class WorkerType(Enum):
+    THREAD = "thread"
+    PROCESS = "process"
+
+
 class DataProcessor:
     def __init__(
         self,
         setup: Callable[[str, str], List[str]],
         prepare_item: Optional[Callable] = None,
         num_workers: int = os.cpu_count() * 4,
-        num_downloaders: int = 1,
+        num_downloaders: int = 2,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = 1 << 26,
         compression: Optional[str] = None,
         delete_cached_files: bool = True,
         resolver: Optional[Callable[[str], str]] = None,
+        worker_type: Literal["thread", "process"] = "process",
+        
     ):
         """The `DataProcessor` provides an efficient way to process data across multiple nodes in the cloud into
         chunks.
@@ -260,6 +287,9 @@ class DataProcessor:
         self.compression = compression
         self.workers = []
         self.resolver = resolver
+        self.worker_type = worker_type
+        self.workers_tracker = {}
+        self.worker_queue = None
 
     def run(self, root: str, remote_root: Optional[str] = None) -> None:
         t0 = time()
@@ -284,6 +314,46 @@ class DataProcessor:
 
         signal.signal(signal.SIGINT, self._signal_handler)
 
+        if self.worker_type == WorkerType.THREAD.value:
+            self._create_thread_workers(root, remote_root, user_items, begins, workers_user_items)
+        else:
+            self._create_process_workers(root, remote_root, begins, workers_user_items)
+
+        logger.info("Workers are ready ! Starting data processing...")
+
+        num_items = sum([len(items) for items in workers_user_items])
+
+        if self.worker_type == WorkerType.THREAD.value:
+            current_total = 0
+            with tqdm(total=num_items, smoothing=0) as pbar:
+                while True:
+                    new_total = sum([len(w) for w in self.workers])
+                    pbar.update(new_total - current_total)
+                    current_total = new_total
+                    sleep(1)
+                    if current_total == num_items:
+                        break
+        else:
+            current_total = 0
+            with tqdm(total=num_items, smoothing=0) as pbar:
+                while True:
+                    index, counter = self.worker_queue.get()
+                    self.workers_tracker[index] = counter
+                    new_total = sum(self.workers_tracker.values())
+                    pbar.update(new_total - current_total)
+                    current_total = new_total
+                    if current_total == num_items:
+                        break
+
+        for w in self.workers:
+            if self.worker_type == WorkerType.THREAD.value:
+                w.join(0)
+            else:
+                w.kill()
+
+        logger.info("Finished data processing!")
+
+    def _create_thread_workers(self, root, remote_root, user_items, begins, workers_user_items):
         num_items = len(user_items)
         current_total = 0
         with tqdm(total=num_items, smoothing=0) as pbar:
@@ -291,7 +361,7 @@ class DataProcessor:
                 new_total = sum([w.collected_items for w in self.workers])
                 pbar.update(new_total - current_total)
                 current_total = new_total
-                worker = DataWorker(
+                worker = DataWorkerThread(
                     worker_idx,
                     begins[worker_idx],
                     self._get_node_rank(),
@@ -299,6 +369,7 @@ class DataProcessor:
                     root,
                     remote_root,
                     worker_user_items.tolist(),
+                    None,
                     self.num_downloaders,
                     self.delete_cached_files,
                     self.chunk_size,
@@ -316,22 +387,26 @@ class DataProcessor:
                 if current_total == num_items:
                     break
 
-        logger.info("Workers are ready ! Starting data processing...")
-
-        current_total = 0
-        with tqdm(total=num_items, smoothing=0) as pbar:
-            while True:
-                new_total = sum([len(w) for w in self.workers])
-                pbar.update(new_total - current_total)
-                current_total = new_total
-                sleep(1)
-                if current_total == num_items:
-                    break
-
-        for w in self.workers:
-            w.join(0)
-
-        logger.info("Finished data processing!")
+    def _create_process_workers(self, root, remote_root, begins, workers_user_items):
+        self.worker_queue = Queue()
+        for worker_idx, worker_user_items in enumerate(workers_user_items):
+            worker = DataWorkerProcess(
+                worker_idx,
+                begins[worker_idx],
+                self._get_node_rank(),
+                deepcopy(self.prepare_item),
+                root,
+                remote_root,
+                worker_user_items.tolist(),
+                self.worker_queue,
+                self.num_downloaders,
+                self.delete_cached_files,
+                self.chunk_size,
+                self.chunk_bytes,
+                self.compression,
+            )
+            worker.start()
+            self.workers.append(worker)
 
     def _associated_items_to_workers(self, user_items: List[Any]):
         # Associate the items to the workers based on world_size and node_rank
@@ -382,10 +457,13 @@ class DataProcessor:
 
         return filepaths
 
-    def _signal_handler(signal, frame):
+    def _signal_handler(self, signal, frame):
         for w in self.workers:
-            w.join(0)
-        sys.exit(0)
+            if self.worker_type == WorkerType.THREAD.value:
+                w.join(0)
+            else:
+                w.kill()
+        os._exit(0)
 
     def _get_num_nodes(self) -> int:
         return int(os.getenv('NUM_NODES', 1))
