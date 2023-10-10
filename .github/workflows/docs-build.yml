@@ -88,13 +88,13 @@ jobs:
         if: ${{ matrix.check == 'doctest' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
-          make doctest
+          make doctest --debug --jobs $(nproc)
           make coverage
 
       - name: Check External Links
         if: ${{ matrix.check == 'linkcheck' }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: make linkcheck SPHINXOPTS="--keep-going"
+        run: make linkcheck --debug --jobs $(nproc) SPHINXOPTS="--keep-going"
 
       - name: Full build for deployment
         if: github.event_name == 'push'
