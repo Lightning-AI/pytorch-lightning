@@ -42,6 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: fixed guard for `pkg-check` workflow on canceled  ([180](https://github.com/Lightning-AI/utilities/pull/180))
 
 
+- CI: resolve latex dependency for docs builds ([181](https://github.com/Lightning-AI/utilities/pull/181))
+
+
 ## [0.9.0] - 2023-06-29
 
 ### Added

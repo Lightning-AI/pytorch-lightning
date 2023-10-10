@@ -51,6 +51,7 @@ jobs:
     uses: ./.github/workflows/check-docs.yml
     with:
       requirements-file: "requirements/dev-docs.txt"
+      install-tex: true
 
   check-md-links:
     uses: ./.github/workflows/check-md-links.yml

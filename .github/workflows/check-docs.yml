@@ -38,9 +38,9 @@ on:
         default: |
           ["html", "doctest", "linkcheck"]
       install-tex:
-        description: "optional installing Texlive support"
+        description: "optional installing Texlive support - true|false"
         required: false
-        type: boolean
+        type: string
         default: false
 
 defaults:
@@ -73,11 +73,16 @@ jobs:
           python-version: ${{ inputs.python-version }}
 
       - name: Install pandoc & texlive
-        if: inputs.install-tex == 'true'
+        if: ${{ inputs.install-tex == 'true' }}
         timeout-minutes: 10
         run: |
           sudo apt-get update --fix-missing
-          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
+          sudo apt-get install -y \
+            pandoc \
+            texlive-latex-extra \
+            dvipng \
+            texlive-pictures \
+            latexmk
       # todo: consider adding cache with separate restore/save
       - name: Install dependencies
         timeout-minutes: 20
@@ -91,7 +96,9 @@ jobs:
 
       - name: Build documentation
         working-directory: ${{ inputs.docs-dir }}
-        run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        run: |
+          make ${{ matrix.target }} \
+            --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Shorten keep artifact
         if: startsWith(github.event_name, 'pull_request')
