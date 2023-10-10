@@ -304,6 +304,7 @@ class XLAStrategy(DDPStrategy):
 
     def teardown(self) -> None:
         super().teardown()
+        self._launched = False  # after the Trainer finishes, we aren't inside the spawned region
         os.environ.pop("PT_XLA_DEBUG", None)
 
     @classmethod

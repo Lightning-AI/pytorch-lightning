@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Mapping, Optional, Union
 
 import torch
 from torch import Tensor
@@ -372,7 +372,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         """
         if not self._launched:
             raise NotImplementedError(
-                "Saving checkpoints with `XLAFSDPStrategy` is not supported outside of `trainer.fit()`"
+                "Saving checkpoints with `XLAFSDPStrategy` is not supported outside of the Trainer's execution"
             )
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
@@ -445,13 +445,15 @@ class XLAFSDPStrategy(ParallelStrategy):
         path: _PATH,
         strict: bool = True,
     ) -> Dict[str, Any]:
-        """Given a folder, load the contents from a checkpoint and restore the state of the given objects.
-
-        The strategy currently only supports saving and loading sharded checkpoints which are stored in form of a
-        directory of multiple files rather than a single file.
-
-        """
         raise NotImplementedError("`load_checkpoint` is not implemented for `XLAFSDPStrategy.")
+
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        # Override to do nothing, FSDP already loaded the states in `load_checkpoint()`
+        pass
+
+    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        # Override to do nothing, the FSDP already loaded the states in `load_checkpoint()`
+        pass
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
@@ -466,6 +468,10 @@ class XLAFSDPStrategy(ParallelStrategy):
             "optimizer": self.optimizers[0].state_dict(),
         }
 
+    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+        # Override to do nothing, already saved with the lightning_module state_dict
+        pass
+
     def _parse_fsdp_kwargs(self) -> Dict:
         # this needs to be delayed because `self.precision` isn't available at init
         kwargs = self._fsdp_kwargs.copy()
@@ -476,3 +482,7 @@ class XLAFSDPStrategy(ParallelStrategy):
             kwargs.setdefault("compute_dtype", precision_plugin._desired_dtype)
         kwargs = _auto_wrap_policy_kwargs(self._auto_wrap_policy, kwargs)
         return _activation_checkpointing_kwargs(self._activation_checkpointing_policy, kwargs)
+
+    def teardown(self) -> None:
+        super().teardown()
+        self._launched = False  # after the Trainer finishes, we aren't inside the spawned region
