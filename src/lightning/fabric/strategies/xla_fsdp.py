@@ -27,7 +27,6 @@ from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
-from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
 from lightning.fabric.strategies.fsdp import _apply_filter
@@ -85,7 +84,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         self,
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[XLACheckpointIO] = None,
         precision: Optional[XLAPrecision] = None,
         auto_wrap_policy: Optional[_POLICY] = None,
         activation_checkpointing_policy: Optional[_POLICY_SET] = None,
@@ -102,7 +101,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             checkpoint_io=checkpoint_io,
             precision=precision,
         )
-        self._checkpoint_io: Optional[CheckpointIO]
+        self._checkpoint_io: Optional[XLACheckpointIO]
         self._backward_sync_control = _XLAFSDPBackwardSyncControl()
 
         self._auto_wrap_policy = auto_wrap_policy
@@ -124,14 +123,14 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
+    @property  # type: ignore[override]
+    def checkpoint_io(self) -> XLACheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = XLACheckpointIO()
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: CheckpointIO) -> None:
+    def checkpoint_io(self, io: XLACheckpointIO) -> None:
         self._checkpoint_io = io
 
     @property  # type: ignore[override]

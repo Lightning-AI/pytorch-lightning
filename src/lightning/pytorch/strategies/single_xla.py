@@ -18,11 +18,10 @@ import torch
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
-from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
+from lightning.fabric.plugins import XLACheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
-from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
@@ -35,8 +34,8 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         self,
         device: _DEVICE,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]] = None,
+        precision_plugin: Optional[XLAPrecisionPlugin] = None,
         debug: bool = False,
     ):
         if not _XLA_AVAILABLE:
@@ -54,8 +53,8 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         )
         self.debug = debug
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
+    @property  # type: ignore[override]
+    def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         if self._checkpoint_io is None:
             self._checkpoint_io = XLACheckpointIO()
         elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):

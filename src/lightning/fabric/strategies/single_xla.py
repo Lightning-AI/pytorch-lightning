@@ -18,9 +18,7 @@ import torch
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import XLAPrecision
-from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
-from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.single_device import SingleDeviceStrategy
 from lightning.fabric.utilities.types import _DEVICE
@@ -33,8 +31,8 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         self,
         device: _DEVICE,
         accelerator: Optional[Accelerator] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
+        checkpoint_io: Optional[XLACheckpointIO] = None,
+        precision: Optional[XLAPrecision] = None,
     ):
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
@@ -51,8 +49,8 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
             precision=precision,
         )
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
+    @property  # type: ignore[override]
+    def checkpoint_io(self) -> XLACheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = XLACheckpointIO()
         return self._checkpoint_io

@@ -21,14 +21,13 @@ from torch.nn import Module
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1, _using_pjrt
-from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
+from lightning.fabric.plugins import XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.plugins import XLAPrecisionPlugin
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
-from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.strategies.strategy import TBroadcast
@@ -50,8 +49,8 @@ class XLAStrategy(DDPStrategy):
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]] = None,
+        precision_plugin: Optional[XLAPrecisionPlugin] = None,
         debug: bool = False,
         sync_module_states: bool = True,
         **_: Any,
@@ -66,18 +65,17 @@ class XLAStrategy(DDPStrategy):
             precision_plugin=precision_plugin,
             start_method="fork",
         )
-        self._checkpoint_io: Optional[CheckpointIO]
+        self._checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]]
         self.debug = debug
         self._launched = False
         self._sync_module_states = sync_module_states
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
+    @property  # type: ignore[override]
+    def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         if self._checkpoint_io is None:
             self._checkpoint_io = XLACheckpointIO()
         elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
             self._checkpoint_io.checkpoint_io = XLACheckpointIO()
-
         return self._checkpoint_io
 
     @checkpoint_io.setter
