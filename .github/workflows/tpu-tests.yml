@@ -48,10 +48,9 @@ jobs:
             echo "CLOUDSDK_COMPUTE_ZONE=us-west4-a" >> $GITHUB_ENV
           fi
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -59,11 +58,9 @@ jobs:
       - uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
-
       - uses: "google-github-actions/setup-gcloud@v1"
         with:
           install_components: "alpha" # only relevant for v5 preview
-
       - name: Alias gcloud
         if: startsWith(matrix.accelerator_type, 'v5')
         run: |
@@ -154,14 +151,14 @@ jobs:
         run: |
           import os
           fname = f'tests/tests_${{ matrix.pkg-name }}/run_tpu_tests.sh'
-          with open(fname) as fp:
-              data = fp.read()
+          with open(fname) as fopen:
+              data = fopen.read()
           data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
           data = data.replace('{RUNTIME}', '${{ matrix.runtime }}')
           data = data.replace('{ACCELERATOR_TYPE}', '${{ matrix.accelerator_type }}')
           print(data)
-          with open(fname, "w") as fw:
-              fw.write(data)
+          with open(fname, "w") as fopen:
+              fopen.write(data)
         shell: python
 
       - name: Create node
