@@ -22,10 +22,10 @@ from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, _using_pjrt
+from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
-from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast
@@ -45,7 +45,7 @@ class XLAStrategy(ParallelStrategy):
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
+        precision: Optional[XLAPrecision] = None,
         sync_module_states: bool = True,
     ) -> None:
         super().__init__(
@@ -81,6 +81,20 @@ class XLAStrategy(ParallelStrategy):
     @checkpoint_io.setter
     def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
+
+    @property  # type: ignore[override]
+    def precision(self) -> XLAPrecision:
+        plugin = self._precision
+        if plugin is not None:
+            assert isinstance(plugin, XLAPrecision)
+            return plugin
+        return XLAPrecision("32-true")
+
+    @precision.setter
+    def precision(self, precision: Optional[XLAPrecision]) -> None:
+        if precision is not None and not isinstance(precision, XLAPrecision):
+            raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision}")
+        self._precision = precision
 
     @property
     def global_rank(self) -> int:

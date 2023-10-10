@@ -26,6 +26,7 @@ from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
+from lightning.pytorch.plugins import XLAPrecisionPlugin
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
@@ -82,6 +83,22 @@ class XLAStrategy(DDPStrategy):
     @checkpoint_io.setter
     def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
+
+    @property  # type: ignore[override]
+    def precision_plugin(self) -> XLAPrecisionPlugin:
+        plugin = self._precision_plugin
+        if plugin is not None:
+            assert isinstance(plugin, XLAPrecisionPlugin)
+            return plugin
+        return XLAPrecisionPlugin()
+
+    @precision_plugin.setter
+    def precision_plugin(self, precision_plugin: Optional[XLAPrecisionPlugin]) -> None:
+        if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecisionPlugin):
+            raise TypeError(
+                f"The XLA strategy can only work with the `XLAPrecisionPlugin` plugin, found {precision_plugin}"
+            )
+        self._precision_plugin = precision_plugin
 
     @property
     def root_device(self) -> torch.device:
