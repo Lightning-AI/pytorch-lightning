@@ -169,6 +169,10 @@ class XLAFSDPStrategy(ParallelStrategy):
     def world_size(self) -> int:
         return super().world_size if self._launched else 1
 
+    @property
+    def restore_checkpoint_after_setup(self) -> bool:
+        return True
+
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
