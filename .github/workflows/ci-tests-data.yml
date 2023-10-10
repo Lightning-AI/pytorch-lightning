@@ -71,8 +71,6 @@ jobs:
           for fpath in `ls requirements/data/*.txt`; do \
             python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
           done
-          cat requirements/data/data.txt
-          cat requirements/data/cloud.txt
 
       # ToDo
       # - name: pip wheels cache
