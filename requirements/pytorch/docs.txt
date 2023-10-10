@@ -3,4 +3,5 @@
 nbformat  # used for generate empty notebook
 ipython[notebook] <8.7.0
 setuptools<58.0  # workaround for `error in ipython setup command: use_2to3 is invalid.`
-lai-sphinx-theme
+
+-r ../../_notebooks/.actions/requires.txt
