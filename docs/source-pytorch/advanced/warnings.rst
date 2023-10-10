@@ -2,7 +2,7 @@
 Warnings
 ########
 
-Lightning warns users of possible misconfiguration, performance implications or potential mistakes through the :class:`~lightning.pytorch.utilities.warnings.PossibleUserWarning` category.
+Lightning warns users of possible misconfiguration, performance implications or potential mistakes through the ``PossibleUserWarning`` category.
 Sometimes these warnings can be false positives, and you may want to suppress them to avoid cluttering the logs.
 
 
@@ -35,7 +35,7 @@ Suppressing an individual warning message can be done through the :mod:`warnings
 Suppress all instances of PossibleUserWarning
 *********************************************
 
-Suppressing all warnings of the :class:`~lightning.pytorch.utilities.warnings.PossibleUserWarning` category can be done programmatically
+Suppressing all warnings of the ``PossibleUserWarning`` category can be done programmatically
 
 .. code-block:: python
 
