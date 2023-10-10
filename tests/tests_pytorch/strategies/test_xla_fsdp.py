@@ -78,7 +78,7 @@ def _run_multiple_stages(trainer, model, state_dict_type, model_path: Optional[s
             assert re.match(pattern, name)
 
     if state_dict_type == "full":
-        assert set(os.listdir(model_path)) == {"consolidated.ckpt"}
+        assert set(os.listdir(model_path)) == {"epoch=0-step=64.ckpt"}
 
     with torch.inference_mode():
         # Test entry point

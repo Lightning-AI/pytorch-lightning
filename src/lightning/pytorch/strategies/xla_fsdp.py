@@ -32,6 +32,7 @@ from lightning.fabric.strategies.xla_fsdp import (
     _auto_wrap_policy_kwargs,
     _XLAFSDPBackwardSyncControl,
 )
+from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
@@ -425,6 +426,8 @@ class XLAFSDPStrategy(ParallelStrategy):
                 consolidate_sharded_model_checkpoints(ckpt_prefix, ckpt_suffix, str(save_path))
                 # remove the shards directory
                 self.checkpoint_io.remove_checkpoint(path)
+                # mv the consolidated checkpoint where the user would expect it
+                get_filesystem(save_path).mv(str(save_path), str(path))
             self.barrier("after_ckpt_consolidation")
 
     def _save_checkpoint_shard(
