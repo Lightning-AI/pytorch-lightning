@@ -2,6 +2,7 @@ import hashlib
 import logging
 import os
 from multiprocessing import Process, Queue
+from pathlib import Path
 from threading import Lock, Thread
 from time import sleep, time
 from typing import Any, Callable, List, Optional
@@ -42,7 +43,7 @@ def _download_data(queue_in: Queue, queue_out: Queue) -> None:
         queue_out.put(index)
 
 
-def cleanup(queue_in: Queue):
+def remove(queue_in: Queue):
     while True:
         r = queue_in.get()
 
@@ -52,7 +53,7 @@ def cleanup(queue_in: Queue):
         os.remove(r)
 
 
-class DataThread(Thread):
+class DataWorker(Thread):
     def __init__(
         self,
         index: int,
@@ -62,76 +63,68 @@ class DataThread(Thread):
         remote_root: str,
         items: List[Any],
         num_downloaders: int,
-        cleanup: bool,
+        remove: bool,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
         compression: Optional[str] = None,
     ):
+        """The DataWorker is responsible to process the user data."""
         super().__init__(daemon=True)
         self.index = index
         self.start_index = start_index
-
         self.prepare_item = prepare_item
         self.root = root
-        if root.startswith("/"):
-            root = root[1:]
         self.remote_root = remote_root
-        self.cache_dir = os.path.join("/cache", root)
-        os.makedirs(self.cache_dir, exist_ok=True)
         self.items = items
-        self.cleanup = cleanup
-        self.lock = Lock()
-        self.paths = []
-        self.downloaders = []
-        self.to_download_queues = []
-        self.download_is_ready_queue = Queue()
-        self.remove_queue = Queue()
-        self._collected_items = 0
-        self.counter = 0
         self.num_downloaders = num_downloaders
+        self.remove = remove
+        self.chunk_bytes = chunk_bytes
+        self.chunk_size = chunk_size
+        self.compression = compression
+        self._lock = Lock()
+        self._paths = []
+        self._downloaders = []
+        self._to_download_queues = []
+        self._download_is_ready_queue = Queue()
+        self._remove_queue = Queue()
+        self._collected_items = 0
+        self._counter = 0
 
+    def _create_cache(self):
         algo = hashlib.new("sha256")
-        algo.update(root.encode("utf-8"))
-        _hash = algo.hexdigest()
+        algo.update(self.root.encode("utf-8"))
+        root_hash = algo.hexdigest()
 
-        cache_dir = f"/cache/{_hash}_{index}"
+        cache_dir = f"/cache/{root_hash}_{self.index}"
         os.makedirs(cache_dir, exist_ok=True)
 
-        self.cache = Cache(cache_dir, chunk_bytes=chunk_bytes, chunk_size=chunk_size, compression=compression)
-        self._is_ready = False
+        self.cache = Cache(
+            cache_dir, chunk_bytes=self.chunk_bytes, chunk_size=self.chunk_size, compression=self.compression
+        )
+
+        root = self.root
+        if root.startswith("/"):
+            root = root[1:]
+        self.cache_dir = os.path.join("/cache", root)
+        os.makedirs(self.cache_dir, exist_ok=True)
 
     def __len__(self):
-        with self.lock:
-            return self.counter
+        with self._lock:
+            return self._counter
 
     @property
     def collected_items(self):
-        with self.lock:
+        with self._lock:
             return self._collected_items
 
     def run(self):
-        self.collect_paths()
-
-        for _ in range(self.num_downloaders):
-            to_download_queue = Queue()
-            p = Process(target=_download_data, args=(to_download_queue, self.download_is_ready_queue))
-            p.start()
-            self.downloaders.append(p)
-            self.to_download_queues.append(to_download_queue)
-
-        if self.cleanup:
-            self.cleaner = Process(target=cleanup, args=(self.remove_queue))
-            self.cleaner.start()
-
-        for index, path in enumerate(self.paths):
-            self.to_download_queues[index % self.num_downloaders].put((index, *path))
-
-        for downloader_index in range(self.num_downloaders):
-            self.to_download_queues[downloader_index].put(None)
+        self._collect_paths()
+        self._start_downloaders()
+        self._start_remover()
 
         is_none = 0
         while True:
-            r = self.download_is_ready_queue.get()
+            r = self._download_is_ready_queue.get()
             if r is None:
                 is_none += 1
                 if is_none == self.num_downloaders:
@@ -140,15 +133,15 @@ class DataThread(Thread):
                     return
                 continue
 
-            # TODO: Add support non-ordered
             self.cache[r + self.start_index] = self.prepare_item(self.items[r]) if self.prepare_item else self.items[r]
 
-            with self.lock:
-                self.counter += 1
-            if self.cleanup:
-                self.remove_queue.put(r)
+            with self._lock:
+                self._counter += 1
 
-    def collect_paths(self):
+            if self.remove:
+                self._remove_queue.put(r)
+
+    def _collect_paths(self):
         items = []
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
@@ -170,10 +163,29 @@ class DataThread(Thread):
 
             items.append(tree_unflatten(flattened_item, spec))
 
-            with self.lock:
+            with self._lock:
                 self._collected_items += 1
 
         self.items = items
+
+    def _start_downloaders(self):
+        for _ in range(self.num_downloaders):
+            to_download_queue = Queue()
+            p = Process(target=_download_data, args=(to_download_queue, self._download_is_ready_queue))
+            p.start()
+            self._downloaders.append(p)
+            self._to_download_queues.append(to_download_queue)
+
+        for index, path in enumerate(self._paths):
+            self._to_download_queues[index % self.num_downloaders].put((index, *path))
+
+        for downloader_index in range(self.num_downloaders):
+            self._to_download_queues[downloader_index].put(None)
+
+    def _start_remover(self):
+        if self.remove:
+            self.remover = Process(target=remove, args=(self._remove_queue))
+            self.remover.start()
 
 
 class DataProcessor:
@@ -186,7 +198,7 @@ class DataProcessor:
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
         compression: Optional[str] = None,
-        cleanup: bool = False,
+        remove: bool = False,
     ):
         self.setup = setup
         self.prepare_item = prepare_item
@@ -194,7 +206,7 @@ class DataProcessor:
         self.num_downloaders = num_downloaders
         self.chunk_size = chunk_size
         self.chunk_bytes = chunk_bytes
-        self.cleanup = cleanup
+        self.remove = remove
         self.compression = compression
         self.workers = []
 
@@ -203,7 +215,8 @@ class DataProcessor:
         logger.info("Setup started")
 
         # Get the filepaths
-        filepaths = self._cache_list_filepaths(root)
+        root = str(Path(root).resolve())
+        filepaths = self._cached_list_filepaths(root)
         num_filepaths = len(filepaths)
 
         # Call the setup method of the user
@@ -231,7 +244,7 @@ class DataProcessor:
                 new_total = sum([w.collected_items for w in self.workers])
                 pbar.update(new_total - current_total)
                 current_total = new_total
-                thread = DataThread(
+                thread = DataWorker(
                     worker_idx,
                     begins[worker_idx],
                     self.prepare_item,
@@ -239,7 +252,7 @@ class DataProcessor:
                     remote_root,
                     worker_user_items.tolist(),
                     self.num_downloaders,
-                    self.cleanup,
+                    self.remove,
                     self.chunk_size,
                     self.chunk_bytes,
                     self.compression,
@@ -257,7 +270,6 @@ class DataProcessor:
 
         logger.info("Workers are ready ! Starting data processing...")
 
-        num_items = len(user_items)
         current_total = 0
         with tqdm(total=num_items, smoothing=0) as pbar:
             while True:
@@ -268,9 +280,9 @@ class DataProcessor:
                 if current_total == num_filepaths:
                     break
 
-        logger.info("Finished data processing! ")
+        logger.info("Finished data processing!")
 
-    def _cache_list_filepaths(self, root: str) -> List[str]:
+    def _cached_list_filepaths(self, root: str) -> List[str]:
         algo = hashlib.new("sha256")
         algo.update(root.encode("utf-8"))
         _hash = algo.hexdigest()
