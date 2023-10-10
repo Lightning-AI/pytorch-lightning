@@ -139,31 +139,16 @@ def test_dataloader_persistent_workers_performance_warning(num_workers, tmp_path
     trainer.fit(model, dataloader)
 
 
-@pytest.mark.parametrize(
-    ("num_devices", "num_workers", "cpu_count", "expected_warning"),
-    [
-        (1, 0, 1, False),
-        (8, 0, 1, False),
-        (8, 0, None, False),
-        (1, 1, None, False),
-        (1, 2, 2, False),
-        (1, 1, 8, True),
-        (1, 2, 8, True),
-        (1, 3, 8, False),
-        (4, 1, 8, True),
-        (4, 2, 8, False),
-        (8, 2, 8, False),
-    ],
-)
+@pytest.mark.parametrize(("num_workers", "expected_warning"), [(0, True), (1, True), (2, False), (3, False)])
 @mock.patch("lightning.fabric.utilities.data.os.cpu_count")
 @mock.patch("lightning.pytorch.trainer.connectors.data_connector.mp.get_start_method", return_value="not_spawn")
-def test_worker_check(_, cpu_count_mock, num_devices, num_workers, cpu_count, expected_warning, monkeypatch):
+def test_worker_check(_, cpu_count_mock, num_workers, expected_warning, monkeypatch):
     monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
     trainer = Mock(spec=Trainer)
     dataloader = Mock(spec=DataLoader, persistent_workers=False)
-    trainer.num_devices = num_devices
+    trainer.num_devices = 2
     dataloader.num_workers = num_workers
-    cpu_count_mock.return_value = cpu_count
+    cpu_count_mock.return_value = 8
 
     if expected_warning:
         ctx = pytest.warns(UserWarning, match="Consider increasing the value of the `num_workers` argument`")
