@@ -54,11 +54,12 @@ jobs:
       - name: Print 🖨️ dependencies
         uses: ./.github/actions/pip-list
 
-      - name: Unittesting and coverage
+      - name: Unittest and coverage
         uses: ./.github/actions/unittesting
         with:
           python-version: ${{ matrix.python-version }}
           pytorch-version: ${{ matrix.pytorch-version }}
+          dirs: "unittests"
           pkg-name: "lightning_utilities"
           pytest-args: "--timeout=120"
 
@@ -71,6 +72,10 @@ jobs:
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false
+
+      - name: test Scripts
+        working-directory: ./tests
+        run: python -m pytest scripts --durations=50 --timeout=120
 
   testing-guardian:
     runs-on: ubuntu-latest
