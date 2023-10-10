@@ -383,7 +383,7 @@ class DataProcessor:
 
     def run(self, root: str, remote_root: Optional[str] = None) -> None:
         t0 = time()
-        logger.info("Setup started")
+        print("Setup started")
 
         # Get the filepaths
         root = str(Path(root).resolve())
@@ -395,9 +395,9 @@ class DataProcessor:
 
         # Associate the items to the workers based on world_size and node_rank
         begins, workers_user_items = self._associated_items_to_workers(user_items)
-        logger.info(f"Setup finished in {round(time() - t0, 3)} seconds. Found {num_filepaths} items to process.")
+        print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {num_filepaths} items to process.")
 
-        logger.info(f"Starting {self.num_workers} workers")
+        print(f"Starting {self.num_workers} workers")
 
         if remote_root is None and self.resolver is not None:
             remote_root = self.resolver(root)
@@ -409,7 +409,7 @@ class DataProcessor:
         else:
             self._create_process_workers(root, remote_root, begins, workers_user_items)
 
-        logger.info("Workers are ready ! Starting data processing...")
+        print("Workers are ready ! Starting data processing...")
 
         num_items = sum([len(items) for items in workers_user_items])
 
@@ -441,7 +441,7 @@ class DataProcessor:
             else:
                 w.kill()
 
-        logger.info("Finished data processing!")
+        print("Finished data processing!")
 
     def _create_thread_workers(self, root, remote_root, user_items, begins, workers_user_items):
         num_items = len(user_items)
