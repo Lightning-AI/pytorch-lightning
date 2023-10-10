@@ -9,15 +9,19 @@ from typing import Any, Callable, List, Optional
 from urllib import parse
 
 import boto3
-from torch.utils._pytree import tree_flatten, tree_unflatten
 from tqdm import tqdm
 
 from lightning.data.cache import Cache
+from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE
+
+if _TORCH_2_1_0_AVAILABLE:
+    from torch.utils._pytree import tree_flatten, tree_unflatten
 
 logger = logging.Logger(__name__)
 
 
 def _download_data(root: str, remote_root: str, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
+    """This function is used to download data from a remote directory to a cache directory."""
     s3 = boto3.client("s3")
     while True:
         r = queue_in.get()
@@ -60,7 +64,8 @@ def remove(queue_in: Queue):
         if r is None:
             return
 
-        os.remove(r)
+        if os.path.exists(r):
+            os.remove(r)
 
 
 class DataWorker(Thread):
@@ -208,20 +213,34 @@ class DataProcessor:
         self,
         setup: Callable,
         prepare_item: Optional[Callable] = None,
-        num_workers: int = os.cpu_count() * 3,
+        num_workers: int = os.cpu_count() * 4,
         num_downloaders: int = 3,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = 1 << 26,
         compression: Optional[str] = None,
-        remove: bool = False,
+        delete_cached_files: bool = True,
     ):
+        """The `DataProcessor` provides an efficient way to process data across multiple nodes in the cloud into
+        chunks.
+
+        Arguments:
+            setup: The function used to organize the dataset metadata.
+            prepare_item: The function to used to prepare a single item from its metadata, including filepaths.
+            num_workers: The number of worker threads to use.
+            num_downloaders: The number of file downloaders to use.
+            chunk_size: The maximum number of elements to store within a chunk.
+            chunk_bytes: The maximum number of bytes to store within a chunk.
+            compression: The compression algorithm to apply on over the chunks.
+            delete_cached_files: Whether to delete the cached files.
+
+        """
         self.setup = setup
         self.prepare_item = prepare_item
         self.num_workers = num_workers
         self.num_downloaders = num_downloaders
         self.chunk_size = chunk_size
         self.chunk_bytes = chunk_bytes
-        self.remove = remove
+        self.delete_cached_files = delete_cached_files
         self.compression = compression
         self.workers = []
 
@@ -267,7 +286,7 @@ class DataProcessor:
                     remote_root,
                     worker_user_items.tolist(),
                     self.num_downloaders,
-                    self.remove,
+                    self.delete_cached_files,
                     self.chunk_size,
                     self.chunk_bytes,
                     self.compression,
@@ -300,9 +319,9 @@ class DataProcessor:
     def _cached_list_filepaths(self, root: str) -> List[str]:
         algo = hashlib.new("sha256")
         algo.update(root.encode("utf-8"))
-        _hash = algo.hexdigest()
+        root_hash = algo.hexdigest()
 
-        filepath = f"/cache/{_hash}.txt"
+        filepath = f"/cache/{root_hash}/filepaths.txt"
 
         if os.path.exists(filepath):
             lines = []
