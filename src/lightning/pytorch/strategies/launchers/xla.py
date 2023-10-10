@@ -70,7 +70,7 @@ class _XLALauncher(_MultiProcessingLauncher):
             **kwargs: Optional keyword arguments to be passed to the given function.
 
         """
-        if self._already_fit and trainer.state.fn == TrainerFn.FITTING:
+        if self._already_fit and trainer is not None and trainer.state.fn == TrainerFn.FITTING:
             # resolving https://github.com/Lightning-AI/lightning/issues/18775 will lift this restriction
             raise NotImplementedError(
                 "Calling `trainer.fit()` twice on the same Trainer instance using a spawn-based strategy is not"

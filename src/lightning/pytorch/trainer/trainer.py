@@ -571,6 +571,7 @@ class Trainer:
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
+        assert self.state.fn is not None
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn,
             ckpt_path,
@@ -678,6 +679,7 @@ class Trainer:
         # links data to the trainer
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
+        assert self.state.fn is not None
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
@@ -786,6 +788,7 @@ class Trainer:
         # links data to the trainer
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
+        assert self.state.fn is not None
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
@@ -894,6 +897,7 @@ class Trainer:
         # links data to the trainer
         self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
+        assert self.state.fn is not None
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
