@@ -46,7 +46,7 @@ def test_bitsandbytes_plugin(monkeypatch):
 
     # same logic as in `test_default_dtype_is_restored`
     assert torch.get_default_dtype() is torch.float32
-    with pytest.raises(RuntimeError, match="foo"), precision.init_context():
+    with pytest.raises(RuntimeError, match="foo"), precision.module_init_context():
         assert torch.get_default_dtype() is not torch.float32
         raise RuntimeError("foo")
     assert torch.get_default_dtype() is torch.float32
@@ -65,7 +65,7 @@ def test_bitsandbytes_plugin(monkeypatch):
     _NF4Linear = vars(module)["_NF4Linear"]
     _NF4Linear._quantize_weight = Mock()
 
-    with precision.init_context():
+    with precision.module_init_context():
         assert torch.get_default_dtype() == torch.float16
         model = MyModule()
     assert isinstance(model.l1, _NF4Linear)

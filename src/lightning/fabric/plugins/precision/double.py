@@ -30,11 +30,14 @@ class DoublePrecision(Precision):
     def convert_module(self, module: Module) -> Module:
         return module.double()
 
-    def init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> ContextManager:
         return _DtypeContextManager(torch.double)
 
+    def module_init_context(self) -> ContextManager:
+        return self.tensor_init_context()
+
     def forward_context(self) -> ContextManager:
-        return _DtypeContextManager(torch.double)
+        return self.tensor_init_context()
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.double)

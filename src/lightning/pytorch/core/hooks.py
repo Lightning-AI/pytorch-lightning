@@ -19,6 +19,7 @@ import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities import move_data_to_device
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
@@ -150,6 +151,11 @@ class ModelHooks:
             dataloader_idx: the index of the dataloader
 
         """
+
+    def on_validation_model_zero_grad(self) -> None:
+        """Called by the training loop to release gradients before entering the validation loop."""
+        zero_grad_kwargs = {} if _TORCH_GREATER_EQUAL_2_0 else {"set_to_none": True}
+        self.zero_grad(**zero_grad_kwargs)
 
     def on_validation_model_eval(self) -> None:
         """Sets the model to eval during the val loop."""
