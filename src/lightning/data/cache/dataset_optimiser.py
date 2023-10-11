@@ -2,7 +2,6 @@ import logging
 import os
 import signal
 from abc import ABC, abstractmethod
-from copy import deepcopy
 from enum import Enum
 from multiprocessing import Process, Queue
 from pathlib import Path
@@ -168,7 +167,6 @@ class BaseWorker:
         index: int,
         start_index: int,
         dataset_name: str,
-        key: str,
         node_rank: int,
         prepare_item: Callable,
         root: str,
@@ -185,7 +183,6 @@ class BaseWorker:
         self.index = index
         self.start_index = start_index
         self._dataset_name = dataset_name
-        self.key = key
         self.node_rank = node_rank
         self.prepare_item = prepare_item
         self.root = root
@@ -234,7 +231,7 @@ class BaseWorker:
                 self._remove_queue.put(self._paths[r])
 
     def _create_cache(self):
-        cache_dir = f"/cache/{self._dataset_name}/{self.key}/w_{self.node_rank}_{self.index}"
+        cache_dir = os.path.join("cache", self._dataset_name, f"w_{self.node_rank}_{self.index}")
         print(cache_dir)
         os.makedirs(cache_dir, exist_ok=True)
 
@@ -242,7 +239,7 @@ class BaseWorker:
             cache_dir, chunk_bytes=self.chunk_bytes, chunk_size=self.chunk_size, compression=self.compression
         )
 
-        self.cache_dir = f"/cache/{self._dataset_name}/{self.key}/data"
+        self.cache_dir = os.path.join("cache", self._dataset_name, "data")
         os.makedirs(self.cache_dir, exist_ok=True)
 
     def _collect_paths(self):
@@ -341,10 +338,19 @@ class WorkerType(Enum):
     PROCESS = "process"
 
 
-class DatasetChunker:
+class DatasetOptimiser(ABC):
+    @abstractmethod
+    def prepare_items_metadata(self, root: str, filepaths: List[str]) -> List[Any]:
+        pass
+
+    @abstractmethod
+    def prepare_item(self, metadata_item: Any) -> Any:
+        pass
+
     def __init__(
         self,
         name: str,
+        root: str,
         num_workers: Optional[int] = None,
         num_downloaders: Optional[int] = None,
         chunk_size: Optional[int] = None,
@@ -354,12 +360,15 @@ class DatasetChunker:
         resolver: Optional[Callable[[str], Optional[str]]] = None,
         worker_type: Literal["thread", "process"] = "process",
         fast_dev_run: Optional[bool] = None,
+        remote_root: Optional[str] = None,
+        random_seed: Optional[int] = 42,
     ):
-        """The `DatasetChunker` provides an efficient way to process data across multiple machine into chunks to make
+        """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
 
         Arguments:
             name: The name of your dataset.
+            root: The path to where the data are stored.
             num_workers: The number of worker threads to use.
             num_downloaders: The number of file downloaders to use.
             chunk_size: The maximum number of elements to store within a chunk.
@@ -367,6 +376,8 @@ class DatasetChunker:
             compression: The compression algorithm to apply on over the chunks.
             delete_cached_files: Whether to delete the cached files.
             fast_dev_run: Whether to run a quick dev run.
+            remote_root: The remote folder where the data are.
+            random_seed: The random seed to be set before shuffling the data.
 
         """
         self.name = name
@@ -382,43 +393,25 @@ class DatasetChunker:
         self.worker_type = worker_type
         self.workers_tracker = {}
         self.worker_queue = None
+        self.remote_root = remote_root if remote_root is not None else (self.resolver(root) if self.resolver else None)
 
-    def run(
-        self,
-        key: str,
-        root: str,
-        setup_fn: Callable[[str, str], List[str]],
-        prepare_item_fn: Optional[Callable] = None,
-        remote_root: Optional[str] = None,
-        random_seed: Optional[int] = 42,
-    ) -> None:
-        """The `DatasetChunker.run(...)` method is used to trigger the data processing from your dataset into chunks.
-
-        Arguments:
-            key: The name of this folder within the entire dataset.
-            root: The folder of data to process.
-            setup_fn: The function to provide your dataset metadata as a list.
-                Each element needs to contain at least one filepath.
-            prepare_item_fn: The method to process your data.
-                The output would be cached. Providing filepath to files is supported.
-            remote_root: The path to the data on cloud storage.
-            random_seed: Random seed to ensure shuffling for the chunks creation.
-
-        """
+    def run(self) -> None:
+        """The `DatasetChunker.run(...)` method is used to trigger the data processing from your dataset into
+        chunks."""
         t0 = time()
-        print(f"Setup started for `{self.name}/{key}` with fast_dev_run={self.fast_dev_run}.")
+        print(f"Setup started for `{self.name}` with fast_dev_run={self.fast_dev_run}.")
 
         # Get the filepaths
-        filepaths = self._cached_list_filepaths(root, key)
+        filepaths = self._cached_list_filepaths(self.root, self.name)
 
         if len(filepaths) == 0:
-            raise RuntimeError(f"The provided directory {root} is empty. ")
+            raise RuntimeError(f"The provided directory {self.root} is empty. ")
 
         # Force random seed to be fixed
-        seed_everything(random_seed)
+        seed_everything(self.random_seed)
 
         # Call the setup method of the user
-        user_items = setup_fn(root, filepaths)
+        user_items = self.prepare_items_metadata(self.root, filepaths)
 
         if not isinstance(user_items, list):
             raise ValueError("The setup_fn should return a list of item metadata.")
@@ -435,16 +428,16 @@ class DatasetChunker:
 
         print(f"Starting {self.num_workers} workers")
 
-        if remote_root is None and self.resolver is not None:
-            remote_root = self.resolver(root)
-            print(f"The remote_dir is `{remote_root}`.")
+        if self.remote_root is None and self.resolver is not None:
+            self.remote_root = self.resolver(self.root)
+            print(f"The remote_dir is `{self.remote_root}`.")
 
         signal.signal(signal.SIGINT, self._signal_handler)
 
         if self.worker_type == WorkerType.THREAD.value:
-            self._create_thread_workers(root, key, prepare_item_fn, remote_root, user_items, begins, workers_user_items)
+            self._create_thread_workers(user_items, begins, workers_user_items)
         else:
-            self._create_process_workers(root, key, prepare_item_fn, remote_root, begins, workers_user_items)
+            self._create_process_workers(begins, workers_user_items)
 
         print("Workers are ready ! Starting data processing...")
 
@@ -472,7 +465,7 @@ class DatasetChunker:
         print("Finished data processing!")
         print()
 
-    def _create_thread_workers(self, root, key, prepare_item_fn, remote_root, user_items, begins, workers_user_items):
+    def _create_thread_workers(self, user_items, begins, workers_user_items):
         num_items = len(user_items)
         current_total = 0
         with tqdm(total=num_items, smoothing=0) as pbar:
@@ -484,11 +477,10 @@ class DatasetChunker:
                     worker_idx,
                     begins[worker_idx],
                     self.name,
-                    key,
                     self._get_node_rank(),
-                    deepcopy(prepare_item_fn),
-                    root,
-                    remote_root,
+                    self.prepare_item,
+                    self.root,
+                    self.remote_root,
                     worker_user_items,
                     None,
                     self.num_downloaders,
@@ -508,18 +500,17 @@ class DatasetChunker:
                 if current_total == num_items:
                     break
 
-    def _create_process_workers(self, root, key, prepare_item_fn, remote_root, begins, workers_user_items):
+    def _create_process_workers(self, begins, workers_user_items):
         self.worker_queue = Queue()
         for worker_idx, worker_user_items in enumerate(workers_user_items):
             worker = DataWorkerProcess(
                 worker_idx,
                 begins[worker_idx],
                 self.name,
-                key,
                 self._get_node_rank(),
-                prepare_item_fn,
-                root,
-                remote_root,
+                self.prepare_item,
+                self.root,
+                self.remote_root,
                 worker_user_items,
                 self.worker_queue,
                 self.num_downloaders,
