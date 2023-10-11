@@ -1,4 +1,3 @@
-import hashlib
 import logging
 import os
 import signal
@@ -18,7 +17,7 @@ from tqdm import tqdm
 from lightning import seed_everything
 from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
-from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE, _DEFAULT_FAST_DEV_RUN_ITEMS
+from lightning.data.cache.constants import _DEFAULT_FAST_DEV_RUN_ITEMS, _TORCH_2_1_0_AVAILABLE
 
 if _TORCH_2_1_0_AVAILABLE:
     from torch.utils._pytree import tree_flatten, tree_unflatten
@@ -353,7 +352,7 @@ class DatasetChunker:
         delete_cached_files: bool = True,
         resolver: Optional[Callable[[str], Optional[str]]] = None,
         worker_type: Literal["thread", "process"] = "process",
-        fast_dev_run: bool = True,
+        fast_dev_run: Optional[bool] = None,
     ):
         """The `DatasetChunker` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
@@ -371,12 +370,12 @@ class DatasetChunker:
         """
         self.name = name
         self.num_workers = num_workers or (1 if fast_dev_run else os.cpu_count() * 4)
-        self.num_downloaders = num_downloaders  or (1 if fast_dev_run else 2)
+        self.num_downloaders = num_downloaders or (1 if fast_dev_run else 2)
         self.chunk_size = chunk_size
         self.chunk_bytes = chunk_bytes
         self.delete_cached_files = delete_cached_files
         self.compression = compression
-        self.fast_dev_run = fast_dev_run
+        self.fast_dev_run = self._get_fast_dev_mode() if fast_dev_run is None else fast_dev_run
         self.workers = []
         self.resolver = resolver or _LightningResolver()
         self.worker_type = worker_type
@@ -493,7 +492,7 @@ class DatasetChunker:
                     None,
                     self.num_downloaders,
                     self.delete_cached_files,
-                    2 if self.fast_dev_run else self.chunk_size, # In dev run, create chunks with 2 items
+                    2 if self.fast_dev_run else self.chunk_size,  # In dev run, create chunks with 2 items
                     None if self.fast_dev_run else self.chunk_size,
                     self.compression,
                 )
@@ -590,3 +589,6 @@ class DatasetChunker:
 
     def _get_node_rank(self) -> int:
         return int(os.getenv("NODE_RANK", 0))
+
+    def _get_fast_dev_mode(self) -> int:
+        return bool(int(os.getenv("FAST_DEV_MODE", 1)))
