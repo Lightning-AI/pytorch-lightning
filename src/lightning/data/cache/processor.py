@@ -350,7 +350,7 @@ class DataProcessor:
         chunk_bytes: Optional[int] = 1 << 26,
         compression: Optional[str] = None,
         delete_cached_files: bool = True,
-        resolver: Optional[Callable[[str], str]] = _LightningResolver(),
+        resolver: Optional[Callable[[str], Optional[str]]] = None,
         worker_type: Literal["thread", "process"] = "process",
     ):
         """The `DataProcessor` provides an efficient way to process data across multiple nodes in the cloud into
@@ -376,7 +376,7 @@ class DataProcessor:
         self.delete_cached_files = delete_cached_files
         self.compression = compression
         self.workers = []
-        self.resolver = resolver
+        self.resolver = resolver or _LightningResolver()
         self.worker_type = worker_type
         self.workers_tracker = {}
         self.worker_queue = None
