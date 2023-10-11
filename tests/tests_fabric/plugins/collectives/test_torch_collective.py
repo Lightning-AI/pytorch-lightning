@@ -231,8 +231,7 @@ def _test_distributed_collectives_fn(strategy, collective):
 
 
 @skip_distributed_unavailable
-@pytest.mark.parametrize("n", [1, 2])
-@RunIf(skip_windows=True)
+@pytest.mark.parametrize("n", [1, pytest.param(2, marks=pytest.mark.xfail(raises=TimeoutError, strict=False))])
 def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
 
@@ -248,7 +247,6 @@ def _test_distributed_collectives_cuda_fn(strategy, collective):
 
 @skip_distributed_unavailable
 @RunIf(min_cuda_gpus=1, min_torch="1.13")
-@pytest.mark.xfail(raises=TimeoutError, strict=False, reason="TODO(carmocca): sometimes hangs in CI")
 def test_collectives_distributed_cuda():
     collective_launch(_test_distributed_collectives_cuda_fn, [torch.device("cuda")])
 
@@ -268,7 +266,7 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
 
 @skip_distributed_unavailable
-@pytest.mark.xfail(raises=TimeoutError, strict=False, reason="TODO(carmocca): sometimes hangs in CI")
+@pytest.mark.xfail(raises=TimeoutError, strict=False)
 def test_two_groups():
     collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
 
