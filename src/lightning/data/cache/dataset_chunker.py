@@ -16,7 +16,6 @@ import boto3
 from tqdm import tqdm
 
 from lightning import seed_everything
-from lightning.app.utilities.app_helpers import _collect_child_process_pids
 from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
 from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE
@@ -345,8 +344,8 @@ class DatasetChunker:
     def __init__(
         self,
         name: str,
-        num_workers: int = os.cpu_count() * 4,
-        num_downloaders: int = 2,
+        num_workers: Optional[int] = None,
+        num_downloaders: Optional[int] = None,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = 1 << 26,
         compression: Optional[str] = None,
@@ -370,8 +369,8 @@ class DatasetChunker:
 
         """
         self.name = name
-        self.num_workers = num_workers
-        self.num_downloaders = num_downloaders
+        self.num_workers = num_workers or (1 if fast_dev_run else os.cpu_count() * 4)
+        self.num_downloaders = num_downloaders  or (1 if fast_dev_run else 2)
         self.chunk_size = chunk_size
         self.chunk_bytes = chunk_bytes
         self.delete_cached_files = delete_cached_files
@@ -406,7 +405,7 @@ class DatasetChunker:
 
         """
         t0 = time()
-        print(f"Setup started with fast_dev_run={self.fast_dev_run}.")
+        print(f"Setup started for `{self.name}/{key}` with fast_dev_run={self.fast_dev_run}.")
 
         # Get the filepaths
         root = str(Path(root).resolve())
@@ -420,6 +419,9 @@ class DatasetChunker:
 
         # Call the setup method of the user
         user_items = setup_fn(root, filepaths)
+
+        if isinstance(user_items, list):
+            raise ValueError("The setup_fn should return a list of item metadata.")
 
         # Associate the items to the workers based on num_nodes and node_rank
         begins, workers_user_items = self._associated_items_to_workers(user_items)
@@ -484,7 +486,7 @@ class DatasetChunker:
                     deepcopy(prepare_item_fn),
                     root,
                     remote_root,
-                    worker_user_items.tolist(),
+                    worker_user_items,
                     None,
                     self.num_downloaders,
                     self.delete_cached_files,
@@ -548,7 +550,7 @@ class DatasetChunker:
             return begins, workers_user_items
 
     def _cached_list_filepaths(self, root: str, key) -> List[str]:
-        filepath = os.path.join(os.path.expanduser("~"), f"{self.name}/{key}filepaths.txt")
+        filepath = os.path.join(os.path.expanduser("~"), ".cache", f"{self.name}/{key}/filepaths.txt")
 
         if os.path.exists(filepath):
             lines = []
