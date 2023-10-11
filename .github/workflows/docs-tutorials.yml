@@ -1,0 +1,44 @@
+name: Update tutorials
+
+on:
+  pull_request:
+    branches: ["master"]
+    paths:
+      - ".github/workflows/docs-tutorials.yml"
+  schedule:
+    # on Sundays
+    - cron: "0 0 * * 0"
+  workflow_dispatch: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  docs-udpate:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Pull submodule
+        working-directory: _notebooks
+        run: git submodule update --remote
+
+      - name: Create Pull Request
+        if: github.event_name != 'pull_request'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: "update ref to latest tutorials"
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          commit-message: "update tutorials to ..."
+          body: "**This is automated update with latest lighting tutorials!**"
+          branch: "docs/update-tutorials"
+          delete-branch: true  # Delete the branch when closing pull requests, and when undeleted after merging.
+          token: ${{ secrets.PAT_GHOST }}
+          labels: |
+            docs
+          assignees: borda
+          reviewers: borda
