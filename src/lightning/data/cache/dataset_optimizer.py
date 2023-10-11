@@ -338,7 +338,7 @@ class WorkerType(Enum):
     PROCESS = "process"
 
 
-class DatasetOptimiser(ABC):
+class DatasetOptimizer(ABC):
     @abstractmethod
     def prepare_items_metadata(self, root: str, filepaths: List[str]) -> List[Any]:
         pass

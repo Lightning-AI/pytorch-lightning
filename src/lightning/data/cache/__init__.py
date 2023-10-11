@@ -13,6 +13,6 @@
 
 from lightning.data.cache.cache import Cache
 from lightning.data.cache.dataloader import LightningDataLoader
-from lightning.data.cache.dataset_optimiser import DatasetOptimiser
+from lightning.data.cache.dataset_optimizer import DatasetOptimizer
 
-__all__ = ["Cache", "DatasetOptimiser", "LightningDataLoader"]
+__all__ = ["Cache", "DatasetOptimizer", "LightningDataLoader"]
