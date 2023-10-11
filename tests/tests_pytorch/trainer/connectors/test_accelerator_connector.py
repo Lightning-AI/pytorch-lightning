@@ -47,6 +47,7 @@ from lightning.pytorch.strategies import (
     FSDPStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
+    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
@@ -1066,3 +1067,29 @@ def test_connector_num_nodes_input_validation():
 def test_precision_selection(precision_str, strategy_str, expected_precision_cls):
     connector = _AcceleratorConnector(precision=precision_str, strategy=strategy_str)
     assert isinstance(connector.precision_plugin, expected_precision_cls)
+
+
+@mock.patch("lightning.pytorch.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_xla_fsdp_automatic_strategy_selection(monkeypatch, tpu_available):
+    import lightning.pytorch.strategies as strategies
+
+    added_fsdp = False
+    # manually register fsdp for when torch.distributed.is_initialized() != True
+    if "fsdp" not in strategies.StrategyRegistry.available_strategies():
+        strategies.StrategyRegistry.register("fsdp", FSDPStrategy)
+        added_fsdp = True
+
+    connector = _AcceleratorConnector(accelerator="tpu", strategy="fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _AcceleratorConnector(accelerator="tpu", strategy="xla_fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _AcceleratorConnector(accelerator="auto", strategy="fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    connector = _AcceleratorConnector(accelerator="auto", strategy="xla_fsdp")
+    assert isinstance(connector.strategy, XLAFSDPStrategy)
+
+    if added_fsdp:
+        strategies.STRATEGY_REGISTRY.pop("fsdp")
