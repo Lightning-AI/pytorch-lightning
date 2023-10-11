@@ -409,7 +409,6 @@ class DatasetChunker:
         print(f"Setup started for `{self.name}/{key}` with fast_dev_run={self.fast_dev_run}.")
 
         # Get the filepaths
-        root = str(Path(root).resolve())
         filepaths = self._cached_list_filepaths(root, key)
 
         if len(filepaths) == 0:
@@ -569,6 +568,8 @@ class DatasetChunker:
                 for line in f.readlines():
                     lines.append(line.replace("\n", ""))
             return lines
+
+        root = str(Path(root).resolve())
 
         filepaths = []
         for dirpath, _, filenames in os.walk(root):
