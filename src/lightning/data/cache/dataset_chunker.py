@@ -37,20 +37,21 @@ class _LightningResolver(_Resolver):
     def __call__(self, root: str) -> Optional[str]:
         root_absolute = str(Path(root).absolute())
 
-        print("HERE", root, root_absolute)
-
         if root_absolute.startswith("/teamspace/studios/this_studio"):
             return None
 
+        if root_absolute.startswith("/.project/cloudspaces") and len(root_absolute.split("/")) > 3:
+            return self._resolve_studio(root_absolute, None, root_absolute.split("/")[3])
+
         if root_absolute.startswith("/teamspace/studios") and len(root_absolute.split("/")) > 3:
-            return self._resolve_studio(root_absolute)
+            return self._resolve_studio(root_absolute, root_absolute.split("/")[3], None)
 
         if root_absolute.startswith("/teamspace/s3_connections") and len(root_absolute.split("/")) > 3:
             return self._resolve_s3_connections(root_absolute)
 
         return None
 
-    def _resolve_studio(self, root: str) -> str:
+    def _resolve_studio(self, root: str, target_name: str, target_id: str) -> str:
         client = LightningClient()
 
         # Get the ids from env variables
@@ -63,8 +64,6 @@ class _LightningResolver(_Resolver):
         if project_id is None:
             raise RuntimeError("The `project_id` couldn't be found from the environement variables.")
 
-        target_name = root.split("/")[3]
-
         clusters = client.cluster_service_list_clusters().clusters
 
         target_cloud_space = [
@@ -72,7 +71,7 @@ class _LightningResolver(_Resolver):
             for cloudspace in client.cloud_space_service_list_cloud_spaces(
                 project_id=project_id, cluster_id=cluster_id
             ).cloudspaces
-            if cloudspace.name == target_name
+            if cloudspace.name == target_name or cloudspace.id == target_id
         ]
 
         if not target_cloud_space:
