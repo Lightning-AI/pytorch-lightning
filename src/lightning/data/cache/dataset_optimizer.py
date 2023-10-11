@@ -232,7 +232,6 @@ class BaseWorker:
 
     def _create_cache(self):
         cache_dir = os.path.join("cache", self._dataset_name, f"w_{self.node_rank}_{self.index}")
-        print(cache_dir)
         os.makedirs(cache_dir, exist_ok=True)
 
         self.cache = Cache(
@@ -403,7 +402,7 @@ class DatasetOptimizer(ABC):
         print(f"Setup started for `{self.name}` with fast_dev_run={self.fast_dev_run}.")
 
         # Get the filepaths
-        filepaths = self._cached_list_filepaths(self.root, self.name)
+        filepaths = self._cached_list_filepaths()
 
         if len(filepaths) == 0:
             raise RuntimeError(f"The provided directory {self.root} is empty. ")
@@ -423,7 +422,7 @@ class DatasetOptimizer(ABC):
 
         if self.fast_dev_run:
             workers_user_items = [w[:_DEFAULT_FAST_DEV_RUN_ITEMS] for w in workers_user_items]
-            print("Fast dev run is enabled. Limiting to {_DEFAULT_FAST_DEV_RUN_ITEMS} items per process.")
+            print(f"Fast dev run is enabled. Limiting to {_DEFAULT_FAST_DEV_RUN_ITEMS} items per process.")
 
         num_items = sum([len(items) for items in workers_user_items])
 
@@ -546,13 +545,14 @@ class DatasetOptimizer(ABC):
                 begins.append(begin)
             return begins, workers_user_items
 
-    def _cached_list_filepaths(self, root: str, key) -> List[str]:
+    def _cached_list_filepaths(self) -> List[str]:
         home = os.path.expanduser("~")
 
         # TODO: Handle home directory in Jobs
         if home == "/home/zeus":
             home = "/teamspace/studios/this_studio"
-        filepath = os.path.join(home, ".cache", f"{self.name}/{key}/filepaths.txt")
+
+        filepath = os.path.join(home, ".cache", f"{self.name}/filepaths.txt")
 
         if os.path.exists(filepath):
             lines = []
@@ -561,10 +561,10 @@ class DatasetOptimizer(ABC):
                     lines.append(line.replace("\n", ""))
             return lines
 
-        root = str(Path(root).resolve())
+        root = str(Path(self.root).resolve())
 
         filepaths = []
-        for dirpath, _, filenames in os.walk(root):
+        for dirpath, _, filenames in os.walk(self.root):
             for filename in filenames:
                 filepaths.append(os.path.join(dirpath, filename))
 
