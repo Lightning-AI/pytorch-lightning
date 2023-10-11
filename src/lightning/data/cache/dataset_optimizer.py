@@ -149,6 +149,18 @@ class _LightningTargetResolver(_Resolver):
         return os.path.join(f"s3://{target_cluster[0].spec.aws_v1.bucket_name}", prefix, f"version_{version}")
 
 
+def _get_num_nodes() -> int:
+    return int(os.getenv("NUM_NODES", 1))
+
+
+def _get_node_rank() -> int:
+    return int(os.getenv("NODE_RANK", 0))
+
+
+def _get_fast_dev_mode() -> int:
+    return bool(int(os.getenv("FAST_DEV_MODE", 1)))
+
+
 def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
     """This function is used to download data from a remote directory to a cache directory."""
     s3 = boto3.client("s3")
@@ -204,6 +216,7 @@ class BaseWorker:
     def __init__(
         self,
         index: int,
+        num_workers: int,
         start_index: int,
         dataset_name: str,
         node_rank: int,
@@ -222,6 +235,7 @@ class BaseWorker:
     ):
         """The BaseWorker is responsible to process the user data."""
         self.index = index
+        self.num_workers = num_workers
         self.start_index = start_index
         self._dataset_name = dataset_name
         self.node_rank = node_rank
@@ -248,6 +262,8 @@ class BaseWorker:
 
     def run(self):
         try:
+            # set the global rank
+            os.environ["OPTIMIZER_GLOBAL_RANK"] = _get_node_rank() * self.num_workers + self.index
             self._create_cache()
             self._collect_paths()
             self._start_downloaders()
@@ -478,7 +494,7 @@ class DatasetOptimizer(ABC):
         self.chunk_bytes = chunk_bytes
         self.delete_cached_files = delete_cached_files
         self.compression = compression
-        self.fast_dev_run = self._get_fast_dev_mode() if fast_dev_run is None else fast_dev_run
+        self.fast_dev_run = _get_fast_dev_mode() if fast_dev_run is None else fast_dev_run
         self.workers = []
         self.src_resolver = src_resolver or _LightningSrcResolver()
         self.dst_resolver = _LightningTargetResolver()
@@ -589,6 +605,7 @@ class DatasetOptimizer(ABC):
                 current_total = new_total
                 worker = DataWorkerThread(
                     worker_idx,
+                    self.num_workers,
                     begins[worker_idx],
                     self.name,
                     self._get_node_rank(),
@@ -621,6 +638,7 @@ class DatasetOptimizer(ABC):
         for worker_idx, worker_user_items in enumerate(workers_user_items):
             worker = DataWorkerProcess(
                 worker_idx,
+                self.num_workers,
                 begins[worker_idx],
                 self.name,
                 self._get_node_rank(),
@@ -642,8 +660,8 @@ class DatasetOptimizer(ABC):
 
     def _associated_items_to_workers(self, user_items: List[Any]):
         # Associate the items to the workers based on world_size and node_rank
-        num_nodes = self._get_num_nodes()
-        current_node_rank = self._get_node_rank()
+        num_nodes = _get_num_nodes()
+        current_node_rank = _get_node_rank()
         node_size = len(user_items) // num_nodes
         workers_user_items = []
         begins = []
@@ -701,12 +719,3 @@ class DatasetOptimizer(ABC):
             else:
                 w.kill()
         os._exit(0)
-
-    def _get_num_nodes(self) -> int:
-        return int(os.getenv("NUM_NODES", 1))
-
-    def _get_node_rank(self) -> int:
-        return int(os.getenv("NODE_RANK", 0))
-
-    def _get_fast_dev_mode(self) -> int:
-        return bool(int(os.getenv("FAST_DEV_MODE", 1)))

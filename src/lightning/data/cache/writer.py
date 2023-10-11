@@ -105,8 +105,12 @@ class BinaryWriter:
     def rank(self) -> int:
         """Returns the rank of the writer."""
         if self._rank is None:
-            self._worker_env = _WorkerEnv.detect()
-            self._rank = self._distributed_env.global_rank * self._worker_env.world_size + self._worker_env.rank
+            rank = os.getenv("OPTIMIZER_GLOBAL_RANK", None)
+            if rank:
+                self._rank = rank
+            else:
+                self._worker_env = _WorkerEnv.detect()
+                self._rank = self._distributed_env.global_rank * self._worker_env.world_size + self._worker_env.rank
         return self._rank
 
     def get_config(self) -> Dict[str, Any]:
