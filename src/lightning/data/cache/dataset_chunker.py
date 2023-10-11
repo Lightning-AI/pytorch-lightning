@@ -341,7 +341,7 @@ class WorkerType(Enum):
     PROCESS = "process"
 
 
-class DataProcessor:
+class DatasetChunker:
     def __init__(
         self,
         name: str,
@@ -355,8 +355,8 @@ class DataProcessor:
         worker_type: Literal["thread", "process"] = "process",
         fast_dev_run: bool = True,
     ):
-        """The `DataProcessor` provides an efficient way to process data across multiple nodes in the cloud into
-        chunks.
+        """The `DatasetChunker` provides an efficient way to process data across multiple machine into chunks to make
+        training faster.
 
         Arguments:
             name: The name of your dataset.
@@ -392,7 +392,7 @@ class DataProcessor:
         remote_root: Optional[str] = None,
         random_seed: Optional[int] = 42,
     ) -> None:
-        """The `DataProcessor.run(...)` method is used to trigger the data processing from your dataset into chunks.
+        """The `DatasetChunker.run(...)` method is used to trigger the data processing from your dataset into chunks.
 
         Arguments:
             run_name: The name of this folder within the entire dataset.
