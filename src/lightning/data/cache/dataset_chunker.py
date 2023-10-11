@@ -385,7 +385,7 @@ class DatasetChunker:
 
     def run(
         self,
-        run_name: str,
+        key: str,
         root: str,
         setup_fn: Callable[[str, str], List[str]],
         prepare_item_fn: Optional[Callable] = None,
@@ -395,7 +395,7 @@ class DatasetChunker:
         """The `DatasetChunker.run(...)` method is used to trigger the data processing from your dataset into chunks.
 
         Arguments:
-            run_name: The name of this folder within the entire dataset.
+            key: The name of this folder within the entire dataset.
             root: The folder of data to process.
             setup_fn: The function to provide your dataset metadata as a list.
                 Each element needs to contain at least one filepath.
@@ -410,7 +410,7 @@ class DatasetChunker:
 
         # Get the filepaths
         root = str(Path(root).resolve())
-        filepaths = self._cached_list_filepaths(root)
+        filepaths = self._cached_list_filepaths(root, key)
 
         if len(filepaths) == 0:
             raise RuntimeError(f"The provided directory {root} is empty. ")
@@ -426,10 +426,10 @@ class DatasetChunker:
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
 
         if self.fast_dev_run:
-            begins, workers_user_items = begins[:100], workers_user_items[:100]
-            print("Fast dev run is enabled. Limiting to 100 items to process.")
+            workers_user_items = [w[:100] for w in workers_user_items]
+            print("Fast dev run is enabled. Limiting to 100 items per process.")
 
-        num_items = 100 if self.fast_dev_run else sum([len(items) for items in workers_user_items])
+        num_items = sum([len(items) for items in workers_user_items])
 
         print(f"Starting {self.num_workers} workers")
 
@@ -463,10 +463,11 @@ class DatasetChunker:
             for w in self.workers:
                 w.join(0)
         else:
-            for child_pid in _collect_child_process_pids(os.getpid()):
-                os.kill(child_pid, signal.SIGKILL)
+            for w in self.workers:
+                w.join(0)
 
         print("Finished data processing!")
+        print()
 
     def _create_thread_workers(self, root, prepare_item_fn, remote_root, user_items, begins, workers_user_items):
         num_items = len(user_items)
@@ -546,12 +547,8 @@ class DatasetChunker:
                 begins.append(begin)
             return begins, workers_user_items
 
-    def _cached_list_filepaths(self, root: str) -> List[str]:
-        algo = hashlib.new("sha256")
-        algo.update(root.encode("utf-8"))
-        root_hash = algo.hexdigest()
-
-        filepath = f"/teamspace/studios/this_studio/{root_hash}/filepaths.txt"
+    def _cached_list_filepaths(self, root: str, key) -> List[str]:
+        filepath = os.path.join(os.path.expanduser("~"), f"{self.name}/{key}filepaths.txt")
 
         if os.path.exists(filepath):
             lines = []
