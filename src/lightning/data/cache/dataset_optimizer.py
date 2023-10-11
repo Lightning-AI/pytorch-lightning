@@ -340,10 +340,42 @@ class WorkerType(Enum):
 
 class DatasetOptimizer(ABC):
     @abstractmethod
-    def prepare_items_metadata(self, root: str, filepaths: List[str]) -> List[Any]:
+    def prepare_dataset_structure(self, root: str, filepaths: List[str]) -> List[Any]:
+        """This function is meant to return a list of item metadata. Each item metadata should be enough to prepare a
+        single item when called with the prepare_item.
+
+        Example::
+
+            # For a classification use case
+
+            def prepare_dataset_structure(self, root, filepaths)
+                import numpy as np
+
+                filepaths = ['class_a/file_1.ext', ..., 'class_b/file_1.ext', ...]
+                classes = np.unique([filepath.split("/")[0] for filepath in filepaths])
+                classes_to_idx_map = {c: idx for idx, c in enumerate(classes)}
+
+                # Return pair with the filepath to the obj and its class
+                # [('class_a/file_1.ext', 0), ... ('class_b/file_1.ext', 1)]
+                return [(filepath, classes_to_idx_map[filepath.split("/")[0]]) for filepath in filepaths]
+
+        Example::
+
+            # For a image segmentation use case
+
+            def prepare_dataset_structure(self, root, filepaths)
+                import numpy as np
+
+                filepaths = ['file_1.JPEG', 'file_1.mask', .... 'file_N.JPEG', 'file_N.mask', ...]
+
+                # [('file_1.JPEG', 'file_1.mask'), ... ('file_N.JPEG', 'file_N.mask')]
+                return [(x[i], x[i+1]) for i in range(len(filepaths) -1)]
+
+        """
         pass
 
     def prepare_item(self, metadata_item: Any) -> Any:
+        """Using some metadata, prepare the associated item."""
         return metadata_item
 
     def __init__(
@@ -412,7 +444,7 @@ class DatasetOptimizer(ABC):
         seed_everything(self.random_seed)
 
         # Call the setup method of the user
-        user_items = self.prepare_items_metadata(self.root, filepaths)
+        user_items = self.prepare_dataset_structure(self.root, filepaths)
 
         if not isinstance(user_items, list):
             raise ValueError("The setup_fn should return a list of item metadata.")
