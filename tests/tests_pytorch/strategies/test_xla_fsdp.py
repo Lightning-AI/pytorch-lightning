@@ -93,7 +93,7 @@ def _run_multiple_stages(
 
         if use_checkpoint:
             # provide model path, will create a new unwrapped model and
-            # load and then call `configure_shared_model` to wrap
+            # load and then call `configure_model` to wrap
             trainer.test(ckpt_path=model_path)
 
         # Predict entry point
@@ -101,7 +101,7 @@ def _run_multiple_stages(
 
         if use_checkpoint:
             # provide model path, will create a new unwrapped model and
-            # load and then call `configure_shared_model` to wrap
+            # load and then call `configure_model` to wrap
             trainer.predict(ckpt_path=model_path)
 
 
