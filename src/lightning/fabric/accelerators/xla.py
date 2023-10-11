@@ -95,7 +95,7 @@ class XLAAccelerator(Accelerator):
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register("tpu", cls, description=cls.__class__.__name__)
+        accelerator_registry.register("tpu", cls, description=cls.__name__)
 
 
 # PJRT support requires this minimum version
@@ -115,8 +115,7 @@ def _using_pjrt() -> bool:
 
 
 def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:
-    """
-    Parses the TPU devices given in the format as accepted by the
+    """Parses the TPU devices given in the format as accepted by the
     :class:`~lightning.pytorch.trainer.trainer.Trainer` and :class:`~lightning.fabric.Fabric`.
 
     Args:
@@ -126,6 +125,7 @@ def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[i
 
     Returns:
         A list of tpu cores to be used.
+
     """
     _check_data_type(devices)
     if isinstance(devices, str):

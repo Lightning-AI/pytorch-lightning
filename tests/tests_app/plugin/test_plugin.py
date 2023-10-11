@@ -163,8 +163,7 @@ plugin = TestPlugin()
 @mock.patch("lightning.app.runners.cloud.CloudRuntime")
 @mock.patch("lightning.app.plugin.plugin.requests")
 def test_run_job(mock_requests, mock_cloud_runtime, mock_cloud_backend, mock_plugin_server):
-    """Tests that running a job from a plugin calls the correct `CloudRuntime` methods with the correct
-    arguments."""
+    """Tests that running a job from a plugin calls the correct `CloudRuntime` methods with the correct arguments."""
     content = as_tar_bytes("plugin.py", _plugin_with_job_run)
     mock_requests.get.side_effect = mock_requests_get("http://test.tar.gz", content)
 

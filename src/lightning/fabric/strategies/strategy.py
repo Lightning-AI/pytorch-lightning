@@ -120,10 +120,11 @@ class Strategy(ABC):
 
     def tensor_init_context(self) -> ContextManager:
         """Controls how tensors get created (device, dtype)."""
+        precision_init_ctx = self.precision.tensor_init_context()
         stack = ExitStack()
         if _TORCH_GREATER_EQUAL_2_0:
             stack.enter_context(self.root_device)
-        stack.enter_context(self.precision.init_context())
+        stack.enter_context(precision_init_ctx)
         return stack
 
     def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
@@ -137,10 +138,11 @@ class Strategy(ABC):
                 If ``None``, the strategy will decide. Some strategies may not support all options.
 
         """
+        tensor_init_ctx = self.tensor_init_context()
         stack = ExitStack()
         if _TORCH_GREATER_EQUAL_1_13:
             stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
-        stack.enter_context(self.tensor_init_context())
+        stack.enter_context(tensor_init_ctx)
         return stack
 
     def setup_module_and_optimizers(

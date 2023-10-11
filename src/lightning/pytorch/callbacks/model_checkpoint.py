@@ -24,6 +24,7 @@ import time
 import warnings
 from copy import deepcopy
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, Dict, Optional, Set
 from weakref import proxy
 
@@ -44,11 +45,9 @@ warning_cache = WarningCache()
 
 
 class ModelCheckpoint(Checkpoint):
-    r"""
-    Save the model periodically by monitoring a quantity. Every metric logged with
-    :meth:`~lightning.pytorch.core.LightningModule.log` or
-    :meth:`~lightning.pytorch.core.LightningModule.log_dict` is a candidate for the monitor key.
-    For more information, see :ref:`checkpointing`.
+    r"""Save the model periodically by monitoring a quantity. Every metric logged with
+    :meth:`~lightning.pytorch.core.LightningModule.log` or :meth:`~lightning.pytorch.core.LightningModule.log_dict` is
+    a candidate for the monitor key. For more information, see :ref:`checkpointing`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
@@ -199,6 +198,7 @@ class ModelCheckpoint(Checkpoint):
         *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval*
 
         Read more: :ref:`Persisting Callback State <extensions/callbacks_state:save callback state>`
+
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
@@ -663,7 +663,7 @@ class ModelCheckpoint(Checkpoint):
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
         self._save_checkpoint(trainer, filepath)
-        if previous and previous != filepath:
+        if previous and self._should_remove_checkpoint(trainer, previous, filepath):
             self._remove_checkpoint(trainer, previous)
 
     def _save_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
@@ -682,7 +682,8 @@ class ModelCheckpoint(Checkpoint):
         # set the best model path before saving because it will be part of the state.
         previous, self.best_model_path = self.best_model_path, filepath
         self._save_checkpoint(trainer, filepath)
-        if self.save_top_k == 1 and previous and previous != filepath:
+
+        if self.save_top_k == 1 and previous and self._should_remove_checkpoint(trainer, previous, filepath):
             self._remove_checkpoint(trainer, previous)
 
     def _update_best_and_save(
@@ -724,7 +725,7 @@ class ModelCheckpoint(Checkpoint):
             )
         self._save_checkpoint(trainer, filepath)
 
-        if del_filepath is not None and filepath != del_filepath:
+        if del_filepath and self._should_remove_checkpoint(trainer, del_filepath, filepath):
             self._remove_checkpoint(trainer, del_filepath)
 
     def to_yaml(self, filepath: Optional[_PATH] = None) -> None:
@@ -742,6 +743,27 @@ class ModelCheckpoint(Checkpoint):
         state to diverge between ranks."""
         exists = self._fs.exists(filepath)
         return trainer.strategy.broadcast(exists)
+
+    def _should_remove_checkpoint(self, trainer: "pl.Trainer", previous: str, current: str) -> bool:
+        """Checks if the previous checkpoint should be deleted.
+
+        A checkpoint won't be deleted if any of the cases apply:
+        - The previous checkpoint is the same as the current checkpoint
+        - The previous checkpoint is not in the current checkpoint directory and the filesystem is local
+        - The previous checkpoint is the checkpoint the Trainer resumed from and the filesystem is local
+
+        """
+        if previous == current:
+            return False
+        if self._fs.protocol != "file":
+            return True
+        previous = Path(previous).absolute()
+        resume_path = Path(trainer.ckpt_path).absolute() if trainer.ckpt_path is not None else None
+        if resume_path is not None and previous == resume_path:
+            return False
+        assert self.dirpath is not None
+        dirpath = Path(self.dirpath).absolute()
+        return dirpath in previous.parents
 
     def _remove_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
         """Calls the strategy to remove the checkpoint file."""

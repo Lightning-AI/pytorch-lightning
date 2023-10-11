@@ -437,34 +437,6 @@ def test_stop_iteration_with_dataloader_iter(trigger_stop_iteration, tmpdir):
     assert m.num_batches_processed == expected
 
 
-def test_on_train_batch_start_overridden(tmpdir) -> None:
-    """Verify that a `MisconfigurationException` is raised when `on_train_batch_start` is overridden on the
-    `LightningModule`."""
-
-    class InvalidModel(AsyncBoringModel):
-        def on_train_batch_start(self, batch, batch_idx):
-            pass
-
-    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir, accelerator="cpu")
-    m = InvalidModel()
-    with pytest.warns(match="InvalidModel.on_train_batch_start` hook may not match"):
-        trainer.fit(m)
-
-
-def test_on_train_batch_end_overridden(tmpdir) -> None:
-    """Verify that a `MisconfigurationException` is raised when `on_train_batch_end` is overridden on the
-    `LightningModule`."""
-
-    class InvalidModel(AsyncBoringModel):
-        def on_train_batch_end(self, *_):
-            pass
-
-    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir, accelerator="cpu")
-    m = InvalidModel()
-    with pytest.warns(match="InvalidModel.on_train_batch_end` hook may not match"):
-        trainer.fit(m)
-
-
 def test_transfer_hooks_with_unpacking(tmpdir):
     """This test asserts the `transfer_batch` hooks are called only once per batch."""
 

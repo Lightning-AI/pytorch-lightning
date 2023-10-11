@@ -50,7 +50,7 @@ def test_selected_dtype(precision, expected_dtype):
 )
 def test_module_init_context(precision, expected_dtype):
     plugin = DeepSpeedPrecisionPlugin(precision=precision)
-    with plugin.init_context():
+    with plugin.module_init_context():
         model = torch.nn.Linear(2, 2)
         assert torch.get_default_dtype() == expected_dtype
     assert model.weight.dtype == expected_dtype

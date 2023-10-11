@@ -33,21 +33,11 @@ def test_bitsandbytes_plugin(monkeypatch):
     monkeypatch.setitem(sys.modules, "bitsandbytes", bitsandbytes_mock)
 
     class ModuleMock(torch.nn.Linear):
-        ...
-
-    class NF4LinearMock(ModuleMock):
-        def _quantize_weight(self, w):
-            pass
+        def __init__(self, in_features, out_features, bias=True, *_, **__):
+            super().__init__(in_features, out_features, bias)
 
     bitsandbytes_mock.nn.Linear8bitLt = ModuleMock
     bitsandbytes_mock.nn.Linear4bit = ModuleMock
-    module._FP4Linear = ModuleMock
-    module._NF4Linear = NF4LinearMock
-    module._Int8LinearInference = ModuleMock
-    module._FP4DQLinear = ModuleMock
-    module._NF4DQLinear = ModuleMock
-    module._Linear4bit = ModuleMock
-    module._Linear8bitLt = ModuleMock
 
     precision = BitsandbytesPrecision("nf4", dtype=torch.float16)
     connector = _Connector(plugins=precision)
@@ -56,7 +46,7 @@ def test_bitsandbytes_plugin(monkeypatch):
 
     # same logic as in `test_default_dtype_is_restored`
     assert torch.get_default_dtype() is torch.float32
-    with pytest.raises(RuntimeError, match="foo"), precision.init_context():
+    with pytest.raises(RuntimeError, match="foo"), precision.module_init_context():
         assert torch.get_default_dtype() is not torch.float32
         raise RuntimeError("foo")
     assert torch.get_default_dtype() is torch.float32
@@ -72,24 +62,27 @@ def test_bitsandbytes_plugin(monkeypatch):
             self.l1 = torch.nn.Linear(16, 48)
             self.l2 = SubModule()
 
-    with precision.init_context():
+    _NF4Linear = vars(module)["_NF4Linear"]
+    _NF4Linear._quantize_weight = Mock()
+
+    with precision.module_init_context():
         assert torch.get_default_dtype() == torch.float16
         model = MyModule()
-    assert isinstance(model.l1, NF4LinearMock)
-    assert isinstance(model.l2.l, NF4LinearMock)
+    assert isinstance(model.l1, _NF4Linear)
+    assert isinstance(model.l2.l, _NF4Linear)
     model = precision.convert_module(model)
     assert model.l1.compute_dtype is precision.dtype
     assert model.l2.l.compute_dtype is precision.dtype
 
     model = MyModule()
     precision.convert_module(model)
-    assert isinstance(model.l1, NF4LinearMock)
-    assert isinstance(model.l2.l, NF4LinearMock)
+    assert isinstance(model.l1, _NF4Linear)
+    assert isinstance(model.l2.l, _NF4Linear)
 
     precision.ignore_modules = {"l2"}
     model = MyModule()
     precision.convert_module(model)
-    assert isinstance(model.l1, NF4LinearMock)
+    assert isinstance(model.l1, _NF4Linear)
     assert isinstance(model.l2.l, torch.nn.Linear)
 
     model = torch.nn.Conv1d(1, 1, 1)
@@ -134,11 +127,12 @@ def test_bitsandbytes_layers(args, expected):
     assert model.l.weight.dtype == expected
 
     fabric = Fabric(devices=1, plugins=BitsandbytesPrecision(*args, ignore_modules={"foo"}))
-    with fabric.init_module():
-        model = MyModel()
+    with pytest.raises(RuntimeError, match="not supported"), fabric.init_module():
+        pass
+    model = MyModel()
     # When ignore_modules is set, we only quantize on `setup`
-    assert model.l.weight.device.type == "cuda"
-    assert model.l.weight.dtype == args[1]
+    assert model.l.weight.device.type == "cpu"
+    assert model.l.weight.dtype == torch.float32
     # this quantizes now
     model = fabric.setup(model)
     assert model.l.weight.device.type == "cuda"

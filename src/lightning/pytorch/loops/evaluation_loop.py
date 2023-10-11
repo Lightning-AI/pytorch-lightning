@@ -239,9 +239,7 @@ class _EvaluationLoop(_Loop):
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
         self._verify_dataloader_idx_requirement()
-
         self._on_evaluation_model_eval()
-        self.trainer.lightning_module.zero_grad()
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 

@@ -19,7 +19,7 @@
    Half precision <../common/precision>
    HPU <../integrations/hpu/index>
    Inference <../deploy/production_intermediate>
-   IPU <../accelerators/ipu>
+   IPU <../integrations/ipu/index>
    Lightning CLI <../cli/lightning_cli>
    LightningDataModule <../data/datamodule>
    LightningModule <../common/lightning_module>
@@ -44,6 +44,8 @@
    Transfer learning <../advanced/transfer_learning>
    Trainer <../common/trainer>
    Torch distributed <../clouds/cluster_intermediate_2>
+   Warnings <../advanced/warnings>
+
 
 ########
 Glossary
@@ -170,7 +172,7 @@ Glossary
    :header: IPU
    :description: Graphcore Intelligence Processing Unit for faster training
    :col_css: col-md-12
-   :button_link: ../accelerators/ipu.html
+   :button_link: ../integrations/ipu/index.html
    :height: 100
 
 .. displayitem::
@@ -339,6 +341,13 @@ Glossary
    :description: Setup for running on distributed environments
    :col_css: col-md-12
    :button_link: ../clouds/cluster_intermediate_2.html
+   :height: 100
+
+.. displayitem::
+   :header: Warnings
+   :description: Disable false-positive warnings emitted by Lightning
+   :col_css: col-md-12
+   :button_link: ../advanced/warnings.html
    :height: 100
 
 .. raw:: html

@@ -141,6 +141,7 @@ class _FxValidator:
         "test_dataloader": None,
         "prepare_data": None,
         "configure_callbacks": None,
+        "on_validation_model_zero_grad": None,
         "on_validation_model_eval": None,
         "on_test_model_eval": None,
         "on_validation_model_train": None,

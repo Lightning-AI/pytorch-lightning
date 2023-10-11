@@ -60,7 +60,7 @@ class CPUAccelerator(Accelerator):
         accelerator_registry.register(
             "cpu",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
 
@@ -77,6 +77,7 @@ def _parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
     Raises:
         MisconfigurationException:
             If cpu_cores is not an int > 0
+
     """
     if isinstance(cpu_cores, str) and cpu_cores.strip().isdigit():
         cpu_cores = int(cpu_cores)

@@ -32,6 +32,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         precision: Whether to use ``torch.float16`` (``'16-mixed'``) or ``torch.bfloat16`` (``'bf16-mixed'``).
         device: The device for ``torch.autocast``.
         scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
+
     """
 
     def __init__(

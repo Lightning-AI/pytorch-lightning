@@ -110,7 +110,7 @@ Get Started
 
 .. raw:: html
 
-    <div class="tutorials-callout-container">
+    <div class="display-card-container">
         <div class="row">
 
 .. Add callout items below this line
@@ -170,6 +170,8 @@ Get Started
 
 .. End of callout item section
 
+|
+|
 
 .. raw:: html
 

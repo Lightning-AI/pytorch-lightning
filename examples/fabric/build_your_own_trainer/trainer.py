@@ -83,6 +83,7 @@ class MyCustomTrainer:
 
         Warning:
             callbacks written for the lightning trainer (especially making assumptions on the trainer), won't work!
+
         """
 
         self.fabric = L.Fabric(
@@ -429,6 +430,7 @@ class MyCustomTrainer:
 
         Args:
             state: A mapping containing model, optimizer and lr scheduler.
+
         """
         if state is None:
             state = {}
@@ -443,6 +445,7 @@ class MyCustomTrainer:
 
         Args:
             checkpoint_dir: the directory to search for checkpoints
+
         """
         if not os.path.isdir(checkpoint_dir):
             return None

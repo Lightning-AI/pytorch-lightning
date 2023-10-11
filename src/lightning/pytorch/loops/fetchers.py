@@ -136,8 +136,8 @@ class _PrefetchDataFetcher(_DataFetcher):
 
 
 class _DataLoaderIterDataFetcher(_DataFetcher):
-    """This class is used to return directly the `dataloader_iter` to the ``LightningModule`` training_step for
-    users to implement their own pre-fetching logic. This feature can be activated as follows:
+    """This class is used to return directly the `dataloader_iter` to the ``LightningModule`` training_step for users
+    to implement their own pre-fetching logic. This feature can be activated as follows:
 
     Example::
 
@@ -147,6 +147,7 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
                 batch, batch_idx, dataloader_idx = next(dataloader_iter)
                 batch = batch.to(self.device)
                 ...
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
