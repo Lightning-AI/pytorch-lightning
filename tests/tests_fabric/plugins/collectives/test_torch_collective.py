@@ -283,7 +283,7 @@ def _test_default_process_group(strategy, *collectives):
 
 
 @skip_distributed_unavailable
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True)  # unhandled timeouts
 def test_default_process_group():
     collective_launch(_test_default_process_group, [torch.device("cpu")] * 3, num_groups=2)
 
