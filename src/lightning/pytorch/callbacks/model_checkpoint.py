@@ -81,8 +81,9 @@ class ModelCheckpoint(Checkpoint):
             the number of finished epoch and optimizer steps respectively.
         monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
         verbose: verbosity mode. Default: ``False``.
-        save_last: When ``True``, saves an exact copy of the checkpoint to a file `last.ckpt` whenever a checkpoint
-            file gets saved. This allows accessing the latest checkpoint in a deterministic manner. Default: ``None``.
+        save_last: When ``True``, saves a `last.ckpt` whenever a checkpoint file gets saved. On a local filesystem,
+            this will be a symbolic link, and otherwise a copy of the checkpoint file. This allows accessing the latest
+            checkpoint in a deterministic manner. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
             the best k models according to the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
@@ -241,6 +242,7 @@ class ModelCheckpoint(Checkpoint):
         self.best_model_score: Optional[Tensor] = None
         self.best_model_path = ""
         self.last_model_path = ""
+        self._last_checkpoint_saved = ""
 
         self.kth_value: Tensor
         self.dirpath: Optional[_PATH]
@@ -371,11 +373,20 @@ class ModelCheckpoint(Checkpoint):
         trainer.save_checkpoint(filepath, self.save_weights_only)
 
         self._last_global_step_saved = trainer.global_step
+        self._last_checkpoint_saved = filepath
 
         # notify loggers
         if trainer.is_global_zero:
             for logger in trainer.loggers:
                 logger.after_save_checkpoint(proxy(self))
+
+    @staticmethod
+    def _link_checkpoint(trainer: "pl.Trainer", filepath: str, linkpath: str) -> None:
+        if trainer.is_global_zero:
+            if os.path.lexists(linkpath):
+                os.remove(linkpath)
+            os.symlink(filepath, linkpath)
+        trainer.strategy.barrier()
 
     def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:
         from lightning.pytorch.trainer.states import TrainerFn
@@ -427,19 +438,12 @@ class ModelCheckpoint(Checkpoint):
                 "should be mutually exclusive."
             )
 
-        if self.monitor is None:
+        if self.monitor is None and self.save_top_k not in (-1, 0, 1):
             # -1: save all epochs, 0: nothing is saved, 1: save last epoch
-            if self.save_top_k not in (-1, 0, 1):
-                raise MisconfigurationException(
-                    f"ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid"
-                    " configuration. No quantity for top_k to track."
-                )
-
-            if self.save_top_k == -1 and self.save_last:
-                rank_zero_info(
-                    "ModelCheckpoint(save_last=True, save_top_k=-1, monitor=None)"
-                    " will duplicate the last checkpoint saved."
-                )
+            raise MisconfigurationException(
+                f"ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid"
+                " configuration. No quantity for top_k to track."
+            )
 
     def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
         self._fs = get_filesystem(dirpath if dirpath else "")
@@ -662,7 +666,10 @@ class ModelCheckpoint(Checkpoint):
 
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
-        self._save_checkpoint(trainer, filepath)
+        if self._fs.protocol == "file" and self._last_checkpoint_saved and self.save_top_k != 0:
+            self._link_checkpoint(trainer, self._last_checkpoint_saved, filepath)
+        else:
+            self._save_checkpoint(trainer, filepath)
         if previous and self._should_remove_checkpoint(trainer, previous, filepath):
             self._remove_checkpoint(trainer, previous)
 

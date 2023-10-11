@@ -62,7 +62,7 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
             self.last_coeff = 10.0
 
         def training_step(self, batch, batch_idx):
-            loss = self.step(torch.ones(32))
+            loss = self.step(torch.ones(32, device=self.device))
             loss = loss / (loss + 0.0000001)
             loss += self.last_coeff
             self.log("my_loss", loss)
@@ -80,8 +80,7 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
     trainer.fit(model)
 
     if save_last:
-        # last epochs are saved every step (so double the save calls)
-        expected = expected * 2
+        expected = expected
     assert save_mock.call_count == expected
 
 

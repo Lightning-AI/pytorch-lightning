@@ -305,25 +305,15 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         flattened parameters.
 
         """
-        if _TORCH_GREATER_EQUAL_2_0:
-            return optimizer
-
-        from torch.distributed.fsdp import FlatParameter
-
-        num_groups = len(optimizer.param_groups)
-        if num_groups > 1:
+        if self._fsdp_kwargs.get("use_orig_params"):
+            return super().setup_optimizer(optimizer)
+        if not _optimizer_has_flat_params(optimizer):
+            # We avoid this limitation in PyTorch >= 2.0 by setting `use_orig_params=True`
             raise ValueError(
-                "An optimizer used with an FSDP model does not support multiple param groups."
-                f" Found {num_groups} parameter groups."
+                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the optimizer"
+                " after setting up the model."
             )
-
-        if any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"]):
-            return optimizer
-
-        raise ValueError(
-            "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the optimizer"
-            " after setting up the model."
-        )
+        return optimizer
 
     def module_to_device(self, module: Module) -> None:
         pass

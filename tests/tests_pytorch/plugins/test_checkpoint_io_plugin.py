@@ -47,6 +47,7 @@ def test_checkpoint_plugin_called(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
+        accelerator="cpu",
         strategy=SingleDeviceStrategy("cpu", checkpoint_io=checkpoint_plugin),
         callbacks=ck,
         max_epochs=2,
@@ -60,7 +61,7 @@ def test_checkpoint_plugin_called(tmpdir):
     assert ckpt_files == {"epoch=1-step=2.ckpt", "last.ckpt"}
     assert trainer.checkpoint_callback.best_model_path == tmpdir / "epoch=1-step=2.ckpt"
     assert trainer.checkpoint_callback.last_model_path == tmpdir / "last.ckpt"
-    assert checkpoint_plugin.save_checkpoint.call_count == 4
+    assert checkpoint_plugin.save_checkpoint.call_count == 2
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
 
     trainer.test(model, ckpt_path=ck.last_model_path)
@@ -72,6 +73,7 @@ def test_checkpoint_plugin_called(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
+        accelerator="cpu",
         strategy=SingleDeviceStrategy("cpu"),
         plugins=[checkpoint_plugin],
         callbacks=ck,
@@ -86,7 +88,7 @@ def test_checkpoint_plugin_called(tmpdir):
     assert ckpt_files == {"epoch=1-step=2.ckpt", "last.ckpt", "epoch=1-step=2-v1.ckpt", "last-v1.ckpt"}
     assert trainer.checkpoint_callback.best_model_path == tmpdir / "epoch=1-step=2-v1.ckpt"
     assert trainer.checkpoint_callback.last_model_path == tmpdir / "last-v1.ckpt"
-    assert checkpoint_plugin.save_checkpoint.call_count == 4
+    assert checkpoint_plugin.save_checkpoint.call_count == 2
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
 
     trainer.test(model, ckpt_path=ck.last_model_path)
