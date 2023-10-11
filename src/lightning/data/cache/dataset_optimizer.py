@@ -380,6 +380,7 @@ class DatasetOptimizer(ABC):
 
         """
         self.name = name
+        self.root = root
         self.num_workers = num_workers or (1 if fast_dev_run else os.cpu_count() * 4)
         self.num_downloaders = num_downloaders or (1 if fast_dev_run else 2)
         self.chunk_size = chunk_size
@@ -393,6 +394,7 @@ class DatasetOptimizer(ABC):
         self.workers_tracker = {}
         self.worker_queue = None
         self.remote_root = remote_root if remote_root is not None else (self.resolver(root) if self.resolver else None)
+        self.random_seed = random_seed
 
     def run(self) -> None:
         """The `DatasetChunker.run(...)` method is used to trigger the data processing from your dataset into
