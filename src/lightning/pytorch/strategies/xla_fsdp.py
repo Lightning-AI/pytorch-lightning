@@ -36,6 +36,7 @@ from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision import XLAPrecisionPlugin
 from lightning.pytorch.strategies.ddp import ParallelStrategy
@@ -43,7 +44,7 @@ from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.strategies.xla import _pod_progress_bar_force_stdout
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -200,9 +201,10 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         if is_overridden("configure_sharded_model", self.lightning_module):
             # legacy: we don't skip setup with the `configure_model` alternative
-            rank_zero_info(
+            rank_zero_warn(
                 "You have overridden `LightningModule.configure_sharded_model` hook. It will assume that all the layers"
-                " are already wrapped for sharding and won't wrap the entire model using `XLAFullyShardedDataParallel`."
+                " are already wrapped for sharding and won't wrap the entire model using `XLAFullyShardedDataParallel`",
+                category=PossibleUserWarning,
             )
         else:
             self.model = self._setup_model(self.model)
@@ -476,7 +478,15 @@ class XLAFSDPStrategy(ParallelStrategy):
                     " directory with a full XLAFSDP checkpoint."
                 )
             full_ckpt = torch.load(path)
-            self.model.load_state_dict(full_ckpt.pop("model"))
+            if is_overridden("configure_model", self.lightning_module):
+                # if the LightningModule only defined the nn.Module in `configure_model` and we "full" load here, it
+                # will error out. Warn the user about this
+                rank_zero_warn(
+                    "You have overridden `LightningModule.configure_model` hook. Full checkpoint loading with XLAFSDP"
+                    " requires that the model is fully defined at `__init__`.",
+                    category=PossibleUserWarning,
+                )
+            self.lightning_module.load_state_dict(full_ckpt.pop("model"))
             return full_ckpt
 
         raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
