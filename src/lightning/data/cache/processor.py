@@ -14,6 +14,8 @@ from urllib import parse
 
 import boto3
 from tqdm import tqdm
+
+from lightning import seed_everything
 from lightning.app.utilities.app_helpers import _collect_child_process_pids
 from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
@@ -367,6 +369,7 @@ class DataProcessor:
             fast_dev_run: Whether to run a quick dev run.
 
         """
+        self.name = name
         self.num_workers = num_workers
         self.num_downloaders = num_downloaders
         self.chunk_size = chunk_size
@@ -382,18 +385,35 @@ class DataProcessor:
 
     def run(
         self,
+        run_name: str,
         root: str,
         setup_fn: Callable[[str, str], List[str]],
         prepare_item_fn: Optional[Callable] = None,
-        remote_root: Optional[str] = None
+        remote_root: Optional[str] = None,
+        random_seed: Optional[int] = 42,
     ) -> None:
+        """The `DataProcessor.run(...)` method is used to trigger the data processing from your dataset into chunks.
+
+        Arguments:
+            run_name: The name of this folder within the entire dataset.
+            root: The folder of data to process.
+            setup_fn: The function to provide your dataset metadata as a list.
+                Each element needs to contain at least one filepath.
+            prepare_item_fn: The method to process your data.
+                The output would be cached. Providing filepath to files is supported.
+            remote_root: The path to the data on cloud storage.
+            random_seed: Random seed to ensure shuffling for the chunks creation.
+
+        """
         t0 = time()
         print(f"Setup started with fast_dev_run={self.fast_dev_run}.")
 
         # Get the filepaths
         root = str(Path(root).resolve())
         filepaths = self._cached_list_filepaths(root)
-        num_filepaths = len(filepaths)
+
+        # Force random seed to be fixed
+        seed_everything(random_seed)
 
         # Call the setup method of the user
         user_items = setup_fn(root, filepaths)
@@ -404,7 +424,9 @@ class DataProcessor:
 
         if self.fast_dev_run:
             begins, workers_user_items = begins[:100], workers_user_items[:100]
-            print(f"Fast dev run is enabled. Limiting to 100 items to process.")
+            print("Fast dev run is enabled. Limiting to 100 items to process.")
+
+        num_items = 100 if self.fast_dev_run else sum([len(items) for items in workers_user_items])
 
         print(f"Starting {self.num_workers} workers")
 
@@ -420,30 +442,19 @@ class DataProcessor:
 
         print("Workers are ready ! Starting data processing...")
 
-        num_items = sum([len(items) for items in workers_user_items])
-
-        if self.worker_type == WorkerType.THREAD.value:
-            current_total = 0
-            with tqdm(total=num_items, smoothing=0) as pbar:
-                while True:
+        current_total = 0
+        with tqdm(total=num_items, smoothing=0) as pbar:
+            while True:
+                if self.worker_type == WorkerType.THREAD.value:
                     new_total = sum([len(w) for w in self.workers])
-                    pbar.update(new_total - current_total)
-                    current_total = new_total
-                    sleep(1)
-                    if current_total == num_items:
-                        break
-        else:
-            current_total = 0
-            num_items = 100 if self.fast_dev_run else num_items
-            with tqdm(total=num_items, smoothing=0) as pbar:
-                while True:
+                else:
                     index, counter = self.worker_queue.get()
                     self.workers_tracker[index] = counter
                     new_total = sum(self.workers_tracker.values())
-                    pbar.update(new_total - current_total)
-                    current_total = new_total
-                    if current_total >= num_items:
-                        break
+                pbar.update(new_total - current_total)
+                current_total = new_total
+                if current_total >= num_items:
+                    break
 
         if self.worker_type == WorkerType.THREAD.value:
             for w in self.workers:
