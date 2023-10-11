@@ -120,11 +120,8 @@ class _LightningTargetResolver(_Resolver):
         cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
         project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
 
-        if cluster_id is None:
-            raise RuntimeError("The `cluster_id` couldn't be found from the environement variables.")
-
-        if project_id is None:
-            raise RuntimeError("The `project_id` couldn't be found from the environement variables.")
+        if cluster_id is None or project_id is None:
+            return
 
         client = LightningClient()
 
@@ -135,7 +132,7 @@ class _LightningTargetResolver(_Resolver):
         if not target_cluster:
             raise ValueError(f"We didn't find a matching cluster associated with the id {cluster_id}.")
 
-        prefix = os.path.join("/projects/{project_id}/datasets/", name)
+        prefix = os.path.join(f"projects/{project_id}/datasets/", name)
 
         import boto3
 
@@ -147,7 +144,7 @@ class _LightningTargetResolver(_Resolver):
             Prefix=prefix,
         )
 
-        version = len(objects) + 1 if len(objects) else 0
+        version = objects["KeyCount"] + 1 if objects["KeyCount"] else 0
 
         return os.path.join(f"s3://{target_cluster[0].spec.aws_v1.bucket_name}", prefix, f"version_{version}")
 
@@ -213,6 +210,7 @@ class BaseWorker:
         prepare_item: Callable,
         src_dir: str,
         remote_src_dir: str,
+        remote_dst_dir: Optional[str],
         items: List[Any],
         worker_queue: Queue,
         error_queue: Queue,
@@ -230,6 +228,7 @@ class BaseWorker:
         self.prepare_item = prepare_item
         self.src_dir = src_dir
         self.remote_src_dir = remote_src_dir
+        self.remote_dst_dir = remote_dst_dir
         self.items = items
         self.num_downloaders = num_downloaders
         self.remove = remove
@@ -280,14 +279,14 @@ class BaseWorker:
             self._error_queue.put(traceback.format_exc())
 
     def _create_cache(self):
-        cache_dir = os.path.join("cache", self._dataset_name, f"w_{self.node_rank}_{self.index}")
+        cache_dir = os.path.join("/cache", self._dataset_name)
         os.makedirs(cache_dir, exist_ok=True)
 
         self.cache = Cache(
             cache_dir, chunk_bytes=self.chunk_bytes, chunk_size=self.chunk_size, compression=self.compression
         )
 
-        self.cache_dir = os.path.join("cache", self._dataset_name, "data")
+        self.cache_dir = os.path.join("/cache", "data", self._dataset_name)
         os.makedirs(self.cache_dir, exist_ok=True)
 
     def _collect_paths(self):
@@ -596,6 +595,7 @@ class DatasetOptimizer(ABC):
                     self.prepare_item,
                     self.src_dir,
                     self.remote_src_dir,
+                    self.remote_dst_dir,
                     worker_user_items,
                     None,
                     self.error_queue,
@@ -627,6 +627,7 @@ class DatasetOptimizer(ABC):
                 self.prepare_item,
                 self.src_dir,
                 self.remote_src_dir,
+                self.remote_dst_dir,
                 worker_user_items,
                 self.worker_queue,
                 self.error_queue,
