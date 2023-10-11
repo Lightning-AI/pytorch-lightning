@@ -454,10 +454,9 @@ class _Connector:
             self.strategy = self._strategy_flag
 
     def _check_and_init_precision(self) -> Precision:
-        self._validate_precision_choice()
         if isinstance(self._precision_instance, Precision):
             return self._precision_instance
-        if isinstance(self.accelerator, XLAAccelerator):
+        if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy, XLAFSDPStrategy)):
             return XLAPrecision(self._precision_input)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
@@ -491,18 +490,6 @@ class _Connector:
             return MixedPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
-
-    def _validate_precision_choice(self) -> None:
-        """Validate the combination of choices for precision, and accelerator."""
-        if (
-            isinstance(self.accelerator, XLAAccelerator)
-            and self._precision_instance
-            and not isinstance(self._precision_instance, XLAPrecision)
-        ):
-            raise ValueError(
-                f"The `XLAAccelerator` can only be used with a `XLAPrecision` plugin,"
-                f" found: {self._precision_instance}."
-            )
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""
