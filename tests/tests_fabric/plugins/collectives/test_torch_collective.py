@@ -266,6 +266,7 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
 
 @skip_distributed_unavailable
+@RunIf(skip_windows=True)  # unhandled timeouts
 @pytest.mark.xfail(raises=TimeoutError, strict=False)
 def test_two_groups():
     collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
