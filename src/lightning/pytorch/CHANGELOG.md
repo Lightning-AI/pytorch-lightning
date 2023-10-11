@@ -9,7 +9,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Changed default metric formatting from `round(..., 3)` to `".3f"` format string in `MetricsTextColumn` class ([#18483])(https://github.com/Lightning-AI/lightning/pull/18483)
 - Added `metrics_format` attribute to `RichProgressBarTheme` class ([#18373](https://github.com/Lightning-AI/lightning/pull/18373))
 - Added `CHECKPOINT_EQUALS_CHAR` attribute to `ModelCheckpoint` class ([#17999](https://github.com/Lightning-AI/lightning/pull/17999))
 - Added `**summarize_kwargs` to `ModelSummary` and `RichModelSummary` callbacks ([#16788](https://github.com/Lightning-AI/lightning/pull/16788))
@@ -61,6 +60,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Changed default metric formatting from `round(..., 3)` to `".3f"` format string in `MetricsTextColumn` class ([#18483](https://github.com/Lightning-AI/lightning/pull/18483))
 - Removed the limitation to call `self.trainer.model.parameters()` in `LightningModule.configure_optimizers()` ([#17309](https://github.com/Lightning-AI/lightning/pull/17309))
 - `Trainer(accelerator="tpu", devices=[i])"` now selects the i-th TPU core (0-based, previously it was 1-based) ([#17227](https://github.com/Lightning-AI/lightning/pull/17227))
 - Allow using iterable-style datasets with TPUs ([#17331](https://github.com/Lightning-AI/lightning/pull/17331))
