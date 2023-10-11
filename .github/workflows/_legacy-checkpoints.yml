@@ -134,7 +134,7 @@ jobs:
           ref: master
 
       - name: Append a new version to legacy checkpoint list
-        working-directory:  ${{ env.legacy_dir }}
+        working-directory: ${{ env.legacy_dir }}
         run: echo ${PL_VERSION} >> back-compatible-versions.txt
 
       - name: Create Pull Request

@@ -39,7 +39,7 @@ jobs:
           commit-message: "update tutorials to ..."
           body: "**This is automated update with latest lighting tutorials!**"
           branch: "docs/update-tutorials"
-          delete-branch: true  # Delete the branch when closing pull requests, and when undeleted after merging.
+          delete-branch: true # Delete the branch when closing pull requests, and when undeleted after merging.
           token: ${{ secrets.PAT_GHOST }}
           labels: |
             docs
