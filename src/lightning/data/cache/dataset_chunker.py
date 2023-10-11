@@ -259,7 +259,7 @@ class BaseWorker:
             }
 
             if len(indexed_paths) == 0:
-                raise ValueError(f"The provided item {item} didn't contain any filepaths.")
+                raise ValueError(f"The provided item {item} didn't contain any filepaths. {flattened_item}")
 
             paths = []
             for index, path in indexed_paths.items():
@@ -437,6 +437,7 @@ class DatasetChunker:
 
         if remote_root is None and self.resolver is not None:
             remote_root = self.resolver(root)
+            print(f"The remote_dir is `{remote_root}`.")
 
         signal.signal(signal.SIGINT, self._signal_handler)
 
