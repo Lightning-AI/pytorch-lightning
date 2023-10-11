@@ -80,7 +80,6 @@ class _MultiProcessingLauncher(_Launcher):
                 f" {', '.join(mp.get_all_start_methods())}"
             )
         self.procs: List[mp.Process] = []
-
         self._already_fit = False
 
     @property

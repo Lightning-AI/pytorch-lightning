@@ -234,7 +234,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `ModelCheckpoint` no longer deletes the file that was passed to `Trainer.fit(ckpt_path=...)` ([#18750](https://github.com/Lightning-AI/lightning/pull/18750))
 
 
-- Calling `trainer.fit()` twice now raises an error with strategies that spawn subprocesses ([#18776](https://github.com/Lightning-AI/lightning/pull/18776))
+- Calling `trainer.fit()` twice now raises an error with strategies that spawn subprocesses through `multiprocessing` (ddp_spawn, xla) ([#18776](https://github.com/Lightning-AI/lightning/pull/18776))
 
 
 ### Deprecated
