@@ -1,18 +1,20 @@
 import logging
 import os
 import signal
+import traceback
 from abc import ABC, abstractmethod
 from enum import Enum
 from multiprocessing import Process, Queue
 from pathlib import Path
+from queue import Empty
 from threading import Thread
 from time import sleep, time
 from typing import Any, Callable, List, Literal, Optional
 from urllib import parse
-from queue import Empty
+
 import boto3
 from tqdm import tqdm
-import traceback
+
 from lightning import seed_everything
 from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
@@ -30,8 +32,8 @@ class _Resolver(ABC):
         pass
 
 
-class _LightningResolver(_Resolver):
-    """The `_LightningResolver` enables to retrieve a cloud storage path from a directory."""
+class _LightningSrcResolver(_Resolver):
+    """The `_LightningSrcResolver` enables to retrieve a cloud storage path from a directory."""
 
     def __call__(self, root: str) -> Optional[str]:
         root_absolute = str(Path(root).absolute())
@@ -110,7 +112,47 @@ class _LightningResolver(_Resolver):
         return os.path.join(data_connection[0].aws.source, *root.split("/")[4:])
 
 
-def _download_data_target(root: str, remote_root: str, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
+class _LightningTargetResolver(_Resolver):
+    """The `_LightningTargetResolver` generates a cloud storage path from a directory."""
+
+    def __call__(self, name: str) -> Optional[str]:
+        # Get the ids from env variables
+        cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
+        project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+
+        if cluster_id is None:
+            raise RuntimeError("The `cluster_id` couldn't be found from the environement variables.")
+
+        if project_id is None:
+            raise RuntimeError("The `project_id` couldn't be found from the environement variables.")
+
+        client = LightningClient()
+
+        clusters = client.cluster_service_list_clusters().clusters
+
+        target_cluster = [cluster for cluster in clusters if cluster.id == cluster_id]
+
+        if not target_cluster:
+            raise ValueError(f"We didn't find a matching cluster associated with the id {cluster_id}.")
+
+        prefix = os.path.join("/projects/{project_id}/datasets/", name)
+
+        import boto3
+
+        s3 = boto3.client("s3")
+
+        objects = s3.list_objects_v2(
+            Bucket=target_cluster[0].spec.aws_v1.bucket_name,
+            Delimiter="/",
+            Prefix=prefix,
+        )
+
+        version = len(objects) + 1 if len(objects) else 0
+
+        return os.path.join(f"s3://{target_cluster[0].spec.aws_v1.bucket_name}", prefix, f"version_{version}")
+
+
+def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
     """This function is used to download data from a remote directory to a cache directory."""
     s3 = boto3.client("s3")
     while True:
@@ -123,19 +165,19 @@ def _download_data_target(root: str, remote_root: str, cache_dir: str, queue_in:
         index, paths = r
 
         # Check whether all the files are already downloaded
-        if all(os.path.exists(p.replace(root, cache_dir)) for p in paths):
+        if all(os.path.exists(p.replace(src_dir, cache_dir)) for p in paths):
             queue_out.put(index)
             continue
 
         # Download all the required paths to unblock the current index
         for path in paths:
-            remote_path = path.replace(root, remote_root)
+            remote_path = path.replace(src_dir, remote_src_dir)
             obj = parse.urlparse(remote_path)
 
             if obj.scheme != "s3":
                 raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_path}")
 
-            local_path = path.replace(root, cache_dir)
+            local_path = path.replace(src_dir, cache_dir)
 
             dirpath = os.path.dirname(local_path)
 
@@ -147,7 +189,7 @@ def _download_data_target(root: str, remote_root: str, cache_dir: str, queue_in:
         queue_out.put(index)
 
 
-def _remove_target(root: str, cache_dir: str, queue_in: Queue) -> None:
+def _remove_target(src_dir: str, cache_dir: str, queue_in: Queue) -> None:
     while True:
         paths = queue_in.get()
 
@@ -155,7 +197,7 @@ def _remove_target(root: str, cache_dir: str, queue_in: Queue) -> None:
             return
 
         for path in paths:
-            cached_filepath = path.replace(root, cache_dir)
+            cached_filepath = path.replace(src_dir, cache_dir)
 
             if os.path.exists(cached_filepath):
                 os.remove(cached_filepath)
@@ -169,8 +211,8 @@ class BaseWorker:
         dataset_name: str,
         node_rank: int,
         prepare_item: Callable,
-        root: str,
-        remote_root: str,
+        src_dir: str,
+        remote_src_dir: str,
         items: List[Any],
         worker_queue: Queue,
         error_queue: Queue,
@@ -186,8 +228,8 @@ class BaseWorker:
         self._dataset_name = dataset_name
         self.node_rank = node_rank
         self.prepare_item = prepare_item
-        self.root = root
-        self.remote_root = remote_root
+        self.src_dir = src_dir
+        self.remote_src_dir = remote_src_dir
         self.items = items
         self.num_downloaders = num_downloaders
         self.remove = remove
@@ -223,7 +265,9 @@ class BaseWorker:
                         return
                     continue
 
-                self.cache[r + self.start_index] = self.prepare_item(self.items[r]) if self.prepare_item else self.items[r]
+                self.cache[r + self.start_index] = (
+                    self.prepare_item(self.items[r]) if self.prepare_item else self.items[r]
+                )
 
                 self._counter += 1
 
@@ -251,13 +295,13 @@ class BaseWorker:
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
 
-            # For speed reasons, we assume starting with `self.root` is enough to be a real file.
+            # For speed reasons, we assume starting with `self.src_dir` is enough to be a real file.
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
                 index: element
                 for index, element in enumerate(flattened_item)
-                if isinstance(element, str) and element.startswith(self.root)  # For speed reasons
+                if isinstance(element, str) and element.startswith(self.src_dir)  # For speed reasons
             }
 
             if len(indexed_paths) == 0:
@@ -265,7 +309,7 @@ class BaseWorker:
 
             paths = []
             for index, path in indexed_paths.items():
-                tmp_path = path.replace(self.root, self.cache_dir)
+                tmp_path = path.replace(self.src_dir, self.cache_dir)
                 flattened_item[index] = tmp_path
                 paths.append(path)
 
@@ -282,7 +326,13 @@ class BaseWorker:
             to_download_queue = Queue()
             p = Process(
                 target=_download_data_target,
-                args=(self.root, self.remote_root, self.cache_dir, to_download_queue, self._download_is_ready_queue),
+                args=(
+                    self.src_dir,
+                    self.remote_src_dir,
+                    self.cache_dir,
+                    to_download_queue,
+                    self._download_is_ready_queue,
+                ),
             )
             p.start()
             self._downloaders.append(p)
@@ -299,7 +349,7 @@ class BaseWorker:
             self._remover = Process(
                 target=_remove_target,
                 args=(
-                    self.root,
+                    self.src_dir,
                     self.cache_dir,
                     self._remove_queue,
                 ),
@@ -344,7 +394,7 @@ class WorkerType(Enum):
 
 class DatasetOptimizer(ABC):
     @abstractmethod
-    def prepare_dataset_structure(self, root: str, filepaths: List[str]) -> List[Any]:
+    def prepare_dataset_structure(self, src_dir: str, filepaths: List[str]) -> List[Any]:
         """This function is meant to return a list of item metadata. Each item metadata should be enough to prepare a
         single item when called with the prepare_item.
 
@@ -352,7 +402,7 @@ class DatasetOptimizer(ABC):
 
             # For a classification use case
 
-            def prepare_dataset_structure(self, root, filepaths)
+            def prepare_dataset_structure(self, src_dir, filepaths)
                 import numpy as np
 
                 filepaths = ['class_a/file_1.ext', ..., 'class_b/file_1.ext', ...]
@@ -367,7 +417,7 @@ class DatasetOptimizer(ABC):
 
             # For a image segmentation use case
 
-            def prepare_dataset_structure(self, root, filepaths)
+            def prepare_dataset_structure(self, src_dir, filepaths)
                 import numpy as np
 
                 filepaths = ['file_1.JPEG', 'file_1.mask', .... 'file_N.JPEG', 'file_N.mask', ...]
@@ -389,17 +439,18 @@ class DatasetOptimizer(ABC):
     def __init__(
         self,
         name: str,
-        root: str,
+        src_dir: str,
         num_workers: Optional[int] = None,
         num_downloaders: Optional[int] = None,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = 1 << 26,
         compression: Optional[str] = None,
         delete_cached_files: bool = True,
-        resolver: Optional[Callable[[str], Optional[str]]] = None,
+        src_resolver: Optional[Callable[[str], Optional[str]]] = None,
         worker_type: Literal["thread", "process"] = "process",
         fast_dev_run: Optional[bool] = None,
-        remote_root: Optional[str] = None,
+        remote_src_dir: Optional[str] = None,
+        remote_dst_dir: Optional[str] = None,
         random_seed: Optional[int] = 42,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
@@ -407,7 +458,7 @@ class DatasetOptimizer(ABC):
 
         Arguments:
             name: The name of your dataset.
-            root: The path to where the data are stored.
+            src_dir: The path to where the data are stored.
             num_workers: The number of worker threads to use.
             num_downloaders: The number of file downloaders to use.
             chunk_size: The maximum number of elements to store within a chunk.
@@ -415,12 +466,13 @@ class DatasetOptimizer(ABC):
             compression: The compression algorithm to apply on over the chunks.
             delete_cached_files: Whether to delete the cached files.
             fast_dev_run: Whether to run a quick dev run.
-            remote_root: The remote folder where the data are.
+            remote_src_dir: The remote folder where the data are.
+            remote_dst_dir: The remote folder where the optimised data will be stored.
             random_seed: The random seed to be set before shuffling the data.
 
         """
         self.name = name
-        self.root = root
+        self.src_dir = src_dir
         self.num_workers = num_workers or (1 if fast_dev_run else os.cpu_count() * 4)
         self.num_downloaders = num_downloaders or (1 if fast_dev_run else 2)
         self.chunk_size = chunk_size
@@ -429,12 +481,20 @@ class DatasetOptimizer(ABC):
         self.compression = compression
         self.fast_dev_run = self._get_fast_dev_mode() if fast_dev_run is None else fast_dev_run
         self.workers = []
-        self.resolver = resolver or _LightningResolver()
+        self.src_resolver = src_resolver or _LightningSrcResolver()
+        self.dst_resolver = _LightningTargetResolver()
         self.worker_type = worker_type
         self.workers_tracker = {}
         self.worker_queue = None
         self.error_queue = Queue()
-        self.remote_root = remote_root if remote_root is not None else (self.resolver(root) if self.resolver else None)
+        self.remote_src_dir = (
+            remote_src_dir
+            if remote_src_dir is not None
+            else (self.src_resolver(src_dir) if self.src_resolver else None)
+        )
+        self.remote_dst_dir = (
+            remote_dst_dir if remote_dst_dir is not None else (self.dst_resolver(name) if self.dst_resolver else None)
+        )
         self.random_seed = random_seed
 
     def run(self) -> None:
@@ -447,13 +507,13 @@ class DatasetOptimizer(ABC):
         filepaths = self._cached_list_filepaths()
 
         if len(filepaths) == 0:
-            raise RuntimeError(f"The provided directory {self.root} is empty. ")
+            raise RuntimeError(f"The provided directory {self.src_dir} is empty. ")
 
         # Force random seed to be fixed
         seed_everything(self.random_seed)
 
         # Call the setup method of the user
-        user_items = self.prepare_dataset_structure(self.root, filepaths)
+        user_items = self.prepare_dataset_structure(self.src_dir, filepaths)
 
         if not isinstance(user_items, list):
             raise ValueError("The setup_fn should return a list of item metadata.")
@@ -470,9 +530,9 @@ class DatasetOptimizer(ABC):
 
         print(f"Starting {self.num_workers} workers")
 
-        if self.remote_root is None and self.resolver is not None:
-            self.remote_root = self.resolver(self.root)
-            print(f"The remote_dir is `{self.remote_root}`.")
+        if self.remote_src_dir is None and self.src_resolver is not None:
+            self.remote_src_dir = self.src_resolver(self.src_dir)
+            print(f"The remote_dir is `{self.remote_src_dir}`.")
 
         signal.signal(signal.SIGINT, self._signal_handler)
 
@@ -534,8 +594,8 @@ class DatasetOptimizer(ABC):
                     self.name,
                     self._get_node_rank(),
                     self.prepare_item,
-                    self.root,
-                    self.remote_root,
+                    self.src_dir,
+                    self.remote_src_dir,
                     worker_user_items,
                     None,
                     self.error_queue,
@@ -565,8 +625,8 @@ class DatasetOptimizer(ABC):
                 self.name,
                 self._get_node_rank(),
                 self.prepare_item,
-                self.root,
-                self.remote_root,
+                self.src_dir,
+                self.remote_src_dir,
                 worker_user_items,
                 self.worker_queue,
                 self.error_queue,
@@ -618,10 +678,10 @@ class DatasetOptimizer(ABC):
                     lines.append(line.replace("\n", ""))
             return lines
 
-        root = str(Path(self.root).resolve())
+        str(Path(self.src_dir).resolve())
 
         filepaths = []
-        for dirpath, _, filenames in os.walk(self.root):
+        for dirpath, _, filenames in os.walk(self.src_dir):
             for filename in filenames:
                 filepaths.append(os.path.join(dirpath, filename))
 
