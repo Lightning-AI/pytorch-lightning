@@ -554,7 +554,12 @@ class DatasetChunker:
             return begins, workers_user_items
 
     def _cached_list_filepaths(self, root: str, key) -> List[str]:
-        filepath = os.path.join(os.path.expanduser("~"), ".cache", f"{self.name}/{key}/filepaths.txt")
+        home = os.path.expanduser("~")
+
+        # TODO: Handle home directory in Jobs
+        if home == "/home/zeus":
+            home = "/teamspace/studios/this_studio"
+        filepath = os.path.join(home, ".cache", f"{self.name}/{key}/filepaths.txt")
 
         if os.path.exists(filepath):
             lines = []
