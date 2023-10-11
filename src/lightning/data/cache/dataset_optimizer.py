@@ -375,7 +375,11 @@ class DatasetOptimizer(ABC):
         pass
 
     def prepare_item(self, metadata_item: Any) -> Any:
-        """Using some metadata, prepare the associated item."""
+        """Using some metadata, prepare the associated item.
+
+        The output of this function will be binarised
+
+        """
         return metadata_item
 
     def __init__(
