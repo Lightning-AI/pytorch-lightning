@@ -449,7 +449,7 @@ class DatasetChunker:
         print("Workers are ready ! Starting data processing...")
 
         current_total = 0
-        with tqdm(total=num_items, smoothing=0) as pbar:
+        with tqdm(total=num_items, smoothing=0, position=-1, mininterval=1) as pbar:
             while True:
                 if self.worker_type == WorkerType.THREAD.value:
                     new_total = sum([len(w) for w in self.workers])
