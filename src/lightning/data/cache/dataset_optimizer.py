@@ -9,10 +9,10 @@ from threading import Thread
 from time import sleep, time
 from typing import Any, Callable, List, Literal, Optional
 from urllib import parse
-
+from queue import Empty
 import boto3
 from tqdm import tqdm
-
+import traceback
 from lightning import seed_everything
 from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
@@ -173,6 +173,7 @@ class BaseWorker:
         remote_root: str,
         items: List[Any],
         worker_queue: Queue,
+        error_queue: Queue,
         num_downloaders: int,
         remove: bool,
         chunk_size: Optional[int] = None,
@@ -202,33 +203,37 @@ class BaseWorker:
         self._collected_items = 0
         self._counter = 0
         self._worker_queue = worker_queue
+        self._error_queue = error_queue
 
     def run(self):
-        self._create_cache()
-        self._collect_paths()
-        self._start_downloaders()
-        self._start_remover()
+        try:
+            self._create_cache()
+            self._collect_paths()
+            self._start_downloaders()
+            self._start_remover()
 
-        is_none = 0
-        while True:
-            r = self._download_is_ready_queue.get()
-            if r is None:
-                is_none += 1
-                if is_none == self.num_downloaders:
-                    self._remove_queue.put(None)
-                    self.cache.done()
-                    return
-                continue
+            is_none = 0
+            while True:
+                r = self._download_is_ready_queue.get()
+                if r is None:
+                    is_none += 1
+                    if is_none == self.num_downloaders:
+                        self._remove_queue.put(None)
+                        self.cache.done()
+                        return
+                    continue
 
-            self.cache[r + self.start_index] = self.prepare_item(self.items[r]) if self.prepare_item else self.items[r]
+                self.cache[r + self.start_index] = self.prepare_item(self.items[r]) if self.prepare_item else self.items[r]
 
-            self._counter += 1
+                self._counter += 1
 
-            if self._worker_queue:
-                self._worker_queue.put((self.index, self._counter))
+                if self._worker_queue:
+                    self._worker_queue.put((self.index, self._counter))
 
-            if self.remove:
-                self._remove_queue.put(self._paths[r])
+                if self.remove:
+                    self._remove_queue.put(self._paths[r])
+        except Exception:
+            self._error_queue.put(traceback.format_exc())
 
     def _create_cache(self):
         cache_dir = os.path.join("cache", self._dataset_name, f"w_{self.node_rank}_{self.index}")
@@ -428,6 +433,7 @@ class DatasetOptimizer(ABC):
         self.worker_type = worker_type
         self.workers_tracker = {}
         self.worker_queue = None
+        self.error_queue = Queue()
         self.remote_root = remote_root if remote_root is not None else (self.resolver(root) if self.resolver else None)
         self.random_seed = random_seed
 
@@ -483,10 +489,14 @@ class DatasetOptimizer(ABC):
                 if self.worker_type == WorkerType.THREAD.value:
                     new_total = sum([len(w) for w in self.workers])
                 else:
-                    index, counter = self.worker_queue.get()
-                    self.workers_tracker[index] = counter
-                    new_total = sum(self.workers_tracker.values())
-                pbar.update(new_total - current_total)
+                    try:
+                        error = self.error_queue.get(timeout=0.001)
+                        self._exit(error)
+                    except Empty:
+                        index, counter = self.worker_queue.get()
+                        self.workers_tracker[index] = counter
+                        new_total = sum(self.workers_tracker.values())
+                    pbar.update(new_total - current_total)
                 current_total = new_total
                 if current_total >= num_items:
                     break
@@ -500,6 +510,15 @@ class DatasetOptimizer(ABC):
 
         print("Finished data processing!")
         print()
+
+    def _exit(self, error):
+        if self.worker_type == WorkerType.THREAD.value:
+            for w in self.workers:
+                w.join(0)
+        else:
+            for w in self.workers:
+                w.kill()
+        raise RuntimeError(f"We found the following error {error}")
 
     def _create_thread_workers(self, user_items, begins, workers_user_items):
         num_items = len(user_items)
@@ -519,6 +538,7 @@ class DatasetOptimizer(ABC):
                     self.remote_root,
                     worker_user_items,
                     None,
+                    self.error_queue,
                     self.num_downloaders,
                     self.delete_cached_files,
                     2 if self.fast_dev_run else self.chunk_size,  # In dev run, create chunks with 2 items
@@ -549,6 +569,7 @@ class DatasetOptimizer(ABC):
                 self.remote_root,
                 worker_user_items,
                 self.worker_queue,
+                self.error_queue,
                 self.num_downloaders,
                 self.delete_cached_files,
                 self.chunk_size,
