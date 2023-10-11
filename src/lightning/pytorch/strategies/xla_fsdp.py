@@ -525,13 +525,11 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     def lightning_module_state_dict(self) -> Dict[str, Any]:
         assert self.model is not None
-        assert callable(getattr(self.model, "state_dict", None))
-        assert callable(getattr(self.model, "get_shard_metadata", None))
         # this format is defined by:
         # https://github.com/pytorch/xla/blob/v2.1.0/torch_xla/distributed/fsdp/state_dict_utils.py#L122-L125
         return {
-            "model": self.model.state_dict(),
-            "shard_metadata": self.model.get_shard_metadata(),
+            "model": self.model.state_dict(),  # type: ignore
+            "shard_metadata": self.model.get_shard_metadata(),  # type: ignore[operator]
         }
 
     def _parse_fsdp_kwargs(self) -> Dict:
