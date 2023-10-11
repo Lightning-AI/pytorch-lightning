@@ -98,14 +98,15 @@ class BinaryWriter:
         files = os.listdir(self._cache_dir)
         index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
         worker_end = _WorkerEnv.detect()
-        self._is_done = len(index_files) == self._distributed_env.world_size * worker_end.world_size
+        world_size = os.getenv("DATA_OPTIMIZER_WORLD_SIZE", None)
+        self._is_done = len(index_files) == (world_size or self._distributed_env.world_size * worker_end.world_size)
         return self._is_done
 
     @property
     def rank(self) -> int:
         """Returns the rank of the writer."""
         if self._rank is None:
-            rank = os.getenv("OPTIMIZER_GLOBAL_RANK", None)
+            rank = os.getenv("DATA_OPTIMIZER_GLOBAL_RANK", None)
             if rank:
                 self._rank = rank
             else:
@@ -308,7 +309,8 @@ class BinaryWriter:
             if _INDEX_FILENAME in files:
                 return
             index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
-            is_done = len(index_files) == self._distributed_env.world_size * num_workers
+            world_size = os.getenv("DATA_OPTIMIZER_WORLD_SIZE", None)
+            is_done = len(index_files) == world_size or self._distributed_env.world_size * num_workers
             sleep(0.001)
 
         # Read the index and append the chunks together

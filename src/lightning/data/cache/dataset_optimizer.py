@@ -262,8 +262,9 @@ class BaseWorker:
 
     def run(self):
         try:
-            # set the global rank
-            os.environ["OPTIMIZER_GLOBAL_RANK"] = _get_node_rank() * self.num_workers + self.index
+            # set the optimizer global rank and world_size
+            os.environ["DATA_OPTIMIZER_GLOBAL_RANK"] = str(_get_node_rank() * self.num_workers + self.index)
+            os.environ["DATA_OPTIMIZER_WORLD_SIZE"] = str(self.num_workers)
             self._create_cache()
             self._collect_paths()
             self._start_downloaders()
@@ -583,6 +584,9 @@ class DatasetOptimizer(ABC):
             for w in self.workers:
                 w.join(0)
 
+        merge_cache = Cache(os.path.join("/cache", self.name), chunk_bytes=1)
+        merge_cache.merge()
+
         print("Finished data processing!")
         print()
 
@@ -608,7 +612,7 @@ class DatasetOptimizer(ABC):
                     self.num_workers,
                     begins[worker_idx],
                     self.name,
-                    self._get_node_rank(),
+                    _get_node_rank(),
                     self.prepare_item,
                     self.src_dir,
                     self.remote_src_dir,
@@ -641,7 +645,7 @@ class DatasetOptimizer(ABC):
                 self.num_workers,
                 begins[worker_idx],
                 self.name,
-                self._get_node_rank(),
+                _get_node_rank(),
                 self.prepare_item,
                 self.src_dir,
                 self.remote_src_dir,
@@ -651,8 +655,8 @@ class DatasetOptimizer(ABC):
                 self.error_queue,
                 self.num_downloaders,
                 self.delete_cached_files,
-                self.chunk_size,
-                self.chunk_bytes,
+                2 if self.fast_dev_run else self.chunk_size,  # In dev run, create chunks with 2 items
+                None if self.fast_dev_run else self.chunk_size,
                 self.compression,
             )
             worker.start()
