@@ -412,6 +412,9 @@ class DatasetChunker:
         root = str(Path(root).resolve())
         filepaths = self._cached_list_filepaths(root)
 
+        if len(filepaths) == 0:
+            raise RuntimeError(f"The provided directory {root} is empty. ")
+
         # Force random seed to be fixed
         seed_everything(random_seed)
 
