@@ -25,7 +25,7 @@ jobs:
       - name: Pull submodule
         run: |
           git submodule status
-          git submodule update --remote
+          git pull --recurse-submodules
           git submodule status
 
       - name: Create Pull Request
