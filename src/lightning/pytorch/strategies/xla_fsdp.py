@@ -208,6 +208,7 @@ class XLAFSDPStrategy(ParallelStrategy):
                 category=PossibleUserWarning,
             )
         else:
+            assert self.model is not None
             self.model = self._setup_model(self.model)
         self.barrier()
 
@@ -491,6 +492,7 @@ class XLAFSDPStrategy(ParallelStrategy):
                 )
             from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
+            assert self.lightning_module is not None
             if any(isinstance(mod, XLAFSDP) for mod in self.lightning_module.modules()):
                 raise ValueError(
                     "`XLAFSDPStrategy` does not support loading full model checkpoint"
@@ -523,6 +525,8 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     def lightning_module_state_dict(self) -> Dict[str, Any]:
         assert self.model is not None
+        assert callable(getattr(self.model, "state_dict", None))
+        assert callable(getattr(self.model, "get_shard_metadata", None))
         # this format is defined by:
         # https://github.com/pytorch/xla/blob/v2.1.0/torch_xla/distributed/fsdp/state_dict_utils.py#L122-L125
         return {
