@@ -18,7 +18,7 @@ from tqdm import tqdm
 from lightning import seed_everything
 from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
-from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE
+from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE, _DEFAULT_FAST_DEV_RUN_ITEMS
 
 if _TORCH_2_1_0_AVAILABLE:
     from torch.utils._pytree import tree_flatten, tree_unflatten
@@ -167,6 +167,8 @@ class BaseWorker:
         self,
         index: int,
         start_index: int,
+        dataset_name: str,
+        key: str,
         node_rank: int,
         prepare_item: Callable,
         root: str,
@@ -182,6 +184,8 @@ class BaseWorker:
         """The BaseWorker is responsible to process the user data."""
         self.index = index
         self.start_index = start_index
+        self._dataset_name = dataset_name
+        self.key = key
         self.node_rank = node_rank
         self.prepare_item = prepare_item
         self.root = root
@@ -230,18 +234,15 @@ class BaseWorker:
                 self._remove_queue.put(self._paths[r])
 
     def _create_cache(self):
-        algo = hashlib.new("sha256")
-        algo.update(self.root.encode("utf-8"))
-        root_hash = algo.hexdigest()
-
-        cache_dir = f"/cache/{root_hash}/w_{self.node_rank}_{self.index}"
+        cache_dir = f"/cache/{self._dataset_name}/{self.key}/w_{self.node_rank}_{self.index}"
+        print(cache_dir)
         os.makedirs(cache_dir, exist_ok=True)
 
         self.cache = Cache(
             cache_dir, chunk_bytes=self.chunk_bytes, chunk_size=self.chunk_size, compression=self.compression
         )
 
-        self.cache_dir = f"/cache/{root_hash}/data"
+        self.cache_dir = f"/cache/{self._dataset_name}/{self.key}/data"
         os.makedirs(self.cache_dir, exist_ok=True)
 
     def _collect_paths(self):
@@ -420,7 +421,7 @@ class DatasetChunker:
         # Call the setup method of the user
         user_items = setup_fn(root, filepaths)
 
-        if isinstance(user_items, list):
+        if not isinstance(user_items, list):
             raise ValueError("The setup_fn should return a list of item metadata.")
 
         # Associate the items to the workers based on num_nodes and node_rank
@@ -428,8 +429,8 @@ class DatasetChunker:
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
 
         if self.fast_dev_run:
-            workers_user_items = [w[:100] for w in workers_user_items]
-            print("Fast dev run is enabled. Limiting to 100 items per process.")
+            workers_user_items = [w[:_DEFAULT_FAST_DEV_RUN_ITEMS] for w in workers_user_items]
+            print("Fast dev run is enabled. Limiting to {_DEFAULT_FAST_DEV_RUN_ITEMS} items per process.")
 
         num_items = sum([len(items) for items in workers_user_items])
 
@@ -441,9 +442,9 @@ class DatasetChunker:
         signal.signal(signal.SIGINT, self._signal_handler)
 
         if self.worker_type == WorkerType.THREAD.value:
-            self._create_thread_workers(root, prepare_item_fn, remote_root, user_items, begins, workers_user_items)
+            self._create_thread_workers(root, key, prepare_item_fn, remote_root, user_items, begins, workers_user_items)
         else:
-            self._create_process_workers(root, prepare_item_fn, remote_root, begins, workers_user_items)
+            self._create_process_workers(root, key, prepare_item_fn, remote_root, begins, workers_user_items)
 
         print("Workers are ready ! Starting data processing...")
 
@@ -471,7 +472,7 @@ class DatasetChunker:
         print("Finished data processing!")
         print()
 
-    def _create_thread_workers(self, root, prepare_item_fn, remote_root, user_items, begins, workers_user_items):
+    def _create_thread_workers(self, root, key, prepare_item_fn, remote_root, user_items, begins, workers_user_items):
         num_items = len(user_items)
         current_total = 0
         with tqdm(total=num_items, smoothing=0) as pbar:
@@ -482,6 +483,8 @@ class DatasetChunker:
                 worker = DataWorkerThread(
                     worker_idx,
                     begins[worker_idx],
+                    self.name,
+                    key,
                     self._get_node_rank(),
                     deepcopy(prepare_item_fn),
                     root,
@@ -490,8 +493,8 @@ class DatasetChunker:
                     None,
                     self.num_downloaders,
                     self.delete_cached_files,
-                    self.chunk_size,
-                    self.chunk_bytes,
+                    2 if self.fast_dev_run else self.chunk_size, # In dev run, create chunks with 2 items
+                    None if self.fast_dev_run else self.chunk_size,
                     self.compression,
                 )
                 worker.start()
@@ -505,12 +508,14 @@ class DatasetChunker:
                 if current_total == num_items:
                     break
 
-    def _create_process_workers(self, root, prepare_item_fn, remote_root, begins, workers_user_items):
+    def _create_process_workers(self, root, key, prepare_item_fn, remote_root, begins, workers_user_items):
         self.worker_queue = Queue()
         for worker_idx, worker_user_items in enumerate(workers_user_items):
             worker = DataWorkerProcess(
                 worker_idx,
                 begins[worker_idx],
+                self.name,
+                key,
                 self._get_node_rank(),
                 prepare_item_fn,
                 root,
