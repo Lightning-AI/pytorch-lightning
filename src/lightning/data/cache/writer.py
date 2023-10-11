@@ -207,13 +207,17 @@ class BinaryWriter:
 
         return data
 
+    def get_chunk_filename(self) -> str:
+        if self._compression:
+            return f"chunk-{self.rank}-{self._chunk_index}.{self._compression}.bin"
+        return f"chunk-{self.rank}-{self._chunk_index}.bin"
+
     def write_chunk(self, on_done: bool = False) -> None:
         """Write a chunk to the filesystem."""
-        if self._compression:
-            filename = f"chunk-{self.rank}-{self._chunk_index}.{self._compression}.bin"
-        else:
-            filename = f"chunk-{self.rank}-{self._chunk_index}.bin"
-        self.write_chunk_to_file(self._create_chunk(filename, on_done=on_done), filename)
+        filepath = self.get_chunk_filename()
+        self.write_chunk_to_file(self._create_chunk(filepath, on_done=on_done), filepath)
+        self._chunk_index += 1
+        return filepath
 
     def __setitem__(self, index: int, items: Any) -> None:
         """Store an item to a chunk.
@@ -223,6 +227,9 @@ class BinaryWriter:
         This is handled by the samplers automatically. This ensures we can map an index to a shard from an interval.
 
         """
+        self.add_item(index, items)
+
+    def add_item(self, index: int, items: Any):
         # Track the minimum index provided to the writer
         # Serialize the items and store an Item object.
         data = self.serialize(items)
@@ -234,9 +241,9 @@ class BinaryWriter:
 
         if self._should_write():
             self.write_chunk()
-            self._chunk_index += 1
             self._min_index = None
             self._max_index = None
+            return self.get_chunk_filename()
 
     def _should_write(self) -> bool:
         if not self._serialized_items:
@@ -273,23 +280,27 @@ class BinaryWriter:
         with open(os.path.join(self._cache_dir, filename), "wb") as out:
             out.write(raw_data)
 
-    def write_chunks_index(self) -> None:
+    def write_chunks_index(self) -> str:
         """Write the chunks index to a JSON file."""
         filepath = os.path.join(self._cache_dir, f"{self.rank}.{_INDEX_FILENAME}")
         config = self.get_config()
         with open(filepath, "w") as out:
             json.dump({"chunks": self._chunks_info, "config": config}, out, sort_keys=True)
+        return filepath
 
-    def done(self) -> None:
+    def done(self) -> List[str]:
         """Called when StopIteration is triggered."""
+        filepaths = []
         if self.filled:
-            return
+            return filepaths
+        
         while self._should_write():
-            self.write_chunk()
+            filepaths.append(self.write_chunk())
         if self._serialized_items:
-            self.write_chunk(True)
+            filepaths.append(self.write_chunk(True))
         self.write_chunks_index()
         self._is_done = True
+        return filepaths
 
     def merge(self, num_workers: int = 1) -> None:
         """Once all the workers have written their own index, the merge function is responsible to read and merge them

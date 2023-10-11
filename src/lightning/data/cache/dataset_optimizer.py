@@ -18,7 +18,7 @@ from tqdm import tqdm
 from lightning import seed_everything
 from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
-from lightning.data.cache.constants import _DEFAULT_FAST_DEV_RUN_ITEMS, _TORCH_2_1_0_AVAILABLE
+from lightning.data.cache.constants import _DEFAULT_FAST_DEV_RUN_ITEMS, _TORCH_2_1_0_AVAILABLE, _INDEX_FILENAME
 
 if _TORCH_2_1_0_AVAILABLE:
     from torch.utils._pytree import tree_flatten, tree_unflatten
@@ -141,12 +141,16 @@ class _LightningTargetResolver(_Resolver):
         objects = s3.list_objects_v2(
             Bucket=target_cluster[0].spec.aws_v1.bucket_name,
             Delimiter="/",
-            Prefix=prefix,
+            Prefix=prefix + "/",
         )
 
         version = objects["KeyCount"] + 1 if objects["KeyCount"] else 0
 
-        return os.path.join(f"s3://{target_cluster[0].spec.aws_v1.bucket_name}", prefix, f"version_{version}")
+        cloud_storage_path = os.path.join(f"s3://{target_cluster[0].spec.aws_v1.bucket_name}", prefix, f"version_{version}")
+
+        print(f"Storing the files under {cloud_storage_path}")
+
+        return cloud_storage_path
 
 
 def _get_num_nodes() -> int:
@@ -212,6 +216,26 @@ def _remove_target(src_dir: str, cache_dir: str, queue_in: Queue) -> None:
                 os.remove(cached_filepath)
 
 
+def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_dst_dir: str) -> None:
+    """This function is used to upload data from a local to remote directory."""
+    obj = parse.urlparse(remote_dst_dir)
+
+    s3 = boto3.client("s3")
+    while True:
+        r = upload_queue.get()
+
+        if r is None:
+            return
+
+        local_filepath = os.path.join(cache_dir, r)
+
+        res = s3.upload_file(local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), r))
+
+        if remove_queue:
+            remove_queue.put([local_filepath])
+        
+
+
 class BaseWorker:
     def __init__(
         self,
@@ -255,10 +279,12 @@ class BaseWorker:
         self._to_download_queues = []
         self._download_is_ready_queue = Queue()
         self._remove_queue = Queue()
+        self._upload_queue = Queue()
         self._collected_items = 0
         self._counter = 0
         self._worker_queue = worker_queue
         self._error_queue = error_queue
+        self._uploader = None
 
     def run(self):
         try:
@@ -268,6 +294,7 @@ class BaseWorker:
             self._create_cache()
             self._collect_paths()
             self._start_downloaders()
+            self._start_uploader()
             self._start_remover()
 
             is_none = 0
@@ -277,13 +304,24 @@ class BaseWorker:
                     is_none += 1
                     if is_none == self.num_downloaders:
                         self._remove_queue.put(None)
-                        self.cache.done()
+                        chunks_filepaths = self.cache.done()
+                        if chunks_filepaths:
+                            for chunk_filepath in chunks_filepaths:
+                                if isinstance(chunk_filepath, str) and os.path.exists(chunk_filepath):
+                                    self._upload_queue.put(chunk_filepath)
+
+                        if self.remote_dst_dir:
+                            self._upload_queue.put(None)
+                            self._uploader.join()
                         return
                     continue
 
-                self.cache[r + self.start_index] = (
+                chunk_name = self.cache._add_item(r + self.start_index,
                     self.prepare_item(self.items[r]) if self.prepare_item else self.items[r]
                 )
+
+                if isinstance(chunk_name, str) and os.path.exists(os.path.join("/cache", self._dataset_name, chunk_name)):
+                    self._upload_queue.put(chunk_name)
 
                 self._counter += 1
 
@@ -371,6 +409,19 @@ class BaseWorker:
                 ),
             )
             self._remover.start()
+
+    def _start_uploader(self):
+        if self.remote_dst_dir:
+            self._uploader = Process(
+                target=_upload_fn,
+                args=(
+                    self._upload_queue,
+                    self._remove_queue,
+                    os.path.join("/cache", self._dataset_name),
+                    self.remote_dst_dir,
+                ),
+            )
+            self._uploader.start()
 
 
 class DataWorkerThread(BaseWorker, Thread):
@@ -584,8 +635,10 @@ class DatasetOptimizer(ABC):
             for w in self.workers:
                 w.join(0)
 
-        merge_cache = Cache(os.path.join("/cache", self.name), chunk_bytes=1)
+        cache_dir = os.path.join("/cache", self.name)
+        merge_cache = Cache(cache_dir, chunk_bytes=1)
         merge_cache.merge()
+        self._upload_index(cache_dir)
 
         print("Finished data processing!")
         print()
@@ -723,3 +776,12 @@ class DatasetOptimizer(ABC):
             else:
                 w.kill()
         os._exit(0)
+
+    def _upload_index(self, cache_dir: str) -> None:
+        if not self.remote_dst_dir:
+            return
+
+        obj = parse.urlparse(self.remote_dst_dir)
+        s3 = boto3.client("s3")
+        local_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
+        s3.upload_file(local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), _INDEX_FILENAME))

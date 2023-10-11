@@ -66,6 +66,10 @@ class Cache:
         """Store an item in the writer."""
         self._writer[index] = data
 
+    def _add_item(self, index: int, data: Any) -> Optional[str]:
+        """Store an item in the writer and optionally return the chunk path"""
+        return self._writer.add_item(index, data)
+
     def __getitem__(self, index: Union[int, ChunkedIndex]) -> Dict[str, Any]:
         """Read an item in the reader."""
         if isinstance(index, int):
