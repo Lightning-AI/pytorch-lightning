@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for XLA's new PJRT runtime ([#17352](https://github.com/Lightning-AI/lightning/pull/17352))
 
 
+- Added support for Fully Sharded Data Parallel (FSDP) training with XLA ([#18746](https://github.com/Lightning-AI/lightning/pull/18746))
+
+
 - Check for invalid TPU device inputs ([#17227](https://github.com/Lightning-AI/lightning/pull/17227))
 
 
