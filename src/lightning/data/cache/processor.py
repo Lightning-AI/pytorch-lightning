@@ -14,7 +14,7 @@ from urllib import parse
 
 import boto3
 from tqdm import tqdm
-
+from lightning.app.utilities.app_helpers import _collect_child_process_pids
 from lightning.app.utilities.network import LightningClient
 from lightning.data.cache import Cache
 from lightning.data.cache.constants import _TORCH_2_1_0_AVAILABLE
@@ -342,8 +342,7 @@ class WorkerType(Enum):
 class DataProcessor:
     def __init__(
         self,
-        setup: Callable[[str, str], List[str]],
-        prepare_item: Optional[Callable] = None,
+        name: str,
         num_workers: int = os.cpu_count() * 4,
         num_downloaders: int = 2,
         chunk_size: Optional[int] = None,
@@ -352,38 +351,44 @@ class DataProcessor:
         delete_cached_files: bool = True,
         resolver: Optional[Callable[[str], Optional[str]]] = None,
         worker_type: Literal["thread", "process"] = "process",
+        fast_dev_run: bool = True,
     ):
         """The `DataProcessor` provides an efficient way to process data across multiple nodes in the cloud into
         chunks.
 
         Arguments:
-            setup: The function used to organize the dataset metadata.
-            prepare_item: The function to used to prepare a single item from its metadata, including filepaths.
+            name: The name of your dataset.
             num_workers: The number of worker threads to use.
             num_downloaders: The number of file downloaders to use.
             chunk_size: The maximum number of elements to store within a chunk.
             chunk_bytes: The maximum number of bytes to store within a chunk.
             compression: The compression algorithm to apply on over the chunks.
             delete_cached_files: Whether to delete the cached files.
+            fast_dev_run: Whether to run a quick dev run.
 
         """
-        self.setup = setup
-        self.prepare_item = prepare_item
         self.num_workers = num_workers
         self.num_downloaders = num_downloaders
         self.chunk_size = chunk_size
         self.chunk_bytes = chunk_bytes
         self.delete_cached_files = delete_cached_files
         self.compression = compression
+        self.fast_dev_run = fast_dev_run
         self.workers = []
         self.resolver = resolver or _LightningResolver()
         self.worker_type = worker_type
         self.workers_tracker = {}
         self.worker_queue = None
 
-    def run(self, root: str, remote_root: Optional[str] = None) -> None:
+    def run(
+        self,
+        root: str,
+        setup_fn: Callable[[str, str], List[str]],
+        prepare_item_fn: Optional[Callable] = None,
+        remote_root: Optional[str] = None
+    ) -> None:
         t0 = time()
-        print("Setup started")
+        print(f"Setup started with fast_dev_run={self.fast_dev_run}.")
 
         # Get the filepaths
         root = str(Path(root).resolve())
@@ -391,11 +396,15 @@ class DataProcessor:
         num_filepaths = len(filepaths)
 
         # Call the setup method of the user
-        user_items = self.setup(root, filepaths)
+        user_items = setup_fn(root, filepaths)
 
-        # Associate the items to the workers based on world_size and node_rank
+        # Associate the items to the workers based on num_nodes and node_rank
         begins, workers_user_items = self._associated_items_to_workers(user_items)
-        print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {num_filepaths} items to process.")
+        print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
+
+        if self.fast_dev_run:
+            begins, workers_user_items = begins[:100], workers_user_items[:100]
+            print(f"Fast dev run is enabled. Limiting to 100 items to process.")
 
         print(f"Starting {self.num_workers} workers")
 
@@ -405,9 +414,9 @@ class DataProcessor:
         signal.signal(signal.SIGINT, self._signal_handler)
 
         if self.worker_type == WorkerType.THREAD.value:
-            self._create_thread_workers(root, remote_root, user_items, begins, workers_user_items)
+            self._create_thread_workers(root, prepare_item_fn, remote_root, user_items, begins, workers_user_items)
         else:
-            self._create_process_workers(root, remote_root, begins, workers_user_items)
+            self._create_process_workers(root, prepare_item_fn, remote_root, begins, workers_user_items)
 
         print("Workers are ready ! Starting data processing...")
 
@@ -425,6 +434,7 @@ class DataProcessor:
                         break
         else:
             current_total = 0
+            num_items = 100 if self.fast_dev_run else num_items
             with tqdm(total=num_items, smoothing=0) as pbar:
                 while True:
                     index, counter = self.worker_queue.get()
@@ -432,18 +442,19 @@ class DataProcessor:
                     new_total = sum(self.workers_tracker.values())
                     pbar.update(new_total - current_total)
                     current_total = new_total
-                    if current_total == num_items:
+                    if current_total >= num_items:
                         break
 
-        for w in self.workers:
-            if self.worker_type == WorkerType.THREAD.value:
+        if self.worker_type == WorkerType.THREAD.value:
+            for w in self.workers:
                 w.join(0)
-            else:
-                w.kill()
+        else:
+            for child_pid in _collect_child_process_pids(os.getpid()):
+                os.kill(child_pid, signal.SIGTERM)
 
         print("Finished data processing!")
 
-    def _create_thread_workers(self, root, remote_root, user_items, begins, workers_user_items):
+    def _create_thread_workers(self, root, prepare_item_fn, remote_root, user_items, begins, workers_user_items):
         num_items = len(user_items)
         current_total = 0
         with tqdm(total=num_items, smoothing=0) as pbar:
@@ -455,7 +466,7 @@ class DataProcessor:
                     worker_idx,
                     begins[worker_idx],
                     self._get_node_rank(),
-                    deepcopy(self.prepare_item),
+                    deepcopy(prepare_item_fn),
                     root,
                     remote_root,
                     worker_user_items.tolist(),
@@ -477,17 +488,17 @@ class DataProcessor:
                 if current_total == num_items:
                     break
 
-    def _create_process_workers(self, root, remote_root, begins, workers_user_items):
+    def _create_process_workers(self, root, prepare_item_fn, remote_root, begins, workers_user_items):
         self.worker_queue = Queue()
         for worker_idx, worker_user_items in enumerate(workers_user_items):
             worker = DataWorkerProcess(
                 worker_idx,
                 begins[worker_idx],
                 self._get_node_rank(),
-                deepcopy(self.prepare_item),
+                prepare_item_fn,
                 root,
                 remote_root,
-                worker_user_items.tolist(),
+                worker_user_items,
                 self.worker_queue,
                 self.num_downloaders,
                 self.delete_cached_files,
