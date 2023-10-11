@@ -25,6 +25,7 @@ from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.plugins import XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
+from lightning.fabric.strategies.fsdp import _METADATA_FILENAME
 from lightning.fabric.strategies.xla_fsdp import (
     _POLICY,
     _POLICY_SET,
@@ -386,6 +387,9 @@ class XLAFSDPStrategy(ParallelStrategy):
         # this is the output of `self.lightning_module_state_dict`
         state_dict = checkpoint.pop("state_dict")
 
+        # not needed in ckpt consolidation
+        state_dict["optimizer"] = checkpoint.pop("optimizer_states")
+
         import torch_xla.core.xla_model as xm
 
         # ensure model parameters are updated
@@ -428,6 +432,13 @@ class XLAFSDPStrategy(ParallelStrategy):
                 get_filesystem(save_path).mv(str(save_path), str(path))
             self.barrier("after_ckpt_consolidation")
 
+            # save metadata separately
+            if self.global_rank == 0:
+                torch.save(checkpoint, path.parent / _METADATA_FILENAME)
+        else:
+            if self.global_rank == 0:
+                torch.save(checkpoint, path / _METADATA_FILENAME)
+
     def _save_checkpoint_shard(
         self,
         path: Path,
@@ -456,9 +467,6 @@ class XLAFSDPStrategy(ParallelStrategy):
 
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
-        if self.model is None or not isinstance(self.model, XLAFSDP):
-            raise ValueError(f"Could not find a XLAFSDP model in the provided checkpoint state: {type(self.model)}")
-
         if self._state_dict_type == "sharded":
             file = path / f"checkpoint_rank-{self.global_rank:08d}-of-{self.world_size:08d}.pth"
             if not file.is_file():
@@ -466,10 +474,14 @@ class XLAFSDPStrategy(ParallelStrategy):
                     f"The path {str(file)!r} does not point to valid sharded checkpoints. Make sure the path points to"
                     " a directory with XLAFSDP checkpoint shards."
                 )
+            if self.model is None or not isinstance(self.model, XLAFSDP):
+                raise ValueError(f"Could not find a XLAFSDP model in the provided checkpoint state: {type(self.model)}")
             sharded_ckpt = torch.load(file)
             self.model.load_state_dict(sharded_ckpt.pop("model"))
-            sharded_ckpt.pop("shard_metadata", None)
-            return sharded_ckpt
+
+            # Load metadata (anything not a module or optimizer)
+            metadata = torch.load(path / _METADATA_FILENAME)
+            return metadata
 
         if self._state_dict_type == "full":
             if not path.is_file():
@@ -477,6 +489,14 @@ class XLAFSDPStrategy(ParallelStrategy):
                     f"The path {str(path)!r} does not point to a valid full checkpoint. Make sure the path points to a"
                     " directory with a full XLAFSDP checkpoint."
                 )
+            from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
+            if any(isinstance(mod, XLAFSDP) for mod in self.lightning_module.modules()):
+                raise ValueError(
+                    "`XLAFSDPStrategy` does not support loading full model checkpoint"
+                    " if the model or any submodules are manually wrapped."
+                )
+
             full_ckpt = torch.load(path)
             if is_overridden("configure_model", self.lightning_module):
                 # if the LightningModule only defined the nn.Module in `configure_model` and we "full" load here, it
@@ -487,8 +507,10 @@ class XLAFSDPStrategy(ParallelStrategy):
                     category=PossibleUserWarning,
                 )
             self.lightning_module.load_state_dict(full_ckpt.pop("model"))
-            return full_ckpt
 
+            # Load metadata (anything not a module or optimizer)
+            metadata = torch.load(path.parent / _METADATA_FILENAME)
+            return metadata
         raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
