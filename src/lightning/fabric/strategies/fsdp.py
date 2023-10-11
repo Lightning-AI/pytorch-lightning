@@ -329,8 +329,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
-        precision_init_ctx = self.precision.init_context()
+        precision_init_ctx = self.precision.module_init_context()
         module_sharded_ctx = self.module_sharded_context()
+        empty_ctx = _EmptyInit(enabled=bool(empty_init))
         stack = ExitStack()
         if _TORCH_GREATER_EQUAL_2_1 and empty_init:
             # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
@@ -338,7 +339,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
             stack.enter_context(torch.device("meta"))
         elif _TORCH_GREATER_EQUAL_1_13:
-            stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
+            stack.enter_context(empty_ctx)
         stack.enter_context(precision_init_ctx)
         stack.enter_context(module_sharded_ctx)
         return stack

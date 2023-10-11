@@ -194,7 +194,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
-        precision_init_ctx = self.precision.init_context()
+        precision_init_ctx = self.precision.module_init_context()
         module_sharded_ctx = self.module_sharded_context()
         stack = ExitStack()
         if _TORCH_GREATER_EQUAL_1_13:
@@ -594,7 +594,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        strategy_registry.register("xla_fsdp", cls, description=cls.__class__.__name__)
+        strategy_registry.register("xla_fsdp", cls, description=cls.__name__)
 
     def _parse_fsdp_kwargs(self) -> Dict:
         # this needs to be delayed because `self.precision` isn't available at init

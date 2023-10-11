@@ -16,10 +16,17 @@
 Needs to be run outside of `pytest` as it captures all the warnings.
 
 """
+import importlib
+import os
+import warnings
 from contextlib import redirect_stderr
 from io import StringIO
+from unittest import mock
 
-import lightning.pytorch  # noqa: F401
+import lightning.pytorch
+import pytest
+from lightning.pytorch.utilities.warnings import PossibleUserWarning
+from lightning_utilities.test.warning import no_warning_call
 
 if __name__ == "__main__":
     # check that logging is properly configured
@@ -49,3 +56,15 @@ if __name__ == "__main__":
 
     output = stderr.getvalue()
     assert output == "test2\n", repr(output)
+
+
+@pytest.mark.parametrize("setting", ["0", "off"])
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_disable_possible_user_warnings_from_environment(setting):
+    with pytest.warns(PossibleUserWarning):
+        warnings.warn("test", PossibleUserWarning)
+    os.environ["POSSIBLE_USER_WARNINGS"] = setting
+    importlib.reload(lightning.pytorch)
+    with no_warning_call(PossibleUserWarning):
+        warnings.warn("test", PossibleUserWarning)
+    warnings.resetwarnings()

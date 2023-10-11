@@ -22,9 +22,9 @@ def test_default_dtype_is_restored(precision):
         precision = FSDPPrecisionPlugin("16-true")
 
     contexts = (
-        (precision.init_context, precision.forward_context)
+        (precision.module_init_context, precision.forward_context)
         if not isinstance(precision, DeepSpeedPrecisionPlugin)
-        else (precision.init_context,)
+        else (precision.module_init_context,)
     )
     for context in contexts:
         assert torch.get_default_dtype() is torch.float32

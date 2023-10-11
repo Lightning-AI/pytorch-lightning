@@ -56,7 +56,7 @@ def test_transformer_engine_plugin(monkeypatch):
 
     # same logic as in `test_default_dtype_is_restored`
     assert torch.get_default_dtype() is torch.float32
-    with pytest.raises(RuntimeError, match="foo"), precision.init_context():
+    with pytest.raises(RuntimeError, match="foo"), precision.module_init_context():
         assert torch.get_default_dtype() is not torch.float32
         raise RuntimeError("foo")
     assert torch.get_default_dtype() is torch.float32
@@ -95,7 +95,7 @@ def test_transformer_engine_plugin(monkeypatch):
     assert mock_calls[1][1][1]._extract_mock_name() == "mock.pytorch.LayerNorm()"
 
     precision.replace_layers = False
-    with precision.init_context():
+    with precision.module_init_context():
         model = MyModule()
     assert isinstance(model.l1, torch.nn.Linear)
     assert isinstance(model.l2, torch.nn.LayerNorm)
@@ -110,7 +110,7 @@ def test_transformer_engine_plugin(monkeypatch):
     transformer_engine_mock.pytorch.Linear = TELinearMock
     transformer_engine_mock.pytorch.LayerNorm = TELayerNormMock
     precision.replace_layers = True
-    with precision.init_context():
+    with precision.module_init_context():
         assert torch.get_default_dtype() == torch.float16
         model = MyModule()
     assert isinstance(model.l1, TELinearMock)
