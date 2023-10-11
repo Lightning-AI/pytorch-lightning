@@ -146,6 +146,7 @@ class _MultiProcessingLauncher(_Launcher):
         if trainer is None:
             return worker_output
 
+        self._already_fit |= trainer.state.fn == TrainerFn.FITTING
         self._recover_results_in_main_process(worker_output, trainer)
         return worker_output.trainer_results
 
@@ -190,8 +191,6 @@ class _MultiProcessingLauncher(_Launcher):
             self._strategy.checkpoint_io.remove_checkpoint(worker_output.weights_path)
 
         trainer.state = worker_output.trainer_state
-
-        self._already_fit |= trainer.state.fn == TrainerFn.FITTING
 
         # get the `callback_metrics` and set it to the trainer
         self.update_main_process_results(trainer, worker_output.extra)

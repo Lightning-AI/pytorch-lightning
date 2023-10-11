@@ -110,6 +110,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         if trainer is None:
             return worker_output
 
+        self._already_fit |= trainer.state.fn == TrainerFn.FITTING
         self._recover_results_in_main_process(worker_output, trainer)
         return worker_output.trainer_results
 
