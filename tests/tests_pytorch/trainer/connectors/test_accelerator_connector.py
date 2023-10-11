@@ -1069,6 +1069,7 @@ def test_precision_selection(precision_str, strategy_str, expected_precision_cls
     assert isinstance(connector.precision_plugin, expected_precision_cls)
 
 
+@RunIf(tpu=True)
 @mock.patch("lightning.pytorch.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_xla_fsdp_automatic_strategy_selection(monkeypatch, tpu_available):
     import lightning.pytorch.strategies as strategies
