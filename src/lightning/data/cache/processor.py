@@ -526,7 +526,7 @@ class DataProcessor:
         algo.update(root.encode("utf-8"))
         root_hash = algo.hexdigest()
 
-        filepath = f"/cache/{root_hash}/filepaths.txt"
+        filepath = f"/teamspace/studios/this_studio/{root_hash}/filepaths.txt"
 
         if os.path.exists(filepath):
             lines = []
