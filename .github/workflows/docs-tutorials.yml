@@ -28,7 +28,6 @@ jobs:
         run: |
           git pull --recurse-submodules
       - run: git submodule status
-
       - name: Create Pull Request
         if: github.event_name != 'pull_request'
         uses: peter-evans/create-pull-request@v5
