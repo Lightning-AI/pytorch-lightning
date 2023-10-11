@@ -35,16 +35,18 @@ class _LightningResolver(_Resolver):
     """The `_LightningResolver` enables to retrieve a cloud storage path from a directory."""
 
     def __call__(self, root: str) -> Optional[str]:
-        root = str(Path(root).absolute())
+        root_absolute = str(Path(root).absolute())
 
-        if root.startswith("/teamspace/studios/this_studio"):
+        print("HERE", root, root_absolute)
+
+        if root_absolute.startswith("/teamspace/studios/this_studio"):
             return None
 
-        if root.startswith("/teamspace/studios") and len(root.split("/")) > 3:
-            return self._resolve_studio(root)
+        if root_absolute.startswith("/teamspace/studios") and len(root_absolute.split("/")) > 3:
+            return self._resolve_studio(root_absolute)
 
-        if root.startswith("/teamspace/s3_connections") and len(root.split("/")) > 3:
-            return self._resolve_s3_connections(root)
+        if root_absolute.startswith("/teamspace/s3_connections") and len(root_absolute.split("/")) > 3:
+            return self._resolve_s3_connections(root_absolute)
 
         return None
 
