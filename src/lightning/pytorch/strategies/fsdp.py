@@ -330,8 +330,8 @@ class FSDPStrategy(ParallelStrategy):
 
         invalid_params_error = False
         try:
-            # In PyTorch < 2.0, `use_orig_params` does not exist and the user needs to do access
-            # `self.model.parameters()` in configure_optimizers()
+            # In PyTorch < 2.0, or if `use_orig_params=False` the user needs to do access
+            # `self.trainer.model.parameters()` in configure_optimizers()
             super().setup_optimizers(trainer)
         except ValueError as ex:
             if "optimizer got an empty parameter list" not in str(ex):
