@@ -150,7 +150,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         if precision_plugin is not None:
             if not isinstance(precision_plugin, XLAPrecisionPlugin):
                 raise TypeError(
-                    f"The FSDP strategy can only work with the `XLAPrecisionPlugin` plugin, found {precision_plugin}"
+                    f"The XLAFSDP strategy can only work with the `XLAPrecisionPlugin` plugin, found {precision_plugin}"
                 )
             precision_plugin._using_fsdp = True
         self._precision_plugin = precision_plugin
@@ -258,7 +258,7 @@ class XLAFSDPStrategy(ParallelStrategy):
         for optimizer in self.optimizers:
             if not any(getattr(p, "_is_sharded", False) for group in optimizer.param_groups for p in group["params"]):
                 raise ValueError(
-                    f"The optimizer {optimizer} does not seem to reference any FSDP parameters. HINT: Make sure to"
+                    f"The optimizer {optimizer} does not seem to reference any XLAFSDP parameters. HINT: Make sure to"
                     f" create the optimizer after setting up the model by referencing `self.trainer.model.parameters()`"
                     f" in the `configure_optimizers()` hook."
                 )
@@ -459,7 +459,7 @@ class XLAFSDPStrategy(ParallelStrategy):
             )
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
-                "Saving and loading checkpoints with the `FSDPStrategy` is not supported in PyTorch < 2.0."
+                "Saving and loading checkpoints with the `XLAFSDPStrategy` is not supported in PyTorch < 2.0."
                 " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
             )
 
