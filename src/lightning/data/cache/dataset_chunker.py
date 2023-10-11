@@ -461,7 +461,7 @@ class DatasetChunker:
                 w.join(0)
         else:
             for child_pid in _collect_child_process_pids(os.getpid()):
-                os.kill(child_pid, signal.SIGTERM)
+                os.kill(child_pid, signal.SIGKILL)
 
         print("Finished data processing!")
 
