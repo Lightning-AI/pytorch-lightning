@@ -29,19 +29,22 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class TestFSDPModel(BoringModel):
-    def __init__(self, use_auto_wrap_policy):
+    def __init__(self, use_auto_wrap_policy=False):
         super().__init__()
         self.layer: Optional[torch.nn.Module] = None
         self.use_auto_wrap_policy = use_auto_wrap_policy
 
     def _init_model(self) -> None:
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+        if self.bad_optimizer_setup:
+            self.original_layer = self.layer
 
     def configure_model(self) -> None:
         if self.layer is None:
             self._init_model()
-        # the model is already wrapped with FSDP: no need to wrap again!
+
         if not self.use_auto_wrap_policy:
+            # the model is already wrapped with FSDP: no need to wrap again!
             from torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel import XlaFullyShardedDataParallel
 
             if isinstance(self.layer, XlaFullyShardedDataParallel):
@@ -58,7 +61,9 @@ class TestFSDPModel(BoringModel):
         assert batch.dtype == torch.float32
 
 
-def _run_multiple_stages(trainer, model, use_auto_wrap_policy, state_dict_type, model_path: Optional[str] = None):
+def _run_multiple_stages(
+    trainer, model, state_dict_type="full", use_checkpoint=False, model_path: Optional[str] = None
+):
     local_process_count = len(trainer.strategy.parallel_devices)
     world_size = 4
     is_multihost = local_process_count < world_size
@@ -88,14 +93,18 @@ def _run_multiple_stages(trainer, model, use_auto_wrap_policy, state_dict_type, 
         # Test entry point
         trainer.test(model)  # model is wrapped, will not call `configure_model`
 
-        # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
-        trainer.test(ckpt_path=model_path)
+        if use_checkpoint:
+            # provide model path, will create a new unwrapped model and
+            # load and then call `configure_shared_model` to wrap
+            trainer.test(ckpt_path=model_path)
 
         # Predict entry point
         trainer.predict(model)  # model is wrapped, will not call `configure_model`
 
-        # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
-        trainer.predict(ckpt_path=model_path)
+        if use_checkpoint:
+            # provide model path, will create a new unwrapped model and
+            # load and then call `configure_shared_model` to wrap
+            trainer.predict(ckpt_path=model_path)
 
 
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
@@ -121,28 +130,47 @@ def test_rank_properties_access(xla_available):
 
 @RunIf(min_torch="2.0", tpu=True, standalone=True)
 @pytest.mark.parametrize(
-    ("use_auto_wrap_policy", "state_dict_type", "ckpt_location"),
+    ("state_dict_type", "ckpt_location"),
     [
-        (False, "full", "lightning_logs/version_0/checkpoints"),
-        (True, "full", "lightning_logs/version_0/checkpoints"),
-        (False, "sharded", "lightning_logs/version_0/checkpoints/epoch=0-step=64.ckpt"),
-        (True, "sharded", "lightning_logs/version_0/checkpoints/epoch=0-step=64.ckpt"),
+        ("full", "lightning_logs/version_0/checkpoints"),
+        ("sharded", "lightning_logs/version_0/checkpoints/epoch=0-step=64.ckpt"),
     ],
 )
-def test_xla_fsdp_strategy_checkpoint(tmpdir, use_auto_wrap_policy, state_dict_type, ckpt_location):
+def test_xla_fsdp_strategy_checkpoint(tmpdir, state_dict_type, ckpt_location):
     """Test to ensure that checkpoint is saved correctly when using TPUs, and all stages can be run."""
     from torch_xla.distributed.fsdp.wrap import always_wrap_policy
 
-    model = TestFSDPModel(use_auto_wrap_policy)
-    policy = always_wrap_policy if use_auto_wrap_policy else None
+    model = TestFSDPModel(use_auto_wrap_policy=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="tpu",
-        strategy=XLAFSDPStrategy(auto_wrap_policy=policy, state_dict_type=state_dict_type),
+        strategy=XLAFSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type=state_dict_type),
         precision="bf16-true",
         max_epochs=1,
     )
-    _run_multiple_stages(trainer, model, use_auto_wrap_policy, state_dict_type, os.path.join(tmpdir, ckpt_location))
+    _run_multiple_stages(trainer, model, state_dict_type, True, os.path.join(tmpdir, ckpt_location))
+
+
+@RunIf(min_torch="2.0", tpu=True, standalone=True)
+@pytest.mark.parametrize(
+    ("state_dict_type", "ckpt_location"),
+    [
+        ("full", "lightning_logs/version_0/checkpoints"),
+        ("sharded", "lightning_logs/version_0/checkpoints/epoch=0-step=64.ckpt"),
+    ],
+)
+def test_xla_fsdp_manual_wrap(tmpdir, state_dict_type, ckpt_location):
+    """Test to ensure that all stages can be run when manually wrapping the model."""
+    model = TestFSDPModel(use_auto_wrap_policy=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="tpu",
+        strategy=XLAFSDPStrategy(state_dict_type=state_dict_type),
+        precision="bf16-true",
+        max_epochs=1,
+    )
+
+    _run_multiple_stages(trainer, model, state_dict_type, False, os.path.join(tmpdir, ckpt_location))
 
 
 def test_xla_fsdp_policy(xla_available):
