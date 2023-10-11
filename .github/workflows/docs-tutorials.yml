@@ -23,9 +23,9 @@ jobs:
           submodules: recursive
 
       - run: git submodule status
-      - run: git submodule update --recursive
-      - working-directory: _notebooks
-        run: git submodule update --remote --merge _notebooks
+      - run: |
+          git submodule init
+          git submodule update
       - run: git submodule status
       - name: Create Pull Request
         if: github.event_name != 'pull_request'
