@@ -36,8 +36,6 @@ class TestFSDPModel(BoringModel):
 
     def _init_model(self) -> None:
         self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
-        if self.bad_optimizer_setup:
-            self.original_layer = self.layer
 
     def configure_model(self) -> None:
         if self.layer is None:
