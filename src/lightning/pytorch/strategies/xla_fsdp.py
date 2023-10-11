@@ -52,7 +52,7 @@ if TYPE_CHECKING:
 
 
 class XLAFSDPStrategy(ParallelStrategy):
-    r"""Strategy for training multiple XLA devices using the
+    r"""Strategy for training on multiple XLA devices using the
     :func:`torch_xla.distributed.xla_fully_sharded_data_parallel.XlaFullyShardedDataParallel` method.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -67,7 +67,6 @@ class XLAFSDPStrategy(ParallelStrategy):
             which you want to enable activation checkpointing. Enabling this can free up a significant amount of memory
             at the cost of speed since activations in these layers need to be recomputed during backpropagation.
             This accepts a set of the layer classes to wrap.
-
         state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
 
             - ``"full"``: The full weights and optimizer states get assembled on rank 0 and saved to a single file.
@@ -103,7 +102,6 @@ class XLAFSDPStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         self._backward_sync_control = _XLAFSDPBackwardSyncControl()
-
         self._auto_wrap_policy = auto_wrap_policy
         self._activation_checkpointing_policy = activation_checkpointing_policy
         self._fsdp_kwargs = kwargs
@@ -172,6 +170,10 @@ class XLAFSDPStrategy(ParallelStrategy):
         return super().world_size if self._launched else 1
 
     @property
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
+
+    @property
     def restore_checkpoint_after_setup(self) -> bool:
         return self._state_dict_type == "sharded"
 
@@ -235,10 +237,6 @@ class XLAFSDPStrategy(ParallelStrategy):
 
     def model_to_device(self) -> None:
         pass
-
-    @property
-    def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader

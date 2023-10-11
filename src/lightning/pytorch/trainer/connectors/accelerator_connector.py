@@ -490,7 +490,6 @@ class _AcceleratorConnector:
         # Change fsdp to xla_fsdp if using TPU
         if strategy_flag == "fsdp" and self._accelerator_flag == "tpu":
             strategy_flag = "xla_fsdp"
-
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
         ) and self._accelerator_flag not in ("cuda", "gpu"):
