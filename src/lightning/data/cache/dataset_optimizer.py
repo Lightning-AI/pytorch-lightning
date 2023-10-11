@@ -343,9 +343,8 @@ class DatasetOptimizer(ABC):
     def prepare_items_metadata(self, root: str, filepaths: List[str]) -> List[Any]:
         pass
 
-    @abstractmethod
     def prepare_item(self, metadata_item: Any) -> Any:
-        pass
+        return metadata_item
 
     def __init__(
         self,
