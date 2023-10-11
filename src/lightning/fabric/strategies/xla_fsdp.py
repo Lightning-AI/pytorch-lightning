@@ -588,6 +588,11 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
                 )
             if "model" not in state or not isinstance(model := state["model"], torch.nn.Module):
                 raise NotImplementedError("XLAFSDP only supports a single model instance with 'model' as the key.")
+            if any(isinstance(mod, XLAFSDP) for mod in model.modules()):
+                raise ValueError(
+                    "`XLAFSDPStrategy` does not support loading full model checkpoint"
+                    " if the model or any submodules are manually wrapped."
+                )
             full_ckpt = torch.load(path)
             model.load_state_dict(full_ckpt.pop("model"), strict=strict)
             return full_ckpt
