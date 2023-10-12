@@ -68,7 +68,7 @@ class CUDAAccelerator(Accelerator):
         accelerator_registry.register(
             "cuda",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
 

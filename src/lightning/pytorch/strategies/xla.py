@@ -21,13 +21,13 @@ from torch.nn import Module
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1, _using_pjrt
-from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
+from lightning.fabric.plugins import XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
+from lightning.pytorch.plugins import XLAPrecisionPlugin
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
-from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
 from lightning.pytorch.strategies.strategy import TBroadcast
@@ -49,8 +49,8 @@ class XLAStrategy(DDPStrategy):
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]] = None,
+        precision_plugin: Optional[XLAPrecisionPlugin] = None,
         debug: bool = False,
         sync_module_states: bool = True,
         **_: Any,
@@ -65,23 +65,39 @@ class XLAStrategy(DDPStrategy):
             precision_plugin=precision_plugin,
             start_method="fork",
         )
-        self._checkpoint_io: Optional[CheckpointIO]
         self.debug = debug
         self._launched = False
         self._sync_module_states = sync_module_states
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        if self._checkpoint_io is None:
-            self._checkpoint_io = XLACheckpointIO()
-        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
-            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
-
-        return self._checkpoint_io
+    @property  # type: ignore[override]
+    def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
+        plugin = self._checkpoint_io
+        if plugin is not None:
+            assert isinstance(plugin, (XLACheckpointIO, _WrappingCheckpointIO))
+            return plugin
+        return XLACheckpointIO()
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: CheckpointIO) -> None:
+    def checkpoint_io(self, io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]]) -> None:
+        if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
+            raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
+
+    @property  # type: ignore[override]
+    def precision_plugin(self) -> XLAPrecisionPlugin:
+        plugin = self._precision_plugin
+        if plugin is not None:
+            assert isinstance(plugin, XLAPrecisionPlugin)
+            return plugin
+        return XLAPrecisionPlugin()
+
+    @precision_plugin.setter
+    def precision_plugin(self, precision_plugin: Optional[XLAPrecisionPlugin]) -> None:
+        if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecisionPlugin):
+            raise TypeError(
+                f"The XLA strategy can only work with the `XLAPrecisionPlugin` plugin, found {precision_plugin}"
+            )
+        self._precision_plugin = precision_plugin
 
     @property
     def root_device(self) -> torch.device:
@@ -251,7 +267,7 @@ class XLAStrategy(DDPStrategy):
         pass
 
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
-        self._pod_progress_bar_force_stdout()
+        _pod_progress_bar_force_stdout(self.global_rank)
 
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
@@ -304,6 +320,7 @@ class XLAStrategy(DDPStrategy):
 
     def teardown(self) -> None:
         super().teardown()
+        self._launched = False  # after the Trainer finishes, we aren't inside the spawned region
         os.environ.pop("PT_XLA_DEBUG", None)
 
     @classmethod
@@ -312,16 +329,21 @@ class XLAStrategy(DDPStrategy):
         strategy_registry.register(
             cls.strategy_name,
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__name__,
         )
 
-    def _pod_progress_bar_force_stdout(self) -> None:
-        # Why is it required? The way `pytorch_xla.distributed` streams logs
-        # from different vms to the main worker doesn't work well with tqdm
-        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
-        # The print statement seems to force tqdm to flush stdout.
-        import torch_xla.core.xla_env_vars as xenv
-        from torch_xla.utils.utils import getenv_as
 
-        if self.global_rank == 0 and getenv_as(xenv.TPUVM_MODE, int, 0) == 1:
-            print()
+def _pod_progress_bar_force_stdout(global_rank: int) -> None:
+    if _using_pjrt():
+        # this was removed in https://github.com/pytorch/xla/pull/5240
+        return
+
+    # Why is it required? The way `pytorch_xla.distributed` streams logs
+    # from different vms to the main worker doesn't work well with tqdm
+    # Ref: https://github.com/pytorch/xla/blob/v2.0.0/torch_xla/distributed/xla_dist.py#L227
+    # The print statement seems to force tqdm to flush stdout.
+    import torch_xla.core.xla_env_vars as xenv
+    from torch_xla.utils.utils import getenv_as
+
+    if global_rank == 0 and getenv_as(xenv.TPUVM_MODE, int, 0) == 1:
+        print()

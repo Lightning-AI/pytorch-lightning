@@ -539,6 +539,9 @@ class Trainer:
         model = _maybe_unwrap_optimized(model)
         self.strategy._lightning_module = model
         _verify_strategy_supports_compile(model, self.strategy)
+        self.state.fn = TrainerFn.FITTING
+        self.state.status = TrainerStatus.RUNNING
+        self.training = True
         call._call_and_handle_interrupt(
             self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
@@ -552,10 +555,6 @@ class Trainer:
         ckpt_path: Optional[str] = None,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: trainer fit stage")
-
-        self.state.fn = TrainerFn.FITTING
-        self.state.status = TrainerStatus.RUNNING
-        self.training = True
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
@@ -572,6 +571,7 @@ class Trainer:
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
+        assert self.state.fn is not None
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn,
             ckpt_path,
@@ -640,6 +640,9 @@ class Trainer:
             model = _maybe_unwrap_optimized(model)
             self.strategy._lightning_module = model
         _verify_strategy_supports_compile(self.lightning_module, self.strategy)
+        self.state.fn = TrainerFn.VALIDATING
+        self.state.status = TrainerStatus.RUNNING
+        self.validating = True
         return call._call_and_handle_interrupt(
             self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
@@ -656,10 +659,6 @@ class Trainer:
         # SETUP HOOK
         # --------------------
         log.debug(f"{self.__class__.__name__}: trainer validate stage")
-
-        self.state.fn = TrainerFn.VALIDATING
-        self.state.status = TrainerStatus.RUNNING
-        self.validating = True
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
@@ -680,6 +679,7 @@ class Trainer:
         # links data to the trainer
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
+        assert self.state.fn is not None
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
@@ -749,6 +749,9 @@ class Trainer:
             model = _maybe_unwrap_optimized(model)
             self.strategy._lightning_module = model
         _verify_strategy_supports_compile(self.lightning_module, self.strategy)
+        self.state.fn = TrainerFn.TESTING
+        self.state.status = TrainerStatus.RUNNING
+        self.testing = True
         return call._call_and_handle_interrupt(
             self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
@@ -765,10 +768,6 @@ class Trainer:
         # SETUP HOOK
         # --------------------
         log.debug(f"{self.__class__.__name__}: trainer test stage")
-
-        self.state.fn = TrainerFn.TESTING
-        self.state.status = TrainerStatus.RUNNING
-        self.testing = True
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
@@ -789,6 +788,7 @@ class Trainer:
         # links data to the trainer
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
+        assert self.state.fn is not None
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
@@ -859,6 +859,9 @@ class Trainer:
             model = _maybe_unwrap_optimized(model)
             self.strategy._lightning_module = model
         _verify_strategy_supports_compile(self.lightning_module, self.strategy)
+        self.state.fn = TrainerFn.PREDICTING
+        self.state.status = TrainerStatus.RUNNING
+        self.predicting = True
         return call._call_and_handle_interrupt(
             self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
         )
@@ -875,10 +878,6 @@ class Trainer:
         # SETUP HOOK
         # --------------------
         log.debug(f"{self.__class__.__name__}: trainer predict stage")
-
-        self.state.fn = TrainerFn.PREDICTING
-        self.state.status = TrainerStatus.RUNNING
-        self.predicting = True
 
         self.predict_loop.return_predictions = return_predictions  # type: ignore[assignment]
 
@@ -898,6 +897,7 @@ class Trainer:
         # links data to the trainer
         self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
+        assert self.state.fn is not None
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
@@ -1021,6 +1021,9 @@ class Trainer:
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         # wait for all to join if on distributed
         self.strategy.barrier("run-stage")
+
+        zero_grad_kwargs = {} if _TORCH_GREATER_EQUAL_2_0 else {"set_to_none": True}
+        self.lightning_module.zero_grad(**zero_grad_kwargs)
 
         if self.evaluating:
             return self._evaluation_loop.run()
