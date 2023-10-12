@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from lightning import seed_everything
 from lightning.data.cache import Cache
-from lightning.data.cache.constants import _DEFAULT_FAST_DEV_RUN_ITEMS, _TORCH_2_1_0_AVAILABLE, _INDEX_FILENAME
+from lightning.data.cache.constants import _DEFAULT_FAST_DEV_RUN_ITEMS, _INDEX_FILENAME, _TORCH_2_1_0_AVAILABLE
 
 if _TORCH_2_1_0_AVAILABLE:
     from torch.utils._pytree import tree_flatten, tree_unflatten
@@ -36,7 +36,7 @@ def _get_node_rank() -> int:
 
 
 def _get_fast_dev_mode() -> int:
-    """Returns whether fast dev mode is enabled"""
+    """Returns whether fast dev mode is enabled."""
     return bool(int(os.getenv("FAST_DEV_MODE", 1)))
 
 
@@ -44,7 +44,7 @@ def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, que
     """This function is used to download data from a remote directory to a cache directory to optimise reading."""
     # 1. Create client
     s3 = boto3.client("s3")
-    
+
     while True:
         # 2. Fetch from the queue
         r: Optional[Tuple[int, List[str]]] = queue_in.get()
@@ -54,7 +54,7 @@ def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, que
             queue_out.put(None)
             return
 
-        # 4. Unpack
+        # 4. Unpack
         index, paths = r
 
         # 5. Check whether all the files are already downloaded
@@ -124,11 +124,9 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
         # Inform the remover to delete the file
         if remove_queue:
             remove_queue.put([local_filepath])
-        
 
 
 class BaseWorker:
-    
     def __init__(
         self,
         worker_index: int,
@@ -178,7 +176,6 @@ class BaseWorker:
         self._collected_items = 0
         self._counter = 0
 
-
     def run(self):
         try:
             self._setup()
@@ -195,18 +192,17 @@ class BaseWorker:
         self._start_remover()
 
     def _loop(self):
-        
         num_downloader_finished = 0
 
         while True:
             r = self.ready_to_process_queue.get()
-            
+
             if r is None:
                 num_downloader_finished += 1
                 if num_downloader_finished == self.num_downloaders:
                     self.remove_queue.put(None)
                     chunks_filepaths = self.cache.done()
-                    
+
                     if chunks_filepaths:
                         for chunk_filepath in chunks_filepaths:
                             if isinstance(chunk_filepath, str) and os.path.exists(chunk_filepath):
@@ -218,12 +214,12 @@ class BaseWorker:
                     return
                 continue
 
-            chunk_name = self.cache._add_item(r + self.start_index,
-                self.prepare_item(self.items[r]) if self.prepare_item else self.items[r]
+            chunk_name = self.cache._add_item(
+                r + self.start_index, self.prepare_item(self.items[r]) if self.prepare_item else self.items[r]
             )
-            
+
             self._try_upload(chunk_name)
-            
+
             self._counter += 1
 
             if self.worker_queue:
@@ -242,7 +238,10 @@ class BaseWorker:
         os.makedirs(self.cache_chunks_dir, exist_ok=True)
 
         self.cache = Cache(
-            self.cache_chunks_dir, chunk_bytes=self.chunk_bytes, chunk_size=self.chunk_size, compression=self.compression
+            self.cache_chunks_dir,
+            chunk_bytes=self.chunk_bytes,
+            chunk_size=self.chunk_size,
+            compression=self.compression,
         )
 
         self.cache_data_dir = os.path.join("/cache", "data", self.dataset_name)
