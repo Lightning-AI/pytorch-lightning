@@ -18,7 +18,7 @@ ______________________________________________________________________
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/lightning_fabric)](https://pypi.org/project/lightning_fabric/)
 [![PyPI Status](https://badge.fury.io/py/lightning_fabric.svg)](https://badge.fury.io/py/lightning_fabric)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/lightning-fabric)](https://pepy.tech/project/lightning-fabric)
-](https://pepy.tech/project/lightning-fabric)
+\](https://pepy.tech/project/lightning-fabric)
 [![Conda](https://img.shields.io/conda/v/conda-forge/lightning_fabric?label=conda&color=success)](https://anaconda.org/conda-forge/lightning_fabric)
 
 </div>
