@@ -76,9 +76,6 @@ jobs:
         with:
           repository: gridai/base-images
           token: ${{ secrets.PAT_GHOST }}
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VER }}
       - name: Update lightning version
         run: |
           import json, os
@@ -88,24 +85,45 @@ jobs:
           vers["lightning_version"] = os.getenv('TAG')
           with open(fname, "w", encoding="utf-8") as fopen:
               json.dump(vers, fopen, indent=2)
+              # satisfy pre-commit with line fixer
+              fopen.write(os.linesep)
         shell: python
       - run: cat versions.json
-      - name: GIT commit & push
-        run: |
-          git config --global user.name "PL Ghost"
-          git config --global user.email pl-github@grid.ai
-          git checkout -b ${BRANCH_NAME}
-          git add versions.json
-          git status
-          git commit -m "bumping lightning version -> ${TAG}"
-          git push -u origin ${BRANCH_NAME} -f
+
+      - name: Create Pull Request
+        if: github.event_name != 'pull_request'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: "Bump lightning ver `${{ env.TAG }}`"
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          token: ${{ secrets.PAT_GHOST }}
+          add-paths: versions.json
+          commit-message: "bumping lightning version -> (${{ env.TAG }})"
+          branch: "bump/lightning-${{ env.TAG }}"
+          # Delete the branch when closing pull requests, and when undeleted after merging.
+          delete-branch: true
+          # the PR"s body/content
+          body: >
+            **This is automated update with the latest lighting
+              [release](https://github.com/Lightning-AI/lightning/releases/tag/${{ env.TAG }})!**
+
+            Please, act swiftly to land this PR as it is effectively blocking lightning release to be finished...
+          assignees: |
+            justusschock
+            borda
+          reviewers: |
+            justusschock
+            ethanwharris
+            borda
 
   waiting:
     runs-on: ubuntu-22.04
     needs: [release-version, signaling]
     env:
       TAG: ${{ needs.release-version.outputs.tag }}
-    timeout-minutes: 90
+    # due to PR process this may take longer
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
