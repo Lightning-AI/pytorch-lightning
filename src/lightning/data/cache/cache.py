@@ -48,9 +48,11 @@ class Cache:
         super().__init__()
         if not _TORCH_2_1_0_AVAILABLE:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
-        self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
-        self._reader = BinaryReader(cache_dir, remote_dir=remote_dir, compression=compression)
-        self._cache_dir = cache_dir
+        self._writer = BinaryWriter(
+            str(cache_dir), chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression
+        )
+        self._reader = BinaryReader(str(cache_dir), remote_dir=remote_dir, compression=compression)
+        self._cache_dir = str(cache_dir)
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
 
@@ -80,9 +82,9 @@ class Cache:
         """Inform the writer the chunking phase is finished."""
         return self._writer.done()
 
-    def merge(self, num_workers: int = 1) -> None:
+    def merge(self, num_workers: int = 1, node_rank: Optional[int] = None) -> None:
         """Inform the writer the chunking phase is finished."""
-        self._writer.merge(num_workers)
+        self._writer.merge(num_workers, node_rank=node_rank)
 
     def __len__(self) -> int:
         return self._reader.get_length()

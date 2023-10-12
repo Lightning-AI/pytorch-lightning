@@ -7,6 +7,7 @@ from enum import Enum
 from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
+from shutil import copyfile
 from threading import Thread
 from time import sleep, time
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
@@ -53,7 +54,7 @@ def _get_node_rank() -> int:
 
 def _get_fast_dev_mode() -> int:
     """Returns whether fast dev mode is enabled."""
-    return bool(int(os.getenv("FAST_DEV_MODE", 1)))
+    return bool(int(os.getenv("FAST_DEV_RUN", 1)))
 
 
 def _get_home_folder() -> Optional[str]:
@@ -78,8 +79,6 @@ def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, que
         # 4. Unpack
         index, paths = r
 
-        print(src_dir, cache_dir)
-
         # 5. Check whether all the files are already downloaded
         if all(os.path.exists(p.replace(src_dir, cache_dir)) for p in paths):
             queue_out.put(index)
@@ -90,20 +89,20 @@ def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, que
             for path in paths:
                 remote_path = path.replace(src_dir, remote_src_dir)
                 obj = parse.urlparse(remote_path)
-
-                if obj.scheme != "s3":
-                    raise ValueError(
-                        f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_path}"
-                    )
-
                 local_path = path.replace(src_dir, cache_dir)
 
-                dirpath = os.path.dirname(local_path)
+                if obj.scheme == "s3":
+                    dirpath = os.path.dirname(local_path)
 
-                os.makedirs(dirpath, exist_ok=True)
+                    os.makedirs(dirpath, exist_ok=True)
 
-                with open(local_path, "wb") as f:
-                    s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
+                    with open(local_path, "wb") as f:
+                        s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
+
+                elif os.path.exists(remote_path):
+                    copyfile(remote_path, local_path)
+                else:
+                    raise ValueError(f"The provided {remote_src_dir} isn't supported.")
 
         # 7. Inform the worker the current files are available
         queue_out.put(index)
@@ -131,10 +130,8 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
     """This function is used to upload optimised chunks from a local to remote dataset directory."""
     obj = parse.urlparse(remote_dst_dir)
 
-    if obj.scheme != "s3":
-        raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_dst_dir}")
-
-    s3 = boto3.client("s3")
+    if obj.scheme == "s3":
+        s3 = boto3.client("s3")
 
     while True:
         local_filepath: Optional[str] = upload_queue.get()
@@ -147,7 +144,14 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
         if not local_filepath.startswith(cache_dir):
             local_filepath = os.path.join(cache_dir, local_filepath)
 
-        s3.upload_file(local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath)))
+        if obj.scheme == "s3":
+            s3.upload_file(
+                local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
+            )
+        elif os.path.isdir(remote_dst_dir):
+            copyfile(local_filepath, os.path.join(remote_dst_dir, os.path.basename(local_filepath)))
+        else:
+            raise ValueError(f"The provided {remote_dst_dir} isn't supported.")
 
         # Inform the remover to delete the file
         if remove_queue:
@@ -209,7 +213,9 @@ class BaseWorker:
             self._setup()
             self._loop()
         except Exception:
-            self.error_queue.put(traceback.format_exc())
+            traceback_format = traceback.format_exc()
+            print(traceback_format)
+            self.error_queue.put(traceback_format)
 
     def _setup(self) -> None:
         self._set_environ_variables()
@@ -272,7 +278,6 @@ class BaseWorker:
             chunk_size=self.chunk_size,
             compression=self.compression,
         )
-
         self.cache_data_dir = os.path.join(_get_cache_folder(), "data", self.dataset_name)
         os.makedirs(self.cache_data_dir, exist_ok=True)
 
@@ -450,7 +455,7 @@ class DatasetOptimizer(ABC):
         num_workers: Optional[int] = None,
         num_downloaders: Optional[int] = None,
         chunk_size: Optional[int] = None,
-        chunk_bytes: Optional[int] = 1 << 26,
+        chunk_bytes: Optional[int] = None,
         compression: Optional[str] = None,
         delete_cached_files: bool = True,
         src_resolver: Optional[Callable[[str], Optional[str]]] = None,
@@ -482,8 +487,10 @@ class DatasetOptimizer(ABC):
         self.src_dir = str(src_dir)
         self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
         self.num_downloaders = num_downloaders or (1 if fast_dev_run else 2)
+        if chunk_size is not None and chunk_bytes is not None:
+            raise ValueError("Either one of the `chunk_size` or the `chunk_bytes` need to be provided.")
         self.chunk_size = chunk_size
-        self.chunk_bytes = chunk_bytes
+        self.chunk_bytes = 1 << 26 if chunk_size is None else chunk_bytes
         self.delete_cached_files = delete_cached_files
         self.compression = compression
         self.fast_dev_run = _get_fast_dev_mode() if fast_dev_run is None else fast_dev_run
@@ -495,7 +502,7 @@ class DatasetOptimizer(ABC):
         self.progress_queue: Optional[Queue] = None
         self.error_queue: Queue = Queue()
         self.remote_src_dir = (
-            remote_src_dir
+            str(remote_src_dir)
             if remote_src_dir is not None
             else (self.src_resolver(src_dir) if self.src_resolver else None)
         )
@@ -562,7 +569,10 @@ class DatasetOptimizer(ABC):
                         self._exit_on_error(error)
                     except Empty:
                         assert self.progress_queue
-                        index, counter = self.progress_queue.get()
+                        try:
+                            index, counter = self.progress_queue.get(timeout=0.001)
+                        except Empty:
+                            continue
                         self.workers_tracker[index] = counter
                         new_total = sum(self.workers_tracker.values())
                     pbar.update(new_total - current_total)
@@ -576,7 +586,7 @@ class DatasetOptimizer(ABC):
         cache_dir = os.path.join(_get_cache_folder(), self.name)
         merge_cache = Cache(cache_dir, chunk_bytes=1)
         merge_cache.merge(self.num_workers)
-        self._upload_index(cache_dir)
+        self._upload_index(cache_dir, _get_num_nodes(), _get_node_rank())
 
         print("Finished data processing!")
         print()
@@ -709,12 +719,42 @@ class DatasetOptimizer(ABC):
             w.join(0)
         os._exit(0)
 
-    def _upload_index(self, cache_dir: str) -> None:
+    def _upload_index(self, cache_dir: str, num_nodes: int, node_rank: Optional[int]) -> None:
         """This method upload the index file to the remote cloud directory."""
         if not self.remote_dst_dir:
             return
 
         obj = parse.urlparse(self.remote_dst_dir)
-        s3 = boto3.client("s3")
-        local_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
-        s3.upload_file(local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), _INDEX_FILENAME))
+        if num_nodes > 1:
+            local_filepath = os.path.join(cache_dir, f"{node_rank}-{_INDEX_FILENAME}")
+        else:
+            local_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
+
+        if obj.scheme == "s3":
+            s3 = boto3.client("s3")
+            s3.upload_file(
+                local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
+            )
+        elif os.path.isdir(self.remote_dst_dir):
+            copyfile(local_filepath, os.path.join(self.remote_dst_dir, os.path.basename(local_filepath)))
+
+        if num_nodes == 1:
+            return
+
+        # Merge the index files generated by each node
+        if num_nodes == node_rank + 1:
+            # Get the index file locally
+            for node_rank in range(num_nodes):
+                remote_filepath = os.path.join(self.remote_dst_dir, f"{node_rank}-{_INDEX_FILENAME}")
+                node_index_filepath = os.path.join(cache_dir, os.path.basename(remote_filepath))
+                if obj.scheme == "s3":
+                    obj = parse.urlparse(self.remote_dst_dir)
+                    with open(node_index_filepath, "wb") as f:
+                        s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
+                    pass
+                elif os.path.isdir(self.remote_dst_dir):
+                    copyfile(remote_filepath, node_index_filepath)
+
+            merge_cache = Cache(cache_dir, chunk_bytes=1)
+            merge_cache.merge(num_nodes, node_rank=-1)
+            self._upload_index(cache_dir, 1, None)

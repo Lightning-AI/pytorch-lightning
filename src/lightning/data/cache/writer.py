@@ -216,10 +216,10 @@ class BinaryWriter:
 
     def write_chunk(self, on_done: bool = False) -> str:
         """Write a chunk to the filesystem."""
-        filepath = self.get_chunk_filename()
-        self.write_chunk_to_file(self._create_chunk(filepath, on_done=on_done), filepath)
+        filename = self.get_chunk_filename()
+        self.write_chunk_to_file(self._create_chunk(filename, on_done=on_done), filename)
         self._chunk_index += 1
-        return filepath
+        return os.path.join(self._cache_dir, filename)
 
     def __setitem__(self, index: int, items: Any) -> None:
         """Store an item to a chunk.
@@ -311,9 +311,10 @@ class BinaryWriter:
         self._is_done = True
         return filepaths
 
-    def merge(self, num_workers: int = 1) -> None:
+    def merge(self, num_workers: int = 1, node_rank: Optional[int] = None) -> None:
         """Once all the workers have written their own index, the merge function is responsible to read and merge them
         into a single index."""
+        node_rank = (None if node_rank == -1 else node_rank) if node_rank is not None else os.getenv("NODE_RANK", None)
         num_workers = num_workers or 1
 
         # Only for non rank 0
@@ -357,6 +358,9 @@ class BinaryWriter:
 
             os.remove(chunk_path)
 
-        # Write down the collected index
-        with open(os.path.join(self._cache_dir, _INDEX_FILENAME), "w") as f:
-            json.dump({"chunks": chunks_info, "config": config}, f, sort_keys=True)
+        if node_rank is None:
+            with open(os.path.join(self._cache_dir, _INDEX_FILENAME), "w") as f:
+                json.dump({"chunks": chunks_info, "config": config}, f, sort_keys=True)
+        else:
+            with open(os.path.join(self._cache_dir, f"{node_rank}-{_INDEX_FILENAME}"), "w") as f:
+                json.dump({"chunks": chunks_info, "config": config}, f, sort_keys=True)
