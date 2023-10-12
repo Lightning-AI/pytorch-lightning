@@ -171,14 +171,14 @@ class BinaryWriter:
         if on_done:
             indices = sorted(self._serialized_items.keys())
             for i in range(len(indices) - 1):
-                assert indices[i] == indices[i + 1] - 1
+                assert indices[i] == indices[i + 1] - 1, indices
             min_index = indices[0]
             max_index = indices[-1] + 1
             num_items = np.uint32(max_index - min_index)
             items = [self._serialized_items.pop(index) for index in indices]
         else:
-            assert self._max_index
-            assert self._min_index
+            assert self._max_index is not None, (self._max_index, self._min_index)
+            assert self._min_index is not None, (self._max_index, self._min_index)
             num_items = np.uint32(self._max_index - self._min_index)
             items = [self._serialized_items.pop(index) for index in range(self._min_index, self._max_index)]
             min_index = self._min_index
@@ -242,10 +242,11 @@ class BinaryWriter:
         )
 
         if self._should_write():
+            filepath = os.path.join(self._cache_dir, self.get_chunk_filename())
             self.write_chunk()
             self._min_index = None
             self._max_index = None
-            return os.path.join(self._cache_dir, self.get_chunk_filename())
+            return filepath
 
     def _should_write(self) -> bool:
         if not self._serialized_items:

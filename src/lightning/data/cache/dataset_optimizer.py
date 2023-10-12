@@ -129,7 +129,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
         if not local_filepath.startswith(cache_dir):
             local_filepath = os.path.join(cache_dir, local_filepath)
 
-        s3.upload_file(local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), local_filepath))
+        s3.upload_file(local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath)))
 
         # Inform the remover to delete the file
         if remove_queue:
@@ -227,9 +227,9 @@ class BaseWorker:
 
             item_index = index + self.start_index
             item_data = self.prepare_item(self.items[index]) if self.prepare_item else self.items[index]  # type: ignore
-            chunk_name = self.cache._add_item(item_index, item_data)
+            chunk_filepath = self.cache._add_item(item_index, item_data)
 
-            self._try_upload(chunk_name)
+            self._try_upload(chunk_filepath)
 
             self._counter += 1
 
@@ -262,6 +262,7 @@ class BaseWorker:
         if not filepath or self.remote_dst_dir is None:
             return
 
+        assert os.path.exists(filepath), filepath
         self.upload_queue.put(filepath)
 
     def _collect_paths(self) -> None:
@@ -549,19 +550,15 @@ class DatasetOptimizer(ABC):
                         new_total = sum(self.workers_tracker.values())
                     pbar.update(new_total - current_total)
                 current_total = new_total
-                if current_total >= num_items:
+                if current_total == num_items:
                     break
 
-        if self.worker_type == WorkerType.THREAD.value:
-            for w in self.workers:
-                w.join(0)
-        else:
-            for w in self.workers:
-                w.join(0)
+        for w in self.workers:
+            w.join(0)
 
         cache_dir = os.path.join("/cache", self.name)
         merge_cache = Cache(cache_dir, chunk_bytes=1)
-        merge_cache.merge()
+        merge_cache.merge(self.num_workers)
         self._upload_index(cache_dir)
 
         print("Finished data processing!")
