@@ -28,8 +28,8 @@ jobs:
           #lfs: true
 
       - run: git submodule status
-      - run: git submodule foreach git lfs pull
-      - run: git submodule update --remote --force
+      - run: git lfs install --skip-smudge  # Skip smudge - We'll download binary files later in a faster batch
+      - run: git submodule update --remote
       - run: git submodule status
       - run: git status
 
