@@ -1,2 +1,4 @@
 # Ignore all MD files:
 **/*.md
+# do not revert req. expresions
+.github/markdown-links-config.json
