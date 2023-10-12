@@ -17,9 +17,6 @@ defaults:
 jobs:
   docs-update:
     runs-on: ubuntu-20.04
-    env:
-      GIT_TRACE: 1
-      #GIT_CURL_VERBOSE: 1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,25 +24,47 @@ jobs:
           fetch-depth: 0
           #lfs: true
 
-      - run: git submodule status
-      - run: git lfs install --skip-smudge # Skip smudge - We'll download binary files later in a faster batch
-      - run: git submodule update --remote --force
-      - run: git submodule status
-      - run: git status
+      - name: initial state
+        run: |
+          git submodule status
+          # Skip smudge - We'll download binary files later in a faster batch
+          git lfs install --skip-smudge
+      - name: update submodules
+        env:
+          GIT_TRACE: 1
+        run: |
+          git submodule sync
+          git submodule update --remote --force
+      - name: final state
+        run: |
+          git submodule status
+          git status
+          
+          short_sha=$(git submodule status | grep -A 1 _notebooks | cut -c1-8)
+          echo "SHA_SHORT=$short_sha" >> $GITHUB_ENV
 
       - name: Create Pull Request
         if: github.event_name != 'pull_request'
         uses: peter-evans/create-pull-request@v5
         with:
-          title: "update ref to latest tutorials"
+          title: "docs: update ref to latest tutorials"
           committer: GitHub <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          commit-message: "update tutorials to ..."
-          body: "**This is automated update with latest lighting tutorials!**"
-          branch: "docs/update-tutorials"
-          delete-branch: true # Delete the branch when closing pull requests, and when undeleted after merging.
           token: ${{ secrets.PAT_GHOST }}
+          commit-message: "update tutorials to `${{ env.SHA_SHORT }}`"
+          body: >
+            **This is automated update with the latest lighting tutorials!**
+            The target commit in the [publication](https://github.com/Lightning-AI/tutorials/tree/publication)
+             branch is [${{ env.SHA_SHORT }}](https://github.com/Lightning-AI/tutorials/commit/${{ env.SHA_SHORT }}).
+            
+            Before proceeding further double check that the PR include only submodule's head update.
+            Eventually some additional adjustments in lightning docs may be needed.
+
+          branch: "docs/update-tutorials"
+          # Delete the branch when closing pull requests, and when undeleted after merging.
+          delete-branch: true
           labels: |
             docs
+            examples
           assignees: borda
           reviewers: borda
