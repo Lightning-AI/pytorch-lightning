@@ -12,12 +12,12 @@ from time import sleep, time
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from urllib import parse
 
-import boto3
 from tqdm import tqdm
 
 from lightning import seed_everything
 from lightning.data.cache import Cache
 from lightning.data.cache.constants import (
+    _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
     _LIGHTNING_CLOUD_0_5_41_AVAILABLE,
@@ -29,6 +29,9 @@ if _TORCH_2_1_0_AVAILABLE:
 
 if _LIGHTNING_CLOUD_0_5_41_AVAILABLE:
     from lightning_cloud.resolver import _LightningSrcResolver, _LightningTargetResolver
+
+if _BOTO3_AVAILABLE:
+    import boto3
 
 logger = logging.Logger(__name__)
 
