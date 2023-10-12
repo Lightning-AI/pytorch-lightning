@@ -67,7 +67,7 @@ class Cache:
         self._writer[index] = data
 
     def _add_item(self, index: int, data: Any) -> Optional[str]:
-        """Store an item in the writer and optionally return the chunk path"""
+        """Store an item in the writer and optionally return the chunk path."""
         return self._writer.add_item(index, data)
 
     def __getitem__(self, index: Union[int, ChunkedIndex]) -> Dict[str, Any]:
@@ -76,9 +76,9 @@ class Cache:
             index = ChunkedIndex(index, self._get_chunk_index_from_index(index))
         return self._reader.read(index)
 
-    def done(self) -> None:
+    def done(self) -> Optional[List[str]]:
         """Inform the writer the chunking phase is finished."""
-        self._writer.done()
+        return self._writer.done()
 
     def merge(self, num_workers: int = 1) -> None:
         """Inform the writer the chunking phase is finished."""

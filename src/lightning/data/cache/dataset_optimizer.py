@@ -9,7 +9,7 @@ from pathlib import Path
 from queue import Empty
 from threading import Thread
 from time import sleep, time
-from typing import Any, Callable, List, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from urllib import parse
 
 import boto3
@@ -17,10 +17,18 @@ from tqdm import tqdm
 
 from lightning import seed_everything
 from lightning.data.cache import Cache
-from lightning.data.cache.constants import _DEFAULT_FAST_DEV_RUN_ITEMS, _INDEX_FILENAME, _TORCH_2_1_0_AVAILABLE
+from lightning.data.cache.constants import (
+    _DEFAULT_FAST_DEV_RUN_ITEMS,
+    _INDEX_FILENAME,
+    _LIGHTNING_CLOUD_0_5_41_AVAILABLE,
+    _TORCH_2_1_0_AVAILABLE,
+)
 
 if _TORCH_2_1_0_AVAILABLE:
     from torch.utils._pytree import tree_flatten, tree_unflatten
+
+if _LIGHTNING_CLOUD_0_5_41_AVAILABLE:
+    from lightning_cloud.resolver import _LightningSrcResolver, _LightningTargetResolver
 
 logger = logging.Logger(__name__)
 
@@ -111,15 +119,17 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
     s3 = boto3.client("s3")
 
     while True:
-        r = upload_queue.get()
+        local_filepath: Optional[str] = upload_queue.get()
 
         # Terminate the process if we received a termination signal
-        if r is None:
+        if local_filepath is None:
             return
 
         # Upload the file to the target cloud storage
-        local_filepath = os.path.join(cache_dir, r)
-        s3.upload_file(local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), r))
+        if not local_filepath.startswith(cache_dir):
+            local_filepath = os.path.join(cache_dir, local_filepath)
+
+        s3.upload_file(local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), local_filepath))
 
         # Inform the remover to delete the file
         if remove_queue:
@@ -139,14 +149,14 @@ class BaseWorker:
         remote_src_dir: str,
         remote_dst_dir: Optional[str],
         items: List[Any],
-        worker_queue: Queue,
+        progress_queue: Queue,
         error_queue: Queue,
         num_downloaders: int,
         remove: bool,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
         compression: Optional[str] = None,
-    ):
+    ) -> None:
         """The BaseWorker is responsible to process the user data."""
         self.worker_index = worker_index
         self.num_workers = num_workers
@@ -163,27 +173,27 @@ class BaseWorker:
         self.chunk_bytes = chunk_bytes
         self.chunk_size = chunk_size
         self.compression = compression
-        self.paths = []
-        self.remover = None
-        self.downloaders = []
-        self.to_download_queues = []
-        self.ready_to_process_queue = Queue()
-        self.remove_queue = Queue()
-        self.upload_queue = Queue()
-        self.worker_queue = worker_queue
-        self.error_queue = error_queue
-        self.uploader = None
+        self.paths: List[List[str]] = []
+        self.remover: Optional[Process] = None
+        self.downloaders: List[Process] = []
+        self.to_download_queues: List[Queue] = []
+        self.ready_to_process_queue: Queue = Queue()
+        self.remove_queue: Queue = Queue()
+        self.upload_queue: Queue = Queue()
+        self.progress_queue: Queue = progress_queue
+        self.error_queue: Queue = error_queue
+        self.uploader: Optional[Process] = None
         self._collected_items = 0
         self._counter = 0
 
-    def run(self):
+    def run(self) -> None:
         try:
             self._setup()
             self._loop()
         except Exception:
             self.error_queue.put(traceback.format_exc())
 
-    def _setup(self):
+    def _setup(self) -> None:
         self._set_environ_variables()
         self._create_cache()
         self._collect_paths()
@@ -191,13 +201,13 @@ class BaseWorker:
         self._start_uploader()
         self._start_remover()
 
-    def _loop(self):
+    def _loop(self) -> None:
         num_downloader_finished = 0
 
         while True:
-            r = self.ready_to_process_queue.get()
+            index = self.ready_to_process_queue.get()
 
-            if r is None:
+            if index is None:
                 num_downloader_finished += 1
                 if num_downloader_finished == self.num_downloaders:
                     self.remove_queue.put(None)
@@ -209,31 +219,32 @@ class BaseWorker:
                                 self.upload_queue.put(chunk_filepath)
 
                     if self.remote_dst_dir:
+                        assert self.uploader
                         self.upload_queue.put(None)
                         self.uploader.join()
                     return
                 continue
 
-            chunk_name = self.cache._add_item(
-                r + self.start_index, self.prepare_item(self.items[r]) if self.prepare_item else self.items[r]
-            )
+            item_index = index + self.start_index
+            item_data = self.prepare_item(self.items[index]) if self.prepare_item else self.items[index]  # type: ignore
+            chunk_name = self.cache._add_item(item_index, item_data)
 
             self._try_upload(chunk_name)
 
             self._counter += 1
 
-            if self.worker_queue:
-                self.worker_queue.put((self.worker_index, self._counter))
+            if self.progress_queue:
+                self.progress_queue.put((self.worker_index, self._counter))
 
             if self.remove:
-                self.remove_queue.put(self.paths[r])
+                self.remove_queue.put(self.paths[index])
 
-    def _set_environ_variables(self):
+    def _set_environ_variables(self) -> None:
         # set the optimizer global rank and world_size
         os.environ["DATA_OPTIMIZER_GLOBAL_RANK"] = str(_get_node_rank() * self.num_workers + self.worker_index)
         os.environ["DATA_OPTIMIZER_WORLD_SIZE"] = str(self.num_workers)
 
-    def _create_cache(self):
+    def _create_cache(self) -> None:
         self.cache_chunks_dir = os.path.join("/cache", self.dataset_name)
         os.makedirs(self.cache_chunks_dir, exist_ok=True)
 
@@ -247,7 +258,13 @@ class BaseWorker:
         self.cache_data_dir = os.path.join("/cache", "data", self.dataset_name)
         os.makedirs(self.cache_data_dir, exist_ok=True)
 
-    def _collect_paths(self):
+    def _try_upload(self, filepath: Optional[str]) -> None:
+        if not filepath or self.remote_dst_dir is None:
+            return
+
+        self.upload_queue.put(filepath)
+
+    def _collect_paths(self) -> None:
         items = []
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
@@ -278,9 +295,9 @@ class BaseWorker:
 
         self.items = items
 
-    def _start_downloaders(self):
+    def _start_downloaders(self) -> None:
         for _ in range(self.num_downloaders):
-            to_download_queue = Queue()
+            to_download_queue: Queue = Queue()
             p = Process(
                 target=_download_data_target,
                 args=(
@@ -301,7 +318,7 @@ class BaseWorker:
         for downloader_index in range(self.num_downloaders):
             self.to_download_queues[downloader_index].put(None)
 
-    def _start_remover(self):
+    def _start_remover(self) -> None:
         if self.remove:
             self.remover = Process(
                 target=_remove_target,
@@ -313,7 +330,7 @@ class BaseWorker:
             )
             self.remover.start()
 
-    def _start_uploader(self):
+    def _start_uploader(self) -> None:
         if self.remote_dst_dir:
             self.uploader = Process(
                 target=_upload_fn,
@@ -328,30 +345,33 @@ class BaseWorker:
 
 
 class DataWorkerThread(BaseWorker, Thread):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """The DataWorkerThread is responsible to process the user data."""
         BaseWorker.__init__(self, *args, **kwargs)
         Thread.__init__(self, daemon=True)
 
-    def join(self, timeout=None):
+    def join(self, timeout: Optional[int] = None) -> None:  # type: ignore
         for w in self.downloaders:
-            w.kill()
+            w.join(timeout=timeout)
 
         if self.remover is not None:
-            self.remover.kill()
+            self.remover.join(timeout=timeout)
+
+        if self.uploader is not None:
+            self.uploader.join(timeout=timeout)
 
         super().join(timeout)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._counter
 
     @property
-    def collected_items(self):
+    def collected_items(self) -> int:
         return self._collected_items
 
 
 class DataWorkerProcess(BaseWorker, Process):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """The DataWorkerProcess is responsible to process the user data inside processes."""
         BaseWorker.__init__(self, *args, **kwargs)
         Process.__init__(self)
@@ -443,20 +463,20 @@ class DatasetOptimizer(ABC):
         """
         self.name = name
         self.src_dir = src_dir
-        self.num_workers = num_workers or (1 if fast_dev_run else os.cpu_count() * 4)
+        self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
         self.num_downloaders = num_downloaders or (1 if fast_dev_run else 2)
         self.chunk_size = chunk_size
         self.chunk_bytes = chunk_bytes
         self.delete_cached_files = delete_cached_files
         self.compression = compression
         self.fast_dev_run = _get_fast_dev_mode() if fast_dev_run is None else fast_dev_run
-        self.workers = []
+        self.workers: List[BaseWorker] = []
         self.src_resolver = src_resolver or _LightningSrcResolver()
         self.dst_resolver = _LightningTargetResolver()
         self.worker_type = worker_type
-        self.workers_tracker = {}
-        self.worker_queue = None
-        self.error_queue = Queue()
+        self.workers_tracker: Dict[int, int] = {}
+        self.progress_queue: Optional[Queue] = None
+        self.error_queue: Queue = Queue()
         self.remote_src_dir = (
             remote_src_dir
             if remote_src_dir is not None
@@ -507,7 +527,7 @@ class DatasetOptimizer(ABC):
         signal.signal(signal.SIGINT, self._signal_handler)
 
         if self.worker_type == WorkerType.THREAD.value:
-            self._create_thread_workers(user_items, begins, workers_user_items)
+            self._create_thread_workers(begins, workers_user_items)
         else:
             self._create_process_workers(begins, workers_user_items)
 
@@ -517,13 +537,14 @@ class DatasetOptimizer(ABC):
         with tqdm(total=num_items, smoothing=0, position=-1, mininterval=1) as pbar:
             while True:
                 if self.worker_type == WorkerType.THREAD.value:
-                    new_total = sum([len(w) for w in self.workers])
+                    new_total = sum([len(w) for w in self.workers])  # type: ignore
                 else:
                     try:
                         error = self.error_queue.get(timeout=0.001)
-                        self._exit(error)
+                        self._exit_on_error(error)
                     except Empty:
-                        index, counter = self.worker_queue.get()
+                        assert self.progress_queue
+                        index, counter = self.progress_queue.get()
                         self.workers_tracker[index] = counter
                         new_total = sum(self.workers_tracker.values())
                     pbar.update(new_total - current_total)
@@ -546,19 +567,15 @@ class DatasetOptimizer(ABC):
         print("Finished data processing!")
         print()
 
-    def _exit(self, error):
-        if self.worker_type == WorkerType.THREAD.value:
-            for w in self.workers:
-                w.join(0)
-        else:
-            for w in self.workers:
-                w.kill()
-        raise RuntimeError(f"We found the following error {error}")
+    def _exit_on_error(self, error: str) -> None:
+        for w in self.workers:
+            w.join(0)
+        raise RuntimeError(f"We found the following error {error}.")
 
-    def _create_thread_workers(self, user_items, begins, workers_user_items):
-        num_items = len(user_items)
+    def _create_thread_workers(self, begins: List[int], workers_user_items: List[List[Any]]) -> None:
         current_total = 0
-        with tqdm(total=num_items, smoothing=0) as pbar:
+        total = sum([len(w) for w in workers_user_items])
+        with tqdm(total=total, smoothing=0) as pbar:
             for worker_idx, worker_user_items in enumerate(workers_user_items):
                 new_total = sum([w.collected_items for w in self.workers])
                 pbar.update(new_total - current_total)
@@ -590,11 +607,11 @@ class DatasetOptimizer(ABC):
                 pbar.update(new_total - current_total)
                 current_total = new_total
                 sleep(1)
-                if current_total == num_items:
+                if current_total == total:
                     break
 
-    def _create_process_workers(self, begins, workers_user_items):
-        self.worker_queue = Queue()
+    def _create_process_workers(self, begins: List[int], workers_user_items: List[List[Any]]) -> None:
+        self.progress_queue = Queue()
         for worker_idx, worker_user_items in enumerate(workers_user_items):
             worker = DataWorkerProcess(
                 worker_idx,
@@ -607,7 +624,7 @@ class DatasetOptimizer(ABC):
                 self.remote_src_dir,
                 self.remote_dst_dir,
                 worker_user_items,
-                self.worker_queue,
+                self.progress_queue,
                 self.error_queue,
                 self.num_downloaders,
                 self.delete_cached_files,
@@ -618,7 +635,7 @@ class DatasetOptimizer(ABC):
             worker.start()
             self.workers.append(worker)
 
-    def _associated_items_to_workers(self, user_items: List[Any]):
+    def _associated_items_to_workers(self, user_items: List[Any]) -> Tuple[List[int], List[List[Any]]]:
         # Associate the items to the workers based on world_size and node_rank
         num_nodes = _get_num_nodes()
         current_node_rank = _get_node_rank()
@@ -640,8 +657,10 @@ class DatasetOptimizer(ABC):
                 workers_user_items.append(user_items[begin:end])
                 begins.append(begin)
             return begins, workers_user_items
+        raise RuntimeError(f"The current_node_rank {current_node_rank} doesn't exist in {num_nodes}.")
 
     def _cached_list_filepaths(self) -> List[str]:
+        """This method lists and caches the."""
         home = os.path.expanduser("~")
 
         # TODO: Handle home directory in Jobs
@@ -672,15 +691,14 @@ class DatasetOptimizer(ABC):
 
         return filepaths
 
-    def _signal_handler(self, signal, frame):
+    def _signal_handler(self, signal: Any, frame: Any) -> None:
+        """On temrination, we stop all the processes to avoid leaking RAM."""
         for w in self.workers:
-            if self.worker_type == WorkerType.THREAD.value:
-                w.join(0)
-            else:
-                w.kill()
+            w.join(0)
         os._exit(0)
 
     def _upload_index(self, cache_dir: str) -> None:
+        """This method upload the index file to the remote cloud directory."""
         if not self.remote_dst_dir:
             return
 

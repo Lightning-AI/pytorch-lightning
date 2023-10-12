@@ -34,7 +34,7 @@ class Item:
     data: bytes
     bytes: int
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.bytes
 
 
@@ -80,7 +80,7 @@ class BinaryWriter:
                 )
             self._compressor: Compressor = _COMPRESSORS[self._compression]
 
-        self._serialized_items: Dict[str, Item] = {}
+        self._serialized_items: Dict[int, Item] = {}
         self._chunk_index = 0
         self._min_index: Optional[int] = None
         self._max_index: Optional[int] = None
@@ -108,7 +108,7 @@ class BinaryWriter:
         if self._rank is None:
             rank = os.getenv("DATA_OPTIMIZER_GLOBAL_RANK", None)
             if rank:
-                self._rank = rank
+                self._rank = int(rank)
             else:
                 self._worker_env = _WorkerEnv.detect()
                 self._rank = self._distributed_env.global_rank * self._worker_env.world_size + self._worker_env.rank
@@ -177,6 +177,8 @@ class BinaryWriter:
             num_items = np.uint32(max_index - min_index)
             items = [self._serialized_items.pop(index) for index in indices]
         else:
+            assert self._max_index
+            assert self._min_index
             num_items = np.uint32(self._max_index - self._min_index)
             items = [self._serialized_items.pop(index) for index in range(self._min_index, self._max_index)]
             min_index = self._min_index
@@ -212,7 +214,7 @@ class BinaryWriter:
             return f"chunk-{self.rank}-{self._chunk_index}.{self._compression}.bin"
         return f"chunk-{self.rank}-{self._chunk_index}.bin"
 
-    def write_chunk(self, on_done: bool = False) -> None:
+    def write_chunk(self, on_done: bool = False) -> str:
         """Write a chunk to the filesystem."""
         filepath = self.get_chunk_filename()
         self.write_chunk_to_file(self._create_chunk(filepath, on_done=on_done), filepath)
@@ -229,7 +231,7 @@ class BinaryWriter:
         """
         self.add_item(index, items)
 
-    def add_item(self, index: int, items: Any):
+    def add_item(self, index: int, items: Any) -> Optional[str]:
         # Track the minimum index provided to the writer
         # Serialize the items and store an Item object.
         data = self.serialize(items)
@@ -243,7 +245,7 @@ class BinaryWriter:
             self.write_chunk()
             self._min_index = None
             self._max_index = None
-            return self.get_chunk_filename()
+            return os.path.join(self._cache_dir, self.get_chunk_filename())
 
     def _should_write(self) -> bool:
         if not self._serialized_items:
@@ -290,15 +292,21 @@ class BinaryWriter:
 
     def done(self) -> List[str]:
         """Called when StopIteration is triggered."""
-        filepaths = []
+        filepaths: List[str] = []
         if self.filled:
             return filepaths
-        
+
+        # Try writing down an chunks
         while self._should_write():
             filepaths.append(self.write_chunk())
+
+        # If any elements is left, try writing one last chunk
         if self._serialized_items:
             filepaths.append(self.write_chunk(True))
+
+        # Write down the index file
         self.write_chunks_index()
+
         self._is_done = True
         return filepaths
 
@@ -317,11 +325,17 @@ class BinaryWriter:
         is_done = False
         while not is_done:
             files = os.listdir(self._cache_dir)
+
+            # Return if the index already exists
             if _INDEX_FILENAME in files:
                 return
+
             index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
-            world_size = os.getenv("DATA_OPTIMIZER_WORLD_SIZE", None)
-            is_done = len(index_files) == world_size or self._distributed_env.world_size * num_workers
+
+            # When using the Data Optimizer, we don't use multi processes.
+            data_optimizer_world_size = os.getenv("DATA_OPTIMIZER_WORLD_SIZE", None)
+
+            is_done = len(index_files) == (data_optimizer_world_size or self._distributed_env.world_size * num_workers)
             sleep(0.001)
 
         # Read the index and append the chunks together
