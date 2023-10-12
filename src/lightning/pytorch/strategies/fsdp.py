@@ -327,7 +327,18 @@ class FSDPStrategy(ParallelStrategy):
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         if self.kwargs.get("use_orig_params"):
             return super().setup_optimizers(trainer)
-        if any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
+
+        invalid_params_error = False
+        try:
+            # In PyTorch < 2.0, or if `use_orig_params=False` the user needs to do access
+            # `self.trainer.model.parameters()` in configure_optimizers()
+            super().setup_optimizers(trainer)
+        except ValueError as ex:
+            if "optimizer got an empty parameter list" not in str(ex):
+                raise
+            invalid_params_error = True
+
+        if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
             # We avoid this limitation in PyTorch >= 2.0 by setting `use_orig_params=True`
             raise ValueError(
                 "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"

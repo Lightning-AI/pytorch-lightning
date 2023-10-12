@@ -388,6 +388,7 @@ def test_multiple_optimizers_step(tmpdir):
 
 def test_step_with_optimizer_closure(tmpdir):
     """Tests that `step` works with optimizer_closure."""
+    seed_everything(1)
 
     class TestModel(BoringModel):
         _losses = []
