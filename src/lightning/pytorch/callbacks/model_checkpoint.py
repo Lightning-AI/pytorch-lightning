@@ -20,6 +20,7 @@ Automatically save model checkpoints during training.
 import logging
 import os
 import re
+import shutil
 import time
 import warnings
 from copy import deepcopy
@@ -27,7 +28,6 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 from weakref import proxy
-import shutil
 
 import torch
 import yaml
