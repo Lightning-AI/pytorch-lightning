@@ -107,7 +107,7 @@ jobs:
           body: >
             **This is automated update with the latest lighting
               [release](https://github.com/Lightning-AI/lightning/releases/tag/${{ env.NEW_LAI_VERSION }})!**
-            
+
             Please, act swiftly to land this PR as it is effectively blocking lightning release to be finished...
           assignees: justusschock
           reviewers: |
