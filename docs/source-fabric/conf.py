@@ -10,13 +10,11 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import glob
 import inspect
 import os
-import shutil
 import sys
 
-import pt_lightning_sphinx_theme
+import lai_sphinx_theme
 from lightning_utilities.docs import fetch_external_assets
 
 import lightning
@@ -25,7 +23,9 @@ _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
 sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 
-SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
+_SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
+_FAST_DOCS_DEV = int(os.environ.get("FAST_DOCS_DEV", True))
+_FETCH_S3_ASSETS = int(os.getenv("DOCS_FETCH_ASSETS", not _FAST_DOCS_DEV))
 
 # -- Project information -----------------------------------------------------
 
@@ -46,11 +46,12 @@ github_repo = project
 
 # -- Project documents -------------------------------------------------------
 
-fetch_external_assets(
-    docs_folder=_PATH_HERE,
-    assets_folder="_static/fetched-s3-assets",
-    retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+",
-)
+if _FETCH_S3_ASSETS:
+    fetch_external_assets(
+        docs_folder=_PATH_HERE,
+        assets_folder="_static/fetched-s3-assets",
+        retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+",
+    )
 
 # -- General configuration ---------------------------------------------------
 
@@ -81,8 +82,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
-    # "lai_sphinx_theme.extensions.lightning",
-    "pt_lightning_sphinx_theme.extensions.lightning",
+    "lai_sphinx_theme.extensions.lightning",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -145,8 +145,8 @@ pygments_style = None
 # a list of builtin themes.
 #
 # html_theme = "lai_sphinx_theme"
-html_theme = "pt_lightning_sphinx_theme"
-html_theme_path = [os.environ.get("LIT_SPHINX_PATH", pt_lightning_sphinx_theme.get_html_theme_path())]
+html_theme = "lai_sphinx_theme"
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", lai_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -250,9 +250,36 @@ epub_exclude_files = ["search.html"]
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "typing_extensions": ("https://typing-extensions.readthedocs.io/en/stable/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
     "pytorch_lightning": ("https://lightning.ai/docs/pytorch/stable/", None),
+    "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
+    "deepspeed": ("https://deepspeed.readthedocs.io/en/stable/", None),
+    "torch_xla": ("https://pytorch.org/xla/release/2.0/", None),
 }
+nitpicky = True
+
+nitpick_ignore_regex = [
+    ("py:class", "typing.Self"),
+    # these are not generated with docs API ref
+    ("py:class", "lightning.fabric.utilities.types.Optimizable"),
+    ("py:class", "lightning.fabric.utilities.types.Steppable"),
+    # Nitpick does not see protected or private API
+    ("py:class", "lightning.fabric.wrappers._FabricModule"),
+    ("py:class", "lightning.fabric.wrappers._FabricOptimizer"),
+    ("py:class", "lightning.fabric.loggers.csv_logs._ExperimentWriter"),
+    ("py:class", "lightning.fabric.strategies.strategy._Sharded"),
+    # Nitpick does not see abstract API
+    ("py:meth", "lightning.fabric.plugins.collectives.Collective.init_group"),
+    # These seem to be missing in reference generated API
+    ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
+    ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
+    # Mocked optional packages
+    ("py:class", "deepspeed.*"),
+    ("py:.*", "torch_xla.*"),
+    ("py:class", "transformer_engine.*"),
+    ("py:class", "bitsandbytes.*"),
+]
 
 # -- Options for todo extension ----------------------------------------------
 
@@ -286,9 +313,10 @@ PACKAGE_MAPPING = {
     "PyYAML": "yaml",
 }
 MOCK_PACKAGES = []
-if SPHINX_MOCK_REQUIREMENTS:
+if _SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_ROOT, "requirements.txt"))
+    MOCK_PACKAGES += ["deepspeed", "torch_xla", "transformer_engine", "bitsandbytes"]
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES

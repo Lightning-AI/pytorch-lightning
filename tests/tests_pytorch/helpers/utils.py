@@ -17,6 +17,7 @@ import os
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
+
 from tests_pytorch import _TEMP_PATH
 
 

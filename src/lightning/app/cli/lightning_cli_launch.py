@@ -40,10 +40,11 @@ def launch() -> None:
 @click.option("--host", help="Application running host", default=APP_SERVER_HOST, type=str)
 @click.option("--port", help="Application running port", default=APP_SERVER_PORT, type=int)
 def run_server(file: str, queue_id: str, host: str, port: int) -> None:
-    """It takes the application file as input, build the application object and then use that to run the
-    application server.
+    """It takes the application file as input, build the application object and then use that to run the application
+    server.
 
     This is used by the cloud runners to start the status server for the application
+
     """
     logger.debug(f"Run Server: {file} {queue_id} {host} {port}")
     start_application_server(file, host, port, queue_id=queue_id)
@@ -54,10 +55,11 @@ def run_server(file: str, queue_id: str, host: str, port: int) -> None:
 @click.option("--queue-id", help="ID for identifying queue", default="", type=str)
 @click.option("--base-url", help="Base url at which the app server is hosted", default="")
 def run_flow(file: str, queue_id: str, base_url: str) -> None:
-    """It takes the application file as input, build the application object, proxy all the work components and then
-    run the application flow defined in the root component.
+    """It takes the application file as input, build the application object, proxy all the work components and then run
+    the application flow defined in the root component.
 
     It does exactly what a singleprocess dispatcher would do but with proxied work components.
+
     """
     logger.debug(f"Run Flow: {file} {queue_id} {base_url}")
     run_lightning_flow(file, queue_id=queue_id, base_url=base_url)
@@ -68,8 +70,8 @@ def run_flow(file: str, queue_id: str, base_url: str) -> None:
 @click.option("--work-name", type=str)
 @click.option("--queue-id", help="ID for identifying queue", default="", type=str)
 def run_work(file: str, work_name: str, queue_id: str) -> None:
-    """Unlike other entrypoints, this command will take the file path or module details for a work component and
-    run that by fetching the states from the queues."""
+    """Unlike other entrypoints, this command will take the file path or module details for a work component and run
+    that by fetching the states from the queues."""
     logger.debug(f"Run Work: {file} {work_name} {queue_id}")
     run_lightning_work(
         file=file,
@@ -109,10 +111,11 @@ def run_flow_and_servers(
     port: int,
     flow_port: Tuple[Tuple[str, int]],
 ) -> None:
-    """It takes the application file as input, build the application object and then use that to run the
-    application flow defined in the root component, the application server and all the flow frontends.
+    """It takes the application file as input, build the application object and then use that to run the application
+    flow defined in the root component, the application server and all the flow frontends.
 
     This is used by the cloud runners to start the flow, the status server and all frontends for the application
+
     """
     logger.debug(f"Run Flow: {file} {queue_id} {base_url}")
     logger.debug(f"Run Server: {file} {queue_id} {host} {port}.")

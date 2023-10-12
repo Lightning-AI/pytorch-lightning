@@ -4,14 +4,14 @@ from pathlib import Path
 from unittest import mock
 
 import click
+import lightning.app.core.constants as constants
 import pytest
 from click.testing import CliRunner
-
-import lightning.app.core.constants as constants
 from lightning.app import LightningApp
 from lightning.app.cli.lightning_cli import _run_app, run_app
 from lightning.app.runners.runtime_type import RuntimeType
 from lightning.app.utilities.app_helpers import convert_print_to_logger_info
+
 from tests_app import _PROJECT_ROOT
 
 
@@ -68,6 +68,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
 
     It tests it by checking if the click.launch is called with the right url if --open-ui was true and also checks the
     call to `dispatch` for the right arguments.
+
     """
     monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
 
@@ -116,6 +117,7 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
 
     It tests it by checking if the click.launch is called with the right url if --open-ui was true and also checks the
     call to `dispatch` for the right arguments.
+
     """
     monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
 
@@ -182,6 +184,7 @@ def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMoc
     """This test just validates the command has ran properly when --enable-basic-auth argument is passed.
 
     It checks the call to `dispatch` for the right arguments.
+
     """
     monkeypatch.setattr("lightning.app.runners.cloud.logger", logging.getLogger())
 

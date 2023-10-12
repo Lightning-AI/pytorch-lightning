@@ -17,8 +17,8 @@ from typing import Any, List, Union
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.device_parser import _check_data_type
 
 
@@ -26,6 +26,7 @@ class XLAAccelerator(Accelerator):
     """Accelerator for XLA devices, normally TPUs.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -94,7 +95,7 @@ class XLAAccelerator(Accelerator):
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register("tpu", cls, description=cls.__class__.__name__)
+        accelerator_registry.register("tpu", cls, description=cls.__name__)
 
 
 # PJRT support requires this minimum version
@@ -114,9 +115,8 @@ def _using_pjrt() -> bool:
 
 
 def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:
-    """
-    Parses the TPU devices given in the format as accepted by the
-    :class:`~lightning.pytorch.trainer.Trainer` and :class:`~lightning.fabric.Fabric`.
+    """Parses the TPU devices given in the format as accepted by the
+    :class:`~lightning.pytorch.trainer.trainer.Trainer` and :class:`~lightning.fabric.Fabric`.
 
     Args:
         devices: An int of 1 or string '1' indicates that 1 core with multi-processing should be used
@@ -125,6 +125,7 @@ def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[i
 
     Returns:
         A list of tpu cores to be used.
+
     """
     _check_data_type(devices)
     if isinstance(devices, str):

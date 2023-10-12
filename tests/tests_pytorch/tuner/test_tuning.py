@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import BatchSizeFinder, LearningRateFinder
 from lightning.pytorch.demos.boring_classes import BoringModel

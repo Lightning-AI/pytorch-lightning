@@ -1,8 +1,8 @@
 import os
 
-import lightning as L
+from lightning.app import CloudCompute, LightningApp, LightningFlow, LightningWork
 from lightning.app.components import TracerPythonScript
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 
 FILE_CONTENT = """
 Hello there!
@@ -12,8 +12,8 @@ Are you already ðŸ¤¯ ? Stick with us, this is only the beginning. Lightning is ð
 """
 
 
-class SourceFileWork(L.LightningWork):
-    def __init__(self, cloud_compute: L.CloudCompute = L.CloudCompute(), **kwargs):
+class SourceFileWork(LightningWork):
+    def __init__(self, cloud_compute: CloudCompute = CloudCompute(), **kwargs):
         super().__init__(parallel=True, **kwargs, cloud_compute=cloud_compute)
         self.boring_path = None
 
@@ -31,7 +31,7 @@ class DestinationFileAndServeWork(TracerPythonScript):
         super().run()
 
 
-class BoringApp(L.LightningFlow):
+class BoringApp(LightningFlow):
     def __init__(self):
         super().__init__()
         self.source_work = SourceFileWork()
@@ -39,7 +39,7 @@ class BoringApp(L.LightningFlow):
             script_path=os.path.join(os.path.dirname(__file__), "scripts/serve.py"),
             port=1111,
             parallel=False,  # runs until killed.
-            cloud_compute=L.CloudCompute(),
+            cloud_compute=CloudCompute(),
             raise_exception=True,
         )
 
@@ -58,4 +58,4 @@ class BoringApp(L.LightningFlow):
         return {"name": "Boring Tab", "content": self.dest_work.url + "/file"}
 
 
-app = L.LightningApp(BoringApp())
+app = LightningApp(BoringApp())

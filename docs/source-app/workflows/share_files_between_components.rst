@@ -24,7 +24,7 @@ needed distributed storage.
 ************
 Write a file
 ************
-To write a file, first create a reference to the file with the :class:`~lightning.app.storage.Path` class, then write to it:
+To write a file, first create a reference to the file with the :class:`~lightning.app.storage.path.Path` class, then write to it:
 
 .. code:: python
 

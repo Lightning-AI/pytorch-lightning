@@ -17,7 +17,7 @@ import threading
 import traceback
 from queue import Empty
 from threading import Thread
-from typing import Dict, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Dict, Optional, Union
 
 from lightning.app.core.queues import BaseQueue
 from lightning.app.storage.path import _filesystem, _path_to_work_artifact
@@ -26,7 +26,7 @@ from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.enum import WorkStageStatus
 
 if TYPE_CHECKING:
-    from lightning.app import LightningApp
+    from lightning.app.core.app import LightningApp
 
 
 _PathRequest = Union[_GetRequest, _ExistsRequest]
@@ -47,6 +47,7 @@ class StorageOrchestrator(Thread):
             put requests on this queue for the file-transfer thread to complete.
         copy_response_queues: A dictionary of Queues where each Queue connects to one Work. The queue is expected to
             contain the completion response from the file-transfer thread running in the Work process.
+
     """
 
     def __init__(

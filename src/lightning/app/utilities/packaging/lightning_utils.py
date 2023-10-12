@@ -27,8 +27,8 @@ from typing import Any, Callable, Optional
 
 from packaging.version import Version
 
+from lightning.app import _PROJECT_ROOT, _logger, _root_logger
 from lightning.app import __version__ as version
-from lightning.app import _logger, _PROJECT_ROOT, _root_logger
 from lightning.app.core.constants import FRONTEND_DIR, PACKAGE_LIGHTNING
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.git import check_github_repository, get_dir_name
@@ -108,10 +108,11 @@ def get_dist_path_if_editable_install(project_name) -> str:
 
 
 def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "lightning") -> Optional[Callable]:
-    """This function determines if lightning is installed in editable mode (for developers) and packages the
-    current lightning source along with the app.
+    """This function determines if lightning is installed in editable mode (for developers) and packages the current
+    lightning source along with the app.
 
     For normal users who install via PyPi or Conda, then this function does not do anything.
+
     """
     if not get_dist_path_if_editable_install(package_name):
         return None

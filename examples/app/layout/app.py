@@ -5,16 +5,17 @@ Run the app:
 lightning run app examples/layout/demo.py
 
 This starts one server for each flow that returns a UI. Access the UI at the link printed in the terminal.
+
 """
 
 import os
 from time import sleep
 
-import lightning as L
+from lightning.app import LightningApp, LightningFlow
 from lightning.app.frontend import StaticWebFrontend, StreamlitFrontend
 
 
-class C11(L.LightningFlow):
+class C11(LightningFlow):
     def __init__(self):
         super().__init__()
         self.message = "Hello Streamlit!"
@@ -32,7 +33,7 @@ def render_c11(state):
     st.write(state.message)
 
 
-class C21(L.LightningFlow):
+class C21(LightningFlow):
     def __init__(self):
         super().__init__()
 
@@ -43,7 +44,7 @@ class C21(L.LightningFlow):
         return StaticWebFrontend(os.path.join(os.path.dirname(__file__), "ui1"))
 
 
-class C22(L.LightningFlow):
+class C22(LightningFlow):
     def __init__(self):
         super().__init__()
 
@@ -54,7 +55,7 @@ class C22(L.LightningFlow):
         return StaticWebFrontend(os.path.join(os.path.dirname(__file__), "ui2"))
 
 
-class C1(L.LightningFlow):
+class C1(LightningFlow):
     def __init__(self):
         super().__init__()
         self.c11 = C11()
@@ -63,7 +64,7 @@ class C1(L.LightningFlow):
         pass
 
 
-class C2(L.LightningFlow):
+class C2(LightningFlow):
     def __init__(self):
         super().__init__()
         self.c21 = C21()
@@ -79,7 +80,7 @@ class C2(L.LightningFlow):
         ]
 
 
-class Root(L.LightningFlow):
+class Root(LightningFlow):
     def __init__(self):
         super().__init__()
         self.c1 = C1()
@@ -97,4 +98,4 @@ class Root(L.LightningFlow):
         ]
 
 
-app = L.LightningApp(Root())
+app = LightningApp(Root())

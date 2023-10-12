@@ -18,17 +18,17 @@ from re import escape
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.fabric
 import pytest
 import torch
-
-import lightning.fabric
 from lightning.fabric.accelerators.cuda import (
-    _check_cuda_matmul_precision,
     CUDAAccelerator,
+    _check_cuda_matmul_precision,
     find_usable_cuda_devices,
     is_cuda_available,
     num_cuda_devices,
 )
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -71,8 +71,8 @@ def test_set_cuda_device(_, set_device_mock):
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=100)
 def test_num_cuda_devices_without_nvml(*_):
-    """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for
-    determining CUDA availability."""
+    """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for determining
+    CUDA availability."""
     num_cuda_devices.cache_clear()
     assert is_cuda_available()
     assert num_cuda_devices() == 100
@@ -87,7 +87,6 @@ def test_force_nvml_based_cuda_check():
     assert os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] == "1"
 
 
-@RunIf(min_torch="1.12")
 @mock.patch("torch.cuda.get_device_capability", return_value=(10, 1))
 @mock.patch("torch.cuda.get_device_name", return_value="Z100")
 def test_tf32_message(_, __, caplog, monkeypatch):
@@ -158,3 +157,6 @@ def test_find_usable_cuda_devices_error_handling():
         "lightning.fabric.accelerators.cuda.torch.tensor"
     ):
         assert find_usable_cuda_devices(-1) == [0, 1, 2, 3, 4]
+
+    # Edge case
+    assert find_usable_cuda_devices(0) == []

@@ -29,13 +29,14 @@ log = logging.getLogger(__name__)
 
 
 def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
-    r"""Error handling, intended to be used only for main trainer function entry points (fit, validate, test,
-    predict) as all errors should funnel through them.
+    r"""Error handling, intended to be used only for main trainer function entry points (fit, validate, test, predict)
+    as all errors should funnel through them.
 
     Args:
         trainer_fn: one of (fit, validate, test, predict)
         *args: positional arguments to be passed to the `trainer_fn`
         **kwargs: keyword arguments to be passed to `trainer_fn`
+
     """
     try:
         if trainer.strategy.launcher is not None:
@@ -104,7 +105,7 @@ def _call_configure_model(trainer: "pl.Trainer") -> None:
     # we don't normally check for this before calling the hook. it is done here to avoid instantiating the context
     # managers
     if is_overridden("configure_model", trainer.lightning_module):
-        with trainer.strategy.tensor_init_context(), trainer.strategy.model_sharded_context():
+        with trainer.strategy.tensor_init_context(), trainer.strategy.model_sharded_context(), trainer.precision_plugin.module_init_context():  # noqa: E501
             _call_lightning_module_hook(trainer, "configure_model")
 
 
@@ -243,6 +244,7 @@ def _call_callbacks_on_load_checkpoint(trainer: "pl.Trainer", checkpoint: Dict[s
 
     Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
     `_call_callback_hooks` because we have special logic for getting callback_states.
+
     """
     pl_module = trainer.lightning_module
     if pl_module:

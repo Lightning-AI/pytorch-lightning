@@ -14,6 +14,8 @@
 """General utilities."""
 
 from lightning.fabric.utilities.apply_func import move_data_to_device  # noqa: F401
+from lightning.fabric.utilities.data import suggested_max_num_workers  # noqa: F401
+from lightning.fabric.utilities.distributed import is_shared_filesystem  # noqa: F401
 from lightning.fabric.utilities.enums import LightningEnum  # noqa: F401
 from lightning.fabric.utilities.rank_zero import (  # noqa: F401
     rank_zero_deprecation,
@@ -21,3 +23,4 @@ from lightning.fabric.utilities.rank_zero import (  # noqa: F401
     rank_zero_only,
     rank_zero_warn,
 )
+from lightning.fabric.utilities.warnings import disable_possible_user_warnings  # noqa: F401

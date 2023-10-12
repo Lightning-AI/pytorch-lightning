@@ -5,11 +5,10 @@ from time import sleep
 
 import pytest
 from deepdiff import DeepDiff
-
 from lightning.app import LightningFlow, LightningWork
 from lightning.app.core.app import LightningApp
 from lightning.app.runners import MultiProcessRuntime
-from lightning.app.storage.drive import _maybe_create_drive, Drive
+from lightning.app.storage.drive import Drive, _maybe_create_drive
 from lightning.app.utilities.component import _set_flow_context
 
 

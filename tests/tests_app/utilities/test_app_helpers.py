@@ -1,28 +1,19 @@
-import os
 from functools import partial
 from unittest import mock
 
 import pytest
-from lightning_cloud.openapi import (
-    AppinstancesIdBody,
-    V1LightningappInstanceSpec,
-    V1LightningappInstanceState,
-    V1ListLightningappInstancesResponse,
-)
-
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.core.flow import _RootFlow
 from lightning.app.frontend import StaticWebFrontend
 from lightning.app.utilities.app_helpers import (
-    _handle_is_headless,
-    _is_headless,
-    _MagicMockJsonSerializable,
     AppStatePlugin,
     BaseStatePlugin,
     InMemoryStateStore,
+    StateStore,
+    _is_headless,
+    _MagicMockJsonSerializable,
     is_overridden,
     is_static_method,
-    StateStore,
 )
 from lightning.app.utilities.exceptions import LightningAppStateException
 
@@ -212,36 +203,3 @@ def test_is_headless(flow, expected):
     flow = flow()
     app = LightningApp(flow)
     assert _is_headless(app) == expected
-
-
-@mock.patch("lightning.app.utilities.network.LightningClient")
-def test_handle_is_headless(mock_client):
-    project_id = "test_project_id"
-    cloudspace_id = "test_id"
-    app_name = "test_app_name"
-
-    lightningapps = [mock.MagicMock()]
-    lightningapps[0].id = cloudspace_id
-    lightningapps[0].name = app_name
-    lightningapps[0].status.phase = V1LightningappInstanceState.RUNNING
-    lightningapps[0].spec = V1LightningappInstanceSpec(cloud_space_id=cloudspace_id)
-
-    mock_client().lightningapp_instance_service_list_lightningapp_instances.return_value = (
-        V1ListLightningappInstancesResponse(lightningapps=lightningapps)
-    )
-
-    app = mock.MagicMock()
-    app.is_headless = True
-
-    with mock.patch.dict(
-        os.environ, {"LIGHTNING_CLOUD_APP_ID": cloudspace_id, "LIGHTNING_CLOUD_PROJECT_ID": project_id}
-    ):
-        _handle_is_headless(app)
-
-    mock_client().lightningapp_instance_service_update_lightningapp_instance.assert_called_once_with(
-        project_id=project_id,
-        id=cloudspace_id,
-        body=AppinstancesIdBody(
-            name="test_app_name", spec=V1LightningappInstanceSpec(cloud_space_id=cloudspace_id, is_headless=True)
-        ),
-    )

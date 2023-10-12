@@ -20,7 +20,7 @@ from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
-from lightning.fabric.utilities.distributed import _all_gather_ddp_if_available, ReduceOp
+from lightning.fabric.utilities.distributed import ReduceOp, _all_gather_ddp_if_available
 from lightning.pytorch.plugins import LayerSync
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.strategies.strategy import Strategy
@@ -87,9 +87,9 @@ class ParallelStrategy(Strategy, ABC):
         return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
-        """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the
-        standard library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to
-        ``False``, it behaves like ``any`` instead.
+        """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the standard
+        library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to ``False``,
+        it behaves like ``any`` instead.
 
         Args:
             decision: A single input decision.
@@ -97,6 +97,7 @@ class ParallelStrategy(Strategy, ABC):
 
         Returns:
             bool: The reduced boolean decision.
+
         """
         decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(
@@ -112,6 +113,7 @@ class ParallelStrategy(Strategy, ABC):
 
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
+
         """
         if isinstance(self.model, pl.utilities.types.DistributedDataParallel):
             with self.model.no_sync():

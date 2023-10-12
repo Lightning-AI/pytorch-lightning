@@ -2,6 +2,7 @@
 
 Code is adapted from the PyTorch examples at
 https://github.com/pytorch/examples/blob/main/word_language_model
+
 """
 import math
 import os
@@ -13,7 +14,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
-from torch.utils.data import Dataset
+from torch.nn.modules import MultiheadAttention
+from torch.utils.data import DataLoader, Dataset
+
+from lightning.pytorch import LightningModule
+
+if hasattr(MultiheadAttention, "_reset_parameters") and not hasattr(MultiheadAttention, "reset_parameters"):
+    # See https://github.com/pytorch/pytorch/issues/107909
+    MultiheadAttention.reset_parameters = MultiheadAttention._reset_parameters
 
 
 class Transformer(nn.Module):
@@ -38,15 +46,15 @@ class Transformer(nn.Module):
         self.vocab_size = vocab_size
         self.src_mask = None
 
-    def forward(self, input: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
-        b, t = input.shape
+    def forward(self, inputs: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
+        b, t = inputs.shape
 
-        # we assume target is already shifted w.r.t. input
+        # we assume target is already shifted w.r.t. inputs
         if mask is None:
-            mask = torch.tril(torch.ones(t, t, device=input.device)) == 1
+            mask = torch.tril(torch.ones(t, t, device=inputs.device)) == 1
             mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
 
-        src = self.pos_encoder(self.embedding(input) * math.sqrt(self.ninp))
+        src = self.pos_encoder(self.embedding(inputs) * math.sqrt(self.ninp))
         target = self.pos_encoder(self.embedding(target) * math.sqrt(self.ninp))
         output = self.transformer(src, target, tgt_mask=mask)
         output = self.decoder(output)
@@ -59,19 +67,28 @@ class PositionalEncoding(nn.Module):
     def __init__(self, dim: int, dropout: float = 0.1, max_len: int = 5000) -> None:
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
+        self.dim = dim
+        self.max_len = max_len
 
-        pe = torch.zeros(max_len, dim)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, dim, 2).float() * (-math.log(10000.0) / dim))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
+        pe = self._init_pos_encoding()
         # workaround, can't use buffer, see https://github.com/pytorch/pytorch/issues/68407
         self.register_parameter("pe", nn.Parameter(pe, requires_grad=False))
+
+    def reset_parameters(self) -> None:
+        self.pe.copy_(self._init_pos_encoding())  # type: ignore[operator]
 
     def forward(self, x: Tensor) -> Tensor:
         x + self.pe[: x.size(0), :]  # type: ignore[index]
         return self.dropout(x)
+
+    def _init_pos_encoding(self) -> Tensor:
+        pe = torch.zeros(self.max_len, self.dim)
+        position = torch.arange(0, self.max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, self.dim, 2).float() * (-math.log(10000.0) / self.dim))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        return pe
 
 
 class WikiText2(Dataset):
@@ -95,9 +112,9 @@ class WikiText2(Dataset):
     def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
         start = index * self.block_size
         end = start + self.block_size
-        input = self.data[start:end]
+        inputs = self.data[start:end]
         target = self.data[(start + 1) : (end + 1)]
-        return input, target
+        return inputs, target
 
     @staticmethod
     def download(destination: Path) -> None:
@@ -146,3 +163,28 @@ def tokenize(path: Path) -> Tuple[Tensor, Dictionary]:
             idss.append(torch.tensor(ids).type(torch.int64))
 
     return torch.cat(idss), dictionary
+
+
+class LightningTransformer(LightningModule):
+    def __init__(self, vocab_size: int = 33278) -> None:
+        super().__init__()
+        self.model = Transformer(vocab_size=vocab_size)
+
+    def forward(self, inputs: Tensor, target: Tensor) -> Tensor:
+        return self.model(inputs, target)
+
+    def training_step(self, batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+        inputs, target = batch
+        output = self(inputs, target)
+        loss = torch.nn.functional.nll_loss(output, target.view(-1))
+        return loss
+
+    def configure_optimizers(self) -> torch.optim.Optimizer:
+        return torch.optim.SGD(self.model.parameters(), lr=0.1)
+
+    def prepare_data(self) -> None:
+        WikiText2(download=True)
+
+    def train_dataloader(self) -> DataLoader:
+        dataset = WikiText2()
+        return DataLoader(dataset)

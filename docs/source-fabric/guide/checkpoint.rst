@@ -75,6 +75,8 @@ If you want to be in complete control of how states get restored, you can omit p
     optimizer.load_state_dict(full_checkpoint["optimizer"])
     ...
 
+See also: :doc:`../advanced/model_init`
+
 
 From a raw state-dict file
 ==========================
@@ -169,8 +171,8 @@ Here's an example of using a filter when saving a checkpoint:
 
     state = {"model": model, "optimizer": optimizer, "foo": 123}
 
-    # save only the model weights
-    filter = {"model": lambda k, v: "weight"}
+    # save only the weights that match a pattern
+    filter = {"model": lambda k, v: "weight" in k}
     fabric.save("path/to/checkpoint.ckpt", state, filter=filter)
     # This will save {"model": {"layer.weight": ...}, "optimizer": ..., "foo": 123}
     # note that the optimizer params corresponding to the excluded model params are not filtered

@@ -29,7 +29,7 @@ from fastapi import FastAPI, Query, Request
 from starlette.background import BackgroundTask
 from starlette.responses import RedirectResponse
 
-from lightning.app.core.constants import get_lightning_cloud_url, LIGHTNING_CREDENTIAL_PATH
+from lightning.app.core.constants import LIGHTNING_CREDENTIAL_PATH, get_lightning_cloud_url
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.network import find_free_network_port
 
@@ -60,6 +60,7 @@ class Auth:
         Returns
         ----------
         True if credentials are available.
+
         """
         if not self.secrets_file.exists():
             logger.debug("Credentials file not found.")
@@ -117,6 +118,7 @@ class Auth:
         Returns
         ----------
         authorization header to use when authentication completes.
+
         """
         if not self.load():
             # First try to authenticate from env

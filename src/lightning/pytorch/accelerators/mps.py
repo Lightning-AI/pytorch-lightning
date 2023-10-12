@@ -28,6 +28,7 @@ class MPSAccelerator(Accelerator):
     """Accelerator for Metal Apple Silicon GPU devices.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+
     """
 
     def setup_device(self, device: torch.device) -> None:
@@ -66,7 +67,7 @@ class MPSAccelerator(Accelerator):
 
     @staticmethod
     def is_available() -> bool:
-        """MPS is only available for certain torch builds starting at torch>=1.12."""
+        """MPS is only available on a machine with the ARM-based Apple Silicon processors."""
         return _MPSAccelerator.is_available()
 
     @classmethod
@@ -74,7 +75,7 @@ class MPSAccelerator(Accelerator):
         accelerator_registry.register(
             "mps",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
 

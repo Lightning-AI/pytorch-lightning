@@ -25,6 +25,7 @@ def _get_default_cluster(client: LightningClient, project_id: str) -> str:
     """This utility implements a minimal version of the cluster selection logic used in the cloud.
 
     TODO: This should be requested directly from the platform.
+
     """
     cluster_bindings = client.projects_service_list_project_cluster_bindings(project_id=project_id).clusters
 

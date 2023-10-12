@@ -23,8 +23,8 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-from lightning.fabric.loggers.csv_logs import _ExperimentWriter as _FabricExperimentWriter
 from lightning.fabric.loggers.csv_logs import CSVLogger as FabricCSVLogger
+from lightning.fabric.loggers.csv_logs import _ExperimentWriter as _FabricExperimentWriter
 from lightning.fabric.loggers.logger import rank_zero_experiment
 from lightning.fabric.utilities.logger import _convert_params
 from lightning.fabric.utilities.types import _PATH
@@ -45,6 +45,7 @@ class ExperimentWriter(_FabricExperimentWriter):
 
     Args:
         log_dir: Directory for the experiment logs
+
     """
 
     NAME_HPARAMS_FILE = "hparams.yaml"
@@ -82,6 +83,7 @@ class CSVLogger(Logger, FabricCSVLogger):
             directory for existing versions, then automatically assigns the next available version.
         prefix: A string to put at the beginning of metric keys.
         flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
+
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -109,6 +111,7 @@ class CSVLogger(Logger, FabricCSVLogger):
 
         If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
         be saved in "save_dir/version"
+
         """
         return os.path.join(self.save_dir, self.name)
 
@@ -118,6 +121,7 @@ class CSVLogger(Logger, FabricCSVLogger):
 
         By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
         constructor's version parameter instead of ``None`` or an int.
+
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
@@ -129,6 +133,7 @@ class CSVLogger(Logger, FabricCSVLogger):
 
         Returns:
             The path to current directory where logs are saved.
+
         """
         return self._save_dir
 
@@ -140,10 +145,8 @@ class CSVLogger(Logger, FabricCSVLogger):
     @property
     @rank_zero_experiment
     def experiment(self) -> _FabricExperimentWriter:
-        r"""
-
-        Actual _ExperimentWriter object. To use _ExperimentWriter features in your
-        :class:`~lightning.pytorch.core.module.LightningModule` do the following.
+        r"""Actual _ExperimentWriter object. To use _ExperimentWriter features in your
+        :class:`~lightning.pytorch.core.LightningModule` do the following.
 
         Example::
 

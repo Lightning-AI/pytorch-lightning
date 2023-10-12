@@ -18,16 +18,16 @@ import pickle
 import sys
 from unittest.mock import ANY
 
+import lightning.pytorch as pl
 import pytest
 import torch
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch.utilities.migration import migrate_checkpoint, pl_legacy_patch
+from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint, _RedirectingUnpickler
 from lightning_utilities.core.imports import module_available
 from lightning_utilities.test.warning import no_warning_call
 from packaging.version import Version
 
-import lightning.pytorch as pl
-from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.utilities.migration import migrate_checkpoint, pl_legacy_patch
-from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint, _RedirectingUnpickler
 from tests_pytorch.checkpointing.test_legacy_checkpoints import (
     CHECKPOINT_EXTENSION,
     LEGACY_BACK_COMPATIBLE_PL_VERSIONS,
@@ -178,8 +178,8 @@ def _run_simple_migration(monkeypatch, old_checkpoint):
 
 
 def test_migrate_checkpoint_too_new():
-    """Test checkpoint migration is a no-op with a warning when attempting to migrate a checkpoint from newer
-    version of Lightning than installed."""
+    """Test checkpoint migration is a no-op with a warning when attempting to migrate a checkpoint from newer version
+    of Lightning than installed."""
     super_new_checkpoint = {"pytorch-lightning_version": "99.0.0", "content": 123}
     with pytest.warns(
         PossibleUserWarning, match=f"v99.0.0, which is newer than your current Lightning version: v{pl.__version__}"

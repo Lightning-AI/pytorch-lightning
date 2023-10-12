@@ -3,11 +3,11 @@ import dash_daq as daq
 import dash_renderjson
 from dash import html, Input, Output
 
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp
 from lightning.app.utilities.state import AppState
 
 
-class LitDash(L.LightningWork):
+class LitDash(LightningWork):
     def run(self):
         dash_app = dash.Dash(__name__)
 
@@ -23,7 +23,7 @@ class LitDash(L.LightningWork):
         dash_app.run_server(host=self.host, port=self.port)
 
 
-class LitApp(L.LightningFlow):
+class LitApp(LightningFlow):
     def __init__(self):
         super().__init__()
         self.lit_dash = LitDash(parallel=True)
@@ -36,4 +36,4 @@ class LitApp(L.LightningFlow):
         return tab1
 
 
-app = L.LightningApp(LitApp())
+app = LightningApp(LitApp())

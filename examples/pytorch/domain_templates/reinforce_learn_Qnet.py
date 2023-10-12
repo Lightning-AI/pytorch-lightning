@@ -29,10 +29,11 @@ References
 
 [1] https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-
 Second-Edition/blob/master/Chapter06/02_dqn_pong.py
+
 """
 
 import argparse
-from collections import deque, namedtuple, OrderedDict
+from collections import OrderedDict, deque, namedtuple
 from typing import Iterator, List, Tuple
 
 import gym
@@ -40,11 +41,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo, seed_everything
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
-
-from lightning.pytorch import cli_lightning_logo, LightningModule, seed_everything, Trainer
 
 
 class DQN(nn.Module):
@@ -54,6 +54,7 @@ class DQN(nn.Module):
     DQN(
       (net): Sequential(...)
     )
+
     """
 
     def __init__(self, obs_size: int, n_actions: int, hidden_size: int = 128):
@@ -79,6 +80,7 @@ class ReplayBuffer:
 
     >>> ReplayBuffer(5)  # doctest: +ELLIPSIS
     <...reinforce_learn_Qnet.ReplayBuffer object at ...>
+
     """
 
     def __init__(self, capacity: int) -> None:
@@ -96,6 +98,7 @@ class ReplayBuffer:
 
         Args:
             experience: tuple (state, action, reward, done, new_state)
+
         """
         self.buffer.append(experience)
 
@@ -117,6 +120,7 @@ class RLDataset(IterableDataset):
 
     >>> RLDataset(ReplayBuffer(5))  # doctest: +ELLIPSIS
     <...reinforce_learn_Qnet.RLDataset object at ...>
+
     """
 
     def __init__(self, buffer: ReplayBuffer, sample_size: int = 200) -> None:
@@ -141,6 +145,7 @@ class Agent:
     >>> buffer = ReplayBuffer(10)
     >>> Agent(env, buffer)  # doctest: +ELLIPSIS
     <...reinforce_learn_Qnet.Agent object at ...>
+
     """
 
     def __init__(self, env: gym.Env, replay_buffer: ReplayBuffer) -> None:
@@ -168,6 +173,7 @@ class Agent:
 
         Returns:
             action
+
         """
         if np.random.random() < epsilon:
             action = self.env.action_space.sample()
@@ -194,6 +200,7 @@ class Agent:
 
         Returns:
             reward, done
+
         """
         action = self.get_action(net, epsilon, device)
 
@@ -222,6 +229,7 @@ class DQNLightning(LightningModule):
         (net): Sequential(...)
       )
     )
+
     """
 
     def __init__(
@@ -270,6 +278,7 @@ class DQNLightning(LightningModule):
 
         Args:
             steps: number of random steps to populate the buffer with
+
         """
         for i in range(steps):
             self.agent.play_step(self.net, epsilon=1.0)
@@ -282,6 +291,7 @@ class DQNLightning(LightningModule):
 
         Returns:
             q values
+
         """
         return self.net(x)
 
@@ -293,6 +303,7 @@ class DQNLightning(LightningModule):
 
         Returns:
             loss
+
         """
         states, actions, rewards, dones, next_states = batch
 
@@ -308,8 +319,8 @@ class DQNLightning(LightningModule):
         return nn.MSELoss()(state_action_values, expected_state_action_values)
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], nb_batch) -> OrderedDict:
-        """Carries out a single step through the environment to update the replay buffer. Then calculates loss
-        based on the minibatch received.
+        """Carries out a single step through the environment to update the replay buffer. Then calculates loss based on
+        the minibatch received.
 
         Args:
             batch: current mini batch of replay data
@@ -317,6 +328,7 @@ class DQNLightning(LightningModule):
 
         Returns:
             Training loss and log metrics
+
         """
         device = self.get_device(batch)
         epsilon = max(self.eps_end, self.eps_start - (self.global_step + 1) / self.eps_last_frame)

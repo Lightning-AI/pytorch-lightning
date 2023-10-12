@@ -23,6 +23,7 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
     """Accelerator for XLA devices, normally TPUs.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+
     """
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
@@ -33,6 +34,7 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
 
         Returns:
             A dictionary mapping the metrics (free memory and peak memory) to their values.
+
         """
         import torch_xla.core.xla_model as xm
 
@@ -46,4 +48,4 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register("tpu", cls, description=cls.__class__.__name__)
+        accelerator_registry.register("tpu", cls, description=cls.__name__)

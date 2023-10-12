@@ -25,6 +25,7 @@ from lightning.fabric.strategies.launchers.subprocess_script import (
     _hydra_subprocess_cmd,
     _launch_process_observer,
 )
+from lightning.fabric.utilities.distributed import _set_num_threads_if_needed
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.connectors.signal_connector import _SIGNUM
 
@@ -67,6 +68,7 @@ class _SubprocessScriptLauncher(_Launcher):
         cluster_environment: A cluster environment that provides access to world size, node rank, etc.
         num_processes: The number of processes to launch in the current node.
         num_nodes: The total number of nodes that participate in this process group.
+
     """
 
     def __init__(self, cluster_environment: ClusterEnvironment, num_processes: int, num_nodes: int) -> None:
@@ -89,10 +91,14 @@ class _SubprocessScriptLauncher(_Launcher):
             *args: Optional positional arguments to be passed to the given function.
             trainer: Optional reference to the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
             **kwargs: Optional keyword arguments to be passed to the given function.
+
         """
+        self.cluster_environment.validate_settings(num_devices=self.num_processes, num_nodes=self.num_nodes)
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
             _launch_process_observer(self.procs)
+
+        _set_num_threads_if_needed(num_processes=self.num_processes)
         return function(*args, **kwargs)
 
     def kill(self, signum: _SIGNUM) -> None:

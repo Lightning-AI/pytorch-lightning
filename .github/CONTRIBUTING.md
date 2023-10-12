@@ -299,7 +299,7 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
   # when all done, push back to the open PR
   git push -f
   ```
-- **Rebasing way**, see more about [rebase onto usage](https://womanonrails.com/git-rebase-onto)
+- **Rebasing way**, see more about [rebase onto usage](https://www.atlassian.com/git/tutorials/rewriting-history/git-rebase)
   ```bash
   git checkout my-branch
   # rebase your commits on the correct branch
@@ -322,7 +322,7 @@ export PACKAGE_LIGHTNING=1  # <- this is the magic to use your version (not main
 lightning run app app.py --cloud
 ```
 
-By seting `PACKAGE_LIGHTNING=1`, lightning packages the lightning source code in your local directory in addition to your app source code and uploads them to the cloud.
+By setting `PACKAGE_LIGHTNING=1`, lightning packages the lightning source code in your local directory in addition to your app source code and uploads them to the cloud.
 
 ### Bonus Workflow Tip
 

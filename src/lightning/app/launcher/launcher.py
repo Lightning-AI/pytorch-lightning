@@ -11,10 +11,10 @@ from typing import Callable, Dict, List, Optional, Tuple, TypedDict
 
 ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
 
-if True:  # Avoid Module level import not at top of file
-    from lightning.app import LightningFlow
+if True:  # ToDo: Avoid Module level import not at top of file
     from lightning.app.core import constants
     from lightning.app.core.api import start_server
+    from lightning.app.core.flow import LightningFlow
     from lightning.app.core.queues import MultiProcessQueue, QueuingSystem
     from lightning.app.storage.orchestrator import StorageOrchestrator
     from lightning.app.utilities.app_commands import run_app_commands
@@ -109,6 +109,7 @@ def run_lightning_work(
 
     It is organized under cloud runtime to indicate that it will be used by the cloud runner but otherwise, no cloud
     specific logic is being implemented here
+
     """
     logger.debug(f"Run Lightning Work {file} {work_name} {queue_id}")
 
@@ -231,6 +232,7 @@ def serve_frontend(file: str, flow_name: str, host: str, port: int):
 
     It is organized under cloud runtime to indicate that it will be used by the cloud runner but otherwise, no cloud
     specific logic is being implemented here.
+
     """
     _set_frontend_context()
     logger.debug(f"Run Serve Frontend {file} {flow_name} {host} {port}")
@@ -340,15 +342,16 @@ def manage_server_processes(processes: List[Tuple[str, Process]]) -> None:
 
 
 def _get_frontends_from_app(entrypoint_file):
-    """This function is used to get the frontends from the app. It will be used to start the frontends in a
-    separate process if the backend cannot provide flow_names_and_ports. This is useful if the app cannot be loaded
-    locally to set the frontend before dispatching to the cloud. The backend exposes by default 10 ports from 8081
-    if the app.spec.frontends is not set.
+    """This function is used to get the frontends from the app. It will be used to start the frontends in a separate
+    process if the backend cannot provide flow_names_and_ports. This is useful if the app cannot be loaded locally to
+    set the frontend before dispatching to the cloud. The backend exposes by default 10 ports from 8081 if the
+    app.spec.frontends is not set.
 
     NOTE: frontend_name are sorted to ensure that they get consistent ports.
 
     :param entrypoint_file: The entrypoint file for the app
     :return: A list of tuples of the form (frontend_name, port_number)
+
     """
     app = load_app_from_file(entrypoint_file)
 

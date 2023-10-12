@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch import Tensor
@@ -21,18 +21,17 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
+from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, _using_pjrt
+from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
-from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
-from lightning.fabric.plugins.precision import Precision
-from lightning.fabric.strategies import _StrategyRegistry, ParallelStrategy
+from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
-if TYPE_CHECKING and _XLA_AVAILABLE:
+if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 
@@ -44,8 +43,8 @@ class XLAStrategy(ParallelStrategy):
         self,
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
+        checkpoint_io: Optional[XLACheckpointIO] = None,
+        precision: Optional[XLAPrecision] = None,
         sync_module_states: bool = True,
     ) -> None:
         super().__init__(
@@ -55,7 +54,6 @@ class XLAStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision=precision,
         )
-        self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = None  # XLA synchronizes gradients in the optimizer.step() call
         self._launched = False
         self._sync_module_states = sync_module_states
@@ -72,15 +70,33 @@ class XLAStrategy(ParallelStrategy):
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        if self._checkpoint_io is None:
-            self._checkpoint_io = XLACheckpointIO()
-        return self._checkpoint_io
+    @property  # type: ignore[override]
+    def checkpoint_io(self) -> XLACheckpointIO:
+        plugin = self._checkpoint_io
+        if plugin is not None:
+            assert isinstance(plugin, XLACheckpointIO)
+            return plugin
+        return XLACheckpointIO()
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: CheckpointIO) -> None:
+    def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
+        if io is not None and not isinstance(io, XLACheckpointIO):
+            raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
+
+    @property  # type: ignore[override]
+    def precision(self) -> XLAPrecision:
+        plugin = self._precision
+        if plugin is not None:
+            assert isinstance(plugin, XLAPrecision)
+            return plugin
+        return XLAPrecision("32-true")
+
+    @precision.setter
+    def precision(self, precision: Optional[XLAPrecision]) -> None:
+        if precision is not None and not isinstance(precision, XLAPrecision):
+            raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision}")
+        self._precision = precision
 
     @property
     def global_rank(self) -> int:
@@ -151,6 +167,7 @@ class XLAStrategy(ParallelStrategy):
             sync_grads: flag that allows users to synchronize gradients for the all-gather operation.
         Return:
             A tensor of shape (world_size, ...)
+
         """
         if not self._launched:
             return tensor
@@ -160,13 +177,15 @@ class XLAStrategy(ParallelStrategy):
             )
         if tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
-        if tensor.device.type != "xla":
-            tensor = tensor.to(self.root_device)
+        original_device = tensor.device
+        tensor = tensor.to(self.root_device)
 
         import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
 
-        return xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
+        tensor = xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
+        tensor = tensor.to(original_device)
+        return tensor
 
     def all_reduce(
         self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
@@ -210,8 +229,9 @@ class XLAStrategy(ParallelStrategy):
         if is_tensor:
             if obj.dim() == 0:
                 obj = obj.unsqueeze(0)
-            if obj.device.type != "xla":
-                obj = obj.to(self.root_device)
+            original_device = obj.device
+            # XLA distributed requires that the data is on the XLA device
+            obj = obj.to(self.root_device)
         else:
             # support for arbitrary pickle-ables
             buffer = io.BytesIO()
@@ -225,8 +245,11 @@ class XLAStrategy(ParallelStrategy):
         obj = obj[0]
 
         if not is_tensor:
+            # this will preserve the dtype and device of any tensors
             buffer = io.BytesIO(obj.cpu().byte().numpy())
             obj = torch.load(buffer)
+        else:
+            obj = obj.to(original_device)
 
         return obj
 
@@ -246,6 +269,7 @@ class XLAStrategy(ParallelStrategy):
             storage_options: Additional options for the ``CheckpointIO`` plugin
             filter: An optional dictionary of the same format as ``state`` mapping keys to callables that return a
                 boolean indicating whether the given parameter should be saved (``True``) or filtered out (``False``).
+
         """
         import torch_xla.core.xla_model as xm
 
@@ -256,4 +280,4 @@ class XLAStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        strategy_registry.register("xla", cls, description=cls.__class__.__name__)
+        strategy_registry.register("xla", cls, description=cls.__name__)

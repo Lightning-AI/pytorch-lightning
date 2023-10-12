@@ -34,13 +34,13 @@ from lightning_cloud.openapi import (
 )
 from lightning_cloud.openapi.rest import ApiException
 
-from lightning.app import LightningApp, LightningWork
+from lightning.app.core import LightningApp, LightningWork
 from lightning.app.core.queues import QueuingSystem
 from lightning.app.runners.backends.backend import Backend
 from lightning.app.storage import Drive, Mount
-from lightning.app.utilities.enum import make_status, WorkStageStatus, WorkStopReasons
+from lightning.app.utilities.enum import WorkStageStatus, WorkStopReasons, make_status
 from lightning.app.utilities.exceptions import LightningPlatformException
-from lightning.app.utilities.network import _check_service_url_is_ready, LightningClient
+from lightning.app.utilities.network import LightningClient, _check_service_url_is_ready
 
 logger = logging.getLogger(__name__)
 
@@ -252,6 +252,7 @@ class CloudBackend(Backend):
         Normally, the Lightning frameworks communicates statuses through the queues, but while the Work instance is
         being provisionied, the queues don't exist yet and hence we need to make API calls directly to the backend to
         fetch the status and update it in the states.
+
         """
         if not works:
             return
@@ -305,6 +306,7 @@ class CloudBackend(Backend):
         """Stop resources for all LightningWorks in this app.
 
         The Works are stopped rather than deleted so that they can be inspected for debugging.
+
         """
         cloud_works = self._get_cloud_work_specs(self.client)
 

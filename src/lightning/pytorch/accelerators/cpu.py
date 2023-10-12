@@ -68,7 +68,7 @@ class CPUAccelerator(Accelerator):
         accelerator_registry.register(
             "cpu",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
 

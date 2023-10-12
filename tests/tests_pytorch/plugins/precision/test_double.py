@@ -16,11 +16,11 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
-from torch.utils.data import DataLoader, Dataset
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.plugins.precision.double import DoublePrecisionPlugin
+from torch.utils.data import DataLoader, Dataset
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -116,12 +116,22 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
 class DoublePrecisionBoringModelComplexBuffer(BoringModel):
     def __init__(self):
         super().__init__()
+        self.register_buffer("complex_buffer_wrong", torch.complex(torch.rand(10), torch.rand(10)), persistent=False)
 
-        self.register_buffer("complex_buffer", torch.complex(torch.rand(10), torch.rand(10)), False)
+    def configure_model(self) -> None:
+        self.register_buffer("complex_buffer_right", torch.complex(torch.rand(10), torch.rand(10)), persistent=False)
 
     def on_fit_start(self):
-        assert self.layer.weight.dtype == torch.float64
-        assert self.complex_buffer.dtype == torch.complex64
+        # when the default floating point type is float64 the default complex type is complex128, as long as it is
+        # initialized under the precision context manager, because `model.to(double)` will not convert properly
+        assert self.complex_buffer_wrong.dtype == torch.complex64
+        assert self.complex_buffer_right.dtype == torch.complex128
+        # this hook is not wrapped
+        assert torch.tensor([1.2, 3.4j]).dtype == torch.complex64
+
+    def training_step(self, batch, batch_idx):
+        assert torch.tensor([1.2, 3.4j]).dtype == torch.complex128
+        return super().training_step(batch, batch_idx)
 
 
 @pytest.mark.parametrize(
@@ -174,9 +184,9 @@ def test_convert_module():
     assert model.layer.weight.dtype == model.layer.bias.dtype == torch.float64
 
 
-def test_init_context():
+def test_module_init_context():
     plugin = DoublePrecisionPlugin()
-    with plugin.init_context():
+    with plugin.module_init_context():
         model = torch.nn.Linear(2, 2)
         assert torch.get_default_dtype() == torch.double
     assert model.weight.dtype == torch.double

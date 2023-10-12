@@ -14,11 +14,11 @@
 """Tests the evaluation loop."""
 
 import torch
-from torch import Tensor
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.trainer.states import RunningStage
+from torch import Tensor
+
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 
@@ -60,13 +60,13 @@ def test__eval_step__flow(tmpdir):
     # simulate training manually
     trainer.state.stage = RunningStage.TRAINING
     kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
-    train_step_out = trainer.fit_loop.epoch_loop.automatic_optimization.run(trainer.optimizers[0], kwargs)
+    train_step_out = trainer.fit_loop.epoch_loop.automatic_optimization.run(trainer.optimizers[0], 0, kwargs)
 
     assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure = trainer.fit_loop.epoch_loop.automatic_optimization._make_closure(kwargs, trainer.optimizers[0])
+    opt_closure = trainer.fit_loop.epoch_loop.automatic_optimization._make_closure(kwargs, trainer.optimizers[0], 0)
     opt_closure_result = opt_closure()
     assert opt_closure_result.item() == 171
 

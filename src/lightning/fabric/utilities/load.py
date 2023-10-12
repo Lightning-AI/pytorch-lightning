@@ -10,11 +10,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import pickle
 import warnings
 from functools import partial
 from io import BytesIO
-from typing import Any, Callable, Dict, IO, Optional, OrderedDict, Sequence, TYPE_CHECKING, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, OrderedDict, Sequence, Set, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -23,7 +24,7 @@ from torch._C import _TensorMeta
 from torch.nn import Parameter
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.utilities.types import _PATH, _Stateful
 
 if TYPE_CHECKING:
     from torch.storage import TypedStorage
@@ -140,6 +141,7 @@ class _NotYetLoadedTensor:
             "dtype",
             "grad",
             "grad_fn",
+            "is_meta",
             "layout",
             "names",
             "ndim",
@@ -152,8 +154,8 @@ class _NotYetLoadedTensor:
         }:
             return getattr(self.metatensor, name)
 
-        # Materialization with contiguous is needed for quantization (see lit-gpt)
-        if name in {"contiguous"}:
+        # materializing these is needed for quantization (see lit-gpt)
+        if name in {"contiguous", "cuda", "half"}:
             return getattr(self._load_tensor(), name)
 
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
@@ -192,6 +194,8 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
 def _lazy_load(filename: _PATH) -> Any:
     if not _TORCH_GREATER_EQUAL_2_0:
         raise NotImplementedError("Lazy-loading is only supported with PyTorch >= 2.0.")
+    if not os.path.isfile(filename):
+        raise FileNotFoundError(f"Path {str(filename)!r} does not exist or is not a file.")
     file_reader = torch.PyTorchFileReader(str(filename))
     with BytesIO(file_reader.get_record("data.pkl")) as pkl:
         mup = _LazyLoadingUnpickler(pkl, file_reader)
@@ -203,3 +207,20 @@ def _materialize_tensors(collection: Any) -> Any:
         return t._load_tensor()
 
     return apply_to_collection(collection, dtype=_NotYetLoadedTensor, function=_load_tensor)
+
+
+def _move_state_into(
+    source: Dict[str, Any], destination: Dict[str, Union[Any, _Stateful]], keys: Optional[Set[str]] = None
+) -> None:
+    """Takes the state from the source destination and moves it into the destination dictionary.
+
+    If an object in the destination follows the stateful protocol, it loads the source state via ``load_state_dict``.
+
+    """
+    keys = set(source) if keys is None else keys & set(source)
+    for key in keys:
+        state = source.pop(key)
+        if key in destination and isinstance(destination[key], _Stateful):
+            destination[key].load_state_dict(state)
+        else:
+            destination[key] = state

@@ -13,8 +13,9 @@
 # limitations under the License.
 """Utilities related to data saving/loading."""
 import io
+import logging
 from pathlib import Path
-from typing import Any, Dict, IO, Union
+from typing import IO, Any, Dict, Union
 
 import fsspec
 import torch
@@ -23,6 +24,8 @@ from fsspec.implementations.local import AbstractFileSystem
 from lightning_utilities.core.imports import module_available
 
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
+
+log = logging.getLogger(__name__)
 
 
 def _load(
@@ -34,6 +37,7 @@ def _load(
     Args:
         path_or_url: Path or URL of the checkpoint.
         map_location: a function, ``torch.device``, string or a dict specifying how to remap storage locations.
+
     """
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similar
@@ -65,8 +69,10 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
             accepts.
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
+
     """
     bytesbuffer = io.BytesIO()
+    log.debug(f"Saving checkpoint: {filepath}")
     torch.save(checkpoint, bytesbuffer)
     with fsspec.open(filepath, "wb") as f:
         f.write(bytesbuffer.getvalue())
@@ -107,6 +113,7 @@ def _is_dir(fs: AbstractFileSystem, path: Union[str, Path], strict: bool = False
         strict: A flag specific to Object Storage platforms. If set to ``False``, any non-existing path is considered
             as a valid directory-like path. In such cases, the directory (and any non-existing parent directories)
             will be created on the fly. Defaults to False.
+
     """
     # Object storage fsspec's are inconsistent with other file systems because they do not have real directories,
     # see for instance https://gcsfs.readthedocs.io/en/latest/api.html?highlight=makedirs#gcsfs.core.GCSFileSystem.mkdir

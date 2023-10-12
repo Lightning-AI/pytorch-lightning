@@ -1,6 +1,5 @@
 custom_service_name: "Lightning CI required checker"
 subprojects:
-
   # SECTION: pytorch_lightning
 
   - id: "pytorch_lightning: Tests workflow"
@@ -15,29 +14,35 @@ subprojects:
       - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
       - "tests/legacy/**"
-      - "pyproject.toml"  # includes pytest config
+      - "pyproject.toml" # includes pytest config
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "pl-cpu (macOS-11, lightning, 3.8, 1.11)"
+      - "pl-cpu (macOS-11, lightning, 3.8, 1.12, oldest)"
       - "pl-cpu (macOS-11, lightning, 3.9, 1.12)"
       - "pl-cpu (macOS-11, lightning, 3.10, 1.13)"
       - "pl-cpu (macOS-11, lightning, 3.10, 2.0)"
-      - "pl-cpu (macOS-11, lightning, 3.8, 1.11, oldest)"
-      - "pl-cpu (ubuntu-20.04, lightning, 3.8, 1.11)"
+      - "pl-cpu (macOS-11, lightning, 3.10, 2.1)"
+      - "pl-cpu (ubuntu-20.04, lightning, 3.8, 1.12, oldest)"
       - "pl-cpu (ubuntu-20.04, lightning, 3.9, 1.12)"
       - "pl-cpu (ubuntu-20.04, lightning, 3.10, 1.13)"
       - "pl-cpu (ubuntu-20.04, lightning, 3.10, 2.0)"
-      - "pl-cpu (ubuntu-20.04, lightning, 3.8, 1.11, oldest)"
-      - "pl-cpu (windows-2022, lightning, 3.8, 1.11)"
+      - "pl-cpu (ubuntu-20.04, lightning, 3.10, 2.1)"
+      - "pl-cpu (windows-2022, lightning, 3.8, 1.12, oldest)"
       - "pl-cpu (windows-2022, lightning, 3.9, 1.12)"
       - "pl-cpu (windows-2022, lightning, 3.10, 1.13)"
       - "pl-cpu (windows-2022, lightning, 3.10, 2.0)"
-      - "pl-cpu (windows-2022, lightning, 3.8, 1.11, oldest)"
+      - "pl-cpu (windows-2022, lightning, 3.10, 2.1)"
       - "pl-cpu (macOS-11, pytorch, 3.8, 1.13)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.8, 1.13)"
       - "pl-cpu (windows-2022, pytorch, 3.8, 1.13)"
+      - "pl-cpu (macOS-12, pytorch, 3.11, 2.0)"
+      - "pl-cpu (macOS-12, pytorch, 3.11, 2.1)"
+      - "pl-cpu (ubuntu-22.04, pytorch, 3.11, 2.0)"
+      - "pl-cpu (ubuntu-22.04, pytorch, 3.11, 2.1)"
+      - "pl-cpu (windows-2022, pytorch, 3.11, 2.0)"
+      - "pl-cpu (windows-2022, pytorch, 3.11, 2.1)"
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
@@ -57,7 +62,7 @@ subprojects:
       - "src/lightning/pytorch/**"
       - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
-      - "pyproject.toml"  # includes pytest config
+      - "pyproject.toml" # includes pytest config
       - "requirements/fabric/**"
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
@@ -92,8 +97,8 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_pytorch/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (pytorch, xrt)"
-      - "test-on-tpus (pytorch, pjrt)"
+      - "test-on-tpus (pytorch, xrt, v4-8)"
+      - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   - id: "fabric: Docs"
     paths:
@@ -104,12 +109,12 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/fabric/**"
       - "setup.py"
-      - "pyproject.toml"  # includes metadata used in the package creation
+      - "pyproject.toml" # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "make-doctest (fabric)"
-      - "make-html (fabric)"
+      - "docs-make (fabric, doctest)"
+      - "docs-make (fabric, html)"
 
   - id: "pytorch_lightning: Docs"
     paths:
@@ -121,17 +126,17 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/pytorch/**"
       - "setup.py"
-      - "pyproject.toml"  # includes metadata used in the package creation
+      - "pyproject.toml" # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "make-doctest (pytorch)"
-      - "make-html (pytorch)"
+      - "docs-make (pytorch, doctest)"
+      - "docs-make (pytorch, html)"
 
   - id: "pytorch_lightning: Docker"
     paths:
       - ".actions/*"
-      - ".github/workflows/ci-dockers.yml"
+      - ".github/workflows/docker-build.yml"
       - "dockers/**"
       - "requirements/pytorch/**"
       - "requirements/fabric/**"
@@ -144,13 +149,13 @@ subprojects:
       - "build-cuda (3.9, 1.13, 11.8.0)"
       - "build-cuda (3.9, 1.13, 12.0.1)"
       - "build-cuda (3.10, 2.0, 11.8.0)"
-      - "build-cuda (3.10, 2.0, 12.0.1)"
+      - "build-cuda (3.10, 2.1, 12.1.0)"
       #- "build-NGC"
       - "build-pl (3.9, 1.12, 11.7.1)"
       - "build-pl (3.9, 1.13, 11.8.0)"
       - "build-pl (3.9, 1.13, 12.0.1)"
       - "build-pl (3.10, 2.0, 11.8.0)"
-      - "build-pl (3.10, 2.0, 12.0.1)"
+      - "build-pl (3.10, 2.1, 12.1.0)"
 
   # SECTIONS: lightning_data
 
@@ -162,15 +167,15 @@ subprojects:
       - "src/lightning_data/*"
       - "tests/tests_data/**"
       - "examples/data/**"
-      - "pyproject.toml"  # includes pytest config
+      - "pyproject.toml" # includes pytest config
       - ".github/workflows/ci-tests-data.yml"
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "data-cpu (macOS-11, lightning, 3.10, 2.0)"
-      - "data-cpu (ubuntu-20.04, lightning, 3.10, 2.0)"
-      - "data-cpu (windows-2022, lightning, 3.10, 2.0)"
+      - "data-cpu (macOS-11, lightning, 3.10, 2.1)"
+      - "data-cpu (ubuntu-20.04, lightning, 3.10, 2.1)"
+      - "data-cpu (windows-2022, lightning, 3.10, 2.1)"
 
   # SECTION: lightning_fabric
 
@@ -181,30 +186,36 @@ subprojects:
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "tests/tests_fabric/**"
-      - "pyproject.toml"  # includes pytest config
+      - "pyproject.toml" # includes pytest config
       - ".github/workflows/ci-tests-fabric.yml"
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "fabric-cpu (macOS-11, lightning, 3.8, 1.11)"
+      - "fabric-cpu (macOS-11, lightning, 3.8, 1.12, oldest)"
       - "fabric-cpu (macOS-11, lightning, 3.9, 1.12)"
       - "fabric-cpu (macOS-11, lightning, 3.10, 1.13)"
       - "fabric-cpu (macOS-11, lightning, 3.10, 2.0)"
-      - "fabric-cpu (macOS-11, lightning, 3.8, 1.11, oldest)"
-      - "fabric-cpu (ubuntu-20.04, lightning, 3.8, 1.11)"
+      - "fabric-cpu (macOS-11, lightning, 3.11, 2.1)"
+      - "fabric-cpu (ubuntu-20.04, lightning, 3.8, 1.12, oldest)"
       - "fabric-cpu (ubuntu-20.04, lightning, 3.9, 1.12)"
       - "fabric-cpu (ubuntu-20.04, lightning, 3.10, 1.13)"
       - "fabric-cpu (ubuntu-20.04, lightning, 3.10, 2.0)"
-      - "fabric-cpu (ubuntu-20.04, lightning, 3.8, 1.11, oldest)"
-      - "fabric-cpu (windows-2022, lightning, 3.8, 1.11)"
+      - "fabric-cpu (ubuntu-20.04, lightning, 3.11, 2.1)"
+      - "fabric-cpu (windows-2022, lightning, 3.8, 1.12, oldest)"
       - "fabric-cpu (windows-2022, lightning, 3.9, 1.12)"
       - "fabric-cpu (windows-2022, lightning, 3.10, 1.13)"
       - "fabric-cpu (windows-2022, lightning, 3.10, 2.0)"
-      - "fabric-cpu (windows-2022, lightning, 3.8, 1.11, oldest)"
+      - "fabric-cpu (windows-2022, lightning, 3.11, 2.1)"
       - "fabric-cpu (macOS-11, fabric, 3.8, 1.13)"
       - "fabric-cpu (ubuntu-20.04, fabric, 3.8, 1.13)"
       - "fabric-cpu (windows-2022, fabric, 3.8, 1.13)"
+      - "fabric-cpu (macOS-12, fabric, 3.11, 2.0)"
+      - "fabric-cpu (macOS-12, fabric, 3.11, 2.1)"
+      - "fabric-cpu (ubuntu-22.04, fabric, 3.11, 2.0)"
+      - "fabric-cpu (ubuntu-22.04, fabric, 3.11, 2.1)"
+      - "fabric-cpu (windows-2022, fabric, 3.11, 2.0)"
+      - "fabric-cpu (windows-2022, fabric, 3.11, 2.1)"
 
   - id: "lightning_fabric: Azure GPU"
     paths:
@@ -213,7 +224,7 @@ subprojects:
       - "examples/fabric/**"
       - "examples/run_fabric_examples.sh"
       - "tests/tests_fabric/run_standalone_*.sh"
-      - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Fabric through a symlink
+      - "tests/tests_pytorch/run_standalone_tests.sh" # used by Fabric through a symlink
       - "requirements/fabric/**"
       - "src/lightning/__about__.py"
       - "src/lightning/__init__.py"
@@ -223,7 +234,7 @@ subprojects:
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "tests/tests_fabric/**"
-      - "pyproject.toml"  # includes pytest config
+      - "pyproject.toml" # includes pytest config
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -238,8 +249,8 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_fabric/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (fabric, xrt)"
-      - "test-on-tpus (pytorch, pjrt)"
+      - "test-on-tpus (fabric, xrt, v4-8)"
+      - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   # SECTION: lightning_app
 
@@ -259,12 +270,15 @@ subprojects:
       - "app-pytest (macOS-11, lightning, 3.8, latest)"
       - "app-pytest (macOS-11, lightning, 3.8, oldest)"
       - "app-pytest (macOS-11, app, 3.9, latest)"
+      - "app-pytest (macOS-12, app, 3.11, latest)"
       - "app-pytest (ubuntu-20.04, lightning, 3.8, latest)"
       - "app-pytest (ubuntu-20.04, lightning, 3.8, oldest)"
       - "app-pytest (ubuntu-20.04, app, 3.9, latest)"
+      - "app-pytest (ubuntu-22.04, app, 3.11, latest)"
       - "app-pytest (windows-2022, lightning, 3.8, latest)"
       - "app-pytest (windows-2022, lightning, 3.8, oldest)"
       - "app-pytest (windows-2022, app, 3.8, latest)"
+      - "app-pytest (windows-2022, app, 3.11, latest)"
 
   - id: "lightning_app: Examples"
     paths:
@@ -348,12 +362,12 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/app/**"
       - "setup.py"
-      - "pyproject.toml"  # includes metadata used in the package creation
+      - "pyproject.toml" # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "make-doctest (app)"
-      - "make-html (app)"
+      - "docs-make (app, doctest)"
+      - "docs-make (app, html)"
 
   # SECTION: common
 
@@ -363,7 +377,7 @@ subprojects:
       - ".github/workflows/code-checks.yml"
       - "requirements/**"
       - "src/**"
-      - "pyproject.toml"  # includes mypy config
+      - "pyproject.toml" # includes mypy config
       - "!requirements/docs.txt"
       - "!requirements/*/docs.txt"
       - "!*.md"
@@ -387,40 +401,32 @@ subprojects:
       - "!**/*.md"
     checks:
       - "install-pkg (ubuntu-22.04, app, 3.8)"
-      - "install-pkg (ubuntu-22.04, app, 3.10)"
+      - "install-pkg (ubuntu-22.04, app, 3.11)"
       - "install-pkg (ubuntu-22.04, fabric, 3.8)"
-      - "install-pkg (ubuntu-22.04, fabric, 3.10)"
+      - "install-pkg (ubuntu-22.04, fabric, 3.11)"
       - "install-pkg (ubuntu-22.04, pytorch, 3.8)"
-      - "install-pkg (ubuntu-22.04, pytorch, 3.10)"
+      - "install-pkg (ubuntu-22.04, pytorch, 3.11)"
       - "install-pkg (ubuntu-22.04, lightning, 3.8)"
-      - "install-pkg (ubuntu-22.04, lightning, 3.10)"
+      - "install-pkg (ubuntu-22.04, lightning, 3.11)"
       - "install-pkg (ubuntu-22.04, notset, 3.8)"
-      - "install-pkg (ubuntu-22.04, notset, 3.10)"
+      - "install-pkg (ubuntu-22.04, notset, 3.11)"
       - "install-pkg (macOS-12, app, 3.8)"
-      - "install-pkg (macOS-12, app, 3.10)"
+      - "install-pkg (macOS-12, app, 3.11)"
       - "install-pkg (macOS-12, fabric, 3.8)"
-      - "install-pkg (macOS-12, fabric, 3.10)"
+      - "install-pkg (macOS-12, fabric, 3.11)"
       - "install-pkg (macOS-12, pytorch, 3.8)"
-      - "install-pkg (macOS-12, pytorch, 3.10)"
+      - "install-pkg (macOS-12, pytorch, 3.11)"
       - "install-pkg (macOS-12, lightning, 3.8)"
-      - "install-pkg (macOS-12, lightning, 3.10)"
+      - "install-pkg (macOS-12, lightning, 3.11)"
       - "install-pkg (macOS-12, notset, 3.8)"
-      - "install-pkg (macOS-12, notset, 3.10)"
+      - "install-pkg (macOS-12, notset, 3.11)"
       - "install-pkg (windows-2022, app, 3.8)"
-      - "install-pkg (windows-2022, app, 3.10)"
+      - "install-pkg (windows-2022, app, 3.11)"
       - "install-pkg (windows-2022, fabric, 3.8)"
-      - "install-pkg (windows-2022, fabric, 3.10)"
+      - "install-pkg (windows-2022, fabric, 3.11)"
       - "install-pkg (windows-2022, pytorch, 3.8)"
-      - "install-pkg (windows-2022, pytorch, 3.10)"
+      - "install-pkg (windows-2022, pytorch, 3.11)"
       - "install-pkg (windows-2022, lightning, 3.8)"
-      - "install-pkg (windows-2022, lightning, 3.10)"
+      - "install-pkg (windows-2022, lightning, 3.11)"
       - "install-pkg (windows-2022, notset, 3.8)"
-      - "install-pkg (windows-2022, notset, 3.10)"
-
-  - id: "link-check"
-    paths:
-      - ".github/workflows/ci-check-md-links.yml"
-      - ".github/workflows/markdown.links.config.json"
-      - "**/*.md"
-    checks:
-      - "check-md-links / markdown-link-check"
+      - "install-pkg (windows-2022, notset, 3.11)"

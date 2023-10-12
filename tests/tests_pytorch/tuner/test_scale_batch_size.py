@@ -18,14 +18,14 @@ from unittest.mock import patch
 
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import DataLoader
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from lightning.pytorch.tuner.tuning import Tuner
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import DataLoader
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -231,8 +231,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
 
 
 def test_error_on_dataloader_passed_to_fit(tmpdir):
-    """Verify that when the auto-scale batch size feature raises an error if a train dataloader is passed to
-    fit."""
+    """Verify that when the auto-scale batch size feature raises an error if a train dataloader is passed to fit."""
 
     # only train passed to fit
     model = BatchSizeModel(batch_size=2)

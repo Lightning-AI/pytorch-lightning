@@ -17,12 +17,11 @@ import sys
 from unittest import mock
 from unittest.mock import ANY, Mock
 
-import pytest
-
 import lightning.fabric
+import pytest
 from lightning.fabric.strategies.launchers.subprocess_script import (
-    _ChildProcessObserver,
     _HYDRA_AVAILABLE,
+    _ChildProcessObserver,
     _SubprocessScriptLauncher,
 )
 
@@ -170,3 +169,15 @@ def test_child_process_observer(sleep_mock, os_kill_mock):
     observer()
     assert observer._finished
     sleep_mock.assert_called_once_with(5)
+
+
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.subprocess.Popen")
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.Thread")
+def test_validate_cluster_environment_user_settings(*_):
+    """Test that the launcher calls into the cluster environment to validate the user settings."""
+    cluster_env = Mock(validate_settings=Mock(side_effect=RuntimeError("test")))
+    cluster_env.creates_processes_externally = True
+    launcher = _SubprocessScriptLauncher(cluster_env, num_processes=2, num_nodes=1)
+
+    with pytest.raises(RuntimeError, match="test"):
+        launcher.launch(Mock())

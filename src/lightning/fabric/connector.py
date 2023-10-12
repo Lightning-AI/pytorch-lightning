@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from collections import Counter
-from typing import Any, cast, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import torch
 from typing_extensions import get_args
@@ -29,7 +29,7 @@ from lightning.fabric.plugins import (
     HalfPrecision,
     MixedPrecision,
     Precision,
-    XLABf16Precision,
+    TransformerEnginePrecision,
     XLAPrecision,
 )
 from lightning.fabric.plugins.environments import (
@@ -49,14 +49,13 @@ from lightning.fabric.plugins.precision.precision import (
     _PRECISION_INPUT_STR_ALIAS,
     _PRECISION_INPUT_STR_ALIAS_CONVERSION,
 )
-from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.strategies import (
+    STRATEGY_REGISTRY,
     DeepSpeedStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
     Strategy,
-    STRATEGY_REGISTRY,
     XLAFSDPStrategy,
     XLAStrategy,
 )
@@ -98,6 +97,7 @@ class _Connector:
     priorities which to take when:
         A. Class > str
         B. Strategy > Accelerator/precision/plugins
+
     """
 
     def __init__(
@@ -106,14 +106,14 @@ class _Connector:
         strategy: Union[str, Strategy] = "auto",
         devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
-        precision: _PRECISION_INPUT = "32-true",
+        precision: Optional[_PRECISION_INPUT] = None,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
         # These arguments can be set through environment variables set by the CLI
         accelerator = self._argument_from_env("accelerator", accelerator, default="auto")
         strategy = self._argument_from_env("strategy", strategy, default="auto")
         devices = self._argument_from_env("devices", devices, default="auto")
-        num_nodes = self._argument_from_env("num_nodes", num_nodes, default=1)
+        num_nodes = int(self._argument_from_env("num_nodes", num_nodes, default=1))
         precision = self._argument_from_env("precision", precision, default="32-true")
 
         # 1. Parsing flags
@@ -169,7 +169,7 @@ class _Connector:
         self,
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
-        precision: _PRECISION_INPUT,
+        precision: Optional[_PRECISION_INPUT],
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
     ) -> None:
         """This method checks:
@@ -182,6 +182,7 @@ class _Connector:
         4. plugins: The list of plugins may contain a Precision plugin, CheckpointIO, ClusterEnvironment and others.
             Additionally, other flags such as `precision` can populate the list with the
             corresponding plugin instances.
+
         """
         if plugins is not None:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
@@ -225,7 +226,7 @@ class _Connector:
 
         self._accelerator_flag = accelerator
 
-        self._precision_input = _convert_precision_to_unified_args(precision)
+        precision_input = _convert_precision_to_unified_args(precision)
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -251,6 +252,14 @@ class _Connector:
                     f"Received multiple values for {', '.join(duplicated_plugin_key)} flags in `plugins`."
                     " Expected one value for each type at most."
                 )
+
+            if plugins_flags_types.get(Precision.__name__) and precision_input is not None:
+                raise ValueError(
+                    f"Received both `precision={precision_input}` and `plugins={self._precision_instance}`."
+                    f" Choose one."
+                )
+
+        self._precision_input = "32-true" if precision_input is None else precision_input
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
@@ -292,7 +301,10 @@ class _Connector:
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
-        self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
+        if not isinstance(num_nodes, int) or num_nodes < 1:
+            raise ValueError(f"`num_nodes` must be a positive integer, but got {num_nodes}.")
+
+        self._num_nodes_flag = num_nodes
         self._devices_flag = devices
 
         if self._devices_flag in ([], 0, "0"):
@@ -352,15 +364,30 @@ class _Connector:
             self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
-        if self._devices_flag == "auto":
+        if self._devices_flag != "auto":
+            return
+        if (
+            _IS_INTERACTIVE
+            and isinstance(self.accelerator, CUDAAccelerator)
+            and self.accelerator.auto_device_count() > 1
+        ):
+            self._devices_flag = 1
+            rank_zero_info(
+                f"Fabric will use only 1 of {self.accelerator.auto_device_count()} GPUs because it is running inside"
+                " an interactive / notebook environment. You may try to set `Fabric(devices="
+                f"{self.accelerator.auto_device_count()})` but please note that multi-GPU inside interactive /"
+                " notebook environments is considered experimental and unstable. Your mileage may vary."
+            )
+        else:
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             return self._cluster_environment_flag
         for env_type in (
-            SLURMEnvironment,
+            # TorchElastic has the highest priority since it can also be used inside SLURM
             TorchElasticEnvironment,
+            SLURMEnvironment,
             LSFEnvironment,
             MPIEnvironment,
         ):
@@ -390,8 +417,8 @@ class _Connector:
         return "ddp"
 
     def _check_strategy_and_fallback(self) -> None:
-        """Checks edge cases when the strategy selection was a string input, and we need to fall back to a
-        different choice depending on other parameters or the environment."""
+        """Checks edge cases when the strategy selection was a string input, and we need to fall back to a different
+        choice depending on other parameters or the environment."""
         # current fallback and check logic only apply to user pass in str config and object config
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
@@ -427,21 +454,10 @@ class _Connector:
             self.strategy = self._strategy_flag
 
     def _check_and_init_precision(self) -> Precision:
-        self._validate_precision_choice()
         if isinstance(self._precision_instance, Precision):
             return self._precision_instance
-
-        if isinstance(self.accelerator, XLAAccelerator):
-            if self._precision_input == "32-true":
-                return XLAPrecision()
-            if self._precision_input in ("16-mixed", "bf16-mixed"):
-                if self._precision_input == "16-mixed":
-                    rank_zero_warn(
-                        "You passed `Fabric(accelerator='tpu', precision='16-mixed')` but AMP with fp16"
-                        " is not supported with TPUs. Using `precision='bf16-mixed'` instead."
-                    )
-                return XLABf16Precision()
-
+        if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy, XLAFSDPStrategy)):
+            return XLAPrecision(self._precision_input)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
         if isinstance(self.strategy, FSDPStrategy):
@@ -453,7 +469,9 @@ class _Connector:
         if self._precision_input == "64-true":
             return DoublePrecision()
         if self._precision_input == "transformer-engine":
-            return TransformerEnginePrecision()
+            return TransformerEnginePrecision(dtype=torch.bfloat16)
+        if self._precision_input == "transformer-engine-float16":
+            return TransformerEnginePrecision(dtype=torch.float16)
 
         if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(
@@ -472,21 +490,6 @@ class _Connector:
             return MixedPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
-
-    def _validate_precision_choice(self) -> None:
-        """Validate the combination of choices for precision, and accelerator."""
-        if isinstance(self.accelerator, XLAAccelerator):
-            if self._precision_input == "64-true":
-                raise NotImplementedError(
-                    "`Fabric(accelerator='tpu', precision='64-true')` is not implemented."
-                    " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
-                    " requesting this feature."
-                )
-            if self._precision_instance and not isinstance(self._precision_instance, (XLAPrecision, XLABf16Precision)):
-                raise ValueError(
-                    f"The `XLAAccelerator` can only be used with a `XLAPrecision` plugin,"
-                    f" found: {self._precision_instance}."
-                )
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""
@@ -545,7 +548,10 @@ class _Connector:
         return env_value
 
 
-def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISION_INPUT_STR:
+def _convert_precision_to_unified_args(precision: Optional[_PRECISION_INPUT]) -> Optional[_PRECISION_INPUT_STR]:
+    if precision is None:
+        return None
+
     supported_precision = (
         get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT) + get_args(_PRECISION_INPUT_STR_ALIAS)
     )
@@ -557,7 +563,7 @@ def _convert_precision_to_unified_args(precision: _PRECISION_INPUT) -> _PRECISIO
     if precision in get_args(_PRECISION_INPUT_STR_ALIAS):
         if str(precision)[:2] not in ("32", "64"):
             rank_zero_warn(
-                f"{precision} is supported for historical reasons but its usage is discouraged. "
+                f"`precision={precision}` is supported for historical reasons but its usage is discouraged. "
                 f"Please set your precision to {_PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]} instead!"
             )
         precision = _PRECISION_INPUT_STR_ALIAS_CONVERSION[precision]
