@@ -25,10 +25,10 @@ jobs:
           lfs: true
 
       - run: git submodule status
-      - run: |
-          git submodule init
-          git submodule update
+      - run: git submodule update --remote
       - run: git submodule status
+      - run: git status
+
       - name: Create Pull Request
         if: github.event_name != 'pull_request'
         uses: peter-evans/create-pull-request@v5
