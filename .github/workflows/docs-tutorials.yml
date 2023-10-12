@@ -46,7 +46,7 @@ jobs:
           echo "SHA_LATEST=$short_sha" >> $GITHUB_ENV
 
       - name: Create Pull Request
-        if: {{github.event_name != 'pull_request' && env.SHA_ACTUAL != env.SHA_LATEST }}
+        if: { { github.event_name != 'pull_request' && env.SHA_ACTUAL != env.SHA_LATEST } }
         uses: peter-evans/create-pull-request@v5
         with:
           title: "docs: update ref to latest tutorials"
