@@ -122,7 +122,7 @@ jobs:
     needs: [release-version, signaling]
     env:
       TAG: ${{ needs.release-version.outputs.tag }}
-    # due to PR proces this may take longer
+    # due to PR process this may take longer
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
