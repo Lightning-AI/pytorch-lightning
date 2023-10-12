@@ -39,8 +39,8 @@ jobs:
         run: |
           git submodule status
           git status
-
-          short_sha=$(git submodule status | grep -A 1 _notebooks | cut -c1-8)
+          # starting from second char as the line starts with +
+          short_sha=$(git submodule status | grep -A 1 _notebooks | cut -c2-9)
           echo "SHA_SHORT=$short_sha" >> $GITHUB_ENV
 
       - name: Create Pull Request
