@@ -20,9 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          #submodules: true
+          submodules: true
           fetch-depth: 0
-          lfs: true
+          #lfs: true
 
       - run: git submodule status
       - run: git submodule update --remote
