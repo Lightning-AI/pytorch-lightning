@@ -15,7 +15,6 @@ import warnings
 from unittest.mock import MagicMock
 
 import torch
-
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import MemoryFormat
 from pytorch_lightning import Trainer

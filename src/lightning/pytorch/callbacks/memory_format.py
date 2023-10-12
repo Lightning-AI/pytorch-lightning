@@ -20,22 +20,23 @@ changes the model memory format
 
 from typing import Any, MutableSequence, Optional
 
+import pytorch_lightning as pl
 import torch
 
-import pytorch_lightning as pl
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class MemoryFormat(Callback):
-    """The `MemoryFormat` callback changes the model memory format to `torch.channels_last` before training starts
-    and returns the original when it ends.
+    """The `MemoryFormat` callback changes the model memory format to `torch.channels_last` before training starts and
+    returns the original when it ends.
 
     <https://\\pytorch.org/tutorials/intermediate/memory_format_tutorial.html>`_.
 
     Setting the memory format channels_last usually improves GPU utilization.
 
     Runs on setup, so it can set the memory format before the model is DDP wrapped.
+
     """
 
     def __init__(self, memory_format: torch.memory_format = torch.channels_last, convert_input: bool = False):
