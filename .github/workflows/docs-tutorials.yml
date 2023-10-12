@@ -25,7 +25,7 @@ jobs:
           #lfs: true
 
       - run: git submodule status
-      - run: git submodule update --remote --merge
+      - run: git submodule update --remote --force
       - run: git submodule status
       - run: git status
 
