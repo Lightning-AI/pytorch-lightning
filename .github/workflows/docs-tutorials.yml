@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       GIT_TRACE: 1
-      GIT_CURL_VERBOSE: 1
+      #GIT_CURL_VERBOSE: 1
     steps:
       - uses: actions/checkout@v4
         with:
