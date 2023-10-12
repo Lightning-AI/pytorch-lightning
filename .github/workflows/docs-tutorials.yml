@@ -22,7 +22,7 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
-          #lfs: true
+          lfs: true
 
       - run: git submodule status
       - run: git submodule update --remote --force
