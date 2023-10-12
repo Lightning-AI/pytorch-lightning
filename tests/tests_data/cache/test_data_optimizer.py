@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import Any, List
 
 import numpy as np
@@ -17,7 +18,7 @@ class TestDatasetOptimizer(DatasetOptimizer):
 
 @pytest.mark.parametrize("delete_cached_files", [False, True])
 @pytest.mark.parametrize("fast_dev_run", [False, True])
-@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
 def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     from PIL import Image
 
@@ -95,7 +96,7 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
 
 @pytest.mark.parametrize("delete_cached_files", [False])
 @pytest.mark.parametrize("fast_dev_run", [False])
-@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
 def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     from PIL import Image
 
