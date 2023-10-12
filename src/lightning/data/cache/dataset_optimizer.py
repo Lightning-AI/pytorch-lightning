@@ -602,7 +602,7 @@ class DatasetOptimizer(ABC):
                     self.num_downloaders,
                     self.delete_cached_files,
                     2 if self.fast_dev_run else self.chunk_size,  # In dev run, create chunks with 2 items
-                    None if self.fast_dev_run else self.chunk_size,
+                    None if self.fast_dev_run else self.chunk_bytes,
                     self.compression,
                 )
                 worker.start()
@@ -635,7 +635,7 @@ class DatasetOptimizer(ABC):
                 self.num_downloaders,
                 self.delete_cached_files,
                 2 if self.fast_dev_run else self.chunk_size,  # In dev run, create chunks with 2 items
-                None if self.fast_dev_run else self.chunk_size,
+                None if self.fast_dev_run else self.chunk_bytes,
                 self.compression,
             )
             worker.start()
