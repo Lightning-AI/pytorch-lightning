@@ -48,6 +48,11 @@ def _get_fast_dev_mode() -> int:
     return bool(int(os.getenv("FAST_DEV_MODE", 1)))
 
 
+def _get_home_folder() -> Optional[str]:
+    """Returns whether cache folder for the filepaths."""
+    return os.getenv("HOME_FOLDER", os.path.expanduser("~"))
+
+
 def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
     """This function is used to download data from a remote directory to a cache directory to optimise reading."""
     # 1. Create client
@@ -495,6 +500,7 @@ class DatasetOptimizer(ABC):
         print(f"Setup started for `{self.name}` with fast_dev_run={self.fast_dev_run}.")
 
         # Get the filepaths
+        # TODO: Remove me for a more optimised way of listing files.
         filepaths = self._cached_list_filepaths()
 
         if len(filepaths) == 0:
@@ -658,12 +664,7 @@ class DatasetOptimizer(ABC):
 
     def _cached_list_filepaths(self) -> List[str]:
         """This method lists and caches the."""
-        home = os.path.expanduser("~")
-
-        # TODO: Handle home directory in Jobs
-        if home == "/home/zeus":
-            home = "/teamspace/studios/this_studio"
-
+        home = _get_home_folder()
         filepath = os.path.join(home, ".cache", f"{self.name}/filepaths.txt")
 
         if os.path.exists(filepath):
