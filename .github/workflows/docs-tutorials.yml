@@ -22,11 +22,10 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
-          lfs: true
+          #lfs: true
 
       - run: git submodule status
       - run: git submodule update --remote --force
-      - run: git lfs logs last
       - run: git submodule status
       - run: git status
 
