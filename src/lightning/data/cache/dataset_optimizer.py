@@ -36,6 +36,11 @@ if _BOTO3_AVAILABLE:
 logger = logging.Logger(__name__)
 
 
+def _get_cache_folder() -> int:
+    """Returns the cache folder."""
+    return os.getenv("CACHE_FOLDER", "/cache")
+
+
 def _get_num_nodes() -> int:
     """Returns the number of nodes."""
     return int(os.getenv("NUM_NODES", 1))
@@ -73,27 +78,32 @@ def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, que
         # 4. Unpack
         index, paths = r
 
+        print(src_dir, cache_dir)
+
         # 5. Check whether all the files are already downloaded
         if all(os.path.exists(p.replace(src_dir, cache_dir)) for p in paths):
             queue_out.put(index)
             continue
 
-        # 6. Download all the required paths to unblock the current index
-        for path in paths:
-            remote_path = path.replace(src_dir, remote_src_dir)
-            obj = parse.urlparse(remote_path)
+        if remote_src_dir is not None:
+            # 6. Download all the required paths to unblock the current index
+            for path in paths:
+                remote_path = path.replace(src_dir, remote_src_dir)
+                obj = parse.urlparse(remote_path)
 
-            if obj.scheme != "s3":
-                raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_path}")
+                if obj.scheme != "s3":
+                    raise ValueError(
+                        f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_path}"
+                    )
 
-            local_path = path.replace(src_dir, cache_dir)
+                local_path = path.replace(src_dir, cache_dir)
 
-            dirpath = os.path.dirname(local_path)
+                dirpath = os.path.dirname(local_path)
 
-            os.makedirs(dirpath, exist_ok=True)
+                os.makedirs(dirpath, exist_ok=True)
 
-            with open(local_path, "wb") as f:
-                s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
+                with open(local_path, "wb") as f:
+                    s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
 
         # 7. Inform the worker the current files are available
         queue_out.put(index)
@@ -253,7 +263,7 @@ class BaseWorker:
         os.environ["DATA_OPTIMIZER_WORLD_SIZE"] = str(self.num_workers)
 
     def _create_cache(self) -> None:
-        self.cache_chunks_dir = os.path.join("/cache", self.dataset_name)
+        self.cache_chunks_dir = os.path.join(_get_cache_folder(), self.dataset_name)
         os.makedirs(self.cache_chunks_dir, exist_ok=True)
 
         self.cache = Cache(
@@ -263,7 +273,7 @@ class BaseWorker:
             compression=self.compression,
         )
 
-        self.cache_data_dir = os.path.join("/cache", "data", self.dataset_name)
+        self.cache_data_dir = os.path.join(_get_cache_folder(), "data", self.dataset_name)
         os.makedirs(self.cache_data_dir, exist_ok=True)
 
     def _try_upload(self, filepath: Optional[str]) -> None:
@@ -277,7 +287,6 @@ class BaseWorker:
         items = []
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
-
             # For speed reasons, we assume starting with `self.src_dir` is enough to be a real file.
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
@@ -299,7 +308,6 @@ class BaseWorker:
             self.paths.append(paths)
 
             items.append(tree_unflatten(flattened_item, spec))
-
             self._collected_items += 1
 
         self.items = items
@@ -471,7 +479,7 @@ class DatasetOptimizer(ABC):
 
         """
         self.name = name
-        self.src_dir = src_dir
+        self.src_dir = str(src_dir)
         self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
         self.num_downloaders = num_downloaders or (1 if fast_dev_run else 2)
         self.chunk_size = chunk_size
@@ -565,7 +573,7 @@ class DatasetOptimizer(ABC):
         for w in self.workers:
             w.join(0)
 
-        cache_dir = os.path.join("/cache", self.name)
+        cache_dir = os.path.join(_get_cache_folder(), self.name)
         merge_cache = Cache(cache_dir, chunk_bytes=1)
         merge_cache.merge(self.num_workers)
         self._upload_index(cache_dir)
@@ -618,6 +626,7 @@ class DatasetOptimizer(ABC):
 
     def _create_process_workers(self, begins: List[int], workers_user_items: List[List[Any]]) -> None:
         self.progress_queue = Queue()
+        workers = []
         for worker_idx, worker_user_items in enumerate(workers_user_items):
             worker = DataWorkerProcess(
                 worker_idx,
@@ -639,7 +648,9 @@ class DatasetOptimizer(ABC):
                 self.compression,
             )
             worker.start()
-            self.workers.append(worker)
+            workers.append(worker)
+        # Note: Don't store within the loop as weakref aren't serializable
+        self.workers = workers
 
     def _associated_items_to_workers(self, user_items: List[Any]) -> Tuple[List[int], List[List[Any]]]:
         # Associate the items to the workers based on world_size and node_rank
