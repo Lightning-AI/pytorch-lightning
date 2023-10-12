@@ -39,7 +39,7 @@ jobs:
         run: |
           git submodule status
           git status
-          
+
           short_sha=$(git submodule status | grep -A 1 _notebooks | cut -c1-8)
           echo "SHA_SHORT=$short_sha" >> $GITHUB_ENV
 
@@ -56,7 +56,7 @@ jobs:
             **This is automated update with the latest lighting tutorials!**
             The target commit in the [publication](https://github.com/Lightning-AI/tutorials/tree/publication)
              branch is [${{ env.SHA_SHORT }}](https://github.com/Lightning-AI/tutorials/commit/${{ env.SHA_SHORT }}).
-            
+
             Before proceeding further double check that the PR include only submodule's head update.
             Eventually some additional adjustments in lightning docs may be needed.
 
