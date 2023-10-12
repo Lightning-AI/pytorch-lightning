@@ -143,8 +143,8 @@ jobs:
           title: Adding test for legacy checkpoint created with ${{ env.PL_VERSION }}
           committer: GitHub <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          commit-message: "update tutorials to ${{ env.PL_VERSION }}"
-          body: "**This is automated addition of created checkpoints with the latest lighting release!**"
+          commit-message: "update tutorials to `${{ env.PL_VERSION }}`"
+          body: "**This is automated addition of created checkpoints with the latest `lightning` release!**"
           delete-branch: true
           token: ${{ secrets.PAT_GHOST }}
           labels: |
