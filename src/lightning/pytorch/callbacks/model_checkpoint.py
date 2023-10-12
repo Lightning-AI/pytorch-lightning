@@ -27,6 +27,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 from weakref import proxy
+import shutil
 
 import torch
 import yaml
@@ -384,7 +385,10 @@ class ModelCheckpoint(Checkpoint):
     def _link_checkpoint(trainer: "pl.Trainer", filepath: str, linkpath: str) -> None:
         if trainer.is_global_zero:
             if os.path.lexists(linkpath):
-                os.remove(linkpath)
+                if not os.path.isdir(linkpath):
+                    os.remove(linkpath)
+                else:
+                    shutil.rmtree(linkpath)
             os.symlink(filepath, linkpath)
         trainer.strategy.barrier()
 
