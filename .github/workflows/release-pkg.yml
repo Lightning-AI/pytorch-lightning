@@ -122,7 +122,8 @@ jobs:
     needs: [release-version, signaling]
     env:
       TAG: ${{ needs.release-version.outputs.tag }}
-    timeout-minutes: 90
+    # due to PR proces this may take longer
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
