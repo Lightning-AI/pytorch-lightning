@@ -203,6 +203,29 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
+## Continuous Integration
+
+Lightning is rigorously tested across multiple CPUs and GPUs and against major Python and PyTorch versions.
+
+###### \*Codecov is > 90%+ but build delays may show less
+
+<details>
+  <summary>Current build statuses</summary>
+
+<center>
+
+|       System / PyTorch ver.        |                                                                                             1.12                                                                                             |                                                                                             1.13                                                                                             |                                                                                             2.0                                                                                              |                                                                                                               2.1                                                                                                                |
+| :--------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|        Linux py3.9 \[GPUs\]        |                                                                                                                                                                                              |                                                                                                                                                                                              |                                                                                                                                                                                              | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status%2Flightning-fabric%20(GPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=38&branchName=master) |
+|  Linux (multiple Python versions)  | [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml) | [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml) | [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml) |                   [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml)                   |
+|   OSX (multiple Python versions)   | [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml) | [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml) | [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml) |                   [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml)                   |
+| Windows (multiple Python versions) | [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml) | [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml) | [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml) |                   [![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml)                   |
+
+</center>
+</details>
+
+______________________________________________________________________
+
 # Getting started
 
 ## Install Lightning
