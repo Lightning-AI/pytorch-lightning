@@ -359,16 +359,22 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
-def test_invalid_parameters_in_optimizer():
+@pytest.mark.parametrize("use_orig_params", [None, False, True])
+def test_invalid_parameters_in_optimizer(use_orig_params):
+    fsdp_kwargs = {}
+    if _TORCH_GREATER_EQUAL_2_0 and use_orig_params is not None:
+        fsdp_kwargs = {"use_orig_params": use_orig_params}
+
     trainer = Trainer(
-        strategy="fsdp",
+        strategy=FSDPStrategy(**fsdp_kwargs),
         accelerator="cuda",
         devices=1,
         fast_dev_run=1,
     )
+
     error_context = (
         nullcontext()
-        if _TORCH_GREATER_EQUAL_2_0
+        if _TORCH_GREATER_EQUAL_2_0 and (_TORCH_GREATER_EQUAL_2_1 or use_orig_params is not False)
         else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
     )
 
@@ -384,6 +390,12 @@ def test_invalid_parameters_in_optimizer():
         def configure_optimizers(self):
             layer = torch.nn.Linear(4, 5)
             return torch.optim.Adam(layer.parameters(), lr=1e-2)
+
+    error_context = (
+        nullcontext()
+        if _TORCH_GREATER_EQUAL_2_0 and use_orig_params is not False
+        else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
+    )
 
     model = NoFlatParametersModel()
     with error_context:

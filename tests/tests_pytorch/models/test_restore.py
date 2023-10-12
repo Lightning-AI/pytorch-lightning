@@ -311,9 +311,11 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
                 "best_k_models",
                 "kth_best_model_path",
                 "kth_value",
-                "last_model_path",
             ):
-                assert getattr(before, attribute) == getattr(after, attribute)
+                assert getattr(before, attribute) == getattr(after, attribute), f"{attribute}"
+            # `before.last_model_path` is a symlink pointing to a checkpoint saved before that symlink was created,
+            # hence reloading that checkpoint will restore `after.last_model_path = ""`
+            assert after.last_model_path == ""
 
 
 @RunIf(sklearn=True)

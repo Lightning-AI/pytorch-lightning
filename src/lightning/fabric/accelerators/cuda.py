@@ -68,7 +68,7 @@ class CUDAAccelerator(Accelerator):
         accelerator_registry.register(
             "cuda",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
 
@@ -90,6 +90,8 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
         both processes determine that the device is unoccupied, leading into one of them crashing later on.
 
     """
+    if num_devices == 0:
+        return []
     visible_devices = _get_all_visible_cuda_devices()
     if not visible_devices:
         raise ValueError(

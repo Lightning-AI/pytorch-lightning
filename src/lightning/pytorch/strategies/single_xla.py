@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
-from lightning.fabric.plugins import CheckpointIO, XLACheckpointIO
+from lightning.fabric.plugins import XLACheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
-from lightning.pytorch.plugins.precision import PrecisionPlugin
+from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 
@@ -34,8 +34,8 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         self,
         device: _DEVICE,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]] = None,
+        precision_plugin: Optional[XLAPrecisionPlugin] = None,
         debug: bool = False,
     ):
         if not _XLA_AVAILABLE:
@@ -53,18 +53,35 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         )
         self.debug = debug
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        if self._checkpoint_io is None:
-            self._checkpoint_io = XLACheckpointIO()
-        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
-            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
-
-        return self._checkpoint_io
+    @property  # type: ignore[override]
+    def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
+        plugin = self._checkpoint_io
+        if plugin is not None:
+            assert isinstance(plugin, (XLACheckpointIO, _WrappingCheckpointIO))
+            return plugin
+        return XLACheckpointIO()
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: CheckpointIO) -> None:
+    def checkpoint_io(self, io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]]) -> None:
+        if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
+            raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
+
+    @property  # type: ignore[override]
+    def precision_plugin(self) -> XLAPrecisionPlugin:
+        plugin = self._precision_plugin
+        if plugin is not None:
+            assert isinstance(plugin, XLAPrecisionPlugin)
+            return plugin
+        return XLAPrecisionPlugin()
+
+    @precision_plugin.setter
+    def precision_plugin(self, precision_plugin: Optional[XLAPrecisionPlugin]) -> None:
+        if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecisionPlugin):
+            raise TypeError(
+                f"The XLA strategy can only work with the `XLAPrecisionPlugin` plugin, found {precision_plugin}"
+            )
+        self._precision_plugin = precision_plugin
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.model, "self.model must be set before find_shared_parameters(self.model)"
@@ -78,7 +95,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        strategy_registry.register("single_xla", cls, description=cls.__class__.__name__)
+        strategy_registry.register("single_xla", cls, description=cls.__name__)
 
     def teardown(self) -> None:
         super().teardown()

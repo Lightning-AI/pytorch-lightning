@@ -330,6 +330,8 @@ class FSDPStrategy(ParallelStrategy):
 
         invalid_params_error = False
         try:
+            # In PyTorch < 2.0, or if `use_orig_params=False` the user needs to do access
+            # `self.trainer.model.parameters()` in configure_optimizers()
             super().setup_optimizers(trainer)
         except ValueError as ex:
             if "optimizer got an empty parameter list" not in str(ex):
@@ -360,7 +362,7 @@ class FSDPStrategy(ParallelStrategy):
             empty_init_context = _EmptyInit(enabled=bool(empty_init))
         else:
             empty_init_context = nullcontext()
-        with empty_init_context, self.precision_plugin.init_context():
+        with empty_init_context, self.precision_plugin.tensor_init_context():
             yield
 
     @contextmanager

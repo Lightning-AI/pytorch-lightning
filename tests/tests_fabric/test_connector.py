@@ -690,9 +690,8 @@ def test_unsupported_tpu_choice(_, tpu_available):
         _Connector(accelerator="tpu", precision="16-true", strategy="ddp")
 
     # wrong precision plugin type
-    strategy = XLAStrategy(accelerator=XLAAccelerator(), precision=Precision())
-    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `XLAPrecision` plugin"):
-        _Connector(strategy=strategy)
+    with pytest.raises(TypeError, match="can only work with the `XLAPrecision` plugin"):
+        XLAStrategy(accelerator=XLAAccelerator(), precision=Precision())
 
     # wrong strategy type
     strategy = DDPStrategy(accelerator=XLAAccelerator(), precision=XLAPrecision(precision="16-true"))

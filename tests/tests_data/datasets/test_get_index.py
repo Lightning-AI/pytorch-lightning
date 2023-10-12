@@ -17,8 +17,7 @@ def get_test_index_data(index_path):
     return list(dict.fromkeys([item.split("/")[-1] for item in data if "jpeg" in item]))
 
 
-@pytest.fixture(scope="session")
-def image_set(tmp_path_factory):
+def image_set(tmpdir):
     from PIL import Image
 
     file_nums = [
@@ -45,11 +44,11 @@ def image_set(tmp_path_factory):
     img = img.astype(np.uint8)
     im = Image.fromarray(img)
 
-    for i in file_nums:
-        fn = tmp_path_factory.mktemp("test_data") / f"img-{i}.jpeg"
-        im.save(fn)
+    folder_path = os.path.join(tmpdir, "test_data")
+    os.makedirs(folder_path, exist_ok=True)
 
-    return tmp_path_factory.getbasetemp()._str
+    for i in file_nums:
+        im.save(os.path.join(folder_path, f"img-{i}.jpeg"))
 
 
 @pytest.mark.xfail(strict=False, reason="Need a valid AWS key and AWS secret key in CI for this to work")
@@ -70,7 +69,6 @@ def test_get_index_generate_for_s3_bucket(monkeypatch):
 
     test_bucket = "s3://nohaspublictestbucket"
     index_path = os.path.join(os.getcwd(), "index_1.txt")
-    print(index_path)
     got_index = get_index(s3_connection_path=test_bucket, index_file_path=index_path)
 
     assert got_index
@@ -80,12 +78,15 @@ def test_get_index_generate_for_s3_bucket(monkeypatch):
 
     assert len(test_index_data) == len(generated_index)
     assert test_index_data == generated_index
+    os.remove(index_path)
 
 
 @pytest.mark.skipif(not package_available("lightning"), reason="Supported only with mono-package")
 @mock.patch("lightning.data.datasets.index.LightningClient", MagicMock())
-def test_get_index_generate_for_local_folder(image_set, monkeypatch):
+def test_get_index_generate_for_local_folder(monkeypatch, tmpdir):
     """Can generate an index for an s3 bucket."""
+
+    image_set(tmpdir)
 
     client = MagicMock()
     client.projects_service_list_project_cluster_bindings.return_value = None
@@ -100,7 +101,7 @@ def test_get_index_generate_for_local_folder(image_set, monkeypatch):
 
     # test_local_bucket = "data/test_dataset"
     index_path = os.path.join(THIS_DIR, "index_2.txt")
-    got_index = get_index(s3_connection_path=image_set, index_file_path=index_path)
+    got_index = get_index(s3_connection_path=str(tmpdir), index_file_path=index_path)
 
     assert got_index
 
