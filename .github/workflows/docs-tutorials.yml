@@ -26,6 +26,7 @@ jobs:
 
       - run: git submodule status
       - run: git submodule update --remote --force
+      - run: git lfs logs last
       - run: git submodule status
       - run: git status
 
