@@ -1,13 +1,13 @@
 {
   "ignorePatterns": [
     {
-      "pattern": "^github\.com/Lightning-AI/lightning/pull/.*"
+      "pattern": "^github.com/Lightning-AI/lightning/pull/.*"
     },
     {
-      "pattern": "^hpepy\.tech/badge/.*"
+      "pattern": "^hpepy.tech/badge/.*"
     },
     {
-      "pattern": ".*dev\.azure\.com/Lightning-AI/lightning/\_apis/build/status/.*"
+      "pattern": ".*dev.azure.com/Lightning-AI/lightning/_apis/build/status/.*"
     }
   ],
   "httpHeaders": [
