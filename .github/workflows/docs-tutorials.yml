@@ -59,6 +59,7 @@ jobs:
           # the PR's body/content
           body: >
             **This is automated update with the latest lighting tutorials!**
+
             The target commit in the [publication](https://github.com/Lightning-AI/tutorials/tree/publication)
              branch is [${{ env.SHA_SHORT }}](https://github.com/Lightning-AI/tutorials/commit/${{ env.SHA_SHORT }}).
 
