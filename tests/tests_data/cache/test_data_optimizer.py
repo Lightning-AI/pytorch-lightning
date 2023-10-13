@@ -1,13 +1,127 @@
 import os
 import sys
 from typing import Any, List
+from unittest import mock
 
 import numpy as np
 import pytest
-from lightning.data.cache.dataset_optimizer import DatasetOptimizer
+from lightning.data.cache.dataset_optimizer import DatasetOptimizer, _download_data_target, _remove_target, _upload_fn
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+def test_upload_fn(tmpdir):
+    src_dir = os.path.join(tmpdir, "src_dir")
+    os.makedirs(src_dir, exist_ok=True)
+
+    cache_dir = os.path.join(tmpdir, "cache_dir")
+    os.makedirs(cache_dir, exist_ok=True)
+
+    remote_dst_dir = os.path.join(tmpdir, "remote_dst_dir")
+    os.makedirs(remote_dst_dir, exist_ok=True)
+
+    filepath = os.path.join(src_dir, "a.txt")
+
+    with open(filepath, "w") as f:
+        f.write("HERE")
+
+    upload_queue = mock.MagicMock()
+
+    paths = [filepath, None]
+
+    def fn(*_, **__):
+        value = paths.pop(0)
+        if value is None:
+            return value
+        return value
+
+    upload_queue.get = fn
+
+    remove_queue = mock.MagicMock()
+
+    assert os.listdir(remote_dst_dir) == []
+
+    _upload_fn(upload_queue, remove_queue, cache_dir, remote_dst_dir)
+
+    assert os.listdir(remote_dst_dir) == ["a.txt"]
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+def test_remove_target(tmpdir):
+    src_dir = os.path.join(tmpdir, "src_dir")
+    os.makedirs(src_dir, exist_ok=True)
+
+    cache_dir = os.path.join(tmpdir, "cache_dir")
+    os.makedirs(cache_dir, exist_ok=True)
+
+    filepath = os.path.join(cache_dir, "a.txt")
+
+    with open(filepath, "w") as f:
+        f.write("HERE")
+
+    filepath = os.path.join(src_dir, "a.txt")
+
+    queue_in = mock.MagicMock()
+
+    paths = [filepath, None]
+
+    def fn(*_, **__):
+        value = paths.pop(0)
+        if value is None:
+            return value
+        return [value]
+
+    queue_in.get = fn
+
+    assert os.listdir(cache_dir) == ["a.txt"]
+
+    _remove_target(src_dir, cache_dir, queue_in)
+
+    assert os.listdir(cache_dir) == []
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+def test_download_data_target(tmpdir):
+    src_dir = os.path.join(tmpdir, "src_dir")
+    os.makedirs(src_dir, exist_ok=True)
+
+    remote_src_dir = os.path.join(tmpdir, "remote_src_dir")
+    os.makedirs(remote_src_dir, exist_ok=True)
+
+    cache_dir = os.path.join(tmpdir, "cache_dir")
+    os.makedirs(cache_dir, exist_ok=True)
+
+    filepath = os.path.join(remote_src_dir, "a.txt")
+
+    with open(filepath, "w") as f:
+        f.write("HERE")
+
+    filepath = os.path.join(src_dir, "a.txt")
+
+    with open(filepath, "w") as f:
+        f.write("HERE")
+
+    queue_in = mock.MagicMock()
+
+    paths = [filepath, None]
+
+    def fn(*_, **__):
+        value = paths.pop(0)
+        if value is None:
+            return value
+        return (0, [value])
+
+    queue_in.get = fn
+
+    queue_out = mock.MagicMock()
+    _download_data_target(src_dir, remote_src_dir, cache_dir, queue_in, queue_out)
+
+    assert queue_out.put._mock_call_args_list[0].args == (0,)
+    assert queue_out.put._mock_call_args_list[1].args == (None,)
+
+    assert os.listdir(cache_dir) == ["a.txt"]
 
 
 class TestDatasetOptimizer(DatasetOptimizer):
