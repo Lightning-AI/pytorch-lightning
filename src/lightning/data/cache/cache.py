@@ -86,6 +86,10 @@ class Cache:
         """Inform the writer the chunking phase is finished."""
         self._writer.merge(num_workers, node_rank=node_rank)
 
+    def _merge_no_wait(self, node_rank: Optional[int] = None) -> None:
+        """Inform the writer the chunking phase is finished."""
+        self._writer._merge_no_wait(node_rank=node_rank)
+
     def __len__(self) -> int:
         return self._reader.get_length()
 

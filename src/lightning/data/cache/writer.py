@@ -314,7 +314,7 @@ class BinaryWriter:
     def merge(self, num_workers: int = 1, node_rank: Optional[int] = None) -> None:
         """Once all the workers have written their own index, the merge function is responsible to read and merge them
         into a single index."""
-        node_rank = (None if node_rank == -1 else node_rank) if node_rank is not None else os.getenv("NODE_RANK", None)
+        node_rank = node_rank if node_rank is not None else os.getenv("NODE_RANK", None)
         num_workers = num_workers or 1
 
         # Only for non rank 0
@@ -340,7 +340,14 @@ class BinaryWriter:
             is_done = len(index_files) == (data_optimizer_world_size or self._distributed_env.world_size * num_workers)
             sleep(0.001)
 
-        # Read the index and append the chunks together
+        self._merge_no_wait(node_rank=node_rank)
+
+    def _merge_no_wait(self, node_rank: Optional[int] = None) -> None:
+        """Once all the workers have written their own index, the merge function is responsible to read and merge them
+        into a single index."""
+        files = os.listdir(self._cache_dir)
+        index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
+
         chunks_info = []
         config = None
         for index_filename in sorted(index_files):
@@ -352,6 +359,7 @@ class BinaryWriter:
                     config = data["config"]
 
                 elif config != data["config"]:
+                    breakpoint()
                     raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
 
                 chunks_info.extend(data["chunks"])
