@@ -42,4 +42,5 @@ class StreamingDataset(Dataset):
         return self.getitem(self.cache[idx])
 
     def getitem(self, obj: Any) -> Any:
+        """Override the getitem with your own logic to transform the cache object."""
         return obj
