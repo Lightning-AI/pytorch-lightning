@@ -2,12 +2,6 @@
   "ignorePatterns": [
     {
       "pattern": "^github.com\/Lightning-AI\/lightning\/pull\/.*"
-    },
-    {
-      "pattern": "^pepy.tech\/badge\/.*"
-    },
-    {
-      "pattern": ".*dev.azure.com\/Lightning-AI\/lightning\/_apis\/build\/status\/.*"
     }
   ],
   "httpHeaders": [
