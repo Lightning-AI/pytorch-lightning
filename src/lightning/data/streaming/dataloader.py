@@ -31,10 +31,10 @@ from torch.utils.data.dataloader import (
 )
 from torch.utils.data.sampler import BatchSampler, Sampler
 
-from lightning.data.cache import Cache
-from lightning.data.cache.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
-from lightning.data.cache.sampler import CacheBatchSampler
 from lightning.data.datasets.env import _DistributedEnv
+from lightning.data.streaming import Cache
+from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
+from lightning.data.streaming.sampler import CacheBatchSampler
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
@@ -172,7 +172,7 @@ class WorkerLoop:
     ) -> None:
         from torch.utils.data._utils import worker
 
-        from lightning.data.cache.cache import Cache
+        from lightning.data.streaming.cache import Cache
 
         enable_profiling = self._global_rank == 0 and worker_id == 0 and _VIZ_TRACKER_AVAILABLE and self._profile
 

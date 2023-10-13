@@ -15,9 +15,9 @@ import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
-from lightning.data.cache.downloader import get_downloader_cls
-from lightning.data.cache.sampler import ChunkedIndex
+from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.streaming.downloader import get_downloader_cls
+from lightning.data.streaming.sampler import ChunkedIndex
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import treespec_loads

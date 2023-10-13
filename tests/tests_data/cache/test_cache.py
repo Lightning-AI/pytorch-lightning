@@ -19,9 +19,9 @@ import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
-from lightning.data.cache import Cache
-from lightning.data.cache.dataloader import LightningDataLoader
 from lightning.data.datasets.env import _DistributedEnv
+from lightning.data.streaming import Cache
+from lightning.data.streaming.dataloader import LightningDataLoader
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache

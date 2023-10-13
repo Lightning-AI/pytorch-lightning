@@ -13,16 +13,23 @@
 
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union, Literal
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
-from lightning.data.cache.reader import BinaryReader
-from lightning.data.cache.sampler import ChunkedIndex
-from lightning.data.cache.writer import BinaryWriter
 from lightning.data.datasets.env import _DistributedEnv
-from lightning_cloud.resolver import _LightningTargetResolver, _try_create_cache_dir, _find_remote_dir
+from lightning.data.streaming.constants import (
+    _INDEX_FILENAME,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42,
+    _TORCH_GREATER_EQUAL_2_1_0,
+)
+from lightning.data.streaming.reader import BinaryReader
+from lightning.data.streaming.sampler import ChunkedIndex
+from lightning.data.streaming.writer import BinaryWriter
+
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42:
+    from lightning_cloud.resolver import _find_remote_dir, _try_create_cache_dir
 
 logger = logging.Logger(__name__)
+
 
 class Cache:
     def __init__(
@@ -56,13 +63,16 @@ class Cache:
         cache_dir = cache_dir if cache_dir else _try_create_cache_dir(name)
         if not remote_dir:
             remote_dir, has_index_file = _find_remote_dir(name, version)
-            # When the index exists, we don't care about the chunk_size anymore.
+
+            # When the index exists, we don't care about the chunk_size anymore.
             if has_index_file and (chunk_size is None and chunk_bytes is None):
                 chunk_size = 2
         self._writer = BinaryWriter(
             str(cache_dir), chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression
         )
-        self._reader = BinaryReader(str(cache_dir), remote_dir=remote_dir, compression=compression, name=name,version=version)
+        self._reader = BinaryReader(
+            str(cache_dir), remote_dir=remote_dir, compression=compression, name=name, version=version
+        )
         self._cache_dir = str(cache_dir)
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()

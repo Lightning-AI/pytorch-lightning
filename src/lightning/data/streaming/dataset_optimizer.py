@@ -16,19 +16,19 @@ from urllib import parse
 from tqdm import tqdm
 
 from lightning import seed_everything
-from lightning.data.cache import Cache
-from lightning.data.cache.constants import (
+from lightning.data.streaming import Cache
+from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_41,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_41:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42:
     from lightning_cloud.resolver import _LightningSrcResolver, _LightningTargetResolver
 
 if _BOTO3_AVAILABLE:

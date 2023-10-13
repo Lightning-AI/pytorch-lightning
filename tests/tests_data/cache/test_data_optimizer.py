@@ -5,7 +5,12 @@ from unittest import mock
 
 import numpy as np
 import pytest
-from lightning.data.cache.dataset_optimizer import DatasetOptimizer, _download_data_target, _remove_target, _upload_fn
+from lightning.data.streaming.dataset_optimizer import (
+    DatasetOptimizer,
+    _download_data_target,
+    _remove_target,
+    _upload_fn,
+)
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")

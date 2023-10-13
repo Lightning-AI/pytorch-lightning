@@ -11,8 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning.data.cache.cache import Cache
-from lightning.data.cache.dataloader import LightningDataLoader
-from lightning.data.cache.dataset_optimizer import DatasetOptimizer
+from lightning.data.streaming.cache import Cache
+from lightning.data.streaming.dataloader import LightningDataLoader
+from lightning.data.streaming.dataset_optimizer import DatasetOptimizer
 
 __all__ = ["Cache", "DatasetOptimizer", "LightningDataLoader"]

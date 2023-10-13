@@ -14,15 +14,15 @@
 import os
 from threading import Lock, Thread
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple, Literal, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 
-from lightning.data.cache.config import ChunksConfig
-from lightning.data.cache.constants import _TORCH_GREATER_EQUAL_2_1_0
-from lightning.data.cache.sampler import ChunkedIndex
-from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
+from lightning.data.streaming.config import ChunksConfig
+from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.streaming.sampler import ChunkedIndex
+from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import PyTree, tree_unflatten
@@ -65,7 +65,7 @@ class BinaryReader:
         compression: Optional[str] = None,
         name: Optional[str] = None,
         version: Optional[Union[int, Literal["latest"]]] = "latest",
-        ) -> None:
+    ) -> None:
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
         Arguments:
