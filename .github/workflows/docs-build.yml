@@ -11,8 +11,9 @@ on:
     paths:
       - ".actions/*"
       - ".github/workflows/docs-build.yml"
-      - "requirements/**"
       - "docs/**"
+      - "_notebooks"
+      - "requirements/**"
       - "src/**"
       - "setup.py"
       - "pyproject.toml" # includes metadata used in the package creation
