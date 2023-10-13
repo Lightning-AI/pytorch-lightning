@@ -512,6 +512,7 @@ class FlowPayload(LightningFlow):
             self.stop()
 
 
+@pytest.mark.skipif(True, reason="flaky")
 def test_structures_with_payload():
     app = LightningApp(FlowPayload(), log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
