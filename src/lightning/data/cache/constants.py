@@ -15,7 +15,10 @@ from lightning_utilities.core.imports import RequirementCache
 
 _INDEX_FILENAME = "index.json"
 _DEFAULT_CHUNK_BYTES = 1 << 26  # 64M B
+_DEFAULT_FAST_DEV_RUN_ITEMS = 10
 
 # This is required for full pytree serialization / deserialization support
-_TORCH_2_1_0_AVAILABLE = RequirementCache("torch>=2.1.0")
+_TORCH_GREATER_EQUAL_2_1_0 = RequirementCache("torch>=2.1.0")
 _VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
+_LIGHTNING_CLOUD_GREATER_EQUAL_0_5_41 = RequirementCache("lightning-cloud>=0.5.41")
+_BOTO3_AVAILABLE = RequirementCache("boto3")

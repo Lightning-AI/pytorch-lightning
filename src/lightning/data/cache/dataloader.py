@@ -32,11 +32,11 @@ from torch.utils.data.dataloader import (
 from torch.utils.data.sampler import BatchSampler, Sampler
 
 from lightning.data.cache import Cache
-from lightning.data.cache.constants import _DEFAULT_CHUNK_BYTES, _TORCH_2_1_0_AVAILABLE, _VIZ_TRACKER_AVAILABLE
+from lightning.data.cache.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.cache.sampler import CacheBatchSampler
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
+from lightning.data.datasets.env import _DistributedEnv
 
-if _TORCH_2_1_0_AVAILABLE:
+if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
 
 logger = logging.Logger(__name__)
@@ -154,13 +154,27 @@ class WorkerLoop:
         self._global_rank = global_rank
         self._profile = profile
 
-    def __call__(self, dataset_kind: _DatasetKind, *args: Any, **kwargs: Any) -> None:
+    def __call__(
+        self,
+        dataset_kind: Any,
+        dataset: Any,
+        index_queue: Any,
+        data_queue: Any,
+        done_event: Any,
+        auto_collation: Any,
+        collate_fn: Any,
+        drop_last: Any,
+        base_seed: Any,
+        init_fn: Any,
+        worker_id: Any,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         from torch.utils.data._utils import worker
 
         from lightning.data.cache.cache import Cache
 
-        rank = _WorkerEnv.detect().rank
-        enable_profiling = self._global_rank == 0 and rank == 0 and _VIZ_TRACKER_AVAILABLE and self._profile
+        enable_profiling = self._global_rank == 0 and worker_id == 0 and _VIZ_TRACKER_AVAILABLE and self._profile
 
         if enable_profiling:
             from viztracer import VizTracer
@@ -180,7 +194,21 @@ class WorkerLoop:
 
         _DatasetKind.create_fetcher = create_fetcher_fn  # type: ignore
 
-        reloaded_worker._worker_loop(dataset_kind, *args, **kwargs)
+        reloaded_worker._worker_loop(
+            dataset_kind,
+            dataset,
+            index_queue,
+            data_queue,
+            done_event,
+            auto_collation,
+            collate_fn,
+            drop_last,
+            base_seed,
+            init_fn,
+            worker_id,
+            *args,
+            **kwargs,
+        )
 
         if dataset_kind == _DatasetKind.Map:
             assert fetcher
