@@ -121,6 +121,7 @@ subprojects:
       - "src/lightning/pytorch/**"
       - "src/pytorch_lightning/*"
       - "docs/source-pytorch/**"
+      - "_notebooks"
       - ".actions/*"
       - ".github/workflows/docs-build.yml"
       - "requirements/docs.txt"
