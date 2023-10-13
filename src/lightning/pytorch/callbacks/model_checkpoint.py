@@ -20,6 +20,7 @@ Automatically save model checkpoints during training.
 import logging
 import os
 import re
+import shutil
 import time
 import warnings
 from copy import deepcopy
@@ -383,8 +384,10 @@ class ModelCheckpoint(Checkpoint):
     @staticmethod
     def _link_checkpoint(trainer: "pl.Trainer", filepath: str, linkpath: str) -> None:
         if trainer.is_global_zero:
-            if os.path.lexists(linkpath):
+            if os.path.islink(linkpath) or os.path.isfile(linkpath):
                 os.remove(linkpath)
+            elif os.path.isdir(linkpath):
+                shutil.rmtree(linkpath)
             os.symlink(filepath, linkpath)
         trainer.strategy.barrier()
 
