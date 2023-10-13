@@ -27,7 +27,8 @@ jobs:
       - name: initial state
         run: |
           git submodule status
-          short_sha=$(git submodule status | grep -A 1 _notebooks | cut -c1-8)
+          # starting from second char as the line starts with +
+          short_sha=$(git submodule status | grep -A 1 _notebooks | cut -c2-9)
           echo "SHA_ACTUAL=$short_sha" >> $GITHUB_ENV
           # Skip smudge - We'll download binary files later in a faster batch
           git lfs install --skip-smudge
@@ -41,8 +42,8 @@ jobs:
         run: |
           git submodule status
           git status
-
-          short_sha=$(git submodule status | grep -A 1 _notebooks | cut -c1-8)
+          # starting from second char as the line starts with +
+          short_sha=$(git submodule status | grep -A 1 _notebooks | cut -c2-9)
           echo "SHA_LATEST=$short_sha" >> $GITHUB_ENV
 
       - name: Create Pull Request
