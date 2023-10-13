@@ -15,7 +15,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_2_1_0_AVAILABLE
+from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.sampler import ChunkedIndex
 from lightning.data.cache.writer import BinaryWriter
@@ -46,11 +46,13 @@ class Cache:
 
         """
         super().__init__()
-        if not _TORCH_2_1_0_AVAILABLE:
+        if not _TORCH_GREATER_EQUAL_2_1_0:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
-        self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
-        self._reader = BinaryReader(cache_dir, remote_dir=remote_dir, compression=compression)
-        self._cache_dir = cache_dir
+        self._writer = BinaryWriter(
+            str(cache_dir), chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression
+        )
+        self._reader = BinaryReader(str(cache_dir), remote_dir=remote_dir, compression=compression)
+        self._cache_dir = str(cache_dir)
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
 
@@ -66,19 +68,27 @@ class Cache:
         """Store an item in the writer."""
         self._writer[index] = data
 
+    def _add_item(self, index: int, data: Any) -> Optional[str]:
+        """Store an item in the writer and optionally return the chunk path."""
+        return self._writer.add_item(index, data)
+
     def __getitem__(self, index: Union[int, ChunkedIndex]) -> Dict[str, Any]:
         """Read an item in the reader."""
         if isinstance(index, int):
             index = ChunkedIndex(index, self._get_chunk_index_from_index(index))
         return self._reader.read(index)
 
-    def done(self) -> None:
+    def done(self) -> Optional[List[str]]:
         """Inform the writer the chunking phase is finished."""
-        self._writer.done()
+        return self._writer.done()
 
-    def merge(self, num_workers: int = 1) -> None:
+    def merge(self, num_workers: int = 1, node_rank: Optional[int] = None) -> None:
         """Inform the writer the chunking phase is finished."""
-        self._writer.merge(num_workers)
+        self._writer.merge(num_workers, node_rank=node_rank)
+
+    def _merge_no_wait(self, node_rank: Optional[int] = None) -> None:
+        """Inform the writer the chunking phase is finished."""
+        self._writer._merge_no_wait(node_rank=node_rank)
 
     def __len__(self) -> int:
         return self._reader.get_length()
