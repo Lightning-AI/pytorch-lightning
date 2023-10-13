@@ -107,10 +107,9 @@ class BinaryWriter:
         worker_end = _WorkerEnv.detect()
         data_optimiser_num_workers = os.getenv("DATA_OPTIMIZER_NUM_WORKERS", None)
         if data_optimiser_num_workers is not None:
-            data_optimiser_num_workers = int(data_optimiser_num_workers)
-        self._is_done = len(index_files) == (
-            data_optimiser_num_workers or self._distributed_env.world_size * worker_end.world_size
-        )
+            self._is_done = len(index_files) == int(data_optimiser_num_workers)
+        else:
+            self._is_done = len(index_files) == self._distributed_env.world_size * worker_end.world_size
         return self._is_done
 
     @property
@@ -347,10 +346,10 @@ class BinaryWriter:
 
             # When using the Data Optimizer, we don't use multi processes.
             data_optimizer_num_workers = os.getenv("DATA_OPTIMIZER_NUM_WORKERS", None)
-            if data_optimizer_num_workers:
-                data_optimizer_num_workers = int(data_optimizer_num_workers)
-
-            is_done = len(index_files) == (data_optimizer_num_workers or self._distributed_env.world_size * num_workers)
+            if data_optimizer_num_workers is not None:
+                is_done = len(index_files) == int(data_optimizer_num_workers)
+            else:
+                is_done = len(index_files) == self._distributed_env.world_size * num_workers
             sleep(0.001)
 
         self._merge_no_wait(node_rank=node_rank)
