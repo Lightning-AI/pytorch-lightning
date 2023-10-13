@@ -31,8 +31,8 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
 
     home_dir = os.path.join(tmpdir, "home")
     cache_dir = os.path.join(tmpdir, "cache")
-    monkeypatch.setenv("HOME_FOLDER", home_dir)
-    monkeypatch.setenv("CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     datasetOptimizer = TestDatasetOptimizer(
         name="dummy_dataset",
         src_dir=tmpdir,
@@ -108,15 +108,15 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
         img.save(os.path.join(tmpdir, f"{i}.JPEG"))
 
     home_dir = os.path.join(tmpdir, "home")
-    monkeypatch.setenv("HOME_FOLDER", home_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
 
     remote_dst_dir = os.path.join(tmpdir, "dst")
     os.makedirs(remote_dst_dir, exist_ok=True)
 
     cache_dir = os.path.join(tmpdir, "cache_1")
-    monkeypatch.setenv("CACHE_FOLDER", cache_dir)
-    monkeypatch.setenv("NUM_NODES", "2")
-    monkeypatch.setenv("NODE_RANK", "0")
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
     datasetOptimizer = TestDatasetOptimizer(
         name="dummy_dataset",
         src_dir=tmpdir,
@@ -148,9 +148,9 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     assert sorted(os.listdir(os.path.join(cache_dir, "dummy_dataset"))) == fast_dev_run_disabled_chunks_0
 
     cache_dir = os.path.join(tmpdir, "cache_2")
-    monkeypatch.setenv("CACHE_FOLDER", cache_dir)
-    monkeypatch.setenv("NUM_NODES", "2")
-    monkeypatch.setenv("NODE_RANK", "1")
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
     datasetOptimizer = TestDatasetOptimizer(
         name="dummy_dataset",
         src_dir=tmpdir,

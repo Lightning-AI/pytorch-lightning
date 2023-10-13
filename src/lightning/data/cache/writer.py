@@ -28,8 +28,8 @@ if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import PyTree, tree_flatten, treespec_dumps
 
 
-def _get_node_rank() -> Optional[int]:
-    node_rank = os.getenv("NODE_RANK", None)
+def _get_data_optimizer_node_rank() -> Optional[int]:
+    node_rank = os.getenv("DATA_OPTIMIZER_NODE_RANK", None)
     if node_rank is not None:
         return int(node_rank)
     return node_rank
@@ -105,8 +105,12 @@ class BinaryWriter:
         files = os.listdir(self._cache_dir)
         index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
         worker_end = _WorkerEnv.detect()
-        world_size = os.getenv("DATA_OPTIMIZER_WORLD_SIZE", None)
-        self._is_done = len(index_files) == (world_size or self._distributed_env.world_size * worker_end.world_size)
+        data_optimiser_num_workers = os.getenv("DATA_OPTIMIZER_NUM_WORKERS", None)
+        if data_optimiser_num_workers is not None:
+            data_optimiser_num_workers = int(data_optimiser_num_workers)
+        self._is_done = len(index_files) == (
+            data_optimiser_num_workers or self._distributed_env.world_size * worker_end.world_size
+        )
         return self._is_done
 
     @property
@@ -321,7 +325,7 @@ class BinaryWriter:
     def merge(self, num_workers: int = 1, node_rank: Optional[int] = None) -> None:
         """Once all the workers have written their own index, the merge function is responsible to read and merge them
         into a single index."""
-        node_rank: Optional[int] = node_rank if node_rank is not None else _get_node_rank()
+        node_rank: Optional[int] = node_rank if node_rank is not None else _get_data_optimizer_node_rank()
         num_workers = num_workers or 1
 
         # Only for non rank 0
@@ -342,9 +346,11 @@ class BinaryWriter:
             index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
 
             # When using the Data Optimizer, we don't use multi processes.
-            data_optimizer_world_size = os.getenv("DATA_OPTIMIZER_WORLD_SIZE", None)
+            data_optimizer_num_workers = os.getenv("DATA_OPTIMIZER_NUM_WORKERS", None)
+            if data_optimizer_num_workers:
+                data_optimizer_num_workers = int(data_optimizer_num_workers)
 
-            is_done = len(index_files) == (data_optimizer_world_size or self._distributed_env.world_size * num_workers)
+            is_done = len(index_files) == (data_optimizer_num_workers or self._distributed_env.world_size * num_workers)
             sleep(0.001)
 
         self._merge_no_wait(node_rank=node_rank)
