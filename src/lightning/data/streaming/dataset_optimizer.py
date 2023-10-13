@@ -441,6 +441,13 @@ class DatasetOptimizer(ABC):
                 # [('file_1.JPEG', 'file_1.mask'), ... ('file_N.JPEG', 'file_N.mask')]
                 return [(x[i], x[i+1]) for i in range(len(filepaths) -1)]
 
+            def prepare_item(self, obj):
+                image_filepath, mask_filepath = obj
+
+                image = load_and_resize(image_filepath)
+                mask = load_and_resize(mask_filepath)
+                return (image, mask)
+
         """
         pass
 
