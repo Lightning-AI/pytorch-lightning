@@ -514,6 +514,49 @@ def test_model_checkpoint_save_last(tmpdir):
     ModelCheckpoint.CHECKPOINT_NAME_LAST = "last"
 
 
+def test_model_checkpoint_link_checkpoint(tmp_path):
+    """Test that linking a checkpoint works and overwrites an existing link if present."""
+    trainer = Mock()
+
+    # link doesn't exist
+    file = tmp_path / "file"
+    file.touch()
+    link = tmp_path / "link"
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
+    assert os.path.islink(link)
+    assert os.path.realpath(link) == str(file)
+
+    # link exists (is a file)
+    new_file1 = tmp_path / "new_file1"
+    new_file1.touch()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_file1), linkpath=str(link))
+    assert os.path.islink(link)
+    assert os.path.realpath(link) == str(new_file1)
+
+    # link exists (is a link)
+    new_file2 = tmp_path / "new_file2"
+    new_file2.touch()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_file2), linkpath=str(link))
+    assert os.path.islink(link)
+    assert os.path.realpath(link) == str(new_file2)
+
+    # link exists (is a folder)
+    folder = tmp_path / "folder"
+    folder.mkdir()
+    folder_link = tmp_path / "folder_link"
+    folder_link.mkdir()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(folder), linkpath=str(folder_link))
+    assert os.path.islink(folder_link)
+    assert os.path.realpath(folder_link) == str(folder)
+
+    # link exists (is a link to a folder)
+    new_folder = tmp_path / "new_folder"
+    new_folder.mkdir()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_folder), linkpath=str(folder_link))
+    assert os.path.islink(folder_link)
+    assert os.path.realpath(folder_link) == str(new_folder)
+
+
 def test_invalid_top_k(tmpdir):
     """Make sure that a MisconfigurationException is raised for a negative save_top_k argument."""
     with pytest.raises(MisconfigurationException, match=r".*Must be >= -1"):
