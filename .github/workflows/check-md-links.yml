@@ -4,6 +4,11 @@ name: Check Markdown links
 on:
   workflow_call:
     inputs:
+      base-branch:
+        description: "Default branch name"
+        required: true
+        type: string
+        default: "master"
       config-file:
         description: "Config file (JSON) used for markdown link checks"
         required: false
@@ -13,11 +18,14 @@ on:
 jobs:
   markdown-link-check:
     runs-on: ubuntu-20.04
+    env:
+      CONFIG_FILE: ${{ inputs.config-file }}
+      MODIFIED_ONLY: "no"
     steps:
       - uses: actions/checkout@master
 
       - name: Create local version of config
-        if: inputs.config-file == ''
+        if: ${{ inputs.config-file == '' }}
         run: |
           echo '{
           "ignorePatterns": [
@@ -34,16 +42,18 @@ jobs:
             }
           ]
           }' > 'markdown.links.config.json'
-          echo "CONFIG=markdown.links.config.json" >> $GITHUB_ENV
+          echo "CONFIG_FILE=markdown.links.config.json" >> $GITHUB_ENV
           cat 'markdown.links.config.json'
-      - name: Show local version of config
-        if: inputs.config-file != ''
-        run: |
-          echo "CONFIG=${{ inputs.config-file }}" >> $GITHUB_ENV
-          cat ${{ inputs.config-file }}
+      - name: Show config
+        run: cat ${{ env.CONFIG_FILE }}
 
+      - name: narrow scope for PR
+        if: startsWith(github.event_name, 'pull_request')
+        run: echo "MODIFIED_ONLY=yes" >> $GITHUB_ENV
       - name: Checking markdown link
         uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
+          base-branch: ${{ inputs.base-branch }}
           use-quiet-mode: "yes"
-          config-file: ${{ env.CONFIG }}
+          check-modified-files-only: ${{ env.MODIFIED_ONLY }}
+          config-file: ${{ env.CONFIG_FILE }}

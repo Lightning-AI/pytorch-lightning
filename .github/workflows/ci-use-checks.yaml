@@ -53,7 +53,13 @@ jobs:
       requirements-file: "requirements/dev-docs.txt"
       install-tex: true
 
-  check-md-links:
+  check-md-links-default:
     uses: ./.github/workflows/check-md-links.yml
-    #with:
-    #  config-file: ".github/markdown.links.config.json"
+    with:
+      base-branch: main
+
+  check-md-links-w-config:
+    uses: ./.github/workflows/check-md-links.yml
+    with:
+      base-branch: main
+      config-file: ".github/markdown.links.config.json"
