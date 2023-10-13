@@ -27,6 +27,8 @@ jobs:
       - name: initial state
         run: |
           git submodule status
+          short_sha=$(git submodule status | grep -A 1 _notebooks | cut -c1-8)
+          echo "SHA_ACTUAL=$short_sha" >> $GITHUB_ENV
           # Skip smudge - We'll download binary files later in a faster batch
           git lfs install --skip-smudge
       - name: update submodules
@@ -41,10 +43,10 @@ jobs:
           git status
 
           short_sha=$(git submodule status | grep -A 1 _notebooks | cut -c1-8)
-          echo "SHA_SHORT=$short_sha" >> $GITHUB_ENV
+          echo "SHA_LATEST=$short_sha" >> $GITHUB_ENV
 
       - name: Create Pull Request
-        if: github.event_name != 'pull_request'
+        if: ${{ github.event_name != 'pull_request' && env.SHA_ACTUAL != env.SHA_LATEST }}
         uses: peter-evans/create-pull-request@v5
         with:
           title: "docs: update ref to latest tutorials"
@@ -59,8 +61,9 @@ jobs:
           # the PR's body/content
           body: >
             **This is automated update with the latest lighting tutorials!**
+
             The target commit in the [publication](https://github.com/Lightning-AI/tutorials/tree/publication)
-             branch is [${{ env.SHA_SHORT }}](https://github.com/Lightning-AI/tutorials/commit/${{ env.SHA_SHORT }}).
+             branch is [${{ env.SHA_LATEST }}](https://github.com/Lightning-AI/tutorials/commit/${{ env.SHA_LATEST }}).
 
             Before proceeding further double check that the PR include only submodule's head update.
             Eventually some additional adjustments in lightning docs may be needed.
