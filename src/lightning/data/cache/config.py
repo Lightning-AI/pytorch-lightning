@@ -15,11 +15,11 @@ import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_2_1_0_AVAILABLE
+from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.cache.downloader import get_downloader_cls
 from lightning.data.cache.sampler import ChunkedIndex
 
-if _TORCH_2_1_0_AVAILABLE:
+if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import treespec_loads
 
 
@@ -54,6 +54,7 @@ class ChunksConfig:
             if (end - start) != chunk["chunk_size"]:
                 raise Exception(
                     "The config intervals doesn't match the number of samples. This shouldn't have happened."
+                    f" Found {end} {start} {chunk['chunk_size']}"
                 )
             self._intervals.append((chunk["interval"][0], chunk["interval"][1]))
 
