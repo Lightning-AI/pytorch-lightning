@@ -28,6 +28,13 @@ if _TORCH_2_1_0_AVAILABLE:
     from torch.utils._pytree import PyTree, tree_flatten, treespec_dumps
 
 
+def _get_node_rank() -> Optional[int]:
+    node_rank = os.getenv("NODE_RANK", None)
+    if node_rank is not None:
+        return int(node_rank)
+    return node_rank
+
+
 @dataclass
 class Item:
     index: int
@@ -314,7 +321,7 @@ class BinaryWriter:
     def merge(self, num_workers: int = 1, node_rank: Optional[int] = None) -> None:
         """Once all the workers have written their own index, the merge function is responsible to read and merge them
         into a single index."""
-        node_rank = node_rank if node_rank is not None else os.getenv("NODE_RANK", None)
+        node_rank: Optional[int] = node_rank if node_rank is not None else _get_node_rank()
         num_workers = num_workers or 1
 
         # Only for non rank 0
