@@ -72,7 +72,7 @@ if _COPY_NOTEBOOKS:
         patterns=[".", "course_UvA-DL", "lightning_examples"],
         # TODO(@aniketmaurya): Complete converting the missing items and add them back
         ignore=[
-            #"course_UvA-DL/13-contrastive-learning",
+            # "course_UvA-DL/13-contrastive-learning",
             "lightning_examples/warp-drive",
         ],
     )
