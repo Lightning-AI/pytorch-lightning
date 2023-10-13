@@ -15,7 +15,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_2_1_0_AVAILABLE
+from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.cache.reader import BinaryReader
 from lightning.data.cache.sampler import ChunkedIndex
 from lightning.data.cache.writer import BinaryWriter
@@ -46,7 +46,7 @@ class Cache:
 
         """
         super().__init__()
-        if not _TORCH_2_1_0_AVAILABLE:
+        if not _TORCH_GREATER_EQUAL_2_1_0:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
         self._writer = BinaryWriter(
             str(cache_dir), chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression

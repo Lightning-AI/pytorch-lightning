@@ -32,11 +32,11 @@ from torch.utils.data.dataloader import (
 from torch.utils.data.sampler import BatchSampler, Sampler
 
 from lightning.data.cache import Cache
-from lightning.data.cache.constants import _DEFAULT_CHUNK_BYTES, _TORCH_2_1_0_AVAILABLE, _VIZ_TRACKER_AVAILABLE
+from lightning.data.cache.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.cache.sampler import CacheBatchSampler
 from lightning.data.datasets.env import _DistributedEnv
 
-if _TORCH_2_1_0_AVAILABLE:
+if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
 
 logger = logging.Logger(__name__)

@@ -20,11 +20,11 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 from lightning.data.cache.compression import _COMPRESSORS, Compressor
-from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_2_1_0_AVAILABLE
+from lightning.data.cache.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.cache.serializers import _SERIALIZERS, Serializer
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 
-if _TORCH_2_1_0_AVAILABLE:
+if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import PyTree, tree_flatten, treespec_dumps
 
 
