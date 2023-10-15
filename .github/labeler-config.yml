@@ -1,8 +1,23 @@
 documentation:
   - docs/**/*
   - README.md
+  - requirements/_docs.txt
 
 ci/cd:
   - .github/actions/**/*
   - .github/scripts/*
   - .github/workflows/*
+  - .pre-commit-config.yaml
+
+package:
+  - src/**/*
+  - MANIFEST.in
+  - pyproject.toml
+  - setup.py
+
+tests:
+  - tests/**/*
+  - requirements/_tests.txt
+
+dependencies:
+  - requirements/*
