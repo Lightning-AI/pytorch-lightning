@@ -47,6 +47,19 @@ jobs:
           "python-version": ["3.7", "3.12"]
         }
 
+  check-package-extras:
+    uses: ./.github/workflows/check-package.yml
+    with:
+      actions-ref: ${{ github.sha }} # use local version
+      artifact-name: dist-packages-${{ github.sha }}
+      import-name: "lightning_utilities"
+      install-extras: "[anything]"
+      testing-matrix: |
+        {
+          "os": ["ubuntu-22.04", "macos-12", "windows-2022"],
+          "python-version": ["3.10"]
+        }
+
   check-docs:
     uses: ./.github/workflows/check-docs.yml
     with:

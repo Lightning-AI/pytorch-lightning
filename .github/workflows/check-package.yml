@@ -15,6 +15,11 @@ on:
         description: "Import name to test with after installation"
         required: true
         type: string
+      install-extras:
+        description: "optional extras which are needed to include also []"
+        required: false
+        type: string
+        default: ""
       install-flags:
         description: "Additional pip install flags"
         required: false
@@ -117,6 +122,7 @@ jobs:
         with:
           artifact-name: ${{ inputs.artifact-name }}
           import-name: ${{ inputs.import-name }}
+          pkg-extras: ${{ inputs.install-extras }}
           pip-flags: ${{ inputs.install-flags }}
 
     # TODO: add run doctests

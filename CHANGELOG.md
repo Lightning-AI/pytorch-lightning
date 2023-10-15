@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--
+- CI: added `install-extras` in install check allowing deduplication eventual cyrcular install dependency ([#184](https://github.com/Lightning-AI/utilities/pull/184))
+
 
 ### Changed
 
