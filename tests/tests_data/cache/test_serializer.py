@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
-from lightning.data.cache.serializers import (
+from lightning.data.streaming.serializers import (
     _SERIALIZERS,
     _TORCH_DTYPES_MAPPING,
     IntSerializer,

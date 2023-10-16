@@ -16,19 +16,19 @@ from urllib import parse
 from tqdm import tqdm
 
 from lightning import seed_everything
-from lightning.data.cache import Cache
-from lightning.data.cache.constants import (
+from lightning.data.streaming import Cache
+from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_41,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_41:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42:
     from lightning_cloud.resolver import _LightningSrcResolver, _LightningTargetResolver
 
 if _BOTO3_AVAILABLE:
@@ -440,6 +440,13 @@ class DatasetOptimizer(ABC):
 
                 # [('file_1.JPEG', 'file_1.mask'), ... ('file_N.JPEG', 'file_N.mask')]
                 return [(x[i], x[i+1]) for i in range(len(filepaths) -1)]
+
+            def prepare_item(self, obj):
+                image_filepath, mask_filepath = obj
+
+                image = load_and_resize(image_filepath)
+                mask = load_and_resize(mask_filepath)
+                return (image, mask)
 
         """
         pass

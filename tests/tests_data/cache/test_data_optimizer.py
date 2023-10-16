@@ -5,7 +5,12 @@ from unittest import mock
 
 import numpy as np
 import pytest
-from lightning.data.cache.dataset_optimizer import DatasetOptimizer, _download_data_target, _remove_target, _upload_fn
+from lightning.data.streaming.dataset_optimizer import (
+    DatasetOptimizer,
+    _download_data_target,
+    _remove_target,
+    _upload_fn,
+)
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -212,6 +217,8 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
 @pytest.mark.parametrize("fast_dev_run", [False])
 @pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
 def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
+    """This test ensures the data optimizer works in a fully distributed settings."""
+
     from PIL import Image
 
     imgs = []
