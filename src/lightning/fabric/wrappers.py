@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from functools import wraps
 from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload
 
 import torch
@@ -188,6 +189,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             nonlocal called
             called = True
 
+        @wraps(method)
         def _wrapped_method(*args: Any, **kwargs: Any) -> Any:
             handles = []
             for module in self._original_module.modules():

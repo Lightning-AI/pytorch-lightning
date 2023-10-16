@@ -563,7 +563,7 @@ def test_step_method_redirection():
     fabric_module = _FabricModule(forward_module=forward_module, precision=precision, original_module=original_module)
 
     # Regular methods on the original_module are visible and identical on the fabric_module ...
-    assert fabric_module.normal_method == original_module.normal_method
+    assert fabric_module.normal_method.__wrapped__ == original_module.normal_method
 
     # ... but special methods like training_step get redirected to the forward_module
     assert fabric_module.training_step.__name__ == "call_forward_module"
