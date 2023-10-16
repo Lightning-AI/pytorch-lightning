@@ -17,9 +17,9 @@ import os
 import numpy as np
 import pytest
 from lightning import seed_everything
-from lightning.data.cache.reader import BinaryReader
-from lightning.data.cache.sampler import ChunkedIndex
-from lightning.data.cache.writer import BinaryWriter
+from lightning.data.streaming.reader import BinaryReader
+from lightning.data.streaming.sampler import ChunkedIndex
+from lightning.data.streaming.writer import BinaryWriter
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
