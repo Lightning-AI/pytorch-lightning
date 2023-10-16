@@ -11,15 +11,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
-import numpy as np
 import os
 from abc import ABC, abstractmethod
+from time import sleep
 from typing import Any
-from lightning.data.streaming.constants import _TORCH_DTYPES_MAPPING
+
+import numpy as np
+import torch
+
+from lightning.data.streaming.constants import (
+    _TORCH_DTYPES_MAPPING,
+    _TORCH_GREATER_EQUAL_2_1_0,
+)
+
+if _TORCH_GREATER_EQUAL_2_1_0:
+    from torch.utils._pytree import PyTree, tree_unflatten
+
 
 class BaseItemLoader(ABC):
-
     def setup(self, config, chunks):
         self._config = config
         self._chunks = chunks
@@ -34,7 +43,6 @@ class BaseItemLoader(ABC):
 
 
 class PyTreeLoader(BaseItemLoader):
-
     def generate_intervals(self):
         intervals = []
         begin = 0
@@ -57,7 +65,7 @@ class PyTreeLoader(BaseItemLoader):
             begin, end = np.frombuffer(pair, np.uint32)
             fp.seek(begin)
             data = fp.read(end - begin)
-        return self.deserialize(data) 
+        return self.deserialize(data)
 
     def deserialize(self, raw_item_data: bytes) -> "PyTree":
         """Deserialize the raw bytes into their python equivalent."""
@@ -70,9 +78,9 @@ class PyTreeLoader(BaseItemLoader):
             data.append(serializer.deserialize(data_bytes))
             idx += size
         return tree_unflatten(data, self._config["data_spec"])
-    
-class TokensLoader(BaseItemLoader):
 
+
+class TokensLoader(BaseItemLoader):
     def __init__(self, block_size):
         super().__init__()
         self._block_size = block_size
@@ -95,7 +103,7 @@ class TokensLoader(BaseItemLoader):
             end += dim // self._block_size
             self._intervals.append((begin, end))
             begin += end
-        
+
         return self._intervals
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> bytes:
