@@ -27,6 +27,9 @@ from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import Dataset
+from lightning.data.streaming.serializers import _TORCH_DTYPES_MAPPING
+from lightning.data.streaming.item_loader import TokensLoader
+
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
@@ -219,3 +222,40 @@ def test_cache_with_name(tmpdir, monkeypatch):
     assert cache._writer._chunk_size == 2
     assert cache._writer._cache_dir == os.path.join(tmpdir, "something")
     assert cache._reader._remote_dir == os.path.join(tmpdir, "remote_dir")
+
+def test_cache_from_nlp(tmpdir):
+
+    import json
+    from lit_gpt import Config, Tokenizer
+    from pathlib import Path
+    from tqdm import tqdm
+
+    tokenizer = Tokenizer(Path("/teamspace/studios/this_studio/lit-gpt/checkpoints/mistralai/Mistral-7B-v0.1"))
+
+    block_size = 1024 + 1
+    cache = Cache(tmpdir, chunk_size=block_size * 3, item_loader=TokensLoader(block_size))
+
+    filepath = "/teamspace/studios/this_studio/data/RedPajama-Data-1T-Sample/c4_sample.jsonl"
+    
+    text_idxs_list = []
+
+    with open(filepath, encoding="utf-8") as f:
+        for index, row in tqdm(enumerate(f)):
+            text = json.loads(row)["text"]
+            text_ids = tokenizer.encode(text)
+            text_idxs_list.append(text_ids)
+            chunk_filepath = cache._add_item(index, text_ids)
+            if chunk_filepath:
+                break
+
+    cache.done()
+    cache.merge()
+
+    cache_0 = cache[0]
+    cache_1 = cache[1]
+    assert len(cache_0) == block_size
+    assert len(cache_1) == block_size
+    assert not torch.equal(cache_0, cache[1])
+    indices = torch.cat(text_idxs_list, dim=0)
+    assert torch.equal(cache_0, indices[:len(cache_0)])
+    assert torch.equal(cache_1, indices[len(cache_0):len(cache_0) + len(cache_1)])

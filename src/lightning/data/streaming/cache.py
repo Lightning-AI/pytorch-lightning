@@ -41,6 +41,7 @@ class Cache:
         compression: Optional[str] = None,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
+        item_loader = None,
     ):
         """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements
         together in order to accelerate fetching.
@@ -54,6 +55,7 @@ class Cache:
             compression: The name of the algorithm to reduce the size of the chunks.
             chunk_bytes: The maximum number of bytes within a chunk.
             chunk_size: The maximum number of items within a chunk.
+            item_loader: The sampler to generate create sub items from the chunk. 
 
         """
         super().__init__()
@@ -71,7 +73,7 @@ class Cache:
             str(cache_dir), chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression
         )
         self._reader = BinaryReader(
-            str(cache_dir), remote_dir=remote_dir, compression=compression, name=name, version=version
+            str(cache_dir), remote_dir=remote_dir, compression=compression, name=name, version=version, item_loader=item_loader,
         )
         self._cache_dir = str(cache_dir)
         self._is_done = False

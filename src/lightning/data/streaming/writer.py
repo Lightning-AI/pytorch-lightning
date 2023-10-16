@@ -15,8 +15,8 @@ import json
 import os
 from dataclasses import dataclass
 from time import sleep
-from typing import Any, Dict, List, Optional
-
+from typing import Any, Dict, List, Optional, Tuple
+import torch
 import numpy as np
 
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
@@ -40,6 +40,7 @@ class Item:
     index: int
     data: bytes
     bytes: int
+    dim: Optional[int] = None
 
     def __len__(self) -> int:
         return self.bytes
@@ -52,6 +53,7 @@ class BinaryWriter:
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
         compression: Optional[str] = None,
+        follow_tensor_dimension: bool = True,
     ):
         """The BinaryWriter enables to chunk dataset into an efficient streaming format for cloud training.
 
@@ -96,6 +98,7 @@ class BinaryWriter:
         self._rank: Optional[int] = None
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
+        self._follow_tensor_dimension = follow_tensor_dimension
 
     @property
     def filled(self) -> bool:
@@ -135,11 +138,13 @@ class BinaryWriter:
         }
         return out
 
-    def serialize(self, items: Any) -> bytes:
+    def serialize(self, items: Any) -> Tuple[bytes, Optional[int]]:
         """Serialize a dictionary into its binary format."""
 
         # Flatten the items provided by the users
         flattened, data_spec = tree_flatten(items)
+
+        is_signle_tensor = len(flattened) == 1 and isinstance(flattened[0], torch.Tensor)
 
         # Collect the sizes and associated bytes for each item
         sizes: List[int] = []
@@ -161,10 +166,14 @@ class BinaryWriter:
         elif self._data_spec != data_spec:
             raise Exception(f"The data format changed between items. Found {data_spec} instead of {self._data_spec}.")
 
+        # If there is a single element and it is a tensor, enable continous continous array. 
+        if is_signle_tensor:
+            return data[0], flattened[0].shape[0]
+
         # Concatenante into a single byte array
         head = np.array(sizes, np.uint32).tobytes()
         body = b"".join(data)
-        return head + body
+        return head + body, None
 
     def _serialize(self, item: Any, sizes: List[int], data: List[bytes]) -> str:
         """Serialize a given item and append its size and bytes to the sizes and data array."""
@@ -208,11 +217,15 @@ class BinaryWriter:
         if self._chunk_size:
             assert num_items.item() <= self._chunk_size
 
+        dim = None
+        if items[0].dim:
+            dim = sum([item.dim for item in items])
+
         chunk_info = {
             "chunk_bytes": current_chunk_bytes,
             "chunk_size": num_items.item(),
             "filename": filename,
-            "interval": [min_index, max_index],
+            "dim": dim,
         }
 
         self._chunks_info.append(chunk_info)
@@ -244,14 +257,18 @@ class BinaryWriter:
     def add_item(self, index: int, items: Any) -> Optional[str]:
         # Track the minimum index provided to the writer
         # Serialize the items and store an Item object.
-        data = self.serialize(items)
+        data, dim = self.serialize(items)
         self._serialized_items[index] = Item(
             index=index,
             data=data,
             bytes=len(data),
+            dim=dim,
         )
 
+        print(dim)
+
         if self._should_write():
+            print("Writing")
             filepath = os.path.join(self._cache_dir, self.get_chunk_filename())
             self.write_chunk()
             self._min_index = None
@@ -269,7 +286,7 @@ class BinaryWriter:
             item = self._serialized_items.get(index, None)
             if item:
                 num_bytes += item.bytes
-                num_items += 1
+                num_items += item.dim if item.dim else 1
                 index += 1
                 if (self._chunk_bytes and self._chunk_bytes < num_bytes) or (
                     self._chunk_size and num_items > self._chunk_size
