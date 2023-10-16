@@ -181,6 +181,34 @@ class _FabricModule(_DeviceDtypeModuleMixin):
                 category=PossibleUserWarning,
             )
 
+    def _wrap_with_call_observer(self, method: Callable, name: str) -> Callable:
+        called = False
+
+        def _hook(*_, **__):
+            nonlocal called
+            called = True
+
+        def _wrapped_method(*args: Any, **kwargs: Any) -> Any:
+            handles = []
+            for module in self._original_module.modules():
+                handles.append(module.register_forward_hook(_hook))
+
+            output = method(*args, **kwargs)
+
+            if called:
+                warning_cache.warn(
+                    f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
+                    " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
+                    " `.backward()`. You should pass your inputs through"
+                    f" `{type(self._original_module).__name__}.forward()`.",
+                    category=PossibleUserWarning,
+                )
+            for handle in handles:
+                handle.remove()
+            return output
+
+        return _wrapped_method
+
     def __getattr__(self, item: Any) -> Any:
         if item in _LIGHTNING_MODULE_STEP_METHODS and self._forward_module != self._original_module:
             # Special support for `LightningModule`, to prevent bypassing DDP's forward
@@ -194,7 +222,9 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             # If the attribute is not available on the _FabricModule wrapper, redirect to the wrapped nn.Module
             original_module = super().__getattr__("_original_module")
             attr = getattr(original_module, item)
-            self._validate_method_access(item, attr)
+
+            if inspect.ismethod(attr) and self._forward_module != self._original_module:
+                attr = self._wrap_with_call_observer(attr, item)
             return attr
 
     def __setattr__(self, name: str, value: Any) -> None:

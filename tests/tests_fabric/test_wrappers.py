@@ -79,10 +79,15 @@ def test_fabric_module_method_lookup():
     """Test that access to methods warns about improper use when a wrapper from a strategy is involved."""
 
     class OriginalModule(torch.nn.Module):
-        def method_no_args(self):
+        def __init__(self):
+            super().__init__()
+            self.submodule = torch.nn.Linear(2, 3)
+
+        def method_without_module_invocation(self):
             return 100
 
-        def method_with_args(self, arg, kwarg=1):
+        def method_with_module_invocation(self):
+            self.submodule(torch.rand(2, 2))
             return 101
 
     class ModuleWrapper(torch.nn.Module):
@@ -95,7 +100,7 @@ def test_fabric_module_method_lookup():
     fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
     warning_cache.clear()
     with no_warning_call(UserWarning):
-        assert fabric_module.method_with_args(0) == 101
+        assert fabric_module.method_without_module_invocation() == 100
     assert not warning_cache
 
     # Special case: original module wrapped by forward module: -> warn if method accepts args
@@ -104,9 +109,12 @@ def test_fabric_module_method_lookup():
     fabric_module = _FabricModule(forward_module=wrapped_module, precision=Mock(), original_module=original_module)
     warning_cache.clear()
     with no_warning_call(UserWarning):
-        assert fabric_module.method_no_args() == 100
-    with pytest.warns(UserWarning, match=r"You are calling the method `OriginalModule.method_with_args\(\)` from"):
-        assert fabric_module.method_with_args(0) == 101
+        assert fabric_module.method_without_module_invocation() == 100
+    with pytest.warns(
+        UserWarning,
+        match=r"You are calling the method `OriginalModule.method_with_module_invocation\(\)` from"
+    ):
+        assert fabric_module.method_with_module_invocation() == 101
     warning_cache.clear()
 
 
