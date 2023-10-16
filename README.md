@@ -7,9 +7,9 @@
 
 __This repository covers the following use-cases:__
 
-1. **GitHub workflows**
-1. **GitHub actions**
-1. **CLI `lightning_utilities.cli`**
+1. **Reusable GitHub workflows**
+1. **Shared GitHub actions**
+1. **CLI `python -m lightning_utilities.cli --help`**
 1. **General Python utilities in `lightning_utilities.core`**
 
 ## 1. Reusable workflows
