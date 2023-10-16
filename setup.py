@@ -24,14 +24,22 @@ about = _load_py_module("__about__.py")
 with open(os.path.join(_PATH_REQUIRE, "base.txt")) as fp:
     requirements = list(map(str, parse_requirements(fp.readlines())))
 
+
 # make extras as automated loading
-requirements_extra = {}
-for fpath in glob.glob(os.path.join(_PATH_REQUIRE, "*.txt")):
-    if os.path.basename(fpath) in ("base.txt", "dev-docs.txt", "dev-tests.txt", "gha-schema.txt"):
-        continue
-    name, _ = os.path.splitext(os.path.basename(fpath))
-    with open(fpath) as fp:
-        requirements_extra[name] = list(map(str, parse_requirements(fp.readline())))
+def _requirement_extras(path_req: str = _PATH_REQUIRE) -> dict:
+    extras = {}
+    for fpath in glob.glob(os.path.join(path_req, "*.txt")):
+        fname = os.path.basename(fpath)
+        if fname.startswith(("_", "gha-")):
+            continue
+        if fname in ("base.txt",):
+            continue
+        name, _ = os.path.splitext(fname)
+        with open(fpath) as fp:
+            reqs = parse_requirements(fp.readlines())
+            extras[name] = list(map(str, reqs))
+    return extras
+
 
 # loading readme as description
 with open(os.path.join(_PATH_ROOT, "README.md")) as fp:
@@ -46,6 +54,7 @@ setup(
     url=about.__homepage__,
     download_url="https://github.com/Lightning-AI/utilities",
     license=about.__license__,
+    # fixme: somehow the `.cli` is missing in created package
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     long_description=readme,
@@ -56,7 +65,7 @@ setup(
     python_requires=">=3.7",
     setup_requires=[],
     install_requires=requirements,
-    extras_require=requirements_extra,
+    extras_require=_requirement_extras(),
     project_urls={
         "Bug Tracker": "https://github.com/Lightning-AI/utilities/issues",
         "Documentation": "https://dev-toolbox.rtfd.io/en/latest/",  # TODO: Update domain

@@ -17,6 +17,10 @@ inputs:
     description: "additional pip install flags"
     required: false
     default: "-f https://download.pytorch.org/whl/cpu/torch_stable.html"
+  import-extras:
+    description: "additional import statement, need to be full python code"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -33,18 +37,27 @@ runs:
         ls -lh
         echo "PKG_WHEEL=$(ls *.whl | head -n1)" >> $GITHUB_ENV
         echo "PKG_SOURCE=$(ls *.tar.gz | head -n1)" >> $GITHUB_ENV
+        pip list
       shell: bash
 
     - name: Install package (wheel)
       working-directory: pypi/
       run: |
-        # TODO: reset env / consider add as conda
-        pip install "${{ env.PKG_WHEEL }}${{ inputs.pkg-extras }}" ${{ inputs.pip-flags }}
-        python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
+        set -ex
+        pip install '${{ env.PKG_WHEEL }}${{ inputs.pkg-extras }}' \
+          --force-reinstall ${{ inputs.pip-flags }}
         pip list
       shell: bash
 
+    - name: package check
+      run: |
+        set -ex
+        python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
+        python -c '${{ inputs.import-extras }}'
+      shell: bash
+
     - name: Uninstall all
+      # TODO: reset env / consider add as conda
       run: |
         pip freeze > _reqs.txt
         pip uninstall -y -r _reqs.txt
@@ -53,8 +66,15 @@ runs:
     - name: Install package (archive)
       working-directory: pypi/
       run: |
-        # TODO: reset env / consider add as conda
-        pip install "${{ env.PKG_SOURCE }}${{ inputs.pkg-extras }}" ${{ inputs.pip-flags }}
-        python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
+        set -ex
+        pip install '${{ env.PKG_SOURCE }}${{ inputs.pkg-extras }}' \
+          --force-reinstall ${{ inputs.pip-flags }}
         pip list
+      shell: bash
+
+    - name: package check
+      run: |
+        set -ex
+        python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
+        python -c '${{ inputs.import-extras }}'
       shell: bash

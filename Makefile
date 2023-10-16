@@ -6,8 +6,7 @@ export SLURM_LOCALID=0
 export SPHINX_MOCK_REQUIREMENTS=0
 
 test:
-	pip install -q -r requirements/cli.txt
-	pip install -q -r requirements/dev-tests.txt
+	pip install -q -r requirements/cli.txt -r requirements/_tests.txt
 
 	# use this to run tests
 	rm -rf _ckpt_*
@@ -19,7 +18,7 @@ test:
 	# python -m coverage run --source src/lightning_utilities -m pytest --flake8 --durations=0 -v -k
 
 docs: clean
-	pip install -e . -q -r requirements/dev-docs.txt
+	pip install -e . -q -r requirements/_docs.txt
 	cd docs && $(MAKE) html
 
 clean:

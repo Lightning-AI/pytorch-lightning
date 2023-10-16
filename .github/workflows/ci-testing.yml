@@ -48,7 +48,7 @@ jobs:
       - name: Install dependencies
         timeout-minutes: 20
         run: |
-          pip install -e . -U -r requirements/dev-tests.txt \
+          pip install -e . -U -r requirements/_tests.txt \
             -f https://download.pytorch.org/whl/cpu/torch_stable.html
           pip --version
           pip list

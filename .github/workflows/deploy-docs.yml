@@ -46,7 +46,7 @@ jobs:
         timeout-minutes: 20
         run: |
           pip --version
-          pip install -e . -U -q -r requirements/dev-docs.txt -f ${TORCH_URL}
+          pip install -e . -U -q -r requirements/_docs.txt -f ${TORCH_URL}
           pip list
         shell: bash
 

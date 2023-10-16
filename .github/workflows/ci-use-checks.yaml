@@ -53,7 +53,10 @@ jobs:
       actions-ref: ${{ github.sha }} # use local version
       artifact-name: dist-packages-${{ github.sha }}
       import-name: "lightning_utilities"
-      install-extras: "[anything]"
+      install-extras: "[cli]"
+      # todo: when we have a module with depence on extra, replace it
+      #  tried to import `lightning_utilities.cli.__main__` but told me it does not exits
+      import-extras: "import fire"
       testing-matrix: |
         {
           "os": ["ubuntu-22.04", "macos-12", "windows-2022"],
@@ -63,7 +66,7 @@ jobs:
   check-docs:
     uses: ./.github/workflows/check-docs.yml
     with:
-      requirements-file: "requirements/dev-docs.txt"
+      requirements-file: "requirements/_docs.txt"
       install-tex: true
 
   check-md-links-default:
