@@ -31,10 +31,10 @@ from torch.utils.data.dataloader import (
 )
 from torch.utils.data.sampler import BatchSampler, Sampler
 
-from lightning.data.cache import Cache
-from lightning.data.cache.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
-from lightning.data.cache.sampler import CacheBatchSampler
 from lightning.data.datasets.env import _DistributedEnv
+from lightning.data.streaming import Cache
+from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
+from lightning.data.streaming.sampler import CacheBatchSampler
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
@@ -172,7 +172,7 @@ class WorkerLoop:
     ) -> None:
         from torch.utils.data._utils import worker
 
-        from lightning.data.cache.cache import Cache
+        from lightning.data.streaming.cache import Cache
 
         enable_profiling = self._global_rank == 0 and worker_id == 0 and _VIZ_TRACKER_AVAILABLE and self._profile
 
@@ -248,7 +248,7 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
             raise e
 
 
-class LightningDataLoader(DataLoader):
+class StreamingDataLoader(DataLoader):
     __doc__ = DataLoader.__doc__
 
     def __init__(
@@ -271,16 +271,16 @@ class LightningDataLoader(DataLoader):
     ) -> None:
         if sampler:
             raise ValueError(
-                "The LightningDataLoader relies on its own internal sampler. Passing a sampler isn't supported."
+                "The StreamingDataLoader relies on its own internal sampler. Passing a sampler isn't supported."
             )
 
         if batch_sampler:
             raise ValueError(
-                "The LightningDataLoader relies on its own internal sampler. Passing a batch_sampler isn't supported."
+                "The StreamingDataLoader relies on its own internal sampler. Passing a batch_sampler isn't supported."
             )
 
         if isinstance(dataset, IterableDataset):
-            raise ValueError("Only map-based dataset are supported by the LightningDataLoader for now.")
+            raise ValueError("Only map-based dataset are supported by the StreamingDataLoader for now.")
 
         if profile and not _VIZ_TRACKER_AVAILABLE:
             raise ModuleNotFoundError("To enable DataLoader profiling, run `pip install viztracer`.")
@@ -294,7 +294,7 @@ class LightningDataLoader(DataLoader):
 
         if len(cache_list) == 0:
             if cache_dir is None:
-                raise ValueError("You should provide a `cache_dir` filepath to the LightningDataLoader.")
+                raise ValueError("You should provide a `cache_dir` filepath to the StreamingDataLoader.")
 
             dataset = CacheDataset(dataset, cache_dir, chunk_bytes, batch_size, compression)
             cache = dataset._cache

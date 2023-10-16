@@ -11,8 +11,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning.data.cache.cache import Cache
-from lightning.data.cache.dataloader import LightningDataLoader
-from lightning.data.cache.dataset_optimizer import DatasetOptimizer
+from lightning_utilities.core.imports import RequirementCache
 
-__all__ = ["Cache", "DatasetOptimizer", "LightningDataLoader"]
+_INDEX_FILENAME = "index.json"
+_DEFAULT_CHUNK_BYTES = 1 << 26  # 64M B
+_DEFAULT_FAST_DEV_RUN_ITEMS = 10
+
+# This is required for full pytree serialization / deserialization support
+_TORCH_GREATER_EQUAL_2_1_0 = RequirementCache("torch>=2.1.0")
+_VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
+_LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42 = RequirementCache("lightning-cloud>=0.5.42")
+_BOTO3_AVAILABLE = RequirementCache("boto3")
