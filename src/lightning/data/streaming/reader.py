@@ -16,17 +16,15 @@ from threading import Lock, Thread
 from time import sleep
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-import numpy as np
-
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.config import ChunksConfig
-from lightning.data.streaming.item_loader import PyTreeLoader
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.streaming.item_loader import PyTreeLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
 
 if _TORCH_GREATER_EQUAL_2_1_0:
-    from torch.utils._pytree import PyTree, tree_unflatten
+    pass
 
 
 class PrepareChunksThread(Thread):
@@ -66,7 +64,7 @@ class BinaryReader:
         compression: Optional[str] = None,
         name: Optional[str] = None,
         version: Optional[Union[int, Literal["latest"]]] = "latest",
-        item_loader = None,
+        item_loader=None,
     ) -> None:
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
@@ -78,6 +76,7 @@ class BinaryReader:
             name: The name of dataset in the cloud.
             version: The version of the dataset in the cloud to use. By default, we will use the latest.
             item_loader: The chunk sampler to create sub arrays from a chunk.
+
         """
         super().__init__()
         self._cache_dir = cache_dir
@@ -106,8 +105,6 @@ class BinaryReader:
     def _try_load_config(self) -> Optional[ChunksConfig]:
         """Try to load the chunks config if the index files are available."""
         self._config = ChunksConfig.load(self._cache_dir, self._remote_dir, self._item_loader)
-        if self._config:
-            self._remap_serializers()
         return self._config
 
     @property
@@ -147,8 +144,7 @@ class BinaryReader:
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
-        return self._item_loader.load_item_from_chunk(
-            index.index, index.chunk_index, chunk_filepath, begin)
+        return self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
 
     def get_length(self) -> int:
         """Get the number of samples across all chunks."""
@@ -163,16 +159,3 @@ class BinaryReader:
             raise Exception("The reader index isn't defined.")
 
         return self.config.intervals
-
-    def _remap_serializers(self):
-        remap_data_format = []
-        for data_format in self._config.data_format:
-            found = False
-            for serializer_name, serializer in self._serializers.items():
-                if data_format.startswith(serializer_name):
-                    serializer.setup(data_format)
-                    remap_data_format.append(serializer_name)
-                    found = True
-            if not found:
-                remap_data_format.append(data_format)
-        self._config._data_format = remap_data_format

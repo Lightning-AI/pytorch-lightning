@@ -16,8 +16,9 @@ import os
 from dataclasses import dataclass
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple
-import torch
+
 import numpy as np
+import torch
 
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.compression import _COMPRESSORS, Compressor
@@ -166,7 +167,7 @@ class BinaryWriter:
         elif self._data_spec != data_spec:
             raise Exception(f"The data format changed between items. Found {data_spec} instead of {self._data_spec}.")
 
-        # If there is a single element and it is a tensor, enable continous continous array. 
+        # If there is a single element and it is a tensor, enable continous continous array.
         if is_signle_tensor:
             return data[0], flattened[0].shape[0]
 
@@ -265,10 +266,7 @@ class BinaryWriter:
             dim=dim,
         )
 
-        print(dim)
-
         if self._should_write():
-            print("Writing")
             filepath = os.path.join(self._cache_dir, self.get_chunk_filename())
             self.write_chunk()
             self._min_index = None
