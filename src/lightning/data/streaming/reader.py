@@ -16,17 +16,15 @@ from threading import Lock, Thread
 from time import sleep
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-import numpy as np
-
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.config import ChunksConfig
-from lightning.data.streaming.item_loader import PyTreeLoader
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.streaming.item_loader import PyTreeLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
 
 if _TORCH_GREATER_EQUAL_2_1_0:
-    from torch.utils._pytree import PyTree, tree_unflatten
+    pass
 
 
 class PrepareChunksThread(Thread):
@@ -66,7 +64,7 @@ class BinaryReader:
         compression: Optional[str] = None,
         name: Optional[str] = None,
         version: Optional[Union[int, Literal["latest"]]] = "latest",
-        item_loader = None,
+        item_loader=None,
     ) -> None:
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
@@ -78,6 +76,7 @@ class BinaryReader:
             name: The name of dataset in the cloud.
             version: The version of the dataset in the cloud to use. By default, we will use the latest.
             item_loader: The chunk sampler to create sub arrays from a chunk.
+
         """
         super().__init__()
         self._cache_dir = cache_dir
@@ -147,8 +146,7 @@ class BinaryReader:
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
-        return self._item_loader.load_item_from_chunk(
-            index.index, index.chunk_index, chunk_filepath, begin)
+        return self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
 
     def get_length(self) -> int:
         """Get the number of samples across all chunks."""

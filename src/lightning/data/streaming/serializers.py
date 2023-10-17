@@ -21,6 +21,7 @@ from typing import Any, Optional, Tuple, Union
 import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
+
 from lightning.data.streaming.constants import _TORCH_DTYPES_MAPPING
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -224,7 +225,6 @@ _SERIALIZERS = OrderedDict(
         "jpeg": JPEGSerializer(),
         "bytes": BytesSerializer(),
         "no_header_tensor": NoHeaderTensorSerializer(),
-        "tensor": TensorSerializer(),
         "tensor": TensorSerializer(),
         "pickle": PickleSerializer(),
     }
