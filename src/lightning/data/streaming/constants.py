@@ -24,6 +24,7 @@ _VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
 _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42 = RequirementCache("lightning-cloud>=0.5.42")
 _BOTO3_AVAILABLE = RequirementCache("boto3")
 
+# DON'T CHANGE ORDER
 _TORCH_DTYPES_MAPPING = {
     0: torch.float32,
     1: torch.float,
