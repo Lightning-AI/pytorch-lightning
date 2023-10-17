@@ -14,7 +14,7 @@
 import os
 from abc import ABC, abstractmethod
 from time import sleep
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -89,21 +89,28 @@ class PyTreeLoader(BaseItemLoader):
 
 
 class TokensLoader(BaseItemLoader):
-    def __init__(self, block_size):
+    def __init__(self, block_size: int):
+        """The Tokens Loader is an optimizer item loader for NLP.
+
+        Arguments:
+            block_size: The context length to use during training.
+
+        """
+
         super().__init__()
         self._block_size = block_size
-        self._intervals = []
-        self._mmaps = {}
-        self._buffers = {}
-        self._dtype = None
+        self._intervals: List[Tuple[int, int]] = []
+        self._mmaps: Dict[int, np.memmap] = {}
+        self._buffers: Dict[int, bytes] = {}
+        self._dtype: Optional[torch.dtype] = None
 
-    def setup(self, config, chunks):
+    def setup(self, config: Dict, chunks: List) -> None:
         super().setup(config, chunks)
         self._dtype = _TORCH_DTYPES_MAPPING[int(config["data_format"][0].split(":")[1])]
         if all(chunk["dim"] is None for chunk in self._chunks):
             raise ValueError("The provided chunks isn't properly setup.")
 
-    def generate_intervals(self):
+    def generate_intervals(self) -> List[Tuple[int, int]]:
         begin = 0
         end = 0
         for chunk in self._chunks:
@@ -114,17 +121,20 @@ class TokensLoader(BaseItemLoader):
 
         return self._intervals
 
-    def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> bytes:
+    def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, _: int) -> torch.Tensor:
         while not os.path.exists(chunk_filepath):
             sleep(0.0001)
 
         if chunk_index not in self._mmaps:
+            # TODO: Add deletion and memmap close
             chunk = self._chunks[chunk_index]
             offset = (1 + chunk["chunk_size"] + 1) * 4
             mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
             self._mmaps[chunk_index] = mmap
-            self._buffers[chunk_index] = memoryview(mmap)
+            self._buffers[chunk_index] = memoryview(mmap)  # type: ignore
 
-        buffer = self._buffers[chunk_index]
+        assert self._dtype
+
+        buffer: bytes = self._buffers[chunk_index]
         offset = self._dtype.itemsize * index * self._block_size
         return torch.frombuffer(buffer, dtype=self._dtype, count=self._block_size, offset=offset)

@@ -167,7 +167,7 @@ class BinaryWriter:
         elif self._data_spec != data_spec:
             raise Exception(f"The data format changed between items. Found {data_spec} instead of {self._data_spec}.")
 
-        # If there is a single element and it is a tensor, enable continous continous array.
+        # If there is a single element and it is a tensor, enable continous array.
         if is_signle_tensor:
             return data[0], flattened[0].shape[0]
 
@@ -218,9 +218,9 @@ class BinaryWriter:
         if self._chunk_size:
             assert num_items.item() <= self._chunk_size
 
-        dim = None
+        dim: Optional[int] = None
         if items[0].dim:
-            dim = sum([item.dim for item in items])
+            dim = sum([item.dim if item.dim is not None else 0 for item in items])
 
         chunk_info = {
             "chunk_bytes": current_chunk_bytes,

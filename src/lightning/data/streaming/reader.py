@@ -14,12 +14,12 @@
 import os
 from threading import Lock, Thread
 from time import sleep
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.config import ChunksConfig
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
-from lightning.data.streaming.item_loader import PyTreeLoader
+from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
 
@@ -62,9 +62,7 @@ class BinaryReader:
         cache_dir: str,
         remote_dir: Optional[str] = None,
         compression: Optional[str] = None,
-        name: Optional[str] = None,
-        version: Optional[Union[int, Literal["latest"]]] = "latest",
-        item_loader=None,
+        item_loader: Optional[BaseItemLoader] = None,
     ) -> None:
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
@@ -73,8 +71,6 @@ class BinaryReader:
             remote_dir: The path to a remote folder where the data are located.
                 The scheme needs to be added to the path.
             compression: The algorithm to decompress the chunks.
-            name: The name of dataset in the cloud.
-            version: The version of the dataset in the cloud to use. By default, we will use the latest.
             item_loader: The chunk sampler to create sub arrays from a chunk.
 
         """

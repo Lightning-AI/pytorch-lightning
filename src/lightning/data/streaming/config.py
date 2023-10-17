@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.downloader import get_downloader_cls
-from lightning.data.streaming.item_loader import PyTreeLoader, TokensLoader
+from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader, TokensLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 
 if _TORCH_GREATER_EQUAL_2_1_0:
@@ -25,7 +25,7 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 
 
 class ChunksConfig:
-    def __init__(self, cache_dir: str, remote_dir: Optional[str], item_loader: None):
+    def __init__(self, cache_dir: str, remote_dir: Optional[str], item_loader: Optional[BaseItemLoader] = None) -> None:
         """The ChunksConfig reads the index files associated a chunked dataset and enables to map an index to its
         chunk.
 
@@ -103,7 +103,9 @@ class ChunksConfig:
         return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]
 
     @classmethod
-    def load(cls, cache_dir: str, remote_dir: Optional[str] = None, item_loader=None) -> Optional["ChunksConfig"]:
+    def load(
+        cls, cache_dir: str, remote_dir: Optional[str] = None, item_loader: Optional[BaseItemLoader] = None
+    ) -> Optional["ChunksConfig"]:
         cache_index_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
 
         if isinstance(remote_dir, str):
@@ -119,6 +121,7 @@ class ChunksConfig:
         return self._length
 
     def _validate_item_loader(self) -> None:
+        assert self._config
         if (
             len(self._config["data_format"]) == 1
             and self._config["data_format"][0].startswith("no_header_tensor")

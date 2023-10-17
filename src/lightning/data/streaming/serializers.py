@@ -174,9 +174,9 @@ class NoHeaderTensorSerializer(Serializer):
     def __init__(self) -> None:
         super().__init__()
         self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
-        self._dtype = None
+        self._dtype: Optional[torch.dtype] = None
 
-    def setup(self, data_format: str):
+    def setup(self, data_format: str) -> None:
         self._dtype = _TORCH_DTYPES_MAPPING[int(data_format.split(":")[1])]
 
     def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
