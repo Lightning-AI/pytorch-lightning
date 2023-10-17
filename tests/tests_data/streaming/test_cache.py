@@ -25,7 +25,6 @@ from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.fabric import Fabric
-from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import Dataset
 
@@ -173,17 +172,37 @@ def test_cache_with_simple_format(tmpdir):
         assert [i, {0: [i + 1]}] == cache[i]
 
 
+class RandomDataset(Dataset):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
+    def __init__(self, size: int, length: int):
+        self.len = length
+        self.data = torch.randn(length, 2, size)
+
+    def __getitem__(self, index: int) -> torch.Tensor:
+        return self.data[index]
+
+    def __len__(self) -> int:
+        return self.len
+
+
 def test_cache_with_auto_wrapping(tmpdir):
+    seed_everything(42)
     os.makedirs(os.path.join(tmpdir, "cache_1"), exist_ok=True)
 
     dataset = RandomDataset(64, 64)
     dataloader = StreamingDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_1"), chunk_bytes=2 << 12)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
+
     assert sorted(os.listdir(os.path.join(tmpdir, "cache_1"))) == [
         "chunk-0-0.bin",
         "chunk-0-1.bin",
         "chunk-0-2.bin",
+        "chunk-0-3.bin",
+        "chunk-0-4.bin",
         "index.json",
     ]
     # Your dataset is optimised for the cloud
@@ -194,7 +213,7 @@ def test_cache_with_auto_wrapping(tmpdir):
             self.size = size
 
         def __getitem__(self, index: int) -> torch.Tensor:
-            return torch.randn(1, self.size)
+            return torch.randn(1, 10, self.size)
 
         def __len__(self) -> int:
             return self.len
