@@ -23,13 +23,11 @@ from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
+from lightning.data.streaming.item_loader import TokensLoader
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import Dataset
-from lightning.data.streaming.serializers import _TORCH_DTYPES_MAPPING
-from lightning.data.streaming.item_loader import TokensLoader
-
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
@@ -223,33 +221,27 @@ def test_cache_with_name(tmpdir, monkeypatch):
     assert cache._writer._cache_dir == os.path.join(tmpdir, "something")
     assert cache._reader._remote_dir == os.path.join(tmpdir, "remote_dir")
 
-def test_cache_from_nlp(tmpdir):
 
-    import json
-    from lit_gpt import Config, Tokenizer
-    from pathlib import Path
-    from tqdm import tqdm
-
-    tokenizer = Tokenizer(Path("/teamspace/studios/this_studio/lit-gpt/checkpoints/mistralai/Mistral-7B-v0.1"))
+def test_cache_for_text_tokens(tmpdir):
+    seed_everything(42)
 
     block_size = 1024 + 1
-    cache = Cache(tmpdir, chunk_size=block_size * 3, item_loader=TokensLoader(block_size))
-
-    filepath = "/teamspace/studios/this_studio/data/RedPajama-Data-1T-Sample/c4_sample.jsonl"
-    
+    cache = Cache(tmpdir, chunk_size=block_size * 11, item_loader=TokensLoader(block_size))
     text_idxs_list = []
 
-    with open(filepath, encoding="utf-8") as f:
-        for index, row in tqdm(enumerate(f)):
-            text = json.loads(row)["text"]
-            text_ids = tokenizer.encode(text)
-            text_idxs_list.append(text_ids)
-            chunk_filepath = cache._add_item(index, text_ids)
-            if chunk_filepath:
-                break
+    counter = 0
+    while True:
+        text_ids = torch.randint(0, 1000, (np.random.randint(0, 1000),)).to(torch.int)
+        text_idxs_list.append(text_ids)
+        chunk_filepath = cache._add_item(counter, text_ids)
+        if chunk_filepath:
+            break
+        counter += 1
 
     cache.done()
     cache.merge()
+
+    assert len(cache) == 10
 
     cache_0 = cache[0]
     cache_1 = cache[1]
@@ -257,5 +249,8 @@ def test_cache_from_nlp(tmpdir):
     assert len(cache_1) == block_size
     assert not torch.equal(cache_0, cache[1])
     indices = torch.cat(text_idxs_list, dim=0)
-    assert torch.equal(cache_0, indices[:len(cache_0)])
-    assert torch.equal(cache_1, indices[len(cache_0):len(cache_0) + len(cache_1)])
+    assert torch.equal(cache_0, indices[: len(cache_0)])
+    assert torch.equal(cache_1, indices[len(cache_0) : len(cache_0) + len(cache_1)])
+
+    with pytest.raises(ValueError, match="TokensLoader"):
+        len(Cache(tmpdir, chunk_size=block_size * 11))

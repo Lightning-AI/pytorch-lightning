@@ -14,7 +14,7 @@
 import os
 from abc import ABC, abstractmethod
 from time import sleep
-from typing import Any
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -23,27 +23,35 @@ from lightning.data.streaming.constants import (
     _TORCH_DTYPES_MAPPING,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
+from lightning.data.streaming.serializers import _SERIALIZERS
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import PyTree, tree_unflatten
 
 
 class BaseItemLoader(ABC):
-    def setup(self, config, chunks):
+    """The base item loader is responsible to decide how the items within a chunk are loaded."""
+
+    def setup(self, config: Dict, chunks: List) -> None:
         self._config = config
         self._chunks = chunks
+        self._serializers = _SERIALIZERS
 
     @abstractmethod
-    def generate_intervals(self):
+    def generate_intervals(self) -> List[Tuple[int, int]]:
+        """Returns a list of tuple describing the indexes intervals of the chunks."""
         pass
 
     @abstractmethod
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> Any:
+        """Returns an item loaded from a chunk."""
         pass
 
 
 class PyTreeLoader(BaseItemLoader):
-    def generate_intervals(self):
+    """The Pytree Loader is the default loader of the Cache object."""
+
+    def generate_intervals(self) -> List[Tuple[int, int]]:
         intervals = []
         begin = 0
         end = 0

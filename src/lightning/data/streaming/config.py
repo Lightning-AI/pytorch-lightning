@@ -14,13 +14,15 @@
 import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
+
 from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.downloader import get_downloader_cls
+from lightning.data.streaming.item_loader import PyTreeLoader, TokensLoader
 from lightning.data.streaming.sampler import ChunkedIndex
-from lightning.data.streaming.item_loader import PyTreeLoader
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import treespec_loads
+
 
 class ChunksConfig:
     def __init__(self, cache_dir: str, remote_dir: Optional[str], item_loader: None):
@@ -43,6 +45,7 @@ class ChunksConfig:
         with open(os.path.join(self._cache_dir, _INDEX_FILENAME)) as f:
             data = json.load(f)
             self._config = data["config"]
+            self._validate_item_loader()
             self._chunks.extend(data["chunks"])
 
         self._config["data_spec"] = treespec_loads(self._config["data_spec"])
@@ -100,7 +103,7 @@ class ChunksConfig:
         return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]
 
     @classmethod
-    def load(cls, cache_dir: str, remote_dir: Optional[str] = None, item_loader = None) -> Optional["ChunksConfig"]:
+    def load(cls, cache_dir: str, remote_dir: Optional[str] = None, item_loader=None) -> Optional["ChunksConfig"]:
         cache_index_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
 
         if isinstance(remote_dir, str):
@@ -114,3 +117,11 @@ class ChunksConfig:
 
     def __len__(self) -> int:
         return self._length
+
+    def _validate_item_loader(self) -> None:
+        if (
+            len(self._config["data_format"]) == 1
+            and self._config["data_format"][0].startswith("no_header_tensor")
+            and not isinstance(self._item_loader, TokensLoader)
+        ):
+            raise ValueError("Please, use Cache(..., item_loader=TokensLoader(block_size=...))")
