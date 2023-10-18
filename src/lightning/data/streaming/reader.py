@@ -141,14 +141,19 @@ class BinaryReader:
             raise Exception("The reader index isn't defined.")
 
         # Create and start the prepare chunks thread
-        if self._prepare_thread is None and self._config:
+        if self._prepare_thread is None and self._config and self._config._remote_dir:
             self._prepare_thread = PrepareChunksThread(self._config)
             self._prepare_thread.start()
             if index.chunk_indexes:
                 self._chunks_index_to_be_processed.extend(index.chunk_indexes)
                 self._prepare_thread.add(index.chunk_indexes)
 
-        if index.chunk_index is not None and index.chunk_index not in self._chunks_index_to_be_processed:
+        # If the chunk_index isn't already in the download queue, add it.
+        if (
+            index.chunk_index is not None
+            and index.chunk_index not in self._chunks_index_to_be_processed
+            and self._config._remote_dir
+        ):
             self._prepare_thread.add([index.chunk_index])
             self._chunks_index_to_be_processed.append(index.chunk_index)
 
@@ -173,8 +178,9 @@ class BinaryReader:
         offset = (1 + (index - begin)) * 4
 
         while not os.path.exists(chunk_filepath):
-            sleep(0.01)
+            sleep(0.0001)
 
+        # TODO: Move to memmap
         with open(chunk_filepath, "rb", 0) as fp:
             fp.seek(offset)
             pair = fp.read(8)

@@ -671,8 +671,9 @@ class DatasetOptimizer(ABC):
     def _create_process_workers(self, begins: List[int], workers_user_items: List[List[Any]]) -> None:
         self.progress_queue = Queue()
         workers: List[DataWorkerProcess] = []
+        stop_queues: List[Queue] = []
         for worker_idx, worker_user_items in enumerate(workers_user_items):
-            self.stop_queues.append(Queue())
+            stop_queues.append(Queue())
             worker = DataWorkerProcess(
                 worker_idx,
                 self.num_workers,
@@ -686,7 +687,7 @@ class DatasetOptimizer(ABC):
                 worker_user_items,
                 self.progress_queue,
                 self.error_queue,
-                self.stop_queues[-1],
+                stop_queues[-1],
                 self.num_downloaders,
                 self.delete_cached_files,
                 2 if self.fast_dev_run else self.chunk_size,  # In dev run, create chunks with 2 items
@@ -698,6 +699,7 @@ class DatasetOptimizer(ABC):
 
         # Note: Don't store within the loop as weakref aren't serializable
         self.workers = workers
+        self.stop_queues = stop_queues
 
     def _associated_items_to_workers(self, user_items: List[Any]) -> Tuple[List[int], List[List[Any]]]:
         # Associate the items to the workers based on world_size and node_rank
