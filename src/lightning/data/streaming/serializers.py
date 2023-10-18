@@ -115,8 +115,13 @@ class JPEGSerializer(Serializer):
                 # Note: Some datasets like Imagenet contains some PNG images with JPEG extension, so we fallback to PIL
                 pass
 
-        inp = BytesIO(data)
-        img = Image.open(inp)
+        idx = 3 * 4
+        width, height, mode_size = np.frombuffer(data[:idx], np.uint32)
+        idx2 = idx + mode_size
+        mode = data[idx:idx2].decode("utf-8")
+        size = width, height
+        raw = data[idx2:]
+        img = Image.frombytes(mode, size, raw)  # pyright: ignore
         if _TORCH_VISION_AVAILABLE:
             img = pil_to_tensor(img)
         return img
