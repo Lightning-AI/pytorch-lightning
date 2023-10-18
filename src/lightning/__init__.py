@@ -31,7 +31,7 @@ __all__ = [
 ]
 
 
-def _cli_entry_point():
+def _cli_entry_point() -> None:
     try:
         import lightning.app
     except ModuleNotFoundError:
