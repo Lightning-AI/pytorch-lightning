@@ -170,7 +170,6 @@ class BinaryReader:
         offset = (1 + (index - begin)) * 4
 
         while not os.path.exists(chunk_filepath):
-            print("HERE")
             sleep(0.01)
 
         with open(chunk_filepath, "rb", 0) as fp:

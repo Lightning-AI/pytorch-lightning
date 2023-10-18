@@ -13,7 +13,7 @@ from time import sleep, time
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from urllib import parse
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from lightning import seed_everything
 from lightning.data.streaming import Cache
