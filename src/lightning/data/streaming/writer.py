@@ -389,7 +389,7 @@ class BinaryWriter:
         if len(data_format_1) != len(data_format_2):
             return True
 
-        def is_non_valid(f1, f2) -> bool:
+        def is_non_valid(f1: str, f2: str) -> bool:
             if f1 in ["pil", "jpeg"] and f2 in ["pil", "jpeg"]:
                 return False
             return f1 != f2

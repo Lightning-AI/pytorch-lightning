@@ -97,7 +97,7 @@ class BinaryReader:
         self._rank: Optional[int] = None
         self._config: Optional[ChunksConfig] = None
         self._prepare_thread: Optional[PrepareChunksThread] = None
-        self._chunks_index_to_be_processed = []
+        self._chunks_index_to_be_processed: List[int] = []
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         # Load the config containing the index
@@ -140,22 +140,20 @@ class BinaryReader:
         if self._config is None and self._try_load_config() is None:
             raise Exception("The reader index isn't defined.")
 
-        # Create and start the prepare chunks thread
-        if self._prepare_thread is None and self._config and self._config._remote_dir:
-            self._prepare_thread = PrepareChunksThread(self._config)
-            self._prepare_thread.start()
-            if index.chunk_indexes:
-                self._chunks_index_to_be_processed.extend(index.chunk_indexes)
-                self._prepare_thread.add(index.chunk_indexes)
+        if self._config and self._config._remote_dir:
+            # Create and start the prepare chunks thread
+            if self._prepare_thread is None and self._config:
+                self._prepare_thread = PrepareChunksThread(self._config)
+                self._prepare_thread.start()
+                if index.chunk_indexes:
+                    self._chunks_index_to_be_processed.extend(index.chunk_indexes)
+                    self._prepare_thread.add(index.chunk_indexes)
 
-        # If the chunk_index isn't already in the download queue, add it.
-        if (
-            index.chunk_index is not None
-            and index.chunk_index not in self._chunks_index_to_be_processed
-            and self._config._remote_dir
-        ):
-            self._prepare_thread.add([index.chunk_index])
-            self._chunks_index_to_be_processed.append(index.chunk_index)
+            # If the chunk_index isn't already in the download queue, add it.
+            if index.chunk_index not in self._chunks_index_to_be_processed:
+                assert self._prepare_thread
+                self._prepare_thread.add([index.chunk_index])
+                self._chunks_index_to_be_processed.append(index.chunk_index)
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
