@@ -161,6 +161,10 @@ class BinaryWriter:
         elif self._data_spec != data_spec:
             raise Exception(f"The data format changed between items. Found {data_spec} instead of {self._data_spec}.")
 
+        # Validate the sizes are defined properly
+        if any(s == 0 for s in sizes):
+            raise ValueError("We found an item taking 0 bytes.")
+
         # Concatenante into a single byte array
         head = np.array(sizes, np.uint32).tobytes()
         body = b"".join(data)

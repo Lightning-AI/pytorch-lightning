@@ -153,6 +153,8 @@ class BinaryReader:
         for size, data_format in zip(sizes, self.config.data_format):
             serializer = self._serializers[data_format]
             data_bytes = raw_item_data[idx : idx + size]
+            if len(data_bytes) == 0:
+                print(sizes)
             data.append(serializer.deserialize(data_bytes))
             idx += size
         return tree_unflatten(data, self.config.config["data_spec"])

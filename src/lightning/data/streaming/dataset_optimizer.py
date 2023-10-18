@@ -249,6 +249,11 @@ class BaseWorker:
                         self.upload_queue.put(None)
                         self.uploader.join()
 
+                    if self.remove:
+                        assert self.remover
+                        self.remove_queue.put(None)
+                        self.remover.join()
+
                     if self.progress_queue:
                         self.progress_queue.put((self.worker_index, self._counter))
                     return
@@ -559,7 +564,7 @@ class DatasetOptimizer(ABC):
 
         num_items = sum([len(items) for items in workers_user_items])
 
-        print(f"Starting {self.num_workers} workers with {[len(items) for items in workers_user_items]} each.")
+        print(f"Starting {self.num_workers} workers with {[len(items) for items in workers_user_items]}.")
 
         if self.remote_src_dir is None and self.src_resolver is not None:
             self.remote_src_dir = self.src_resolver(self.src_dir)
@@ -581,15 +586,16 @@ class DatasetOptimizer(ABC):
                     new_total = sum([len(w) for w in self.workers])
                 else:
                     try:
-                        error = self.error_queue.get(timeout=0.00001)
+                        error = self.error_queue.get(timeout=0.0001)
                         self._exit_on_error(error)
                     except Empty:
                         assert self.progress_queue
                         try:
-                            index, counter = self.progress_queue.get(timeout=0.00001)
+                            for _ in range(self.num_workers):
+                                index, counter = self.progress_queue.get(timeout=0.0001)
+                                self.workers_tracker[index] = counter
                         except Empty:
-                            continue
-                        self.workers_tracker[index] = counter
+                            pass
                         new_total = sum(self.workers_tracker.values())
                     pbar.update(new_total - current_total)
                 current_total = new_total

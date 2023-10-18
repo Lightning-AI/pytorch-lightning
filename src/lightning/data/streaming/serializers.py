@@ -107,6 +107,8 @@ class JPEGSerializer(Serializer):
 
     def deserialize(self, data: bytes) -> Union[JpegImageFile, torch.Tensor]:
         if _TORCH_VISION_AVAILABLE:
+            if len(data) == 0:
+                print(data)
             array = torch.frombuffer(data, dtype=torch.uint8)
             return decode_jpeg(array)
 
