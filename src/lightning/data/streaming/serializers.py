@@ -15,7 +15,6 @@ import os
 import pickle
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from io import BytesIO
 from typing import Any, Optional, Tuple, Union
 
 import numpy as np
