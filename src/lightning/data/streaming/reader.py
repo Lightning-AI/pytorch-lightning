@@ -15,7 +15,7 @@ import os
 import warnings
 from threading import Lock, Thread
 from time import sleep
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -68,8 +68,6 @@ class BinaryReader:
         cache_dir: str,
         remote_dir: Optional[str] = None,
         compression: Optional[str] = None,
-        name: Optional[str] = None,
-        version: Optional[Union[int, Literal["latest"]]] = "latest",
     ) -> None:
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
@@ -78,11 +76,11 @@ class BinaryReader:
             remote_dir: The path to a remote folder where the data are located.
                 The scheme needs to be added to the path.
             compression: The algorithm to decompress the chunks.
-            name: The name of dataset in the cloud.
-            version: The version of the dataset in the cloud to use. By default, we will use the latest.
 
         """
         super().__init__()
+        warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
+
         self._cache_dir = cache_dir
         self._remote_dir = remote_dir
 

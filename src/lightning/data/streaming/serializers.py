@@ -66,7 +66,8 @@ class PILSerializer(Serializer):
         ints = np.array([width, height, len(mode)], np.uint32)
         return ints.tobytes() + mode + raw, None
 
-    def deserialize(self, data: bytes) -> Any:
+    @classmethod
+    def deserialize(cls, data: bytes) -> Any:
         idx = 3 * 4
         width, height, mode_size = np.frombuffer(data[:idx], np.uint32)
         idx2 = idx + mode_size
@@ -114,13 +115,7 @@ class JPEGSerializer(Serializer):
                 # Note: Some datasets like Imagenet contains some PNG images with JPEG extension, so we fallback to PIL
                 pass
 
-        idx = 3 * 4
-        width, height, mode_size = np.frombuffer(data[:idx], np.uint32)
-        idx2 = idx + mode_size
-        mode = data[idx:idx2].decode("utf-8")
-        size = width, height
-        raw = data[idx2:]
-        img = Image.frombytes(mode, size, raw)  # pyright: ignore
+        img = PILSerializer.deserialize(data)
         if _TORCH_VISION_AVAILABLE:
             img = pil_to_tensor(img)
         return img
