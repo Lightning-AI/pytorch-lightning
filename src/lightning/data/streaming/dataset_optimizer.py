@@ -13,7 +13,7 @@ from time import sleep, time
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from urllib import parse
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from lightning import seed_everything
 from lightning.data.streaming import Cache
@@ -207,6 +207,7 @@ class BaseWorker:
         self.uploader: Optional[Process] = None
         self._collected_items = 0
         self._counter = 0
+        self._last_time = time()
 
     def run(self) -> None:
         try:
@@ -247,6 +248,9 @@ class BaseWorker:
                         assert self.uploader
                         self.upload_queue.put(None)
                         self.uploader.join()
+
+                    if self.progress_queue:
+                        self.progress_queue.put((self.worker_index, self._counter))
                     return
                 continue
 
@@ -258,8 +262,9 @@ class BaseWorker:
 
             self._counter += 1
 
-            if self.progress_queue:
+            if self.progress_queue and (time() - self._last_time) > 1:
                 self.progress_queue.put((self.worker_index, self._counter))
+                self._last_time = time()
 
             if self.remove:
                 self.remove_queue.put(self.paths[index])
@@ -554,7 +559,7 @@ class DatasetOptimizer(ABC):
 
         num_items = sum([len(items) for items in workers_user_items])
 
-        print(f"Starting {self.num_workers} workers")
+        print(f"Starting {self.num_workers} workers with {[len(items) for items in workers_user_items]} each.")
 
         if self.remote_src_dir is None and self.src_resolver is not None:
             self.remote_src_dir = self.src_resolver(self.src_dir)
@@ -576,12 +581,12 @@ class DatasetOptimizer(ABC):
                     new_total = sum([len(w) for w in self.workers])
                 else:
                     try:
-                        error = self.error_queue.get(timeout=0.001)
+                        error = self.error_queue.get(timeout=0.00001)
                         self._exit_on_error(error)
                     except Empty:
                         assert self.progress_queue
                         try:
-                            index, counter = self.progress_queue.get(timeout=0.001)
+                            index, counter = self.progress_queue.get(timeout=0.00001)
                         except Empty:
                             continue
                         self.workers_tracker[index] = counter

@@ -371,7 +371,6 @@ class BinaryWriter:
                     config = data["config"]
 
                 elif config != data["config"]:
-                    breakpoint()
                     raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
 
                 chunks_info.extend(data["chunks"])
