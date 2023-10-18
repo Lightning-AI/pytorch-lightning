@@ -145,7 +145,7 @@ class BinaryWriter:
         # Flatten the items provided by the users
         flattened, data_spec = tree_flatten(items)
 
-        is_signle_tensor = len(flattened) == 1 and isinstance(flattened[0], torch.Tensor)
+        is_single_tensor = len(flattened) == 1 and isinstance(flattened[0], torch.Tensor)
 
         # Collect the sizes and associated bytes for each item
         sizes: List[int] = []
@@ -168,7 +168,7 @@ class BinaryWriter:
             raise Exception(f"The data format changed between items. Found {data_spec} instead of {self._data_spec}.")
 
         # If there is a single element and it is a tensor, enable continous array.
-        if is_signle_tensor:
+        if is_single_tensor:
             return data[0], flattened[0].shape[0]
 
         # Concatenante into a single byte array
