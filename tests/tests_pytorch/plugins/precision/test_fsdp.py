@@ -29,18 +29,14 @@ from tests_pytorch.helpers.runif import RunIf
         pytest.param(
             "16-mixed", (torch.float32, torch.float32, torch.float32), marks=RunIf(min_torch="2.0"), id="16-mixed-ge2_0"
         ),
-        pytest.param(
-            "16-mixed", (None, None, None), marks=RunIf(max_torch="2.0"), id="16-mixed-lt2_0"
-        ),
+        pytest.param("16-mixed", (None, None, None), marks=RunIf(max_torch="2.0"), id="16-mixed-lt2_0"),
         pytest.param(
             "bf16-mixed",
             (torch.float32, torch.float32, torch.float32),
             marks=RunIf(min_torch="2.0"),
             id="bf16-mixed-ge2_0",
         ),
-        pytest.param(
-            "bf16-mixed", (None, None, None), marks=RunIf(max_torch="2.0"), id="bf16-mixed-lt2_0"
-        ),
+        pytest.param("bf16-mixed", (None, None, None), marks=RunIf(max_torch="2.0"), id="bf16-mixed-lt2_0"),
         pytest.param(
             "32-true", (torch.float32, torch.float32, torch.float32), marks=RunIf(min_torch="2.0"), id="32-true-ge2_0"
         ),
