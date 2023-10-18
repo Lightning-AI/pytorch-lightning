@@ -21,10 +21,9 @@ from unittest.mock import Mock
 import pytest
 import torch.distributed.run
 from lightning.fabric.cli import _get_supported_strategies, _run_model
+from lightning_utilities.core.imports import RequirementCache
 
 from tests_fabric.helpers.runif import RunIf
-
-from lightning_utilities.core.imports import RequirementCache
 
 
 @pytest.fixture()
