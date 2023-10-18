@@ -28,3 +28,17 @@ __all__ = [
     "seed_everything",
     "Fabric",
 ]
+
+
+def _cli_entry_point():
+    try:
+        import lightning.app
+    except ModuleNotFoundError:
+        # There is no reliable way for us to check whether the user installed the dependencies, so we rely on this
+        # heuristic for now
+        print("The `lightning` command requires additional dependencies: `pip install lightning[app]`")
+        return
+
+    from lightning.app.cli.lightning_cli import main
+
+    main()
