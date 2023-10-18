@@ -111,8 +111,7 @@ def test_fabric_module_method_lookup():
     with no_warning_call(UserWarning):
         assert fabric_module.method_without_module_invocation() == 100
     with pytest.warns(
-        UserWarning,
-        match=r"You are calling the method `OriginalModule.method_with_module_invocation\(\)` from"
+        UserWarning, match=r"You are calling the method `OriginalModule.method_with_module_invocation\(\)` from"
     ):
         assert fabric_module.method_with_module_invocation() == 101
     warning_cache.clear()
