@@ -46,11 +46,9 @@ class _MyFabric(BoringFabric):
         precision = self._precision
         assert isinstance(precision, FSDPPrecision)
         if precision.precision == "16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = None
+            param_dtype = reduce_dtype = buffer_dtype = torch.float32
         elif precision.precision == "bf16-mixed":
-            param_dtype = torch.float32
-            reduce_dtype = buffer_dtype = None
+            param_dtype = reduce_dtype = buffer_dtype = torch.float32
         elif precision.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
         elif precision.precision == "bf16-true":
