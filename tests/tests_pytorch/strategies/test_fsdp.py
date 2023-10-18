@@ -144,11 +144,9 @@ class TestFSDPModelAutoWrapped(TestBoringModel):
         assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecisionPlugin)
 
         if self.trainer.precision == "16-mixed":
-            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
-            reduce_dtype = buffer_dtype = torch.float16
+            param_dtype = reduce_dtype = buffer_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
         elif self.trainer.precision == "bf16-mixed":
-            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
-            reduce_dtype = buffer_dtype = torch.bfloat16
+            param_dtype = reduce_dtype = buffer_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
         elif self.trainer.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
         elif self.trainer.precision == "bf16-true":
