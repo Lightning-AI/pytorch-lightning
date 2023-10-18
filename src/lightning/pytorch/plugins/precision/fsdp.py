@@ -92,7 +92,7 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
         # `torch.float32` here with PyTorch < 2.0.
         if self.precision == "16-mixed":
             param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
-            reduce_dtype = buffer_dtype = torch.float16
+            reduce_dtype = buffer_dtype = None
         elif self.precision == "bf16-mixed":
             param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.bfloat16
