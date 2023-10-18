@@ -144,7 +144,7 @@ class BinaryReader:
             if index.chunk_indexes:
                 self._chunks_index_to_be_processed.extend(index.chunk_indexes)
                 self._prepare_thread.add(index.chunk_indexes)
-        
+
         if index.chunk_index is not None and index.chunk_index not in self._chunks_index_to_be_processed:
             self._prepare_thread.add([index.chunk_index])
             self._chunks_index_to_be_processed.append(index.chunk_index)
