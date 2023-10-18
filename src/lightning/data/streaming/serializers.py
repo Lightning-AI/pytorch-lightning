@@ -33,7 +33,7 @@ else:
     JpegImageFile = None
 
 if _TORCH_VISION_AVAILABLE:
-    from torchvision.io import decode_jpeg
+    from torchvision.io import decode_jpeg, decode_png
 
 
 class Serializer(ABC):
@@ -108,7 +108,10 @@ class JPEGSerializer(Serializer):
     def deserialize(self, data: bytes) -> Union[JpegImageFile, torch.Tensor]:
         if _TORCH_VISION_AVAILABLE:
             array = torch.frombuffer(data, dtype=torch.uint8)
-            return decode_jpeg(array)
+            try:
+                return decode_jpeg(array)
+            except RuntimeError:
+                return decode_png(array)
 
         inp = BytesIO(data)
         return Image.open(inp)

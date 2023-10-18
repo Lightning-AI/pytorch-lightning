@@ -23,6 +23,9 @@ from lightning.data.streaming.config import ChunksConfig
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
+import warnings
+
+warnings.filterwarnings("ignore", message= ".*The given buffer is not writable.*")
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import PyTree, tree_unflatten

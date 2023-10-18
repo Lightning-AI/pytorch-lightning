@@ -151,15 +151,16 @@ class BinaryWriter:
 
         if self._data_format is None:
             self._data_format = data_format
-        elif self._data_format != data_format:
-            raise Exception(
-                f"The data format changed between items. Found {data_format} instead of {self._data_format}."
-            )
+        # elif self._data_format != data_format:
+        #     raise Exception(
+        #         f"The data format changed between items. Found {data_format} instead of {self._data_format}."
+        #     )
+
 
         if self._data_spec is None:
             self._data_spec = data_spec
-        elif self._data_spec != data_spec:
-            raise Exception(f"The data format changed between items. Found {data_spec} instead of {self._data_spec}.")
+        # elif self._data_spec != data_spec:
+        #     raise Exception(f"The data format changed between items. Found {data_spec} instead of {self._data_spec}.")
 
         # Concatenante into a single byte array
         head = np.array(sizes, np.uint32).tobytes()
