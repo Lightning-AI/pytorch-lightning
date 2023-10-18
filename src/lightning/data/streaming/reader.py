@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import os
+import warnings
 from threading import Lock, Thread
 from time import sleep
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
@@ -23,9 +24,8 @@ from lightning.data.streaming.config import ChunksConfig
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
-import warnings
 
-warnings.filterwarnings("ignore", message= ".*The given buffer is not writable.*")
+warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import PyTree, tree_unflatten
