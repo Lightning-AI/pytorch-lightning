@@ -275,13 +275,12 @@ class BaseWorker:
 
             if self.remove:
                 self.remove_queue.put(self.paths[index])
-            
+
             try:
                 self.stop_queue.get(timeout=0.0001)
                 return
             except Empty:
                 pass
-                
 
     def _set_environ_variables(self) -> None:
         # set the optimizer global rank and world_size

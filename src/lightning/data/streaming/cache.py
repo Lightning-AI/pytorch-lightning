@@ -67,7 +67,7 @@ class Cache:
             # When the index exists, we don't care about the chunk_size anymore.
             if has_index_file and (chunk_size is None and chunk_bytes is None):
                 chunk_size = 2
-            
+
             os.makedirs(cache_dir, exist_ok=True)
 
         self._writer = BinaryWriter(
