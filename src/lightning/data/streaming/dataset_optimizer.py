@@ -207,6 +207,7 @@ class BaseWorker:
         self.uploader: Optional[Process] = None
         self._collected_items = 0
         self._counter = 0
+        self._last_time = time()
 
     def run(self) -> None:
         try:
@@ -247,6 +248,14 @@ class BaseWorker:
                         assert self.uploader
                         self.upload_queue.put(None)
                         self.uploader.join()
+
+                    if self.remove:
+                        assert self.remover
+                        self.remove_queue.put(None)
+                        self.remover.join()
+
+                    if self.progress_queue:
+                        self.progress_queue.put((self.worker_index, self._counter))
                     return
                 continue
 
@@ -258,8 +267,9 @@ class BaseWorker:
 
             self._counter += 1
 
-            if self.progress_queue:
+            if self.progress_queue and (time() - self._last_time) > 1:
                 self.progress_queue.put((self.worker_index, self._counter))
+                self._last_time = time()
 
             if self.remove:
                 self.remove_queue.put(self.paths[index])
