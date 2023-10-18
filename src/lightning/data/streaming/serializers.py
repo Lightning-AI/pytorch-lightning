@@ -33,7 +33,8 @@ else:
     JpegImageFile = None
 
 if _TORCH_VISION_AVAILABLE:
-    from torchvision.io import decode_jpeg, decode_png
+    from torchvision.io import decode_jpeg
+    from torchvision.transforms.functional import pil_to_tensor
 
 
 class Serializer(ABC):
@@ -111,10 +112,14 @@ class JPEGSerializer(Serializer):
             try:
                 return decode_jpeg(array)
             except RuntimeError:
-                return decode_png(array)
+                # Note: Some datasets like Imagenet contains some PNG images with JPEG extension, so we fallback to PIL
+                pass
 
         inp = BytesIO(data)
-        return Image.open(inp)
+        img = Image.open(inp)
+        if _TORCH_VISION_AVAILABLE:
+            img = pil_to_tensor(img)
+        return img
 
     def can_serialize(self, item: Any) -> bool:
         return isinstance(item, JpegImageFile)
