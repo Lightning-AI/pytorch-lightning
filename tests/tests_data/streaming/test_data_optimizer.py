@@ -322,6 +322,9 @@ def test_data_optimizer_nlp(tmpdir, monkeypatch):
 
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(tmpdir))
 
+    with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
+        f.write("Hello World !")
+
     dataset_optimizer = NlpDatasetOptimizer(
         name="dummy2", src_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
     )
