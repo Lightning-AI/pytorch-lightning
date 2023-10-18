@@ -203,6 +203,10 @@ class BinaryWriter:
             items = [self._serialized_items.pop(index) for index in range(self._min_index, self._max_index)]
             min_index = self._min_index
             max_index = self._max_index
+
+        if len(items) == 0:
+            raise RuntimeError("The items shouldn't have an empty length. Something went wrong.")
+
         sizes = list(map(len, items))
         offsets = np.array([0] + sizes).cumsum().astype(np.uint32)
         offsets += len(num_items.tobytes()) + len(offsets.tobytes())
@@ -258,6 +262,9 @@ class BinaryWriter:
     def add_item(self, index: int, items: Any) -> Optional[str]:
         # Track the minimum index provided to the writer
         # Serialize the items and store an Item object.
+        if index in self._serialized_items:
+            raise ValueError(f"The provided index {index} already exists in the cache.")
+
         data, dim = self.serialize(items)
         self._serialized_items[index] = Item(
             index=index,
