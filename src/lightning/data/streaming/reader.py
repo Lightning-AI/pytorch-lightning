@@ -41,7 +41,9 @@ class PrepareChunksThread(Thread):
     def add(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
         with self._lock:
-            self._chunks_index_to_be_processed.extend(chunk_indices)
+            for chunk_indice in chunk_indices:
+                if chunk_indice not in self._chunks_index_to_be_processed:
+                    self._chunks_index_to_be_processed.append(chunk_indice)
 
     def run(self) -> None:
         while True:
@@ -92,6 +94,7 @@ class BinaryReader:
         self._rank: Optional[int] = None
         self._config: Optional[ChunksConfig] = None
         self._prepare_thread: Optional[PrepareChunksThread] = None
+        self._chunks_index_to_be_processed = []
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         # Load the config containing the index
@@ -135,10 +138,16 @@ class BinaryReader:
             raise Exception("The reader index isn't defined.")
 
         # Create and start the prepare chunks thread
-        if index.chunk_indexes is not None and self._prepare_thread is None and self._config:
+        if self._prepare_thread is None and self._config:
             self._prepare_thread = PrepareChunksThread(self._config)
             self._prepare_thread.start()
-            self._prepare_thread.add(index.chunk_indexes)
+            if index.chunk_indexes:
+                self._chunks_index_to_be_processed.extend(index.chunk_indexes)
+                self._prepare_thread.add(index.chunk_indexes)
+        
+        if index.chunk_index is not None and index.chunk_index not in self._chunks_index_to_be_processed:
+            self._prepare_thread.add([index.chunk_index])
+            self._chunks_index_to_be_processed.append(index.chunk_index)
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
@@ -161,7 +170,8 @@ class BinaryReader:
         offset = (1 + (index - begin)) * 4
 
         while not os.path.exists(chunk_filepath):
-            sleep(0.0001)
+            print("HERE")
+            sleep(0.01)
 
         with open(chunk_filepath, "rb", 0) as fp:
             fp.seek(offset)
