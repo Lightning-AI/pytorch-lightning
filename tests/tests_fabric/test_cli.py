@@ -13,6 +13,7 @@
 # limitations under the License.
 import contextlib
 import os
+import subprocess
 from io import StringIO
 from unittest import mock
 from unittest.mock import Mock
@@ -22,6 +23,8 @@ import torch.distributed.run
 from lightning.fabric.cli import _get_supported_strategies, _run_model
 
 from tests_fabric.helpers.runif import RunIf
+
+from lightning_utilities.core.imports import RequirementCache
 
 
 @pytest.fixture()
@@ -172,3 +175,14 @@ def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
             fake_script,
         ]
     )
+
+
+def test_cli_through_lightning_entry_point():
+    if not RequirementCache("lightning.app"):
+        with pytest.raises(subprocess.CalledProcessError) as exec_info:
+            subprocess.check_output("lightning run model --help", shell=True)
+        assert exec_info.value.returncode == 1
+        assert "The `lightning` command requires additional dependencies" in exec_info.value.output.decode("utf-8")
+    else:
+        output = subprocess.check_output("lightning run model --help", shell=True)
+        assert output.decode("utf-8").startswith("Usage: lightning run model [OPTIONS] SCRIPT [SCRIPT_ARGS]")

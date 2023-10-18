@@ -32,10 +32,9 @@ __all__ = [
 
 
 def _cli_entry_point() -> None:
-    try:
-        # There is no reliable way for us to check whether the user installed the dependencies for app
-        import lightning.app
-    except ModuleNotFoundError:
+    from lightning_utilities.core.imports import RequirementCache
+
+    if not RequirementCache("lightning.app"):
         print("The `lightning` command requires additional dependencies: `pip install lightning[app]`")
         sys.exit(1)
 
