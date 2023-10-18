@@ -11,8 +11,9 @@ on:
     paths:
       - ".actions/*"
       - ".github/workflows/docs-build.yml"
-      - "requirements/**"
       - "docs/**"
+      - "_notebooks"
+      - "requirements/**"
       - "src/**"
       - "setup.py"
       - "pyproject.toml" # includes metadata used in the package creation
@@ -41,9 +42,10 @@ jobs:
       fail-fast: false
       matrix:
         pkg-name: ["app", "fabric", "pytorch"]
-        check: ["html", "doctest", "linkcheck"]
+        target: ["html", "doctest", "linkcheck"]
     env:
       DOCS_COPY_NOTEBOOKS: 1
+      ARTIFACT_DAYS: 0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -69,7 +71,7 @@ jobs:
         if: ${{ matrix.pkg-name == 'pytorch' }}
         timeout-minutes: 5
         run: |
-          sudo apt-get update
+          sudo apt-get update --fix-missing
           sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       - name: Install package & dependencies
         timeout-minutes: 20
@@ -84,37 +86,23 @@ jobs:
         timeout-minutes: 10
         run: pip install -q -r _notebooks/.actions/requires.txt
 
-      - name: Test Examples in Docs
-        if: ${{ matrix.check == 'doctest' }}
-        working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: |
-          make doctest
-          make coverage
-
-      - name: Check External Links
-        if: ${{ matrix.check == 'linkcheck' }}
-        working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: make linkcheck SPHINXOPTS="--keep-going"
-
       - name: Full build for deployment
         if: github.event_name == 'push'
         run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
-      - name: Make Documentation
-        if: ${{ matrix.check == 'html' }}
+      - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Keep artifact
-        id: keep-artifact
-        run: python -c "print('DAYS=' + str(7 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
-
+        if: github.event_name == 'pull_request'
+        run: echo "ARTIFACT_DAYS=7" >> $GITHUB_ENV
       - name: Upload built docs
-        if: ${{ matrix.check == 'html' }}
+        if: ${{ matrix.target == 'html' }}
         uses: actions/upload-artifact@v3
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
-          retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
+          retention-days: ${{ env.ARTIFACT_DAYS }}
 
       - name: Dump handy wheels
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'

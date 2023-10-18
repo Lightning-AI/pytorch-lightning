@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [Unreleased] - 202X-XX-XX
+
+### Added
+
+-
+
+
+### Changed
+
+-
+
+
+### Deprecated
+
+-
+
+
+### Removed
+
+-
+
+
+### Fixed
+
+- Fixed an issue when replacing an existing `last.ckpt` file with a symlink ([#18793](https://github.com/Lightning-AI/lightning/pull/18793))
+
+
+
 ## [2.1.0] - 2023-10-11
 
 ### Added

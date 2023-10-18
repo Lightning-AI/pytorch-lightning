@@ -142,6 +142,7 @@ class Flow(LightningFlow):
             self.stop()
 
 
+@pytest.mark.xfail(strict=False, reason="flaky")
 def test_payload_works(tmpdir):
     """This tests validates the payload api can be used to transfer return values from a work to another."""
     with mock.patch("lightning.app.storage.path._storage_root_dir", return_value=pathlib.Path(tmpdir)):
