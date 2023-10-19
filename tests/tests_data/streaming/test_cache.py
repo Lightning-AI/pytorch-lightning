@@ -182,7 +182,6 @@ def test_cache_with_auto_wrapping(tmpdir):
     assert sorted(os.listdir(os.path.join(tmpdir, "cache_1"))) == [
         "chunk-0-0.bin",
         "chunk-0-1.bin",
-        "chunk-0-2.bin",
         "index.json",
     ]
     # Your dataset is optimised for the cloud
