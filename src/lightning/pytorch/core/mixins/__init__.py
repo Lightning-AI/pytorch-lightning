@@ -12,4 +12,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.pytorch.core.mixins.hparams_mixin import HyperparametersMixin  # noqa: F401
-from lightning.pytorch.core.mixins.optimization import DatasetOptimizationMixin  # noqa: F401

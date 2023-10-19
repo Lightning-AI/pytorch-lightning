@@ -22,13 +22,13 @@ from typing_extensions import Self
 import lightning.pytorch as pl
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.pytorch.core.hooks import DataHooks
-from lightning.pytorch.core.mixins import DatasetOptimizationMixin, HyperparametersMixin
+from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.saving import _load_from_checkpoint
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
-class LightningDataModule(DataHooks, HyperparametersMixin, DatasetOptimizationMixin):
+class LightningDataModule(DataHooks, HyperparametersMixin):
     """A DataModule standardizes the training, val, test splits, data preparation and transforms. The main advantage is
     consistent data splits, data preparation and transforms across models.
 
