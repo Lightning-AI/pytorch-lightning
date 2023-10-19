@@ -17,18 +17,17 @@ from threading import Lock, Thread
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
-
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.config import ChunksConfig
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
 
 warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
 
 if _TORCH_GREATER_EQUAL_2_1_0:
-    from torch.utils._pytree import PyTree, tree_unflatten
+    pass
 
 
 class PrepareChunksThread(Thread):
@@ -68,6 +67,7 @@ class BinaryReader:
         cache_dir: str,
         remote_dir: Optional[str] = None,
         compression: Optional[str] = None,
+        item_loader: Optional[BaseItemLoader] = None,
     ) -> None:
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
@@ -76,6 +76,7 @@ class BinaryReader:
             remote_dir: The path to a remote folder where the data are located.
                 The scheme needs to be added to the path.
             compression: The algorithm to decompress the chunks.
+            item_loader: The chunk sampler to create sub arrays from a chunk.
 
         """
         super().__init__()
@@ -96,6 +97,7 @@ class BinaryReader:
         self._config: Optional[ChunksConfig] = None
         self._prepare_thread: Optional[PrepareChunksThread] = None
         self._chunks_index_to_be_processed: List[int] = []
+        self._item_loader = item_loader or PyTreeLoader()
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         # Load the config containing the index
@@ -106,7 +108,7 @@ class BinaryReader:
 
     def _try_load_config(self) -> Optional[ChunksConfig]:
         """Try to load the chunks config if the index files are available."""
-        self._config = ChunksConfig.load(self._cache_dir, self._remote_dir)
+        self._config = ChunksConfig.load(self._cache_dir, self._remote_dir, self._item_loader)
         return self._config
 
     @property
@@ -155,35 +157,7 @@ class BinaryReader:
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
-        raw_item_data = self.load_item_from_chunk(index.index, chunk_filepath, begin)
-        return self.deserialize(raw_item_data)
-
-    def deserialize(self, raw_item_data: bytes) -> "PyTree":
-        """Deserialize the raw bytes into their python equivalent."""
-        idx = len(self.config.data_format) * 4
-        sizes = np.frombuffer(raw_item_data[:idx], np.uint32)
-        data = []
-        for size, data_format in zip(sizes, self.config.data_format):
-            serializer = self._serializers[data_format]
-            data_bytes = raw_item_data[idx : idx + size]
-            data.append(serializer.deserialize(data_bytes))
-            idx += size
-        return tree_unflatten(data, self.config.config["data_spec"])
-
-    def load_item_from_chunk(self, index: int, chunk_filepath: str, begin: int) -> bytes:
-        offset = (1 + (index - begin)) * 4
-
-        while not os.path.exists(chunk_filepath):
-            sleep(0.0001)
-
-        # TODO: Move to memmap
-        with open(chunk_filepath, "rb", 0) as fp:
-            fp.seek(offset)
-            pair = fp.read(8)
-            begin, end = np.frombuffer(pair, np.uint32)
-            fp.seek(begin)
-            data = fp.read(end - begin)
-        return data
+        return self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
 
     def get_length(self) -> int:
         """Get the number of samples across all chunks."""

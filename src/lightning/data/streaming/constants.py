@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import torch
 from lightning_utilities.core.imports import RequirementCache
 
 _INDEX_FILENAME = "index.json"
@@ -22,3 +23,27 @@ _TORCH_GREATER_EQUAL_2_1_0 = RequirementCache("torch>=2.1.0")
 _VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
 _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42 = RequirementCache("lightning-cloud>=0.5.42")
 _BOTO3_AVAILABLE = RequirementCache("boto3")
+
+# DON'T CHANGE ORDER
+_TORCH_DTYPES_MAPPING = {
+    0: torch.float32,
+    1: torch.float,
+    2: torch.float64,
+    3: torch.double,
+    4: torch.complex64,
+    5: torch.cfloat,
+    6: torch.complex128,
+    7: torch.cdouble,
+    8: torch.float16,
+    9: torch.half,
+    10: torch.bfloat16,  # Not supported https://github.com/pytorch/pytorch/issues/110285
+    11: torch.uint8,
+    12: torch.int8,
+    13: torch.int16,
+    14: torch.short,
+    15: torch.int32,
+    16: torch.int,
+    17: torch.int64,
+    18: torch.long,
+    19: torch.bool,
+}
