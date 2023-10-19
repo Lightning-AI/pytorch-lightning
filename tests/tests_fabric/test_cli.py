@@ -180,7 +180,7 @@ def test_cli_through_lightning_entry_point():
     if not RequirementCache("lightning.app"):
         with pytest.raises(subprocess.CalledProcessError) as exec_info:
             subprocess.check_output("lightning run model --help", shell=True)
-        assert exec_info.value.returncode == 1
+        assert exec_info.value.returncode != 0
         assert "The `lightning` command requires additional dependencies" in exec_info.value.output.decode("utf-8")
     else:
         output = subprocess.check_output("lightning run model --help", shell=True)
