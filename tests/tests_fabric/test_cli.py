@@ -184,6 +184,10 @@ def test_cli_through_lightning_entry_point():
         text=True,
         shell=True
     )
+
+    if "lightning: not found" in result.stderr:
+        pytest.xfail("The `lightning` command isn't installed in the current environment")
+
     if not RequirementCache("lightning.app"):
         message = "The `lightning` command requires additional dependencies"
         assert message in result.stdout or message in result.stderr
