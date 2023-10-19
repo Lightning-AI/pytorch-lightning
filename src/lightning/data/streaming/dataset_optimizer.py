@@ -514,7 +514,22 @@ class DatasetOptimizer:
         """The `DatasetChunker.run(...)` method is used to trigger the data processing from your dataset into
         chunks."""
         if not isinstance(optimizable_dataset, _OptimizableDataset):
-            raise ValueError("The provided argument to the DatasetOptimizer.run(...) needs ...")
+            raise ValueError(
+                """The provided argument to the DatasetOptimizer.run(...) needs to have the following format:
+
+                Example:
+
+                    class YourDataset:
+
+                        @staticmethod
+                        def prepare_dataset_structure(root: str, filepaths: List[str]) -> List[T]:
+                            return [...]
+
+                        @staticmethod
+                        def prepare_item(item_metadata: T) -> Any:
+                            return ...
+                """
+            )
 
         t0 = time()
         print(f"Setup started for `{self.name}` with fast_dev_run={self.fast_dev_run}.")

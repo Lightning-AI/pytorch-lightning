@@ -333,3 +333,11 @@ def test_data_optimizer_nlp(tmpdir, monkeypatch):
         name="dummy2", src_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
     )
     dataset_optimizer.run(DataModule())
+
+
+def test_data_optimizer_api(tmpdir):
+    dataset_optimizer = DatasetOptimizer(
+        name="dummy2", src_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
+    )
+    with pytest.raises(ValueError, match="prepare_dataset_structure"):
+        dataset_optimizer.run(None)
