@@ -32,6 +32,7 @@ def _scale_batch_size(
     init_val: int = 2,
     max_trials: int = 25,
     batch_arg_name: str = "batch_size",
+    is_training: bool = True,
 ) -> Optional[int]:
     """Iteratively try to find the largest batch size for a given model that does not give an out of memory (OOM)
     error.
@@ -94,6 +95,12 @@ def _scale_batch_size(
 
     trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
+    
+    # Set the model to training or evaluation mode based on the is_training parameter
+    if is_training:
+        trainer.lightning_module.train()
+    else:
+        trainer.lightning_module.eval()
 
     return new_size
 
