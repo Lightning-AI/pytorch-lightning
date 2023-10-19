@@ -83,12 +83,19 @@ def test_fabric_module_method_lookup():
             super().__init__()
             self.submodule = torch.nn.Linear(2, 3)
 
+        def forward(self, x):
+            return x
+
         def method_without_module_invocation(self):
             return 100
 
-        def method_with_module_invocation(self):
+        def method_with_submodule_invocation(self):
             self.submodule(torch.rand(2, 2))
             return 101
+
+        def method_with_self_invocation(self):
+            self(None)
+            return 102
 
     class ModuleWrapper(torch.nn.Module):
         def __init__(self, module):
@@ -111,9 +118,13 @@ def test_fabric_module_method_lookup():
     with no_warning_call(UserWarning):
         assert fabric_module.method_without_module_invocation() == 100
     with pytest.warns(
-        UserWarning, match=r"You are calling the method `OriginalModule.method_with_module_invocation\(\)` from"
+        UserWarning, match=r"You are calling the method `OriginalModule.method_with_submodule_invocation\(\)` from"
     ):
-        assert fabric_module.method_with_module_invocation() == 101
+        assert fabric_module.method_with_submodule_invocation() == 101
+    with pytest.warns(
+        UserWarning, match=r"You are calling the method `OriginalModule.method_with_self_invocation\(\)` from"
+    ):
+        assert fabric_module.method_with_self_invocation() == 102
     warning_cache.clear()
 
 

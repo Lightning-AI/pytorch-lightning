@@ -168,21 +168,9 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
         return call_forward_module
 
-    def _validate_method_access(self, name: str, attribute: Any) -> None:
-        if (
-            inspect.ismethod(attribute)
-            and inspect.signature(attribute).parameters
-            and self._forward_module != self._original_module
-        ):
-            warning_cache.warn(
-                f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
-                " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
-                " `.backward()`. You should pass your inputs through"
-                f" `{type(self._original_module).__name__}.forward()`.",
-                category=PossibleUserWarning,
-            )
-
-    def _wrap_with_call_observer(self, method: Callable, name: str) -> Callable:
+    def _wrap_method_with_call_observer(self, method: Callable, name: str) -> Callable:
+        """Records whether any submodule in ``self._original_module`` was called during the execution of ``method``
+        by registering forward hooks on all submodules."""
         called = False
 
         def _hook(*_, **__):
@@ -226,7 +214,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             attr = getattr(original_module, item)
 
             if inspect.ismethod(attr) and self._forward_module != self._original_module:
-                attr = self._wrap_with_call_observer(attr, item)
+                attr = self._wrap_method_with_call_observer(attr, item)
             return attr
 
     def __setattr__(self, name: str, value: Any) -> None:
