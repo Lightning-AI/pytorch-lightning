@@ -177,14 +177,7 @@ def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
 
 
 def test_cli_through_lightning_entry_point():
-    result = subprocess.run(
-        "lightning run model --help",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        shell=True
-    )
-
+    result = subprocess.run("lightning run model --help", capture_output=True, text=True, shell=True)
     if "lightning: not found" in result.stderr:
         pytest.xfail("The `lightning` command isn't installed in the current environment")
 
