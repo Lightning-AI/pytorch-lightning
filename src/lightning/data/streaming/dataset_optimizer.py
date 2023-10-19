@@ -14,7 +14,7 @@ from time import sleep, time
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
 from urllib import parse
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from lightning import seed_everything
 from lightning.data.streaming import Cache
@@ -174,6 +174,7 @@ class BaseWorker:
         items: List[Any],
         progress_queue: Queue,
         error_queue: Queue,
+        stop_queue: Queue,
         num_downloaders: int,
         remove: bool,
         chunk_size: Optional[int] = None,
@@ -200,6 +201,7 @@ class BaseWorker:
         self.remover: Optional[Process] = None
         self.downloaders: List[Process] = []
         self.to_download_queues: List[Queue] = []
+        self.stop_queue = stop_queue
         self.ready_to_process_queue: Queue = Queue()
         self.remove_queue: Queue = Queue()
         self.upload_queue: Queue = Queue()
@@ -208,6 +210,7 @@ class BaseWorker:
         self.uploader: Optional[Process] = None
         self._collected_items = 0
         self._counter = 0
+        self._last_time = time()
         self._index_counter = 0
 
     def run(self) -> None:
@@ -249,6 +252,14 @@ class BaseWorker:
                         assert self.uploader
                         self.upload_queue.put(None)
                         self.uploader.join()
+
+                    if self.remove:
+                        assert self.remover
+                        self.remove_queue.put(None)
+                        self.remover.join()
+
+                    if self.progress_queue:
+                        self.progress_queue.put((self.worker_index, self._counter))
                     return
                 continue
 
@@ -263,11 +274,19 @@ class BaseWorker:
                 self._try_upload(chunk_filepath)
 
             self._counter += 1
-            if self.progress_queue:
+
+            if self.progress_queue and (time() - self._last_time) > 1:
                 self.progress_queue.put((self.worker_index, self._counter))
+                self._last_time = time()
 
             if self.remove:
                 self.remove_queue.put(self.paths[index])
+
+            try:
+                self.stop_queue.get(timeout=0.0001)
+                return
+            except Empty:
+                pass
 
     def _set_environ_variables(self) -> None:
         # set the optimizer global rank and world_size
@@ -517,6 +536,7 @@ class DatasetOptimizer(ABC):
         self.workers_tracker: Dict[int, int] = {}
         self.progress_queue: Optional[Queue] = None
         self.error_queue: Queue = Queue()
+        self.stop_queues: List[Queue] = []
         self.remote_src_dir = (
             str(remote_src_dir)
             if remote_src_dir is not None
@@ -619,6 +639,7 @@ class DatasetOptimizer(ABC):
         total = sum([len(w) for w in workers_user_items])
         with tqdm(total=total, smoothing=0) as pbar:
             for worker_idx, worker_user_items in enumerate(workers_user_items):
+                self.stop_queues.append(Queue())
                 new_total = sum([w.collected_items for w in self.workers])
                 pbar.update(new_total - current_total)
                 current_total = new_total
@@ -635,6 +656,7 @@ class DatasetOptimizer(ABC):
                     worker_user_items,
                     None,
                     self.error_queue,
+                    self.stop_queues[-1],
                     self.num_downloaders,
                     self.delete_cached_files,
                     (self.chunk_size if self.chunk_size else 2)
@@ -657,7 +679,9 @@ class DatasetOptimizer(ABC):
     def _create_process_workers(self, begins: List[int], workers_user_items: List[List[Any]]) -> None:
         self.progress_queue = Queue()
         workers: List[DataWorkerProcess] = []
+        stop_queues: List[Queue] = []
         for worker_idx, worker_user_items in enumerate(workers_user_items):
+            stop_queues.append(Queue())
             worker = DataWorkerProcess(
                 worker_idx,
                 self.num_workers,
@@ -671,6 +695,7 @@ class DatasetOptimizer(ABC):
                 worker_user_items,
                 self.progress_queue,
                 self.error_queue,
+                stop_queues[-1],
                 self.num_downloaders,
                 self.delete_cached_files,
                 (self.chunk_size if self.chunk_size else 2)
@@ -684,6 +709,7 @@ class DatasetOptimizer(ABC):
 
         # Note: Don't store within the loop as weakref aren't serializable
         self.workers = workers
+        self.stop_queues = stop_queues
 
     def _associated_items_to_workers(self, user_items: List[Any]) -> Tuple[List[int], List[List[Any]]]:
         # Associate the items to the workers based on world_size and node_rank
@@ -738,6 +764,8 @@ class DatasetOptimizer(ABC):
 
     def _signal_handler(self, signal: Any, frame: Any) -> None:
         """On temrination, we stop all the processes to avoid leaking RAM."""
+        for stop_queue in self.stop_queues:
+            stop_queue.put(None)
         for w in self.workers:
             w.join(0)
         os._exit(0)
