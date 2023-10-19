@@ -162,7 +162,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         # We expect that the `forward_module` will eventually call `original_module.forward`, which we
         # have patched to redirect back to `original_module.method_name()`.
         def call_forward_module(*args: Any, **kwargs: Any) -> Any:
-            # Patch the original_module's forward so we can redirect the arguments back to the real method
+            # Patch the original_module's forward, so we can redirect the arguments back to the real method
             self._original_module.forward = wrapped_forward
             return self.forward(*args, **kwargs)
 
