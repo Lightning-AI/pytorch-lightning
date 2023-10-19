@@ -63,23 +63,19 @@ class Cache:
         if not _TORCH_GREATER_EQUAL_2_1_0:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
 
-        cache_dir = cache_dir if cache_dir else _try_create_cache_dir(name)
+        self._cache_dir = cache_dir = str(cache_dir) if cache_dir else _try_create_cache_dir(name)
         if not remote_dir:
             remote_dir, has_index_file = _find_remote_dir(name, version)
 
             # When the index exists, we don't care about the chunk_size anymore.
             if has_index_file and (chunk_size is None and chunk_bytes is None):
                 chunk_size = 2
-        self._writer = BinaryWriter(
-            str(cache_dir), chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression
-        )
-        self._reader = BinaryReader(
-            str(cache_dir),
-            remote_dir=remote_dir,
-            compression=compression,
-            item_loader=item_loader,
-        )
-        self._cache_dir = str(cache_dir)
+
+            if cache_dir:
+                os.makedirs(cache_dir, exist_ok=True)
+
+        self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
+        self._reader = BinaryReader(cache_dir, remote_dir=remote_dir, compression=compression, item_loader=item_loader)
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
 

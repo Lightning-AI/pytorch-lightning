@@ -67,7 +67,7 @@ class BinaryWriter:
         """
         self._cache_dir = cache_dir
 
-        if not os.path.exists(self._cache_dir):
+        if (isinstance(self._cache_dir, str) and not os.path.exists(self._cache_dir)) or self._cache_dir is None:
             raise FileNotFoundError(f"The provided cache directory `{self._cache_dir}` doesn't exist.")
 
         if (chunk_size is None and chunk_bytes is None) or (chunk_size and chunk_bytes):
@@ -157,8 +157,8 @@ class BinaryWriter:
 
         if self._data_format is None:
             self._data_format = data_format
-        elif self._data_format != data_format:
-            raise Exception(
+        elif self._data_format != data_format and self._should_raise(data_format, self._data_format):
+            raise ValueError(
                 f"The data format changed between items. Found {data_format} instead of {self._data_format}."
             )
 
@@ -406,3 +406,14 @@ class BinaryWriter:
         else:
             with open(os.path.join(self._cache_dir, f"{node_rank}-{_INDEX_FILENAME}"), "w") as f:
                 json.dump({"chunks": chunks_info, "config": config}, f, sort_keys=True)
+
+    def _should_raise(self, data_format_1: List[str], data_format_2: List[str]) -> bool:
+        if len(data_format_1) != len(data_format_2):
+            return True
+
+        def is_non_valid(f1: str, f2: str) -> bool:
+            if f1 in ["pil", "jpeg"] and f2 in ["pil", "jpeg"]:
+                return False
+            return f1 != f2
+
+        return any(is_non_valid(f1, f2) for f1, f2 in zip(data_format_1, data_format_2))
