@@ -169,8 +169,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         return call_forward_module
 
     def _wrap_method_with_observer(self, method: Callable, name: str) -> Callable:
-        """Records whether any submodule in ``self._original_module`` was called during the execution of ``method``
-        by registering forward hooks on all submodules."""
+        """Records whether any submodule in ``self._original_module`` was called during the execution of ``method`` by
+        registering forward hooks on all submodules."""
         module_called = False
 
         def _hook(*_: Any, **__: Any) -> None:
