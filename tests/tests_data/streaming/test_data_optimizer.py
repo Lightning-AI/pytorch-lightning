@@ -5,6 +5,8 @@ from unittest import mock
 
 import numpy as np
 import pytest
+import torch
+from lightning import seed_everything
 from lightning.data.streaming.dataset_optimizer import (
     DatasetOptimizer,
     _download_data_target,
@@ -303,3 +305,27 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
 
     expected = sorted(fast_dev_run_disabled_chunks_0 + fast_dev_run_disabled_chunks_1 + ["1-index.json"])
     assert sorted(os.listdir(remote_dst_dir)) == expected
+
+
+class NlpDatasetOptimizer(DatasetOptimizer):
+    def prepare_dataset_structure(self, src_dir: str, filepaths: List[str]) -> List[Any]:
+        return [os.path.join(src_dir, "dummy2")]
+
+    def prepare_item(self, filepath):
+        for _ in range(100):
+            yield torch.randint(0, 1000, (np.random.randint(0, 1000),)).to(torch.int)
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+def test_data_optimizer_nlp(tmpdir, monkeypatch):
+    seed_everything(42)
+
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(tmpdir))
+
+    with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
+        f.write("Hello World !")
+
+    dataset_optimizer = NlpDatasetOptimizer(
+        name="dummy2", src_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
+    )
+    dataset_optimizer.run()

@@ -21,6 +21,7 @@ from lightning.data.streaming.constants import (
     _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
+from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.writer import BinaryWriter
@@ -41,6 +42,7 @@ class Cache:
         compression: Optional[str] = None,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
+        item_loader: Optional[BaseItemLoader] = None,
     ):
         """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements
         together in order to accelerate fetching.
@@ -54,6 +56,7 @@ class Cache:
             compression: The name of the algorithm to reduce the size of the chunks.
             chunk_bytes: The maximum number of bytes within a chunk.
             chunk_size: The maximum number of items within a chunk.
+            item_loader: The object responsible to generate the chunk intervals and load an item froma chunk.
 
         """
         super().__init__()
@@ -71,7 +74,10 @@ class Cache:
             str(cache_dir), chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression
         )
         self._reader = BinaryReader(
-            str(cache_dir), remote_dir=remote_dir, compression=compression, name=name, version=version
+            str(cache_dir),
+            remote_dir=remote_dir,
+            compression=compression,
+            item_loader=item_loader,
         )
         self._cache_dir = str(cache_dir)
         self._is_done = False

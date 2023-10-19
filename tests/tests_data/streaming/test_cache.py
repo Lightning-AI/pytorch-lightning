@@ -23,8 +23,8 @@ from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
+from lightning.data.streaming.item_loader import TokensLoader
 from lightning.fabric import Fabric
-from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import Dataset
 
@@ -172,17 +172,37 @@ def test_cache_with_simple_format(tmpdir):
         assert [i, {0: [i + 1]}] == cache[i]
 
 
+class RandomDataset(Dataset):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
+    def __init__(self, size: int, length: int):
+        self.len = length
+        self.data = torch.randn(length, 2, size)
+
+    def __getitem__(self, index: int) -> torch.Tensor:
+        return self.data[index]
+
+    def __len__(self) -> int:
+        return self.len
+
+
 def test_cache_with_auto_wrapping(tmpdir):
+    seed_everything(42)
     os.makedirs(os.path.join(tmpdir, "cache_1"), exist_ok=True)
 
     dataset = RandomDataset(64, 64)
     dataloader = StreamingDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_1"), chunk_bytes=2 << 12)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
+
     assert sorted(os.listdir(os.path.join(tmpdir, "cache_1"))) == [
         "chunk-0-0.bin",
         "chunk-0-1.bin",
         "chunk-0-2.bin",
+        "chunk-0-3.bin",
+        "chunk-0-4.bin",
         "index.json",
     ]
     # Your dataset is optimised for the cloud
@@ -193,7 +213,7 @@ def test_cache_with_auto_wrapping(tmpdir):
             self.size = size
 
         def __getitem__(self, index: int) -> torch.Tensor:
-            return torch.randn(1, self.size)
+            return torch.randn(1, 10, self.size)
 
         def __len__(self) -> int:
             return self.len
@@ -219,3 +239,37 @@ def test_cache_with_name(tmpdir, monkeypatch):
     assert cache._writer._chunk_size == 2
     assert cache._writer._cache_dir == os.path.join(tmpdir, "something")
     assert cache._reader._remote_dir == os.path.join(tmpdir, "remote_dir")
+
+
+def test_cache_for_text_tokens(tmpdir):
+    seed_everything(42)
+
+    block_size = 1024 + 1
+    cache = Cache(tmpdir, chunk_size=block_size * 11, item_loader=TokensLoader(block_size))
+    text_idxs_list = []
+
+    counter = 0
+    while True:
+        text_ids = torch.randint(0, 1000, (np.random.randint(0, 1000),)).to(torch.int)
+        text_idxs_list.append(text_ids)
+        chunk_filepath = cache._add_item(counter, text_ids)
+        if chunk_filepath:
+            break
+        counter += 1
+
+    cache.done()
+    cache.merge()
+
+    assert len(cache) == 10
+
+    cache_0 = cache[0]
+    cache_1 = cache[1]
+    assert len(cache_0) == block_size
+    assert len(cache_1) == block_size
+    assert not torch.equal(cache_0, cache[1])
+    indices = torch.cat(text_idxs_list, dim=0)
+    assert torch.equal(cache_0, indices[: len(cache_0)])
+    assert torch.equal(cache_1, indices[len(cache_0) : len(cache_0) + len(cache_1)])
+
+    with pytest.raises(ValueError, match="TokensLoader"):
+        len(Cache(tmpdir, chunk_size=block_size * 11))

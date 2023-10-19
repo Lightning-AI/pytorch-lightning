@@ -22,6 +22,7 @@ from lightning.data.streaming.serializers import (
     _SERIALIZERS,
     _TORCH_DTYPES_MAPPING,
     IntSerializer,
+    NoHeaderTensorSerializer,
     PickleSerializer,
     PILSerializer,
     TensorSerializer,
@@ -32,7 +33,7 @@ _PIL_AVAILABLE = RequirementCache("PIL")
 
 
 def test_serializers():
-    assert list(_SERIALIZERS.keys()) == ["file", "pil", "int", "jpeg", "bytes", "tensor", "pickle"]
+    assert list(_SERIALIZERS.keys()) == ["file", "pil", "int", "jpeg", "bytes", "no_header_tensor", "tensor", "pickle"]
 
 
 def test_int_serializer():
@@ -113,3 +114,15 @@ def test_assert_bfloat16_tensor_serializer():
     tensor = torch.ones((10,), dtype=torch.bfloat16)
     with pytest.raises(TypeError, match="Got unsupported ScalarType BFloat16"):
         serializer.serialize(tensor)
+
+
+def test_assert_no_header_tensor_serializer():
+    serializer = NoHeaderTensorSerializer()
+    t = torch.ones((10,))
+    data, name = serializer.serialize(t)
+    assert name == "no_header_tensor:1"
+    assert serializer._dtype is None
+    serializer.setup(name)
+    assert serializer._dtype == torch.float32
+    new_t = serializer.deserialize(data)
+    assert torch.equal(t, new_t)
