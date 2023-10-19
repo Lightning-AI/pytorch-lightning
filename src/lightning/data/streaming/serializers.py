@@ -22,6 +22,8 @@ import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
+from lightning.data.streaming.constants import _TORCH_DTYPES_MAPPING
+
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
 
@@ -53,6 +55,9 @@ class Serializer(ABC):
 
     @abstractmethod
     def can_serialize(self, data: Any) -> bool:
+        pass
+
+    def setup(self, metadata: Any) -> None:
         pass
 
 
@@ -130,30 +135,6 @@ class BytesSerializer(Serializer):
         return isinstance(item, bytes)
 
 
-_TORCH_DTYPES_MAPPING = {
-    0: torch.float32,
-    1: torch.float,
-    2: torch.float64,
-    3: torch.double,
-    4: torch.complex64,
-    5: torch.cfloat,
-    6: torch.complex128,
-    7: torch.cdouble,
-    8: torch.float16,
-    9: torch.half,
-    10: torch.bfloat16,  # Not supported https://github.com/pytorch/pytorch/issues/110285
-    11: torch.uint8,
-    12: torch.int8,
-    13: torch.int16,
-    14: torch.short,
-    15: torch.int32,
-    16: torch.int,
-    17: torch.int64,
-    18: torch.long,
-    19: torch.bool,
-}
-
-
 class TensorSerializer(Serializer):
     """The TensorSerializer serialize and deserialize tensor to and from bytes."""
 
@@ -167,7 +148,7 @@ class TensorSerializer(Serializer):
         data.append(np.uint32(len(item.shape)).tobytes())
         for dim in item.shape:
             data.append(np.uint32(dim).tobytes())
-        data.append(item.numpy().tobytes())
+        data.append(item.numpy().tobytes(order="C"))
         return b"".join(data), None
 
     def deserialize(self, data: bytes) -> torch.Tensor:
@@ -178,10 +159,36 @@ class TensorSerializer(Serializer):
         for shape_idx in range(shape_size):
             shape.append(np.frombuffer(data[8 + 4 * shape_idx : 8 + 4 * (shape_idx + 1)], np.uint32).item())
         tensor = torch.frombuffer(data[8 + 4 * (shape_idx + 1) : len(data)], dtype=dtype)
-        return torch.reshape(tensor, torch.Size(shape))
+        shape = torch.Size(shape)
+        if tensor.shape == shape:
+            return tensor
+        return torch.reshape(tensor, shape)
 
     def can_serialize(self, item: torch.Tensor) -> bool:
-        return isinstance(item, torch.Tensor) and type(item) == torch.Tensor
+        return isinstance(item, torch.Tensor) and type(item) == torch.Tensor and len(item.shape) > 1
+
+
+class NoHeaderTensorSerializer(Serializer):
+    """The TensorSerializer serialize and deserialize tensor to and from bytes."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
+        self._dtype: Optional[torch.dtype] = None
+
+    def setup(self, data_format: str) -> None:
+        self._dtype = _TORCH_DTYPES_MAPPING[int(data_format.split(":")[1])]
+
+    def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
+        dtype_indice = self._dtype_to_indice[item.dtype]
+        return item.numpy().tobytes(order="C"), f"no_header_tensor:{dtype_indice}"
+
+    def deserialize(self, data: bytes) -> torch.Tensor:
+        assert self._dtype
+        return torch.frombuffer(data, dtype=self._dtype)
+
+    def can_serialize(self, item: torch.Tensor) -> bool:
+        return isinstance(item, torch.Tensor) and type(item) == torch.Tensor and len(item.shape) == 1
 
 
 class PickleSerializer(Serializer):
@@ -217,6 +224,7 @@ _SERIALIZERS = OrderedDict(
         "int": IntSerializer(),
         "jpeg": JPEGSerializer(),
         "bytes": BytesSerializer(),
+        "no_header_tensor": NoHeaderTensorSerializer(),
         "tensor": TensorSerializer(),
         "pickle": PickleSerializer(),
     }
