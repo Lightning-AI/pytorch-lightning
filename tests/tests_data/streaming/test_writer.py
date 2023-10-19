@@ -173,3 +173,24 @@ def test_binary_writer_with_jpeg_filepath_and_int(tmpdir):
         data = reader.read(ChunkedIndex(i, chunk_index=i // 4))
         np.testing.assert_array_equal(np.asarray(data["x"]).squeeze(0), imgs[i])
         assert data["y"] == i
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
+def test_binary_writer_with_jpeg_and_png(tmpdir):
+    from PIL import Image
+
+    cache_dir = os.path.join(tmpdir, "chunks")
+    os.makedirs(cache_dir, exist_ok=True)
+    binary_writer = BinaryWriter(cache_dir, chunk_bytes=2 << 12)
+
+    np_data = np.random.randint(255, size=(28, 28), dtype=np.uint8)
+    img = Image.fromarray(np_data).convert("L")
+    path = os.path.join(tmpdir, "img.jpeg")
+    img.save(path, format="jpeg", quality=100)
+    img_jpeg = Image.open(path)
+
+    binary_writer[0] = {"x": img_jpeg, "y": 0}
+    binary_writer[1] = {"x": img, "y": 1}
+
+    with pytest.raises(ValueError, match="The data format changed between items"):
+        binary_writer[2] = {"x": 2, "y": 1}

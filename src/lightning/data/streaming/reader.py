@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import os
+import warnings
 from threading import Lock, Thread
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple
@@ -22,6 +23,8 @@ from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
+
+warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     pass
@@ -40,7 +43,9 @@ class PrepareChunksThread(Thread):
     def add(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
         with self._lock:
-            self._chunks_index_to_be_processed.extend(chunk_indices)
+            for chunk_indice in chunk_indices:
+                if chunk_indice not in self._chunks_index_to_be_processed:
+                    self._chunks_index_to_be_processed.append(chunk_indice)
 
     def run(self) -> None:
         while True:
@@ -75,6 +80,8 @@ class BinaryReader:
 
         """
         super().__init__()
+        warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
+
         self._cache_dir = cache_dir
         self._remote_dir = remote_dir
 
@@ -89,6 +96,7 @@ class BinaryReader:
         self._rank: Optional[int] = None
         self._config: Optional[ChunksConfig] = None
         self._prepare_thread: Optional[PrepareChunksThread] = None
+        self._chunks_index_to_be_processed: List[int] = []
         self._item_loader = item_loader or PyTreeLoader()
 
     def _get_chunk_index_from_index(self, index: int) -> int:
@@ -132,11 +140,20 @@ class BinaryReader:
         if self._config is None and self._try_load_config() is None:
             raise Exception("The reader index isn't defined.")
 
-        # Create and start the prepare chunks thread
-        if index.chunk_indexes is not None and self._prepare_thread is None and self._config:
-            self._prepare_thread = PrepareChunksThread(self._config)
-            self._prepare_thread.start()
-            self._prepare_thread.add(index.chunk_indexes)
+        if self._config and self._config._remote_dir:
+            # Create and start the prepare chunks thread
+            if self._prepare_thread is None and self._config:
+                self._prepare_thread = PrepareChunksThread(self._config)
+                self._prepare_thread.start()
+                if index.chunk_indexes:
+                    self._chunks_index_to_be_processed.extend(index.chunk_indexes)
+                    self._prepare_thread.add(index.chunk_indexes)
+
+            # If the chunk_index isn't already in the download queue, add it.
+            if index.chunk_index not in self._chunks_index_to_be_processed:
+                assert self._prepare_thread
+                self._prepare_thread.add([index.chunk_index])
+                self._chunks_index_to_be_processed.append(index.chunk_index)
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
