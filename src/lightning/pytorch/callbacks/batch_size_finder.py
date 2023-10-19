@@ -184,7 +184,8 @@ class BatchSizeFinder(Callback):
             raise _TunerExitException()
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self.scale_batch_size(trainer, pl_module)
+        is_training = pl_module.training
+        self.scale_batch_size(trainer, pl_module, is_training)
 
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.sanity_checking or trainer.state.fn != "validate":
