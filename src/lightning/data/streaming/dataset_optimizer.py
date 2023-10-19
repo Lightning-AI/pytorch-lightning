@@ -2,6 +2,7 @@ import logging
 import os
 import signal
 import traceback
+import types
 from abc import ABC, abstractmethod
 from enum import Enum
 from multiprocessing import Process, Queue
@@ -166,7 +167,7 @@ class BaseWorker:
         start_index: int,
         dataset_name: str,
         node_rank: int,
-        prepare_item: Callable,
+        dataset_optimizer: "DatasetOptimizer",
         src_dir: str,
         remote_src_dir: str,
         remote_dst_dir: Optional[str],
@@ -185,7 +186,7 @@ class BaseWorker:
         self.start_index = start_index
         self.dataset_name = dataset_name
         self.node_rank = node_rank
-        self.prepare_item = prepare_item
+        self.prepare_item = dataset_optimizer.prepare_item
         self.src_dir = src_dir
         self.remote_src_dir = remote_src_dir
         self.remote_dst_dir = remote_dst_dir
@@ -207,6 +208,7 @@ class BaseWorker:
         self.uploader: Optional[Process] = None
         self._collected_items = 0
         self._counter = 0
+        self._index_counter = 0
 
     def run(self) -> None:
         try:
@@ -250,14 +252,17 @@ class BaseWorker:
                     return
                 continue
 
-            item_index = index + self.start_index
-            item_data = self.prepare_item(self.items[index]) if self.prepare_item else self.items[index]  # type: ignore
-            chunk_filepath = self.cache._add_item(item_index, item_data)
-
-            self._try_upload(chunk_filepath)
+            item_data_or_generator = self.prepare_item(self.items[index]) if self.prepare_item else self.items[index]  # type: ignore
+            if isinstance(item_data_or_generator, types.GeneratorType):
+                for item_data in item_data_or_generator:
+                    chunk_filepath = self.cache._add_item(self._index_counter, item_data)
+                    self._try_upload(chunk_filepath)
+                    self._index_counter += 1
+            else:
+                chunk_filepath = self.cache._add_item(index + self.start_index, item_data_or_generator)
+                self._try_upload(chunk_filepath)
 
             self._counter += 1
-
             if self.progress_queue:
                 self.progress_queue.put((self.worker_index, self._counter))
 
@@ -623,7 +628,7 @@ class DatasetOptimizer(ABC):
                     begins[worker_idx],
                     self.name,
                     _get_node_rank(),
-                    self.prepare_item,
+                    self,
                     self.src_dir,
                     self.remote_src_dir,
                     self.remote_dst_dir,
@@ -632,7 +637,9 @@ class DatasetOptimizer(ABC):
                     self.error_queue,
                     self.num_downloaders,
                     self.delete_cached_files,
-                    2 if self.fast_dev_run else self.chunk_size,  # In dev run, create chunks with 2 items
+                    (self.chunk_size if self.chunk_size else 2)
+                    if self.fast_dev_run
+                    else self.chunk_size,  # In dev run, create chunks with 2 items
                     None if self.fast_dev_run else self.chunk_bytes,
                     self.compression,
                 )
@@ -657,7 +664,7 @@ class DatasetOptimizer(ABC):
                 begins[worker_idx],
                 self.name,
                 _get_node_rank(),
-                self.prepare_item,
+                self,
                 self.src_dir,
                 self.remote_src_dir,
                 self.remote_dst_dir,
@@ -666,7 +673,9 @@ class DatasetOptimizer(ABC):
                 self.error_queue,
                 self.num_downloaders,
                 self.delete_cached_files,
-                2 if self.fast_dev_run else self.chunk_size,  # In dev run, create chunks with 2 items
+                (self.chunk_size if self.chunk_size else 2)
+                if self.fast_dev_run
+                else self.chunk_size,  # In dev run, create chunks with 2 items
                 None if self.fast_dev_run else self.chunk_bytes,
                 self.compression,
             )
