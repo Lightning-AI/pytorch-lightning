@@ -95,7 +95,7 @@ def _scale_batch_size(
 
     trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
-    
+
     # Set the model to training or evaluation mode based on the is_training parameter
     if is_training:
         trainer.lightning_module.train()

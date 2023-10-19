@@ -200,4 +200,3 @@ class BatchSizeFinder(Callback):
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         is_training = pl_module.training
         self.scale_batch_size(trainer, pl_module, is_training)
-        
