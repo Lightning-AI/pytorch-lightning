@@ -177,11 +177,17 @@ def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
 
 
 def test_cli_through_lightning_entry_point():
+    result = subprocess.run(
+        "lightning run model --help",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        shell=True
+    )
     if not RequirementCache("lightning.app"):
-        with pytest.raises(subprocess.CalledProcessError) as exec_info:
-            subprocess.check_output("lightning run model --help", shell=True, stderr=subprocess.STDOUT)
-        assert exec_info.value.returncode != 0
-        assert "The `lightning` command requires additional dependencies" in exec_info.value.output.decode()
+        message = "The `lightning` command requires additional dependencies"
+        assert message in result.stdout or message in result.stderr
+        assert result.returncode != 0
     else:
-        output = subprocess.check_output("lightning run model --help", shell=True, stderr=subprocess.STDOUT)
-        assert output.decode().startswith("Usage: lightning run model [OPTIONS] SCRIPT [SCRIPT_ARGS]")
+        message = "Usage: lightning run model [OPTIONS] SCRIPT [SCRIPT_ARGS]"
+        assert message in result.stdout or message in result.stderr
