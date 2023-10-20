@@ -132,17 +132,19 @@ class StreamingIterableDataset(IterableDataset):
                 raise StopIteration
 
             interval = self.worker_intervals[self.chunk_undex]
-            self.current_indexes = np.random.permutation(np.arange(interval[0], interval[1])).tolist()
+            self.current_indexes = np.random.permutation(np.arange(interval[0], interval[1]))
+            self.current_indexes -= min(self.current_indexes)
+            assert min(self.current_indexes) == 0
+            self.current_indexes = self.current_indexes.tolist()
             self.chunk_undex += 1
-            self.min_index = min(self.current_indexes)
 
         # Get the first index
-        current_indice = self.current_indexes.pop(0) - self.min_index
+        index = self.current_indexes.pop(0)
 
          # Call the `__getitem__` method.
         data = self.__getitem__(
             ChunkedIndex(
-                current_indice,
+                index=index,
                 chunk_index=self.worker_chunks[self.chunk_undex - 1],
                 chunk_indexes=None if self.has_triggered_download else self.worker_chunks,
                 
