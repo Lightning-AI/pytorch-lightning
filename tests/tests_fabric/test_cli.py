@@ -179,7 +179,7 @@ def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
 @pytest.mark.skipif("lightning.fabric" == "lightning_fabric", reason="standalone package")
 def test_cli_through_lightning_entry_point():
     result = subprocess.run("lightning run model --help", capture_output=True, text=True, shell=True)
-    if not RequirementCache("lightning.app"):
+    if not RequirementCache(module="lightning.app"):
         message = "The `lightning` command requires additional dependencies"
         assert message in result.stdout or message in result.stderr
         assert result.returncode != 0
