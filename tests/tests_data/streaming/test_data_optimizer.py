@@ -136,6 +136,9 @@ class DataModuleImage(LightningDataModule):
         assert len(filepaths) == 30
         return filepaths
 
+    def prepare_item(self, item):
+        return item
+
 
 @pytest.mark.parametrize("delete_cached_files", [False, True])
 @pytest.mark.parametrize("fast_dev_run", [False, True])

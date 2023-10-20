@@ -115,9 +115,10 @@ class TokensLoader(BaseItemLoader):
         end = 0
         for chunk in self._chunks:
             dim = chunk["dim"]
-            end += dim // self._block_size
+            num_blocks = dim // self._block_size
+            end += num_blocks
             self._intervals.append((begin, end))
-            begin += end
+            begin += num_blocks
 
         return self._intervals
 
@@ -136,5 +137,5 @@ class TokensLoader(BaseItemLoader):
         assert self._dtype
 
         buffer: bytes = self._buffers[chunk_index]
-        offset = self._dtype.itemsize * index * self._block_size
+        offset = self._dtype.itemsize * index
         return torch.frombuffer(buffer, dtype=self._dtype, count=self._block_size, offset=offset)
