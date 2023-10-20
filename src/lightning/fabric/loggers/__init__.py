@@ -13,3 +13,4 @@
 from lightning.fabric.loggers.csv_logs import CSVLogger  # noqa: F401
 from lightning.fabric.loggers.logger import Logger  # noqa: F401
 from lightning.fabric.loggers.tensorboard import TensorBoardLogger  # noqa: F401
+from lightning.fabric.loggers.sagemaker import SagemakerExperimentsLogger  # noqa: F401
