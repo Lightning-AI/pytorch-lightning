@@ -141,14 +141,14 @@ class StreamingIterableDataset(IterableDataset):
         # Get the first index
         index = self.current_indexes.pop(0)
 
-         # Call the `__getitem__` method.
+        # Call the `__getitem__` method.
         data = self.__getitem__(
             ChunkedIndex(
                 index=index,
                 chunk_index=self.worker_chunks[self.chunk_undex - 1],
                 chunk_indexes=None if self.has_triggered_download else self.worker_chunks,
-                
-        ))
+            )
+        )
 
         self.has_triggered_download = True
 
