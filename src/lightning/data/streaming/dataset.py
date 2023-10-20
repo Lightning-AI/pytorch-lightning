@@ -68,6 +68,8 @@ class StreamingIterableDataset(IterableDataset):
         super().__init__()
         self.cache = Cache(name=name, version=version, cache_dir=cache_dir, item_loader=item_loader, chunk_bytes=1)
 
+        self.cache._reader._try_load_config()
+
         if not self.cache.filled:
             raise ValueError(f"The provided dataset `{name}` isn't filled up.")
 
