@@ -82,6 +82,7 @@ class StreamingIterableDataset(IterableDataset):
         self.current_indexes: List[int] = []
         self.chunk_undex = 0
         self.min_index = 0
+        self.has_triggered_download = False
 
     def __len__(self) -> int:
         return self.L
@@ -119,7 +120,9 @@ class StreamingIterableDataset(IterableDataset):
 
         return self
 
-    def __getitem__(self, index: ChunkedIndex) -> Any:
+    def __getitem__(self, index: Union[ChunkedIndex, int]) -> Any:
+        if isinstance(index, int):
+            index = ChunkedIndex(index, self.cache._get_chunk_index_from_index(index))
         return self.cache[index]
 
     def __next__(self) -> Any:
@@ -136,5 +139,15 @@ class StreamingIterableDataset(IterableDataset):
         # Get the first index
         current_indice = self.current_indexes.pop(0) - self.min_index
 
-        # Call the `__getitem__` method.
-        return self.__getitem__(ChunkedIndex(current_indice, chunk_index=self.worker_chunks[self.chunk_undex - 1]))
+         # Call the `__getitem__` method.
+        data = self.__getitem__(
+            ChunkedIndex(
+                current_indice,
+                chunk_index=self.worker_chunks[self.chunk_undex - 1],
+                chunk_indexes=None if self.has_triggered_download else self.worker_chunks,
+                
+        ))
+
+        self.has_triggered_download = True
+
+        return data

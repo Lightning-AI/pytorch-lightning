@@ -62,7 +62,7 @@ class PyTreeLoader(BaseItemLoader):
         return intervals
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> bytes:
-        offset = (1 + (index - begin)) * 4
+        offset = (1 + index) * 4
 
         while not os.path.exists(chunk_filepath):
             sleep(0.0001)
