@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Literal, Optional, Union
+from typing import Any, List, Literal, Optional, Union
 
 import numpy as np
 from torch.utils.data import Dataset, IterableDataset
@@ -77,22 +77,22 @@ class StreamingIterableDataset(IterableDataset):
         chunk_intervals = self.cache.get_chunk_interval()
         self.L = sum([(interval[-1] - interval[0]) for interval in chunk_intervals])
 
-        self.worker_chunks = []
-        self.worker_intervals = []
-        self.current_indexes = []
+        self.worker_chunks: List[int] = []
+        self.worker_intervals: List[List[int]] = []
+        self.current_indexes: List[int] = []
         self.chunk_undex = 0
         self.min_index = 0
 
     def __len__(self) -> int:
         return self.L
 
-    def __iter__(self):
+    def __iter__(self) -> "StreamingIterableDataset":
         chunk_intervals = self.cache.get_chunk_interval()
         shuffled_indexes = np.random.permutation(range(len(chunk_intervals)))
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
 
-        chunks_per_replica = [[] * self.distributed_env.world_size]
-        intervals_per_replica = [[] * self.distributed_env.world_size]
+        chunks_per_replica: List[List[int]] = [[] * self.distributed_env.world_size]
+        intervals_per_replica: List[List[List[int]]] = [[] * self.distributed_env.world_size]
         for index, (chunk_index, chunk_interval) in enumerate(zip(shuffled_indexes, shuffled_chunk_intervals)):
             replica_index = index % self.distributed_env.world_size
             chunks_per_replica[replica_index].append(chunk_index)
@@ -122,7 +122,7 @@ class StreamingIterableDataset(IterableDataset):
     def __getitem__(self, index: ChunkedIndex) -> Any:
         return self.cache[index]
 
-    def __next__(self):
+    def __next__(self) -> Any:
         # Lazily re-populate the interval to reduce memory usage.
         if len(self.current_indexes) == 0:
             if self.chunk_undex == len(self.worker_intervals):

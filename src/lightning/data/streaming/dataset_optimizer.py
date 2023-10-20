@@ -545,7 +545,7 @@ class DatasetOptimizer:
         seed_everything(self.random_seed)
 
         # Call the setup method of the user
-        user_items = optimizable_dataset.prepare_dataset_structure(self.src_dir, filepaths)
+        user_items: List[Any] = optimizable_dataset.prepare_dataset_structure(self.src_dir, filepaths)
 
         if not isinstance(user_items, list):
             raise ValueError("The setup_fn should return a list of item metadata.")
