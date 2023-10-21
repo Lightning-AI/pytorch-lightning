@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.downloader import get_downloader_cls
+from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader, TokensLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 
 if _TORCH_GREATER_EQUAL_2_1_0:
@@ -24,7 +25,7 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 
 
 class ChunksConfig:
-    def __init__(self, cache_dir: str, remote_dir: Optional[str]):
+    def __init__(self, cache_dir: str, remote_dir: Optional[str], item_loader: Optional[BaseItemLoader] = None) -> None:
         """The ChunksConfig reads the index files associated a chunked dataset and enables to map an index to its
         chunk.
 
@@ -39,27 +40,19 @@ class ChunksConfig:
         self._config = None
         self._chunks = []
         self._remote_dir = remote_dir
+        self._item_loader = item_loader or PyTreeLoader()
 
         with open(os.path.join(self._cache_dir, _INDEX_FILENAME)) as f:
             data = json.load(f)
-
             self._config = data["config"]
-
+            self._validate_item_loader()
             self._chunks.extend(data["chunks"])
 
         self._config["data_spec"] = treespec_loads(self._config["data_spec"])
 
-        for chunk in self._chunks:
-            start, end = chunk["interval"]
-            if (end - start) != chunk["chunk_size"]:
-                raise Exception(
-                    "The config intervals doesn't match the number of samples. This shouldn't have happened."
-                    f" Found {end} {start} {chunk['chunk_size']}"
-                )
-            self._intervals.append((chunk["interval"][0], chunk["interval"][1]))
-
-        self._length = sum([chunk["chunk_size"] for chunk in self._chunks])
-
+        self._item_loader.setup(self._config, self._chunks)
+        self._intervals = self._item_loader.generate_intervals()
+        self._length = self._intervals[-1][-1]
         self._downloader = None
 
         if remote_dir:
@@ -110,7 +103,9 @@ class ChunksConfig:
         return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]
 
     @classmethod
-    def load(cls, cache_dir: str, remote_dir: Optional[str] = None) -> Optional["ChunksConfig"]:
+    def load(
+        cls, cache_dir: str, remote_dir: Optional[str] = None, item_loader: Optional[BaseItemLoader] = None
+    ) -> Optional["ChunksConfig"]:
         cache_index_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
 
         if isinstance(remote_dir, str):
@@ -120,7 +115,16 @@ class ChunksConfig:
         if not os.path.exists(cache_index_filepath):
             return None
 
-        return ChunksConfig(cache_dir, remote_dir)
+        return ChunksConfig(cache_dir, remote_dir, item_loader)
 
     def __len__(self) -> int:
         return self._length
+
+    def _validate_item_loader(self) -> None:
+        assert self._config
+        if (
+            len(self._config["data_format"]) == 1
+            and self._config["data_format"][0].startswith("no_header_tensor")
+            and not isinstance(self._item_loader, TokensLoader)
+        ):
+            raise ValueError("Please, use Cache(..., item_loader=TokensLoader(block_size=...))")

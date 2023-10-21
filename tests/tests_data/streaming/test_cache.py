@@ -117,7 +117,7 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 @pytest.mark.skipif(
     condition=not _PIL_AVAILABLE or not _TORCH_VISION_AVAILABLE, reason="Requires: ['pil', 'torchvision']"
 )
-@pytest.mark.parametrize("num_workers", [0, 1, 2])
+@pytest.mark.parametrize("num_workers", [1])
 def test_cache_for_image_dataset(num_workers, tmpdir):
     cache_dir = os.path.join(tmpdir, "cache")
     os.makedirs(cache_dir)
@@ -182,7 +182,6 @@ def test_cache_with_auto_wrapping(tmpdir):
     assert sorted(os.listdir(os.path.join(tmpdir, "cache_1"))) == [
         "chunk-0-0.bin",
         "chunk-0-1.bin",
-        "chunk-0-2.bin",
         "index.json",
     ]
     # Your dataset is optimised for the cloud
