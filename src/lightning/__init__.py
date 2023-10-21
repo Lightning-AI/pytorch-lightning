@@ -32,9 +32,13 @@ __all__ = [
 
 
 def _cli_entry_point() -> None:
-    from lightning_utilities.core.imports import RequirementCache
+    from lightning_utilities.core.imports import ModuleAvailableCache, RequirementCache
 
-    if not RequirementCache(module="lightning.app"):
+    if not (
+        ModuleAvailableCache("lightning.app")
+        if RequirementCache("lightning-utilities<0.10.0")
+        else RequirementCache(module="lightning.app")
+    ):
         print("The `lightning` command requires additional dependencies: `pip install lightning[app]`")
         sys.exit(1)
 
