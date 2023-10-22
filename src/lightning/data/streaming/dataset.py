@@ -14,7 +14,7 @@
 from typing import Any, List, Literal, Optional, Union
 
 import numpy as np
-from torch.utils.data import Dataset, IterableDataset
+from torch.utils.data import IterableDataset
 
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
@@ -22,31 +22,7 @@ from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 
 
-class StreamingDataset(Dataset):
-    """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class."""
-
-    def __init__(
-        self, name: str, version: Optional[Union[int, Literal["latest"]]] = "latest", cache_dir: Optional[str] = None
-    ) -> None:
-        """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
-
-        Arguments:
-            name: The name of the optimised dataset.
-            version: The version of the dataset to use.
-            cache_dir: The cache dir where the data would be stored.
-
-        """
-        super().__init__()
-        self.cache = Cache(name=name, version=version, cache_dir=cache_dir)
-
-    def __len__(self) -> int:
-        return len(self.cache)
-
-    def __getitem__(self, idx: int) -> Any:
-        return self.cache[idx]
-
-
-class StreamingIterableDataset(IterableDataset):
+class StreamingDataset(IterableDataset):
     """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class."""
 
     def __init__(
@@ -88,7 +64,7 @@ class StreamingIterableDataset(IterableDataset):
     def __len__(self) -> int:
         return self.L
 
-    def __iter__(self) -> "StreamingIterableDataset":
+    def __iter__(self) -> "StreamingDataset":
         chunk_intervals = self.cache.get_chunk_interval()
         shuffled_indexes = np.random.permutation(range(len(chunk_intervals)))
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
@@ -133,10 +109,10 @@ class StreamingIterableDataset(IterableDataset):
                 raise StopIteration
 
             interval = self.worker_intervals[self.chunk_undex]
-            self.current_indexes = np.random.permutation(np.arange(interval[0], interval[1]))
-            self.current_indexes -= min(self.current_indexes)
-            assert min(self.current_indexes) == 0
-            self.current_indexes = self.current_indexes.tolist()
+            current_indexes = np.random.permutation(np.arange(interval[0], interval[1]))
+            current_indexes -= min(current_indexes)
+            assert min(current_indexes) == 0
+            self.current_indexes = current_indexes.tolist()
             self.chunk_undex += 1
 
         # Get the first index

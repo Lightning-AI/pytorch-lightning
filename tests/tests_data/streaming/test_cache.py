@@ -23,7 +23,7 @@ from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
-from lightning.data.streaming.dataset import StreamingIterableDataset
+from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
@@ -229,14 +229,14 @@ def test_streaming_dataset(tmpdir, monkeypatch):
     monkeypatch.setattr(cache_module, "_try_create_cache_dir", lambda name: tmpdir)
 
     with pytest.raises(ValueError, match="The provided dataset `choco` isn't filled up."):
-        dataset = StreamingIterableDataset(name="choco", cache_dir=tmpdir)
+        dataset = StreamingDataset(name="choco", cache_dir=tmpdir)
 
     dataset = RandomDataset(128, 64)
     dataloader = StreamingDataLoader(dataset, cache_dir=tmpdir, chunk_bytes=2 << 12)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
 
-    dataset = StreamingIterableDataset(name="choco", cache_dir=tmpdir, item_loader=TokensLoader(block_size=10))
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, item_loader=TokensLoader(block_size=10))
 
     assert len(dataset) == 816
     dataset_iter = iter(dataset)
