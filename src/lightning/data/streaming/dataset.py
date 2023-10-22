@@ -83,7 +83,6 @@ class StreamingIterableDataset(IterableDataset):
         self.worker_intervals: List[List[int]] = []
         self.current_indexes: List[int] = []
         self.chunk_undex = 0
-        self.min_index = 0
         self.has_triggered_download = False
 
     def __len__(self) -> int:
