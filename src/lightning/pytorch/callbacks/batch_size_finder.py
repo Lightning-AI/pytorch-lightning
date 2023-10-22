@@ -168,7 +168,8 @@ class BatchSizeFinder(Callback):
                 " If this is not the intended behavior, please remove either one."
             )
 
-    def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", is_training: bool) -> None:
+    def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        is_training = pl_module.training
         new_size = _scale_batch_size(
             trainer,
             self._mode,
@@ -184,20 +185,16 @@ class BatchSizeFinder(Callback):
             raise _TunerExitException()
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        is_training = pl_module.training
-        self.scale_batch_size(trainer, pl_module, is_training)
+        self.scale_batch_size(trainer, pl_module)
 
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.sanity_checking or trainer.state.fn != "validate":
             return
 
-        is_training = pl_module.training
-        self.scale_batch_size(trainer, pl_module, is_training)
+        self.scale_batch_size(trainer, pl_module)
 
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        is_training = pl_module.training
-        self.scale_batch_size(trainer, pl_module, is_training)
+        self.scale_batch_size(trainer, pl_module)
 
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        is_training = pl_module.training
-        self.scale_batch_size(trainer, pl_module, is_training)
+        self.scale_batch_size(trainer, pl_module)
