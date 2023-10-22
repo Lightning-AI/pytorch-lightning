@@ -16,7 +16,6 @@ from functools import wraps
 from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload
 
 import torch
-from lightning_utilities import WarningCache
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch import nn as nn
@@ -31,9 +30,7 @@ from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
-from lightning.fabric.utilities.warnings import PossibleUserWarning
 
-warning_cache = WarningCache()
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
 
@@ -173,7 +170,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         registering forward hooks on all submodules."""
         module_called = False
 
-        def _hook(*_: Any, **__: Any) -> None:
+        def hook(*_: Any, **__: Any) -> None:
             nonlocal module_called
             module_called = True
 
@@ -181,16 +178,15 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         def _wrapped_method(*args: Any, **kwargs: Any) -> Any:
             handles = []
             for module in self._original_module.modules():
-                handles.append(module.register_forward_hook(_hook))
+                handles.append(module.register_forward_hook(hook))
 
             output = method(*args, **kwargs)
 
             if module_called:
-                warning_cache.warn(
+                raise RuntimeError(
                     f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
                     " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
                     " `.backward()`. You should pass your inputs through `forward()`.",
-                    category=PossibleUserWarning,
                 )
             for handle in handles:
                 handle.remove()

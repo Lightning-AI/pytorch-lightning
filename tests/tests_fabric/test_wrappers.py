@@ -26,9 +26,7 @@ from lightning.fabric.wrappers import (
     _FabricOptimizer,
     _unwrap_objects,
     is_wrapped,
-    warning_cache,
 )
-from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
@@ -105,27 +103,21 @@ def test_fabric_module_method_lookup():
     # Regular case: forward_module == original_module -> no warnings
     original_module = OriginalModule()
     fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
-    warning_cache.clear()
-    with no_warning_call(UserWarning):
-        assert fabric_module.method_without_module_invocation() == 100
-    assert not warning_cache
+    assert fabric_module.method_without_module_invocation() == 100
 
     # Special case: original module wrapped by forward module: -> warn if method accepts args
     original_module = OriginalModule()
     wrapped_module = ModuleWrapper(original_module)
     fabric_module = _FabricModule(forward_module=wrapped_module, precision=Mock(), original_module=original_module)
-    warning_cache.clear()
-    with no_warning_call(UserWarning):
-        assert fabric_module.method_without_module_invocation() == 100
-    with pytest.warns(
-        UserWarning, match=r"You are calling the method `OriginalModule.method_with_submodule_invocation\(\)` from"
+    assert fabric_module.method_without_module_invocation() == 100
+    with pytest.raises(
+        RuntimeError, match=r"You are calling the method `OriginalModule.method_with_submodule_invocation\(\)` from"
     ):
         assert fabric_module.method_with_submodule_invocation() == 101
-    with pytest.warns(
-        UserWarning, match=r"You are calling the method `OriginalModule.method_with_self_invocation\(\)` from"
+    with pytest.raises(
+        RuntimeError, match=r"You are calling the method `OriginalModule.method_with_self_invocation\(\)` from"
     ):
         assert fabric_module.method_with_self_invocation() == 102
-    warning_cache.clear()
 
 
 def test_fabric_module_setattr():
