@@ -216,8 +216,6 @@ def test_amp_precision_plugin_parameter_validation():
 
     with pytest.raises(
         ValueError,
-        match=re.escape(
-            "Passed `MixedPrecision(precision='bf16')`. Precision must be '16-mixed' or 'bf16-mixed'"
-        ),
+        match=re.escape("Passed `MixedPrecision(precision='bf16')`. Precision must be '16-mixed' or 'bf16-mixed'"),
     ):
         MixedPrecision("bf16", "cpu")

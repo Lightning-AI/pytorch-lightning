@@ -78,9 +78,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
     @precision_plugin.setter
     def precision_plugin(self, precision_plugin: Optional[XLAPrecision]) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecision):
-            raise TypeError(
-                f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}"
-            )
+            raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}")
         self._precision_plugin = precision_plugin
 
     def setup(self, trainer: "pl.Trainer") -> None:
