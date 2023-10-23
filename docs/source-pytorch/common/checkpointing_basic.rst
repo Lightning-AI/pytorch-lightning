@@ -122,8 +122,8 @@ If you used the *self.save_hyperparameters()* method in the *__init__* method of
     # uses in_dim=128, out_dim=10
     model = LitModel.load_from_checkpoint(PATH, in_dim=128, out_dim=10)
 
-Similarly, if you used other positional arguments or keyword arguments in the ``__init__`` method of the LightningModule,
-you can initialize the model as follows:
+In some cases, we may also pass entire PyTorch modules to the ``__init__`` method, which you don't want to save as hyperparameters due to their large size. If you didn't call ``self.save_hyperparameters()`` or ignore parameters via ``save_hyperparameters(ignore=...)``, then you must pass the missing positional arguments or keyword arguments when calling ``load_from_checkpoint`` method:
+
 
 .. code-block:: python
 
@@ -132,7 +132,6 @@ you can initialize the model as follows:
             ...
 
         ...
-
 
     model = LitAutoEncoder.load_from_checkpoint(PATH, encoder=encoder, decoder=decoder)
 
