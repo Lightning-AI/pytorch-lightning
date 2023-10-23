@@ -23,10 +23,12 @@ from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
+from lightning.data.streaming.dataset import StreamingDataset
+from lightning.data.streaming.item_loader import TokensLoader
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
@@ -113,11 +115,23 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 
     assert indexes2 != indexes
 
+    streaming_dataset = StreamingDataset(name="dummy", cache_dir=cache_dir)
+    for i in range(len(streaming_dataset)):
+        cached_data = streaming_dataset[i]
+        original_data = dataset.data[i]
+        assert cached_data["class"] == original_data["class"]
+        original_array = PILToTensor()(Image.open(original_data["image"]))
+        assert torch.equal(original_array, cached_data["image"])
+
+    streaming_dataset_iter = iter(streaming_dataset)
+    for _ in streaming_dataset_iter:
+        pass
+
 
 @pytest.mark.skipif(
     condition=not _PIL_AVAILABLE or not _TORCH_VISION_AVAILABLE, reason="Requires: ['pil', 'torchvision']"
 )
-@pytest.mark.parametrize("num_workers", [1])
+@pytest.mark.parametrize("num_workers", [0, 1, 2])
 def test_cache_for_image_dataset(num_workers, tmpdir):
     cache_dir = os.path.join(tmpdir, "cache")
     os.makedirs(cache_dir)
@@ -218,3 +232,27 @@ def test_cache_with_name(tmpdir, monkeypatch):
     assert cache._writer._chunk_size == 2
     assert cache._writer._cache_dir == os.path.join(tmpdir, "something")
     assert cache._reader._remote_dir == os.path.join(tmpdir, "remote_dir")
+
+
+def test_streaming_dataset(tmpdir, monkeypatch):
+    seed_everything(42)
+
+    os.makedirs(os.path.join(tmpdir, "remote_dir"), exist_ok=True)
+    monkeypatch.setattr(cache_module, "_try_create_cache_dir", lambda name: tmpdir)
+
+    with pytest.raises(ValueError, match="The provided dataset `choco` isn't filled up."):
+        dataset = StreamingDataset(name="choco", cache_dir=tmpdir)
+
+    dataset = RandomDataset(128, 64)
+    dataloader = StreamingDataLoader(dataset, cache_dir=tmpdir, chunk_bytes=2 << 12)
+    for batch in dataloader:
+        assert isinstance(batch, torch.Tensor)
+
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, item_loader=TokensLoader(block_size=10))
+
+    assert len(dataset) == 816
+    dataset_iter = iter(dataset)
+    assert len(dataset_iter) == 816
+
+    dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
+    assert len(dataloader) == 408

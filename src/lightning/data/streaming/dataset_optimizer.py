@@ -3,15 +3,15 @@ import os
 import signal
 import traceback
 import types
-from abc import ABC, abstractmethod
 from enum import Enum
 from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
 from shutil import copyfile
+from textwrap import dedent
 from threading import Thread
 from time import sleep, time
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Tuple, TypeVar, runtime_checkable
 from urllib import parse
 
 from tqdm.auto import tqdm
@@ -167,7 +167,7 @@ class BaseWorker:
         start_index: int,
         dataset_name: str,
         node_rank: int,
-        dataset_optimizer: "DatasetOptimizer",
+        prepare_item: Callable,
         src_dir: str,
         remote_src_dir: str,
         remote_dst_dir: Optional[str],
@@ -187,7 +187,7 @@ class BaseWorker:
         self.start_index = start_index
         self.dataset_name = dataset_name
         self.node_rank = node_rank
-        self.prepare_item = dataset_optimizer.prepare_item
+        self.prepare_item = prepare_item
         self.src_dir = src_dir
         self.remote_src_dir = remote_src_dir
         self.remote_dst_dir = remote_dst_dir
@@ -432,57 +432,21 @@ class WorkerType(Enum):
     PROCESS = "process"
 
 
-class DatasetOptimizer(ABC):
-    @abstractmethod
-    def prepare_dataset_structure(self, src_dir: str, filepaths: List[str]) -> List[Any]:
-        """This function is meant to return a list of item metadata. Each item metadata should be enough to prepare a
-        single item when called with the prepare_item.
+T = TypeVar("T")
 
-        Example::
 
-            # For a classification use case
-
-            def prepare_dataset_structure(self, src_dir, filepaths)
-                import numpy as np
-
-                filepaths = ['class_a/file_1.ext', ..., 'class_b/file_1.ext', ...]
-                classes = np.unique([filepath.split("/")[0] for filepath in filepaths])
-                classes_to_idx_map = {c: idx for idx, c in enumerate(classes)}
-
-                # Return pair with the filepath to the obj and its class
-                # [('class_a/file_1.ext', 0), ... ('class_b/file_1.ext', 1)]
-                return [(filepath, classes_to_idx_map[filepath.split("/")[0]]) for filepath in filepaths]
-
-        Example::
-
-            # For a image segmentation use case
-
-            def prepare_dataset_structure(self, src_dir, filepaths)
-                import numpy as np
-
-                filepaths = ['file_1.JPEG', 'file_1.mask', .... 'file_N.JPEG', 'file_N.mask', ...]
-
-                # [('file_1.JPEG', 'file_1.mask'), ... ('file_N.JPEG', 'file_N.mask')]
-                return [(x[i], x[i+1]) for i in range(len(filepaths) -1)]
-
-            def prepare_item(self, obj):
-                image_filepath, mask_filepath = obj
-
-                image = load_and_resize(image_filepath)
-                mask = load_and_resize(mask_filepath)
-                return (image, mask)
-
-        """
+@runtime_checkable
+class _OptimizableDataset(Protocol):
+    @staticmethod
+    def prepare_dataset_structure(root: str, filepaths: List[str]) -> List[T]:
         pass
 
-    def prepare_item(self, metadata_item: Any) -> Any:
-        """Using some metadata, prepare the associated item.
+    @staticmethod
+    def prepare_item(item_metadata: T) -> Any:
+        return item_metadata
 
-        The output of this function will be binarised
 
-        """
-        return metadata_item
-
+class DatasetOptimizer:
     def __init__(
         self,
         name: str,
@@ -547,9 +511,29 @@ class DatasetOptimizer(ABC):
         )
         self.random_seed = random_seed
 
-    def run(self) -> None:
+    def run(self, optimizable_dataset: _OptimizableDataset) -> None:
         """The `DatasetChunker.run(...)` method is used to trigger the data processing from your dataset into
         chunks."""
+        if not isinstance(optimizable_dataset, _OptimizableDataset):
+            raise ValueError(
+                dedent(
+                    """The provided argument to the DatasetOptimizer.run(...) needs to have the following format:
+
+                Example:
+
+                    class YourDataset:
+
+                        @staticmethod
+                        def prepare_dataset_structure(root: str, filepaths: List[str]) -> List[T]:
+                            return [...]
+
+                        @staticmethod
+                        def prepare_item(item_metadata: T) -> Any:
+                            return ...
+                """
+                )
+            )
+
         t0 = time()
         print(f"Setup started for `{self.name}` with fast_dev_run={self.fast_dev_run}.")
 
@@ -564,7 +548,7 @@ class DatasetOptimizer(ABC):
         seed_everything(self.random_seed)
 
         # Call the setup method of the user
-        user_items = self.prepare_dataset_structure(self.src_dir, filepaths)
+        user_items: List[Any] = optimizable_dataset.prepare_dataset_structure(self.src_dir, filepaths)
 
         if not isinstance(user_items, list):
             raise ValueError("The setup_fn should return a list of item metadata.")
@@ -588,9 +572,9 @@ class DatasetOptimizer(ABC):
         signal.signal(signal.SIGINT, self._signal_handler)
 
         if self.worker_type == WorkerType.THREAD.value:
-            self._create_thread_workers(begins, workers_user_items)
+            self._create_thread_workers(optimizable_dataset, begins, workers_user_items)
         else:
-            self._create_process_workers(begins, workers_user_items)
+            self._create_process_workers(optimizable_dataset, begins, workers_user_items)
 
         print("Workers are ready ! Starting data processing...")
 
@@ -634,7 +618,9 @@ class DatasetOptimizer(ABC):
             w.join(0)
         raise RuntimeError(f"We found the following error {error}.")
 
-    def _create_thread_workers(self, begins: List[int], workers_user_items: List[List[Any]]) -> None:
+    def _create_thread_workers(
+        self, optimizable_dataset: _OptimizableDataset, begins: List[int], workers_user_items: List[List[Any]]
+    ) -> None:
         current_total = 0
         total = sum([len(w) for w in workers_user_items])
         with tqdm(total=total, smoothing=0) as pbar:
@@ -649,7 +635,7 @@ class DatasetOptimizer(ABC):
                     begins[worker_idx],
                     self.name,
                     _get_node_rank(),
-                    self,
+                    optimizable_dataset.prepare_item,
                     self.src_dir,
                     self.remote_src_dir,
                     self.remote_dst_dir,
@@ -676,7 +662,9 @@ class DatasetOptimizer(ABC):
                 if current_total == total:
                     break
 
-    def _create_process_workers(self, begins: List[int], workers_user_items: List[List[Any]]) -> None:
+    def _create_process_workers(
+        self, optimizable_dataset: _OptimizableDataset, begins: List[int], workers_user_items: List[List[Any]]
+    ) -> None:
         self.progress_queue = Queue()
         workers: List[DataWorkerProcess] = []
         stop_queues: List[Queue] = []
@@ -688,7 +676,7 @@ class DatasetOptimizer(ABC):
                 begins[worker_idx],
                 self.name,
                 _get_node_rank(),
-                self,
+                optimizable_dataset.prepare_item,
                 self.src_dir,
                 self.remote_src_dir,
                 self.remote_dst_dir,
