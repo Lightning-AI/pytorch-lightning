@@ -227,7 +227,9 @@ def test_cache_with_name(tmpdir, monkeypatch):
     os.makedirs(os.path.join(tmpdir, "remote_dir"), exist_ok=True)
     monkeypatch.setattr(cache_module, "_try_create_cache_dir", lambda name: os.path.join(tmpdir, name))
 
-    monkeypatch.setattr(cache_module, "_find_remote_dir", lambda name, _: (os.path.join(tmpdir, "remote_dir", "version_0"), True))
+    monkeypatch.setattr(
+        cache_module, "_find_remote_dir", lambda name, _: (os.path.join(tmpdir, "remote_dir", "version_0"), True)
+    )
     cache = Cache(name="something")
     assert cache._writer._chunk_size == 2
     assert cache._writer._cache_dir == os.path.join(tmpdir, "something", "version_0")

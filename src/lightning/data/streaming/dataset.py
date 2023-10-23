@@ -20,7 +20,7 @@ from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
-from lightning.data.streaming.shuffle import Shuffle, MinShuffle, NoShuffle
+from lightning.data.streaming.shuffle import MinShuffle, NoShuffle, Shuffle
 
 
 class StreamingDataset(IterableDataset):
@@ -57,7 +57,11 @@ class StreamingDataset(IterableDataset):
         self.distributed_env = _DistributedEnv.detect()
 
         if isinstance(shuffle, bool):
-            shuffle = MinShuffle(self.cache, seed, self.distributed_env) if shuffle else NoShuffle(self.cache, seed, self.distributed_env)
+            shuffle = (
+                MinShuffle(self.cache, seed, self.distributed_env)
+                if shuffle
+                else NoShuffle(self.cache, seed, self.distributed_env)
+            )
 
         self.shuffler: Shuffle = shuffle
         self.worker_env: Optional[_WorkerEnv] = None

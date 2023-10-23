@@ -11,14 +11,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning.data.streaming import Cache
-from typing import List, Any
-import numpy as np
 from abc import ABC, abstractmethod
+from typing import Any, List
+
+import numpy as np
+
 from lightning.data.datasets.env import _DistributedEnv
+from lightning.data.streaming import Cache
+
 
 class Shuffle(ABC):
-
     @abstractmethod
     def __len__(self):
         pass
@@ -29,7 +31,6 @@ class Shuffle(ABC):
 
 
 class NoShuffle(Shuffle):
-
     def __init__(self, cache: Cache, seed: int, distributed_env: _DistributedEnv, num_iter: int):
         self.cache = cache
         self.seed = seed
@@ -39,11 +40,12 @@ class NoShuffle(Shuffle):
     def __len__(self) -> int:
         _, intervals_per_replica = self.get_chunks_and_intervals_per_replica()
         min_items_per_replica = min(
-            [sum([(interval[-1] - interval[0]) for interval in intervals]) for intervals in intervals_per_replica])
+            [sum([(interval[-1] - interval[0]) for interval in intervals]) for intervals in intervals_per_replica]
+        )
         return min_items_per_replica
 
     def get_chunks_and_intervals_per_replica(self) -> Any:
-        self.random_state = np.random.RandomState(seed=self.seed + num_iter)  # type: ignore
+        self.random_state = np.random.RandomState(seed=self.seed + self.num_iter)  # type: ignore
         chunk_intervals = self.cache.get_chunk_interval()
         indexes = list(range(len(chunk_intervals)))
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[indexes]
@@ -57,8 +59,8 @@ class NoShuffle(Shuffle):
 
         return chunks_per_replica, intervals_per_replica
 
-class MinShuffle(Shuffle):
 
+class MinShuffle(Shuffle):
     def __init__(self, cache: Cache, seed: int, distributed_env: _DistributedEnv, num_iter: int):
         self.cache = cache
         self.seed = seed
@@ -68,7 +70,8 @@ class MinShuffle(Shuffle):
     def __len__(self) -> int:
         _, intervals_per_replica = self.get_chunks_and_intervals_per_replica()
         min_items_per_replica = min(
-            [sum([(interval[-1] - interval[0]) for interval in intervals]) for intervals in intervals_per_replica])
+            [sum([(interval[-1] - interval[0]) for interval in intervals]) for intervals in intervals_per_replica]
+        )
         return min_items_per_replica
 
     def get_chunks_and_intervals_per_replica(self) -> Any:
