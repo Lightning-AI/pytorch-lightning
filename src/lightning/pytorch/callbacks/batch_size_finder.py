@@ -169,7 +169,6 @@ class BatchSizeFinder(Callback):
             )
 
     def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        is_training = pl_module.training
         new_size = _scale_batch_size(
             trainer,
             self._mode,
@@ -177,7 +176,6 @@ class BatchSizeFinder(Callback):
             self._init_val,
             self._max_trials,
             self._batch_arg_name,
-            is_training,
         )
 
         self.optimal_batch_size = new_size
