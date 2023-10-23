@@ -58,8 +58,10 @@ class StreamingDataset(IterableDataset):
         self.worker_chunks: List[int] = []
         self.worker_intervals: List[List[int]] = []
         self.current_indexes: List[int] = []
-        self.chunk_undex = 0
+        self.chunk_index = 0
+        self.index = 0
         self.has_triggered_download = False
+        self.min_items_per_replica = None
 
     def __len__(self) -> int:
         return self.L
@@ -69,14 +71,19 @@ class StreamingDataset(IterableDataset):
         shuffled_indexes = np.random.permutation(range(len(chunk_intervals)))
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
 
-        chunks_per_replica: List[List[int]] = [[] * self.distributed_env.world_size]
-        intervals_per_replica: List[List[List[int]]] = [[] * self.distributed_env.world_size]
+        chunks_per_replica: List[List[int]] = [[] for _ in range(self.distributed_env.world_size)]
+        intervals_per_replica: List[List[List[int]]] = [[] for _ in range(self.distributed_env.world_size)]
         for index, (chunk_index, chunk_interval) in enumerate(zip(shuffled_indexes, shuffled_chunk_intervals)):
             replica_index = index % self.distributed_env.world_size
             chunks_per_replica[replica_index].append(chunk_index)
             intervals_per_replica[replica_index].append(chunk_interval)
 
         # TODO: Add drop_last for distributed training.
+        if self.distributed_env.world_size > 1:
+            num_items_per_replica = [
+                sum([(interval[-1] - interval[0]) for interval in intervals]) for intervals in intervals_per_replica
+            ]
+            self.min_items_per_replica = min(num_items_per_replica)
 
         current_chunks = chunks_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
         current_intervals = intervals_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
@@ -93,7 +100,7 @@ class StreamingDataset(IterableDataset):
             self.worker_intervals.append(chunk_interval)
 
         self.current_indexes = []
-        self.chunk_undex = 0
+        self.chunk_index = 0
 
         return self
 
@@ -105,15 +112,15 @@ class StreamingDataset(IterableDataset):
     def __next__(self) -> Any:
         # Lazily re-populate the interval to reduce memory usage.
         if len(self.current_indexes) == 0:
-            if self.chunk_undex == len(self.worker_intervals):
+            if self.chunk_index == len(self.worker_intervals):
                 raise StopIteration
 
-            interval = self.worker_intervals[self.chunk_undex]
+            interval = self.worker_intervals[self.chunk_index]
             current_indexes = np.random.permutation(np.arange(interval[0], interval[1]))
             current_indexes -= min(current_indexes)
             assert min(current_indexes) == 0
             self.current_indexes = current_indexes.tolist()
-            self.chunk_undex += 1
+            self.chunk_index += 1
 
         # Get the first index
         index = self.current_indexes.pop(0)
@@ -122,11 +129,12 @@ class StreamingDataset(IterableDataset):
         data = self.__getitem__(
             ChunkedIndex(
                 index=index,
-                chunk_index=self.worker_chunks[self.chunk_undex - 1],
+                chunk_index=self.worker_chunks[self.chunk_index - 1],
                 chunk_indexes=None if self.has_triggered_download else self.worker_chunks,
             )
         )
 
         self.has_triggered_download = True
+        self.index += 1
 
         return data

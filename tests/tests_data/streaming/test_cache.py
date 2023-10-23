@@ -115,6 +115,18 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 
     assert indexes2 != indexes
 
+    streaming_dataset = StreamingDataset(name="dummy", cache_dir=cache_dir)
+    for i in range(len(streaming_dataset)):
+        cached_data = streaming_dataset[i]
+        original_data = dataset.data[i]
+        assert cached_data["class"] == original_data["class"]
+        original_array = PILToTensor()(Image.open(original_data["image"]))
+        assert torch.equal(original_array, cached_data["image"])
+
+    streaming_dataset_iter = iter(streaming_dataset)
+    for _ in streaming_dataset_iter:
+        pass
+
 
 @pytest.mark.skipif(
     condition=not _PIL_AVAILABLE or not _TORCH_VISION_AVAILABLE, reason="Requires: ['pil', 'torchvision']"
