@@ -133,7 +133,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
 
     upload_urls = []
     for upload_url in _upload_urls:
-        upload_urls.append(upload_url.get().urls)
+        upload_urls.extend(upload_url.get().urls)
 
     live.stop()
 
