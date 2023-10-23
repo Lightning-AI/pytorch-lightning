@@ -133,6 +133,7 @@ In some cases, we may also pass entire PyTorch modules to the ``__init__`` metho
 
         ...
 
+
     model = LitAutoEncoder.load_from_checkpoint(PATH, encoder=encoder, decoder=decoder)
 
 ----
