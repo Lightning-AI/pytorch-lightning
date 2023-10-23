@@ -402,10 +402,11 @@ class Fabric:
             model as argument here.
 
         """
-        rank_zero_deprecation(
-            "`fabric.backward(loss)` is no longer necessary, you can simply do `loss.backward()` as with pure PyTorch",
-            stacklevel=6,
-        )
+        # FIXME
+        # rank_zero_deprecation(
+        #    "`fabric.backward(loss)` is no longer necessary, you can simply do `loss.backward()` as with pure PyTorch",
+        #    stacklevel=6,
+        # )
         if isinstance(tensor, _BackwardTensor):
             return tensor.backward(*args, **kwargs)
         raise RuntimeError(

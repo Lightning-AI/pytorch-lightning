@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import sys
+import weakref
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
@@ -609,9 +610,12 @@ def test_backward():
     assert type(loss) is _BackwardTensor
     # FIXME: deprecated_call
     fabric.backward(loss, retain_graph=True)
-    precision_mock.backward.assert_called_with(
-        loss, ANY, gradient=None, retain_graph=True, create_graph=False, inputs=None
-    )
+    call_args, call_kwargs = precision_mock.backward.call_args
+    # the original tensor is use within backward
+    assert torch.equal(call_args[0], loss)
+    assert type(call_args[0]) is torch.Tensor
+    assert call_args[1] == weakref.proxy(model)
+    assert call_kwargs == {"retain_graph": True}
 
     # user error: not using the fabric wrapped model
     loss = model(x)
@@ -631,9 +635,12 @@ def test_backward():
     loss = fmodel(x)
     assert type(loss) is _BackwardTensor
     loss.backward(retain_graph=True)
-    precision_mock.backward.assert_called_with(
-        loss, ANY, gradient=None, retain_graph=True, create_graph=False, inputs=None
-    )
+    call_args, call_kwargs = precision_mock.backward.call_args
+    # the original tensor is use within backward
+    assert torch.equal(call_args[0], loss)
+    assert type(call_args[0]) is torch.Tensor
+    assert call_args[1] == weakref.proxy(model)
+    assert call_kwargs == {"retain_graph": True}
 
 
 def test_autocast():

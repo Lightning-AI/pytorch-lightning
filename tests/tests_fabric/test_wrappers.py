@@ -19,6 +19,7 @@ import pytest
 import torch
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
+from lightning.fabric.strategies import SingleDeviceStrategy
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import (
@@ -599,36 +600,82 @@ def test_step_method_redirection():
 
 
 def test_backward_tensor():
-    og = torch.tensor([0, 1, 2])
-    strategy = Mock()
+    x = torch.tensor([0.0, 1, 2], requires_grad=True)
+    strategy = SingleDeviceStrategy()
     model = Mock()
-    wrap = _BackwardTensor(strategy, model, og)
-    assert wrap._strategy is weakref.proxy(strategy)
-    assert wrap._module is weakref.proxy(model)
-    assert not hasattr(wrap, "_started")
+    bwd_t = _BackwardTensor._from_tensor(x, strategy, model)
+    assert bwd_t._strategy is weakref.proxy(strategy)
+    assert bwd_t._module is weakref.proxy(model)
+    assert bwd_t.requires_grad
+    assert x.requires_grad
 
     # repr is unchanged
-    assert repr(wrap) == repr(og)
+    assert repr(bwd_t) == repr(x)
 
     # methods work
-    x = wrap.add(1)
-    assert isinstance(x, _BackwardTensor)
+    y = bwd_t.add(1)
+    assert isinstance(y, _BackwardTensor)
+    assert y.requires_grad
+
     # magic methods work
-    x = x + 1
-    assert isinstance(x, _BackwardTensor)
+    y = y * 2
+    assert isinstance(y, _BackwardTensor)
+    assert y.requires_grad
+
     # functions work
-    x = torch.add(x, torch.tensor(1))
-    assert isinstance(x, _BackwardTensor)
+    y = torch.mul(y, torch.tensor(3))
+    assert isinstance(y, _BackwardTensor)
+    assert y.requires_grad
 
-    assert x.tolist() == [3, 4, 5]
+    # edge case
+    assert y.tolist() == [6, 12, 18]
 
-    x.backward()
-    assert not x._started
+    # backward works
+    assert x.grad is None
+    y.backward(gradient=torch.tensor([1.0, 1.0, 1]))
+    assert x.grad.tolist() == [6, 6, 6]
 
-    wrap2 = _BackwardTensor(strategy, model, og)
-    out = torch.stack([wrap, wrap2])
+    # functions with collections of arguments work
+    bwd_t2 = _BackwardTensor(x, strategy, model)
+    out = torch.stack([bwd_t, bwd_t2])
     assert out.tolist() == [[0, 1, 2], [0, 1, 2]]
 
-    wrap2 = _BackwardTensor(Mock(), model, og)
+    # raises case
+    bwd_t2 = _BackwardTensor(x, Mock(), model)
     with pytest.raises(NotImplementedError, match="different strategies is not supported"):
-        torch.stack([wrap, wrap2])
+        torch.stack([bwd_t, bwd_t2])
+
+
+def bwd_tensor_with_dtensor(fabric):
+    from torch.distributed._tensor import DeviceMesh, DTensor
+
+    model = Mock()
+    t = torch.tensor([0.0, 1.0, 2.0], requires_grad=True)
+    mesh = DeviceMesh("cpu", [0])
+    dt = DTensor.from_local(t, mesh)
+    assert dt.requires_grad
+    assert dt._local_tensor.requires_grad
+
+    bwd_t = _BackwardTensor._from_tensor(dt, fabric.strategy, model)
+    assert bwd_t.requires_grad
+    assert bwd_t._tensor.requires_grad
+    assert bwd_t._tensor._local_tensor.requires_grad
+
+    y = bwd_t.mul(2)
+    assert bwd_t.requires_grad
+    assert bwd_t._tensor.requires_grad
+    assert bwd_t._tensor._local_tensor.requires_grad
+
+    y = y.sum()
+    assert bwd_t.requires_grad
+    assert bwd_t._tensor.requires_grad
+    assert bwd_t._tensor._local_tensor.requires_grad
+
+    y.backward()
+    assert t.grad.tolist() == [2.0, 2.0, 2.0]
+
+
+@RunIf(min_torch="2.1.0")
+def test_backward_tensor_with_dtensor():
+    fabric = Fabric(accelerator="cpu", strategy="ddp_spawn", devices=1)
+    fabric.launch(bwd_tensor_with_dtensor)
