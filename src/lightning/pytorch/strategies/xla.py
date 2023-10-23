@@ -26,7 +26,7 @@ from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
-from lightning.pytorch.plugins import XLAPrecisionPlugin
+from lightning.pytorch.plugins import XLAPrecision
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.strategies.launchers.xla import _XLALauncher
@@ -50,7 +50,7 @@ class XLAStrategy(DDPStrategy):
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]] = None,
-        precision_plugin: Optional[XLAPrecisionPlugin] = None,
+        precision_plugin: Optional[XLAPrecision] = None,
         debug: bool = False,
         sync_module_states: bool = True,
         **_: Any,
@@ -84,18 +84,18 @@ class XLAStrategy(DDPStrategy):
         self._checkpoint_io = io
 
     @property  # type: ignore[override]
-    def precision_plugin(self) -> XLAPrecisionPlugin:
+    def precision_plugin(self) -> XLAPrecision:
         plugin = self._precision_plugin
         if plugin is not None:
-            assert isinstance(plugin, XLAPrecisionPlugin)
+            assert isinstance(plugin, XLAPrecision)
             return plugin
-        return XLAPrecisionPlugin()
+        return XLAPrecision()
 
     @precision_plugin.setter
-    def precision_plugin(self, precision_plugin: Optional[XLAPrecisionPlugin]) -> None:
-        if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecisionPlugin):
+    def precision_plugin(self, precision_plugin: Optional[XLAPrecision]) -> None:
+        if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecision):
             raise TypeError(
-                f"The XLA strategy can only work with the `XLAPrecisionPlugin` plugin, found {precision_plugin}"
+                f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}"
             )
         self._precision_plugin = precision_plugin
 

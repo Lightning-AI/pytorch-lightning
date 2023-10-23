@@ -17,7 +17,7 @@ import pytest
 import torch
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
-from lightning.pytorch.plugins import DoublePrecisionPlugin, HalfPrecisionPlugin, PrecisionPlugin
+from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.pytorch.strategies import SingleDeviceStrategy
 
 from tests_pytorch.helpers.datamodules import ClassifDataModule
@@ -66,10 +66,10 @@ def test_evaluate(tmpdir, trainer_kwargs):
 @pytest.mark.parametrize(
     ("precision", "dtype"),
     [
-        (PrecisionPlugin(), torch.float32),
-        pytest.param(DoublePrecisionPlugin(), torch.float64, marks=RunIf(mps=False)),
-        (HalfPrecisionPlugin("16-true"), torch.float16),
-        pytest.param(HalfPrecisionPlugin("bf16-true"), torch.bfloat16, marks=RunIf(bf16_cuda=True)),
+        (Precision(), torch.float32),
+        pytest.param(DoublePrecision(), torch.float64, marks=RunIf(mps=False)),
+        (HalfPrecision("16-true"), torch.float16),
+        pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(bf16_cuda=True)),
     ],
 )
 @pytest.mark.parametrize("empty_init", [None, True, False])

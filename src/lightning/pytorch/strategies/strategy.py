@@ -33,7 +33,7 @@ from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.core.optimizer import LightningOptimizer, _init_optimizers_and_lr_schedulers
 from lightning.pytorch.plugins import TorchCheckpointIO
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
-from lightning.pytorch.plugins.precision import PrecisionPlugin
+from lightning.pytorch.plugins.precision import Precision
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.types import STEP_OUTPUT, LRSchedulerConfig
@@ -51,11 +51,11 @@ class Strategy(ABC):
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[Precision] = None,
     ) -> None:
         self._accelerator: Optional["pl.accelerators.Accelerator"] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision_plugin: Optional[PrecisionPlugin] = None
+        self._precision_plugin: Optional[Precision] = None
         # Call the precision setter for input validation
         self.precision_plugin = precision_plugin  # type: ignore[assignment]
         self._lightning_module: Optional[pl.LightningModule] = None
@@ -92,11 +92,11 @@ class Strategy(ABC):
         self._checkpoint_io = io
 
     @property
-    def precision_plugin(self) -> PrecisionPlugin:
-        return self._precision_plugin if self._precision_plugin is not None else PrecisionPlugin()
+    def precision_plugin(self) -> Precision:
+        return self._precision_plugin if self._precision_plugin is not None else Precision()
 
     @precision_plugin.setter
-    def precision_plugin(self, precision_plugin: Optional[PrecisionPlugin]) -> None:
+    def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
         self._precision_plugin = precision_plugin
 
     @property

@@ -34,12 +34,12 @@ from lightning.pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAcce
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision import (
-    DeepSpeedPrecisionPlugin,
-    DoublePrecisionPlugin,
-    FSDPPrecisionPlugin,
-    HalfPrecisionPlugin,
-    MixedPrecisionPlugin,
-    PrecisionPlugin,
+    DeepSpeedPrecision,
+    DoublePrecision,
+    FSDPPrecision,
+    HalfPrecision,
+    MixedPrecision,
+    Precision,
 )
 from lightning.pytorch.strategies import (
     DDPStrategy,
@@ -99,7 +99,7 @@ def test_invalid_strategy_choice(invalid_strategy):
 
 def test_precision_and_precision_plugin_raises():
     with pytest.raises(ValueError, match="both `precision=16-true` and `plugins"):
-        _AcceleratorConnector(precision="16-true", plugins=PrecisionPlugin())
+        _AcceleratorConnector(precision="16-true", plugins=Precision())
 
 
 @RunIf(skip_windows=True, standalone=True)
@@ -204,7 +204,7 @@ def test_custom_accelerator(cuda_count_0):
         def name() -> str:
             return "custom_acc_name"
 
-    class Prec(PrecisionPlugin):
+    class Prec(Precision):
         pass
 
     class Strat(SingleDeviceStrategy):
@@ -716,8 +716,8 @@ def test_sync_batchnorm_set_in_custom_strategy():
         ([LightningEnvironment(), SLURMEnvironment()], "ClusterEnvironment"),
         ([TorchCheckpointIO(), TorchCheckpointIO()], "CheckpointIO"),
         (
-            [PrecisionPlugin(), DoublePrecisionPlugin(), LightningEnvironment(), SLURMEnvironment()],
-            "PrecisionPlugin, ClusterEnvironment",
+            [Precision(), DoublePrecision(), LightningEnvironment(), SLURMEnvironment()],
+            "Precision, ClusterEnvironment",
         ),
     ],
 )
@@ -1045,22 +1045,22 @@ def test_connector_num_nodes_input_validation():
 @pytest.mark.parametrize(
     ("precision_str", "strategy_str", "expected_precision_cls"),
     [
-        ("64-true", "auto", DoublePrecisionPlugin),
-        ("32-true", "auto", PrecisionPlugin),
-        ("16-true", "auto", HalfPrecisionPlugin),
-        ("bf16-true", "auto", HalfPrecisionPlugin),
-        ("16-mixed", "auto", MixedPrecisionPlugin),
-        ("bf16-mixed", "auto", MixedPrecisionPlugin),
-        pytest.param("32-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("bf16-true", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("bf16-mixed", "fsdp", FSDPPrecisionPlugin, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("32-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
-        pytest.param("16-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
-        pytest.param("bf16-true", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
-        pytest.param("16-mixed", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
-        pytest.param("bf16-mixed", "deepspeed", DeepSpeedPrecisionPlugin, marks=RunIf(deepspeed=True, mps=False)),
+        ("64-true", "auto", DoublePrecision),
+        ("32-true", "auto", Precision),
+        ("16-true", "auto", HalfPrecision),
+        ("bf16-true", "auto", HalfPrecision),
+        ("16-mixed", "auto", MixedPrecision),
+        ("bf16-mixed", "auto", MixedPrecision),
+        pytest.param("32-true", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("16-true", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16-true", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("32-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("bf16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("16-mixed", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
+        pytest.param("bf16-mixed", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
     ],
 )
 def test_precision_selection(precision_str, strategy_str, expected_precision_cls):

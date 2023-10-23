@@ -25,7 +25,7 @@ from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeC
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
 from lightning.fabric.utilities.types import Optimizable
-from lightning.pytorch.plugins.precision.precision import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
 
-class FSDPPrecisionPlugin(PrecisionPlugin):
+class FSDPPrecision(Precision):
     """Precision plugin for training with Fully Sharded Data Parallel (FSDP).
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -172,10 +172,10 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
             self.scaler.load_state_dict(state_dict)
 
 
-class FSDPMixedPrecisionPlugin(FSDPPrecisionPlugin):
+class FSDPMixedPrecisionPlugin(FSDPPrecision):
     """AMP for Fully Sharded Data Parallel (FSDP) Training.
 
-    .. deprecated:: Use :class:`FSDPPrecisionPlugin` instead.
+    .. deprecated:: Use :class:`FSDPPrecision` instead.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
@@ -186,6 +186,6 @@ class FSDPMixedPrecisionPlugin(FSDPPrecisionPlugin):
     ) -> None:
         rank_zero_deprecation(
             f"The `{type(self).__name__}` is deprecated."
-            " Use `lightning.pytorch.plugins.precision.FSDPPrecisionPlugin` instead."
+            " Use `lightning.pytorch.plugins.precision.FSDPPrecision` instead."
         )
         super().__init__(precision=precision, scaler=scaler)
