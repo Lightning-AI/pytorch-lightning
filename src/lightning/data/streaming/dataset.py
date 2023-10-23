@@ -75,7 +75,7 @@ class StreamingDataset(IterableDataset):
         return self.L
 
     def __iter__(self) -> "StreamingDataset":
-        self.random_state = np.random.RandomState(seed=self.seed + self.num_iter)
+        self.random_state = np.random.RandomState(seed=self.seed + self.num_iter)  # type: ignore
         chunk_intervals = self.cache.get_chunk_interval()
         indexes = range(len(chunk_intervals))
         shuffled_indexes = self.random_state.permutation(indexes) if self.shuffle else list(indexes)
