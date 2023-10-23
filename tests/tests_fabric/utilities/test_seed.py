@@ -4,8 +4,14 @@ from unittest import mock
 import lightning.fabric.utilities
 import pytest
 import torch
-from lightning.fabric.utilities import seed as seed_utils
 from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
+
+
+@mock.patch.dict(os.environ, clear=True)
+def test_default_seed():
+    """Test that the default seed is 0 when no seed provided and no environment variable set."""
+    assert lightning.fabric.utilities.seed.seed_everything() == 0
+    assert os.environ["PL_GLOBAL_SEED"] == "0"
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -30,22 +36,20 @@ def test_correct_seed_with_environment_variable():
 
 
 @mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"}, clear=True)
-@mock.patch.object(seed_utils, attribute="_select_seed_randomly", return_value=123)
-def test_invalid_seed(_):
+def test_invalid_seed():
     """Ensure that we still fix the seed even if an invalid seed is given."""
     with pytest.warns(UserWarning, match="Invalid seed found"):
         seed = lightning.fabric.utilities.seed.seed_everything()
-    assert seed == 123
+    assert seed == 0
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
-@mock.patch.object(seed_utils, attribute="_select_seed_randomly", return_value=123)
 @pytest.mark.parametrize("seed", [10e9, -10e9])
-def test_out_of_bounds_seed(_, seed):
+def test_out_of_bounds_seed(seed):
     """Ensure that we still fix the seed even if an out-of-bounds seed is given."""
     with pytest.warns(UserWarning, match="is not in bounds"):
         actual = lightning.fabric.utilities.seed.seed_everything(seed)
-    assert actual == 123
+    assert actual == 0
 
 
 def test_reset_seed_no_op():
