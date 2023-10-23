@@ -113,7 +113,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
     else:
         upload_paths = [local_src]
 
-    upload_urls = []
+    _upload_urls = []
 
     clusters = client.projects_service_list_project_cluster_bindings(project_id)
 
@@ -129,9 +129,11 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
                 body=ProjectIdStorageBody(cluster_id=cluster.cluster_id, filename=filename),
                 async_req=True,
             )
-            upload_urls.append(response)
+            _upload_urls.append(response)
 
-    upload_urls = [upload_url.get().upload_url for upload_url in upload_urls]
+    upload_urls = []
+    for upload_url in _upload_urls:
+        upload_urls.extend(upload_url.get().urls)
 
     live.stop()
 
