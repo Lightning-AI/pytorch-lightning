@@ -162,7 +162,7 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
     logger._experiment.reset_mock()
 
     # model wrapped in `FabricModule`
-    wrapped = _FabricModule(model, precision=Mock())
+    wrapped = _FabricModule(model, strategy=Mock())
     logger.log_graph(wrapped, example_input_array)
     if example_input_array is not None:
         logger.experiment.add_graph.assert_called_with(model, example_input_array)

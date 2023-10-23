@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+import weakref
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload
+from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, Sequence, TypeVar, Union, overload
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -21,10 +22,11 @@ from torch import Tensor
 from torch import nn as nn
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
+from torch.utils._pytree import tree_flatten
 from torch.utils.data import DataLoader
+from typing_extensions import Self
 
-from lightning.fabric.plugins import Precision
-from lightning.fabric.strategies import Strategy
+from lightning.fabric.strategies import DeepSpeedStrategy, Strategy
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
@@ -86,7 +88,7 @@ class _FabricOptimizer:
 
 class _FabricModule(_DeviceDtypeModuleMixin):
     def __init__(
-        self, forward_module: nn.Module, precision: Precision, original_module: Optional[nn.Module] = None
+        self, forward_module: nn.Module, strategy: Strategy, original_module: Optional[nn.Module] = None
     ) -> None:
         """The FabricModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
@@ -95,7 +97,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
         Args:
             forward_module: The module to wrap the ``forward`` method on.
-            precision: Reference to the precision plugin for handling precision context
+            strategy: Reference to the strategy.
             original_module: The original, unmodified module as passed into the
                 :meth:`lightning.fabric.fabric.Fabric.setup` method. This is needed when attribute lookup
                 on this wrapper should pass through to the original module.
@@ -104,7 +106,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         super().__init__()
         self._forward_module = forward_module
         self._original_module = original_module or forward_module
-        self._precision = precision
+        self._strategy = strategy
         self._fabric_module_initialized = True
 
     @property
@@ -113,12 +115,15 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Casts all inputs to the right precision and handles autocast for operations in the module forward method."""
-        args, kwargs = self._precision.convert_input((args, kwargs))
+        precision = self._strategy.precision
+        args, kwargs = precision.convert_input((args, kwargs))
 
-        with self._precision.forward_context():
+        with precision.forward_context():
             output = self._forward_module(*args, **kwargs)
+            if isinstance(output, torch.Tensor) and torch.is_grad_enabled() and not torch.is_inference_mode_enabled():
+                output = _BackwardTensor(self._strategy, self._forward_module, output)
 
-        output = self._precision.convert_output(output)
+        output = precision.convert_output(output)
         return output
 
     @overload
@@ -236,6 +241,69 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
         if fabric_has_attr:
             super().__setattr__(name, value)
+
+
+class _BackwardTensor(torch.Tensor):
+    def __new__(cls, strategy: Strategy, module: torch.nn.Module, *args: Any, **kwargs: Any) -> Self:
+        obj = super().__new__(cls, *args, **kwargs)
+        obj._strategy = weakref.proxy(strategy)
+        obj._module = weakref.proxy(module)
+        return obj
+
+    @classmethod
+    def __torch_function__(
+        cls,
+        func: Callable,
+        types: Sequence,
+        args: Sequence[Any] = (),
+        kwargs: Optional[Dict] = None,
+    ) -> Any:
+        flat_args, _ = tree_flatten(args)
+        bwd_tensors = [a for a in flat_args if isinstance(a, _BackwardTensor)]
+        assert bwd_tensors
+        bwd_tensor = bwd_tensors[0]
+        strategy = bwd_tensor._strategy
+        module = bwd_tensor._module
+        started = getattr(bwd_tensor, "_started", False)
+
+        if func.__name__ == "backward" and not started:
+            # avoid recursively calling `strategy.backward` if it already started
+            bwd_tensor._started = True
+
+            if isinstance(strategy, DeepSpeedStrategy):
+                # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
+                strategy._deepspeed_engine = module
+
+            # the first args element is bwd_tensor
+            strategy.backward(bwd_tensor, module, *args[1:], **kwargs)
+
+            bwd_tensor._started = False
+            return None
+
+        out = super().__torch_function__(func, types, args=args, kwargs=kwargs)
+        if not isinstance(out, torch.Tensor):
+            return out
+
+        assert isinstance(out, _BackwardTensor)
+        # propagate the references from the inputs to the outputs
+        for other in bwd_tensors[1:]:
+            if other._strategy is not strategy:
+                raise NotImplementedError(
+                    "Calling `backward` on tensors that were produced by Fabric objects with different strategies"
+                    " is not supported."
+                )
+            if isinstance(strategy, DeepSpeedStrategy) and other._module is not module:
+                raise NotImplementedError(
+                    "Calling `backward` on tensors that were produced by different fabric modules" " is not supported."
+                )
+        out._strategy = strategy
+        out._module = module
+        out._started = started
+        return out
+
+    def __repr__(self, *args: Any, **kwargs: Any) -> str:
+        # avoid showing `_BackwardTensor` to the user
+        return torch.Tensor(self).__repr__()
 
 
 class _FabricDataLoader:

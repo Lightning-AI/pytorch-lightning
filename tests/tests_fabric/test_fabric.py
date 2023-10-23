@@ -23,7 +23,6 @@ import torch.distributed
 import torch.nn.functional
 from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.fabric import Fabric
-from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
     DataParallelStrategy,
     DDPStrategy,
@@ -37,7 +36,7 @@ from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from lightning.fabric.wrappers import _BackwardTensor, _FabricDataLoader, _FabricModule, _FabricOptimizer
 from lightning_utilities.test.warning import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
@@ -597,34 +596,44 @@ def test_rank_properties():
 
 def test_backward():
     """Test that backward() calls into the precision plugin."""
-    fabric = Fabric()
-    fabric._strategy = Mock(spec=Precision)
-    loss = Mock()
-    fabric.backward(loss, "arg", keyword="kwarg")
-    fabric._strategy.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+    fabric = Fabric(devices=1)
+    precision_mock = Mock(wraps=fabric._strategy.precision)
+    fabric._strategy.precision = precision_mock
 
+    model = torch.nn.Linear(1, 1)
+    fmodel = fabric.setup(model)
+    x = torch.randn(1, 1, device=fabric.device)
 
-@RunIf(deepspeed=True, mps=False)
-def test_backward_model_input_required():
-    """Test that when using deepspeed and multiple models, backward() requires the model as input."""
-    fabric = Fabric(strategy="deepspeed", devices=1)
-    fabric._launched = True  # pretend we have launched
+    # legacy
+    loss = fmodel(x)
+    assert type(loss) is _BackwardTensor
+    # FIXME: deprecated_call
+    fabric.backward(loss, retain_graph=True)
+    precision_mock.backward.assert_called_with(
+        loss, ANY, gradient=None, retain_graph=True, create_graph=False, inputs=None
+    )
 
-    model0 = nn.Linear(1, 2)
-    model1 = nn.Linear(1, 2)
-
-    optimizer0 = torch.optim.Adam(model0.parameters())
-    optimizer1 = torch.optim.Adam(model1.parameters())
-
-    fabric._strategy.setup_module_and_optimizers = lambda *args: args
-
-    fabric.setup(model0, optimizer0)
-    fabric.setup(model1, optimizer1)
-
-    loss = model0(torch.randn(1, 1, device=fabric.device)).sum()
-
-    with pytest.raises(ValueError, match="please provide the model used to perform"):
+    # user error: not using the fabric wrapped model
+    loss = model(x)
+    with pytest.raises(RuntimeError, match="forget to wrap your model"):
         fabric.backward(loss)
+
+    # do not wrap if not necessary
+    with torch.no_grad():
+        loss = fmodel(x)
+    assert type(loss) is torch.Tensor
+    with torch.inference_mode():
+        loss = fmodel(x)
+    assert type(loss) is torch.Tensor
+
+    # ordinary usage
+    precision_mock.reset_mock()
+    loss = fmodel(x)
+    assert type(loss) is _BackwardTensor
+    loss.backward(retain_graph=True)
+    precision_mock.backward.assert_called_with(
+        loss, ANY, gradient=None, retain_graph=True, create_graph=False, inputs=None
+    )
 
 
 def test_autocast():
@@ -1203,7 +1212,7 @@ def test_verify_launch_called():
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {},
+        pytest.param({}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
         pytest.param({"precision": "16-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
         pytest.param({"precision": "64-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
     ],

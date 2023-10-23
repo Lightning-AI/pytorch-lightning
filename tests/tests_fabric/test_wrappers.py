@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import weakref
 from unittest import mock
 from unittest.mock import Mock, call
 
@@ -21,6 +22,7 @@ from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import (
+    _BackwardTensor,
     _FabricDataLoader,
     _FabricModule,
     _FabricOptimizer,
@@ -102,13 +104,13 @@ def test_fabric_module_method_lookup():
 
     # Regular case: forward_module == original_module -> no warnings
     original_module = OriginalModule()
-    fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=original_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.method_without_module_invocation() == 100
 
     # Special case: original module wrapped by forward module: -> warn if method accepts args
     original_module = OriginalModule()
     wrapped_module = ModuleWrapper(original_module)
-    fabric_module = _FabricModule(forward_module=wrapped_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=wrapped_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.method_without_module_invocation() == 100
     with pytest.raises(
         RuntimeError, match=r"You are calling the method `OriginalModule.method_with_submodule_invocation\(\)` from"
@@ -253,7 +255,7 @@ def test_fabric_module_forward_conversion(precision, input_type, expected_type, 
         return forward_input
 
     module = Mock(wraps=torch.nn.Identity(), side_effect=check_autocast)
-    fabric_module = _FabricModule(module, fabric._precision).to(device)
+    fabric_module = _FabricModule(module, fabric.strategy).to(device)
     out = fabric_module(torch.tensor([1, 2, 3], dtype=input_type, device=device))
     assert module.call_args[0][0].dtype == expected_type
     assert out.dtype == input_type or out.dtype == torch.get_default_dtype()
@@ -559,10 +561,11 @@ def test_step_method_redirection():
         def normal_method(self):
             pass
 
-    precision = Mock(wraps=Precision())
+    strategy = Mock()
+    strategy.precision = Mock(wraps=Precision())
     original_module = LightningModule()
     forward_module = DDP(original_module)
-    fabric_module = _FabricModule(forward_module=forward_module, precision=precision, original_module=original_module)
+    fabric_module = _FabricModule(forward_module=forward_module, strategy=strategy, original_module=original_module)
 
     # Regular methods on the original_module are visible and identical on the fabric_module ...
     assert fabric_module.normal_method.__wrapped__ == original_module.normal_method
@@ -584,12 +587,48 @@ def test_step_method_redirection():
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"  # call 2nd time
     assert fabric_module.validation_step("val_arg", kwarg="val_kwarg") == "validation_step_return"
-    precision.forward_context.assert_called()
+    strategy.precision.forward_context.assert_called()
 
     # The forward method remains untouched/unpatched after the special methods have been called
     assert original_module.forward.__name__ == "forward"
 
     # Special case: forward_module == original_module -> no special treatment applied
-    fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=original_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.training_step == original_module.training_step
     assert fabric_module.validation_step == original_module.validation_step
+
+
+def test_backward_tensor():
+    og = torch.tensor([0, 1, 2])
+    strategy = Mock()
+    model = Mock()
+    wrap = _BackwardTensor(strategy, model, og)
+    assert wrap._strategy is weakref.proxy(strategy)
+    assert wrap._module is weakref.proxy(model)
+    assert not hasattr(wrap, "_started")
+
+    # repr is unchanged
+    assert repr(wrap) == repr(og)
+
+    # methods work
+    x = wrap.add(1)
+    assert isinstance(x, _BackwardTensor)
+    # magic methods work
+    x = x + 1
+    assert isinstance(x, _BackwardTensor)
+    # functions work
+    x = torch.add(x, torch.tensor(1))
+    assert isinstance(x, _BackwardTensor)
+
+    assert x.tolist() == [3, 4, 5]
+
+    x.backward()
+    assert not x._started
+
+    wrap2 = _BackwardTensor(strategy, model, og)
+    out = torch.stack([wrap, wrap2])
+    assert out.tolist() == [[0, 1, 2], [0, 1, 2]]
+
+    wrap2 = _BackwardTensor(Mock(), model, og)
+    with pytest.raises(NotImplementedError, match="different strategies is not supported"):
+        torch.stack([wrap, wrap2])
