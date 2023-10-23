@@ -61,7 +61,7 @@ class StreamingDataset(IterableDataset):
         self.chunk_index = 0
         self.index = 0
         self.has_triggered_download = False
-        self.min_items_per_replica = None
+        self.min_items_per_replica: Optional[int] = None
 
     def __len__(self) -> int:
         return self.L
