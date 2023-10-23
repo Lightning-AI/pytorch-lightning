@@ -19,10 +19,10 @@ You can also customize and pass your own Precision Plugin by subclassing the :cl
 
 .. code-block:: python
 
-    class CustomPrecisionPlugin(Precision):
+    class CustomPrecision(Precision):
         precision = "16-mixed"
 
         ...
 
 
-    trainer = Trainer(plugins=[CustomPrecisionPlugin()])
+    trainer = Trainer(plugins=[CustomPrecision()])
