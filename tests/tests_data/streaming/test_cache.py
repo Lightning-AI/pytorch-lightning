@@ -227,11 +227,11 @@ def test_cache_with_name(tmpdir, monkeypatch):
     os.makedirs(os.path.join(tmpdir, "remote_dir"), exist_ok=True)
     monkeypatch.setattr(cache_module, "_try_create_cache_dir", lambda name: os.path.join(tmpdir, name))
 
-    monkeypatch.setattr(cache_module, "_find_remote_dir", lambda name, _: (os.path.join(tmpdir, "remote_dir"), True))
+    monkeypatch.setattr(cache_module, "_find_remote_dir", lambda name, _: (os.path.join(tmpdir, "remote_dir", "version_0"), True))
     cache = Cache(name="something")
     assert cache._writer._chunk_size == 2
-    assert cache._writer._cache_dir == os.path.join(tmpdir, "something")
-    assert cache._reader._remote_dir == os.path.join(tmpdir, "remote_dir")
+    assert cache._writer._cache_dir == os.path.join(tmpdir, "something", "version_0")
+    assert cache._reader._remote_dir == os.path.join(tmpdir, "remote_dir", "version_0")
 
 
 def test_streaming_dataset(tmpdir, monkeypatch):
@@ -256,3 +256,25 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 
     dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
     assert len(dataloader) == 408
+
+
+def test_streaming_dataset_distributed(tmpdir):
+    seed_everything(42)
+
+    cache = Cache(tmpdir, chunk_size=10)
+    for i in range(101):
+        cache[i] = i
+
+    cache.done()
+    cache.merge()
+
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir)
+
+    for i in range(101):
+        assert dataset[i] == i
+
+    dataset.distributed_env = _DistributedEnv(2, 0)
+    assert len(dataset) == 41
+
+    dataset.distributed_env = _DistributedEnv(2, 1)
+    assert len(dataset) == 41

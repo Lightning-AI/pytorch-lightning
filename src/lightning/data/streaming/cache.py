@@ -71,6 +71,10 @@ class Cache:
             if has_index_file and (chunk_size is None and chunk_bytes is None):
                 chunk_size = 2
 
+            # Add the version to the cache_dir to avoid collisions.
+            if remote_dir and os.path.basename(remote_dir).startswith("version_"):
+                cache_dir = os.path.join(cache_dir, os.path.basename(remote_dir))
+
             if cache_dir:
                 os.makedirs(cache_dir, exist_ok=True)
 
