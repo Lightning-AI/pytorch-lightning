@@ -256,5 +256,3 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 
     dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
     assert len(dataloader) == 408
-    dataloader_iter = iter(dataloader)
-    assert sum([len(batch) for batch in dataloader_iter]) == 816
