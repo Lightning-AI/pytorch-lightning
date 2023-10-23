@@ -31,6 +31,8 @@ class StreamingDataset(IterableDataset):
         version: Optional[Union[int, Literal["latest"]]] = "latest",
         cache_dir: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
+        shuffle: bool = True,
+        seed: int = 42,
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
 
@@ -39,6 +41,8 @@ class StreamingDataset(IterableDataset):
             version: The version of the dataset to use.
             cache_dir: The cache dir where the data would be stored.
             item_loader: The logic to load an item from a chunk.
+            shuffle: Whether to shuffle the data.
+            seed: Random seed for shuffling.
 
         """
         super().__init__()
@@ -49,6 +53,8 @@ class StreamingDataset(IterableDataset):
         if not self.cache.filled:
             raise ValueError(f"The provided dataset `{name}` isn't filled up.")
 
+
+        self.shuffle = shuffle
         self.distributed_env = _DistributedEnv.detect()
         self.worker_env: Optional[_WorkerEnv] = None
 
@@ -62,13 +68,18 @@ class StreamingDataset(IterableDataset):
         self.index = 0
         self.has_triggered_download = False
         self.min_items_per_replica = None
+        self.seed = seed
+        self.num_iter = 0
+        self.random_state = None
 
     def __len__(self) -> int:
         return self.L
 
     def __iter__(self) -> "StreamingDataset":
+        self.random_state = np.random.RandomState(seed=self.seed + self.num_iter)
         chunk_intervals = self.cache.get_chunk_interval()
-        shuffled_indexes = np.random.permutation(range(len(chunk_intervals)))
+        indexes = range(len(chunk_intervals))
+        shuffled_indexes = self.random_state.permutation(indexes) if self.shuffle else list(indexes)
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
 
         chunks_per_replica: List[List[int]] = [[] for _ in range(self.distributed_env.world_size)]
@@ -78,29 +89,25 @@ class StreamingDataset(IterableDataset):
             chunks_per_replica[replica_index].append(chunk_index)
             intervals_per_replica[replica_index].append(chunk_interval)
 
-        # TODO: Add drop_last for distributed training.
-        if self.distributed_env.world_size > 1:
-            num_items_per_replica = [
-                sum([(interval[-1] - interval[0]) for interval in intervals]) for intervals in intervals_per_replica
-            ]
-            self.min_items_per_replica = min(num_items_per_replica)
-
         current_chunks = chunks_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
         current_intervals = intervals_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
 
-        self.worker_env = _WorkerEnv.detect()
+        if self.worker_env is None:
+            self.worker_env = _WorkerEnv.detect()
 
         self.worker_chunks = []
         self.worker_intervals = []
 
+        print(self.worker_env)
+
         for i, (chunk_index, chunk_interval) in enumerate(zip(current_chunks, current_intervals)):
-            if i % self.worker_env.world_size != self.worker_env.rank:
-                continue
+            if i % self.worker_env.world_size != self.worker_env.rank: continue
             self.worker_chunks.append(chunk_index)
             self.worker_intervals.append(chunk_interval)
 
         self.current_indexes = []
         self.chunk_index = 0
+        self.num_iter += 1
 
         return self
 
@@ -116,9 +123,9 @@ class StreamingDataset(IterableDataset):
                 raise StopIteration
 
             interval = self.worker_intervals[self.chunk_index]
-            current_indexes = np.random.permutation(np.arange(interval[0], interval[1]))
-            current_indexes -= min(current_indexes)
-            assert min(current_indexes) == 0
+            current_indexes = np.arange(0, interval[1] - interval[0])
+            if self.shuffle:
+                current_indexes = self.random_state.permutation(current_indexes)
             self.current_indexes = current_indexes.tolist()
             self.chunk_index += 1
 
