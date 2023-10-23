@@ -62,7 +62,7 @@ def _scale_batch_size(
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping batch size scaler since `fast_dev_run` is enabled.")
         return None
-    
+
     # Capture whether the module is in training or eval mode
     is_training = trainer.training
 
