@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.fabric.plugins.precision.bitsandbytes import BitsandbytesPrecision as FabricBNBPrecision
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import PrecisionPlugin
 
 
 class BitsandbytesPrecisionPlugin(PrecisionPlugin, FabricBNBPrecision):

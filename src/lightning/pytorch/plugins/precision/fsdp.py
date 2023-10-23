@@ -25,7 +25,7 @@ from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeC
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
 from lightning.fabric.utilities.types import Optimizable
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import PrecisionPlugin
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:

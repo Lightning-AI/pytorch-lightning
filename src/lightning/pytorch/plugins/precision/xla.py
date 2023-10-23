@@ -22,7 +22,7 @@ import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.precision.xla import _PRECISION_INPUT
 from lightning.fabric.utilities.types import Optimizable
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import PrecisionPlugin
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 

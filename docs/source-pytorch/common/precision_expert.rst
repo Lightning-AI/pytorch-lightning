@@ -12,7 +12,7 @@ N-Bit Precision (Expert)
 Precision Plugins
 *****************
 
-You can also customize and pass your own Precision Plugin by subclassing the :class:`~lightning.pytorch.plugins.precision.precision_plugin.PrecisionPlugin` class.
+You can also customize and pass your own Precision Plugin by subclassing the :class:`~lightning.pytorch.plugins.precision.precision.Precision` class.
 
 - Perform pre and post backward/optimizer step operations such as scaling gradients.
 - Provide context managers for forward, training_step, etc.

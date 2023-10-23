@@ -22,7 +22,7 @@ from torch import Tensor
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import PrecisionPlugin
 from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation
 
 
