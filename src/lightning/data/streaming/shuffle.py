@@ -121,7 +121,7 @@ class FullShuffle(Shuffle):
 
     As the number of items in a chunk varies, it is possible for a rank to end up with more or less items.
 
-    To ensure the same fixed dataset length for all ranks while dropping as little items as possible,
+    To ensure the same fixed dataset length for all ranks while dropping as few items as possible,
 
     we adopt the following strategy.
 
