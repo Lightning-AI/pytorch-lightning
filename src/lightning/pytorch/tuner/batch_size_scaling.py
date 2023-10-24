@@ -147,7 +147,6 @@ def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) 
     assert loop is not None
     if isinstance(loop, pl.loops._FitLoop):
         loop.epoch_loop.max_steps = params["max_steps"]
-        loop.epoch_loop.val_loop._combined_loader = None
         trainer.limit_train_batches = params["limit_train_batches"]
         trainer.limit_val_batches = params["limit_val_batches"]
     elif isinstance(loop, pl.loops._EvaluationLoop):
@@ -324,6 +323,9 @@ def _reset_dataloaders(trainer: "pl.Trainer") -> None:
     assert loop is not None
     loop._combined_loader = None  # force a reload
     loop.setup_data()
+    if isinstance(loop, pl.loops._FitLoop):
+        loop.epoch_loop.val_loop._combined_loader = None
+        loop.epoch_loop.val_loop.setup_data()
 
 
 def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
