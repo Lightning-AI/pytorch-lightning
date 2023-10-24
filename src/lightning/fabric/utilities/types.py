@@ -11,9 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import defaultdict
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol, TypeVar, Union, runtime_checkable
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Protocol,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
 
 import torch
 from torch import Tensor
@@ -136,7 +147,7 @@ class Optimizable(Steppable, Protocol):
 
     param_groups: List[Dict[Any, Any]]
     defaults: Dict[Any, Any]
-    state: defaultdict[Tensor, Any]
+    state: DefaultDict[Tensor, Any]
 
     def state_dict(self) -> Dict[str, Dict[Any, Any]]:
         ...

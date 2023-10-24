@@ -127,12 +127,6 @@ files = [
 ]
 # This section is for folders with "-" as they are not valid python modules
 exclude = [
-    "src/lightning_app/__about__.py",
-    "src/lightning_app/__setup__.py",
-    "src/lightning_app/__version__.py",
-    "src/lightning_fabric/__about__.py",
-    "src/lightning_fabric/__setup__.py",
-    "src/lightning_fabric/__version__.py",
     "src/lightning/app/cli/app-template",
     "src/lightning/app/cli/component-template",
     "src/lightning/app/cli/pl-app-template",
@@ -242,9 +236,6 @@ module = [
     "lightning.app.utilities.state",
     "lightning.app.utilities.tracer",
     "lightning.app.utilities.tree",
-    "lightning.store.authentication",
-    "lightning.store.cloud_api",
-    "lightning.store.save",
     "lightning.store.utils",
 ]
 ignore_errors = "True"
