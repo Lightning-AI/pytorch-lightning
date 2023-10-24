@@ -168,7 +168,7 @@ def _plugin_to_compute_dtype(plugin: Union[Precision, PrecisionPlugin]) -> torch
     if isinstance(plugin, TransformerEnginePrecisionPlugin):
         return torch.int8
     if isinstance(plugin, FSDPPrecisionPlugin):
-        return plugin.mixed_precision_config.reduce_dtype
+        return plugin.mixed_precision_config.reduce_dtype or torch.float32
     if isinstance(plugin, PrecisionPlugin):
         return torch.float32
     return fabric_plugin_to_compute_dtype(plugin)

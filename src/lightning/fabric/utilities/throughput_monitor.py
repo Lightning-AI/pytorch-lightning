@@ -13,7 +13,7 @@
 # limitations under the License.
 from collections import deque
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Any, Callable, Deque, List, Literal, Optional
+from typing import TYPE_CHECKING, Any, Callable, Deque, Literal, Optional, Sequence
 
 import torch
 
@@ -31,7 +31,7 @@ class _ThroughputMonitorBase:
     def __init__(
         self,
         flops_available: Optional[float],
-        loggers: List["Logger"],
+        loggers: Sequence["Logger"],
         window_size: int = 100,
         time_unit: Literal["seconds", "minutes", "hours", "days"] = "hours",
     ) -> None:
@@ -273,31 +273,31 @@ _TPU_AVAILABLE_FLOPS = {
 }
 
 
-def _get_flops_available(device: torch.device, dtype: torch.dtype) -> Optional[float]:
+def _get_flops_available(device: torch.device, dtype: torch.dtype) -> Optional[int]:
     if device.type == "cuda":
         device_name = torch.cuda.get_device_name(device).lower()
         if "h100" in device_name and "hbm3" in device_name:
-            device_name = "h100-sxm"
+            chip = "h100-sxm"
         elif "h100" in device_name and ("pcie" in device_name or "hbm2e" in device_name):
-            device_name = "h100-pcie"
+            chip = "h100-pcie"
         elif "a100" in device_name:
-            device_name = "a100"
+            chip = "a100"
         elif "a10g" in device_name:
-            device_name = "a10g"
+            chip = "a10g"
         elif "v100-sxm" in device_name:
-            device_name = "v100-sxm"
+            chip = "v100-sxm"
         elif "v100-pcie" in device_name:
-            device_name = "v100-pcie"
+            chip = "v100-pcie"
         elif "t4" in device_name:
-            device_name = "t4"
+            chip = "t4"
         elif "quadro rtx 5000" in device_name:
-            device_name = "quadro rtx 5000"
+            chip = "quadro rtx 5000"
         else:
-            device_name = None
+            chip = None
 
-        if device_name is not None:
+        if chip is not None:
             try:
-                return int(_GPU_AVAILABLE_FLOPS[device_name][dtype])
+                return int(_GPU_AVAILABLE_FLOPS[chip][dtype])
             except KeyError:
                 rank_zero_warn(
                     f"flop count not found for {device_name} with dtype: {dtype}; "
@@ -311,12 +311,13 @@ def _get_flops_available(device: torch.device, dtype: torch.dtype) -> Optional[f
         else:
             from torch_xla.experimental import tpu
 
-        device_name = tpu.get_tpu_env()["TYPE"].lower()
+        chip = tpu.get_tpu_env()["TYPE"].lower()
+        assert isinstance(chip, str)
         try:
-            return int(_TPU_AVAILABLE_FLOPS[device_name])
+            return int(_TPU_AVAILABLE_FLOPS[chip])
         except KeyError:
             rank_zero_warn(
-                f"flop count not found for {device_name} with dtype: {dtype}; MFU cannot be calculated and reported."
+                f"flop count not found for {chip} with dtype: {dtype}; MFU cannot be calculated and reported."
             )
 
 
@@ -344,7 +345,7 @@ def _plugin_to_compute_dtype(plugin: "Precision") -> torch.dtype:
     if isinstance(plugin, TransformerEnginePrecision):
         return torch.int8
     if isinstance(plugin, FSDPPrecision):
-        return plugin.mixed_precision_config.reduce_dtype
+        return plugin.mixed_precision_config.reduce_dtype or torch.float32
     if isinstance(plugin, Precision):
         return torch.float32
     raise NotImplementedError(plugin)
