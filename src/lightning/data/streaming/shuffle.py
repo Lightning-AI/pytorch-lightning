@@ -150,7 +150,7 @@ class AcrossChunkShuffle(Shuffle):
                 if items_in_chunk > items_left_to_assign:
                     chunks_per_process[process_index].append(chunk_index)
                     begin, end = chunk_interval
-                    intervals_per_process[process_index].append((begin, begin + items_left_to_assign))
+                    intervals_per_process[process_index].append([begin, begin + items_left_to_assign])
                     chunk_interval = (begin + items_left_to_assign + 1, end)
                     num_items_per_process[process_index] = 0
                     process_index += 1
