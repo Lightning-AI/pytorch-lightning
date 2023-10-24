@@ -293,7 +293,7 @@ class _BackwardTensor(torch.Tensor):
         module = self._module_ref()
 
         if strategy is None or module is None:
-            # fabric was gc-collected: silently fallback to ordinary backward
+            # fabric was garbage collected: silently fallback to ordinary backward
             tensor.backward()
             return
 
