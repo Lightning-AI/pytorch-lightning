@@ -22,7 +22,7 @@ from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.item_loader import TokensLoader
-from lightning.data.streaming.shuffle import InterChunksShuffle, MinShuffle, NoShuffle
+from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, TruncatedShuffle
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from torch.utils.data import DataLoader
 
@@ -63,7 +63,7 @@ def test_streaming_dataset_distributed_min_shuffle(tmpdir):
 
     dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True)
 
-    assert isinstance(dataset.shuffle, MinShuffle)
+    assert isinstance(dataset.shuffle, TruncatedShuffle)
 
     for i in range(101):
         assert dataset[i] == i
@@ -174,7 +174,7 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
     assert len([i for i in process_1_2 if i in process_2_2]) == 0
 
 
-def test_streaming_dataset_distributed_inter_chunks_shuffle(tmpdir):
+def test_streaming_dataset_distributed_full_shuffle(tmpdir):
     seed_everything(42)
 
     cache = Cache(tmpdir, chunk_size=10)
@@ -184,9 +184,9 @@ def test_streaming_dataset_distributed_inter_chunks_shuffle(tmpdir):
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="inter_chunks")
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="full")
 
-    assert isinstance(dataset.shuffle, InterChunksShuffle)
+    assert isinstance(dataset.shuffle, FullShuffle)
 
     for i in range(1097):
         assert dataset[i] == i
@@ -199,8 +199,8 @@ def test_streaming_dataset_distributed_inter_chunks_shuffle(tmpdir):
     assert process_1_1[:10] == [785, 788, 782, 783, 789, 787, 786, 781, 784, 780]
     assert len(process_1_1) == 548
 
-    dataset_2 = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="inter_chunks")
-    assert isinstance(dataset_2.shuffle, InterChunksShuffle)
+    dataset_2 = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="full")
+    assert isinstance(dataset_2.shuffle, FullShuffle)
     dataset_2.distributed_env = _DistributedEnv(2, 1)
     assert len(dataset_2) == 548
     dataset_2_iter = iter(dataset_2)

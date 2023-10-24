@@ -73,12 +73,14 @@ class NoShuffle(Shuffle):
         return array.tolist()
 
 
-class MinShuffle(Shuffle):
-    """MinShuffle shuffles the chunks and associates them to the ranks.
+class TruncatedShuffle(Shuffle):
+    """TruncatedShuffle shuffles the chunks and associates them to the ranks.
 
-    As the number of items in a chunks varies, it is possible for a rank to end up with more or less items.
+    As the number of items in a chunk varies, it is possible for a rank to end up with more or less items.
 
-    To ensure a fixed dataset length, we retain the minimum number of items per process across all processes.
+    To ensure the same fixed dataset length for all ranks, we compute the minimum number of items across all ranks.
+
+    For the ranks with more items than the minimum, the remaining items are dropped.
 
     Note: This is the fatest sampling strategy but at the cost of losing items.
 
@@ -114,20 +116,21 @@ class MinShuffle(Shuffle):
         return self.random_state.permutation(array).tolist()
 
 
-class InterChunksShuffle(Shuffle):
-    """InterChunksShuffle shuffles the chunks and associates them to the ranks.
+class FullShuffle(Shuffle):
+    """FullShuffle shuffles the chunks and associates them to the ranks.
 
-    As the number of items in a chunks varies, it is possible for a rank to end up with more or less items.
+    As the number of items in a chunk varies, it is possible for a rank to end up with more or less items.
 
-    To ensure a fixed dataset length across all ranks while dropping as little items as possible, we adopt the following
-    strategy:
+    To ensure the same fixed dataset length for all ranks while dropping as little items as possible,
 
-    We compute the maximum number of items per rank (M) and iterate through the chunks and processes
+    we adopt the following strategy.
+
+    We compute the maximum number of items per rank (M) and iterate through the chunks and ranks
 
     until we have associated at least M items per rank.
 
-    As a result, we lose at most world_size items but some chunks are shared across ranks leading to some performance
-    loss.
+    As a result, we lose at most world_size items. However, as some chunks are shared across ranks and trigger
+    duplicated chunk download, this can lead to some performance drop.
 
     """
 
