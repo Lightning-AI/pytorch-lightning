@@ -49,4 +49,4 @@ jobs:
           pip list
 
       - name: Check typing
-        run: mypy --no-warn-unused-ignores
+        run: mypy

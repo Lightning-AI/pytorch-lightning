@@ -143,7 +143,7 @@ class FSDPPrecision(Precision):
         if scaler is not None:
             if _optimizer_handles_unscaling(optimizer):
                 raise NotImplementedError("Gradient clipping is not implemented for optimizers handling the unscaling.")
-            scaler.unscale_(optimizer)  # type: ignore[arg-type]  # ShardedGradScaler has wrong type annotation
+            scaler.unscale_(optimizer)
 
     def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:

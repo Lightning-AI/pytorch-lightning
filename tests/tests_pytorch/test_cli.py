@@ -63,6 +63,9 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
 else:
     from argparse import Namespace
 
+    def lazy_instance(*args, **kwargs):
+        return None
+
 
 @contextmanager
 def mock_subclasses(baseclass, *subclasses):
@@ -176,7 +179,9 @@ def test_lightning_cli_args_callbacks(cleandir):
             self.trainer.ran_asserts = True
 
     with mock.patch("sys.argv", ["any.py", "fit", f"--trainer.callbacks={json.dumps(callbacks)}"]):
-        cli = LightningCLI(TestModel, trainer_defaults={"fast_dev_run": True, "logger": CSVLogger(".")})
+        cli = LightningCLI(
+            TestModel, trainer_defaults={"fast_dev_run": True, "logger": lazy_instance(CSVLogger, save_dir=".")}
+        )
 
     assert cli.trainer.ran_asserts
 
@@ -592,7 +597,7 @@ class EarlyExitTestModel(BoringModel):
 
 # mps not yet supported by distributed
 @RunIf(skip_windows=True, mps=False)
-@pytest.mark.parametrize("logger", [False, TensorBoardLogger(".")])
+@pytest.mark.parametrize("logger", [False, lazy_instance(TensorBoardLogger, save_dir=".")])
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp"])
 def test_cli_distributed_save_config_callback(cleandir, logger, strategy):
     from torch.multiprocessing import ProcessRaisedException
@@ -1478,9 +1483,7 @@ def test_tensorboard_logger_init_args():
         "TensorBoardLogger",
         {
             "save_dir": "tb",  # Resolve from TensorBoardLogger.__init__
-        },
-        {
-            "comment": "tb",  # Unsupported resolving from local imports
+            "comment": "tb",  # Resolve from FabricTensorBoardLogger.experiment SummaryWriter local import
         },
     )
 
