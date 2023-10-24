@@ -25,9 +25,7 @@ def test_measure_flops():
 def test_speed_monitor(tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
-    speed_monitor = SpeedMonitorCallback(
-        length_fn=lambda x: 2, batch_size=3, window_size=3, time_unit="seconds"
-    )
+    speed_monitor = SpeedMonitorCallback(length_fn=lambda x: 2, batch_size=3, window_size=3, time_unit="seconds")
     model = BoringModel()
     model.flops_per_batch = 10
     trainer = Trainer(
@@ -42,15 +40,7 @@ def test_speed_monitor(tmp_path):
         enable_progress_bar=False,
     )
     # these timing results are meant to precisely match the `test_speed_monitor` test in fabric
-    timings = [
-        0.0,
-        1.5,
-        2.5,
-        0.0,
-        0.2,
-        3.5,
-        4.5, 0.0, 0.2, 5.5, 6.5
-    ]
+    timings = [0.0, 1.5, 2.5, 0.0, 0.2, 3.5, 4.5, 0.0, 0.2, 5.5, 6.5]
     with mock.patch("lightning.pytorch.utilities.speed_monitor._get_flops_available", return_value=100), mock.patch(
         "time.perf_counter", side_effect=timings
     ):

@@ -204,33 +204,33 @@ class _SpeedMonitorBase:
         log_dict: Callable[[Dict, int], None],
         window_size: int = 100,
         time_unit: str = "hours",
-    ):
+    ) -> None:
         self.flops_available = flops_available
         self.log_dict = log_dict
 
-        # Track the batch num samples and wct to compute throughput over a window of batches
-        self.history_samples: Deque[int] = deque(maxlen=window_size + 1)
-        self.history_wct: Deque[float] = deque(maxlen=window_size + 1)
-        self.history_lengths: Deque[int] = deque(maxlen=window_size + 1)
-        self.history_flops: Deque[int] = deque(maxlen=window_size + 1)
+        # throughput is computed over a window of batches
+        self._samples: Deque[int] = deque(maxlen=window_size + 1)
+        self._time: Deque[float] = deque(maxlen=window_size + 1)
+        self._lengths: Deque[int] = deque(maxlen=window_size + 1)
+        self._flops: Deque[int] = deque(maxlen=window_size + 1)
 
-        self.divider = 1
+        self._divider = 1
         if time_unit == "seconds":
-            self.divider = 1
+            self._divider = 1
         elif time_unit == "minutes":
-            self.divider = 60
+            self._divider = 60
         elif time_unit == "hours":
-            self.divider = 60 * 60
+            self._divider = 60 * 60
         elif time_unit == "days":
-            self.divider = 60 * 60 * 24
+            self._divider = 60 * 60 * 24
         else:
             raise ValueError(
                 f'Invalid time_unit: {time_unit}. Must be one of "seconds", "minutes", "hours", or "days".'
             )
 
         # Keep track of time spent evaluating
-        self.total_eval_wct = 0.0
-        self.step = -1
+        self._total_eval_time = 0.0
+        self._step = -1
 
     def on_train_batch_end(
         self,
@@ -240,20 +240,20 @@ class _SpeedMonitorBase:
         flops_per_batch: Optional[int] = None,  # (per device)
         lengths: Optional[int] = None,  # total length of the samples seen (per device)
     ) -> None:
-        self.step += 1
-        step = self.step
+        self._step += 1
+        step = self._step
         metrics = {}
 
-        self.history_samples.append(samples)
+        self._samples.append(samples)
         if lengths is not None:
-            self.history_lengths.append(lengths)
+            self._lengths.append(lengths)
             # if lengths are passed, there should be as many values as samples
-            assert len(self.history_samples) == len(self.history_lengths)
-        self.history_wct.append(train_elapsed)
-        if len(self.history_wct) == self.history_wct.maxlen:
-            elapsed_batches = len(self.history_samples) - 1
-            elapsed_samples = self.history_samples[-1] - self.history_samples[0]
-            elapsed_wct = self.history_wct[-1] - self.history_wct[0]
+            assert len(self._samples) == len(self._lengths)
+        self._time.append(train_elapsed)
+        if len(self._time) == self._time.maxlen:
+            elapsed_batches = len(self._samples) - 1
+            elapsed_samples = self._samples[-1] - self._samples[0]
+            elapsed_wct = self._time[-1] - self._time[0]
             samples_per_sec = elapsed_samples * world_size / elapsed_wct
             dev_samples_per_sec = elapsed_samples / elapsed_wct
             metrics.update(
@@ -265,7 +265,7 @@ class _SpeedMonitorBase:
                 }
             )
             if lengths is not None:
-                elapsed_lengths = int(self.history_lengths[-1]) - int(self.history_lengths[0])
+                elapsed_lengths = int(self._lengths[-1]) - int(self._lengths[0])
                 avg_length = elapsed_lengths / elapsed_batches
                 metrics.update(
                     {
@@ -276,10 +276,10 @@ class _SpeedMonitorBase:
 
         if flops_per_batch is not None:
             # sum of flops per batch across ranks
-            self.history_flops.append(flops_per_batch * world_size)
-        if len(self.history_flops) == self.history_flops.maxlen:
-            elapsed_flops = sum(self.history_flops) - self.history_flops[0]
-            elapsed_wct = self.history_wct[-1] - self.history_wct[0]
+            self._flops.append(flops_per_batch * world_size)
+        if len(self._flops) == self._flops.maxlen:
+            elapsed_flops = sum(self._flops) - self._flops[0]
+            elapsed_wct = self._time[-1] - self._time[0]
             flops_per_sec = elapsed_flops / elapsed_wct
             device_flops_per_sec = flops_per_sec / world_size
             metrics.update(
@@ -290,9 +290,9 @@ class _SpeedMonitorBase:
 
         metrics.update(
             {
-                "time/train": train_elapsed / self.divider,
-                "time/val": self.total_eval_wct / self.divider,
-                "time/total": (train_elapsed + self.total_eval_wct) / self.divider,
+                "time/train": train_elapsed / self._divider,
+                "time/val": self._total_eval_time / self._divider,
+                "time/total": (train_elapsed + self._total_eval_time) / self._divider,
                 "samples": samples,
             }
         )
@@ -300,7 +300,7 @@ class _SpeedMonitorBase:
         self.log_dict(metrics, step)
 
     def eval_end(self, eval_elapsed: float) -> None:
-        self.total_eval_wct += eval_elapsed  # seconds
+        self._total_eval_time += eval_elapsed  # seconds
 
 
 def _plugin_to_compute_dtype(plugin: Precision) -> torch.dtype:

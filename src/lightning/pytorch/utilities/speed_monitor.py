@@ -22,60 +22,57 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only
 class SpeedMonitorCallback(Callback):
     def __init__(self, length_fn: Callable[[Any], int], batch_size: int, **kwargs: Any) -> None:
         super().__init__()
-        self.speed_monitor: Optional[_SpeedMonitorBase] = None
-        self.speed_monitor_kwargs = kwargs
+        self._speed_monitor: Optional[_SpeedMonitorBase] = None
+        self._kwargs = kwargs
         self.length_fn = length_fn
         self.batch_size = batch_size
-        self.eval_t0: int = 0
-        self.train_t0: int = 0
-        self.total_lengths: int = 0
+        self._eval_t0 = 0.0
+        self._train_t0 = 0.0
+        self._total_lengths = 0
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
-        if self.speed_monitor is not None:
+        if self._speed_monitor is not None:
             return  # already setup
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
         flops_available = _get_flops_available(trainer.strategy.root_device, dtype)
-        self.speed_monitor = _SpeedMonitorBase(flops_available, trainer.logger.log_metrics, **self.speed_monitor_kwargs)
+        self._speed_monitor = _SpeedMonitorBase(flops_available, trainer.logger.log_metrics, **self._kwargs)
 
     @rank_zero_only
     def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         if trainer.fit_loop._should_accumulate():
             return
-
-        self.train_t0 = time.perf_counter()
+        self._train_t0 = time.perf_counter()
 
     @rank_zero_only
     def on_train_batch_end(
         self, trainer: Trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int
     ) -> None:
-        self.total_lengths += self.length_fn(batch)
+        train_elapsed = time.perf_counter() - self._train_t0
+        self._total_lengths += self.length_fn(batch)
         if trainer.fit_loop._should_accumulate():
             return
-        train_elapsed = time.perf_counter() - self.train_t0
-        assert self.speed_monitor is not None
-        iter_num = trainer.fit_loop.total_batch_idx
-
         flops_per_batch = pl_module.flops_per_batch if hasattr(pl_module, "flops_per_batch") else None
-
-        self.speed_monitor.on_train_batch_end(
+        assert self._speed_monitor is not None
+        iter_num = trainer.fit_loop.total_batch_idx
+        self._speed_monitor.on_train_batch_end(
             (iter_num + 1) * self.batch_size,
             train_elapsed,
             # this assumes that device FLOPs are the same and that all devices have the same batch size
             trainer.world_size,
             flops_per_batch=flops_per_batch,
-            lengths=self.total_lengths,
+            lengths=self._total_lengths,
         )
 
     @rank_zero_only
     def on_validation_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         if trainer.sanity_checking:
             return
-        self.eval_t0 = time.perf_counter()
+        self._eval_t0 = time.perf_counter()
 
     @rank_zero_only
     def on_validation_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         if trainer.sanity_checking:
             return
-        eval_elapsed = time.perf_counter() - self.eval_t0
-        assert self.speed_monitor is not None
-        self.speed_monitor.eval_end(eval_elapsed)
+        eval_elapsed = time.perf_counter() - self._eval_t0
+        assert self._speed_monitor is not None
+        self._speed_monitor.eval_end(eval_elapsed)
