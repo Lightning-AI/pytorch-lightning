@@ -129,8 +129,8 @@ class FullShuffle(Shuffle):
 
     until we have associated at least M items per rank.
 
-    As a result, we lose at most world_size items. However, as some chunks are shared across ranks and trigger
-    duplicated chunk download, this can lead to some performance drop.
+    As a result, we lose at most world_size items. However, as some chunks are shared across ranks. This leads to the
+    same chunk to be downloaded multiple times
 
     """
 
