@@ -14,7 +14,6 @@
 import inspect
 import weakref
 from functools import wraps
-from numbers import Number
 from typing import (
     Any,
     Callable,
@@ -38,11 +37,12 @@ from torch import Tensor
 from torch import nn as nn
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
-from torch.utils._pytree import map_only, tree_flatten, tree_map_only, tree_unflatten
+from torch.utils._pytree import tree_flatten, tree_unflatten
 from torch.utils.data import DataLoader
 
 from lightning.fabric.strategies import DeepSpeedStrategy, Strategy
 from lightning.fabric.utilities import move_data_to_device
+from lightning.fabric.utilities._pytree import map_only, tree_map_only
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_2
@@ -266,7 +266,6 @@ class _BackwardTensor(torch.Tensor):
         - :class:`~torch.distributed._tensor.api.DTensor`
         - https://github.com/albanD/subclass_zoo/blob/08dfcf9/custom_parameter.py
         - https://github.com/albanD/subclass_zoo/issues/29
-        - :class:`~torch.testing._internal.two_tensor`
         - https://github.com/pytorch/pytorch/blob/ba86dfcd83/torch/testing/_internal/two_tensor.py
 
     """
@@ -372,30 +371,30 @@ class _BackwardTensor(torch.Tensor):
     def _to_tensor(self) -> torch.Tensor:
         return _ToTensor.apply(self)
 
-    def __repr__(self, *, tensor_contents: Optional[str] = None) -> str:
+    def __repr__(self, *, tensor_contents: Optional[str] = None) -> str:  # type: ignore[override]
         # avoid showing `_BackwardTensor` to the user
         return self._tensor.__repr__(tensor_contents=tensor_contents)
 
-    def tolist(self) -> Union[Number, List]:
+    def tolist(self) -> List:
         # workaround to https://github.com/pytorch/pytorch/blob/v2.1.0/torch/csrc/utils/tensor_list.cpp#L43-L45
         return self._tensor.tolist()
 
 
 class _FromTensor(torch.autograd.Function):
     @staticmethod
-    def forward(
+    def forward(  # type: ignore[override]
         ctx: torch.autograd.function.FunctionCtx,
         tensor: torch.Tensor,
         strategy: Strategy,
         module: torch.nn.Module,
-    ) -> _BackwardTensor:  # type: ignore[override]
+    ) -> _BackwardTensor:
         return _BackwardTensor(tensor, strategy, module)
 
     @staticmethod
-    def backward(
+    def backward(  # type: ignore[override]
         ctx: torch.autograd.function.FunctionCtx,
         grad_output: Union[_BackwardTensor, torch.Tensor],
-    ) -> Tuple[torch.Tensor, None, None]:  # type: ignore[override]
+    ) -> Tuple[torch.Tensor, None, None]:
         if isinstance(grad_output, _BackwardTensor):
             # this wouldn't be a BackwardTensor if the strategy/module has been garbage collected
             grad_output = grad_output._to_tensor()
@@ -404,19 +403,19 @@ class _FromTensor(torch.autograd.Function):
 
 class _ToTensor(torch.autograd.Function):
     @staticmethod
-    def forward(
+    def forward(  # type: ignore[override]
         ctx: torch.autograd.function.FunctionCtx,
         tensor: _BackwardTensor,
-    ) -> torch.Tensor:  # type: ignore[override]
+    ) -> torch.Tensor:
         ctx.strategy_ref = tensor._strategy_ref
         ctx.module_ref = tensor._module_ref
         return tensor._tensor
 
     @staticmethod
-    def backward(
+    def backward(  # type: ignore[override]
         ctx: torch.autograd.function.FunctionCtx,
         grad_output: torch.Tensor,
-    ) -> _BackwardTensor:  # type: ignore[override]
+    ) -> _BackwardTensor:
         return _BackwardTensor(grad_output, ctx.strategy_ref, ctx.module_ref)
 
 
