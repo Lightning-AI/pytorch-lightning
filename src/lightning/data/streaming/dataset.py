@@ -57,12 +57,12 @@ class StreamingDataset(IterableDataset):
         self.distributed_env = _DistributedEnv.detect()
 
         if isinstance(shuffle, bool):
-            shuffle = MinShuffle(self.cache, seed) if shuffle else NoShuffle(self.cache, seed)
+            _shuffle = MinShuffle(self.cache, seed) if shuffle else NoShuffle(self.cache, seed)
 
         if isinstance(shuffle, str):
-            shuffle = MinShuffle(self.cache, seed)
+            _shuffle = MinShuffle(self.cache, seed)
 
-        self.shuffle: Shuffle = shuffle
+        self.shuffle: Shuffle = _shuffle
         self.worker_env: Optional[_WorkerEnv] = None
         self.worker_chunks: List[int] = []
         self.worker_intervals: List[List[int]] = []
