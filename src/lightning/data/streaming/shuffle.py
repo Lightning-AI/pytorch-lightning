@@ -22,6 +22,8 @@ from lightning.data.streaming import Cache
 
 
 class Shuffle(ABC):
+    """Shuffle describe how to distribute chunked datasets across processes and workers."""
+
     def __init__(self, cache: Cache, seed: int):
         self.cache = cache
         self.seed = seed
@@ -36,12 +38,14 @@ class Shuffle(ABC):
         pass
 
     @abstractmethod
-    def permute(self, array: np.ndarray) -> List[int]:
+    def __call__(self, array: np.ndarray) -> List[int]:
         pass
 
 
 class NoShuffle(Shuffle):
-    @lru_cache
+    """NoShuffle doesn't shuffle the items and ensure all the processes receive the same number of items."""
+
+    @lru_cache(maxsize=10)
     def get_len(self, distributed_env: _DistributedEnv, current_epoch: int) -> int:
         _, intervals_per_process = self.get_chunks_and_intervals_per_process(distributed_env, current_epoch)
         min_items_per_process = min(
@@ -49,6 +53,7 @@ class NoShuffle(Shuffle):
         )
         return min_items_per_process
 
+    @lru_cache(maxsize=10)
     def get_chunks_and_intervals_per_process(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
         self.random_state = np.random.RandomState(seed=self.seed + current_epoch)  # type: ignore
         chunk_intervals = self.cache.get_chunk_intervals()
@@ -64,12 +69,14 @@ class NoShuffle(Shuffle):
 
         return chunks_per_process, intervals_per_process
 
-    def permute(self, array: np.ndarray) -> List[int]:
+    def __call__(self, array: np.ndarray) -> List[int]:
         return array.tolist()
 
 
 class MinShuffle(Shuffle):
-    @lru_cache
+    """MinShuffle shuffle the items and ensure all the processes receive the same number of items."""
+
+    @lru_cache(maxsize=10)
     def get_len(self, distributed_env: _DistributedEnv, current_epoch: int) -> int:
         _, intervals_per_process = self.get_chunks_and_intervals_per_process(distributed_env, current_epoch)
         min_items_per_process = min(
@@ -77,6 +84,7 @@ class MinShuffle(Shuffle):
         )
         return min_items_per_process
 
+    @lru_cache(maxsize=10)
     def get_chunks_and_intervals_per_process(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
         self.random_state = np.random.RandomState(seed=self.seed + current_epoch)  # type: ignore
         chunk_intervals = self.cache.get_chunk_intervals()
@@ -93,6 +101,67 @@ class MinShuffle(Shuffle):
 
         return chunks_per_process, intervals_per_process
 
-    def permute(self, array: np.ndarray) -> List[int]:
+    def __call__(self, array: np.ndarray) -> List[int]:
+        assert self.random_state
+        return self.random_state.permutation(array).tolist()
+
+
+class AcrossChunkShuffle(Shuffle):
+    """AcrossChunkShuffle shuffle the items and ensure all the processes receive the same number of items."""
+
+    @lru_cache(maxsize=10)
+    def get_len(self, distributed_env: _DistributedEnv, current_epoch: int) -> int:
+        _, intervals_per_process = self.get_chunks_and_intervals_per_process(distributed_env, current_epoch)
+        min_items_per_process = min([sum([(i[-1] - i[0]) for i in intervals]) for intervals in intervals_per_process])
+        return min_items_per_process
+
+    @lru_cache(maxsize=10)
+    def get_chunks_and_intervals_per_process(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
+        self.random_state = np.random.RandomState(seed=self.seed + current_epoch)  # type: ignore
+        chunk_intervals = self.cache.get_chunk_intervals()
+        indexes = range(len(chunk_intervals))
+        shuffled_indexes = self.random_state.permutation(indexes)
+        shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
+
+        num_items = sum([(interval[-1] - interval[0]) for interval in chunk_intervals])
+        num_items_per_process: List[int] = [
+            num_items // distributed_env.world_size for _ in range(distributed_env.world_size)
+        ]
+        chunks_per_process: List[List[int]] = [[] for _ in range(distributed_env.world_size)]
+        intervals_per_process: List[List[List[int]]] = [[] for _ in range(distributed_env.world_size)]
+        for chunk_index, chunk_interval in zip(shuffled_indexes, shuffled_chunk_intervals):
+            process_index = 0
+
+            while True:
+                if process_index == len(num_items_per_process):
+                    break
+
+                items_left_to_assign = num_items_per_process[process_index]
+
+                if items_left_to_assign == 0:
+                    process_index += 1
+                    continue
+
+                items_in_chunk = chunk_interval[-1] - chunk_interval[0]
+
+                if items_in_chunk == 0:
+                    break
+
+                if items_in_chunk > items_left_to_assign:
+                    chunks_per_process[process_index].append(chunk_index)
+                    begin, end = chunk_interval
+                    intervals_per_process[process_index].append((begin, begin + items_left_to_assign))
+                    chunk_interval = (begin + items_left_to_assign + 1, end)
+                    num_items_per_process[process_index] = 0
+                    process_index += 1
+                else:
+                    chunks_per_process[process_index].append(chunk_index)
+                    intervals_per_process[process_index].append(chunk_interval)
+                    num_items_per_process[process_index] -= items_in_chunk
+                    break
+
+        return chunks_per_process, intervals_per_process
+
+    def __call__(self, array: np.ndarray) -> List[int]:
         assert self.random_state
         return self.random_state.permutation(array).tolist()

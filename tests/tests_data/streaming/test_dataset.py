@@ -22,7 +22,7 @@ from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.item_loader import TokensLoader
-from lightning.data.streaming.shuffle import MinShuffle, NoShuffle
+from lightning.data.streaming.shuffle import AcrossChunkShuffle, MinShuffle, NoShuffle
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from torch.utils.data import DataLoader
 
@@ -163,3 +163,39 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
 
     assert len([i for i in process_1_1 if i in process_2_1]) == 0
     assert len([i for i in process_1_2 if i in process_2_2]) == 0
+
+
+def test_streaming_dataset_distributed_across_chunks_shuffle(tmpdir):
+    seed_everything(42)
+
+    cache = Cache(tmpdir, chunk_size=10)
+    for i in range(1097):
+        cache[i] = i
+
+    cache.done()
+    cache.merge()
+
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="across_chunks")
+
+    assert isinstance(dataset.shuffle, AcrossChunkShuffle)
+
+    for i in range(1097):
+        assert dataset[i] == i
+
+    dataset.distributed_env = _DistributedEnv(2, 0)
+    assert len(dataset) == 548
+    dataset_iter = iter(dataset)
+    assert len(dataset_iter) == 548
+    process_1_1 = list(dataset_iter)
+    assert len(process_1_1) == 548
+
+    dataset_2 = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="across_chunks")
+    assert isinstance(dataset_2.shuffle, AcrossChunkShuffle)
+    dataset_2.distributed_env = _DistributedEnv(2, 1)
+    assert len(dataset_2) == 548
+    dataset_2_iter = iter(dataset_2)
+    assert len(dataset_2_iter) == 548
+    process_2_1 = list(dataset_2_iter)
+    assert len(process_2_1) == 548
+
+    assert len([i for i in process_1_1 if i in process_2_1]) == 0

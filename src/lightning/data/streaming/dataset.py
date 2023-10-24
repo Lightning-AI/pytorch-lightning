@@ -20,7 +20,7 @@ from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
-from lightning.data.streaming.shuffle import MinShuffle, NoShuffle, Shuffle
+from lightning.data.streaming.shuffle import AcrossChunkShuffle, MinShuffle, NoShuffle, Shuffle
 
 
 class StreamingDataset(IterableDataset):
@@ -32,7 +32,7 @@ class StreamingDataset(IterableDataset):
         version: Optional[Union[int, Literal["latest"]]] = "latest",
         cache_dir: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
-        shuffle: Union[bool, Literal["min"]] = "min",
+        shuffle: Union[bool, Literal["min", "across_chunks"]] = "min",
         seed: int = 42,
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
@@ -60,7 +60,12 @@ class StreamingDataset(IterableDataset):
             _shuffle = MinShuffle(self.cache, seed) if shuffle else NoShuffle(self.cache, seed)
 
         if isinstance(shuffle, str):
-            _shuffle = MinShuffle(self.cache, seed)
+            if shuffle == "min":
+                _shuffle = MinShuffle(self.cache, seed)
+            elif shuffle == "across_chunks":
+                _shuffle = AcrossChunkShuffle(self.cache, seed)
+            else:
+                raise ValueError(f"The provided shuffle doesn't exist. Found {shuffle}")
 
         self.shuffle: Shuffle = _shuffle
         self.worker_env: Optional[_WorkerEnv] = None
@@ -121,8 +126,8 @@ class StreamingDataset(IterableDataset):
                 raise StopIteration
 
             interval = self.worker_intervals[self.chunk_index]
-            current_indexes = np.arange(0, interval[1] - interval[0])
-            self.current_indexes = self.shuffle.permute(current_indexes)
+            current_indexes = np.arange(interval[0], interval[1])
+            self.current_indexes = self.shuffle(current_indexes)
             self.chunk_index += 1
 
         # Get the first index
