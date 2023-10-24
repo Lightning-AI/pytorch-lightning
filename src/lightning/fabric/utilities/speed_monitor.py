@@ -13,44 +13,30 @@
 # limitations under the License.
 from collections import deque
 from contextlib import nullcontext
-from typing import Any, Callable, Deque, Dict, Literal, Optional
+from typing import TYPE_CHECKING, Any, Callable, Deque, List, Literal, Optional
 
 import torch
 
-from lightning import Fabric
-from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
-from lightning.fabric.plugins import (
-    BitsandbytesPrecision,
-    DoublePrecision,
-    FSDPPrecision,
-    HalfPrecision,
-    MixedPrecision,
-    Precision,
-    TransformerEnginePrecision,
-    XLAPrecision,
-)
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
-from lightning.fabric.utilities.rank_zero import rank_zero_only
-from lightning.pytorch.plugins import (
-    DoublePrecisionPlugin,
-    FSDPPrecisionPlugin,
-    HalfPrecisionPlugin,
-    MixedPrecisionPlugin,
-    XLAPrecisionPlugin,
-)
+from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
+
+if TYPE_CHECKING:
+    from lightning.fabric import Fabric
+    from lightning.fabric.loggers import Logger
+    from lightning.fabric.plugins import Precision
 
 
 # Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
 class _SpeedMonitorBase:
     def __init__(
         self,
-        flops_available: float,
-        log_dict: Callable[[Dict, int], None],
+        flops_available: Optional[float],
+        loggers: List["Logger"],
         window_size: int = 100,
         time_unit: Literal["seconds", "minutes", "hours", "days"] = "hours",
     ) -> None:
         self.flops_available = flops_available
-        self.log_dict = log_dict
+        self.loggers = loggers
 
         # throughput is computed over a window of batches
         self._samples: Deque[int] = deque(maxlen=window_size + 1)
@@ -140,7 +126,8 @@ class _SpeedMonitorBase:
             }
         )
 
-        self.log_dict(metrics, step)
+        for logger in self.loggers:
+            logger.log_metrics(metrics=metrics, step=step)
 
     def eval_end(self, eval_elapsed: float) -> None:
         self._total_eval_time += eval_elapsed  # seconds
@@ -204,10 +191,10 @@ class SpeedMonitor(_SpeedMonitorBase):
 
     """
 
-    def __init__(self, fabric: Fabric, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, fabric: "Fabric", *args: Any, **kwargs: Any) -> None:
         dtype = _plugin_to_compute_dtype(fabric.strategy.precision)
         flops_available = _get_flops_available(fabric.device, dtype)
-        super().__init__(flops_available, fabric.log_dict, *args, **kwargs)
+        super().__init__(flops_available, fabric.loggers, *args, **kwargs)
 
     @rank_zero_only
     def on_train_batch_end(self, *args: Any, **kwargs: Any) -> None:
@@ -326,11 +313,13 @@ def _get_flops_available(device: torch.device, dtype: torch.dtype) -> Optional[f
             try:
                 return int(_GPU_AVAILABLE_FLOPS[device_name][dtype])
             except KeyError:
-                raise KeyError(
+                rank_zero_warn(
                     f"flop count not found for {device_name} with dtype: {dtype}; "
                     "MFU cannot be calculated and reported."
                 )
     elif device.type == "xla":
+        from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
+
         if _XLA_GREATER_EQUAL_2_1:
             from torch_xla._internal import tpu
         else:
@@ -340,27 +329,35 @@ def _get_flops_available(device: torch.device, dtype: torch.dtype) -> Optional[f
         try:
             return int(_TPU_AVAILABLE_FLOPS[device_name])
         except KeyError:
-            raise KeyError(
+            rank_zero_warn(
                 f"flop count not found for {device_name} with dtype: {dtype}; MFU cannot be calculated and reported."
             )
 
-    return None
 
+def _plugin_to_compute_dtype(plugin: "Precision") -> torch.dtype:
+    from lightning.fabric.plugins import (
+        BitsandbytesPrecision,
+        DeepSpeedPrecision,
+        DoublePrecision,
+        FSDPPrecision,
+        HalfPrecision,
+        MixedPrecision,
+        Precision,
+        TransformerEnginePrecision,
+        XLAPrecision,
+    )
 
-def _plugin_to_compute_dtype(plugin: Precision) -> torch.dtype:
     if isinstance(plugin, BitsandbytesPrecision):
         return plugin.dtype
-    if isinstance(plugin, (HalfPrecision, MixedPrecision, HalfPrecisionPlugin)):
+    if isinstance(plugin, (HalfPrecision, MixedPrecision)):
         return plugin._desired_input_dtype
-    if isinstance(plugin, MixedPrecisionPlugin):
-        return torch.bfloat16 if plugin.precision == "bf16-mixed" else torch.half
-    if isinstance(plugin, (DoublePrecision, DoublePrecisionPlugin)):
+    if isinstance(plugin, DoublePrecision):
         return torch.double
-    if isinstance(plugin, (XLAPrecision, XLAPrecisionPlugin)):
+    if isinstance(plugin, (XLAPrecision, DeepSpeedPrecision)):
         return plugin._desired_dtype
     if isinstance(plugin, TransformerEnginePrecision):
         return torch.int8
-    if isinstance(plugin, (FSDPPrecision, FSDPPrecisionPlugin)):
+    if isinstance(plugin, FSDPPrecision):
         return plugin.mixed_precision_config.reduce_dtype
     if isinstance(plugin, Precision):
         return torch.float32

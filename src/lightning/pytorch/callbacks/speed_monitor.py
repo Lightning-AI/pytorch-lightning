@@ -12,14 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
-from lightning import Callback, LightningModule, Trainer
-from lightning.fabric.utilities.speed_monitor import _get_flops_available, _plugin_to_compute_dtype, _SpeedMonitorBase
-from lightning.pytorch.utilities.rank_zero import rank_zero_only
+import torch
+
+from lightning.fabric.plugins import Precision
+from lightning.fabric.utilities.speed_monitor import (
+    _get_flops_available,
+    _SpeedMonitorBase,
+)
+from lightning.fabric.utilities.speed_monitor import (
+    _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype,
+)
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.plugins import (
+    DoublePrecisionPlugin,
+    FSDPPrecisionPlugin,
+    MixedPrecisionPlugin,
+    PrecisionPlugin,
+    TransformerEnginePrecisionPlugin,
+)
+from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecisionPlugin
+from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
+from lightning.pytorch.plugins.precision.half import HalfPrecisionPlugin
+from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
+from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
+
+if TYPE_CHECKING:
+    from lightning.pytorch import LightningModule, Trainer
 
 
-class SpeedMonitorCallback(Callback):
+class SpeedMonitor(Callback):
     """Logs throughput and utilization.
 
     +-------------------------------------+--------------------------------------------------------+
@@ -88,27 +111,31 @@ class SpeedMonitorCallback(Callback):
         self._train_t0 = 0.0
         self._total_lengths = 0
 
-    def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+    def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:
         if self._speed_monitor is not None:
             return  # already setup
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
         flops_available = _get_flops_available(trainer.strategy.root_device, dtype)
-        # FIXME: multiple loggers
-        self._speed_monitor = _SpeedMonitorBase(flops_available, trainer.logger.log_metrics, **self._kwargs)
+        if flops_available is not None and not hasattr(pl_module, "flops_per_batch"):
+            rank_zero_info(
+                "When using the `SpeedMonitorCallback`, you need to define a `flops_per_batch` attribute or property"
+                f" in {pl_module} to compute the FLOPs."
+            )
+        self._speed_monitor = _SpeedMonitorBase(flops_available, trainer.loggers, **self._kwargs)
 
     @rank_zero_only
-    def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_train_start(self, trainer: "Trainer", pl_module: "LightningModule") -> None:
         self._train_t0 = time.perf_counter()
 
     @rank_zero_only
+    @torch.no_grad()
     def on_train_batch_end(
-        self, trainer: Trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int
+        self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, batch_idx: int
     ) -> None:
         train_elapsed = time.perf_counter() - self._train_t0
         self._total_lengths += self.length_fn(batch)
         if trainer.fit_loop._should_accumulate():
             return
-        # FIXME: check in each call
         flops_per_batch = pl_module.flops_per_batch if hasattr(pl_module, "flops_per_batch") else None
         assert self._speed_monitor is not None
         iter_num = trainer.fit_loop.total_batch_idx
@@ -124,15 +151,35 @@ class SpeedMonitorCallback(Callback):
         )
 
     @rank_zero_only
-    def on_validation_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_validation_start(self, trainer: "Trainer", pl_module: "LightningModule") -> None:
         if trainer.sanity_checking:
             return
         self._eval_t0 = time.perf_counter()
 
     @rank_zero_only
-    def on_validation_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_validation_end(self, trainer: "Trainer", pl_module: "LightningModule") -> None:
         if trainer.sanity_checking:
             return
         eval_elapsed = time.perf_counter() - self._eval_t0
         assert self._speed_monitor is not None
         self._speed_monitor.eval_end(eval_elapsed)
+
+
+def _plugin_to_compute_dtype(plugin: Union[Precision, PrecisionPlugin]) -> torch.dtype:
+    if isinstance(plugin, BitsandbytesPrecisionPlugin):
+        return plugin.dtype
+    if isinstance(plugin, HalfPrecisionPlugin):
+        return plugin._desired_input_dtype
+    if isinstance(plugin, MixedPrecisionPlugin):
+        return torch.bfloat16 if plugin.precision == "bf16-mixed" else torch.half
+    if isinstance(plugin, DoublePrecisionPlugin):
+        return torch.double
+    if isinstance(plugin, (XLAPrecisionPlugin, DeepSpeedPrecisionPlugin)):
+        return plugin._desired_dtype
+    if isinstance(plugin, TransformerEnginePrecisionPlugin):
+        return torch.int8
+    if isinstance(plugin, FSDPPrecisionPlugin):
+        return plugin.mixed_precision_config.reduce_dtype
+    if isinstance(plugin, PrecisionPlugin):
+        return torch.float32
+    return fabric_plugin_to_compute_dtype(plugin)

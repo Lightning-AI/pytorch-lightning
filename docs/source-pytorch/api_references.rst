@@ -44,6 +44,8 @@ callbacks
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
+    SpikeDetection
+    SpeedMonitor
     Timer
     TQDMProgressBar
 

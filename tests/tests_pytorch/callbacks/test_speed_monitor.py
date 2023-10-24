@@ -4,8 +4,8 @@ from unittest.mock import Mock, call
 import torch
 from lightning import Trainer
 from lightning.fabric.utilities.speed_monitor import measure_flops
+from lightning.pytorch.callbacks.speed_monitor import SpeedMonitor
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.speed_monitor import SpeedMonitorCallback
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -28,9 +28,7 @@ def test_measure_flops():
 def test_speed_monitor(tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
-    speed_monitor = SpeedMonitorCallback(
-        length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=3, time_unit="seconds"
-    )
+    speed_monitor = SpeedMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=3, time_unit="seconds")
     model = BoringModel()
     model.flops_per_batch = 10
     trainer = Trainer(
@@ -46,17 +44,17 @@ def test_speed_monitor(tmp_path):
     )
     # these timing results are meant to precisely match the `test_speed_monitor` test in fabric
     timings = [0.0, 1.5, 2.5, 0.0, 0.2, 3.5, 4.5, 0.0, 0.2, 5.5, 6.5]
-    with mock.patch("lightning.pytorch.utilities.speed_monitor._get_flops_available", return_value=100), mock.patch(
+    with mock.patch("lightning.pytorch.callbacks.speed_monitor._get_flops_available", return_value=100), mock.patch(
         "time.perf_counter", side_effect=timings
     ):
         trainer.fit(model)
 
     assert logger_mock.log_metrics.mock_calls == [
-        call({"time/train": 1.5, "time/val": 0.0, "time/total": 1.5, "samples": 3}, 0),
-        call({"time/train": 2.5, "time/val": 0.0, "time/total": 2.5, "samples": 6}, 1),
-        call({"time/train": 3.5, "time/val": 0.2, "time/total": 3.7, "samples": 9}, 2),
+        call(metrics={"time/train": 1.5, "time/val": 0.0, "time/total": 1.5, "samples": 3}, step=0),
+        call(metrics={"time/train": 2.5, "time/val": 0.0, "time/total": 2.5, "samples": 6}, step=1),
+        call(metrics={"time/train": 3.5, "time/val": 0.2, "time/total": 3.7, "samples": 9}, step=2),
         call(
-            {
+            metrics={
                 "throughput/batches_per_sec": 1.0,
                 "throughput/samples_per_sec": 3.0,
                 "throughput/device/batches_per_sec": 1.0,
@@ -71,10 +69,10 @@ def test_speed_monitor(tmp_path):
                 "time/total": 4.7,
                 "samples": 12,
             },
-            3,
+            step=3,
         ),
         call(
-            {
+            metrics={
                 "throughput/batches_per_sec": 1.0,
                 "throughput/samples_per_sec": 3.0,
                 "throughput/device/batches_per_sec": 1.0,
@@ -89,6 +87,6 @@ def test_speed_monitor(tmp_path):
                 "time/total": 5.9,
                 "samples": 15,
             },
-            4,
+            step=4,
         ),
     ]
