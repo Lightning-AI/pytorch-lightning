@@ -74,7 +74,15 @@ class NoShuffle(Shuffle):
 
 
 class MinShuffle(Shuffle):
-    """MinShuffle shuffle the items and ensure all the processes receive the same number of items."""
+    """MinShuffle shuffles the chunks and associates them to the ranks.
+
+    As the number of items in a chunks varies, it is possible for a rank to end up with more or less items.
+
+    To ensure a fixed dataset length, we retain the minimum number of items per process across all processes.
+
+    Note: This is the fatest sampling strategy but at the cost of losing items.
+
+    """
 
     @lru_cache(maxsize=10)
     def get_len(self, distributed_env: _DistributedEnv, current_epoch: int) -> int:
@@ -106,8 +114,22 @@ class MinShuffle(Shuffle):
         return self.random_state.permutation(array).tolist()
 
 
-class AcrossChunkShuffle(Shuffle):
-    """AcrossChunkShuffle shuffle the items and ensure all the processes receive the same number of items."""
+class InterChunksShuffle(Shuffle):
+    """InterChunksShuffle shuffles the chunks and associates them to the ranks.
+
+    As the number of items in a chunks varies, it is possible for a rank to end up with more or less items.
+
+    To ensure a fixed dataset length across all ranks while dropping as little items as possible, we adopt the following
+    strategy:
+
+    We compute the maximum number of items per rank (M) and iterate through the chunks and processes
+
+    until we have associated at least M items per rank.
+
+    As a result, we lose at most world_size items but some chunks are shared across ranks leading to some performance
+    loss.
+
+    """
 
     @lru_cache(maxsize=10)
     def get_len(self, distributed_env: _DistributedEnv, current_epoch: int) -> int:

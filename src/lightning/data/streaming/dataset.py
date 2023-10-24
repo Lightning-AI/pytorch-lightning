@@ -20,7 +20,7 @@ from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
-from lightning.data.streaming.shuffle import AcrossChunkShuffle, MinShuffle, NoShuffle, Shuffle
+from lightning.data.streaming.shuffle import InterChunksShuffle, MinShuffle, NoShuffle, Shuffle
 
 
 class StreamingDataset(IterableDataset):
@@ -32,7 +32,7 @@ class StreamingDataset(IterableDataset):
         version: Optional[Union[int, Literal["latest"]]] = "latest",
         cache_dir: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
-        shuffle: Union[bool, Literal["min", "across_chunks"]] = "min",
+        shuffle: Union[bool, Literal["min", "inter_chunks"]] = "min",
         seed: int = 42,
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
@@ -62,8 +62,8 @@ class StreamingDataset(IterableDataset):
         if isinstance(shuffle, str):
             if shuffle == "min":
                 _shuffle = MinShuffle(self.cache, seed)
-            elif shuffle == "across_chunks":
-                _shuffle = AcrossChunkShuffle(self.cache, seed)
+            elif shuffle == "inter_chunks":
+                _shuffle = InterChunksShuffle(self.cache, seed)
             else:
                 raise ValueError(f"The provided shuffle doesn't exist. Found {shuffle}")
 

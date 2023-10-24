@@ -22,7 +22,7 @@ from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.item_loader import TokensLoader
-from lightning.data.streaming.shuffle import AcrossChunkShuffle, MinShuffle, NoShuffle
+from lightning.data.streaming.shuffle import InterChunksShuffle, MinShuffle, NoShuffle
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from torch.utils.data import DataLoader
 
@@ -73,10 +73,12 @@ def test_streaming_dataset_distributed_min_shuffle(tmpdir):
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 41
     process_1_1 = list(dataset_iter)
+    assert process_1_1[:10] == [50, 56, 59, 51, 58, 55, 52, 53, 54, 57]
     assert len(process_1_1) == 41
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 50
     process_1_2 = list(dataset_iter)
+    assert process_1_2[:10] == [100, 68, 66, 64, 61, 65, 69, 62, 63, 60]
     assert len(process_1_2) == 50
 
     dataset = StreamingDataset(name="choco", cache_dir=tmpdir)
@@ -84,10 +86,12 @@ def test_streaming_dataset_distributed_min_shuffle(tmpdir):
     assert len(dataset) == 41
     dataset_iter = iter(dataset)
     process_2_1 = list(dataset_iter)
+    assert process_2_1[:10] == [0, 6, 9, 1, 8, 5, 2, 3, 4, 7]
     assert len(process_2_1) == 41
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 50
     process_2_2 = list(dataset_iter)
+    assert process_2_2[:10] == [78, 76, 74, 71, 75, 79, 72, 73, 70, 77]
     assert len(process_2_2) == 50
 
     assert len([i for i in process_1_1 if i in process_2_1]) == 0
@@ -117,9 +121,11 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
     assert len(dataset_iter) == 50
     process_1_1 = list(dataset_iter)
     assert len(process_1_1) == 50
+    assert process_1_1[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 50
     process_1_2 = list(dataset_iter)
+    assert process_1_2[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     assert len(process_1_2) == 50
 
     dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=False)
@@ -127,10 +133,13 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
     assert len(dataset) == 50
     dataset_iter = iter(dataset)
     process_2_1 = list(dataset_iter)
+    assert process_2_1[:10] == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     assert len(process_2_1) == 50
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 50
     process_2_2 = list(dataset_iter)
+    assert process_2_2[:10] == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+
     assert len(process_2_2) == 50
 
     _, intervals_per_process = dataset.shuffle.get_chunks_and_intervals_per_process(
@@ -165,7 +174,7 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
     assert len([i for i in process_1_2 if i in process_2_2]) == 0
 
 
-def test_streaming_dataset_distributed_across_chunks_shuffle(tmpdir):
+def test_streaming_dataset_distributed_inter_chunks_shuffle(tmpdir):
     seed_everything(42)
 
     cache = Cache(tmpdir, chunk_size=10)
@@ -175,9 +184,9 @@ def test_streaming_dataset_distributed_across_chunks_shuffle(tmpdir):
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="across_chunks")
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="inter_chunks")
 
-    assert isinstance(dataset.shuffle, AcrossChunkShuffle)
+    assert isinstance(dataset.shuffle, InterChunksShuffle)
 
     for i in range(1097):
         assert dataset[i] == i
@@ -187,15 +196,17 @@ def test_streaming_dataset_distributed_across_chunks_shuffle(tmpdir):
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 548
     process_1_1 = list(dataset_iter)
+    assert process_1_1[:10] == [785, 788, 782, 783, 789, 787, 786, 781, 784, 780]
     assert len(process_1_1) == 548
 
-    dataset_2 = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="across_chunks")
-    assert isinstance(dataset_2.shuffle, AcrossChunkShuffle)
+    dataset_2 = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="inter_chunks")
+    assert isinstance(dataset_2.shuffle, InterChunksShuffle)
     dataset_2.distributed_env = _DistributedEnv(2, 1)
     assert len(dataset_2) == 548
     dataset_2_iter = iter(dataset_2)
     assert len(dataset_2_iter) == 548
     process_2_1 = list(dataset_2_iter)
+    assert process_2_1[:10] == [939, 255, 258, 252, 253, 259, 257, 256, 251, 254]
     assert len(process_2_1) == 548
 
     assert len([i for i in process_1_1 if i in process_2_1]) == 0
