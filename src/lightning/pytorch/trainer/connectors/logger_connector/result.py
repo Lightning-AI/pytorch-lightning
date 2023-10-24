@@ -211,7 +211,10 @@ class _ResultMetric(Metric):
                 warning_cache.warn(
                     # do not include the value to avoid cache misses
                     f"You called `self.log({self.meta.name!r}, ...)` in your `{self.meta.fx}` but the value needs to"
-                    f" be floating point. Converting it to {dtype}."
+                    f" be floating to be reduced. Converting it to {dtype}."
+                    " You can silence this warning by converting the value to floating point yourself."
+                    " If you don't intend to reduce the value (for instance when logging the global step or epoch) then"
+                    f" you can use `self.logger.log_metrics({{{self.meta.name!r}: ...}})` instead."
                 )
                 value = value.to(dtype)
             if value.dtype not in (torch.float32, torch.float64):
