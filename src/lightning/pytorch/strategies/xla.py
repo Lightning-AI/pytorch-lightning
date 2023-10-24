@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
+import logging
 import os
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
@@ -37,6 +38,8 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
+
+log = logging.getLogger(__name__)
 
 
 class XLAStrategy(DDPStrategy):
@@ -319,7 +322,14 @@ class XLAStrategy(DDPStrategy):
         return tensor
 
     def teardown(self) -> None:
-        super().teardown()
+        # Note: We don't move the model back to CPU like in other strategies here; it is redundant in spawned processes
+        log.debug(f"{self.__class__.__name__}: tearing down strategy")
+        assert self.cluster_environment is not None
+        self.cluster_environment.teardown()
+        self.precision_plugin.teardown()
+        assert self.accelerator is not None
+        self.accelerator.teardown()
+        self.checkpoint_io.teardown()
         self._launched = False  # after the Trainer finishes, we aren't inside the spawned region
         os.environ.pop("PT_XLA_DEBUG", None)
 
