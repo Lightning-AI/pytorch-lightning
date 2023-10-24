@@ -388,7 +388,14 @@ class Fabric:
         fabric_dataloader = cast(DataLoader, fabric_dataloader)
         return fabric_dataloader
 
-    def backward(self, tensor: Tensor, *args: Any, model: Optional[_FabricModule] = None, **kwargs: Any) -> None:
+    def backward(
+        self,
+        tensor: Tensor,
+        *args: Any,
+        model: Optional[_FabricModule] = None,
+        _is_lightning_module: bool = False,
+        **kwargs: Any,
+    ) -> None:
         r"""Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
 
         Args:
@@ -402,6 +409,26 @@ class Fabric:
             model as argument here.
 
         """
+        if _is_lightning_module:  # cannot use `isinstance` because fabric doesnt install pytorch lightning
+            # old code path: the LightningModule doesn't use `_BackwardTensor`
+            module = model._forward_module if model is not None else model
+            if isinstance(self._strategy, DeepSpeedStrategy):
+                if model is None:
+                    if self._models_setup == 0:
+                        raise RuntimeError(
+                            "No models were set up for backward. Did you forget to call `fabric.setup()`?"
+                        )
+                    if self._models_setup > 1:
+                        raise ValueError(
+                            "When using multiple models + deepspeed, please provide the model used to perform"
+                            " the optimization: `self.backward(loss, model=model)`"
+                        )
+                    module = self._strategy.model
+                else:
+                    # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
+                    self._strategy._deepspeed_engine = module
+            self._strategy.backward(tensor, module, *args, **kwargs)
+            return None
         # rank_zero_deprecation(
         #    "`fabric.backward(loss)` is no longer necessary, you can simply do `loss.backward()` as with pure PyTorch",
         #    stacklevel=6,

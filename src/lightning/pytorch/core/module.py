@@ -1044,7 +1044,7 @@ class LightningModule(
 
         """
         if self._fabric:
-            self._fabric.backward(loss, *args, **kwargs)
+            self._fabric.backward(loss, *args, _is_lightning_module=True, **kwargs)
         else:
             self._verify_is_manual_optimization("manual_backward")
             self.trainer.strategy.backward(loss, None, *args, **kwargs)

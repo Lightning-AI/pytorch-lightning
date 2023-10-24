@@ -35,7 +35,7 @@ def test_fabric_boring_lightning_module_automatic():
 
     batch = next(iter(dataloader))
     output = model.training_step(batch, 0)
-    fabric.backward(output["loss"])
+    fabric.backward(output["loss"], _is_lightning_module=True)
     optimizer.step()
 
     assert all(not torch.equal(before, after) for before, after in zip(parameters_before, model.parameters()))
