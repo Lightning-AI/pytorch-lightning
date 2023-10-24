@@ -16,9 +16,10 @@ import os
 
 import numpy as np
 import pytest
-from lightning.data.cache.reader import BinaryReader
-from lightning.data.cache.sampler import ChunkedIndex
-from lightning.data.cache.writer import BinaryWriter
+from lightning import seed_everything
+from lightning.data.streaming.reader import BinaryReader
+from lightning.data.streaming.sampler import ChunkedIndex
+from lightning.data.streaming.writer import BinaryWriter
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -61,6 +62,8 @@ def test_binary_writer_with_ints_and_chunk_bytes(tmpdir):
 
 
 def test_binary_writer_with_ints_and_chunk_size(tmpdir):
+    seed_everything(42)
+
     with pytest.raises(FileNotFoundError, match="The provided cache directory `dontexists` doesn't exist."):
         BinaryWriter("dontexists", {})
 
@@ -69,10 +72,13 @@ def test_binary_writer_with_ints_and_chunk_size(tmpdir):
 
     binary_writer = BinaryWriter(tmpdir, chunk_size=25)
 
-    for i in range(100):
+    indices = list(range(100))
+    indices = indices[:5] + np.random.permutation(indices[5:]).tolist()
+
+    for i in indices:
         binary_writer[i] = {"i": i, "i+1": i + 1, "i+2": i + 2}
 
-    assert len(os.listdir(tmpdir)) == 3
+    assert len(os.listdir(tmpdir)) >= 2
     binary_writer.done()
     binary_writer.merge()
     assert len(os.listdir(tmpdir)) == 5
@@ -160,9 +166,31 @@ def test_binary_writer_with_jpeg_filepath_and_int(tmpdir):
     assert data["chunks"][0]["chunk_size"] == 4
     assert data["chunks"][1]["chunk_size"] == 4
     assert data["chunks"][-1]["chunk_size"] == 4
+    assert sum([chunk["chunk_size"] for chunk in data["chunks"]]) == 100
 
     reader = BinaryReader(cache_dir)
     for i in range(100):
         data = reader.read(ChunkedIndex(i, chunk_index=i // 4))
         np.testing.assert_array_equal(np.asarray(data["x"]).squeeze(0), imgs[i])
         assert data["y"] == i
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
+def test_binary_writer_with_jpeg_and_png(tmpdir):
+    from PIL import Image
+
+    cache_dir = os.path.join(tmpdir, "chunks")
+    os.makedirs(cache_dir, exist_ok=True)
+    binary_writer = BinaryWriter(cache_dir, chunk_bytes=2 << 12)
+
+    np_data = np.random.randint(255, size=(28, 28), dtype=np.uint8)
+    img = Image.fromarray(np_data).convert("L")
+    path = os.path.join(tmpdir, "img.jpeg")
+    img.save(path, format="jpeg", quality=100)
+    img_jpeg = Image.open(path)
+
+    binary_writer[0] = {"x": img_jpeg, "y": 0}
+    binary_writer[1] = {"x": img, "y": 1}
+
+    with pytest.raises(ValueError, match="The data format changed between items"):
+        binary_writer[2] = {"x": 2, "y": 1}

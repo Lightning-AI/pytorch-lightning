@@ -536,7 +536,7 @@ class _AcceleratorConnector:
             if isinstance(self.strategy, ColossalAIStrategy):
                 return ColossalAIPrecisionPlugin(self._precision_flag)
 
-        if isinstance(self.accelerator, XLAAccelerator):
+        if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)):
             return XLAPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
@@ -571,15 +571,6 @@ class _AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        if (
-            isinstance(self.accelerator, XLAAccelerator)
-            and self._precision_plugin_flag
-            and not isinstance(self._precision_plugin_flag, XLAPrecisionPlugin)
-        ):
-            raise ValueError(
-                f"The `XLAAccelerator` can only be used with a `XLAPrecisionPlugin`,"
-                f" found: {self._precision_plugin_flag}."
-            )
         if _lightning_habana_available():
             from lightning_habana import HPUAccelerator
 

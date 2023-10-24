@@ -5,19 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2023-MM-DD
+## [Unreleased] - 202X-XX-XX
 
 ### Added
-
-- Allow customize `gradio` components with lightning colors ([#17054](https://github.com/Lightning-AI/lightning/pull/17054))
-
 
 -
 
 
 ### Changed
 
-- Changed `LocalSourceCodeDir` cache_location to not use home in some certain cases ([#17491](https://github.com/Lightning-AI/lightning/pull/17491))
+-
 
 
 ### Deprecated
@@ -27,11 +24,28 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Remove cluster commands from the CLI ([#18151](https://github.com/Lightning-AI/lightning/pull/18151))
-
+-
 
 
 ### Fixed
+
+-
+
+
+
+## [2.1.0] - 2023-10-11
+
+### Added
+
+- Allow customizing `gradio` components with lightning colors ([#17054](https://github.com/Lightning-AI/lightning/pull/17054))
+
+### Changed
+
+- Changed `LocalSourceCodeDir` cache_location to not use home in some certain cases ([#17491](https://github.com/Lightning-AI/lightning/pull/17491))
+
+### Removed
+
+- Remove cluster commands from the CLI ([#18151](https://github.com/Lightning-AI/lightning/pull/18151))
 
 
 ## [2.0.9] - 2023-09-14
@@ -335,7 +349,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Deduplicate top level lighting CLI command groups ([#15761](https://github.com/Lightning-AI/lightning/pull/15761))
+- Deduplicate top level lightning CLI command groups ([#15761](https://github.com/Lightning-AI/lightning/pull/15761))
   * `lightning add ssh-key` CLI command has been transitioned to `lightning create ssh-key`
   * `lightning remove ssh-key` CLI command has been transitioned to `lightning delete ssh-key`
 - Set Torch inference mode for prediction ([#15719](https://github.com/Lightning-AI/lightning/pull/15719))
@@ -427,7 +441,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add a `JustPyFrontend` to ease UI creation with `https://github.com/justpy-org/justpy` ([#15002](https://github.com/Lightning-AI/lightning/pull/15002))
 - Added a layout endpoint to the Rest API and enable to disable pulling or pushing to the state ([#15367](https://github.com/Lightning-AI/lightning/pull/15367)
 - Added support for functions for `configure_api` and `configure_commands` to be executed in the Rest API process ([#15098](https://github.com/Lightning-AI/lightning/pull/15098)
-- Added support for accessing Lighting Apps via SSH ([#15310](https://github.com/Lightning-AI/lightning/pull/15310))
+- Added support for accessing Lightning Apps via SSH ([#15310](https://github.com/Lightning-AI/lightning/pull/15310))
 - Added support to start lightning app on cloud without needing to install dependencies locally ([#15019](https://github.com/Lightning-AI/lightning/pull/15019)
 
 ### Changed

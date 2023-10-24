@@ -18,7 +18,6 @@ import re
 import time
 from argparse import Namespace
 from datetime import timedelta
-from logging import INFO
 from pathlib import Path
 from typing import Union
 from unittest import mock
@@ -510,8 +509,52 @@ def test_model_checkpoint_save_last(tmpdir):
     assert set(os.listdir(tmpdir)) == set(
         [f"epoch={i}-step={j}.ckpt" for i, j in zip(range(epochs), [10, 20, 30])] + [last_filename]
     )
-
+    assert os.path.islink(tmpdir / last_filename)
+    assert os.path.realpath(tmpdir / last_filename) == model_checkpoint._last_checkpoint_saved
     ModelCheckpoint.CHECKPOINT_NAME_LAST = "last"
+
+
+def test_model_checkpoint_link_checkpoint(tmp_path):
+    """Test that linking a checkpoint works and overwrites an existing link if present."""
+    trainer = Mock()
+
+    # link doesn't exist
+    file = tmp_path / "file"
+    file.touch()
+    link = tmp_path / "link"
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
+    assert os.path.islink(link)
+    assert os.path.realpath(link) == str(file)
+
+    # link exists (is a file)
+    new_file1 = tmp_path / "new_file1"
+    new_file1.touch()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_file1), linkpath=str(link))
+    assert os.path.islink(link)
+    assert os.path.realpath(link) == str(new_file1)
+
+    # link exists (is a link)
+    new_file2 = tmp_path / "new_file2"
+    new_file2.touch()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_file2), linkpath=str(link))
+    assert os.path.islink(link)
+    assert os.path.realpath(link) == str(new_file2)
+
+    # link exists (is a folder)
+    folder = tmp_path / "folder"
+    folder.mkdir()
+    folder_link = tmp_path / "folder_link"
+    folder_link.mkdir()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(folder), linkpath=str(folder_link))
+    assert os.path.islink(folder_link)
+    assert os.path.realpath(folder_link) == str(folder)
+
+    # link exists (is a link to a folder)
+    new_folder = tmp_path / "new_folder"
+    new_folder.mkdir()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_folder), linkpath=str(folder_link))
+    assert os.path.islink(folder_link)
+    assert os.path.realpath(folder_link) == str(new_folder)
 
 
 def test_invalid_top_k(tmpdir):
@@ -589,10 +632,7 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
         max_epochs=epochs,
         logger=False,
     )
-
-    with caplog.at_level(INFO):
-        trainer.fit(model)
-        assert "will duplicate the last checkpoint saved" in caplog.text
+    trainer.fit(model)
 
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
@@ -606,6 +646,7 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
     expected = [f"epoch={i}-step={j}.ckpt" for i, j in zip(range(epochs), [10, 20])]
     expected.append("last.ckpt")
     assert set(os.listdir(tmpdir)) == set(expected)
+    assert os.path.islink(tmpdir / "last.ckpt")
 
 
 @pytest.mark.parametrize("every_n_epochs", list(range(4)))
@@ -709,6 +750,8 @@ def test_model_checkpoint_topk_zero(tmpdir):
     # check that only the last ckpt was created
     assert os.listdir(tmpdir) == ["last.ckpt"]
     assert checkpoint_callback.last_model_path == tmpdir / "last.ckpt"
+    # 'last.ckpt' is not a symlink because there are no top-k checkpoints to link
+    assert not os.path.islink(checkpoint_callback.last_model_path)
 
 
 def test_model_checkpoint_topk_all(tmpdir):
@@ -814,6 +857,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     path_last = str(tmpdir / "last.ckpt")
     assert path_last == model_checkpoint.last_model_path
     assert os.path.isfile(path_last_epoch)
+    assert os.path.islink(path_last)
 
     ckpt_last_epoch = torch.load(path_last_epoch)
     ckpt_last = torch.load(path_last)
@@ -1343,7 +1387,7 @@ def test_save_last_saves_correct_last_model_path(tmpdir):
     trainer = Trainer(callbacks=mc)
     trainer.strategy.connect(BoringModel())
 
-    mc._save_last_checkpoint(trainer, {"foo": 1})
+    mc._save_last_checkpoint(trainer, {"foo": torch.tensor(1)})
     expected = "foo=1-last.ckpt"
     assert os.listdir(tmpdir) == [expected]
     full_path = str(tmpdir / expected)
@@ -1366,6 +1410,8 @@ def test_save_last_versioning(tmpdir):
         )
         trainer.fit(model)
     assert {"last.ckpt", "last-v1.ckpt"} == set(os.listdir(tmpdir))
+    # 'last.ckpt' is not a symlink since `save_top_k=0` didn't save any other checkpoints to link to
+    assert all(not os.path.islink(tmpdir / path) for path in set(os.listdir(tmpdir)))
 
 
 def test_none_monitor_saves_correct_best_model_path(tmpdir):
@@ -1385,7 +1431,7 @@ def test_last_global_step_saved():
     # this should not save anything
     model_checkpoint = ModelCheckpoint(save_top_k=0, save_last=False, monitor="foo")
     trainer = Mock()
-    monitor_candidates = {"foo": 123}
+    monitor_candidates = {"foo": torch.tensor(123)}
     model_checkpoint._save_topk_checkpoint(trainer, monitor_candidates)
     model_checkpoint._save_last_checkpoint(trainer, monitor_candidates)
     assert model_checkpoint._last_global_step_saved == 0
@@ -1442,7 +1488,7 @@ def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
     callback = ModelCheckpoint(dirpath=first, monitor="step", mode="max", save_top_k=2, every_n_train_steps=2)
     trainer = Trainer(callbacks=callback, max_steps=5, **trainer_kwargs)
     trainer.fit(model)
-    assert os.listdir(first) == ["epoch=0-step=2.ckpt", "epoch=0-step=4.ckpt"]
+    assert set(os.listdir(first)) == {"epoch=0-step=2.ckpt", "epoch=0-step=4.ckpt"}
 
     # Continue training from checkpoint
     callback = ModelCheckpoint(dirpath=new_dirpath, monitor="step", mode="max", save_top_k=2, every_n_train_steps=2)
