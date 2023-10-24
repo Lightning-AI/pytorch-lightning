@@ -378,5 +378,5 @@ def _set_num_threads_if_needed(num_processes: int = 1) -> None:
 def _distributed_is_initialized() -> bool:
     # `is_initialized` is only defined conditionally
     # https://github.com/pytorch/pytorch/blob/v2.1.0/torch/distributed/__init__.py#L25
-    # this might happen to MacOS builds from source (default) or any build from source that sets `USE_DISTRIBUTED=1`
+    # this might happen to MacOS builds from source (default) or any build from source that sets `USE_DISTRIBUTED=0`
     return torch.distributed.is_available() and torch.distributed.is_initialized()
