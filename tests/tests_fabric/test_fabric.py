@@ -608,7 +608,6 @@ def test_backward():
     # legacy
     loss = fmodel(x)
     assert type(loss) is _BackwardTensor
-    # FIXME: deprecated_call
     fabric.backward(loss, retain_graph=True)
     call_args, call_kwargs = precision_mock.backward.call_args
     # the original tensor is use within backward

@@ -402,7 +402,6 @@ class Fabric:
             model as argument here.
 
         """
-        # FIXME
         # rank_zero_deprecation(
         #    "`fabric.backward(loss)` is no longer necessary, you can simply do `loss.backward()` as with pure PyTorch",
         #    stacklevel=6,
