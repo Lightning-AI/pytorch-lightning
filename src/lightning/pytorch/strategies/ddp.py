@@ -28,6 +28,7 @@ from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.distributed import (
+    _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
@@ -282,7 +283,7 @@ class DDPStrategy(ParallelStrategy):
         return [self.root_device.index]
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return
 
         if torch.distributed.get_backend() == "nccl":
@@ -291,7 +292,7 @@ class DDPStrategy(ParallelStrategy):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return obj
 
         obj = [obj]
