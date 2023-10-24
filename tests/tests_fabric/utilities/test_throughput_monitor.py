@@ -3,7 +3,7 @@ from unittest.mock import Mock, call
 
 import torch
 from lightning import Fabric
-from lightning.fabric.utilities.speed_monitor import SpeedMonitor, measure_flops
+from lightning.fabric.utilities.throughput_monitor import ThroughputMonitor, measure_flops
 
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
@@ -25,13 +25,13 @@ def test_measure_flops():
     assert eval_flops < training_flops
 
 
-def test_speed_monitor():
+def test_throughput_monitor():
     logger_mock = Mock()
 
     # simulate lit-gpt style script
     fabric = Fabric(devices=1, loggers=logger_mock)
-    with mock.patch("lightning.fabric.utilities.speed_monitor._get_flops_available", return_value=100):
-        speed_monitor = SpeedMonitor(fabric, window_size=3, time_unit="seconds")
+    with mock.patch("lightning.fabric.utilities.throughput_monitor._get_flops_available", return_value=100):
+        monitor = ThroughputMonitor(fabric, window_size=3, time_unit="seconds")
     flops = 10
     total_lengths = 0
     total_t0 = 0.0  # fake times
@@ -40,7 +40,7 @@ def test_speed_monitor():
         # forward + backward + step + zero_grad ...
         t1 = iter_num + 0.5
         total_lengths += 2
-        speed_monitor.on_train_batch_end(
+        monitor.on_train_batch_end(
             iter_num * micro_batch_size,
             t1 - total_t0,
             fabric.world_size,
@@ -49,7 +49,7 @@ def test_speed_monitor():
         )
         if iter_num % 2 == 0:
             # validation
-            speed_monitor.eval_end(0.2)
+            monitor.eval_end(0.2)
 
     assert logger_mock.log_metrics.mock_calls == [
         call(metrics={"time/train": 1.5, "time/val": 0.0, "time/total": 1.5, "samples": 3}, step=0),

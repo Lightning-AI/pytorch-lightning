@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 
 # Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
-class _SpeedMonitorBase:
+class _ThroughputMonitorBase:
     def __init__(
         self,
         flops_available: Optional[float],
@@ -87,10 +87,10 @@ class _SpeedMonitorBase:
             dev_samples_per_sec = elapsed_samples / elapsed_wct
             metrics.update(
                 {
-                    "throughput/batches_per_sec": elapsed_batches * world_size / elapsed_wct,
-                    "throughput/samples_per_sec": samples_per_sec,
-                    "throughput/device/batches_per_sec": elapsed_batches / elapsed_wct,
-                    "throughput/device/samples_per_sec": dev_samples_per_sec,
+                    "batches_per_sec": elapsed_batches * world_size / elapsed_wct,
+                    "samples_per_sec": samples_per_sec,
+                    "device/batches_per_sec": elapsed_batches / elapsed_wct,
+                    "device/samples_per_sec": dev_samples_per_sec,
                 }
             )
             if lengths is not None:
@@ -98,8 +98,8 @@ class _SpeedMonitorBase:
                 avg_length = elapsed_lengths / elapsed_batches
                 metrics.update(
                     {
-                        "throughput/items_per_sec": samples_per_sec * avg_length,
-                        "throughput/device/items_per_sec": dev_samples_per_sec * avg_length,
+                        "items_per_sec": samples_per_sec * avg_length,
+                        "device/items_per_sec": dev_samples_per_sec * avg_length,
                     }
                 )
 
@@ -111,11 +111,9 @@ class _SpeedMonitorBase:
             elapsed_wct = self._time[-1] - self._time[0]
             flops_per_sec = elapsed_flops / elapsed_wct
             device_flops_per_sec = flops_per_sec / world_size
-            metrics.update(
-                {"throughput/flops_per_sec": flops_per_sec, "throughput/device/flops_per_sec": device_flops_per_sec}
-            )
+            metrics.update({"flops_per_sec": flops_per_sec, "device/flops_per_sec": device_flops_per_sec})
             if self.flops_available:
-                metrics["throughput/device/mfu"] = device_flops_per_sec / self.flops_available
+                metrics["device/mfu"] = device_flops_per_sec / self.flops_available
 
         metrics.update(
             {
@@ -133,51 +131,39 @@ class _SpeedMonitorBase:
         self._total_eval_time += eval_elapsed  # seconds
 
 
-class SpeedMonitor(_SpeedMonitorBase):
-    """Logs throughput and utilization.
+class ThroughputMonitor(_ThroughputMonitorBase):
+    """Tracks and logs throughput.
 
-    +-------------------------------------+--------------------------------------------------------+
-    | Key                                 | Logged data                                            |
-    +=====================================+========================================================+
-    |                                     | Rolling average (over `window_size` most recent        |
-    | `throughput/batches_per_sec`        | batches) of the number of batches processed per second |
-    |                                     |                                                        |
-    +-------------------------------------+--------------------------------------------------------+
-    |                                     | Rolling average (over `window_size` most recent        |
-    | `throughput/samples_per_sec`        | batches) of the number of samples processed per second |
-    |                                     |                                                        |
-    +-------------------------------------+--------------------------------------------------------+
-    |                                     | Rolling average (over `window_size` most recent        |
-    | `throughput/items_per_sec`          | batches) of the number of items processed per second.  |
-    |                                     | This may include padding depending on the data         |
-    +-------------------------------------+--------------------------------------------------------+
-    |                                     | Estimates flops by `flops_per_batch * batches_per_sec` |
-    | `throughput/flops_per_sec`          |                                                        |
-    |                                     |                                                        |
-    +-------------------------------------+--------------------------------------------------------+
-    | `throughput/device/batches_per_sec` | `throughput/batches_per_sec` divided by world size     |
-    +-------------------------------------+--------------------------------------------------------+
-    | `throughput/device/samples_per_sec` | `throughput/samples_per_sec` divided by world size     |
-    +-------------------------------------+--------------------------------------------------------+
-    |                                     | `throughput/items_per_sec` divided by world size. This |
-    | `throughput/device/items_per_sec`   | may include padding depending on the data              |
-    |                                     |                                                        |
-    +-------------------------------------+--------------------------------------------------------+
-    |                                     | `throughput/flops_per_sec` divided by world size. Only |
-    | `throughput/device/flops_per_sec`   | logged when model has attribute `flops_per_batch`      |
-    |                                     |                                                        |
-    +-------------------------------------+--------------------------------------------------------+
-    |                                     | `throughput/device/flops_per_sec` divided by world     |
-    |                                     |  size.                                                 |
-    | `throughput/device/mfu`             |                                                        |
-    |                                     |                                                        |
-    +-------------------------------------+--------------------------------------------------------+
-    | `time/train`                        | Total elapsed training time                            |
-    +-------------------------------------+--------------------------------------------------------+
-    | `time/val`                          | Total elapsed validation time                          |
-    +-------------------------------------+--------------------------------------------------------+
-    | `time/total`                        | Total elapsed time (time/train + time/val)             |
-    +-------------------------------------+--------------------------------------------------------+
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | Key                      | Value                                                                                 |
+    +==========================+=======================================================================================+
+    | `batches_per_sec`        | Rolling average (over `window_size` most recent batches) of the number of batches     |
+    |                          | processed per second                                                                  |
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | `samples_per_sec`        | Rolling average (over `window_size` most recent batches) of the number of samples     |
+    |                          | processed per second                                                                  |
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | `items_per_sec`          | Rolling average (over `window_size` most recent batches) of the number of items       |
+    |                          | processed per second                                                                  |
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | `flops_per_sec`          | Estimates flops by `flops_per_batch * batches_per_sec`                                |
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | `device/batches_per_sec` | `batches_per_sec` divided by world size                                               |
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | `device/samples_per_sec` | `samples_per_sec` divided by world size                                               |
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | `device/items_per_sec`   | `items_per_sec` divided by world size. This may include padding depending on the data |
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | `device/flops_per_sec`   | `flops_per_sec` divided by world size.                                                |
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | `device/mfu`             | `device/flops_per_sec` divided by world size.                                         |
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | `time/train`             | Total elapsed training time                                                           |
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | `time/val`               | Total elapsed validation time                                                         |
+    +--------------------------+---------------------------------------------------------------------------------------+
+    | `time/total`             | Total elapsed time (time/train + time/val)                                            |
+    +--------------------------+---------------------------------------------------------------------------------------+
 
     Notes:
         - The implementation assumes that devices are homogeneous as it normalizes by the world size.

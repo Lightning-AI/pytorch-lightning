@@ -23,7 +23,7 @@ from lightning.fabric.utilities.rank_zero import (
     rank_zero_only,
     rank_zero_warn,
 )
-from lightning.fabric.utilities.speed_monitor import SpeedMonitor, measure_flops
+from lightning.fabric.utilities.throughput_monitor import ThroughputMonitor, measure_flops
 from lightning.fabric.utilities.warnings import disable_possible_user_warnings
 
 __all__ = [
@@ -37,5 +37,5 @@ __all__ = [
     "rank_zero_warn",
     "disable_possible_user_warnings",
     "measure_flops",
-    "SpeedMonitor",
+    "ThroughputMonitor",
 ]

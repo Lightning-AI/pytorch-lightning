@@ -3,8 +3,8 @@ from unittest.mock import Mock, call
 
 import torch
 from lightning import Trainer
-from lightning.fabric.utilities.speed_monitor import measure_flops
-from lightning.pytorch.callbacks.speed_monitor import SpeedMonitor
+from lightning.fabric.utilities.throughput_monitor import measure_flops
+from lightning.pytorch.callbacks.throughput_monitor import ThroughputMonitor
 from lightning.pytorch.demos.boring_classes import BoringModel
 
 from tests_pytorch.helpers.runif import RunIf
@@ -25,16 +25,16 @@ def test_measure_flops():
     assert eval_flops < training_flops
 
 
-def test_speed_monitor(tmp_path):
+def test_throughput_monitor(tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
-    speed_monitor = SpeedMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=3, time_unit="seconds")
+    monitor = ThroughputMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=3, time_unit="seconds")
     model = BoringModel()
     model.flops_per_batch = 10
     trainer = Trainer(
         devices=1,
         logger=logger_mock,
-        callbacks=speed_monitor,
+        callbacks=monitor,
         max_steps=5,
         val_check_interval=2,
         num_sanity_val_steps=2,
@@ -42,11 +42,11 @@ def test_speed_monitor(tmp_path):
         enable_model_summary=False,
         enable_progress_bar=False,
     )
-    # these timing results are meant to precisely match the `test_speed_monitor` test in fabric
+    # these timing results are meant to precisely match the `test_throughput_monitor` test in fabric
     timings = [0.0, 1.5, 2.5, 0.0, 0.2, 3.5, 4.5, 0.0, 0.2, 5.5, 6.5]
-    with mock.patch("lightning.pytorch.callbacks.speed_monitor._get_flops_available", return_value=100), mock.patch(
-        "time.perf_counter", side_effect=timings
-    ):
+    with mock.patch(
+        "lightning.pytorch.callbacks.throughput_monitor._get_flops_available", return_value=100
+    ), mock.patch("time.perf_counter", side_effect=timings):
         trainer.fit(model)
 
     assert logger_mock.log_metrics.mock_calls == [
