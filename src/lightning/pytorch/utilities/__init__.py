@@ -15,25 +15,45 @@
 
 import numpy
 
-from lightning.fabric.utilities import (  # noqa: F401
+from lightning.fabric.utilities import (
     LightningEnum,
     disable_possible_user_warnings,
     is_shared_filesystem,
+    measure_flops,
     move_data_to_device,
     suggested_max_num_workers,
 )
-from lightning.pytorch.utilities.combined_loader import CombinedLoader  # noqa: F401
-from lightning.pytorch.utilities.enums import GradClipAlgorithmType  # noqa: F401
-from lightning.pytorch.utilities.grads import grad_norm  # noqa: F401
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _TORCHVISION_AVAILABLE  # noqa: F401
-from lightning.pytorch.utilities.parameter_tying import find_shared_parameters, set_shared_parameters  # noqa: F401
-from lightning.pytorch.utilities.parsing import AttributeDict, is_picklable  # noqa: F401
-from lightning.pytorch.utilities.rank_zero import (  # noqa: F401
+from lightning.pytorch.utilities.combined_loader import CombinedLoader
+from lightning.pytorch.utilities.enums import GradClipAlgorithmType
+from lightning.pytorch.utilities.grads import grad_norm
+from lightning.pytorch.utilities.parameter_tying import find_shared_parameters, set_shared_parameters
+from lightning.pytorch.utilities.parsing import AttributeDict, is_picklable
+from lightning.pytorch.utilities.rank_zero import (
     rank_zero_deprecation,
     rank_zero_info,
     rank_zero_only,
     rank_zero_warn,
 )
+
+__all__ = [
+    "LightningEnum",
+    "disable_possible_user_warnings",
+    "is_shared_filesystem",
+    "move_data_to_device",
+    "suggested_max_num_workers",
+    "measure_flops",
+    "CombinedLoader",
+    "GradClipAlgorithmType",
+    "grad_norm",
+    "find_shared_parameters",
+    "set_shared_parameters",
+    "AttributeDict",
+    "is_picklable",
+    "rank_zero_deprecation",
+    "rank_zero_info",
+    "rank_zero_only",
+    "rank_zero_warn",
+]
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
