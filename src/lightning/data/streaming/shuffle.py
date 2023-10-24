@@ -82,7 +82,7 @@ class TruncatedShuffle(Shuffle):
 
     For the ranks with more items than the minimum, the remaining items are dropped.
 
-    Note: This is the fatest sampling strategy but at the cost of losing items.
+    Note: This is the fastest sampling strategy but at the cost of losing items.
 
     """
 
