@@ -197,6 +197,7 @@ def measure_flops(
     It's recommended to create a meta-device model for this:
 
     Example::
+
         with torch.device("meta"):
             model = MyModel()
             x = torch.randn(2, 32)
