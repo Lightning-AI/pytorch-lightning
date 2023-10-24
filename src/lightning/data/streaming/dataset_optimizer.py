@@ -8,6 +8,7 @@ from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
 from shutil import copyfile
+from textwrap import dedent
 from threading import Thread
 from time import sleep, time
 from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Tuple, TypeVar, runtime_checkable
@@ -515,7 +516,8 @@ class DatasetOptimizer:
         chunks."""
         if not isinstance(optimizable_dataset, _OptimizableDataset):
             raise ValueError(
-                """The provided argument to the DatasetOptimizer.run(...) needs to have the following format:
+                dedent(
+                    """The provided argument to the DatasetOptimizer.run(...) needs to have the following format:
 
                 Example:
 
@@ -529,6 +531,7 @@ class DatasetOptimizer:
                         def prepare_item(item_metadata: T) -> Any:
                             return ...
                 """
+                )
             )
 
         t0 = time()
