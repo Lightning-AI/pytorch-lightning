@@ -155,6 +155,8 @@ class ThroughputMonitor(Callback):
 
 
 def _plugin_to_compute_dtype(plugin: Union[Precision, PrecisionPlugin]) -> torch.dtype:
+    if not isinstance(plugin, PrecisionPlugin):
+        return fabric_plugin_to_compute_dtype(plugin)
     if isinstance(plugin, BitsandbytesPrecisionPlugin):
         return plugin.dtype
     if isinstance(plugin, HalfPrecisionPlugin):
@@ -171,4 +173,4 @@ def _plugin_to_compute_dtype(plugin: Union[Precision, PrecisionPlugin]) -> torch
         return plugin.mixed_precision_config.reduce_dtype or torch.float32
     if isinstance(plugin, PrecisionPlugin):
         return torch.float32
-    return fabric_plugin_to_compute_dtype(plugin)
+    raise NotImplementedError(plugin)

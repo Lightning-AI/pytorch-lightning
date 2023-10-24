@@ -334,6 +334,8 @@ def _plugin_to_compute_dtype(plugin: "Precision") -> torch.dtype:
         XLAPrecision,
     )
 
+    if not isinstance(plugin, Precision):
+        raise RuntimeError(f"Expected a precision plugin, got {plugin}")
     if isinstance(plugin, BitsandbytesPrecision):
         return plugin.dtype
     if isinstance(plugin, (HalfPrecision, MixedPrecision)):

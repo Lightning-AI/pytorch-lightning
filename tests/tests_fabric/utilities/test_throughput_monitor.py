@@ -2,7 +2,7 @@ from unittest import mock
 from unittest.mock import Mock, call
 
 import torch
-from lightning import Fabric
+from lightning.fabric import Fabric
 from lightning.fabric.utilities.throughput_monitor import ThroughputMonitor, measure_flops
 
 from tests_fabric.helpers.runif import RunIf
