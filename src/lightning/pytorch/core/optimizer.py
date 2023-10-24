@@ -13,7 +13,7 @@
 # limitations under the License.
 from contextlib import contextmanager
 from dataclasses import fields
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, overload
 from weakref import proxy
 
 import torch
@@ -393,9 +393,17 @@ class _MockOptimizer(Optimizer):
     def state_dict(self) -> Dict[str, Any]:
         return {}  # Return Empty
 
-    def step(self, closure: Optional[Callable] = None) -> None:
+    @overload
+    def step(self, closure: None = ...) -> None:
+        ...
+
+    @overload
+    def step(self, closure: Callable[[], float]) -> float:
+        ...
+
+    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:
         if closure is not None:
-            closure()
+            return closure()
 
     def zero_grad(self, set_to_none: Optional[bool] = True) -> None:
         pass  # Do Nothing

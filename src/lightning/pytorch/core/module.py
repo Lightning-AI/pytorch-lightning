@@ -580,7 +580,7 @@ class LightningModule(
         for k, v in dictionary.items(**kwargs):
             self.log(
                 name=k,
-                value=v,
+                value=v,  # type: ignore[arg-type]
                 prog_bar=prog_bar,
                 logger=logger,
                 on_step=on_step,

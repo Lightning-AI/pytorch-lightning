@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol, TypeVar, Union, runtime_checkable
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, overload
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 
@@ -117,7 +118,14 @@ class ReduceLROnPlateau(_Stateful[str], Protocol):
 class Steppable(Protocol):
     """To structurally type ``optimizer.step()``"""
 
-    # Inferred from `torch.optim.optimizer.pyi`
+    @overload
+    def step(self, closure: None = ...) -> None:
+        ...
+
+    @overload
+    def step(self, closure: Callable[[], float]) -> float:
+        ...
+
     def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]:
         ...
 
@@ -128,7 +136,7 @@ class Optimizable(Steppable, Protocol):
 
     param_groups: List[Dict[Any, Any]]
     defaults: Dict[Any, Any]
-    state: Dict[Any, Any]
+    state: defaultdict[Tensor, Any]
 
     def state_dict(self) -> Dict[str, Dict[Any, Any]]:
         ...
