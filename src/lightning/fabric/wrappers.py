@@ -14,17 +14,19 @@
 import inspect
 import weakref
 from functools import wraps
+from numbers import Number
 from typing import (
     Any,
     Callable,
     Dict,
     Generator,
+    Iterable,
     Iterator,
     List,
     Mapping,
     Optional,
-    Sequence,
     Tuple,
+    Type,
     TypeVar,
     Union,
     overload,
@@ -281,43 +283,54 @@ class _BackwardTensor(torch.Tensor):
             requires_grad=tensor.requires_grad,
         )
         wrapper._tensor = tensor
-        wrapper._strategy = weakref.proxy(strategy) if not isinstance(strategy, weakref.ProxyTypes) else strategy
-        wrapper._module = weakref.proxy(module) if not isinstance(module, weakref.ProxyTypes) else module
+        # use weak refs so that these tensors can still be used after fabric is garbage-collected
+        wrapper._strategy_ref = weakref.ref(strategy) if not isinstance(strategy, weakref.ReferenceType) else strategy
+        wrapper._module_ref = weakref.ref(module) if not isinstance(module, weakref.ReferenceType) else module
         return wrapper
 
     def backward(self, *args: Any, **kwargs: Any) -> None:
-        if isinstance(self._strategy, DeepSpeedStrategy):
-            # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
-            self._strategy._deepspeed_engine = self._module
         tensor = self._to_tensor()
-        self._strategy.backward(tensor, self._module, *args, **kwargs)
+        strategy = self._strategy_ref()
+        module = self._module_ref()
+
+        if strategy is None or module is None:
+            # fabric was gc-collected: silently fallback to ordinary backward
+            tensor.backward()
+            return
+
+        if isinstance(strategy, DeepSpeedStrategy):
+            # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
+            strategy._deepspeed_engine = module
+        strategy.backward(tensor, module, *args, **kwargs)
 
     @classmethod
     def __torch_dispatch__(
         cls,
         func: Callable,
-        types: Sequence,
-        args: Sequence[Any] = (),
-        kwargs: Optional[Dict] = None,
+        types: Iterable[Type],
+        args: Tuple,
+        kwargs: Dict,
     ) -> Any:
         flat_args, spec = tree_flatten(args)
         bwd_tensors = [a for a in flat_args if isinstance(a, _BackwardTensor)]
         assert bwd_tensors
         bwd_tensor = bwd_tensors[0]
-        strategy = bwd_tensor._strategy
-        module = bwd_tensor._module
+        strategy_ref = bwd_tensor._strategy_ref
+        module_ref = bwd_tensor._module_ref
+        strategy = strategy_ref()
+        module = module_ref()
 
         # sanity checking
         for other in bwd_tensors[1:]:
-            if type(other._strategy) is not type(strategy):
+            if type(other._strategy_ref()) is not type(strategy):
                 raise NotImplementedError(
                     "Calling `backward` on tensors that were produced by Fabric objects with different strategies"
-                    f" is not supported. Found {type(strategy).__name__} and {type(other._strategy).__name__}"
+                    f" is not supported. Found {type(strategy).__name__} and {type(other._strategy_ref()).__name__}"
                 )
-            if isinstance(strategy, DeepSpeedStrategy) and other._module is not module:
+            if isinstance(strategy, DeepSpeedStrategy) and other._module_ref() is not module:
                 raise NotImplementedError(
                     "Calling `backward` on tensors that were produced by different fabric modules is not supported."
-                    f" Found {module} and {other._module}"
+                    f" Found {module} and {other._module_ref()}"
                 )
 
         # this could use `tree_map_only` but it's decomposed since we already have the flat args and spec
@@ -330,18 +343,27 @@ class _BackwardTensor(torch.Tensor):
         # run the original function
         out = func(*unwrapped, **kwargs)
 
-        # propagate the references from the inputs to the outputs
-        def wrap(t: torch.Tensor) -> _BackwardTensor:
-            return _BackwardTensor(t, strategy, module)
+        # if garbage-collected, do not propagate
+        if strategy is None or module is None:
+            return out
 
+        def wrap(t: torch.Tensor) -> _BackwardTensor:
+            return _BackwardTensor(t, strategy_ref, module_ref)
+
+        # propagate the references from the inputs to the outputs
         out = tree_map_only(torch.Tensor, wrap, out)
 
         if _TORCH_GREATER_EQUAL_2_2:
+            # fix aliasing for torch.compile support with wrapper subclasses
             from torch.utils._python_dispatch import return_and_correct_aliasing
 
             out = return_and_correct_aliasing(func, args, kwargs, out)
 
         return out
+
+    # The default `__torch_function__` will always wrap outputs into a subclass if they aren't already a subclass.
+    # we don't want this in the case where the strategy/module has been garbage-collected.
+    __torch_function__ = torch._C._disabled_torch_function_impl
 
     @staticmethod
     def _from_tensor(tensor: torch.Tensor, strategy: Strategy, module: torch.nn.Module) -> "_BackwardTensor":
@@ -350,35 +372,52 @@ class _BackwardTensor(torch.Tensor):
     def _to_tensor(self) -> torch.Tensor:
         return _ToTensor.apply(self)
 
-    def __repr__(self, *args: Any, **kwargs: Any) -> str:
+    def __repr__(self, *, tensor_contents: Optional[str] = None) -> str:
         # avoid showing `_BackwardTensor` to the user
-        return self._tensor.__repr__(*args, **kwargs)
+        return self._tensor.__repr__(tensor_contents=tensor_contents)
 
-    def tolist(self):
+    def tolist(self) -> Union[Number, List]:
         # workaround to https://github.com/pytorch/pytorch/blob/v2.1.0/torch/csrc/utils/tensor_list.cpp#L43-L45
         return self._tensor.tolist()
 
 
 class _FromTensor(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, tensor: torch.Tensor, strategy: Strategy, module: torch.nn.Module) -> _BackwardTensor:
+    def forward(
+        ctx: torch.autograd.function.FunctionCtx,
+        tensor: torch.Tensor,
+        strategy: Strategy,
+        module: torch.nn.Module,
+    ) -> _BackwardTensor:  # type: ignore[override]
         return _BackwardTensor(tensor, strategy, module)
 
     @staticmethod
-    def backward(ctx, grad_output: _BackwardTensor) -> Tuple[torch.Tensor, None, None]:
-        return grad_output._to_tensor(), None, None
+    def backward(
+        ctx: torch.autograd.function.FunctionCtx,
+        grad_output: Union[_BackwardTensor, torch.Tensor],
+    ) -> Tuple[torch.Tensor, None, None]:  # type: ignore[override]
+        if isinstance(grad_output, _BackwardTensor):
+            # this wouldn't be a BackwardTensor if the strategy/module has been garbage collected
+            grad_output = grad_output._to_tensor()
+        return grad_output, None, None
 
 
 class _ToTensor(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, tensor: _BackwardTensor) -> torch.Tensor:
-        ctx.strategy = tensor._strategy
-        ctx.module = tensor._module
+    def forward(
+        ctx: torch.autograd.function.FunctionCtx,
+        tensor: _BackwardTensor,
+    ) -> torch.Tensor:  # type: ignore[override]
+        ctx.strategy_ref = tensor._strategy_ref
+        ctx.module_ref = tensor._module_ref
         return tensor._tensor
 
     @staticmethod
-    def backward(ctx, grad_output: torch.Tensor) -> _BackwardTensor:
-        return _BackwardTensor(grad_output, ctx.strategy, ctx.module)
+    def backward(
+        ctx: torch.autograd.function.FunctionCtx,
+        grad_output: torch.Tensor,
+    ) -> _BackwardTensor:  # type: ignore[override]
+        return _BackwardTensor(grad_output, ctx.strategy_ref, ctx.module_ref)
 
 
 class _FabricDataLoader:

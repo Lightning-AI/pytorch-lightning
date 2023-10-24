@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import gc
 import weakref
 from unittest import mock
 from unittest.mock import Mock, call
@@ -604,8 +605,6 @@ def test_backward_tensor():
     strategy = SingleDeviceStrategy()
     model = Mock()
     bwd_t = _BackwardTensor._from_tensor(x, strategy, model)
-    assert bwd_t._strategy is weakref.proxy(strategy)
-    assert bwd_t._module is weakref.proxy(model)
     assert bwd_t.requires_grad
     assert x.requires_grad
 
@@ -679,3 +678,26 @@ def bwd_tensor_with_dtensor(fabric):
 def test_backward_tensor_with_dtensor():
     fabric = Fabric(accelerator="cpu", strategy="ddp_spawn", devices=1)
     fabric.launch(bwd_tensor_with_dtensor)
+
+
+def test_backward_tensor_garbage_collected():
+    fabric = Fabric(accelerator="cpu", devices=1)
+    model = Mock()
+    t = torch.tensor([0.0, 1.0, 2.0], requires_grad=True)
+
+    bwd_t = _BackwardTensor._from_tensor(t, fabric.strategy, model)
+    assert isinstance(bwd_t._strategy_ref, weakref.ReferenceType)
+    assert isinstance(bwd_t._module_ref, weakref.ReferenceType)
+
+    y = bwd_t.mul(2)
+    assert type(y) is _BackwardTensor
+
+    del fabric
+    gc.collect()
+    assert bwd_t._strategy_ref() is None
+    assert bwd_t._module_ref() is not None
+
+    y = y.sum()
+    assert type(y) is torch.Tensor
+    y.backward()
+    assert t.grad.tolist() == [2.0, 2.0, 2.0]

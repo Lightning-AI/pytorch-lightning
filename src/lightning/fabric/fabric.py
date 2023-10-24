@@ -291,7 +291,7 @@ class Fabric:
 
         # Let strategy wrap and connect the module alone
         module = self._strategy.setup_module(module)
-        module = _FabricModule(module, self._precision, original_module=original_module)
+        module = _FabricModule(module, self._strategy, original_module=original_module)
 
         if not isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)):
             # Update the _DeviceDtypeModuleMixin's device parameter
