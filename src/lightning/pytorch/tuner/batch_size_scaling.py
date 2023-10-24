@@ -156,6 +156,7 @@ def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) 
 
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False
+    loop.epoch_loop.val_loop._combined_loader = None
     if isinstance(loop, pl.loops._EvaluationLoop) and "loop_verbose" in params:
         loop.verbose = params["loop_verbose"]
 
