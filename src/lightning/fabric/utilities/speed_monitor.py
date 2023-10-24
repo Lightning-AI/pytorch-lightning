@@ -336,14 +336,33 @@ class SpeedMonitor(_SpeedMonitorBase):
 
 def measure_flops(
     model: torch.nn.Module,
-    model_forward: Callable[[], torch.Tensor],
-    model_loss: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+    forward_fn: Callable[[], torch.Tensor],
+    loss_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
 ) -> int:
+    """Utility to compute the total number of FLOPs used by a module during training or during inference.
+
+    It's recommended to create a meta-device model for this:
+
+    Example::
+        with torch.device("meta"):
+            model = MyModel()
+            x = torch.randn(2, 32)
+        model_fwd = lambda: model(x)
+        model_loss = lambda y: y.sum()
+        training_flops = measure_flops(model, model_fwd, model_loss)
+        eval_flops = measure_flops(model.eval(), model_fwd)
+
+    Args:
+        model: The model whose FLOPs should be measured.
+        forward_fn: A function that runs ``forward`` on the model and returns the result.
+        loss_fn: A function that computes the loss given the ``forward_fn`` output.
+
+    """
     flop_counter = FlopCounterMode(model, display=False)
     ctx = nullcontext() if model.training else torch.no_grad()
     with ctx, flop_counter:
-        y = model_forward()
-        if model_loss is not None and model.training:
-            loss = model_loss(y)
+        y = forward_fn()
+        if loss_fn is not None and model.training:
+            loss = loss_fn(y)
             loss.backward()
     return flop_counter.get_total_flops()
