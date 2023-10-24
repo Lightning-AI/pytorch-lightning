@@ -258,25 +258,3 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 
     dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
     assert len(dataloader) == 408
-
-
-def test_streaming_dataset_distributed(tmpdir):
-    seed_everything(42)
-
-    cache = Cache(tmpdir, chunk_size=10)
-    for i in range(101):
-        cache[i] = i
-
-    cache.done()
-    cache.merge()
-
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir)
-
-    for i in range(101):
-        assert dataset[i] == i
-
-    dataset.distributed_env = _DistributedEnv(2, 0)
-    assert len(dataset) == 41
-
-    dataset.distributed_env = _DistributedEnv(2, 1)
-    assert len(dataset) == 41

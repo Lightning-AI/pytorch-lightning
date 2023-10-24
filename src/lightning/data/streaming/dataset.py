@@ -32,7 +32,7 @@ class StreamingDataset(IterableDataset):
         version: Optional[Union[int, Literal["latest"]]] = "latest",
         cache_dir: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
-        shuffle: Union[bool, Shuffle] = True,
+        shuffle: Union[bool, Literal["min"]] = "min",
         seed: int = 42,
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
@@ -57,13 +57,12 @@ class StreamingDataset(IterableDataset):
         self.distributed_env = _DistributedEnv.detect()
 
         if isinstance(shuffle, bool):
-            shuffle = (
-                MinShuffle(self.cache, seed, self.distributed_env)
-                if shuffle
-                else NoShuffle(self.cache, seed, self.distributed_env)
-            )
+            shuffle = MinShuffle(self.cache, seed) if shuffle else NoShuffle(self.cache, seed)
 
-        self.shuffler: Shuffle = shuffle
+        if isinstance(shuffle, str):
+            shuffle = MinShuffle(self.cache, seed)
+
+        self.shuffle: Shuffle = shuffle
         self.worker_env: Optional[_WorkerEnv] = None
         self.worker_chunks: List[int] = []
         self.worker_intervals: List[List[int]] = []
@@ -77,10 +76,12 @@ class StreamingDataset(IterableDataset):
         self.random_state = None
 
     def __len__(self) -> int:
-        return len(self.shuffle)
+        return self.shuffle.get_len(self.distributed_env, self.current_epoch)
 
     def __iter__(self) -> "StreamingDataset":
-        chunks_per_replica, intervals_per_replica = self.shuffle.get_chunks_and_intervals_per_replica()
+        chunks_per_replica, intervals_per_replica = self.shuffle.get_chunks_and_intervals_per_process(
+            self.distributed_env, self.current_epoch
+        )
         current_chunks = chunks_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
         current_intervals = intervals_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
 
@@ -98,7 +99,7 @@ class StreamingDataset(IterableDataset):
 
         self.current_indexes = []
         self.chunk_index = 0
-        self.current_epoch += 1
+        self.index = 0
 
         return self
 
@@ -108,16 +109,20 @@ class StreamingDataset(IterableDataset):
         return self.cache[index]
 
     def __next__(self) -> Any:
+        # Prevent to create more batch on a given process
+        if self.index >= len(self):
+            self.current_epoch += 1
+            raise StopIteration
+
         # Lazily re-populate the interval to reduce memory usage.
         if len(self.current_indexes) == 0:
             if self.chunk_index == len(self.worker_intervals):
+                self.current_epoch += 1
                 raise StopIteration
 
             interval = self.worker_intervals[self.chunk_index]
             current_indexes = np.arange(0, interval[1] - interval[0])
-            if self.shuffle:
-                current_indexes = self.random_state.permutation(current_indexes)
-            self.current_indexes = current_indexes.tolist()
+            self.current_indexes = self.shuffle.permute(current_indexes)
             self.chunk_index += 1
 
         # Get the first index

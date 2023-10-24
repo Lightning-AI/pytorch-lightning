@@ -120,8 +120,8 @@ class Cache:
     def __len__(self) -> int:
         return self._reader.get_length()
 
-    def get_chunk_interval(self) -> List[Tuple[int, int]]:
-        return self._reader.get_chunk_interval()
+    def get_chunk_intervals(self) -> List[Tuple[int, int]]:
+        return self._reader.get_chunk_intervals()
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         return self._reader._get_chunk_index_from_index(index)
