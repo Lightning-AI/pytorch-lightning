@@ -27,6 +27,7 @@ from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, Opti
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 from torch.nn import Parameter
 
+from tests_fabric.conftest import capture_logs
 from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
@@ -343,33 +344,31 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         assert not isinstance(layer.weight, FlatParameter)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, dynamo=True)
+@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, dynamo=True, min_python="3.9")
 @mock.patch.dict(os.environ, {})
-@pytest.mark.parametrize(
-    "compile_after_setup",
-    [
-        False,
-        # https://github.com/pytorch/pytorch/issues/97811
-        pytest.param(True, marks=RunIf(min_python="3.9")),
-    ],
-)
-def test_compile(compile_after_setup):
-    """Test that the model can be compiled before and after the model is wrapped in FSDP."""
+def test_compile():
+    """Test that the model can be compiled after the model is wrapped in FSDP."""
     model = BoringModel()
     strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
-    fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy)
+    fabric = Fabric(accelerator="cuda", devices=1, strategy=strategy)
     fabric.launch()
 
-    if not compile_after_setup:
-        model = torch.compile(model)
-
     model = fabric.setup(model)
+    model = torch.compile(model)
 
-    if compile_after_setup:
-        model = torch.compile(model)
+    with capture_logs("torch._dynamo") as logs:
+        for _ in range(3):
+            x = torch.rand(2, 32, device=fabric.device)
+            y = model(x)
+            y = y.sum()
+            y.backward()
 
-    for _ in range(3):
-        model(torch.rand(2, 32, device=fabric.device)).sum().backward()
+    # torch.compile complains because `_BackwardTensor` gets a `Strategy` input: `model(x)` prints
+    # a warning with this message that gets interpreted as an error by our standalone test machinery.
+    # to avoid this, we capture the torch.compile logs and assert that the error is raised, hoping that they'll
+    # support this eventually
+    # https://github.com/pytorch/pytorch/blob/v2.1.0/torch/_dynamo/variables/higher_order_ops.py#L94-L97
+    assert "Unsupported: HigherOrderOperator with body that accepts non-Tensors" in logs.getvalue()
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)

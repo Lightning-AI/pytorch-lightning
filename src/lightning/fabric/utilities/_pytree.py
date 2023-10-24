@@ -15,7 +15,7 @@ else:
     MapOnlyFn = Callable[[T], Callable[[Any], Any]]
     FnAny = Callable[[Any], R]
 
-    def map_only(ty: TypeAny) -> MapOnlyFn[FnAny[Any]]:
+    def map_only(ty: TypeAny) -> MapOnlyFn[FnAny[Any]]:  # type: ignore[no-redef]
         def deco(f: Callable[[T], Any]) -> Callable[[Any], Any]:
             def inner(x: T) -> Any:
                 if isinstance(x, ty):
@@ -26,5 +26,5 @@ else:
 
         return deco
 
-    def tree_map_only(ty: TypeAny, fn: FnAny[Any], pytree: PyTree) -> PyTree:
+    def tree_map_only(ty: TypeAny, fn: FnAny[Any], pytree: PyTree) -> PyTree:  # type: ignore[no-redef]
         return tree_map(map_only(ty)(fn), pytree)

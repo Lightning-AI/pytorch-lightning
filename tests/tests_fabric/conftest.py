@@ -11,8 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
+import logging
 import os
 import sys
+from io import StringIO
 from typing import List
 from unittest.mock import Mock
 
@@ -134,6 +137,21 @@ def caplog(caplog):
     lightning_logger.propagate = True
     yield caplog
     lightning_logger.propagate = propagate
+
+
+@contextlib.contextmanager
+def capture_logs(logger: str, level: int = logging.WARNING) -> StringIO:
+    # `caplog.at_level` doesn't seem to work in some instances (e.g. dynamo logs)
+    logger = logging.getLogger(logger)
+    logs = StringIO()
+    handler = logging.StreamHandler(logs)
+    handler.setLevel(level)
+    prev_handlers = logger.handlers
+    try:
+        logger.handlers = [handler]
+        yield logs
+    finally:
+        logger.handlers = prev_handlers
 
 
 def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:
