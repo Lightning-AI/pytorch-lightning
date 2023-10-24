@@ -317,7 +317,7 @@ def test_dataloader_reset_with_scale_batch_size(tmp_path, caplog, scale_method, 
     assert caplog.text.count("greater or equal than the length") == int(new_batch_size == dataset_len)
 
     assert trainer.train_dataloader.batch_size == new_batch_size
-    assert trainer.val_dataloaders.batch_size == init_batch_size
+    assert trainer.val_dataloaders.batch_size == new_batch_size
 
 
 @pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
