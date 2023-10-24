@@ -51,13 +51,13 @@ The :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run` argument
 
 .. code:: python
 
-    Trainer(fast_dev_run=True)
+    trainer = Trainer(fast_dev_run=True)
 
 To change how many batches to use, change the argument to an integer. Here we run 7 batches of each:
 
 .. code:: python
 
-    Trainer(fast_dev_run=7)
+    trainer = Trainer(fast_dev_run=7)
 
 
 .. note::
@@ -142,7 +142,7 @@ To turn off the autosummary use:
 
 .. code:: python
 
-    Trainer(enable_model_summary=False)
+    trainer = Trainer(enable_model_summary=False)
 
 ----
 
