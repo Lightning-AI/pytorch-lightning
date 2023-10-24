@@ -7,7 +7,10 @@ from lightning.fabric.utilities.speed_monitor import measure_flops
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.speed_monitor import SpeedMonitorCallback
 
+from tests_pytorch.helpers.runif import RunIf
 
+
+@RunIf(min_torch="2.1")
 def test_measure_flops():
     with torch.device("meta"):
         model = BoringModel()
@@ -25,7 +28,9 @@ def test_measure_flops():
 def test_speed_monitor(tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
-    speed_monitor = SpeedMonitorCallback(length_fn=lambda x: 2, batch_size=3, window_size=3, time_unit="seconds")
+    speed_monitor = SpeedMonitorCallback(
+        length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=3, time_unit="seconds"
+    )
     model = BoringModel()
     model.flops_per_batch = 10
     trainer = Trainer(
