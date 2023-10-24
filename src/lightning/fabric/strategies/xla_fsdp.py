@@ -277,7 +277,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     ) -> Tensor:
         """Clip gradients by norm."""
         self.precision.unscale_gradients(optimizer)
-        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)  # type: ignore[operator]
+        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
     def clip_gradients_value(self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
         """Clip gradients by value."""
