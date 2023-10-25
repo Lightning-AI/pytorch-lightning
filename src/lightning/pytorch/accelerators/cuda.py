@@ -16,6 +16,7 @@ import os
 import shutil
 import subprocess
 from typing import Any, Dict, List, Optional, Union
+from typing_extensions import override
 
 import torch
 
@@ -44,6 +45,7 @@ class CUDAAccelerator(Accelerator):
         _check_cuda_matmul_precision(device)
         torch.cuda.set_device(device)
 
+    @override
     def setup(self, trainer: "pl.Trainer") -> None:
         # TODO refactor input from trainer to local_rank @four4fish
         self.set_nvidia_flags(trainer.local_rank)
@@ -57,6 +59,7 @@ class CUDAAccelerator(Accelerator):
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
+    @override
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Gets stats for the given GPU device.
 

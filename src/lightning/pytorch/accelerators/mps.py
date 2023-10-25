@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict, List, Optional, Union
+from typing_extensions import override
 
 import torch
 
@@ -40,6 +41,7 @@ class MPSAccelerator(Accelerator):
         if device.type != "mps":
             raise MisconfigurationException(f"Device should be MPS, got {device} instead.")
 
+    @override
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get M1 (cpu + gpu) stats from ``psutil`` package."""
         return get_device_stats()

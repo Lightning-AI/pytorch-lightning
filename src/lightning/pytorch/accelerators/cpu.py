@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict, List, Union
+from typing_extensions import override
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -35,6 +36,7 @@ class CPUAccelerator(Accelerator):
         if device.type != "cpu":
             raise MisconfigurationException(f"Device should be CPU, got {device} instead.")
 
+    @override
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get CPU stats from ``psutil`` package."""
         return get_cpu_stats()

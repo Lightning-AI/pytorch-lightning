@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict
+from typing_extensions import override
 
 from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.xla import XLAAccelerator as FabricXLAAccelerator
@@ -26,6 +27,7 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
 
     """
 
+    @override
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Gets stats for the given XLA device.
 

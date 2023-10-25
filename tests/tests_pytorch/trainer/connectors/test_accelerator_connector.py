@@ -14,6 +14,7 @@
 import inspect
 import os
 from typing import Any, Dict
+from typing_extensions import override
 from unittest import mock
 from unittest.mock import Mock
 
@@ -178,6 +179,7 @@ def test_custom_accelerator(cuda_count_0):
         def setup_device(self, device: torch.device) -> None:
             pass
 
+        @override
         def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
             pass
 
