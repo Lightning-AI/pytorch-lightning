@@ -615,6 +615,7 @@ class DatasetOptimizer:
                         new_total = sum(self.workers_tracker.values())
                     pbar.update(new_total - current_total)
                 current_total = new_total
+                print(current_total, num_items)
                 if current_total == num_items:
                     break
 
