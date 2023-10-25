@@ -49,8 +49,7 @@ def _get_expected_model_path(dir_path: str) -> str:
     while expected_model_path and expected_model_path[-1] in ("/", "\\"):
         expected_model_path = expected_model_path[:-1]
 
-    expected_model_path = f"{expected_model_path}{os.path.sep}"
-    return expected_model_path
+    return f"{expected_model_path}{os.path.sep}"
 
 
 class NeptuneLogger(Logger):
