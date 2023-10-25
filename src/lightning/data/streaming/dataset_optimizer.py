@@ -653,6 +653,9 @@ class DatasetOptimizer:
         print("Finished data processing!")
         print()
 
+        if num_nodes > 1:
+            os._exit(0)
+
     def _exit_on_error(self, error: str) -> None:
         for w in self.workers:
             w.join(0)
