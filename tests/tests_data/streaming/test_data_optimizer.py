@@ -5,6 +5,8 @@ from unittest import mock
 
 import numpy as np
 import pytest
+import torch
+from lightning import LightningDataModule, seed_everything
 from lightning.data.streaming.dataset_optimizer import (
     DatasetOptimizer,
     _download_data_target,
@@ -129,10 +131,13 @@ def test_download_data_target(tmpdir):
     assert os.listdir(cache_dir) == ["a.txt"]
 
 
-class TestDatasetOptimizer(DatasetOptimizer):
+class DataModuleImage(LightningDataModule):
     def prepare_dataset_structure(self, src_dir: str, filepaths: List[str]) -> List[Any]:
         assert len(filepaths) == 30
         return filepaths
+
+    def prepare_item(self, item):
+        return item
 
 
 @pytest.mark.parametrize("delete_cached_files", [False, True])
@@ -152,7 +157,7 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     cache_dir = os.path.join(tmpdir, "cache")
     monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
-    datasetOptimizer = TestDatasetOptimizer(
+    dataset_optimizer = DatasetOptimizer(
         name="dummy_dataset",
         src_dir=tmpdir,
         chunk_size=2,
@@ -163,7 +168,7 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
     )
-    datasetOptimizer.run()
+    dataset_optimizer.run(DataModuleImage())
 
     assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
 
@@ -215,7 +220,9 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
 
 @pytest.mark.parametrize("delete_cached_files", [False])
 @pytest.mark.parametrize("fast_dev_run", [False])
-@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+@pytest.mark.skipif(
+    condition=not _PIL_AVAILABLE or sys.platform == "win32" or sys.platform == "darwin", reason="Requires: ['pil']"
+)
 def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     """This test ensures the data optimizer works in a fully distributed settings."""
 
@@ -238,7 +245,7 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
-    datasetOptimizer = TestDatasetOptimizer(
+    dataset_optimizer = DatasetOptimizer(
         name="dummy_dataset",
         src_dir=tmpdir,
         chunk_size=2,
@@ -250,7 +257,7 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
         fast_dev_run=fast_dev_run,
         remote_dst_dir=remote_dst_dir,
     )
-    datasetOptimizer.run()
+    dataset_optimizer.run(DataModuleImage())
 
     assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
 
@@ -272,7 +279,7 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
-    datasetOptimizer = TestDatasetOptimizer(
+    dataset_optimizer = DatasetOptimizer(
         name="dummy_dataset",
         src_dir=tmpdir,
         chunk_size=2,
@@ -284,7 +291,7 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
         fast_dev_run=fast_dev_run,
         remote_dst_dir=remote_dst_dir,
     )
-    datasetOptimizer.run()
+    dataset_optimizer.run(DataModuleImage())
 
     assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
 
@@ -303,3 +310,37 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
 
     expected = sorted(fast_dev_run_disabled_chunks_0 + fast_dev_run_disabled_chunks_1 + ["1-index.json"])
     assert sorted(os.listdir(remote_dst_dir)) == expected
+
+
+class DataModule(LightningDataModule):
+    @staticmethod
+    def prepare_dataset_structure(src_dir: str, filepaths: List[str]) -> List[Any]:
+        return [os.path.join(src_dir, "dummy2")]
+
+    @staticmethod
+    def prepare_item(filepath):
+        for _ in range(100):
+            yield torch.randint(0, 1000, (np.random.randint(0, 1000),)).to(torch.int)
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+def test_data_optimizer_nlp(tmpdir, monkeypatch):
+    seed_everything(42)
+
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(tmpdir))
+
+    with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
+        f.write("Hello World !")
+
+    dataset_optimizer = DatasetOptimizer(
+        name="dummy2", src_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
+    )
+    dataset_optimizer.run(DataModule())
+
+
+def test_data_optimizer_api(tmpdir):
+    dataset_optimizer = DatasetOptimizer(
+        name="dummy2", src_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
+    )
+    with pytest.raises(ValueError, match="prepare_dataset_structure"):
+        dataset_optimizer.run(None)

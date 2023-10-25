@@ -75,10 +75,10 @@ class PositionalEncoding(nn.Module):
         self.register_parameter("pe", nn.Parameter(pe, requires_grad=False))
 
     def reset_parameters(self) -> None:
-        self.pe.copy_(self._init_pos_encoding())  # type: ignore[operator]
+        self.pe.copy_(self._init_pos_encoding())
 
     def forward(self, x: Tensor) -> Tensor:
-        x + self.pe[: x.size(0), :]  # type: ignore[index]
+        x + self.pe[: x.size(0), :]
         return self.dropout(x)
 
     def _init_pos_encoding(self) -> Tensor:

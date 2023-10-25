@@ -2,18 +2,19 @@ import logging
 import os
 import signal
 import traceback
-from abc import ABC, abstractmethod
+import types
 from enum import Enum
 from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
 from shutil import copyfile
+from textwrap import dedent
 from threading import Thread
 from time import sleep, time
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Tuple, TypeVar, runtime_checkable
 from urllib import parse
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from lightning import seed_everything
 from lightning.data.streaming import Cache
@@ -173,6 +174,7 @@ class BaseWorker:
         items: List[Any],
         progress_queue: Queue,
         error_queue: Queue,
+        stop_queue: Queue,
         num_downloaders: int,
         remove: bool,
         chunk_size: Optional[int] = None,
@@ -199,6 +201,7 @@ class BaseWorker:
         self.remover: Optional[Process] = None
         self.downloaders: List[Process] = []
         self.to_download_queues: List[Queue] = []
+        self.stop_queue = stop_queue
         self.ready_to_process_queue: Queue = Queue()
         self.remove_queue: Queue = Queue()
         self.upload_queue: Queue = Queue()
@@ -207,6 +210,8 @@ class BaseWorker:
         self.uploader: Optional[Process] = None
         self._collected_items = 0
         self._counter = 0
+        self._last_time = time()
+        self._index_counter = 0
 
     def run(self) -> None:
         try:
@@ -247,22 +252,41 @@ class BaseWorker:
                         assert self.uploader
                         self.upload_queue.put(None)
                         self.uploader.join()
+
+                    if self.remove:
+                        assert self.remover
+                        self.remove_queue.put(None)
+                        self.remover.join()
+
+                    if self.progress_queue:
+                        self.progress_queue.put((self.worker_index, self._counter))
                     return
                 continue
 
-            item_index = index + self.start_index
-            item_data = self.prepare_item(self.items[index]) if self.prepare_item else self.items[index]  # type: ignore
-            chunk_filepath = self.cache._add_item(item_index, item_data)
-
-            self._try_upload(chunk_filepath)
+            item_data_or_generator = self.prepare_item(self.items[index]) if self.prepare_item else self.items[index]  # type: ignore
+            if isinstance(item_data_or_generator, types.GeneratorType):
+                for item_data in item_data_or_generator:
+                    chunk_filepath = self.cache._add_item(self._index_counter, item_data)
+                    self._try_upload(chunk_filepath)
+                    self._index_counter += 1
+            else:
+                chunk_filepath = self.cache._add_item(index + self.start_index, item_data_or_generator)
+                self._try_upload(chunk_filepath)
 
             self._counter += 1
 
-            if self.progress_queue:
+            if self.progress_queue and (time() - self._last_time) > 1:
                 self.progress_queue.put((self.worker_index, self._counter))
+                self._last_time = time()
 
             if self.remove:
                 self.remove_queue.put(self.paths[index])
+
+            try:
+                self.stop_queue.get(timeout=0.0001)
+                return
+            except Empty:
+                pass
 
     def _set_environ_variables(self) -> None:
         # set the optimizer global rank and world_size
@@ -408,57 +432,21 @@ class WorkerType(Enum):
     PROCESS = "process"
 
 
-class DatasetOptimizer(ABC):
-    @abstractmethod
-    def prepare_dataset_structure(self, src_dir: str, filepaths: List[str]) -> List[Any]:
-        """This function is meant to return a list of item metadata. Each item metadata should be enough to prepare a
-        single item when called with the prepare_item.
+T = TypeVar("T")
 
-        Example::
 
-            # For a classification use case
-
-            def prepare_dataset_structure(self, src_dir, filepaths)
-                import numpy as np
-
-                filepaths = ['class_a/file_1.ext', ..., 'class_b/file_1.ext', ...]
-                classes = np.unique([filepath.split("/")[0] for filepath in filepaths])
-                classes_to_idx_map = {c: idx for idx, c in enumerate(classes)}
-
-                # Return pair with the filepath to the obj and its class
-                # [('class_a/file_1.ext', 0), ... ('class_b/file_1.ext', 1)]
-                return [(filepath, classes_to_idx_map[filepath.split("/")[0]]) for filepath in filepaths]
-
-        Example::
-
-            # For a image segmentation use case
-
-            def prepare_dataset_structure(self, src_dir, filepaths)
-                import numpy as np
-
-                filepaths = ['file_1.JPEG', 'file_1.mask', .... 'file_N.JPEG', 'file_N.mask', ...]
-
-                # [('file_1.JPEG', 'file_1.mask'), ... ('file_N.JPEG', 'file_N.mask')]
-                return [(x[i], x[i+1]) for i in range(len(filepaths) -1)]
-
-            def prepare_item(self, obj):
-                image_filepath, mask_filepath = obj
-
-                image = load_and_resize(image_filepath)
-                mask = load_and_resize(mask_filepath)
-                return (image, mask)
-
-        """
+@runtime_checkable
+class _OptimizableDataset(Protocol):
+    @staticmethod
+    def prepare_dataset_structure(root: str, filepaths: List[str]) -> List[T]:
         pass
 
-    def prepare_item(self, metadata_item: Any) -> Any:
-        """Using some metadata, prepare the associated item.
+    @staticmethod
+    def prepare_item(item_metadata: T) -> Any:
+        return item_metadata
 
-        The output of this function will be binarised
 
-        """
-        return metadata_item
-
+class DatasetOptimizer:
     def __init__(
         self,
         name: str,
@@ -512,6 +500,7 @@ class DatasetOptimizer(ABC):
         self.workers_tracker: Dict[int, int] = {}
         self.progress_queue: Optional[Queue] = None
         self.error_queue: Queue = Queue()
+        self.stop_queues: List[Queue] = []
         self.remote_src_dir = (
             str(remote_src_dir)
             if remote_src_dir is not None
@@ -522,9 +511,29 @@ class DatasetOptimizer(ABC):
         )
         self.random_seed = random_seed
 
-    def run(self) -> None:
+    def run(self, optimizable_dataset: _OptimizableDataset) -> None:
         """The `DatasetChunker.run(...)` method is used to trigger the data processing from your dataset into
         chunks."""
+        if not isinstance(optimizable_dataset, _OptimizableDataset):
+            raise ValueError(
+                dedent(
+                    """The provided argument to the DatasetOptimizer.run(...) needs to have the following format:
+
+                Example:
+
+                    class YourDataset:
+
+                        @staticmethod
+                        def prepare_dataset_structure(root: str, filepaths: List[str]) -> List[T]:
+                            return [...]
+
+                        @staticmethod
+                        def prepare_item(item_metadata: T) -> Any:
+                            return ...
+                """
+                )
+            )
+
         t0 = time()
         print(f"Setup started for `{self.name}` with fast_dev_run={self.fast_dev_run}.")
 
@@ -539,7 +548,7 @@ class DatasetOptimizer(ABC):
         seed_everything(self.random_seed)
 
         # Call the setup method of the user
-        user_items = self.prepare_dataset_structure(self.src_dir, filepaths)
+        user_items: List[Any] = optimizable_dataset.prepare_dataset_structure(self.src_dir, filepaths)
 
         if not isinstance(user_items, list):
             raise ValueError("The setup_fn should return a list of item metadata.")
@@ -563,9 +572,9 @@ class DatasetOptimizer(ABC):
         signal.signal(signal.SIGINT, self._signal_handler)
 
         if self.worker_type == WorkerType.THREAD.value:
-            self._create_thread_workers(begins, workers_user_items)
+            self._create_thread_workers(optimizable_dataset, begins, workers_user_items)
         else:
-            self._create_process_workers(begins, workers_user_items)
+            self._create_process_workers(optimizable_dataset, begins, workers_user_items)
 
         print("Workers are ready ! Starting data processing...")
 
@@ -609,11 +618,14 @@ class DatasetOptimizer(ABC):
             w.join(0)
         raise RuntimeError(f"We found the following error {error}.")
 
-    def _create_thread_workers(self, begins: List[int], workers_user_items: List[List[Any]]) -> None:
+    def _create_thread_workers(
+        self, optimizable_dataset: _OptimizableDataset, begins: List[int], workers_user_items: List[List[Any]]
+    ) -> None:
         current_total = 0
         total = sum([len(w) for w in workers_user_items])
         with tqdm(total=total, smoothing=0) as pbar:
             for worker_idx, worker_user_items in enumerate(workers_user_items):
+                self.stop_queues.append(Queue())
                 new_total = sum([w.collected_items for w in self.workers])
                 pbar.update(new_total - current_total)
                 current_total = new_total
@@ -623,16 +635,19 @@ class DatasetOptimizer(ABC):
                     begins[worker_idx],
                     self.name,
                     _get_node_rank(),
-                    self.prepare_item,
+                    optimizable_dataset.prepare_item,
                     self.src_dir,
                     self.remote_src_dir,
                     self.remote_dst_dir,
                     worker_user_items,
                     None,
                     self.error_queue,
+                    self.stop_queues[-1],
                     self.num_downloaders,
                     self.delete_cached_files,
-                    2 if self.fast_dev_run else self.chunk_size,  # In dev run, create chunks with 2 items
+                    (self.chunk_size if self.chunk_size else 2)
+                    if self.fast_dev_run
+                    else self.chunk_size,  # In dev run, create chunks with 2 items
                     None if self.fast_dev_run else self.chunk_bytes,
                     self.compression,
                 )
@@ -647,26 +662,33 @@ class DatasetOptimizer(ABC):
                 if current_total == total:
                     break
 
-    def _create_process_workers(self, begins: List[int], workers_user_items: List[List[Any]]) -> None:
+    def _create_process_workers(
+        self, optimizable_dataset: _OptimizableDataset, begins: List[int], workers_user_items: List[List[Any]]
+    ) -> None:
         self.progress_queue = Queue()
         workers: List[DataWorkerProcess] = []
+        stop_queues: List[Queue] = []
         for worker_idx, worker_user_items in enumerate(workers_user_items):
+            stop_queues.append(Queue())
             worker = DataWorkerProcess(
                 worker_idx,
                 self.num_workers,
                 begins[worker_idx],
                 self.name,
                 _get_node_rank(),
-                self.prepare_item,
+                optimizable_dataset.prepare_item,
                 self.src_dir,
                 self.remote_src_dir,
                 self.remote_dst_dir,
                 worker_user_items,
                 self.progress_queue,
                 self.error_queue,
+                stop_queues[-1],
                 self.num_downloaders,
                 self.delete_cached_files,
-                2 if self.fast_dev_run else self.chunk_size,  # In dev run, create chunks with 2 items
+                (self.chunk_size if self.chunk_size else 2)
+                if self.fast_dev_run
+                else self.chunk_size,  # In dev run, create chunks with 2 items
                 None if self.fast_dev_run else self.chunk_bytes,
                 self.compression,
             )
@@ -675,6 +697,7 @@ class DatasetOptimizer(ABC):
 
         # Note: Don't store within the loop as weakref aren't serializable
         self.workers = workers
+        self.stop_queues = stop_queues
 
     def _associated_items_to_workers(self, user_items: List[Any]) -> Tuple[List[int], List[List[Any]]]:
         # Associate the items to the workers based on world_size and node_rank
@@ -729,6 +752,8 @@ class DatasetOptimizer(ABC):
 
     def _signal_handler(self, signal: Any, frame: Any) -> None:
         """On temrination, we stop all the processes to avoid leaking RAM."""
+        for stop_queue in self.stop_queues:
+            stop_queue.put(None)
         for w in self.workers:
             w.join(0)
         os._exit(0)
