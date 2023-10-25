@@ -821,7 +821,7 @@ class DatasetOptimizer:
             merge_cache._merge_no_wait()
             self._upload_index(cache_dir, 1, None)
 
-    def _cleanup_cache(self):
+    def _cleanup_cache(self) -> None:
         cache_chunks_dir = os.path.join(_get_cache_folder(), self.name)
 
         # Cleanup the cache folder to avoid corrupted files from previous run to be there.
