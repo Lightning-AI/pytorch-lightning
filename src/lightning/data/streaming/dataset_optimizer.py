@@ -623,9 +623,12 @@ class DatasetOptimizer:
 
         num_nodes = _get_num_nodes()
 
-        if num_nodes == 0:
+        # TODO: Understand why it hangs.
+        if num_nodes == 1:
             for w in self.workers:
                 w.join(0)
+
+        print("1")
 
         print("Workers are finished.")
 
@@ -635,10 +638,15 @@ class DatasetOptimizer:
         if chunks and self.delete_cached_files and self.remote_dst_dir:
             raise RuntimeError(f"All the chunks should have been deleted. Found {chunks}")
 
+        print("1")
         merge_cache = Cache(cache_dir, chunk_bytes=1)
+        print("2")
         node_rank = _get_node_rank()
+        print("3")
         merge_cache.merge(self.num_workers, node_rank if num_nodes > 1 else None)
+        print("4")
         self._upload_index(cache_dir, num_nodes, node_rank)
+        print("5")
 
         print("Finished data processing!")
         print()
