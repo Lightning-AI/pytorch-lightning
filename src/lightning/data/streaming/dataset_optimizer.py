@@ -617,6 +617,8 @@ class DatasetOptimizer:
                 if current_total == num_items:
                     break
 
+        print("Workers are finishing...")
+
         for w in self.workers:
             w.join()
 
