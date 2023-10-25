@@ -19,6 +19,7 @@ Finds optimal batch size
 """
 
 from typing import Optional
+
 from typing_extensions import override
 
 import lightning.pytorch as pl

@@ -20,10 +20,10 @@ Monitor a metric and stop training when it stops improving.
 """
 import logging
 from typing import Any, Callable, Dict, Optional, Tuple
-from typing_extensions import override
 
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.rank_zero import _get_rank

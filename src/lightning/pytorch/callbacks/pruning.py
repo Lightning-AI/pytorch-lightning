@@ -20,12 +20,11 @@ import logging
 from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
-from typing_extensions import override
 
 import torch.nn.utils.prune as pytorch_prune
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor, nn
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
@@ -364,6 +363,7 @@ class ModelPruning(Callback):
                     f" {prev_mask_zeros} ({prev_mask_zeros / prev_mask_size:.2%}) ->"
                     f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )
+
     @override
     def setup(self, trainer: "pl.Trainer", pl_module: LightningModule, stage: str) -> None:
         parameters_to_prune = self.sanitize_parameters_to_prune(

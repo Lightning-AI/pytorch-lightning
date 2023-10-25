@@ -23,6 +23,7 @@ the name, type and number of parameters for each layer.
 """
 import logging
 from typing import Any, Dict, List, Tuple, Union
+
 from typing_extensions import override
 
 import lightning.pytorch as pl

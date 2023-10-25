@@ -18,6 +18,7 @@ BasePredictionWriter
 Aids in saving predictions
 """
 from typing import Any, Literal, Optional, Sequence
+
 from typing_extensions import override
 
 import lightning.pytorch as pl

@@ -19,6 +19,7 @@ Monitors and logs device stats during training.
 
 """
 from typing import Any, Dict, Optional
+
 from typing_extensions import override
 
 import lightning.pytorch as pl

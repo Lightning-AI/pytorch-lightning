@@ -17,11 +17,11 @@ Stochastic Weight Averaging Callback
 """
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Union, cast
-from typing_extensions import override
 
 import torch
 from torch import Tensor, nn
 from torch.optim.swa_utils import SWALR
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.types import LRScheduler

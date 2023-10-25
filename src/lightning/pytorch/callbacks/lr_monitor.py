@@ -22,10 +22,10 @@ Monitor and logs learning rate for lr schedulers during training.
 import itertools
 from collections import defaultdict
 from typing import Any, DefaultDict, Dict, List, Literal, Optional, Set, Tuple, Type
-from typing_extensions import override
 
 import torch
 from torch.optim.optimizer import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback

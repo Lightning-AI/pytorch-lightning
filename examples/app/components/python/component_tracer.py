@@ -1,9 +1,8 @@
-from typing_extensions import override
-
 from lightning.app.components import TracerPythonScript
 from lightning.app.storage.path import Path
 from lightning.app.utilities.tracer import Tracer
 from lightning.pytorch import Trainer
+from typing_extensions import override
 
 
 class PLTracerPythonScript(TracerPythonScript):
