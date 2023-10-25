@@ -15,7 +15,6 @@ import os
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, Iterator
-from typing_extensions import override
 from unittest.mock import ANY, Mock
 
 import pytest
@@ -26,6 +25,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import _BaseProgress
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
+from typing_extensions import override
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -89,6 +89,7 @@ def test_loop_restore():
         @override
         def state_dict(self) -> Dict:
             return {"iteration_count": self.iteration_count, "outputs": self.outputs}
+
         @override
         def load_state_dict(self, state_dict: Dict) -> None:
             self.iteration_count = state_dict["iteration_count"]
