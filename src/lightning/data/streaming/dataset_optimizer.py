@@ -616,6 +616,7 @@ class DatasetOptimizer:
                     pbar.update(new_total - current_total)
                 current_total = new_total
                 if current_total == num_items:
+                    print("HERERERE")
                     break
 
         print("Workers are finished.")
