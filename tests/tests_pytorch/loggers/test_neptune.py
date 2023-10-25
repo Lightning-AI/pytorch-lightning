@@ -23,6 +23,7 @@ import torch
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import NeptuneLogger
+from lightning.pytorch.loggers.neptune import _get_expected_model_path
 
 
 def _fetchable_paths(value):
@@ -303,3 +304,8 @@ def test_get_full_model_names_from_exp_structure():
     }
     expected_keys = {"lvl1_1/lvl2/lvl3_1", "lvl1_1/lvl2/lvl3_2", "lvl1_2"}
     assert NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar") == expected_keys
+
+
+def test_get_expected_model_path():
+    assert _get_expected_model_path("my_model/checkpoints") == "my_model/checkpoints/"
+    assert _get_expected_model_path("my_model/checkpoints/") == "my_model/checkpoints/"

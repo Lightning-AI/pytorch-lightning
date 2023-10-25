@@ -43,6 +43,14 @@ _NEPTUNE_CLIENT_AVAILABLE = RequirementCache("neptune-client")
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
+def _get_expected_model_path(dir_path: str) -> str:
+    expected_model_path = dir_path
+    path_sep = "/"
+    if expected_model_path and expected_model_path[-1] != path_sep:
+        expected_model_path = f"{expected_model_path}{path_sep}"
+    return expected_model_path
+
+
 class NeptuneLogger(Logger):
     r"""Log using `Neptune <https://neptune.ai>`_.
 
@@ -551,9 +559,7 @@ class NeptuneLogger(Logger):
     def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         if hasattr(checkpoint_callback, "dirpath"):
-            expected_model_path = checkpoint_callback.dirpath
-            if expected_model_path and expected_model_path[-1] != os.path.sep:
-                expected_model_path = f"{expected_model_path}{os.path.sep}"
+            expected_model_path = _get_expected_model_path(checkpoint_callback.dirpath)
             if not model_path.startswith(expected_model_path):
                 raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
             # Remove extension from filepath
