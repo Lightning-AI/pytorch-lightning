@@ -33,6 +33,7 @@ from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import TBroadcast, _BackwardSyncControl
 from lightning.fabric.utilities.distributed import (
     ReduceOp,
+    _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
@@ -143,7 +144,7 @@ class DDPStrategy(ParallelStrategy):
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
@@ -151,7 +152,7 @@ class DDPStrategy(ParallelStrategy):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return obj
 
         obj = [obj]
