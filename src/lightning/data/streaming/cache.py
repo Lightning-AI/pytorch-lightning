@@ -71,6 +71,10 @@ class Cache:
             if has_index_file and (chunk_size is None and chunk_bytes is None):
                 chunk_size = 2
 
+            # Add the version to the cache_dir to avoid collisions.
+            if remote_dir and os.path.basename(remote_dir).startswith("version_"):
+                cache_dir = os.path.join(cache_dir, os.path.basename(remote_dir))
+
             if cache_dir:
                 os.makedirs(cache_dir, exist_ok=True)
 
@@ -116,8 +120,8 @@ class Cache:
     def __len__(self) -> int:
         return self._reader.get_length()
 
-    def get_chunk_interval(self) -> List[Tuple[int, int]]:
-        return self._reader.get_chunk_interval()
+    def get_chunk_intervals(self) -> List[Tuple[int, int]]:
+        return self._reader.get_chunk_intervals()
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         return self._reader._get_chunk_index_from_index(index)

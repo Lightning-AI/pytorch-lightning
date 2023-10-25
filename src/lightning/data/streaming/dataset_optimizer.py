@@ -485,7 +485,7 @@ class DatasetOptimizer:
         self.name = name
         self.src_dir = str(src_dir)
         self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
-        self.num_downloaders = num_downloaders or (1 if fast_dev_run else 2)
+        self.num_downloaders = num_downloaders or 1
         if chunk_size is not None and chunk_bytes is not None:
             raise ValueError("Either one of the `chunk_size` or the `chunk_bytes` need to be provided.")
         self.chunk_size = chunk_size
