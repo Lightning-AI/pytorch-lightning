@@ -354,6 +354,7 @@ class BinaryWriter:
             while not os.path.exists(os.path.join(self._cache_dir, _INDEX_FILENAME)):
                 print(self.rank, "THERE")
                 sleep(0.001)
+            print(self.rank, "Done")
             return
 
         # Wait for all indexes to be available
