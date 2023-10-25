@@ -21,6 +21,7 @@ import lightning.pytorch as pl
 import pytest
 import torch
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import Callback, EarlyStopping
@@ -78,7 +79,7 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_coun
 
     class TestModel(BoringModel):
         def setup(self, stage: str) -> None:
-            assert torch.distributed.is_initialized()
+            assert _distributed_is_initialized()
             raise SystemExit()
 
     model = TestModel()
