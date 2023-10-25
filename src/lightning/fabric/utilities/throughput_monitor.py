@@ -25,107 +25,8 @@ if TYPE_CHECKING:
 
 
 # Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
-class _ThroughputMonitorBase:
-    def __init__(
-        self,
-        flops_available: Optional[float],
-        window_size: int = 100,
-        time_unit: Literal["seconds", "minutes", "hours", "days"] = "hours",
-    ) -> None:
-        self.flops_available = flops_available
-
-        # throughput is computed over a window of batches
-        self._samples: Deque[int] = deque(maxlen=window_size + 1)
-        self._time: Deque[float] = deque(maxlen=window_size + 1)
-        self._lengths: Deque[int] = deque(maxlen=window_size + 1)
-        self._flops: Deque[int] = deque(maxlen=window_size + 1)
-
-        if time_unit == "seconds":
-            self._divider = 1
-        elif time_unit == "minutes":
-            self._divider = 60
-        elif time_unit == "hours":
-            self._divider = 60 * 60
-        elif time_unit == "days":
-            self._divider = 60 * 60 * 24
-        else:
-            raise ValueError(
-                f'Invalid time_unit: {time_unit}. Must be one of "seconds", "minutes", "hours", or "days".'
-            )
-
-        # Keep track of time spent evaluating
-        self._total_eval_time = 0.0
-
-    def on_train_batch_end(
-        self,
-        samples: int,  # total samples seen (per device)
-        train_elapsed: float,  # total training time (seconds)
-        world_size: int,
-        flops_per_batch: Optional[int] = None,  # (per device)
-        lengths: Optional[int] = None,  # total length of the samples seen (per device)
-    ) -> Dict:
-        metrics = {}
-
-        self._samples.append(samples)
-        if lengths is not None:
-            self._lengths.append(lengths)
-            # if lengths are passed, there should be as many values as samples
-            assert len(self._samples) == len(self._lengths)
-        self._time.append(train_elapsed)
-        if len(self._time) == self._time.maxlen:
-            elapsed_batches = len(self._samples) - 1
-            elapsed_samples = self._samples[-1] - self._samples[0]
-            elapsed_wct = self._time[-1] - self._time[0]
-            samples_per_sec = elapsed_samples * world_size / elapsed_wct
-            dev_samples_per_sec = elapsed_samples / elapsed_wct
-            metrics.update(
-                {
-                    "batches_per_sec": elapsed_batches * world_size / elapsed_wct,
-                    "samples_per_sec": samples_per_sec,
-                    "device/batches_per_sec": elapsed_batches / elapsed_wct,
-                    "device/samples_per_sec": dev_samples_per_sec,
-                }
-            )
-            if lengths is not None:
-                elapsed_lengths = int(self._lengths[-1]) - int(self._lengths[0])
-                avg_length = elapsed_lengths / elapsed_batches
-                metrics.update(
-                    {
-                        "items_per_sec": samples_per_sec * avg_length,
-                        "device/items_per_sec": dev_samples_per_sec * avg_length,
-                    }
-                )
-
-        if flops_per_batch is not None:
-            # sum of flops per batch across ranks
-            self._flops.append(flops_per_batch * world_size)
-        if len(self._flops) == self._flops.maxlen:
-            elapsed_flops = sum(self._flops) - self._flops[0]
-            elapsed_wct = self._time[-1] - self._time[0]
-            flops_per_sec = elapsed_flops / elapsed_wct
-            device_flops_per_sec = flops_per_sec / world_size
-            metrics.update({"flops_per_sec": flops_per_sec, "device/flops_per_sec": device_flops_per_sec})
-            if self.flops_available:
-                metrics["device/mfu"] = device_flops_per_sec / self.flops_available
-
-        metrics.update(
-            {
-                "time/train": train_elapsed / self._divider,
-                "time/val": self._total_eval_time / self._divider,
-                "time/total": (train_elapsed + self._total_eval_time) / self._divider,
-                "samples": samples,
-            }
-        )
-        return metrics
-
-    # TODO: perhaps this should separate training and eval completely, requesting that two different instances are used
-    # to track them both
-    def eval_end(self, eval_elapsed: float) -> None:
-        self._total_eval_time += eval_elapsed  # seconds
-
-
-class ThroughputMonitor:
-    """Tracks and logs throughput.
+class _ThroughputMonitor:
+    """Tracks throughput.
 
     +--------------------------+---------------------------------------------------------------------------------------+
     | Key                      | Value                                                                                 |
@@ -151,41 +52,149 @@ class ThroughputMonitor:
     +--------------------------+---------------------------------------------------------------------------------------+
     | `device/mfu`             | `device/flops_per_sec` divided by world size.                                         |
     +--------------------------+---------------------------------------------------------------------------------------+
-    | `time/train`             | Total elapsed training time                                                           |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `time/val`               | Total elapsed validation time                                                         |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `time/total`             | Total elapsed time (time/train + time/val)                                            |
+    | `time`                   | Total elapsed time                                                                    |
     +--------------------------+---------------------------------------------------------------------------------------+
 
     Notes:
-        - The implementation assumes that devices are homogeneous as it normalizes by the world size.
+        - The implementation assumes that devices FLOPs are all the same as it normalizes by the world size and only
+            takes a single ``flops_available`` value.
         - items_per_sec, flops_per_sec and MFU do not account for padding if present. We suggest using
             samples_per_sec or batches_per_sec to measure throughput under this circumstance.
 
     Args:
-        fabric: The Fabric object.
-        window_size: Number of batches to use for a rolling average of throughput.
-        time_unit: Time unit to use for `time` logging.
+        flops_available: Number of theoretical flops available for a single device.
+        world_size: Number of devices available across hosts. Global metrics are not included if the world size is 1.
+        window_size: Number of batches to use for a rolling average.
+        time_unit: Time unit to use for normalization.
+        separator: Key separator to use when creating per-device and global metrics.
 
     """
 
-    def __init__(self, fabric: "Fabric", *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        flops_available: Optional[float] = None,
+        world_size: int = 1,
+        window_size: int = 100,
+        time_unit: Literal["seconds", "minutes", "hours", "days"] = "hours",
+        separator: str = "/",
+    ) -> None:
+        self.flops_available = flops_available
+        self.separator = separator
+        assert world_size > 0
+        self.world_size = world_size
+
+        # throughput is computed over a window of batches
+        self._samples: Deque[int] = deque(maxlen=window_size + 1)
+        self._time: Deque[float] = deque(maxlen=window_size + 1)
+        self._lengths: Deque[int] = deque(maxlen=window_size + 1)
+        self._flops: Deque[int] = deque(maxlen=window_size + 1)
+
+        if time_unit == "seconds":
+            self._divider = 1
+        elif time_unit == "minutes":
+            self._divider = 60
+        elif time_unit == "hours":
+            self._divider = 60 * 60
+        elif time_unit == "days":
+            self._divider = 60 * 60 * 24
+        else:
+            raise ValueError(
+                f'Invalid time_unit: {time_unit}. Must be one of "seconds", "minutes", "hours", or "days".'
+            )
+
+    def compute(
+        self,
+        samples: int,
+        time: float,
+        flops_per_batch: Optional[int] = None,
+        lengths: Optional[int] = None,
+    ) -> Dict:
+        """Compute and return all metrics.
+
+        Args:
+            samples: Total samples seen per device. Monotonically increasing.
+            time: Total elapsed time in seconds. Monotonically increasing.
+            flops_per_batch: Flops per batch per device. This might be different in each device if the batch size is not
+                the same.
+            lengths: Total length of the samples seen. Monotonically increasing.
+
+        """
+        metrics = {"time": time / self._divider, "samples": samples}
+        self._samples.append(samples)
+
+        if lengths is not None:
+            self._lengths.append(lengths)
+            # if lengths are passed, there should be as many values as samples
+            assert len(self._samples) == len(self._lengths)
+
+        add_global_metrics = self.world_size > 1
+        self._time.append(time)
+        if len(self._time) == self._time.maxlen:
+            elapsed_batches = len(self._samples) - 1
+            elapsed_samples = self._samples[-1] - self._samples[0]
+            elapsed_wct = self._time[-1] - self._time[0]
+            dev_samples_per_sec = elapsed_samples / elapsed_wct
+            dev_batches_per_sec = elapsed_batches / elapsed_wct
+            metrics.update(
+                {
+                    f"device{self.separator}batches_per_sec": elapsed_batches / elapsed_wct,
+                    f"device{self.separator}samples_per_sec": dev_samples_per_sec,
+                }
+            )
+            if add_global_metrics:
+                samples_per_sec = dev_batches_per_sec * self.world_size
+                metrics.update(
+                    {
+                        "batches_per_sec": samples_per_sec,
+                        "samples_per_sec": dev_samples_per_sec * self.world_size,
+                    }
+                )
+            if lengths is not None:
+                elapsed_lengths = int(self._lengths[-1]) - int(self._lengths[0])
+                avg_length = elapsed_lengths / elapsed_batches
+                if add_global_metrics:
+                    metrics["items_per_sec"] = samples_per_sec * avg_length
+                metrics[f"device{self.separator}items_per_sec"] = dev_samples_per_sec * avg_length
+
+        if flops_per_batch is not None:
+            # sum of flops per batch across ranks
+            self._flops.append(flops_per_batch * self.world_size)
+        if len(self._flops) == self._flops.maxlen:
+            elapsed_flops = sum(self._flops) - self._flops[0]
+            elapsed_wct = self._time[-1] - self._time[0]
+            flops_per_sec = elapsed_flops / elapsed_wct
+            device_flops_per_sec = flops_per_sec / self.world_size
+            if add_global_metrics:
+                metrics["flops_per_sec"] = flops_per_sec
+            metrics[f"device{self.separator}flops_per_sec"] = device_flops_per_sec
+            if self.flops_available:
+                metrics[f"device{self.separator}mfu"] = device_flops_per_sec / self.flops_available
+
+        return metrics
+
+
+class ThroughputMonitor:
+    r"""Tracks and logs throughput with the :class:`_ThroughputMonitor`
+
+    Args:
+        fabric: The Fabric object.
+        \**kwargs: See available parameters in :class:`_ThroughputMonitor`
+
+    """
+
+    def __init__(self, fabric: "Fabric", **kwargs: Any) -> None:
         dtype = _plugin_to_compute_dtype(fabric.strategy.precision)
         flops_available = _get_flops_available(fabric.device, dtype)
         self._fabric = fabric
         self.step = -1
-        self._monitor = _ThroughputMonitorBase(flops_available, *args, **kwargs)
+        self._monitor = _ThroughputMonitor(flops_available=flops_available, world_size=fabric.world_size, **kwargs)
 
     @rank_zero_only
-    def on_train_batch_end(self, *args: Any, **kwargs: Any) -> None:
+    def compute(self, *args: Any, **kwargs: Any) -> None:
+        """See :meth:`_ThroughputMonitor.compute`"""
         self.step += 1
-        metrics = self._monitor.on_train_batch_end(*args, **kwargs)
+        metrics = self._monitor.compute(*args, **kwargs)
         self._fabric.log_dict(metrics=metrics, step=self.step)
-
-    @rank_zero_only
-    def eval_end(self, *args: Any, **kwargs: Any) -> None:
-        self._monitor.eval_end(*args, **kwargs)
 
 
 def measure_flops(
@@ -202,8 +211,10 @@ def measure_flops(
         with torch.device("meta"):
             model = MyModel()
             x = torch.randn(2, 32)
+
         model_fwd = lambda: model(x)
         fwd_flops = measure_flops(model, model_fwd)
+
         model_loss = lambda y: y.sum()
         fwd_and_bwd_flops = measure_flops(model, model_fwd, model_loss)
 
