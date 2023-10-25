@@ -317,6 +317,7 @@ def test_get_expected_model_path():
     assert _get_expected_model_path("my_model/checkpoints/") == "my_model/checkpoints/"
     assert _get_expected_model_path("my_model/checkpoints//") == "my_model/checkpoints/"
 
+
 @skip_if_not_windows
 def test_get_expected_model_path_windows():
     assert _get_expected_model_path("my_model\\checkpoints\\") == "my_model\\checkpoints\\"
