@@ -14,6 +14,7 @@
 
 import os
 import socket
+from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.rank_zero import rank_zero_only
@@ -85,6 +86,7 @@ class LightningEnvironment(ClusterEnvironment):
         group_rank = os.environ.get("GROUP_RANK", 0)
         return int(os.environ.get("NODE_RANK", group_rank))
 
+    @override
     def teardown(self) -> None:
         if "WORLD_SIZE" in os.environ:
             del os.environ["WORLD_SIZE"]

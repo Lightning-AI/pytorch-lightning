@@ -19,6 +19,7 @@ import shutil
 import signal
 import sys
 from typing import Optional
+from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.imports import _IS_WINDOWS
@@ -142,6 +143,7 @@ class SLURMEnvironment(ClusterEnvironment):
     def node_rank(self) -> int:
         return int(os.environ["SLURM_NODEID"])
 
+    @override
     def validate_settings(self, num_devices: int, num_nodes: int) -> None:
         if _is_slurm_interactive_mode():
             return

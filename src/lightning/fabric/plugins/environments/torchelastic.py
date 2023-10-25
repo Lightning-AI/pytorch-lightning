@@ -14,6 +14,7 @@
 
 import logging
 import os
+from typing_extensions import override
 
 import torch.distributed
 
@@ -73,6 +74,7 @@ class TorchElasticEnvironment(ClusterEnvironment):
     def node_rank(self) -> int:
         return int(os.environ.get("GROUP_RANK", 0))
 
+    @override
     def validate_settings(self, num_devices: int, num_nodes: int) -> None:
         if num_devices * num_nodes != self.world_size():
             raise ValueError(
