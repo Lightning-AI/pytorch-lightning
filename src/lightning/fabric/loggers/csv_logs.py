@@ -224,20 +224,14 @@ class _ExperimentWriter:
 
         new_keys = self._record_new_keys()
         file_exists = self._fs.isfile(self.metrics_file_path)
+        rewrite_file = not isinstance(self._fs, local.LocalFileSystem) or new_keys
 
-        if new_keys and file_exists:
-            # we need to re-write the file if the keys (header) change
-            self._rewrite_with_new_header(self.metrics_keys)
+        if rewrite_file and file_exists:
+            self._append_recorded_metrics()
 
-        if not isinstance(self._fs, local.LocalFileSystem):
-            file_exists = False
-            with self._fs.open(self.metrics_file_path, "r", newline="") as file:
-                self.metrics = list(csv.DictReader(file)) + self.metrics
-
-        with self._fs.open(self.metrics_file_path, mode=("a" if file_exists else "w"), newline="") as file:
+        with self._fs.open(self.metrics_file_path, "a" if not rewrite_file else "w", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=self.metrics_keys)
-            if not file_exists:
-                # only write the header if we're writing a fresh file
+            if rewrite_file:
                 writer.writeheader()
             writer.writerows(self.metrics)
 
@@ -250,11 +244,11 @@ class _ExperimentWriter:
         self.metrics_keys.extend(new_keys)
         return new_keys
 
-    def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
+    def _append_recorded_metrics(self) -> None:
+        metrics = self._fetch_recorded_metrics()
+        self.metrics = metrics + self.metrics
+
+    def _fetch_recorded_metrics(self) -> List[str]:
         with self._fs.open(self.metrics_file_path, "r", newline="") as file:
             metrics = list(csv.DictReader(file))
-
-        with self._fs.open(self.metrics_file_path, "w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(metrics)
+        return metrics
