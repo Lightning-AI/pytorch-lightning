@@ -621,7 +621,7 @@ class DatasetOptimizer:
         print("Workers are finishing...")
 
         for w in self.workers:
-            w.join()
+            w.join(0)
 
         cache_dir = os.path.join(_get_cache_folder(), self.name)
 
