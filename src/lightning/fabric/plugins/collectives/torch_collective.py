@@ -167,7 +167,7 @@ class TorchCollective(Collective):
 
     @classmethod
     def is_initialized(cls) -> bool:
-        return dist.is_initialized()
+        return cls.is_available() and dist.is_initialized()
 
     @classmethod
     def init_group(cls, **kwargs: Any) -> None:

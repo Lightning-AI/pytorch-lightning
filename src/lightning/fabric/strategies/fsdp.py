@@ -54,6 +54,7 @@ from lightning.fabric.strategies.strategy import (
 )
 from lightning.fabric.utilities.distributed import (
     ReduceOp,
+    _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
@@ -355,7 +356,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=[self.root_device.index])
@@ -363,7 +364,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return obj
 
         obj = [obj]
