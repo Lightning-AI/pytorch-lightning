@@ -18,6 +18,7 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, List, Optional, Set, Union
 
+from fsspec.implementations import local
 from torch import Tensor
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
@@ -227,6 +228,11 @@ class _ExperimentWriter:
         if new_keys and file_exists:
             # we need to re-write the file if the keys (header) change
             self._rewrite_with_new_header(self.metrics_keys)
+
+        if not isinstance(self._fs, local.LocalFileSystem):
+            file_exists = False
+            with self._fs.open(self.metrics_file_path, "r", newline="") as file:
+                self.metrics = list(csv.DictReader(file)) + self.metrics
 
         with self._fs.open(self.metrics_file_path, mode=("a" if file_exists else "w"), newline="") as file:
             writer = csv.DictWriter(file, fieldnames=self.metrics_keys)
