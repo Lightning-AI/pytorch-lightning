@@ -20,9 +20,9 @@ import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
-from typing_extensions import override
 
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE

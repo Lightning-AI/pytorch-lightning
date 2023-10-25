@@ -15,7 +15,6 @@ import pickle
 from argparse import Namespace
 from copy import deepcopy
 from typing import Any, Dict, Optional
-from typing_extensions import override
 from unittest.mock import patch
 
 import numpy as np
@@ -28,6 +27,7 @@ from lightning.pytorch.loggers import Logger, TensorBoardLogger
 from lightning.pytorch.loggers.logger import DummyExperiment, DummyLogger
 from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
+from typing_extensions import override
 
 
 class CustomLogger(Logger):

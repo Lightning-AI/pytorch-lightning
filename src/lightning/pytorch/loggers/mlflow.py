@@ -23,11 +23,11 @@ from argparse import Namespace
 from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Mapping, Optional, Union
-from typing_extensions import override
 
 import yaml
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
