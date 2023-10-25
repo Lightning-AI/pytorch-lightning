@@ -228,6 +228,7 @@ class BaseWorker:
             traceback_format = traceback.format_exc()
             print(traceback_format)
             self.error_queue.put(traceback_format)
+        print(f"Worker {self.worker_index} is done.")
 
     def _setup(self) -> None:
         self._set_environ_variables()
