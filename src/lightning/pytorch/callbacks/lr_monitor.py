@@ -22,6 +22,7 @@ Monitor and logs learning rate for lr schedulers during training.
 import itertools
 from collections import defaultdict
 from typing import Any, DefaultDict, Dict, List, Literal, Optional, Set, Tuple, Type
+from typing_extensions import override
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -104,6 +105,7 @@ class LearningRateMonitor(Callback):
         self.last_momentum_values: Dict[str, Optional[List[float]]] = {}
         self.last_weight_decay_values: Dict[str, Optional[List[float]]] = {}
 
+    @override
     def on_train_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Called before training, determines unique names for all lr schedulers in the case of multiple of the same
         type or in the case of multiple parameter groups.
@@ -158,6 +160,7 @@ class LearningRateMonitor(Callback):
         self.last_momentum_values = {name + "-momentum": None for name in names_flatten}
         self.last_weight_decay_values = {name + "-weight_decay": None for name in names_flatten}
 
+    @override
     def on_train_batch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if not trainer._logger_connector.should_update_logs:
             return
@@ -170,6 +173,7 @@ class LearningRateMonitor(Callback):
                 for logger in trainer.loggers:
                     logger.log_metrics(latest_stat, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
+    @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if self.logging_interval != "step":
             interval = "epoch" if self.logging_interval is None else "any"

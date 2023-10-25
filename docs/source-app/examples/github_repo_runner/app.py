@@ -6,6 +6,7 @@ from copy import deepcopy
 from functools import partial
 from subprocess import Popen
 from typing import Dict, List, Optional
+from typing_extensions import override
 
 from lightning import BuildConfig, CloudCompute, LightningApp, LightningFlow
 from lightning.app import structures
@@ -91,6 +92,7 @@ class PyTorchLightningGithubRepoRunner(GithubRepoRunner):
                 # current ``PyTorchLightningScript`` work.
                 self.w = work
 
+            @override
             def on_train_start(self, trainer, *_):
                 # Add `host` and `port` for tensorboard to work in the cloud.
                 cmd = f"tensorboard --logdir='{trainer.logger.log_dir}'"

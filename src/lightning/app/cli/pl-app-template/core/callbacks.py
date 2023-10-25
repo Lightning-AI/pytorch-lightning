@@ -1,5 +1,6 @@
 import inspect
 from typing import TYPE_CHECKING, Any, Dict, Union
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.app.storage.path import Path
@@ -28,6 +29,7 @@ class PLAppProgressTracker(Callback):
         self.is_enabled = False
         self._state = ProgressBarState()
 
+    @override
     def setup(
         self,
         trainer: "pl.Trainer",
@@ -36,12 +38,14 @@ class PLAppProgressTracker(Callback):
     ) -> None:
         self.is_enabled = trainer.is_global_zero
 
+    @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # We calculate the estimated stepping batches here instead of in the setup hook, because calling the
         # `Trainer.estimated_stepping_batches` too early would lead to a barrier() call in case of DDP and since this
         # callback is only attached on rank 0, would lead to a stall.
         self._state.fit.estimated_stepping_batches = trainer.estimated_stepping_batches
 
+    @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", *_: Any) -> None:
         self._state.fit.total_train_batches = self._total_train_batches(trainer)
         self._state.fit.total_val_batches = self._total_val_batches(trainer)
@@ -49,6 +53,7 @@ class PLAppProgressTracker(Callback):
         if self.is_enabled:
             self._send_state()
 
+    @override
     def on_train_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", *_: Any) -> None:
         self._state.metrics = self._progress_bar_metrics(trainer, pl_module)
         current = self._train_batch_idx(trainer)
@@ -57,11 +62,13 @@ class PLAppProgressTracker(Callback):
         if self._should_send(current, self._total_train_batches(trainer)):
             self._send_state()
 
+    @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.metrics = self._progress_bar_metrics(trainer, pl_module)
         if self.is_enabled:
             self._send_state()
 
+    @override
     def on_validation_batch_start(
         self,
         trainer: "pl.Trainer",
@@ -77,6 +84,7 @@ class PLAppProgressTracker(Callback):
             self._state.val.dataloader_idx = dataloader_idx
             self._state.val.total_val_batches = self._total_val_batches(trainer)
 
+    @override
     def on_validation_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", *_: Any) -> None:
         self._state.metrics = self._progress_bar_metrics(trainer, pl_module)
         current = self._val_batch_idx(trainer)
@@ -87,11 +95,13 @@ class PLAppProgressTracker(Callback):
         if self._should_send(current, self._total_val_batches(trainer)):
             self._send_state()
 
+    @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.metrics = self._progress_bar_metrics(trainer, pl_module)
         if self.is_enabled:
             self._send_state()
 
+    @override
     def on_test_batch_start(
         self,
         trainer: "pl.Trainer",
@@ -103,6 +113,7 @@ class PLAppProgressTracker(Callback):
         self._state.test.dataloader_idx = dataloader_idx
         self._state.test.total_test_batches = trainer.num_test_batches[dataloader_idx]
 
+    @override
     def on_test_batch_end(
         self,
         trainer: "pl.Trainer",
@@ -118,11 +129,13 @@ class PLAppProgressTracker(Callback):
         if self._should_send(current, trainer.num_test_batches[dataloader_idx]):
             self._send_state()
 
+    @override
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.metrics = self._progress_bar_metrics(trainer, pl_module)
         if self.is_enabled:
             self._send_state()
 
+    @override
     def on_predict_batch_start(
         self,
         trainer: "pl.Trainer",
@@ -134,6 +147,7 @@ class PLAppProgressTracker(Callback):
         self._state.predict.dataloader_idx = dataloader_idx
         self._state.predict.total_predict_batches = trainer.num_predict_batches[dataloader_idx]
 
+    @override
     def on_predict_batch_end(
         self,
         trainer: "pl.Trainer",
@@ -149,6 +163,7 @@ class PLAppProgressTracker(Callback):
         if self._should_send(current, trainer.num_predict_batches[dataloader_idx]):
             self._send_state()
 
+    @override
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.metrics = self._progress_bar_metrics(trainer, pl_module)
         if self.is_enabled:
@@ -194,45 +209,55 @@ class PLAppTrainerStateTracker(Callback):
         self.work = work
         self._state = TrainerState()
 
+    @override
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.fn = "fit"
         self.work.trainer_state = self._state.dict()
 
+    @override
     def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.fn = None
         self.work.trainer_state = self._state.dict()
 
+    @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.stage = "training"
         self.work.trainer_state = self._state.dict()
 
+    @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.stage = None
         self.work.trainer_state = self._state.dict()
 
+    @override
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.stage = "validating"
         self.work.trainer_state = self._state.dict()
 
+    @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.stage = None
         self.work.trainer_state = self._state.dict()
 
+    @override
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.fn = "test"
         self._state.stage = "testing"
         self.work.trainer_state = self._state.dict()
 
+    @override
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.fn = None
         self._state.stage = None
         self.work.trainer_state = self._state.dict()
 
+    @override
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.fn = "predict"
         self._state.stage = "predicting"
         self.work.trainer_state = self._state.dict()
 
+    @override
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._state.fn = None
         self._state.stage = None
@@ -244,6 +269,7 @@ class PLAppSummary(Callback):
         super().__init__()
         self.work = work
 
+    @override
     def on_init_end(self, trainer: "pl.Trainer") -> None:
         current_frame = inspect.currentframe()
         # Trainer.init() -> Trainer._call_callback_hooks() -> Callback.on_init_end()
@@ -254,6 +280,7 @@ class PLAppSummary(Callback):
 
         self.work.trainer_hparams = self._sanitize_trainer_init_args(init_args)
 
+    @override
     def setup(
         self,
         trainer: "pl.Trainer",
@@ -276,6 +303,7 @@ class PLAppArtifactsTracker(Callback):
         super().__init__()
         self.work = work
 
+    @override
     def setup(
         self,
         trainer: "pl.Trainer",
@@ -286,6 +314,7 @@ class PLAppArtifactsTracker(Callback):
         self.work.log_dir = Path(log_dir) if log_dir is not None else None
         self._collect_logger_metadata(trainer)
 
+    @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.checkpoint_callback and trainer.checkpoint_callback.dirpath is not None:
             self.work.checkpoint_dir = Path(trainer.checkpoint_callback.dirpath)

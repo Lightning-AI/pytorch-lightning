@@ -19,6 +19,7 @@ Freeze and unfreeze models for finetuning purposes.
 """
 import logging
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
+from typing_extensions import override
 
 import torch
 from torch.nn import Module, ModuleDict
@@ -86,11 +87,13 @@ class BaseFinetuning(Callback):
         self._internal_optimizer_metadata: Dict[int, List[Dict[str, Any]]] = {}
         self._restarting = False
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         return {
             "internal_optimizer_metadata": self._internal_optimizer_metadata,
         }
 
+    @override
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         self._restarting = True
         if "internal_optimizer_metadata" in state_dict:  # noqa: SIM401
@@ -99,6 +102,7 @@ class BaseFinetuning(Callback):
             # compatibility to load from old checkpoints before PR #11887
             self._internal_optimizer_metadata = state_dict  # type: ignore[assignment]
 
+    @override
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # restore the param_groups created during the previous training.
         if self._restarting:
@@ -306,6 +310,7 @@ class BaseFinetuning(Callback):
                 self._apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
             )
 
+    @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the epoch begins."""
         for opt_idx, optimizer in enumerate(trainer.optimizers):

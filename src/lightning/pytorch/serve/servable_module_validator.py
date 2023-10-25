@@ -3,6 +3,7 @@ import logging
 import time
 from multiprocessing import Process
 from typing import Any, Dict, Literal, Optional
+from typing_extensions import override
 
 import requests
 import torch
@@ -71,6 +72,7 @@ class ServableModuleValidator(Callback):
         self.exit_on_failure = exit_on_failure
         self.resp: Optional[requests.Response] = None
 
+    @override
     @rank_zero_only
     def on_train_start(self, trainer: "pl.Trainer", servable_module: "pl.LightningModule") -> None:
         if isinstance(trainer.strategy, _NOT_SUPPORTED_STRATEGIES):
@@ -133,6 +135,7 @@ class ServableModuleValidator(Callback):
         """Returns whether the model was successfully served."""
         return self.resp.status_code == 200 if self.resp else None
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         return {"successful": self.successful, "optimization": self.optimization, "server": self.server}
 

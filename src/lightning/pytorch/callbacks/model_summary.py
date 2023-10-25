@@ -23,6 +23,7 @@ the name, type and number of parameters for each layer.
 """
 import logging
 from typing import Any, Dict, List, Tuple, Union
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
@@ -53,6 +54,7 @@ class ModelSummary(Callback):
         self._max_depth: int = max_depth
         self._summarize_kwargs: Dict[str, Any] = summarize_kwargs
 
+    @override
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._max_depth:
             return
