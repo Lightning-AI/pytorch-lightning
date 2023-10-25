@@ -19,13 +19,13 @@ from contextlib import ExitStack
 from functools import partial
 from types import ModuleType
 from typing import Any, Callable, ContextManager, Literal, Optional, OrderedDict, Set, Type
-from typing_extensions import override
 
 import torch
 from lightning_utilities import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn.modules.module import _IncompatibleKeys
+from typing_extensions import override
 
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import (

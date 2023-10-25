@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, ContextManager, Dict, Literal, Optional
-from typing_extensions import override
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
+from typing_extensions import override
 
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.precision import Precision

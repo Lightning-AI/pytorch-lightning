@@ -14,12 +14,12 @@
 import logging
 from contextlib import ExitStack
 from typing import TYPE_CHECKING, Any, ContextManager, Literal, Mapping, Optional, Union
-from typing_extensions import override
 
 import torch
 from lightning_utilities import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import (
