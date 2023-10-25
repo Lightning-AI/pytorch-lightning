@@ -17,12 +17,12 @@ def test_measure_flops():
     model_fwd = lambda: model(x)
     model_loss = lambda y: y.sum()
 
-    training_flops = measure_flops(model, model_fwd, model_loss)
-    assert isinstance(training_flops, int)
+    fwd_flops = measure_flops(model, model_fwd)
+    assert isinstance(fwd_flops, int)
 
-    eval_flops = measure_flops(model.eval(), model_fwd, model_loss)
-    assert isinstance(eval_flops, int)
-    assert eval_flops < training_flops
+    fwd_and_bwd_flops = measure_flops(model, model_fwd, model_loss)
+    assert isinstance(fwd_and_bwd_flops, int)
+    assert fwd_flops < fwd_and_bwd_flops
 
 
 def test_throughput_monitor():

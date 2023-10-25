@@ -36,23 +36,23 @@ from lightning.pytorch.utilities.rank_zero import (
 )
 
 __all__ = [
-    "LightningEnum",
-    "disable_possible_user_warnings",
-    "is_shared_filesystem",
-    "move_data_to_device",
-    "suggested_max_num_workers",
-    "measure_flops",
-    "CombinedLoader",
-    "GradClipAlgorithmType",
-    "grad_norm",
-    "find_shared_parameters",
-    "set_shared_parameters",
     "AttributeDict",
+    "CombinedLoader",
+    "disable_possible_user_warnings",
+    "find_shared_parameters",
+    "grad_norm",
+    "GradClipAlgorithmType",
     "is_picklable",
+    "is_shared_filesystem",
+    "LightningEnum",
+    "measure_flops",
+    "move_data_to_device",
     "rank_zero_deprecation",
     "rank_zero_info",
     "rank_zero_only",
     "rank_zero_warn",
+    "set_shared_parameters",
+    "suggested_max_num_workers",
 ]
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps

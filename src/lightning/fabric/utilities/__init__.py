@@ -27,15 +27,15 @@ from lightning.fabric.utilities.throughput_monitor import ThroughputMonitor, mea
 from lightning.fabric.utilities.warnings import disable_possible_user_warnings
 
 __all__ = [
-    "move_data_to_device",
-    "suggested_max_num_workers",
+    "disable_possible_user_warnings",
     "is_shared_filesystem",
     "LightningEnum",
-    "rank_zero_info",
+    "measure_flops",
+    "move_data_to_device",
     "rank_zero_deprecation",
+    "rank_zero_info",
     "rank_zero_only",
     "rank_zero_warn",
-    "disable_possible_user_warnings",
-    "measure_flops",
+    "suggested_max_num_workers",
     "ThroughputMonitor",
 ]

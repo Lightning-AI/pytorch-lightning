@@ -171,7 +171,7 @@ class ThroughputMonitor(_ThroughputMonitorBase):
             samples_per_sec or batches_per_sec to measure throughput under this circumstance.
 
     Args:
-        fabric: The fabric object.
+        fabric: The Fabric object.
         window_size: Number of batches to use for a rolling average of throughput.
         time_unit: Time unit to use for `time` logging.
 
@@ -209,7 +209,8 @@ def measure_flops(
     Args:
         model: The model whose FLOPs should be measured.
         forward_fn: A function that runs ``forward`` on the model and returns the result.
-        loss_fn: A function that computes the loss given the ``forward_fn`` output.
+        loss_fn: A function that computes the loss given the ``forward_fn`` output. If provided, the loss and `backward`
+            FLOPs will be included in the result.
 
     """
     if not _TORCH_GREATER_EQUAL_2_1:
@@ -217,10 +218,11 @@ def measure_flops(
     from torch.utils.flop_counter import FlopCounterMode
 
     flop_counter = FlopCounterMode(model, display=False)
-    ctx = nullcontext() if model.training else torch.no_grad()
+    training = loss_fn is not None
+    ctx = nullcontext() if training else torch.no_grad()
     with ctx, flop_counter:
         y = forward_fn()
-        if loss_fn is not None and model.training:
+        if training:
             loss = loss_fn(y)
             loss.backward()
     return flop_counter.get_total_flops()
