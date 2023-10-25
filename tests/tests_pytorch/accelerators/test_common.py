@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict
-from typing_extensions import override
 
 import torch
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.strategies import DDPStrategy
+from typing_extensions import override
 
 
 def test_pluggable_accelerator(mps_count_0, cuda_count_2):

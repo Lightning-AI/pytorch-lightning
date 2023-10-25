@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict, List, Union
-from typing_extensions import override
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.cpu import _parse_cpu_cores

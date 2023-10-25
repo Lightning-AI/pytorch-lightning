@@ -14,7 +14,6 @@
 import inspect
 import os
 from typing import Any, Dict
-from typing_extensions import override
 from unittest import mock
 from unittest.mock import Mock
 
@@ -56,6 +55,7 @@ from lightning.pytorch.trainer.connectors.accelerator_connector import _Accelera
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _lightning_graphcore_available, _lightning_habana_available
 from lightning_utilities.core.imports import package_available
+from typing_extensions import override
 
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
