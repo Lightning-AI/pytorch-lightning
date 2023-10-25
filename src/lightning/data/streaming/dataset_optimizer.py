@@ -621,8 +621,11 @@ class DatasetOptimizer:
 
         print("Workers are finished.")
 
-        for w in self.workers:
-            w.join(0)
+        num_nodes = _get_num_nodes()
+
+        if num_nodes == 0:
+            for w in self.workers:
+                w.join(0)
 
         print("Workers are finished.")
 
@@ -633,7 +636,6 @@ class DatasetOptimizer:
             raise RuntimeError(f"All the chunks should have been deleted. Found {chunks}")
 
         merge_cache = Cache(cache_dir, chunk_bytes=1)
-        num_nodes = _get_num_nodes()
         node_rank = _get_node_rank()
         merge_cache.merge(self.num_workers, node_rank if num_nodes > 1 else None)
         self._upload_index(cache_dir, num_nodes, node_rank)
