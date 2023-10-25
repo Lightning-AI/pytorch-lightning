@@ -247,7 +247,6 @@ class BaseWorker:
             if index is None:
                 num_downloader_finished += 1
                 if num_downloader_finished == self.num_downloaders:
-                    self.remove_queue.put(None)
                     chunks_filepaths = self.cache.done()
 
                     if chunks_filepaths:
@@ -284,7 +283,7 @@ class BaseWorker:
             self._counter += 1
 
             # Don't send the last progress update, so the main thread awaits for the uploader and remover
-            if self.progress_queue and (time() - self._last_time) > 1 and self._counter < (self.num_items - 1):
+            if self.progress_queue and (time() - self._last_time) > 1 and self._counter < (self.num_items - 2):
                 self.progress_queue.put((self.worker_index, self._counter))
                 self._last_time = time()
 
@@ -619,9 +618,14 @@ class DatasetOptimizer:
                     break
 
         for w in self.workers:
-            w.join(0)
+            w.join()
 
         cache_dir = os.path.join(_get_cache_folder(), self.name)
+
+        chunks = [file for file in os.listdir(cache_dir) if file.endswith(".bin")]
+        if chunks:
+            raise RuntimeError(f"All the chunks should have been deleted. Found {chunks}")
+
         merge_cache = Cache(cache_dir, chunk_bytes=1)
         num_nodes = _get_num_nodes()
         node_rank = _get_node_rank()
