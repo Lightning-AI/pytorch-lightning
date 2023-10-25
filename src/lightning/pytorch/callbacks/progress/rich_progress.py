@@ -15,6 +15,7 @@ import math
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict, Generator, Optional, Union, cast
+from typing_extensions import override
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -327,9 +328,11 @@ class RichProgressBar(ProgressBar):
                 if getattr(self.theme, attr) == "white":
                     setattr(self.theme, attr, "black")
 
+    @override
     def disable(self) -> None:
         self._enabled = False
 
+    @override
     def enable(self) -> None:
         self._enabled = True
 

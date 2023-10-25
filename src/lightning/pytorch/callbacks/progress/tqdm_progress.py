@@ -16,6 +16,7 @@ import math
 import os
 import sys
 from typing import Any, Dict, Optional, Union
+from typing_extensions import override
 
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
@@ -172,9 +173,11 @@ class TQDMProgressBar(ProgressBar):
     def is_disabled(self) -> bool:
         return not self.is_enabled
 
+    @override
     def disable(self) -> None:
         self._enabled = False
 
+    @override
     def enable(self) -> None:
         self._enabled = True
 
@@ -382,6 +385,7 @@ class TQDMProgressBar(ProgressBar):
         self.predict_progress_bar.close()
         self.reset_dataloader_idx_tracker()
 
+    @override
     def print(self, *args: Any, sep: str = " ", **kwargs: Any) -> None:
         active_progress_bar = None
 
