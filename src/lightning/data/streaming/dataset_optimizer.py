@@ -826,6 +826,8 @@ class DatasetOptimizer:
                             break
                         except Exception as e:
                             print(e)
+                            # Sleep to avoid getting rate limited.
+                            sleep(2)
                             pass
                     with open(node_index_filepath, "wb") as f:
                         s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
