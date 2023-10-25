@@ -643,6 +643,8 @@ class DatasetOptimizer:
         print("2")
         node_rank = _get_node_rank()
         print("3")
+        # TODO: Clean this mess
+        os.environ["DATA_OPTIMIZER_NUM_WORKERS"] = str(self.num_workers)
         merge_cache.merge(self.num_workers, node_rank if num_nodes > 1 else None)
         print("4")
         self._upload_index(cache_dir, num_nodes, node_rank)
