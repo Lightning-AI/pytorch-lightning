@@ -22,6 +22,7 @@ import hydra
 import os
 import torch
 
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 
@@ -37,7 +38,7 @@ def task_fn(cfg):
     trainer.fit(model)
     trainer.test(model)
 
-    if torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
 
     os.environ.pop("LOCAL_RANK", None)
