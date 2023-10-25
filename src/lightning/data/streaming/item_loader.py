@@ -122,7 +122,7 @@ class TokensLoader(BaseItemLoader):
 
         return self._intervals
 
-    def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, _: int) -> torch.Tensor:
+    def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> torch.Tensor:
         while not os.path.exists(chunk_filepath):
             sleep(0.0001)
 
@@ -137,5 +137,5 @@ class TokensLoader(BaseItemLoader):
         assert self._dtype
 
         buffer: bytes = self._buffers[chunk_index]
-        offset = self._dtype.itemsize * index
+        offset = self._dtype.itemsize * ((index - begin) if index >= begin else index + 1)
         return torch.frombuffer(buffer, dtype=self._dtype, count=self._block_size, offset=offset)
