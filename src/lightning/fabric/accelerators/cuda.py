@@ -16,10 +16,10 @@ import warnings
 from contextlib import contextmanager
 from functools import lru_cache
 from typing import Generator, List, Optional, Union, cast
-from typing_extensions import override
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_info
+from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
