@@ -19,6 +19,7 @@ from contextlib import ExitStack
 from functools import partial
 from types import ModuleType
 from typing import Any, Callable, ContextManager, Literal, Optional, OrderedDict, Set, Type
+from typing_extensions import override
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -96,6 +97,7 @@ class BitsandbytesPrecision(Precision):
         self.dtype = dtype
         self.ignore_modules = ignore_modules or set()
 
+    @override
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
         # avoid naive users thinking they quantized their model
         if not any(isinstance(m, torch.nn.Linear) for m in module.modules()):
@@ -116,9 +118,11 @@ class BitsandbytesPrecision(Precision):
                 m.compute_type_is_set = False
         return module
 
+    @override
     def tensor_init_context(self) -> ContextManager:
         return _DtypeContextManager(self.dtype)
 
+    @override
     def module_init_context(self) -> ContextManager:
         if self.ignore_modules:
             # cannot patch the Linear class if the user wants to skip some submodules
@@ -136,12 +140,15 @@ class BitsandbytesPrecision(Precision):
         stack.enter_context(context_manager)
         return stack
 
+    @override
     def forward_context(self) -> ContextManager:
         return _DtypeContextManager(self.dtype)
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self.dtype)
 
+    @override
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 

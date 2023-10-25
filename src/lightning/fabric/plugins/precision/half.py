@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, ContextManager, Literal
+from typing_extensions import override
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -36,20 +37,26 @@ class HalfPrecision(Precision):
         self.precision = precision
         self._desired_input_dtype = torch.bfloat16 if precision == "bf16-true" else torch.float16
 
+    @override
     def convert_module(self, module: Module) -> Module:
         return module.to(dtype=self._desired_input_dtype)
 
+    @override
     def tensor_init_context(self) -> ContextManager:
         return _DtypeContextManager(self._desired_input_dtype)
 
+    @override
     def module_init_context(self) -> ContextManager:
         return self.tensor_init_context()
 
+    @override
     def forward_context(self) -> ContextManager:
         return self.tensor_init_context()
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
 
+    @override
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())

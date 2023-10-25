@@ -18,7 +18,7 @@ from lightning_utilities import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from typing_extensions import get_args
+from typing_extensions import get_args, override
 
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.precision import Precision
@@ -102,29 +102,36 @@ class FSDPPrecision(Precision):
             reduce_dtype=reduce_dtype,
             buffer_dtype=buffer_dtype,
         )
-
+    
+    @override
     def tensor_init_context(self) -> ContextManager:
         return _DtypeContextManager(self._desired_input_dtype)
 
+    @override
     def module_init_context(self) -> ContextManager:
         return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
 
+    @override
     def forward_context(self) -> ContextManager:
         if "mixed" in self.precision:
             return torch.autocast("cuda", dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
         return self.tensor_init_context()
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
 
+    @override
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
+    @override
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
             tensor = cast(Tensor, self.scaler.scale(tensor))
         super().backward(tensor, model, *args, **kwargs)
 
+    @override
     def optimizer_step(
         self,
         optimizer: Optimizable,
@@ -145,11 +152,13 @@ class FSDPPrecision(Precision):
                 raise NotImplementedError("Gradient clipping is not implemented for optimizers handling the unscaling.")
             scaler.unscale_(optimizer)
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
         return {}
 
+    @override
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)

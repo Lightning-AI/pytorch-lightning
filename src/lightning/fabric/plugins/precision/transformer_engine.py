@@ -14,6 +14,7 @@
 import logging
 from contextlib import ExitStack
 from typing import TYPE_CHECKING, Any, ContextManager, Literal, Mapping, Optional, Union
+from typing_extensions import override
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -86,6 +87,7 @@ class TransformerEnginePrecision(Precision):
         self.recipe = recipe
         self.replace_layers = replace_layers
 
+    @override
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
         # avoid converting if any is found. assume the user took care of it
         if self.replace_layers and not any("transformer_engine.pytorch" in m.__module__ for m in module.modules()):
@@ -93,9 +95,11 @@ class TransformerEnginePrecision(Precision):
         module = module.to(dtype=self.dtype)
         return module
 
+    @override
     def tensor_init_context(self) -> ContextManager:
         return _DtypeContextManager(self.dtype)
 
+    @override
     def module_init_context(self) -> ContextManager:
         dtype_ctx = self.tensor_init_context()
         stack = ExitStack()
@@ -112,6 +116,7 @@ class TransformerEnginePrecision(Precision):
         stack.enter_context(dtype_ctx)
         return stack
 
+    @override
     def forward_context(self) -> ContextManager:
         dtype_ctx = _DtypeContextManager(self.dtype)
         import transformer_engine.pytorch as te
@@ -122,9 +127,11 @@ class TransformerEnginePrecision(Precision):
         stack.enter_context(autocast_ctx)
         return stack
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self.dtype)
 
+    @override
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
