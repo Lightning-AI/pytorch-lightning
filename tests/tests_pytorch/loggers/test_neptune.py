@@ -13,9 +13,10 @@
 # limitations under the License.
 import os
 import pickle
+import sys
 from collections import namedtuple
 from unittest import mock
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, call
 
 import lightning.pytorch as pl
 import pytest
@@ -24,6 +25,10 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import NeptuneLogger
 from lightning.pytorch.loggers.neptune import _get_expected_model_path
+
+IS_WINDOWS = sys.platform == "win32"
+skip_if_on_windows = pytest.mark.skipif(IS_WINDOWS, reason="Those tests are specific to non-windows systems")
+skip_if_not_windows = pytest.mark.skipif(not IS_WINDOWS, reason="Those tests are specific to windows os")
 
 
 def _fetchable_paths(value):
@@ -306,11 +311,12 @@ def test_get_full_model_names_from_exp_structure():
     assert NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar") == expected_keys
 
 
+@skip_if_on_windows
 def test_get_expected_model_path():
     assert _get_expected_model_path("my_model/checkpoints") == "my_model/checkpoints/"
     assert _get_expected_model_path("my_model/checkpoints/") == "my_model/checkpoints/"
 
 
-@patch("os.path.sep", new="\\")
+@skip_if_not_windows
 def test_get_expected_model_path_windows():
     assert _get_expected_model_path("my_model\\checkpoints\\") == "my_model\\checkpoints\\"
