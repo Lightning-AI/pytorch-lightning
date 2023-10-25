@@ -70,6 +70,7 @@ class AdvancedProfiler(Profiler):
             raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
         pr.disable()
 
+    @override
     def summary(self) -> str:
         recorded_stats = {}
         for action_name, pr in self.profiled_actions.items():
@@ -79,6 +80,7 @@ class AdvancedProfiler(Profiler):
             recorded_stats[action_name] = s.getvalue()
         return self._stats_to_str(recorded_stats)
 
+    @override
     def teardown(self, stage: Optional[str]) -> None:
         super().teardown(stage=stage)
         self.profiled_actions = {}

@@ -104,6 +104,7 @@ class SimpleProfiler(Profiler):
         report.sort(key=lambda x: x[1], reverse=True)
         return report
 
+    @override
     def summary(self) -> str:
         sep = os.linesep
         output_string = ""

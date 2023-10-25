@@ -485,6 +485,7 @@ class PyTorchProfiler(Profiler):
             self.profiler.step()
             self.profiler.add_metadata("Framework", "pytorch-lightning")
 
+    @override
     def summary(self) -> str:
         if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:
             return ""
@@ -552,6 +553,7 @@ class PyTorchProfiler(Profiler):
             self._register.__exit__(None, None, None)
             self._register = None
 
+    @override
     def teardown(self, stage: Optional[str]) -> None:
         self._delete_profilers()
 
