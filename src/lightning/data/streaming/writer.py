@@ -373,7 +373,7 @@ class BinaryWriter:
                 is_done = len(index_files) == int(data_optimizer_num_workers)
             else:
                 is_done = len(index_files) == self._distributed_env.world_size * num_workers
-            print(is_done, index_files, self._distributed_env.world_size * num_workers)
+            print(is_done, len(index_files), data_optimizer_num_workers)
             sleep(0.001)
 
         self._merge_no_wait(node_rank=node_rank)
