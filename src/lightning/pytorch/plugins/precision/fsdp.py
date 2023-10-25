@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Literal, Optional
+from typing_extensions import get_args
+from typing_extensions import override
 
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
-from typing_extensions import get_args
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
@@ -74,6 +75,7 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
         }
         self._desired_input_dtype = precision_to_type[self.precision]
 
+    @override
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
         # see https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.clip_grad_norm_
         # section `Gradient Clipping`, using `torch.nn.utils.clip_grad_norm_` is incorrect with FSDP.
@@ -129,11 +131,13 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
+    @override
     def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)  # type: ignore[assignment]
         return super().pre_backward(tensor, module)
 
+    @override
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,

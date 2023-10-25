@@ -13,6 +13,7 @@
 # limitations under the License.
 from contextlib import nullcontext
 from typing import TYPE_CHECKING, Any, Callable, ContextManager, Optional, Union
+from typing_extensions import override
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -85,6 +86,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     def module_init_context(self) -> ContextManager:
         return self.tensor_init_context()
 
+    @override
     def backward(  # type: ignore[override]
         self,
         tensor: Tensor,
@@ -111,6 +113,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         deepspeed_engine.backward(tensor, *args, **kwargs)
 
+    @override
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Steppable,
@@ -132,6 +135,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         return deepspeed_engine.step(**kwargs)
 
+    @override
     def clip_gradients(
         self,
         optimizer: Optimizer,

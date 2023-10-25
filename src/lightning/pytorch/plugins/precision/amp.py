@@ -11,6 +11,7 @@
 # limitations under the License.
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, Literal, Optional, Union
+from typing_extensions import override
 
 import torch
 from torch import Tensor
@@ -57,11 +58,13 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         self.device = device
         self.scaler = scaler
 
+    @override
     def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         return super().pre_backward(tensor, module)
 
+    @override
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
@@ -95,6 +98,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
             return step_output
         return closure_result
 
+    @override
     def clip_gradients(
         self,
         optimizer: Optimizer,
