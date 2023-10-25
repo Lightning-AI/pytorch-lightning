@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing_extensions import override
 
 import torch
 import torch.nn as nn
@@ -112,6 +113,7 @@ class BoringModel(LightningModule):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
 
+    @override
     def forward(self, x: Tensor) -> Tensor:
         return self.layer(x)
 
@@ -125,15 +127,19 @@ class BoringModel(LightningModule):
         output = self(batch)
         return self.loss(output)
 
+    @override
     def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         return {"loss": self.step(batch)}
 
+    @override
     def validation_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         return {"x": self.step(batch)}
 
+    @override
     def test_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         return {"y": self.step(batch)}
 
+    @override
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_TORCH_LRSCHEDULER]]:
         optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -216,14 +222,17 @@ class DemoModel(LightningModule):
         self.l1 = torch.nn.Linear(32, out_dim)
         self.learning_rate = learning_rate
 
+    @override
     def forward(self, x: Tensor) -> Tensor:
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
+    @override
     def training_step(self, batch: Any, batch_nb: int) -> STEP_OUTPUT:
         x = batch
         x = self(x)
         return x.sum()
 
+    @override
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 

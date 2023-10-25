@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from io import BytesIO
 from os import path
 from typing import Dict, Optional
+from typing_extensions import override
 
 import numpy as np
 import torch
@@ -24,6 +25,7 @@ class LitModule(LightningModule):
         self.model.fc = torch.nn.Linear(self.model.fc.in_features, 10)
         self.criterion = torch.nn.CrossEntropyLoss()
 
+    @override
     def training_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
@@ -31,12 +33,14 @@ class LitModule(LightningModule):
         self.log("train_loss", loss)
         return loss
 
+    @override
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.criterion(outputs, labels)
         self.log("val_loss", loss)
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.001, momentum=0.9)
 

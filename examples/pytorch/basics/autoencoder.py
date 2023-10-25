@@ -18,6 +18,7 @@ To run: python autoencoder.py --trainer.max_epochs=50
 """
 from os import path
 from typing import Optional, Tuple
+from typing_extensions import override
 
 import torch
 import torch.nn.functional as F
@@ -120,23 +121,29 @@ class LitAutoEncoder(LightningModule):
         self.encoder = nn.Sequential(nn.Linear(28 * 28, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 3))
         self.decoder = nn.Sequential(nn.Linear(3, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 28 * 28))
 
+    @override
     def forward(self, x):
         z = self.encoder(x)
         return self.decoder(z)
 
+    @override
     def training_step(self, batch, batch_idx):
         return self._common_step(batch, batch_idx, "train")
 
+    @override
     def validation_step(self, batch, batch_idx):
         self._common_step(batch, batch_idx, "val")
 
+    @override
     def test_step(self, batch, batch_idx):
         self._common_step(batch, batch_idx, "test")
 
+    @override
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         x = self._prepare_batch(batch)
         return self(x)
 
+    @override
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 

@@ -24,6 +24,7 @@ visualized in 2 ways:
 """
 
 from os import path
+from typing_extensions import override
 
 import torch
 import torchvision
@@ -65,16 +66,19 @@ class ModelToProfile(LightningModule):
         self.manual_backward(loss)
         opt.step()
 
+    @override
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.criterion(outputs, labels)
         self.log("val_loss", loss)
 
+    @override
     def predict_step(self, batch, batch_idx, dataloader_idx: int = None):
         inputs = batch[0]
         return self.model(inputs)
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.001, momentum=0.9)
 

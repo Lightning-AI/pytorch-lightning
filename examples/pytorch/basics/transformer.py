@@ -1,3 +1,5 @@
+from typing_extensions import override
+
 import lightning as L
 import torch
 import torch.nn.functional as F
@@ -10,6 +12,7 @@ class LanguageModel(L.LightningModule):
         super().__init__()
         self.model = Transformer(vocab_size=vocab_size)
 
+    @override
     def training_step(self, batch, batch_idx):
         input, target = batch
         output = self.model(input, target)
@@ -17,6 +20,7 @@ class LanguageModel(L.LightningModule):
         self.log("train_loss", loss, prog_bar=True)
         return loss
 
+    @override
     def validation_step(self, batch, batch_idx):
         input, target = batch
         output = self.model(input, target)
@@ -24,6 +28,7 @@ class LanguageModel(L.LightningModule):
         self.log("val_loss", loss, prog_bar=True)
         return loss
 
+    @override
     def test_step(self, batch, batch_idx):
         input, target = batch
         output = self.model(input, target)
@@ -31,6 +36,7 @@ class LanguageModel(L.LightningModule):
         self.log("test_loss", loss, prog_bar=True)
         return loss
 
+    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.1)
 

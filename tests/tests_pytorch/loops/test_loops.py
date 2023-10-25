@@ -15,6 +15,7 @@ import os
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, Iterator
+from typing_extensions import override
 from unittest.mock import ANY, Mock
 
 import pytest
@@ -630,14 +631,17 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         def step(self, batch):
             return sum(self.layer(b).sum() for b in batch)
 
+        @override
         def training_step(self, batch, batch_idx):
             return self.step(batch)
-
+        
+        @override        
         def validation_step(self, batch, batch_idx, dataloader_idx=0):
             if self.should_fail and dataloader_idx == stop_dataloader and batch_idx == stop_batch:
                 raise CustomException
             return self.step(batch)
 
+        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 

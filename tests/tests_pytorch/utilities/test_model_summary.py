@@ -13,6 +13,7 @@
 # limitations under the License.
 from collections import OrderedDict
 from typing import Any
+from typing_extensions import override
 
 import pytest
 import torch
@@ -40,6 +41,7 @@ class EmptyModule(LightningModule):
         self.parameter = torch.rand(3, 3, requires_grad=True)
         self.example_input_array = torch.zeros(1, 2, 3, 4, 5)
 
+    @override
     def forward(self, *args, **kwargs):
         return {"loss": self.parameter.sum()}
 
@@ -76,6 +78,7 @@ class UnorderedModel(LightningModule):
 
         self.example_input_array = (torch.rand(2, 3), torch.rand(2, 10))
 
+    @override
     def forward(self, x, y):
         out1 = self.layer1(x)
         out2 = self.layer2(y)
@@ -93,6 +96,7 @@ class MixedDtypeModel(LightningModule):
         self.reduce = nn.Linear(20, 1)  # dtype: float
         self.example_input_array = torch.tensor([[0, 2, 1], [3, 5, 3]])  # dtype: long
 
+    @override
     def forward(self, x):
         return self.reduce(self.embed(x))
 
@@ -106,6 +110,7 @@ class PartialScriptModel(LightningModule):
         self.layer2 = nn.Linear(3, 2)
         self.example_input_array = torch.rand(2, 5)
 
+    @override
     def forward(self, x):
         return self.layer2(self.layer1(x))
 
@@ -118,6 +123,7 @@ class LazyModel(LightningModule):
         self.layer1 = nn.LazyLinear(5)
         self.layer2 = nn.LazyLinear(2)
 
+    @override
     def forward(self, inp):
         return self.layer2(self.layer1(inp))
 
@@ -141,6 +147,7 @@ class DeepNestedModel(LightningModule):
         self.head = UnorderedModel()
         self.example_input_array = torch.rand(2, 5)
 
+    @override
     def forward(self, inp):
         return self.head(self.branch1(inp), self.branch2(inp))
 
@@ -153,6 +160,7 @@ class NonLayerParamsModel(LightningModule):
         self.param = torch.nn.Parameter(torch.ones(2, 2))
         self.layer = torch.nn.Linear(2, 2)
 
+    @override
     def forward(self, inp):
         self.layer(self.param @ inp)
 
@@ -291,6 +299,7 @@ def test_example_input_array_types(example_input, expected_size, max_depth):
             self.layer = DummyModule()
 
         # this LightningModule and submodule accept any type of input
+        @override
         def forward(self, *args, **kwargs):
             return self.layer(*args, **kwargs)
 

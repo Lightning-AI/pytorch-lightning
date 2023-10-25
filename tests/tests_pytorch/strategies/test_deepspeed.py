@@ -17,6 +17,7 @@ import logging
 import os
 from re import escape
 from typing import Any, Dict
+from typing_extensions import override
 from unittest import mock
 from unittest.mock import ANY
 
@@ -588,12 +589,14 @@ class ModelParallelClassificationModel(LightningModule):
             self.test_acc = metric.clone()
             self.model = nn.Sequential(*(self.make_block() for x in range(self.num_blocks)), nn.Linear(32, 3))
 
+    @override
     def forward(self, x):
         x = self.model(x)
         # Ensure output is in float32 for softmax operation
         x = x.float()
         return F.softmax(x, dim=1)
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
@@ -602,24 +605,28 @@ class ModelParallelClassificationModel(LightningModule):
         self.log("train_acc", self.train_acc(logits, y), prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
+    @override
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
         self.log("val_loss", F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
         self.log("val_acc", self.valid_acc(logits, y), prog_bar=True, sync_dist=True)
 
+    @override
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
         self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
         self.log("test_acc", self.test_acc(logits, y), prog_bar=True, sync_dist=True)
 
+    @override
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         x, y = batch
         logits = self.forward(x)
         self.test_acc(logits, y)
         return self.test_acc.compute()
 
+    @override
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 

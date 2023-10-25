@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 
 import numpy as np
 import torch
@@ -92,12 +93,14 @@ class BasicGAN(LightningModule):
 
         self.example_input_array = torch.rand(2, self.hidden_dim)
 
+    @override
     def forward(self, z):
         return self.generator(z)
 
     def adversarial_loss(self, y_hat, y):
         return F.binary_cross_entropy(y_hat, y)
 
+    @override
     def training_step(self, batch, batch_idx):
         imgs, _ = batch
         self.last_imgs = imgs
@@ -149,6 +152,7 @@ class BasicGAN(LightningModule):
         optimizer2.zero_grad()
         self.untoggle_optimizer(optimizer2)
 
+    @override
     def configure_optimizers(self):
         lr = self.learning_rate
         b1 = self.b1
@@ -170,10 +174,12 @@ class ParityModuleRNN(LightningModule):
         self.example_input_array = torch.rand(2, 3, 10)
         self._loss = []  # needed for checking if the loss is the same as vanilla torch
 
+    @override
     def forward(self, x):
         seq, last = self.rnn(x)
         return self.linear_out(seq)
 
+    @override
     def training_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self(x)
@@ -181,6 +187,7 @@ class ParityModuleRNN(LightningModule):
         self._loss.append(loss.item())
         return {"loss": loss}
 
+    @override
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
@@ -198,6 +205,7 @@ class ParityModuleMNIST(LightningModule):
         self.example_input_array = torch.rand(2, 1, 28, 28)
         self._loss = []  # needed for checking if the loss is the same as vanilla torch
 
+    @override
     def forward(self, x):
         x = x.view(x.size(0), -1)
         x = self.c_d1(x)
@@ -207,6 +215,7 @@ class ParityModuleMNIST(LightningModule):
         x = self.c_d2(x)
         return x
 
+    @override
     def training_step(self, batch, batch_nb):
         x, y = batch
         y_hat = self(x)
@@ -214,6 +223,7 @@ class ParityModuleMNIST(LightningModule):
         self._loss.append(loss.item())
         return {"loss": loss}
 
+    @override
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 

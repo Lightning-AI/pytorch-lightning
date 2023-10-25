@@ -1,3 +1,5 @@
+from typing_extensions import override
+
 import lightning as L
 import torch
 from torchmetrics.functional.classification.accuracy import accuracy
@@ -26,9 +28,11 @@ class MNISTModule(L.LightningModule):
         )
         self.loss_fn = torch.nn.CrossEntropyLoss()
 
+    @override
     def forward(self, x: torch.Tensor):
         return self.model(x)
 
+    @override
     def training_step(self, batch, batch_idx: int):
         x, y = batch
 
@@ -39,6 +43,7 @@ class MNISTModule(L.LightningModule):
 
         return {"loss": loss, "accuracy": accuracy_train}
 
+    @override
     def configure_optimizers(self):
         optim = torch.optim.Adam(self.parameters(), lr=1e-4)
         return optim, {
@@ -48,6 +53,7 @@ class MNISTModule(L.LightningModule):
             "frequency": 1,
         }
 
+    @override
     def validation_step(self, *args, **kwargs):
         return self.training_step(*args, **kwargs)
 

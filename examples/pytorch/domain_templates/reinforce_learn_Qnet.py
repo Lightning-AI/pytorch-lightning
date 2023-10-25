@@ -35,6 +35,7 @@ Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 import argparse
 from collections import OrderedDict, deque, namedtuple
 from typing import Iterator, List, Tuple
+from typing_extensions import override
 
 import gym
 import numpy as np
@@ -283,6 +284,7 @@ class DQNLightning(LightningModule):
         for i in range(steps):
             self.agent.play_step(self.net, epsilon=1.0)
 
+    @override
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Passes in a state `x` through the network and gets the `q_values` of each action as an output.
 
@@ -318,6 +320,7 @@ class DQNLightning(LightningModule):
 
         return nn.MSELoss()(state_action_values, expected_state_action_values)
 
+    @override
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], nb_batch) -> OrderedDict:
         """Carries out a single step through the environment to update the replay buffer. Then calculates loss based on
         the minibatch received.
@@ -356,6 +359,7 @@ class DQNLightning(LightningModule):
 
         return OrderedDict({"loss": loss, "log": log, "progress_bar": log})
 
+    @override
     def configure_optimizers(self) -> List[Optimizer]:
         """Initialize Adam optimizer."""
         optimizer = optim.Adam(self.net.parameters(), lr=self.lr)

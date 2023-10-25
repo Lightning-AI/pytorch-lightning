@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 
 import torch
 from lightning.pytorch import LightningModule, Trainer
@@ -29,16 +30,19 @@ class LitClassifier(LightningModule):
         self.val_outptus = []
         self.test_outputs = []
 
+    @override
     def forward(self, x):
         x = x.view(x.size(0), -1)
         x = torch.relu(self.l1(x))
         return torch.relu(self.l2(x))
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         return F.cross_entropy(y_hat, y)
 
+    @override
     def validation_step(self, batch, batch_idx):
         x, y = batch
         probs = self(x)
@@ -46,6 +50,7 @@ class LitClassifier(LightningModule):
         self.val_outputs.append(acc)
         return acc
 
+    @override
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
@@ -69,6 +74,7 @@ class LitClassifier(LightningModule):
         self.log("test_acc", torch.stack(self.test_outputs).mean())
         self.test_outputs.clear()
 
+    @override
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 

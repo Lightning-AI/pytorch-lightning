@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest.mock import Mock
+from typing_extensions import override
 
 import pytest
 import torch
@@ -98,6 +99,7 @@ def test_trainer_predict_verify_config(tmpdir, datamodule):
             super().__init__()
             self.layer = torch.nn.Linear(32, 2)
 
+        @override
         def forward(self, x):
             return self.layer(x)
 

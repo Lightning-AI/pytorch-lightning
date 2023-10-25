@@ -13,6 +13,7 @@
 # limitations under the License.
 from unittest import mock
 from unittest.mock import Mock, call
+from typing_extensions import override
 
 import pytest
 import torch
@@ -180,6 +181,7 @@ def test_evaluation_loop_dataloader_iter_multiple_dataloaders(tmp_path):
         def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
             self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
 
+        @override
         def validation_step(self, dataloader_iter):
             self.step_outs.append(next(dataloader_iter))
 

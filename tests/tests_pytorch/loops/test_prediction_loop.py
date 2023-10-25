@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
+from typing_extensions import override
 
 import pytest
 from lightning.pytorch import LightningModule, Trainer
@@ -119,6 +120,7 @@ def test_prediction_loop_with_iterable_dataset(tmp_path):
         def on_predict_batch_start(self, batch, batch_idx, dataloader_idx):
             self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
 
+        @override
         def predict_step(self, dataloader_iter):
             self.step_outs.append(next(dataloader_iter))
 

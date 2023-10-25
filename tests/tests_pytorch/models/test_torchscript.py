@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from typing_extensions import override
 
 import fsspec
 import pytest
@@ -178,6 +179,7 @@ def test_torchscript_script_recursively():
             super().__init__()
             self.model = torch.nn.Linear(1, 1)
 
+        @override
         def forward(self, inputs):
             return self.model(inputs)
 
@@ -186,6 +188,7 @@ def test_torchscript_script_recursively():
             super().__init__()
             self.model = torch.nn.Sequential(GrandChild(), GrandChild())
 
+        @override
         def forward(self, inputs):
             return self.model(inputs)
 
@@ -194,6 +197,7 @@ def test_torchscript_script_recursively():
             super().__init__()
             self.model = Child()
 
+        @override
         def forward(self, inputs):
             return self.model(inputs)
 

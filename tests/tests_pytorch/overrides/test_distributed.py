@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Iterable
+from typing_extensions import override
 
 import pytest
 import torch
@@ -29,6 +30,7 @@ class MyModel(LightningModule):
         weights = self.layer.weight.item(), self.layer.bias.item()
         self.rank_0_weights = self.trainer.strategy.broadcast(weights)
 
+    @override
     def test_step(self, batch, batch_idx):
         current = self.layer.weight.item(), self.layer.bias.item()
         assert self.rank_0_weights == current

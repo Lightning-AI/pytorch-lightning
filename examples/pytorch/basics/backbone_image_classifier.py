@@ -18,6 +18,7 @@ To run: python backbone_image_classifier.py --trainer.max_epochs=50
 """
 from os import path
 from typing import Optional
+from typing_extensions import override
 
 import torch
 from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
@@ -68,10 +69,12 @@ class LitClassifier(LightningModule):
             backbone = Backbone()
         self.backbone = backbone
 
+    @override
     def forward(self, x):
         # use forward for inference/predictions
         return self.backbone(x)
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
@@ -79,22 +82,26 @@ class LitClassifier(LightningModule):
         self.log("train_loss", loss, on_epoch=True)
         return loss
 
+    @override
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log("valid_loss", loss, on_step=True)
 
+    @override
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log("test_loss", loss)
 
+    @override
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         x, y = batch
         return self(x)
 
+    @override
     def configure_optimizers(self):
         # self.hparams available because we called self.save_hyperparameters()
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)

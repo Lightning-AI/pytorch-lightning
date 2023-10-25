@@ -19,6 +19,7 @@ tensorboard --logdir default
 
 """
 from argparse import ArgumentParser, Namespace
+from typing_extensions import override
 
 import numpy as np
 import torch
@@ -124,6 +125,7 @@ class GAN(LightningModule):
 
         self.example_input_array = torch.zeros(2, self.hparams.latent_dim)
 
+    @override
     def forward(self, z):
         return self.generator(z)
 
@@ -131,6 +133,7 @@ class GAN(LightningModule):
     def adversarial_loss(y_hat, y):
         return F.binary_cross_entropy_with_logits(y_hat, y)
 
+    @override
     def training_step(self, batch):
         imgs, _ = batch
 
@@ -179,6 +182,7 @@ class GAN(LightningModule):
 
         self.log_dict({"d_loss": d_loss, "g_loss": g_loss})
 
+    @override
     def configure_optimizers(self):
         lr = self.hparams.lr
         b1 = self.hparams.b1

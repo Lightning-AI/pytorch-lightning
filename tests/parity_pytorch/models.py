@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
 
 import torch
 import torch.nn.functional as F
@@ -42,6 +43,7 @@ class ParityModuleCIFAR(LightningModule):
         )
         self._loss = []  # needed for checking if the loss is the same as vanilla torch
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.backbone(x)
@@ -50,6 +52,7 @@ class ParityModuleCIFAR(LightningModule):
         self._loss.append(loss.item())
         return {"loss": loss}
 
+    @override
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 

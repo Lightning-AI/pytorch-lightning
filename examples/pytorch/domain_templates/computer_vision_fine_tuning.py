@@ -43,6 +43,7 @@ To run:
 import logging
 from pathlib import Path
 from typing import Union
+from typing_extensions import override
 
 import torch
 import torch.nn.functional as F
@@ -207,6 +208,7 @@ class TransferLearningModel(LightningModule):
         # 3. Loss:
         self.loss_func = F.binary_cross_entropy_with_logits
 
+    @override
     def forward(self, x):
         """Forward pass.
 
@@ -223,6 +225,7 @@ class TransferLearningModel(LightningModule):
     def loss(self, logits, labels):
         return self.loss_func(input=logits, target=labels)
 
+    @override
     def training_step(self, batch, batch_idx):
         # 1. Forward pass:
         x, y = batch
@@ -238,6 +241,7 @@ class TransferLearningModel(LightningModule):
 
         return train_loss
 
+    @override
     def validation_step(self, batch, batch_idx):
         # 1. Forward pass:
         x, y = batch
@@ -251,6 +255,7 @@ class TransferLearningModel(LightningModule):
         # 3. Compute accuracy:
         self.log("val_acc", self.valid_acc(y_scores, y_true.int()), prog_bar=True)
 
+    @override
     def configure_optimizers(self):
         parameters = list(self.parameters())
         trainable_parameters = list(filter(lambda p: p.requires_grad, parameters))

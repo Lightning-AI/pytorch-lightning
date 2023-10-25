@@ -8,6 +8,7 @@ import math
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from typing_extensions import override
 
 import requests
 import torch
@@ -170,15 +171,18 @@ class LightningTransformer(LightningModule):
         super().__init__()
         self.model = Transformer(vocab_size=vocab_size)
 
+    @override
     def forward(self, inputs: Tensor, target: Tensor) -> Tensor:
         return self.model(inputs, target)
 
+    @override
     def training_step(self, batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
         inputs, target = batch
         output = self(inputs, target)
         loss = torch.nn.functional.nll_loss(output, target.view(-1))
         return loss
 
+    @override
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.SGD(self.model.parameters(), lr=0.1)
 

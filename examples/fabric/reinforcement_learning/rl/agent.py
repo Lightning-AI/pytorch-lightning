@@ -1,5 +1,6 @@
 import math
 from typing import Dict, Tuple
+from typing_extensions import override
 
 import gymnasium as gym
 import torch
@@ -163,6 +164,7 @@ class PPOLightningAgent(LightningModule):
         value = self.get_value(x)
         return action, log_prob, entropy, value
 
+    @override
     def forward(self, x: Tensor, action: Tensor = None) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         return self.get_action_and_value(x, action)
 
@@ -193,6 +195,7 @@ class PPOLightningAgent(LightningModule):
         returns = advantages + values
         return returns, advantages
 
+    @override
     def training_step(self, batch: Dict[str, Tensor]):
         # Get actions and values given the current observations
         _, newlogprob, entropy, newvalue = self(batch["obs"], batch["actions"].long())
@@ -244,5 +247,6 @@ class PPOLightningAgent(LightningModule):
         self.avg_value_loss.reset()
         self.avg_ent_loss.reset()
 
+    @override
     def configure_optimizers(self, lr: float):
         return torch.optim.Adam(self.parameters(), lr=lr, eps=1e-4)

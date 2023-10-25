@@ -15,6 +15,7 @@ import operator
 from functools import partial
 from unittest import mock
 from unittest.mock import Mock
+from typing_extensions import override
 
 import pytest
 import torch
@@ -323,6 +324,7 @@ def test_metrics_reset(tmpdir):
                 self.add_module(f"acc_{fn}_{stage}", acc)
                 self.add_module(f"ap_{fn}_{stage}", ap)
 
+        @override
         def forward(self, x):
             return self.layer(x)
 
@@ -350,17 +352,21 @@ def test_metrics_reset(tmpdir):
 
             return loss
 
+        @override
         def training_step(self, batch, batch_idx, *args, **kwargs):
             return self._step(batch)
 
+        @override
         def validation_step(self, batch, batch_idx, *args, **kwargs):
             if self.trainer.sanity_checking:
                 return None
             return self._step(batch)
 
+        @override
         def test_step(self, batch, batch_idx, *args, **kwargs):
             return self._step(batch)
 
+        @override
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
@@ -445,6 +451,7 @@ def test_metriccollection_compute_groups(tmpdir, compute_groups):
             )
             self.layer = torch.nn.Linear(32, 10)
 
+        @override
         def training_step(self, batch):
             self.metrics(torch.rand(10, 10).softmax(-1), torch.randint(0, 10, (10,)))
             self.metrics._is_currently_logging = True

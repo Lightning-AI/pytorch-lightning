@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing_extensions import override
+
 import torch
 from jsonargparse import lazy_instance
 from lightning.pytorch import LightningModule
@@ -25,19 +27,23 @@ class LitClassifier(LightningModule):
         super().__init__()
         self.l1 = torch.nn.Linear(28 * 28, 10)
 
+    @override
     def forward(self, x):
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
+    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         return F.cross_entropy(self(x), y)
 
+    @override
     def validation_step(self, batch, batch_idx):
         x, y = batch
         probs = self(x)
         acc = self.accuracy(probs, y)
         self.log("val_acc", acc)
 
+    @override
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
@@ -48,6 +54,7 @@ class LitClassifier(LightningModule):
     def accuracy(logits, y):
         return torch.sum(torch.eq(torch.argmax(logits, -1), y).to(torch.float32)) / len(y)
 
+    @override
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 

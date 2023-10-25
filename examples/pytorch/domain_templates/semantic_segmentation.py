@@ -15,6 +15,7 @@
 import os
 import random
 from argparse import ArgumentParser, Namespace
+from typing_extensions import override
 
 import numpy as np
 import torch
@@ -344,9 +345,11 @@ class SegModel(LightningModule):
         self.trainset = KITTI(self.data_path, split="train", transform=self.transform)
         self.validset = KITTI(self.data_path, split="valid", transform=self.transform)
 
+    @override
     def forward(self, x):
         return self.net(x)
 
+    @override
     def training_step(self, batch, batch_nb):
         img, mask = batch
         img = img.float()
@@ -356,6 +359,7 @@ class SegModel(LightningModule):
         log_dict = {"train_loss": loss}
         return {"loss": loss, "log": log_dict, "progress_bar": log_dict}
 
+    @override
     def validation_step(self, batch, batch_idx):
         img, mask = batch
         img = img.float()
@@ -364,6 +368,7 @@ class SegModel(LightningModule):
         val_loss = F.cross_entropy(out, mask, ignore_index=250)
         self.log("val_loss", val_loss, prog_bar=True)
 
+    @override
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
         sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=10)
