@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Literal, Optional
-from typing_extensions import get_args
-from typing_extensions import override
 
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
+from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling

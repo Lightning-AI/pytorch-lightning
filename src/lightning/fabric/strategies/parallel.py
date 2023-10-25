@@ -13,10 +13,10 @@
 # limitations under the License.
 from abc import ABC
 from typing import Any, Dict, List, Optional
-from typing_extensions import override
 
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment

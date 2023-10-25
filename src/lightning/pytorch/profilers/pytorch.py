@@ -18,13 +18,13 @@ import os
 from functools import lru_cache, partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Optional, Type, Union
-from typing_extensions import override
 
 import torch
 from torch import Tensor, nn
 from torch.autograd.profiler import EventList, record_function
 from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 from torch.utils.hooks import RemovableHandle
+from typing_extensions import override
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.pytorch.profilers.profiler import Profiler

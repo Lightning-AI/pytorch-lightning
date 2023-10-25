@@ -11,11 +11,11 @@
 # limitations under the License.
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, Literal, Optional, Union
-from typing_extensions import override
 
 import torch
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
