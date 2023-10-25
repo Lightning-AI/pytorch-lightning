@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import csv
+import itertools
 import os
 from typing import Dict, List, Set, Tuple
 from unittest.mock import MagicMock
@@ -153,20 +154,46 @@ def test_append_columns(tmp_path):
 
     # initial metrics
     logger.log_metrics({"a": 1, "b": 2})
+    _assert_csv_content(
+        logger.experiment.metrics_file_path,
+        expected_headers={"step", "a", "b"},
+        expected_content=[{"step": "0", "a": "1", "b": "2"}],
+    )
 
     # new key appears
     logger.log_metrics({"a": 11, "b": 22, "c": 33})
-
-    headers, content = _read_csv(logger.experiment.metrics_file_path)
-    assert headers == {"step", "a", "b", "c"}
-    assert content[0] == {"step": "0", "a": "1", "b": "2", "c": ""}
-    assert content[1] == {"step": "0", "a": "11", "b": "22", "c": "33"}
+    _assert_csv_content(
+        logger.experiment.metrics_file_path,
+        expected_headers={"step", "a", "b", "c"},
+        expected_content=[
+            {"step": "0", "a": "1", "b": "2", "c": ""},
+            {"step": "0", "a": "11", "b": "22", "c": "33"},
+        ],
+    )
 
     # key disappears
-    logger.log_metrics({"a": 1, "c": 3})
-    with open(logger.experiment.metrics_file_path) as file:
-        header = file.readline().strip()
-        assert set(header.split(",")) == {"step", "a", "b", "c"}
+    logger.log_metrics({"a": 111, "c": 333})
+    _assert_csv_content(
+        logger.experiment.metrics_file_path,
+        expected_headers={"step", "a", "b", "c"},
+        expected_content=[
+            {"step": "0", "a": "1", "b": "2", "c": ""},
+            {"step": "0", "a": "11", "b": "22", "c": "33"},
+            {"step": "0", "a": "111", "b": "", "c": "333"},
+        ],
+    )
+
+
+def _assert_csv_content(
+    path: str,
+    expected_headers: Set[str],
+    expected_content: List[Dict[str, str]],
+) -> None:
+    """Verifies the content of a local csv file with the expected ones."""
+    headers, content = _read_csv(path)
+    assert headers == expected_headers
+    for actual, expected in itertools.zip_longest(content, expected_content):
+        assert actual == expected
 
 
 def _read_csv(path: str) -> Tuple[Set[str], List[Dict[str, str]]]:
