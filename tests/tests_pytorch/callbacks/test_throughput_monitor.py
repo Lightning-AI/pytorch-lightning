@@ -50,9 +50,9 @@ def test_throughput_monitor(tmp_path):
         trainer.fit(model)
 
     assert logger_mock.log_metrics.mock_calls == [
-        call(metrics={"time/train": 1.5, "time/val": 0.0, "time/total": 1.5, "samples": 3}, step=0),
-        call(metrics={"time/train": 2.5, "time/val": 0.0, "time/total": 2.5, "samples": 6}, step=1),
-        call(metrics={"time/train": 3.5, "time/val": 0.2, "time/total": 3.7, "samples": 9}, step=2),
+        call(metrics={"time/train": 1.5, "time/val": 0.0, "time/total": 1.5, "samples": 3, "epoch": 0}, step=0),
+        call(metrics={"time/train": 2.5, "time/val": 0.0, "time/total": 2.5, "samples": 6, "epoch": 0}, step=1),
+        call(metrics={"time/train": 3.5, "time/val": 0.2, "time/total": 3.7, "samples": 9, "epoch": 0}, step=2),
         call(
             metrics={
                 "batches_per_sec": 1.0,
@@ -68,6 +68,7 @@ def test_throughput_monitor(tmp_path):
                 "time/val": 0.2,
                 "time/total": 4.7,
                 "samples": 12,
+                "epoch": 0,
             },
             step=3,
         ),
@@ -86,7 +87,11 @@ def test_throughput_monitor(tmp_path):
                 "time/val": 0.4,
                 "time/total": 5.9,
                 "samples": 15,
+                "epoch": 0,
             },
             step=4,
         ),
     ]
+
+
+# TODO: add gradient accumulation test

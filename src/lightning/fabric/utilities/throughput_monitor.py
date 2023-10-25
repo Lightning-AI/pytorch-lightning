@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import deque
-from contextlib import nullcontext
-from typing import TYPE_CHECKING, Any, Callable, Deque, Literal, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, Literal, Optional
 
 import torch
 
@@ -22,7 +21,6 @@ from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from lightning.fabric import Fabric
-    from lightning.fabric.loggers import Logger
     from lightning.fabric.plugins import Precision
 
 
@@ -31,12 +29,10 @@ class _ThroughputMonitorBase:
     def __init__(
         self,
         flops_available: Optional[float],
-        loggers: Sequence["Logger"],
         window_size: int = 100,
         time_unit: Literal["seconds", "minutes", "hours", "days"] = "hours",
     ) -> None:
         self.flops_available = flops_available
-        self.loggers = loggers
 
         # throughput is computed over a window of batches
         self._samples: Deque[int] = deque(maxlen=window_size + 1)
@@ -59,7 +55,6 @@ class _ThroughputMonitorBase:
 
         # Keep track of time spent evaluating
         self._total_eval_time = 0.0
-        self._step = -1
 
     def on_train_batch_end(
         self,
@@ -68,9 +63,7 @@ class _ThroughputMonitorBase:
         world_size: int,
         flops_per_batch: Optional[int] = None,  # (per device)
         lengths: Optional[int] = None,  # total length of the samples seen (per device)
-    ) -> None:
-        self._step += 1
-        step = self._step
+    ) -> Dict:
         metrics = {}
 
         self._samples.append(samples)
@@ -123,15 +116,15 @@ class _ThroughputMonitorBase:
                 "samples": samples,
             }
         )
+        return metrics
 
-        for logger in self.loggers:
-            logger.log_metrics(metrics=metrics, step=step)
-
+    # TODO: perhaps this should separate training and eval completely, requesting that two different instances are used
+    # to track them both
     def eval_end(self, eval_elapsed: float) -> None:
         self._total_eval_time += eval_elapsed  # seconds
 
 
-class ThroughputMonitor(_ThroughputMonitorBase):
+class ThroughputMonitor:
     """Tracks and logs throughput.
 
     +--------------------------+---------------------------------------------------------------------------------------+
@@ -180,11 +173,19 @@ class ThroughputMonitor(_ThroughputMonitorBase):
     def __init__(self, fabric: "Fabric", *args: Any, **kwargs: Any) -> None:
         dtype = _plugin_to_compute_dtype(fabric.strategy.precision)
         flops_available = _get_flops_available(fabric.device, dtype)
-        super().__init__(flops_available, fabric.loggers, *args, **kwargs)
+        self._fabric = fabric
+        self.step = -1
+        self._monitor = _ThroughputMonitorBase(flops_available, *args, **kwargs)
 
     @rank_zero_only
     def on_train_batch_end(self, *args: Any, **kwargs: Any) -> None:
-        super().on_train_batch_end(*args, **kwargs)
+        self.step += 1
+        metrics = self._monitor.on_train_batch_end(*args, **kwargs)
+        self._fabric.log_dict(metrics=metrics, step=self.step)
+
+    @rank_zero_only
+    def eval_end(self, *args: Any, **kwargs: Any) -> None:
+        self._monitor.eval_end(*args, **kwargs)
 
 
 def measure_flops(
@@ -202,9 +203,9 @@ def measure_flops(
             model = MyModel()
             x = torch.randn(2, 32)
         model_fwd = lambda: model(x)
+        fwd_flops = measure_flops(model, model_fwd)
         model_loss = lambda y: y.sum()
-        training_flops = measure_flops(model, model_fwd, model_loss)
-        eval_flops = measure_flops(model.eval(), model_fwd)
+        fwd_and_bwd_flops = measure_flops(model, model_fwd, model_loss)
 
     Args:
         model: The model whose FLOPs should be measured.
@@ -218,13 +219,11 @@ def measure_flops(
     from torch.utils.flop_counter import FlopCounterMode
 
     flop_counter = FlopCounterMode(model, display=False)
-    training = loss_fn is not None
-    ctx = nullcontext() if training else torch.no_grad()
-    with ctx, flop_counter:
-        y = forward_fn()
-        if training:
-            loss = loss_fn(y)
-            loss.backward()
+    with flop_counter:
+        if loss_fn is None:
+            forward_fn()
+        else:
+            loss_fn(forward_fn()).backward()
     return flop_counter.get_total_flops()
 
 

@@ -110,7 +110,7 @@ class ThroughputMonitor(Callback):
                 "When using the `ThroughputMonitor`, you need to define a `flops_per_batch` attribute or property"
                 f" in {pl_module} to compute the FLOPs."
             )
-        self._monitor = _ThroughputMonitorBase(flops_available, trainer.loggers, **self._kwargs)
+        self._monitor = _ThroughputMonitorBase(flops_available, **self._kwargs)
 
     @rank_zero_only
     def on_train_start(self, trainer: "Trainer", pl_module: "LightningModule") -> None:
@@ -124,13 +124,14 @@ class ThroughputMonitor(Callback):
         train_elapsed = time.perf_counter() - self._train_t0
         self._total_lengths += self.length_fn(batch)
         if trainer.fit_loop._should_accumulate():
+            # returning here assumes that `flops_per_batch` will include the backward flops
             return
         flops_per_batch = pl_module.flops_per_batch if hasattr(pl_module, "flops_per_batch") else None
         assert self._monitor is not None
         iter_num = trainer.fit_loop.total_batch_idx
         batch_size = self.batch_size_fn(batch)
         samples = (iter_num + 1) * batch_size
-        self._monitor.on_train_batch_end(
+        metrics = self._monitor.on_train_batch_end(
             samples,
             train_elapsed,
             # this assumes that device FLOPs are the same and that all devices have the same batch size
@@ -138,6 +139,7 @@ class ThroughputMonitor(Callback):
             flops_per_batch=flops_per_batch,
             lengths=self._total_lengths,
         )
+        trainer._logger_connector.log_metrics(metrics)
 
     @rank_zero_only
     def on_validation_start(self, trainer: "Trainer", pl_module: "LightningModule") -> None:
