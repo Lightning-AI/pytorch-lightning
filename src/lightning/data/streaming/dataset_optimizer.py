@@ -305,10 +305,6 @@ class BaseWorker:
     def _create_cache(self) -> None:
         self.cache_chunks_dir = os.path.join(_get_cache_folder(), self.dataset_name)
 
-        # Cleanup the cache folder to avoid corrupted files from previous run to be there.
-        if os.path.exists(self.cache_chunks_dir):
-            rmtree(self.cache_chunks_dir)
-
         os.makedirs(self.cache_chunks_dir, exist_ok=True)
 
         self.cache = Cache(
@@ -319,10 +315,6 @@ class BaseWorker:
         )
         self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
         self.cache_data_dir = os.path.join(_get_cache_folder(), "data", self.dataset_name)
-
-        # Cleanup the cache folder to avoid corrupted files from previous run to be there.
-        if os.path.exists(self.cache_data_dir):
-            rmtree(self.cache_data_dir)
 
         os.makedirs(self.cache_data_dir, exist_ok=True)
 
@@ -587,6 +579,8 @@ class DatasetOptimizer:
 
         num_items = sum([len(items) for items in workers_user_items])
 
+        self._cleanup_cache()
+
         print(f"Starting {self.num_workers} workers")
 
         if self.remote_src_dir is None and self.src_resolver is not None:
@@ -822,6 +816,19 @@ class DatasetOptimizer:
             merge_cache = Cache(cache_dir, chunk_bytes=1)
             merge_cache._merge_no_wait()
             self._upload_index(cache_dir, 1, None)
+
+    def _cleanup_cache(self):
+        cache_chunks_dir = os.path.join(_get_cache_folder(), self.name)
+
+        # Cleanup the cache folder to avoid corrupted files from previous run to be there.
+        if os.path.exists(cache_chunks_dir):
+            rmtree(cache_chunks_dir)
+
+        cache_data_dir = os.path.join(_get_cache_folder(), "data", self.name)
+
+        # Cleanup the cache folder to avoid corrupted files from previous run to be there.
+        if os.path.exists(cache_data_dir):
+            rmtree(cache_data_dir)
 
     def _broadcast_object(self, obj: Any) -> Any:
         """Enable to synchornize an object across machines using torch.distributed.collectives."""
