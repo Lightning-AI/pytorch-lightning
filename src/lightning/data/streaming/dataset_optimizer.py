@@ -79,6 +79,7 @@ def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, que
         # 3. Terminate the process if we received a termination signal
         if r is None:
             queue_out.put(None)
+            print("Download exited")
             return
 
         # 4. Unpack
@@ -121,6 +122,7 @@ def _remove_target(src_dir: str, cache_dir: str, queue_in: Queue) -> None:
 
         # 2. Terminate the process if we received a termination signal
         if paths is None:
+            print("Removal exited")
             return
 
         # 3. Iterate through the paths and delete them sequentially.
@@ -145,6 +147,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
 
         # Terminate the process if we received a termination signal
         if local_filepath is None:
+            print("Upload exited")
             return
 
         # Upload the file to the target cloud storage
