@@ -17,9 +17,9 @@ import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, List, Optional, Set, Union
-from typing_extensions import override
 
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
