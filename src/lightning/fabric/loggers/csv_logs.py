@@ -245,10 +245,11 @@ class _ExperimentWriter:
         return new_keys
 
     def _append_recorded_metrics(self) -> None:
+        """Appends the previous recorded metrics to the current ``self.metrics``."""
         metrics = self._fetch_recorded_metrics()
         self.metrics = metrics + self.metrics
 
     def _fetch_recorded_metrics(self) -> List[str]:
+        """Fetches the previous recorded metrics."""
         with self._fs.open(self.metrics_file_path, "r", newline="") as file:
-            metrics = list(csv.DictReader(file))
-        return metrics
+            return list(csv.DictReader(file))
