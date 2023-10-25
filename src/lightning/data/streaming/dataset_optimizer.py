@@ -35,6 +35,7 @@ if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42:
 
 if _BOTO3_AVAILABLE:
     import boto3
+    from botocore.config import Config
 
 logger = logging.Logger(__name__)
 
@@ -67,7 +68,9 @@ def _get_home_folder() -> str:
 def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
     """This function is used to download data from a remote directory to a cache directory to optimise reading."""
     # 1. Create client
-    s3 = boto3.client("s3")
+    config = Config(retries={"max_attempts": 1000, "mode": "standard"})
+
+    s3 = boto3.client("s3", config=config)
 
     while True:
         # 2. Fetch from the queue
@@ -133,7 +136,9 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
     obj = parse.urlparse(remote_dst_dir)
 
     if obj.scheme == "s3":
-        s3 = boto3.client("s3")
+        config = Config(retries={"max_attempts": 1000, "mode": "standard"})
+
+        s3 = boto3.client("s3", config=config)
 
     while True:
         local_filepath: Optional[str] = upload_queue.get()
