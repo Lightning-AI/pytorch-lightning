@@ -45,10 +45,8 @@ _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 def _get_expected_model_path(dir_path: str) -> str:
     expected_model_path = dir_path
-    path_sep = "/"
-    if expected_model_path and expected_model_path[-1] != path_sep:
-        expected_model_path = f"{expected_model_path}{path_sep}"
-    return expected_model_path
+    expected_model_path = expected_model_path.rstrip(os.path.sep) if expected_model_path else expected_model_path
+    return expected_model_path + os.path.sep
 
 
 class NeptuneLogger(Logger):

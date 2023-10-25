@@ -15,7 +15,7 @@ import os
 import pickle
 from collections import namedtuple
 from unittest import mock
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, call, patch
 
 import lightning.pytorch as pl
 import pytest
@@ -309,3 +309,8 @@ def test_get_full_model_names_from_exp_structure():
 def test_get_expected_model_path():
     assert _get_expected_model_path("my_model/checkpoints") == "my_model/checkpoints/"
     assert _get_expected_model_path("my_model/checkpoints/") == "my_model/checkpoints/"
+
+
+@patch("os.path.sep", new="\\")
+def test_get_expected_model_path_windows():
+    assert _get_expected_model_path("my_model\\checkpoints\\") == "my_model\\checkpoints\\"
