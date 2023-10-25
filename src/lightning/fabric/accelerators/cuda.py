@@ -16,6 +16,7 @@ import warnings
 from contextlib import contextmanager
 from functools import lru_cache
 from typing import Generator, List, Optional, Union, cast
+from typing_extensions import override
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_info
@@ -63,6 +64,7 @@ class CUDAAccelerator(Accelerator):
     def is_available() -> bool:
         return num_cuda_devices() > 0
 
+    @override
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(

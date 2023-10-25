@@ -14,6 +14,7 @@
 import platform
 from functools import lru_cache
 from typing import List, Optional, Union
+from typing_extensions import override
 
 import torch
 
@@ -65,6 +66,7 @@ class MPSAccelerator(Accelerator):
         """MPS is only available on a machine with the ARM-based Apple Silicon processors."""
         return torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
 
+    @override
     @classmethod
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
