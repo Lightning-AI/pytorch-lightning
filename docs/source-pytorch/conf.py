@@ -95,6 +95,11 @@ assist_local.AssistantCLI.pull_docs_files(
     checkout="tags/1.1.0",
 )
 assist_local.AssistantCLI.pull_docs_files(
+    gh_user_repo="Lightning-AI/lightning-XPU",
+    target_dir="docs/source-pytorch/integrations/xpu",
+    checkout="tags/1.0.0",
+)
+assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Graphcore",
     target_dir="docs/source-pytorch/integrations/ipu",
     checkout="tags/v0.1.0",
@@ -334,6 +339,7 @@ intersphinx_mapping = {
     "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
     "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
     "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
+    "intel-xpu": ("https://lightning-ai.github.io/lightning-XPU/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
     # needed for referencing App from lightning scope
     "lightning.app": ("https://lightning.ai/docs/app/stable/", None),

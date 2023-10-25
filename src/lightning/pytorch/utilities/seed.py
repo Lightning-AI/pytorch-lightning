@@ -19,7 +19,7 @@ from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
 
 
 @contextmanager
-def isolate_rng(include_cuda: bool = True) -> Generator[None, None, None]:
+def isolate_rng(include_cuda: bool = True, include_xpu: bool = True) -> Generator[None, None, None]:
     """A context manager that resets the global random state on exit to what it was before entering.
 
     It supports isolating the states for PyTorch, Numpy, and Python built-in random number generators.
@@ -40,6 +40,6 @@ def isolate_rng(include_cuda: bool = True) -> Generator[None, None, None]:
         tensor([0.7576])
 
     """
-    states = _collect_rng_states(include_cuda)
+    states = _collect_rng_states(include_cuda, include_xpu)
     yield
     _set_rng_states(states)

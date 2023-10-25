@@ -17,7 +17,8 @@
    ../advanced/model_parallel
    Train on single or multiple GPUs <../accelerators/gpu>
    Train on single or multiple HPUs <../integrations/hpu/index>
-   Train on single or multiple IPUs <../integrations/ipu/index>
+   Train on single or multiple XPUs <../integrations/xpu/index>
+   Train on single or multiple IPUs <../accelerators/ipu>
    Train on single or multiple TPUs <../accelerators/tpu>
    Train on MPS <../accelerators/mps>
    Use a pretrained model <../advanced/pretrained>
@@ -165,6 +166,13 @@ How-to Guides
     :header: Train on single or multiple HPUs
     :description: Train models faster with HPU accelerators
     :button_link: ../integrations/hpu/index.html
+    :col_css: col-md-4
+    :height: 180
+
+.. displayitem::
+    :header: Train on single or multiple XPUs
+    :description: Train models faster with XPU accelerators
+    :button_link: ../integrations/xpu/index.html
     :col_css: col-md-4
     :height: 180
 

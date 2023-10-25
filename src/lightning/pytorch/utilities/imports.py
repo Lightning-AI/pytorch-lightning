@@ -53,3 +53,10 @@ def _lightning_habana_available() -> bool:
     # This is defined as a function instead of a constant to avoid circular imports, because `lightning_habana`
     # also imports Lightning
     return bool(RequirementCache("lightning-habana")) and _try_import_module("lightning_habana")
+
+
+@functools.lru_cache(maxsize=1)
+def _lightning_xpu_available() -> bool:
+    # This is defined as a function instead of a constant to avoid circular imports, because `lightning_xpu`
+    # also imports Lightning
+    return bool(RequirementCache("lightning-xpu")) and _try_import_module("lightning_xpu")

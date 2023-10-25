@@ -63,7 +63,7 @@ from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
 from lightning.fabric.utilities import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
-from lightning.fabric.utilities.imports import _IS_INTERACTIVE
+from lightning.fabric.utilities.imports import _IS_INTERACTIVE, _lightning_xpu_available
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
@@ -298,6 +298,13 @@ class _Connector:
                             f" but accelerator set to {self._accelerator_flag}, please choose one device type"
                         )
                     self._accelerator_flag = "cuda"
+                if self._strategy_flag.parallel_devices[0].type == "xpu":
+                    if self._accelerator_flag and self._accelerator_flag not in ("auto", "xpu", "gpu"):
+                        raise ValueError(
+                            f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                            f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                        )
+                    self._accelerator_flag = "xpu"
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
@@ -326,6 +333,12 @@ class _Connector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
+        if _lightning_xpu_available():
+            from lightning_xpu.fabric import XPUAccelerator
+
+            if XPUAccelerator.is_available():
+                return "xpu"
+
         return "cpu"
 
     @staticmethod
@@ -334,6 +347,11 @@ class _Connector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
+        if _lightning_xpu_available():
+            from lightning_xpu.fabric import XPUAccelerator
+
+            if XPUAccelerator.is_available():
+                return "xpu"
         raise RuntimeError("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
@@ -404,8 +422,15 @@ class _Connector:
         if self._num_nodes_flag > 1:
             return "ddp"
         if len(self._parallel_devices) <= 1:
-            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
-                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
+            supported_accelerators = [CUDAAccelerator, MPSAccelerator]
+            supported_accelerators_str = ["cuda", "gpu", "mps"]
+            if _lightning_xpu_available():
+                from lightning_xpu.fabric import XPUAccelerator
+
+                supported_accelerators.append(XPUAccelerator)
+                supported_accelerators_str.append("xpu")
+            if isinstance(self._accelerator_flag, tuple(supported_accelerators)) or (
+                isinstance(self._accelerator_flag, str) and self._accelerator_flag in tuple(supported_accelerators_str)
             ):
                 device = _determine_root_gpu_device(self._parallel_devices)
             else:
@@ -486,7 +511,12 @@ class _Connector:
                 if self._precision_input == "16-mixed"
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
-            device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
+            device = "cuda"
+            if self._accelerator_flag == "cpu":
+                device = "cpu"
+            elif self._accelerator_flag == "xpu":
+                device = "xpu"
+
             return MixedPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")

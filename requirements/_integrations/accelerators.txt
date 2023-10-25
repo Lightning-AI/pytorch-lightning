@@ -1,3 +1,6 @@
 # validation HPU connectors
 lightning-habana >=1.0.0
 lightning-graphcore >=0.1.0.rc4
+
+# validation XPU connectors
+lightning-xpu >=0.1.0

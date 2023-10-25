@@ -29,6 +29,7 @@ from torch import Tensor
 import lightning.pytorch as pl
 from lightning.fabric.strategies.launchers.multiprocessing import (
     _check_bad_cuda_fork,
+    _check_bad_xpu_fork,
     _check_missing_main_guard,
     _disable_module_memory_sharing,
 )
@@ -40,7 +41,11 @@ from lightning.pytorch.accelerators import CPUAccelerator
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.connectors.signal_connector import _SIGNUM
 from lightning.pytorch.trainer.states import TrainerFn, TrainerState
+from lightning.pytorch.utilities.imports import _lightning_xpu_available
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug
+
+if _lightning_xpu_available():
+    from lightning_xpu.pytorch import XPUAccelerator
 
 log = logging.getLogger(__name__)
 
@@ -105,6 +110,8 @@ class _MultiProcessingLauncher(_Launcher):
         """
         if self._start_method in ("fork", "forkserver"):
             _check_bad_cuda_fork()
+            if XPUAccelerator.is_available():
+                _check_bad_xpu_fork()
         if self._start_method == "spawn":
             _check_missing_main_guard()
         if self._already_fit and trainer is not None and trainer.state.fn == TrainerFn.FITTING:

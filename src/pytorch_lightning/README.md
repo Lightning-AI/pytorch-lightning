@@ -62,7 +62,7 @@ Lightning forces the following structure to your code which makes it reusable an
 - Non-essential research code (logging, etc... this goes in Callbacks).
 - Data (use PyTorch DataLoaders or organize them into a LightningDataModule).
 
-Once you do this, you can train on multiple-GPUs, TPUs, CPUs, IPUs, HPUs and even in 16-bit precision without changing your code!
+Once you do this, you can train on multiple-GPUs, TPUs, CPUs, IPUs, HPUs, XPUs and even in 16-bit precision without changing your code!
 
 [Get started in just 15 minutes](https://lightning.ai/docs/pytorch/latest/starter/introduction.html)
 
