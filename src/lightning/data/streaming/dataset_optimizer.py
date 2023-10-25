@@ -272,9 +272,10 @@ class BaseWorker:
             item_data_or_generator = self.prepare_item(self.items[index]) if self.prepare_item else self.items[index]  # type: ignore
             if isinstance(item_data_or_generator, types.GeneratorType):
                 for item_data in item_data_or_generator:
-                    chunk_filepath = self.cache._add_item(self._index_counter, item_data)
-                    self._try_upload(chunk_filepath)
-                    self._index_counter += 1
+                    if item_data:
+                        chunk_filepath = self.cache._add_item(self._index_counter, item_data)
+                        self._try_upload(chunk_filepath)
+                        self._index_counter += 1
             else:
                 chunk_filepath = self.cache._add_item(index + self.start_index, item_data_or_generator)
                 self._try_upload(chunk_filepath)
