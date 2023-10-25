@@ -619,10 +619,10 @@ class DatasetOptimizer:
                 if current_total == num_items:
                     break
 
-        print("Workers are finishing...")
-
         for w in self.workers:
             w.join(0)
+
+        print("Workers are finished.")
 
         cache_dir = os.path.join(_get_cache_folder(), self.name)
 
