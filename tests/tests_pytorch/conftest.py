@@ -26,6 +26,7 @@ import lightning.pytorch
 import pytest
 import torch.distributed
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 
@@ -112,7 +113,7 @@ def restore_signal_handlers():
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
 
 
@@ -244,7 +245,7 @@ def single_process_pg():
     The process group is destroyed when the with block is exited.
 
     """
-    if torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         raise RuntimeError("Can't use `single_process_pg` when the default process group is already initialized.")
 
     orig_environ = os.environ.copy()
