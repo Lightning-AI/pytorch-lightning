@@ -377,7 +377,7 @@ class BaseWorker:
             self.to_download_queues[downloader_index].put(None)
 
     def _start_remover(self) -> None:
-        if self.remove is None:
+        if not self.remove:
             return
         self.remover = Process(
             target=_remove_target,
@@ -623,7 +623,7 @@ class DatasetOptimizer:
         cache_dir = os.path.join(_get_cache_folder(), self.name)
 
         chunks = [file for file in os.listdir(cache_dir) if file.endswith(".bin")]
-        if chunks:
+        if chunks and self.delete_cached_files and self.remote_dst_dir:
             raise RuntimeError(f"All the chunks should have been deleted. Found {chunks}")
 
         merge_cache = Cache(cache_dir, chunk_bytes=1)
