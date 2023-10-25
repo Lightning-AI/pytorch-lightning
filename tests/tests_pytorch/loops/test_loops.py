@@ -15,6 +15,7 @@ import os
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, Iterator
+from typing_extensions import override
 from unittest.mock import ANY, Mock
 
 import pytest
@@ -85,9 +86,10 @@ def test_loop_restore():
 
             self.outputs.append(value)
 
+        @override
         def state_dict(self) -> Dict:
             return {"iteration_count": self.iteration_count, "outputs": self.outputs}
-
+        @override
         def load_state_dict(self, state_dict: Dict) -> None:
             self.iteration_count = state_dict["iteration_count"]
             self.outputs = state_dict["outputs"]
@@ -138,9 +140,11 @@ def test_loop_hierarchy():
                 return
             loop.run()
 
+        @override
         def on_save_checkpoint(self) -> Dict:
             return {"a": self.a}
 
+        @override
         def on_load_checkpoint(self, state_dict: Dict) -> None:
             self.a = state_dict["a"]
 
