@@ -823,8 +823,8 @@ class DatasetOptimizer:
 
         if not _distributed_is_initialized():
             process_group_backend = "nccl" if is_cuda_available() else "gloo"
-            _init_dist_connection(None, process_group_backend, _get_node_rank(), num_nodes)
+            _init_dist_connection(LightningEnvironment(), process_group_backend, _get_node_rank(), num_nodes)
 
         obj = [obj]
-        torch.distributed.broadcast_object_list(LightningEnvironment(), 0, group=_group.WORLD)
+        torch.distributed.broadcast_object_list(obj, 0, group=_group.WORLD)
         return obj[0]
