@@ -836,6 +836,14 @@ class DatasetOptimizer:
                 node_index_filepath = os.path.join(cache_dir, os.path.basename(remote_filepath))
                 if obj.scheme == "s3":
                     obj = parse.urlparse(remote_filepath)
+                    # Wait for the index to exist on s3.
+                    while True:
+                        try:
+                            s3.head_object(Bucket=obj.netloc, Key=obj.path.lstrip("/"))
+                            break
+                        except Exception as e:
+                            print(e)
+                            pass
                     with open(node_index_filepath, "wb") as f:
                         s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
                 elif os.path.isdir(self.remote_dst_dir):
