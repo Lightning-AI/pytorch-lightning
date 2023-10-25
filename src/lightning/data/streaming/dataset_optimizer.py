@@ -516,6 +516,7 @@ class DatasetOptimizer:
             remote_dst_dir if remote_dst_dir is not None else (self.dst_resolver(name) if self.dst_resolver else None)
         )
         if self.remote_dst_dir:
+            # Ensure the remote src dir is the same across all ranks
             self.remote_dst_dir = self._broadcast_object(self.remote_dst_dir)
             print(f"Storing the files under {self.remote_dst_dir}")
 
