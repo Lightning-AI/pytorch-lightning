@@ -16,7 +16,7 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union, Iterable
 
 from fsspec.implementations import local
 from torch import Tensor
@@ -249,7 +249,7 @@ class _ExperimentWriter:
         metrics = self._fetch_recorded_metrics()
         self.metrics = metrics + self.metrics
 
-    def _fetch_recorded_metrics(self) -> List[str]:
+    def _fetch_recorded_metrics(self) -> List[Dict[str, Any]]:
         """Fetches the previous recorded metrics."""
         with self._fs.open(self.metrics_file_path, "r", newline="") as file:
             return list(csv.DictReader(file))
