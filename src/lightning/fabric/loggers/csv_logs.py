@@ -16,7 +16,7 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Set, Union, Iterable
+from typing import Any, Dict, List, Optional, Set, Union
 
 from fsspec.implementations import local
 from torch import Tensor
