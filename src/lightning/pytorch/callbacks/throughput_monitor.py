@@ -17,10 +17,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 import torch
 
 from lightning.fabric.plugins import Precision
-from lightning.fabric.utilities.throughput_monitor import (
-    _get_flops_available,
-    _ThroughputMonitorBase,
-)
+from lightning.fabric.utilities.throughput_monitor import _get_flops_available, _ThroughputMonitor
 from lightning.fabric.utilities.throughput_monitor import (
     _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype,
 )
@@ -36,6 +33,7 @@ from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecisi
 from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from lightning.pytorch.plugins.precision.half import HalfPrecisionPlugin
 from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
+from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 
 if TYPE_CHECKING:
@@ -43,64 +41,32 @@ if TYPE_CHECKING:
 
 
 class ThroughputMonitor(Callback):
-    """Tracks and logs throughput.
+    r"""Tracks and logs throughput with the :class:`lightning.fabric.utilities.throughput_monitor.._ThroughputMonitor`.
 
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | Key                      | Value                                                                                 |
-    +==========================+=======================================================================================+
-    | `batches_per_sec`        | Rolling average (over `window_size` most recent batches) of the number of batches     |
-    |                          | processed per second                                                                  |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `samples_per_sec`        | Rolling average (over `window_size` most recent batches) of the number of samples     |
-    |                          | processed per second                                                                  |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `items_per_sec`          | Rolling average (over `window_size` most recent batches) of the number of items       |
-    |                          | processed per second                                                                  |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `flops_per_sec`          | Estimates flops by `flops_per_batch * batches_per_sec`                                |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `device/batches_per_sec` | `batches_per_sec` divided by world size                                               |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `device/samples_per_sec` | `samples_per_sec` divided by world size                                               |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `device/items_per_sec`   | `items_per_sec` divided by world size. This may include padding depending on the data |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `device/flops_per_sec`   | `flops_per_sec` divided by world size. Only logged when model has attribute           |
-    |                          | `flops_per_batch`                                                                     |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `device/mfu`             | `device/flops_per_sec` divided by world size.                                         |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `time/train`             | Total elapsed training time                                                           |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `time/val`               | Total elapsed validation time                                                         |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `time/total`             | Total elapsed time (time/train + time/val)                                            |
-    +--------------------------+---------------------------------------------------------------------------------------+
-
-    Notes:
-        - The implementation assumes that devices are homogeneous as it normalizes by the world size.
-        - items_per_sec, flops_per_sec and MFU do not account for padding if present. We suggest using
-            samples_per_sec or batches_per_sec to measure throughput under this circumstance.
+    Only support for ``trainer.fit`` is currently implemented.
 
     Args:
         length_fn: A function to compute the number of items in a sample given a batch.
         batch_size_fn: A function to compute the number of samples given a batch.
-        window_size: Number of batches to use for a rolling average of throughput.
-        time_unit: Time unit to use for `time` logging.
+        \**kwargs: See available parameters in
+            :class:`lightning.fabric.utilities.throughput_monitor.._ThroughputMonitor`
 
     """
 
     def __init__(self, length_fn: Callable[[Any], int], batch_size_fn: Callable[[Any], int], **kwargs: Any) -> None:
         super().__init__()
-        self._monitor: Optional[_ThroughputMonitorBase] = None
-        self._kwargs = kwargs
+        self.kwargs = kwargs
         self.length_fn = length_fn
         self.batch_size_fn = batch_size_fn
-        self._eval_t0 = 0.0
+        self._monitor: Optional[_ThroughputMonitor] = None
         self._train_t0 = 0.0
         self._total_lengths = 0
 
     def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:
+        if stage is not TrainerFn.FITTING:
+            # TODO: this could use a monitor per stage
+            raise NotImplementedError(f"`trainer.{stage}()` is not supported")
+
         if self._monitor is not None:
             return  # already setup
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
@@ -110,7 +76,9 @@ class ThroughputMonitor(Callback):
                 "When using the `ThroughputMonitor`, you need to define a `flops_per_batch` attribute or property"
                 f" in {pl_module} to compute the FLOPs."
             )
-        self._monitor = _ThroughputMonitorBase(flops_available, **self._kwargs)
+        self._monitor = _ThroughputMonitor(
+            flops_available=flops_available, world_size=trainer.world_size, **self.kwargs
+        )
 
     @rank_zero_only
     def on_train_start(self, trainer: "Trainer", pl_module: "LightningModule") -> None:
@@ -131,29 +99,10 @@ class ThroughputMonitor(Callback):
         iter_num = trainer.fit_loop.total_batch_idx
         batch_size = self.batch_size_fn(batch)
         samples = (iter_num + 1) * batch_size
-        metrics = self._monitor.on_train_batch_end(
-            samples,
-            train_elapsed,
-            # this assumes that device FLOPs are the same and that all devices have the same batch size
-            trainer.world_size,
-            flops_per_batch=flops_per_batch,
-            lengths=self._total_lengths,
-        )
+        metrics = self._monitor.compute(samples, train_elapsed, flops_per_batch, self._total_lengths)
+        # prefix with the stage to avoid collisions
+        metrics = {f"{trainer.state.stage}{self._monitor.separator}{k}": v for k, v in metrics.items()}
         trainer._logger_connector.log_metrics(metrics)
-
-    @rank_zero_only
-    def on_validation_start(self, trainer: "Trainer", pl_module: "LightningModule") -> None:
-        if trainer.sanity_checking:
-            return
-        self._eval_t0 = time.perf_counter()
-
-    @rank_zero_only
-    def on_validation_end(self, trainer: "Trainer", pl_module: "LightningModule") -> None:
-        if trainer.sanity_checking:
-            return
-        eval_elapsed = time.perf_counter() - self._eval_t0
-        assert self._monitor is not None
-        self._monitor.eval_end(eval_elapsed)
 
 
 def _plugin_to_compute_dtype(plugin: Union[Precision, PrecisionPlugin]) -> torch.dtype:

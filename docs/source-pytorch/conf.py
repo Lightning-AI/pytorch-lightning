@@ -385,7 +385,7 @@ nitpick_ignore = [
     ("py:class", "lightning.fabric.utilities.types.ReduceLROnPlateau"),
     ("py:class", "lightning.fabric.utilities.types.Steppable"),
     ("py:class", "lightning.fabric.wrappers._FabricOptimizer"),
-    ("py:class", "lightning.fabric.utilities.throughput_monitor._ThroughputMonitorBase"),
+    ("py:class", "lightning.fabric.utilities.throughput_monitor._ThroughputMonitor"),
     ("py:class", "lightning.fabric.utilities.spike.SpikeDetection"),
     ("py:meth", "lightning.pytorch.Callback.on_exception"),
     ("py:class", "lightning.pytorch.LightningModule"),

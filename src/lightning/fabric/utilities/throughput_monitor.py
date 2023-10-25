@@ -132,12 +132,12 @@ class _ThroughputMonitor:
         if len(self._time) == self._time.maxlen:
             elapsed_batches = len(self._samples) - 1
             elapsed_samples = self._samples[-1] - self._samples[0]
-            elapsed_wct = self._time[-1] - self._time[0]
-            dev_samples_per_sec = elapsed_samples / elapsed_wct
-            dev_batches_per_sec = elapsed_batches / elapsed_wct
+            elapsed_time = self._time[-1] - self._time[0]
+            dev_samples_per_sec = elapsed_samples / elapsed_time
+            dev_batches_per_sec = elapsed_batches / elapsed_time
             metrics.update(
                 {
-                    f"device{self.separator}batches_per_sec": elapsed_batches / elapsed_wct,
+                    f"device{self.separator}batches_per_sec": elapsed_batches / elapsed_time,
                     f"device{self.separator}samples_per_sec": dev_samples_per_sec,
                 }
             )
@@ -161,14 +161,14 @@ class _ThroughputMonitor:
             self._flops.append(flops_per_batch * self.world_size)
         if len(self._flops) == self._flops.maxlen:
             elapsed_flops = sum(self._flops) - self._flops[0]
-            elapsed_wct = self._time[-1] - self._time[0]
-            flops_per_sec = elapsed_flops / elapsed_wct
-            device_flops_per_sec = flops_per_sec / self.world_size
+            elapsed_time = self._time[-1] - self._time[0]
+            flops_per_sec = elapsed_flops / elapsed_time
+            dev_flops_per_sec = flops_per_sec / self.world_size
             if add_global_metrics:
                 metrics["flops_per_sec"] = flops_per_sec
-            metrics[f"device{self.separator}flops_per_sec"] = device_flops_per_sec
+            metrics[f"device{self.separator}flops_per_sec"] = dev_flops_per_sec
             if self.flops_available:
-                metrics[f"device{self.separator}mfu"] = device_flops_per_sec / self.flops_available
+                metrics[f"device{self.separator}mfu"] = dev_flops_per_sec / self.flops_available
 
         return metrics
 
@@ -183,6 +183,7 @@ class ThroughputMonitor:
     """
 
     def __init__(self, fabric: "Fabric", **kwargs: Any) -> None:
+        fabric._validate_launched()  # otherwise world_size might be incorrect
         dtype = _plugin_to_compute_dtype(fabric.strategy.precision)
         flops_available = _get_flops_available(fabric.device, dtype)
         self._fabric = fabric
