@@ -23,6 +23,7 @@ from argparse import Namespace
 from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Mapping, Optional, Union
+from typing_extensions import override
 
 import yaml
 from lightning_utilities.core.imports import RequirementCache
@@ -277,6 +278,7 @@ class MLFlowLogger(Logger):
         if self.experiment.get_run(self.run_id):
             self.experiment.set_terminated(self.run_id, status)
 
+    @override
     @property
     def save_dir(self) -> Optional[str]:
         """The root file directory in which MLflow experiments are saved.
@@ -310,6 +312,7 @@ class MLFlowLogger(Logger):
         """
         return self.run_id
 
+    @override
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         # log checkpoints as artifacts
         if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:

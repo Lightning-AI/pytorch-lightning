@@ -19,6 +19,7 @@ import os
 from argparse import Namespace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Mapping, Optional, Union
+from typing_extensions import override
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
@@ -482,6 +483,7 @@ class WandbLogger(Logger):
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
         self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
+    @override
     @property
     def save_dir(self) -> Optional[str]:
         """Gets the save directory.
@@ -514,6 +516,7 @@ class WandbLogger(Logger):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
+    @override
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         # log checkpoints as artifacts
         if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:

@@ -22,6 +22,7 @@ import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
+from typing_extensions import override
 
 from lightning.fabric.loggers.csv_logs import CSVLogger as FabricCSVLogger
 from lightning.fabric.loggers.csv_logs import _ExperimentWriter as _FabricExperimentWriter
@@ -127,6 +128,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
         return os.path.join(self.root_dir, version)
 
+    @override
     @property
     def save_dir(self) -> str:
         """The current directory where logs are saved.

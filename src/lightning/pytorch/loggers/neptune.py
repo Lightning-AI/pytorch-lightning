@@ -20,6 +20,7 @@ import logging
 import os
 from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Set, Union
+from typing_extensions import override
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -468,6 +469,7 @@ class NeptuneLogger(Logger):
 
         super().finalize(status)
 
+    @override
     @property
     def save_dir(self) -> Optional[str]:
         """Gets the save directory of the experiment which in this case is ``None`` because Neptune does not save
@@ -491,6 +493,7 @@ class NeptuneLogger(Logger):
             content=model_str, extension="txt"
         )
 
+    @override
     @rank_zero_only
     def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
         """Automatically log checkpointed model. Called after model checkpoint callback saves a new checkpoint.

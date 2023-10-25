@@ -20,6 +20,7 @@ import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
+from typing_extensions import override
 
 from torch import Tensor
 
@@ -138,6 +139,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         log_dir = os.path.expanduser(log_dir)
         return log_dir
 
+    @override
     @property
     def save_dir(self) -> str:
         """Gets the save directory where the TensorBoard experiments are saved.
@@ -219,6 +221,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             # saving hparams happens independent of experiment manager
             self.save()
 
+    @override
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         """Called after model checkpoint callback saves a new checkpoint.
 

@@ -20,6 +20,7 @@ import logging
 import os
 from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
+from typing_extensions import override
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -341,6 +342,7 @@ class CometLogger(Logger):
         self.experiment.end()
         self.reset_experiment()
 
+    @override
     @property
     def save_dir(self) -> Optional[str]:
         """Gets the save directory.

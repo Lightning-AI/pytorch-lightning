@@ -15,6 +15,7 @@ import pickle
 from argparse import Namespace
 from copy import deepcopy
 from typing import Any, Dict, Optional
+from typing_extensions import override
 from unittest.mock import patch
 
 import numpy as np
@@ -56,6 +57,7 @@ class CustomLogger(Logger):
     def finalize(self, status):
         self.finalized_status = status
 
+    @override
     @property
     def save_dir(self) -> Optional[str]:
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
@@ -70,6 +72,7 @@ class CustomLogger(Logger):
     def version(self):
         return self._version
 
+    @override
     def after_save_checkpoint(self, checkpoint_callback):
         self.after_save_checkpoint_called = True
 
