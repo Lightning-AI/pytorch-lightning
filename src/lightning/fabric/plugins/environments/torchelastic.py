@@ -14,9 +14,9 @@
 
 import logging
 import os
-from typing_extensions import override
 
 import torch.distributed
+from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.rank_zero import rank_zero_warn

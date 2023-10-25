@@ -19,6 +19,7 @@ import shutil
 import signal
 import sys
 from typing import Optional
+
 from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
