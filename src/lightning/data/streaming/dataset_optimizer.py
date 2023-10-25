@@ -14,6 +14,7 @@ from time import sleep, time
 from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Tuple, TypeVar, runtime_checkable
 from urllib import parse
 
+import torch
 from tqdm.auto import tqdm
 
 from lightning import seed_everything
@@ -509,6 +510,8 @@ class DatasetOptimizer:
         self.remote_dst_dir = (
             remote_dst_dir if remote_dst_dir is not None else (self.dst_resolver(name) if self.dst_resolver else None)
         )
+        self.remote_dst_dir = self._broadcast_object(self.remote_dst_dir)
+
         self.random_seed = random_seed
 
     def run(self, optimizable_dataset: _OptimizableDataset) -> None:
@@ -798,3 +801,25 @@ class DatasetOptimizer:
             merge_cache = Cache(cache_dir, chunk_bytes=1)
             merge_cache._merge_no_wait()
             self._upload_index(cache_dir, 1, None)
+
+    def _broadcast_object(self, obj: Any) -> Any:
+        """Enable to synchornize an object across machines using torch.distributed.collectives."""
+        num_nodes = _get_num_nodes()
+        if num_nodes == 1:
+            return obj
+
+        from lightning.fabric.accelerators.cuda import is_cuda_available
+        from lightning.fabric.plugins.environments import LightningEnvironment
+        from lightning.fabric.utilities.distributed import (
+            _distributed_is_initialized,
+            _init_dist_connection,
+        )
+        from lightning.fabric.utilities.distributed import group as _group
+
+        if not _distributed_is_initialized():
+            process_group_backend = "nccl" if is_cuda_available() else "gloo"
+            _init_dist_connection(None, process_group_backend, _get_node_rank(), num_nodes)
+
+        obj = [obj]
+        torch.distributed.broadcast_object_list(LightningEnvironment(), 0, group=_group.WORLD)
+        return obj[0]
