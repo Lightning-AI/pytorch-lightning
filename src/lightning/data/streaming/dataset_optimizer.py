@@ -79,7 +79,6 @@ def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, que
         # 3. Terminate the process if we received a termination signal
         if r is None:
             queue_out.put(None)
-            print("Download exited")
             return
 
         # 4. Unpack
@@ -122,7 +121,6 @@ def _remove_target(src_dir: str, cache_dir: str, queue_in: Queue) -> None:
 
         # 2. Terminate the process if we received a termination signal
         if paths is None:
-            print("Removal exited")
             return
 
         # 3. Iterate through the paths and delete them sequentially.
@@ -147,7 +145,6 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
 
         # Terminate the process if we received a termination signal
         if local_filepath is None:
-            print("Upload exited")
             return
 
         # Upload the file to the target cloud storage
@@ -619,10 +616,7 @@ class DatasetOptimizer:
                     pbar.update(new_total - current_total)
                 current_total = new_total
                 if current_total == num_items:
-                    print("HERERERE")
                     break
-
-        print("Workers are finished.")
 
         num_nodes = _get_num_nodes()
 
@@ -630,8 +624,6 @@ class DatasetOptimizer:
         if num_nodes == 1:
             for w in self.workers:
                 w.join(0)
-
-        print("1")
 
         print("Workers are finished.")
 
@@ -641,20 +633,11 @@ class DatasetOptimizer:
         if chunks and self.delete_cached_files and self.remote_dst_dir:
             raise RuntimeError(f"All the chunks should have been deleted. Found {chunks}")
 
-        print("1")
         merge_cache = Cache(cache_dir, chunk_bytes=1)
-        print("2")
         node_rank = _get_node_rank()
-        print("3")
-        # TODO: Clean this mess
-        os.environ["DATA_OPTIMIZER_NUM_WORKERS"] = str(self.num_workers)
         merge_cache._merge_no_wait(node_rank if num_nodes > 1 else None)
-        print("4")
         self._upload_index(cache_dir, num_nodes, node_rank)
-        print("5")
-
         print("Finished data processing!")
-        print()
 
         if num_nodes > 1:
             os._exit(0)
