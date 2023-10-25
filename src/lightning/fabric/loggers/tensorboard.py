@@ -16,6 +16,7 @@ import logging
 import os
 from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
+from typing_extensions import override
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -251,6 +252,7 @@ class TensorBoardLogger(Logger):
             writer.add_summary(ssi)
             writer.add_summary(sei)
 
+    @override
     @rank_zero_only
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         model_example_input = getattr(model, "example_input_array", None)
@@ -278,10 +280,12 @@ class TensorBoardLogger(Logger):
         else:
             self.experiment.add_graph(model, input_array)
 
+    @override
     @rank_zero_only
     def save(self) -> None:
         self.experiment.flush()
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         if self._experiment is not None:

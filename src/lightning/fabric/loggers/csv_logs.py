@@ -17,6 +17,7 @@ import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, List, Optional, Set, Union
+from typing_extensions import override
 
 from torch import Tensor
 
@@ -143,11 +144,13 @@ class CSVLogger(Logger):
         if (step + 1) % self._flush_logs_every_n_steps == 0:
             self.save()
 
+    @override
     @rank_zero_only
     def save(self) -> None:
         super().save()
         self.experiment.save()
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         if self._experiment is None:
