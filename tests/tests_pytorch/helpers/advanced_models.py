@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
-
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from lightning.pytorch.core.module import LightningModule
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from tests_pytorch import _PATH_DATASETS
 from tests_pytorch.helpers.datasets import MNIST, AverageDataset, TrialMNIST

@@ -13,7 +13,6 @@
 # limitations under the License.
 from unittest import mock
 from unittest.mock import Mock, call
-from typing_extensions import override
 
 import pytest
 import torch
@@ -23,6 +22,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.utilities import CombinedLoader
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import BatchSampler, RandomSampler
+from typing_extensions import override
 
 from tests_pytorch.helpers.runif import RunIf
 

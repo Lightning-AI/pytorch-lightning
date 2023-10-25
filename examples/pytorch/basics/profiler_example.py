@@ -24,7 +24,6 @@ visualized in 2 ways:
 """
 
 from os import path
-from typing_extensions import override
 
 import torch
 import torchvision
@@ -33,6 +32,7 @@ from lightning.pytorch import LightningDataModule, LightningModule, cli_lightnin
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.profilers.pytorch import PyTorchProfiler
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
+from typing_extensions import override
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 

@@ -18,7 +18,6 @@ To run: python autoencoder.py --trainer.max_epochs=50
 """
 from os import path
 from typing import Optional, Tuple
-from typing_extensions import override
 
 import torch
 import torch.nn.functional as F
@@ -29,6 +28,7 @@ from lightning.pytorch.utilities import rank_zero_only
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from torch import nn
 from torch.utils.data import DataLoader, random_split
+from typing_extensions import override
 
 if _TORCHVISION_AVAILABLE:
     import torchvision

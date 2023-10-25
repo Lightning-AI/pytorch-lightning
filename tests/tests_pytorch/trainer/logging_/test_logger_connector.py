@@ -15,7 +15,6 @@ import operator
 from functools import partial
 from unittest import mock
 from unittest.mock import Mock
-from typing_extensions import override
 
 import pytest
 import torch
@@ -33,6 +32,7 @@ from lightning_utilities.core.imports import compare_version
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, MeanAbsoluteError, MeanSquaredError, MetricCollection
 from torchmetrics import AveragePrecision as AvgPre
+from typing_extensions import override
 
 from tests_pytorch.models.test_hooks import get_members
 

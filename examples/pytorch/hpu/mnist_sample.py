@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing_extensions import override
-
 import torch
 from jsonargparse import lazy_instance
 from lightning.pytorch import LightningModule
@@ -20,6 +18,7 @@ from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
 from lightning_habana import HPUPrecisionPlugin
 from torch.nn import functional as F
+from typing_extensions import override
 
 
 class LitClassifier(LightningModule):

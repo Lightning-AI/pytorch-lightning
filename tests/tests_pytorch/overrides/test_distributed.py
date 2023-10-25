@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Iterable
-from typing_extensions import override
 
 import pytest
 import torch
@@ -20,6 +19,7 @@ from lightning.fabric.utilities.data import has_len
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
 from torch.utils.data import BatchSampler, SequentialSampler
+from typing_extensions import override
 
 from tests_pytorch.helpers.runif import RunIf
 

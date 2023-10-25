@@ -2,7 +2,6 @@ import os
 import traceback
 from argparse import ArgumentParser
 from typing import Callable, Literal, Optional
-from typing_extensions import override
 
 import torch
 import torch.nn.functional as F
@@ -12,6 +11,7 @@ from lightning import LightningModule, Trainer
 from lightning.data import LightningDataset
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from torch.utils.data import Dataset
+from typing_extensions import override
 
 parser = ArgumentParser()
 parser.add_argument("--workers", default=4, type=int)

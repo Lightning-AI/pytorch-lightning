@@ -32,7 +32,6 @@ or show all options you can change:
 """
 import os
 from typing import Optional
-from typing_extensions import override
 
 import torch
 import torch.nn.functional as F
@@ -50,6 +49,7 @@ from lightning.pytorch.strategies import ParallelStrategy
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from torch.utils.data import Dataset
 from torchmetrics import Accuracy
+from typing_extensions import override
 
 
 class ImageNetLightningModel(LightningModule):

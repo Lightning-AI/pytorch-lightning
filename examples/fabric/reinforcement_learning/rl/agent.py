@@ -1,6 +1,5 @@
 import math
 from typing import Dict, Tuple
-from typing_extensions import override
 
 import gymnasium as gym
 import torch
@@ -9,6 +8,7 @@ from lightning.pytorch import LightningModule
 from torch import Tensor
 from torch.distributions import Categorical
 from torchmetrics import MeanMetric
+from typing_extensions import override
 
 from rl.loss import entropy_loss, policy_loss, value_loss
 from rl.utils import layer_init

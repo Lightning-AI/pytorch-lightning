@@ -13,7 +13,6 @@
 # limitations under the License.
 from collections import OrderedDict
 from typing import Any
-from typing_extensions import override
 
 import pytest
 import torch
@@ -28,6 +27,7 @@ from lightning.pytorch.utilities.model_summary.model_summary import (
     ModelSummary,
     summarize,
 )
+from typing_extensions import override
 
 from tests_pytorch.helpers.advanced_models import ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf

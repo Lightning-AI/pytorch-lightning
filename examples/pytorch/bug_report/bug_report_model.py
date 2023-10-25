@@ -1,9 +1,9 @@
 import os
-from typing_extensions import override
 
 import torch
 from lightning.pytorch import LightningModule, Trainer
 from torch.utils.data import DataLoader, Dataset
+from typing_extensions import override
 
 
 class RandomDataset(Dataset):

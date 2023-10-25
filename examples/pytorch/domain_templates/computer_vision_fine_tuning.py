@@ -43,7 +43,6 @@ To run:
 import logging
 from pathlib import Path
 from typing import Union
-from typing_extensions import override
 
 import torch
 import torch.nn.functional as F
@@ -60,6 +59,7 @@ from torchmetrics import Accuracy
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.utils import download_and_extract_archive
+from typing_extensions import override
 
 log = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"

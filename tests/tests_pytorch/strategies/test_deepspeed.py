@@ -17,7 +17,6 @@ import logging
 import os
 from re import escape
 from typing import Any, Dict
-from typing_extensions import override
 from unittest import mock
 from unittest.mock import ANY
 
@@ -36,6 +35,7 @@ from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
+from typing_extensions import override
 
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf

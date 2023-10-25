@@ -19,7 +19,6 @@ tensorboard --logdir default
 
 """
 from argparse import ArgumentParser, Namespace
-from typing_extensions import override
 
 import numpy as np
 import torch
@@ -30,6 +29,7 @@ from lightning.pytorch.core import LightningModule
 from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
 from lightning.pytorch.trainer import Trainer
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from typing_extensions import override
 
 if _TORCHVISION_AVAILABLE:
     import torchvision

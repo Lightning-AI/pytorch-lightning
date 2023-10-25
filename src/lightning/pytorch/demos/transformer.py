@@ -8,7 +8,6 @@ import math
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-from typing_extensions import override
 
 import requests
 import torch
@@ -17,6 +16,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.nn.modules import MultiheadAttention
 from torch.utils.data import DataLoader, Dataset
+from typing_extensions import override
 
 from lightning.pytorch import LightningModule
 

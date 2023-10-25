@@ -30,7 +30,6 @@ References
 """
 import argparse
 from typing import Callable, Iterator, List, Tuple
-from typing_extensions import override
 
 import gym
 import torch
@@ -39,6 +38,7 @@ from torch import nn
 from torch.distributions import Categorical, Normal
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, IterableDataset
+from typing_extensions import override
 
 
 def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):

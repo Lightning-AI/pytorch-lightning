@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest.mock import Mock
-from typing_extensions import override
 
 import pytest
 import torch
@@ -24,6 +23,7 @@ from lightning.pytorch.trainer.configuration_validator import (
     __verify_train_val_loop_configuration,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from typing_extensions import override
 
 
 def test_wrong_train_setting(tmpdir):

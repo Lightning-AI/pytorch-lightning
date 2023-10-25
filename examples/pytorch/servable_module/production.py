@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from io import BytesIO
 from os import path
 from typing import Dict, Optional
-from typing_extensions import override
 
 import numpy as np
 import torch
@@ -14,6 +13,7 @@ from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.serve import ServableModule, ServableModuleValidator
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from PIL import Image as PILImage
+from typing_extensions import override
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 

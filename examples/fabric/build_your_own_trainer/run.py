@@ -1,9 +1,8 @@
-from typing_extensions import override
-
 import lightning as L
 import torch
 from torchmetrics.functional.classification.accuracy import accuracy
 from trainer import MyCustomTrainer
+from typing_extensions import override
 
 
 class MNISTModule(L.LightningModule):
