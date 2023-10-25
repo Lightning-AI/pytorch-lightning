@@ -7,7 +7,7 @@ from enum import Enum
 from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
-from shutil import copyfile
+from shutil import copyfile, rmtree
 from textwrap import dedent
 from threading import Thread
 from time import sleep, time
@@ -198,6 +198,7 @@ class BaseWorker:
         self.remote_src_dir = remote_src_dir
         self.remote_dst_dir = remote_dst_dir
         self.items = items
+        self.num_items = len(self.items)
         self.num_downloaders = num_downloaders
         self.remove = remove
         self.chunk_bytes = chunk_bytes
@@ -282,7 +283,8 @@ class BaseWorker:
 
             self._counter += 1
 
-            if self.progress_queue and (time() - self._last_time) > 1:
+            # Don't send the last progress update, so the main thread awaits for the uploader and remover
+            if self.progress_queue and (time() - self._last_time) > 1 and self._counter < (self.num_items - 1):
                 self.progress_queue.put((self.worker_index, self._counter))
                 self._last_time = time()
 
@@ -302,6 +304,11 @@ class BaseWorker:
 
     def _create_cache(self) -> None:
         self.cache_chunks_dir = os.path.join(_get_cache_folder(), self.dataset_name)
+
+        # Cleanup the cache folder to avoid corrupted files from previous run to be there.
+        if os.path.exists(self.cache_chunks_dir):
+            rmtree(self.cache_chunks_dir)
+
         os.makedirs(self.cache_chunks_dir, exist_ok=True)
 
         self.cache = Cache(
@@ -312,6 +319,11 @@ class BaseWorker:
         )
         self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
         self.cache_data_dir = os.path.join(_get_cache_folder(), "data", self.dataset_name)
+
+        # Cleanup the cache folder to avoid corrupted files from previous run to be there.
+        if os.path.exists(self.cache_data_dir):
+            rmtree(self.cache_data_dir)
+
         os.makedirs(self.cache_data_dir, exist_ok=True)
 
     def _try_upload(self, filepath: Optional[str]) -> None:
