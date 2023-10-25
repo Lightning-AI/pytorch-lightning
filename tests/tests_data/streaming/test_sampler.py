@@ -65,7 +65,7 @@ def test_cache_batch_sampler(params):
         chunks_interval = [[batch[0], batch[-1] + 1] for batch in batches if len(batch)]
 
     cache.filled = True
-    cache.get_chunk_interval.return_value = chunks_interval
+    cache.get_chunk_intervals.return_value = chunks_interval
 
     seed_everything(42)
 

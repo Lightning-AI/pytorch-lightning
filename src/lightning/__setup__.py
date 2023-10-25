@@ -115,7 +115,7 @@ def _setup_args() -> Dict[str, Any]:
         "python_requires": ">=3.8",  # todo: take the lowes based on all packages
         "entry_points": {
             "console_scripts": [
-                "lightning = lightning.app.cli.lightning_cli:main",
+                "lightning = lightning:_cli_entry_point",
             ],
         },
         "setup_requires": [],
