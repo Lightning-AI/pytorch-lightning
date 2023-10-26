@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 import torch
 
 from lightning.fabric.plugins import Precision
-from lightning.fabric.utilities.throughput_monitor import _get_flops_available, _ThroughputMonitor
+from lightning.fabric.utilities.throughput_monitor import Throughput, _get_flops_available
 from lightning.fabric.utilities.throughput_monitor import (
     _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype,
 )
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 
 class ThroughputMonitor(Callback):
-    r"""Tracks and logs throughput with the :class:`lightning.fabric.utilities.throughput_monitor.._ThroughputMonitor`.
+    r"""Tracks and logs throughput with the :class:`lightning.fabric.utilities.throughput_monitor.Throughput`.
 
     Only support for ``trainer.fit`` is currently implemented.
 
@@ -49,7 +49,7 @@ class ThroughputMonitor(Callback):
         length_fn: A function to compute the number of items in a sample given a batch.
         batch_size_fn: A function to compute the number of samples given a batch.
         \**kwargs: See available parameters in
-            :class:`lightning.fabric.utilities.throughput_monitor.._ThroughputMonitor`
+            :class:`lightning.fabric.utilities.throughput_monitor.Throughput`
 
     """
 
@@ -58,7 +58,7 @@ class ThroughputMonitor(Callback):
         self.kwargs = kwargs
         self.length_fn = length_fn
         self.batch_size_fn = batch_size_fn
-        self._monitor: Optional[_ThroughputMonitor] = None
+        self._throughput: Optional[Throughput] = None
         self._train_t0 = 0.0
         self._total_lengths = 0
 
@@ -67,7 +67,7 @@ class ThroughputMonitor(Callback):
             # TODO: this could use a monitor per stage
             raise NotImplementedError(f"`trainer.{stage}()` is not supported")
 
-        if self._monitor is not None:
+        if self._throughput is not None:
             return  # already setup
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
         flops_available = _get_flops_available(trainer.strategy.root_device, dtype)
@@ -76,9 +76,7 @@ class ThroughputMonitor(Callback):
                 "When using the `ThroughputMonitor`, you need to define a `flops_per_batch` attribute or property"
                 f" in {pl_module} to compute the FLOPs."
             )
-        self._monitor = _ThroughputMonitor(
-            flops_available=flops_available, world_size=trainer.world_size, **self.kwargs
-        )
+        self._throughput = Throughput(flops_available=flops_available, world_size=trainer.world_size, **self.kwargs)
 
     @rank_zero_only
     def on_train_start(self, trainer: "Trainer", pl_module: "LightningModule") -> None:
@@ -92,20 +90,26 @@ class ThroughputMonitor(Callback):
         train_elapsed = time.perf_counter() - self._train_t0
         self._total_lengths += self.length_fn(batch)
         if trainer.fit_loop._should_accumulate():
+            # FIXME: double check this
             # returning here assumes that `flops_per_batch` will include the backward flops
             return
         flops_per_batch = pl_module.flops_per_batch if hasattr(pl_module, "flops_per_batch") else None
-        assert self._monitor is not None
-        iter_num = trainer.fit_loop.total_batch_idx
         batch_size = self.batch_size_fn(batch)
-        samples = (iter_num + 1) * batch_size
-        metrics = self._monitor.compute(samples, train_elapsed, flops_per_batch, self._total_lengths)
+        iter_num = trainer.fit_loop.total_batch_idx + 1
+        assert self._throughput is not None
+        metrics = self._throughput.compute(
+            time=train_elapsed,
+            samples=iter_num * batch_size,
+            flops_per_batch=flops_per_batch,
+            lengths=self._total_lengths,
+        )
         # prefix with the stage to avoid collisions
-        metrics = {f"{trainer.state.stage}{self._monitor.separator}{k}": v for k, v in metrics.items()}
+        metrics = {f"{trainer.state.stage}{self._throughput.separator}{k}": v for k, v in metrics.items()}
         trainer._logger_connector.log_metrics(metrics)
 
 
 def _plugin_to_compute_dtype(plugin: Union[Precision, PrecisionPlugin]) -> torch.dtype:
+    # TODO: integrate this into the precision plugins
     if not isinstance(plugin, PrecisionPlugin):
         return fabric_plugin_to_compute_dtype(plugin)
     if isinstance(plugin, BitsandbytesPrecisionPlugin):

@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
 from collections import deque
-from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, Literal, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Literal, Optional
 
 import torch
 
@@ -24,9 +25,9 @@ if TYPE_CHECKING:
     from lightning.fabric.plugins import Precision
 
 
-# Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
-class _ThroughputMonitor:
-    """Tracks throughput.
+# FIXME update and compute
+class Throughput:
+    """Computes throughput.
 
     +--------------------------+---------------------------------------------------------------------------------------+
     | Key                      | Value                                                                                 |
@@ -55,6 +56,14 @@ class _ThroughputMonitor:
     | `time`                   | Total elapsed time                                                                    |
     +--------------------------+---------------------------------------------------------------------------------------+
 
+    Example::
+
+        # FIXME: improve
+        metrics = {"loss": loss}
+        metrics = {"accuracy: acc}
+        metrics.update(throughput.compute())
+        wandb.experiment.log(metrics, step)
+
     Notes:
         - The implementation assumes that devices FLOPs are all the same as it normalizes by the world size and only
             takes a single ``flops_available`` value.
@@ -75,7 +84,7 @@ class _ThroughputMonitor:
         flops_available: Optional[float] = None,
         world_size: int = 1,
         window_size: int = 100,
-        time_unit: Literal["seconds", "minutes", "hours", "days"] = "hours",
+        time_unit: Literal["seconds", "minutes", "hours", "days"] = "seconds",
         separator: str = "/",
     ) -> None:
         self.flops_available = flops_available
@@ -84,10 +93,13 @@ class _ThroughputMonitor:
         self.world_size = world_size
 
         # throughput is computed over a window of batches
-        self._samples: Deque[int] = deque(maxlen=window_size + 1)
-        self._time: Deque[float] = deque(maxlen=window_size + 1)
-        self._lengths: Deque[int] = deque(maxlen=window_size + 1)
-        self._flops: Deque[int] = deque(maxlen=window_size + 1)
+        assert window_size > 0
+        # custom class instead of `deque(maxlen=)` because it's easy for users to mess up their timer/counters and log
+        # values that do not increase monotonically. this class will raise an error if that happens
+        self._samples = _MonotonicWindow(maxlen=window_size + 1)
+        self._time = _MonotonicWindow(maxlen=window_size + 1)
+        self._lengths = _MonotonicWindow(maxlen=window_size + 1)
+        self._flops = deque(maxlen=window_size + 1)
 
         if time_unit == "seconds":
             self._divider = 1
@@ -104,35 +116,42 @@ class _ThroughputMonitor:
 
     def compute(
         self,
-        samples: int,
+        *,
         time: float,
+        samples: int,
         flops_per_batch: Optional[int] = None,
         lengths: Optional[int] = None,
     ) -> Dict:
-        """Compute and return all metrics.
+        """Compute and return throughput metrics.
 
         Args:
-            samples: Total samples seen per device. Monotonically increasing.
             time: Total elapsed time in seconds. Monotonically increasing.
+            samples: Total samples seen per device. Monotonically increasing.
             flops_per_batch: Flops per batch per device. This might be different in each device if the batch size is not
                 the same.
             lengths: Total length of the samples seen. Monotonically increasing.
 
         """
-        metrics = {"time": time / self._divider, "samples": samples}
+        self._time.append(time)
+        metrics = {"time": time / self._divider}
+
         self._samples.append(samples)
+        metrics["samples"] = samples
 
         if lengths is not None:
             self._lengths.append(lengths)
-            # if lengths are passed, there should be as many values as samples
-            assert len(self._samples) == len(self._lengths)
+            if len(self._samples) != len(self._lengths):
+                raise RuntimeError(
+                    f"If lengths are passed ({len(self._lengths)}), there needs to be the same number of samples"
+                    f" ({len(self._samples)})"
+                )
 
         add_global_metrics = self.world_size > 1
-        self._time.append(time)
         if len(self._time) == self._time.maxlen:
             elapsed_batches = len(self._samples) - 1
             elapsed_samples = self._samples[-1] - self._samples[0]
             elapsed_time = self._time[-1] - self._time[0]
+            # we are safe from ZeroDivisionError thanks to `_MonotonicWindow`
             dev_samples_per_sec = elapsed_samples / elapsed_time
             dev_batches_per_sec = elapsed_batches / elapsed_time
             metrics.update(
@@ -174,11 +193,20 @@ class _ThroughputMonitor:
 
 
 class ThroughputMonitor:
-    r"""Tracks and logs throughput with the :class:`_ThroughputMonitor`
+    r"""Tracks and logs throughput with the :class:`Throughput`
+
+    This class will automatically keep a count of the number of log calls (``step``). But that can be modified as
+    desired.
+
+    Example::
+
+        # FIXME: improve, add step example
+        monitor = ThroughputMonitor(fabric)
+        monitor.compute_and_log()
 
     Args:
         fabric: The Fabric object.
-        \**kwargs: See available parameters in :class:`_ThroughputMonitor`
+        \**kwargs: See available parameters in :class:`Throughput`
 
     """
 
@@ -188,13 +216,18 @@ class ThroughputMonitor:
         flops_available = _get_flops_available(fabric.device, dtype)
         self._fabric = fabric
         self.step = -1
-        self._monitor = _ThroughputMonitor(flops_available=flops_available, world_size=fabric.world_size, **kwargs)
+        self._throughput = Throughput(flops_available=flops_available, world_size=fabric.world_size, **kwargs)
 
     @rank_zero_only
-    def compute(self, *args: Any, **kwargs: Any) -> None:
-        """See :meth:`_ThroughputMonitor.compute`"""
-        self.step += 1
-        metrics = self._monitor.compute(*args, **kwargs)
+    def compute_and_log(self, step: Optional[int] = None, **kwargs: Any) -> None:
+        """See :meth:`Throughput.compute`
+
+        Args:
+            step: Can be used to override the logging step.
+
+        """
+        self.step = (self.step + 1) if step is None else step
+        metrics = self._throughput.compute(**kwargs)
         self._fabric.log_dict(metrics=metrics, step=self.step)
 
 
@@ -239,7 +272,7 @@ def measure_flops(
     return flop_counter.get_total_flops()
 
 
-_GPU_AVAILABLE_FLOPS = {
+_CUDA_FLOPS = {
     # source: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
     # nvidia publishes spec sheet with a 2x sparsity factor
     "h100-sxm": {
@@ -272,7 +305,7 @@ _GPU_AVAILABLE_FLOPS = {
     "quadro rtx 5000": {torch.float32: 11.2e12, torch.float16: 89.2e12},
 }
 
-_TPU_AVAILABLE_FLOPS = {
+_TPU_FLOPS = {
     # flop count for each TPU generation is the same for all precisions
     # since bfloat16 precision is always used for performing matrix operations
     # for more info: https://cloud.google.com/tpu/docs/bfloat16#choosing_bfloat16
@@ -289,35 +322,39 @@ _TPU_AVAILABLE_FLOPS = {
 
 def _get_flops_available(device: torch.device, dtype: torch.dtype) -> Optional[int]:
     if device.type == "cuda":
-        device_name = torch.cuda.get_device_name(device).lower()
-        if "h100" in device_name and "hbm3" in device_name:
+        device_name = torch.cuda.get_device_name(device)
+        chip = device_name.lower()
+        if "h100" in chip and "hbm3" in chip:
             chip = "h100-sxm"
-        elif "h100" in device_name and ("pcie" in device_name or "hbm2e" in device_name):
+        elif "h100" in chip and ("pcie" in chip or "hbm2e" in chip):
             chip = "h100-pcie"
-        elif "a100" in device_name:
+        elif "a100" in chip:
             chip = "a100"
-        elif "a10g" in device_name:
+        elif "a10g" in chip:
             chip = "a10g"
-        elif "v100-sxm" in device_name:
+        elif "v100-sxm" in chip:
             chip = "v100-sxm"
-        elif "v100-pcie" in device_name:
+        elif "v100-pcie" in chip:
             chip = "v100-pcie"
-        elif "t4" in device_name:
+        elif "t4" in chip:
             chip = "t4"
-        elif "quadro rtx 5000" in device_name:
+        elif "quadro rtx 5000" in chip:
             chip = "quadro rtx 5000"
         else:
-            chip = None
+            # the flops list is not exhaustive, return with a warning
+            rank_zero_warn(f"FLOPs not found for {device_name!r}")
+            return None
+        if chip not in _CUDA_FLOPS:
+            # if we were able to parse the chip, it should be in the flops list
+            raise RuntimeError(f"FLOPs not found for {device_name!r}, chip is {chip!r}")
+        dtype_to_flops = _CUDA_FLOPS[chip]
+        if dtype not in dtype_to_flops:
+            # for example, T4 doesn't support bfloat16. it might also be that we are missing this dtype from the list
+            rank_zero_warn(f"{device_name!r} does not support {dtype}")
+            return None
+        return int(dtype_to_flops[dtype])
 
-        if chip is not None:
-            try:
-                return int(_GPU_AVAILABLE_FLOPS[chip][dtype])
-            except KeyError:
-                rank_zero_warn(
-                    f"flop count not found for {device_name} with dtype: {dtype}; "
-                    "MFU cannot be calculated and reported."
-                )
-    elif device.type == "xla":
+    if device.type == "xla":
         from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
 
         if _XLA_GREATER_EQUAL_2_1:
@@ -325,17 +362,17 @@ def _get_flops_available(device: torch.device, dtype: torch.dtype) -> Optional[i
         else:
             from torch_xla.experimental import tpu
 
-        chip = tpu.get_tpu_env()["TYPE"].lower()
-        assert isinstance(chip, str)
-        try:
-            return int(_TPU_AVAILABLE_FLOPS[chip])
-        except KeyError:
-            rank_zero_warn(
-                f"flop count not found for {chip} with dtype: {dtype}; MFU cannot be calculated and reported."
-            )
+        device_name = tpu.get_tpu_env()["TYPE"]
+        chip = device_name.lower()
+        assert isinstance(device_name, str)
+        if chip not in _TPU_FLOPS:
+            rank_zero_warn(f"FLOPs not found for TPU {device_name!r} with {dtype}")
+            return None
+        return int(_TPU_FLOPS[chip])
 
 
 def _plugin_to_compute_dtype(plugin: "Precision") -> torch.dtype:
+    # TODO: integrate this into the precision plugins
     from lightning.fabric.plugins import (
         BitsandbytesPrecision,
         DeepSpeedPrecision,
@@ -365,3 +402,30 @@ def _plugin_to_compute_dtype(plugin: "Precision") -> torch.dtype:
     if isinstance(plugin, Precision):
         return torch.float32
     raise NotImplementedError(plugin)
+
+
+class _MonotonicWindow(list):
+    """Custom fixed size list that only supports right-append and ensures that all values increase monotonically."""
+
+    def __init__(self, maxlen: int) -> None:
+        super().__init__()
+        self.maxlen = maxlen
+
+    @property
+    def last(self) -> Optional[Any]:
+        if len(self) > 0:
+            return self[-1]
+        return None
+
+    def append(self, x) -> None:
+        last = self.last
+        if last is not None and last >= x:
+            raise ValueError(f"Expected the value to increase, last: {last}, current: {x}")
+        list.append(self, x)
+        # truncate excess
+        if len(self) > self.maxlen:
+            del self[0]
+
+    def __setitem__(self, key, value):
+        # assigning is not implemented since we don't use it. it could be by checking all previous values
+        raise NotImplementedError("__setitem__ is not supported")
