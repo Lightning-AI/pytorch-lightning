@@ -35,9 +35,9 @@ def _try_import_module(module_name: str) -> bool:
     try:
         __import__(module_name)
         return True
-    # added also AttributeError fro case of impoerts like pl.LightningModule
+    # Also on AttributeError for failed imports like pl.LightningModule
     except (ImportError, AttributeError) as err:
-        rank_zero_warn(f"Import of {module_name} package failed for some compatibility issues: \n{err}")
+        rank_zero_warn(f"Import of {module_name} package failed for some compatibility issues:\n{err}")
         return False
 
 
