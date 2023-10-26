@@ -62,7 +62,14 @@ class Throughput:
 
     Example::
 
-        # FIXME
+        throughput = Throughput()
+        t0 = time()
+        for i in range(1000):
+            do_work()
+            if torch.cuda.is_available(): torch.cuda.synchronize()  # required or else time() won't be correct
+            throughput.update(time=time() - t0, samples=i)
+            if i % 10 == 0:
+                print(throughput.compute())
 
     Notes:
         - The implementation assumes that devices FLOPs are all the same as it normalizes by the world size and only
@@ -186,9 +193,16 @@ class ThroughputMonitor(Throughput):
 
     Example::
 
-        # FIXME: improve, add step example
-        monitor = ThroughputMonitor(fabric)
-        monitor.compute_and_log()
+        logger = ...
+        fabric = Fabric(logger=logger)
+        throughput = ThroughputMonitor()
+        t0 = time()
+        for i in range(1000):
+            do_work()
+            if torch.cuda.is_available(): torch.cuda.synchronize()  # required or else time() won't be correct
+            throughput.update(time=time() - t0, samples=i)
+            if i % 10 == 0:
+                throughput.compute_and_log(step=i)
 
     Args:
         fabric: The Fabric object.

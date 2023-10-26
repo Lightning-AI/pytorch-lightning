@@ -41,7 +41,25 @@ if TYPE_CHECKING:
 class ThroughputMonitor(Callback):
     r"""Computes and logs throughput with the :class:`~lightning.fabric.utilities.throughput.Throughput`
 
-    # FIXME example
+    Example::
+
+        class MyModel(LightningModule):
+            def setup(self, stage):
+                with torch.device("meta"):
+                    model = MyModel()
+
+                    def sample_forward():
+                        batch = torch.randn(...)
+                        return model(batch)
+
+                    self.flops_per_batch = measure_flops(model, sample_forward, loss_fn=torch.Tensor.sum)
+
+
+        logger = ...
+        throughput = ThroughputMonitor(batch_size_fn=lambda batch: batch.size(0))
+        trainer = Trainer(max_steps=1000, log_every_n_steps=10, callbacks=throughput, logger=logger)
+        model = MyModel()
+        trainer.fit(model)
 
     Notes:
         - It assumes that the batch size is the same during all iterations.
