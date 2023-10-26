@@ -13,6 +13,7 @@
 # limitations under the License
 import inspect
 import os
+import sys
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -50,7 +51,6 @@ from lightning.pytorch.strategies import (
     XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
-from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _lightning_graphcore_available, _lightning_habana_available
@@ -63,7 +63,7 @@ if _lightning_graphcore_available():
     from lightning_graphcore import IPUAccelerator, IPUStrategy
 
 if _lightning_habana_available():
-    from lightning_habana import HPUAccelerator, SingleHPUStrategy
+    pass
 
 
 @pytest.mark.parametrize(
@@ -589,23 +589,61 @@ def mock_ipu_available(monkeypatch, value=True):
     monkeypatch.setattr(lightning_graphcore.strategy, "_IPU_AVAILABLE", value)
 
 
-def mock_hpu_available(monkeypatch, value=True):
-    try:
-        __import__("lightning_habana")
-    except (ImportError, AttributeError):
+class MockHPUAccelerator(Mock):
+    @staticmethod
+    def is_available():
+        return True
+
+    @classmethod
+    def register_accelerators(cls, registry):
+        registry.register("hpu", cls)
+
+    @staticmethod
+    def parse_devices(devices):
+        return int(devices)
+
+    @staticmethod
+    def get_parallel_devices(devices):
+        return [torch.device("hpu")] * devices
+
+
+class MockSingleHPUStrategy(SingleDeviceStrategy):
+    strategy_name = "hpu_single"
+
+    @classmethod
+    def register_strategies(cls, registry):
+        registry.register(cls.strategy_name, cls)
+
+
+class MockHPUParallelStrategy(SingleDeviceStrategy):
+    strategy_name = "hpu_parallel"
+
+    @classmethod
+    def register_strategies(cls, registry):
+        registry.register(cls.strategy_name, cls)
+
+
+class MockHPUPrecisionPlugin(Mock):
+    pass
+
+
+def mock_hpu_count(monkeypatch, n=1):
+    monkeypatch.setattr(
+        "lightning.pytorch.trainer.connectors.accelerator_connector._lightning_habana_available", lambda: n > 0
+    )
+    if n < 1:
         return
-
-    import lightning_habana
-
-    monkeypatch.setattr(lightning_habana.accelerator.HPUAccelerator, "is_available", lambda: value)
-    monkeypatch.setattr(lightning_habana.accelerator, "_HPU_AVAILABLE", value)
-    monkeypatch.setattr(lightning_habana.strategies.parallel, "_HPU_AVAILABLE", value)
-    monkeypatch.setattr(lightning_habana.strategies.single, "_HPU_AVAILABLE", value)
-    monkeypatch.setattr(lightning_habana.plugins.precision, "_HPU_AVAILABLE", value)
+    habana_mock = Mock()
+    MockHPUAccelerator.auto_device_count = lambda *_: n
+    habana_mock.HPUAccelerator = MockHPUAccelerator
+    habana_mock.SingleHPUStrategy = MockSingleHPUStrategy
+    habana_mock.HPUParallelStrategy = MockHPUParallelStrategy
+    habana_mock.HPUPrecisionPlugin = MockHPUPrecisionPlugin
+    monkeypatch.setitem(sys.modules, "lightning_habana", habana_mock)
 
 
 def test_devices_auto_choice_cpu(monkeypatch, cuda_count_0):
-    mock_hpu_available(monkeypatch, False)
+    mock_hpu_count(monkeypatch, 0)
     mock_ipu_available(monkeypatch, False)
     mock_xla_available(monkeypatch, False)
     trainer = Trainer(accelerator="auto", devices="auto")
@@ -970,41 +1008,33 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         assert connector.strategy.launcher is None
 
     # Single HPU
-    if _lightning_habana_available():
-        import lightning_habana
-
-        with monkeypatch.context():
-            mock_cuda_count(monkeypatch, 0)
-            mock_mps_count(monkeypatch, 0)
-            mock_tpu_available(monkeypatch, False)
-            mock_ipu_available(monkeypatch, False)
-            mock_hpu_available(monkeypatch, True)
-            monkeypatch.setattr(lightning_habana.accelerator.HPUAccelerator, "auto_device_count", lambda *_: 1)
-            connector = _AcceleratorConnector()
-        assert isinstance(connector.accelerator, HPUAccelerator)
-        assert isinstance(connector.strategy, SingleHPUStrategy)
-        assert connector._devices_flag == 1
+    with monkeypatch.context():
+        mock_cuda_count(monkeypatch, 0)
+        mock_mps_count(monkeypatch, 0)
+        mock_tpu_available(monkeypatch, False)
+        mock_ipu_available(monkeypatch, False)
+        mock_hpu_count(monkeypatch, 1)
+        connector = _AcceleratorConnector()
+    assert isinstance(connector.accelerator, MockHPUAccelerator)
+    assert isinstance(connector.strategy, MockSingleHPUStrategy)
+    assert isinstance(connector.precision_plugin, MockHPUPrecisionPlugin)
+    assert connector._devices_flag == 1
 
     monkeypatch.undo()  # for some reason `.context()` is not working properly
     _mock_interactive()
 
-    if not is_interactive and _lightning_habana_available():  # HPU does not support interactive environments
-        from lightning_habana import HPUParallelStrategy
-
+    if not is_interactive:  # HPU does not support interactive environments
         # Multi HPU
         with monkeypatch.context():
             mock_cuda_count(monkeypatch, 0)
             mock_mps_count(monkeypatch, 0)
             mock_tpu_available(monkeypatch, False)
             mock_ipu_available(monkeypatch, False)
-            mock_hpu_available(monkeypatch, True)
+            mock_hpu_count(monkeypatch, 8)
             connector = _AcceleratorConnector()
-        assert isinstance(connector.accelerator, HPUAccelerator)
-        assert isinstance(connector.strategy, HPUParallelStrategy)
+        assert isinstance(connector.accelerator, MockHPUAccelerator)
+        assert isinstance(connector.strategy, MockHPUParallelStrategy)
         assert connector._devices_flag == 8
-        assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
-        assert isinstance(connector.strategy.launcher, _SubprocessScriptLauncher)
-        assert not connector.strategy.launcher.is_interactive_compatible
 
     # TPU and CUDA: prefers TPU
     with monkeypatch.context():
