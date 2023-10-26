@@ -29,7 +29,7 @@ def test_measure_flops():
 def test_throughput_monitor_fit(tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
-    monitor = ThroughputMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=3, separator="|")
+    monitor = ThroughputMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=4, separator="|")
     model = BoringModel()
     model.flops_per_batch = 10
     trainer = Trainer(
@@ -45,9 +45,9 @@ def test_throughput_monitor_fit(tmp_path):
     )
     # these timing results are meant to precisely match the `test_throughput_monitor` test in fabric
     timings = [0.0] + [0.5 + i for i in range(1, 6)]
-    with mock.patch(
-        "lightning.pytorch.callbacks.throughput_monitor._get_flops_available", return_value=100
-    ), mock.patch("time.perf_counter", side_effect=timings):
+    with mock.patch("lightning.pytorch.callbacks.throughput_monitor.get_available_flops", return_value=100), mock.patch(
+        "time.perf_counter", side_effect=timings
+    ):
         trainer.fit(model)
 
     assert logger_mock.log_metrics.mock_calls == [
@@ -86,7 +86,7 @@ def test_throughput_monitor_fit(tmp_path):
 def test_throughput_monitor_fit_no_length_fn(tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
-    monitor = ThroughputMonitor(batch_size_fn=lambda x: 3, window_size=1, time_unit="days")
+    monitor = ThroughputMonitor(batch_size_fn=lambda x: 3, window_size=2)
     model = BoringModel()
     model.flops_per_batch = 33
     trainer = Trainer(
@@ -100,9 +100,7 @@ def test_throughput_monitor_fit_no_length_fn(tmp_path):
         enable_model_summary=False,
         enable_progress_bar=False,
     )
-    with mock.patch(
-        "lightning.pytorch.callbacks.throughput_monitor._get_flops_available", return_value=100
-    ), mock.patch("time.perf_counter", side_effect=range(0, 40_000, 10_000)):
+    with mock.patch("lightning.pytorch.callbacks.throughput_monitor.get_available_flops", return_value=100):
         trainer.fit(model)
 
     assert logger_mock.log_metrics.mock_calls == [
@@ -138,7 +136,7 @@ def test_throughput_monitor_fit_no_length_fn(tmp_path):
 def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
-    monitor = ThroughputMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=3, separator="|")
+    monitor = ThroughputMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=4, separator="|")
     model = BoringModel()
     model.flops_per_batch = 10
     trainer = Trainer(
@@ -155,9 +153,9 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
         enable_progress_bar=False,
     )
     timings = [0.0] + [0.5 + i for i in range(1, 11)]
-    with mock.patch(
-        "lightning.pytorch.callbacks.throughput_monitor._get_flops_available", return_value=100
-    ), mock.patch("time.perf_counter", side_effect=timings):
+    with mock.patch("lightning.pytorch.callbacks.throughput_monitor.get_available_flops", return_value=100), mock.patch(
+        "time.perf_counter", side_effect=timings
+    ):
         trainer.fit(model)
 
     assert logger_mock.log_metrics.mock_calls == [
@@ -234,7 +232,7 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
 def test_throughput_monitor_eval(tmp_path, fn):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
-    monitor = ThroughputMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=3, separator="|")
+    monitor = ThroughputMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=4, separator="|")
     model = BoringModel()
     model.flops_per_batch = 10
     trainer = Trainer(

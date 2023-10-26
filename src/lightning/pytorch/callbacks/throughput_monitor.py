@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 import torch
 
 from lightning.fabric.plugins import Precision
-from lightning.fabric.utilities.throughput import _THROUGHPUT_METRICS, Throughput, _get_flops_available
+from lightning.fabric.utilities.throughput import _THROUGHPUT_METRICS, Throughput, get_available_flops
 from lightning.fabric.utilities.throughput import (
     _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype,
 )
@@ -79,13 +79,13 @@ class ThroughputMonitor(Callback):
         if self._throughput is not None:
             return  # already setup
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
-        flops_available = _get_flops_available(trainer.strategy.root_device, dtype)
-        if flops_available is not None and not hasattr(pl_module, "flops_per_batch"):
+        available_flops = get_available_flops(trainer.strategy.root_device, dtype)
+        if available_flops is not None and not hasattr(pl_module, "flops_per_batch"):
             rank_zero_info(
                 "When using the `ThroughputMonitor`, you need to define a `flops_per_batch` attribute or property"
                 f" in {pl_module} to compute the FLOPs."
             )
-        self._throughput = Throughput(flops_available=flops_available, world_size=trainer.world_size, **self.kwargs)
+        self._throughput = Throughput(available_flops=available_flops, world_size=trainer.world_size, **self.kwargs)
 
     @rank_zero_only
     def on_train_start(self, trainer: "Trainer", pl_module: "LightningModule") -> None:

@@ -8,8 +8,8 @@ from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.throughput import (
     Throughput,
     ThroughputMonitor,
-    _get_flops_available,
     _MonotonicWindow,
+    get_available_flops,
     measure_flops,
 )
 
@@ -33,30 +33,30 @@ def test_measure_flops():
     assert fwd_flops < fwd_and_bwd_flops
 
 
-def test_flops_available(xla_available):
+def test_available_flops(xla_available):
     with mock.patch("torch.cuda.get_device_name", return_value="NVIDIA H100 PCIe"):
-        flops = _get_flops_available(torch.device("cuda"), torch.bfloat16)
+        flops = get_available_flops(torch.device("cuda"), torch.bfloat16)
     assert flops == 1.513e15 / 2
 
     with pytest.warns(match="not found for 'CocoNut"), mock.patch("torch.cuda.get_device_name", return_value="CocoNut"):
-        assert _get_flops_available(torch.device("cuda"), torch.bfloat16) is None
+        assert get_available_flops(torch.device("cuda"), torch.bfloat16) is None
 
     with pytest.warns(match="t4' does not support torch.bfloat"), mock.patch(
         "torch.cuda.get_device_name", return_value="t4"
     ):
-        assert _get_flops_available(torch.device("cuda"), torch.bfloat16) is None
+        assert get_available_flops(torch.device("cuda"), torch.bfloat16) is None
 
     from torch_xla.experimental import tpu
 
     assert isinstance(tpu, Mock)
     tpu.get_tpu_env.return_value = {"TYPE": "V4"}
 
-    flops = _get_flops_available(torch.device("xla"), torch.bfloat16)
+    flops = get_available_flops(torch.device("xla"), torch.bfloat16)
     assert flops == 275e12
 
     tpu.get_tpu_env.return_value = {"TYPE": "V1"}
     with pytest.warns(match="not found for TPU 'V1'"):
-        assert _get_flops_available(torch.device("xla"), torch.bfloat16) is None
+        assert get_available_flops(torch.device("xla"), torch.bfloat16) is None
 
     tpu.reset_mock()
 
@@ -72,7 +72,7 @@ def test_throughput():
         throughput.update(time=2.1, samples=3, lengths=4)
 
     # lengths and samples
-    throughput = Throughput(window_size=1).update(time=2, samples=2, lengths=4).update(time=2.5, samples=4, lengths=8)
+    throughput = Throughput(window_size=2).update(time=2, samples=2, lengths=4).update(time=2.5, samples=4, lengths=8)
     assert throughput.compute() == {
         "time": 2.5,
         "samples": 4,
@@ -86,7 +86,7 @@ def test_throughput():
 
     # flops
     throughput = (
-        Throughput(flops_available=50, window_size=1)
+        Throughput(available_flops=50, window_size=2)
         .update(time=1, samples=2, flops_per_batch=10, lengths=10)
         .update(time=2, samples=4, flops_per_batch=10, lengths=20)
     )
@@ -101,7 +101,7 @@ def test_throughput():
     }
 
     # flops without available
-    throughput.flops_available = None
+    throughput.available_flops = None
     throughput.reset().update(time=1, samples=2, flops_per_batch=10, lengths=10).update(
         time=2, samples=4, flops_per_batch=10, lengths=20
     )
@@ -136,8 +136,8 @@ def mock_train_loop(monitor):
 def test_throughput_monitor():
     logger_mock = Mock()
     fabric = Fabric(devices=1, loggers=logger_mock)
-    with mock.patch("lightning.fabric.utilities.throughput._get_flops_available", return_value=100):
-        monitor = ThroughputMonitor(fabric, window_size=3, separator="|")
+    with mock.patch("lightning.fabric.utilities.throughput.get_available_flops", return_value=100):
+        monitor = ThroughputMonitor(fabric, window_size=4, separator="|")
     mock_train_loop(monitor)
     assert logger_mock.log_metrics.mock_calls == [
         call(metrics={"time": 1.5, "samples": 3}, step=0),
@@ -195,8 +195,8 @@ def test_throughput_monitor_step():
 def test_throughput_monitor_world_size():
     logger_mock = Mock()
     fabric = Fabric(devices=1, loggers=logger_mock)
-    with mock.patch("lightning.fabric.utilities.throughput._get_flops_available", return_value=100):
-        monitor = ThroughputMonitor(fabric, window_size=3)
+    with mock.patch("lightning.fabric.utilities.throughput.get_available_flops", return_value=100):
+        monitor = ThroughputMonitor(fabric, window_size=4)
         # simulate that there are 2 devices
         monitor.world_size = 2
     mock_train_loop(monitor)

@@ -13,7 +13,7 @@
 # limitations under the License.
 # Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
 from collections import deque
-from typing import TYPE_CHECKING, Any, Callable, Dict, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 import torch
 from typing_extensions import Self
@@ -62,62 +62,43 @@ class Throughput:
 
     Example::
 
-        # FIXME: improve
-        metrics = {"loss": loss}
-        metrics = {"accuracy: acc}
-        metrics.update(throughput.compute())
-        wandb.experiment.log(metrics, step)
+        # FIXME
 
     Notes:
         - The implementation assumes that devices FLOPs are all the same as it normalizes by the world size and only
-            takes a single ``flops_available`` value.
+            takes a single ``available_flops`` value.
         - items_per_sec, flops_per_sec and MFU do not account for padding if present. We suggest using
             samples_per_sec or batches_per_sec to measure throughput under this circumstance.
 
     Args:
-        flops_available: Number of theoretical flops available for a single device.
+        available_flops: Number of theoretical flops available for a single device.
         world_size: Number of devices available across hosts. Global metrics are not included if the world size is 1.
         window_size: Number of batches to use for a rolling average.
-        time_unit: Time unit to use for normalization.
         separator: Key separator to use when creating per-device and global metrics.
 
     """
 
     def __init__(
         self,
-        flops_available: Optional[float] = None,
+        available_flops: Optional[float] = None,
         world_size: int = 1,
         window_size: int = 100,
-        time_unit: Literal["seconds", "minutes", "hours", "days"] = "seconds",
         separator: str = "/",
     ) -> None:
-        self.flops_available = flops_available
+        self.available_flops = available_flops
         self.separator = separator
         assert world_size > 0
         self.world_size = world_size
 
         # throughput is computed over a window of values. at least 2 is enforced since it looks at the difference
         # between the first and last elements
-        assert window_size > 0
+        assert window_size > 1
         # custom class instead of `deque(maxlen=)` because it's easy for users to mess up their timer/counters and log
         # values that do not increase monotonically. this class will raise an error if that happens.
-        self._samples = _MonotonicWindow(maxlen=window_size + 1)
-        self._time = _MonotonicWindow(maxlen=window_size + 1)
-        self._lengths = _MonotonicWindow(maxlen=window_size + 1)
-        self._flops = deque(maxlen=window_size + 1)
-
-        if time_unit == "seconds":
-            self._divider = 1
-        elif time_unit == "minutes":
-            self._divider = 60
-        elif time_unit == "hours":
-            self._divider = 60 * 60
-        elif time_unit == "days":
-            self._divider = 60 * 60 * 24
-        else:
-            raise ValueError(
-                f'Invalid time_unit: {time_unit}. Must be one of "seconds", "minutes", "hours", or "days".'
-            )
+        self._samples = _MonotonicWindow(maxlen=window_size)
+        self._time = _MonotonicWindow(maxlen=window_size)
+        self._lengths = _MonotonicWindow(maxlen=window_size)
+        self._flops = deque(maxlen=window_size)
 
     def update(
         self,
@@ -155,7 +136,7 @@ class Throughput:
 
     def compute(self) -> _THROUGHPUT_METRICS:
         """Compute throughput metrics."""
-        metrics = {"time": self._time[-1] / self._divider, "samples": self._samples[-1]}
+        metrics = {"time": self._time[-1], "samples": self._samples[-1]}
         add_global_metrics = self.world_size > 1
         # a different but valid design choice would be to still compute all these metrics even if the window of values
         # has not been filled
@@ -196,8 +177,8 @@ class Throughput:
             if add_global_metrics:
                 metrics["flops_per_sec"] = flops_per_sec
             metrics[f"device{self.separator}flops_per_sec"] = dev_flops_per_sec
-            if self.flops_available:
-                metrics[f"device{self.separator}mfu"] = dev_flops_per_sec / self.flops_available
+            if self.available_flops:
+                metrics[f"device{self.separator}mfu"] = dev_flops_per_sec / self.available_flops
 
         return metrics
 
@@ -230,8 +211,8 @@ class ThroughputMonitor(Throughput):
     def __init__(self, fabric: "Fabric", **kwargs: Any) -> None:
         fabric._validate_launched()  # otherwise world_size might be incorrect
         dtype = _plugin_to_compute_dtype(fabric.strategy.precision)
-        flops_available = _get_flops_available(fabric.device, dtype)
-        super().__init__(flops_available=flops_available, world_size=fabric.world_size, **kwargs)
+        available_flops = get_available_flops(fabric.device, dtype)
+        super().__init__(available_flops=available_flops, world_size=fabric.world_size, **kwargs)
         self._fabric = fabric
         self.step = -1
 
@@ -343,7 +324,7 @@ _TPU_FLOPS = {
 }
 
 
-def _get_flops_available(device: torch.device, dtype: torch.dtype) -> Optional[int]:
+def get_available_flops(device: torch.device, dtype: torch.dtype) -> Optional[int]:
     if device.type == "cuda":
         device_name = torch.cuda.get_device_name(device)
         chip = device_name.lower()
