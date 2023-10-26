@@ -15,3 +15,14 @@ def test_rank_prefixed_message(rank):
     assert message == f"[rank: {rank}] bar"
     # reset
     del rank_zero_only.rank
+
+
+def test_rank_zero_only_default():
+    foo = lambda: "foo"
+    rank_zero_foo = rank_zero_only(foo, "not foo")
+
+    rank_zero_only.rank = 0
+    assert rank_zero_foo() == "foo"
+
+    rank_zero_only.rank = 1
+    assert rank_zero_foo() == "not foo"

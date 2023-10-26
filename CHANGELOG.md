@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     [#184](https://github.com/Lightning-AI/utilities/pull/184),
     [#185](https://github.com/Lightning-AI/utilities/pull/185))
 
+- Added `rank_zero_only(..., default=)` argument to return a default value on rank > 1 ([#187](https://github.com/Lightning-AI/utilities/pull/187))
+
 
 ### Changed
 
