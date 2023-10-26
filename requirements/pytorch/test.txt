@@ -16,3 +16,5 @@ fastapi  # for `ServableModuleValidator`  # not setting version as re-defined in
 uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in App
 
 tensorboard >=2.9.1, <2.15.0  # for `TensorBoardLogger`
+
+moto>=4.2

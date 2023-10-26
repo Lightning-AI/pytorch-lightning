@@ -13,9 +13,11 @@
 # limitations under the License.
 import sys
 from types import ModuleType
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock, Mock, patch
 
+import boto3
 import pytest
+from moto import mock_sagemaker
 
 
 @pytest.fixture()
@@ -139,3 +141,17 @@ def neptune_mock(monkeypatch):
 
     monkeypatch.setattr("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
     return neptune
+
+
+@pytest.fixture()
+def sagemaker_mock(monkeypatch):
+    from sagemaker.session import Session
+
+    # since moto does not support sagemaker metric service we have to mock the
+    # injection of the metric and the trial component update function
+    with patch("sagemaker.experiments._metrics._MetricsManager.log_metric") as mock_log_metric, patch(
+        "sagemaker.experiments.trial_component._TrialComponent.save"
+    ), mock_sagemaker():
+        session = Session(boto3.Session(region_name="eu-central-1"))
+        client = boto3.client("sagemaker", region_name="eu-central-1")
+        yield session, client, mock_log_metric
