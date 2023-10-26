@@ -10,6 +10,7 @@ from lightning import LightningDataModule, seed_everything
 from lightning.data.streaming import dataset_optimizer as dataset_optimizer_module
 from lightning.data.streaming.dataset_optimizer import (
     DatasetOptimizer,
+    _associated_items_to_workers,
     _download_data_target,
     _remove_target,
     _upload_fn,
@@ -196,6 +197,77 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
     assert os.listdir(cache_data_dir) == []
 
 
+def test_associated_items_to_workers(monkeypatch):
+    _, workers_user_items = _associated_items_to_workers(1, range(105))
+    assert workers_user_items == [range(0, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(2, range(105))
+    assert workers_user_items == [range(0, 52), range(52, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(3, range(105))
+    assert workers_user_items == [range(0, 35), range(35, 70), range(70, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(4, range(105))
+    assert workers_user_items == [range(0, 26), range(26, 52), range(52, 78), range(78, 105)]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+
+    _, workers_user_items = _associated_items_to_workers(1, range(105))
+    assert workers_user_items == [range(0, 52)]
+
+    _, workers_user_items = _associated_items_to_workers(2, range(105))
+    assert workers_user_items == [range(0, 26), range(26, 52)]
+
+    _, workers_user_items = _associated_items_to_workers(3, range(105))
+    assert workers_user_items == [range(0, 17), range(17, 34), range(34, 52)]
+
+    _, workers_user_items = _associated_items_to_workers(4, range(105))
+    assert workers_user_items == [range(0, 13), range(13, 26), range(26, 39), range(39, 52)]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
+
+    _, workers_user_items = _associated_items_to_workers(1, range(105))
+    assert workers_user_items == [range(52, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(2, range(105))
+    assert workers_user_items == [range(52, 78), range(78, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(3, range(105))
+    assert workers_user_items == [range(52, 69), range(69, 86), range(86, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(4, range(105))
+    assert workers_user_items == [range(52, 65), range(65, 78), range(78, 91), range(91, 105)]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
+
+    _, workers_user_items = _associated_items_to_workers(1, range(105))
+    assert workers_user_items == [range(0, 26)]
+
+    _, workers_user_items = _associated_items_to_workers(2, range(105))
+    assert workers_user_items == [range(0, 13), range(13, 26)]
+
+    _, workers_user_items = _associated_items_to_workers(3, range(105))
+    assert workers_user_items == [range(0, 8), range(8, 16), range(16, 26)]
+
+    _, workers_user_items = _associated_items_to_workers(4, range(105))
+    assert workers_user_items == [range(0, 6), range(6, 12), range(12, 18), range(18, 26)]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "3")
+
+    _, workers_user_items = _associated_items_to_workers(1, range(105))
+    assert workers_user_items == [range(78, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(2, range(105))
+    assert workers_user_items == [range(78, 91), range(91, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(3, range(105))
+    assert workers_user_items == [range(78, 87), range(87, 96), range(96, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(4, range(105))
+    assert workers_user_items == [range(78, 84), range(84, 90), range(90, 96), range(96, 105)]
+
+
 class DataModuleImage(LightningDataModule):
     def prepare_dataset_structure(self, src_dir: str, filepaths: List[str]) -> List[Any]:
         assert len(filepaths) == 30
@@ -207,7 +279,7 @@ class DataModuleImage(LightningDataModule):
 
 @pytest.mark.parametrize("delete_cached_files", [False, True])
 @pytest.mark.parametrize("fast_dev_run", [False, True])
-@pytest.mark.skipif(condition=True, reason="Requires: ['pil']")
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
 def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     from PIL import Image
 

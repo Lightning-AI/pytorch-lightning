@@ -193,6 +193,31 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
             remove_queue.put([local_filepath])
 
 
+def _associated_items_to_workers(num_workers: int, user_items: List[Any]) -> Tuple[List[int], List[List[Any]]]:
+    # Associate the items to the workers based on number of nodes and node rank.
+    num_nodes = _get_num_nodes()
+    current_node_rank = _get_node_rank()
+    node_size = len(user_items) // num_nodes
+    workers_user_items = []
+    begins = []
+    for node_rank in range(num_nodes):
+        if node_rank != current_node_rank:
+            continue
+        is_last_node = node_rank == num_nodes - 1
+        start_node = node_rank * node_size
+        end_node = len(user_items) if is_last_node else (node_rank + 1) * node_size
+        node_user_items = user_items[start_node:end_node]
+        worker_size = len(node_user_items) // num_workers
+        for worker_idx in range(num_workers):
+            is_last = worker_idx == num_workers - 1
+            begin = worker_idx * worker_size
+            end = len(node_user_items) if is_last else (worker_idx + 1) * worker_size
+            workers_user_items.append(node_user_items[begin:end])
+            begins.append(begin)
+        return begins, workers_user_items
+    raise RuntimeError(f"The current_node_rank {current_node_rank} doesn't exist in {num_nodes}.")
+
+
 class BaseWorker:
     def __init__(
         self,
@@ -305,9 +330,10 @@ class BaseWorker:
                         chunk_filepath = self.cache._add_item(self._index_counter, item_data)
                         self._try_upload(chunk_filepath)
                         self._index_counter += 1
-            else:
-                chunk_filepath = self.cache._add_item(index + self.start_index, item_data_or_generator)
+            elif item_data_or_generator is not None:
+                chunk_filepath = self.cache._add_item(self._index_counter, item_data_or_generator)
                 self._try_upload(chunk_filepath)
+                self._index_counter += 1
 
             self._counter += 1
 
@@ -598,7 +624,7 @@ class DatasetOptimizer:
             raise ValueError("The setup_fn should return a list of item metadata.")
 
         # Associate the items to the workers based on num_nodes and node_rank
-        begins, workers_user_items = self._associated_items_to_workers(user_items)
+        begins, workers_user_items = _associated_items_to_workers(self.num_workers, user_items)
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
 
         if self.fast_dev_run:
