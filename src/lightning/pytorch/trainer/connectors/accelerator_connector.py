@@ -15,7 +15,7 @@
 import logging
 import os
 from collections import Counter
-from typing import Dict, List, Literal, Optional, Union, Any
+from typing import Dict, List, Literal, Optional, Union
 
 import torch
 
@@ -116,12 +116,6 @@ class _AcceleratorConnector:
             B. Strategy > Accelerator/precision/plugins
 
         """
-        accelerator = self._argument_from_env("accelerator", accelerator, default="auto")
-        strategy = self._argument_from_env("strategy", strategy, default="auto")
-        devices = self._argument_from_env("devices", devices, default="auto")
-        num_nodes = int(self._argument_from_env("num_nodes", num_nodes, default=1))
-        precision = self._argument_from_env("precision", precision, default="32-true")
-
         self.use_distributed_sampler = use_distributed_sampler
         _set_torch_flags(deterministic=deterministic, benchmark=benchmark)
 
@@ -661,13 +655,6 @@ class _AcceleratorConnector:
             # Used for custom plugins. They should implement this property
             return self.strategy.is_distributed
         return False
-
-    @staticmethod
-    def _argument_from_env(name: str, current: Any, default: Any) -> Any:
-        env_value: Optional[str] = os.environ.get("PL_TRAINER_" + name.upper())
-        if env_value is None:
-            return current
-        return env_value
 
 
 def _set_torch_flags(
