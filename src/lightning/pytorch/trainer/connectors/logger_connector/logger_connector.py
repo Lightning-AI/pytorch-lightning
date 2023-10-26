@@ -14,7 +14,6 @@
 from typing import Any, Iterable, Optional, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 
 import lightning.pytorch as pl
@@ -24,6 +23,7 @@ from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.pytorch.loggers import CSVLogger, Logger, TensorBoardLogger
 from lightning.pytorch.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
+from lightning.pytorch.utilities.rank_zero import WarningCache
 
 warning_cache = WarningCache()
 

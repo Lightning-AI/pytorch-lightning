@@ -15,7 +15,6 @@ import time
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 import torch
-from lightning_utilities.core.rank_zero import rank_zero_warn
 
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.throughput import Throughput, get_available_flops
@@ -33,7 +32,7 @@ from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlug
 from lightning.pytorch.plugins.precision.half import HalfPrecisionPlugin
 from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.rank_zero import rank_zero_only
+from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from lightning.pytorch import LightningModule, Trainer

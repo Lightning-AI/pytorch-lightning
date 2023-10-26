@@ -31,35 +31,9 @@ from lightning_utilities.core.rank_zero import (  # noqa: F401
 from typing_extensions import ParamSpec
 
 import lightning.fabric
+from lightning.fabric.utilities.imports import _UTILITIES_GREATER_EQUAL_0_10
 
 rank_zero_module.log = logging.getLogger(__name__)
-
-T = TypeVar("T")
-P = ParamSpec("P")
-
-
-@overload
-def rank_zero_only(fn: Callable[P, T]) -> Callable[P, Optional[T]]:
-    ...
-
-
-@overload
-def rank_zero_only(fn: Callable[P, T], default: T) -> Callable[P, T]:
-    ...
-
-
-# TODO: upstream this into lightning_utilities
-def rank_zero_only(fn: Callable[P, T], default: Optional[T] = None) -> Callable[P, Optional[T]]:
-    @wraps(fn)
-    def wrapped_fn(*args: P.args, **kwargs: P.kwargs) -> Optional[T]:
-        rank = getattr(rank_zero_only, "rank", None)
-        if rank is None:
-            raise RuntimeError("The `rank_zero_only.rank` needs to be set before use")
-        if rank == 0:
-            return fn(*args, **kwargs)
-        return default
-
-    return wrapped_fn
 
 
 def _get_rank(
@@ -77,6 +51,34 @@ def _get_rank(
     # None to differentiate whether an environment variable was set at all
     return None
 
+
+if not _UTILITIES_GREATER_EQUAL_0_10:
+    T = TypeVar("T")
+    P = ParamSpec("P")
+
+    @overload
+    def rank_zero_only(fn: Callable[P, T]) -> Callable[P, Optional[T]]:
+        ...
+
+    @overload
+    def rank_zero_only(fn: Callable[P, T], default: T) -> Callable[P, T]:
+        ...
+
+    def rank_zero_only(fn: Callable[P, T], default: Optional[T] = None) -> Callable[P, Optional[T]]:
+        @wraps(fn)
+        def wrapped_fn(*args: P.args, **kwargs: P.kwargs) -> Optional[T]:
+            rank = getattr(rank_zero_only, "rank", None)
+            if rank is None:
+                raise RuntimeError("The `rank_zero_only.rank` needs to be set before use")
+            if rank == 0:
+                return fn(*args, **kwargs)
+            return default
+
+        return wrapped_fn
+
+    rank_zero_module.rank_zero_only.rank = getattr(rank_zero_module.rank_zero_only, "rank", _get_rank() or 0)
+else:
+    rank_zero_only = rank_zero_module.rank_zero_only  # type: ignore[assignment]
 
 # add the attribute to the function but don't overwrite in case Trainer has already set it
 rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank() or 0)
