@@ -17,8 +17,8 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 import torch
 
 from lightning.fabric.plugins import Precision
-from lightning.fabric.utilities.throughput_monitor import Throughput, _get_flops_available
-from lightning.fabric.utilities.throughput_monitor import (
+from lightning.fabric.utilities.throughput import Throughput, _get_flops_available
+from lightning.fabric.utilities.throughput import (
     _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype,
 )
 from lightning.pytorch.callbacks import Callback
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 
 class ThroughputMonitor(Callback):
-    r"""Tracks and logs throughput with the :class:`lightning.fabric.utilities.throughput_monitor.Throughput`.
+    r"""Tracks and logs throughput with the :class:`lightning.fabric.utilities.throughput.Throughput`.
 
     Only support for ``trainer.fit`` is currently implemented.
 
@@ -49,7 +49,7 @@ class ThroughputMonitor(Callback):
         length_fn: A function to compute the number of items in a sample given a batch.
         batch_size_fn: A function to compute the number of samples given a batch.
         \**kwargs: See available parameters in
-            :class:`lightning.fabric.utilities.throughput_monitor.Throughput`
+            :class:`lightning.fabric.utilities.throughput.Throughput`
 
     """
 

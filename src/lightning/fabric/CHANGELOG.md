@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added `lightning.fabric.utilities.ThroughputMonitor` to track throughput and log it ([#18848](https://github.com/Lightning-AI/lightning/pull/18848))
+- Added `lightning.fabric.utilities.ThroughputMonitor` and `lightning.fabric.utilities.Throughput` to track throughput and log it ([#18848](https://github.com/Lightning-AI/lightning/pull/18848))
 
 
 ### Changed

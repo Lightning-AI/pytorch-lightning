@@ -16,6 +16,8 @@ lightning.fabric.utilities
 
 .. autofunction:: lightning.fabric.utilities.warnings.disable_possible_user_warnings
 
-.. autofunction:: lightning.fabric.utilities.throughput_monitor.measure_flops
+.. autofunction:: lightning.fabric.utilities.throughput.measure_flops
 
-.. autoclass:: lightning.fabric.utilities.throughput_monitor.ThroughputMonitor
+.. autoclass:: lightning.fabric.utilities.throughput.ThroughputMonitor
+
+.. autoclass:: lightning.fabric.utilities.throughput.Throughput

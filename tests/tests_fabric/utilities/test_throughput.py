@@ -5,7 +5,7 @@ import pytest
 import torch
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import Precision
-from lightning.fabric.utilities.throughput_monitor import (
+from lightning.fabric.utilities.throughput import (
     Throughput,
     ThroughputMonitor,
     _get_flops_available,
@@ -110,7 +110,7 @@ def mock_train_loop(monitor):
 def test_throughput_monitor():
     logger_mock = Mock()
     fabric = Fabric(devices=1, loggers=logger_mock)
-    with mock.patch("lightning.fabric.utilities.throughput_monitor._get_flops_available", return_value=100):
+    with mock.patch("lightning.fabric.utilities.throughput._get_flops_available", return_value=100):
         monitor = ThroughputMonitor(fabric, window_size=3, separator="|")
     mock_train_loop(monitor)
     assert logger_mock.log_metrics.mock_calls == [
@@ -163,7 +163,7 @@ def test_throughput_monitor_manual_step():
 def test_throughput_monitor_world_size():
     logger_mock = Mock()
     fabric = Fabric(devices=1, loggers=logger_mock)
-    with mock.patch("lightning.fabric.utilities.throughput_monitor._get_flops_available", return_value=100):
+    with mock.patch("lightning.fabric.utilities.throughput._get_flops_available", return_value=100):
         monitor = ThroughputMonitor(fabric, window_size=3)
         # simulate that there are 2 devices
         monitor._throughput.world_size = 2

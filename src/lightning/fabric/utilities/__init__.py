@@ -23,7 +23,7 @@ from lightning.fabric.utilities.rank_zero import (
     rank_zero_only,
     rank_zero_warn,
 )
-from lightning.fabric.utilities.throughput_monitor import ThroughputMonitor, measure_flops
+from lightning.fabric.utilities.throughput import Throughput, ThroughputMonitor, measure_flops
 from lightning.fabric.utilities.warnings import disable_possible_user_warnings
 
 __all__ = [
@@ -37,5 +37,6 @@ __all__ = [
     "rank_zero_only",
     "rank_zero_warn",
     "suggested_max_num_workers",
+    "Throughput",
     "ThroughputMonitor",
 ]

@@ -3,7 +3,7 @@ from unittest.mock import Mock, call
 
 import pytest
 import torch
-from lightning.fabric.utilities.throughput_monitor import measure_flops
+from lightning.fabric.utilities.throughput import measure_flops
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks.throughput_monitor import ThroughputMonitor
 from lightning.pytorch.demos.boring_classes import BoringModel
