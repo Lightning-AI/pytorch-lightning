@@ -18,7 +18,7 @@ import os
 from contextlib import redirect_stdout
 from io import StringIO
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import ANY, call
 
 import numpy as np
 import pytest
@@ -537,7 +537,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     trainer.fit(model)
 
     # hp_metric + 2 steps + epoch + 2 steps + epoch
-    expected_num_calls = 1 + 2 + 1 + 2 + 1
+    1 + 2 + 1 + 2 + 1
 
     assert set(trainer.callback_metrics) == {
         "train_loss",
@@ -545,7 +545,15 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         "valid_loss_0",
         "valid_loss_1",
     }
-    assert len(mock_log_metrics.mock_calls) == expected_num_calls
+    assert mock_log_metrics.mock_calls == [
+        call({"hp_metric": -1}, 0),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=0),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=1),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 0}, step=1),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=2),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=3),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 1}, step=3),
+    ]
     assert mock_log_metrics.mock_calls[0] == call({"hp_metric": -1}, 0)
 
     def get_metrics_at_idx(idx):
