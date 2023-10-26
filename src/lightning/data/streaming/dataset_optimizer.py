@@ -26,6 +26,13 @@ from lightning.data.streaming.constants import (
     _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
+from lightning.fabric.accelerators.cuda import is_cuda_available
+from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.utilities.distributed import (
+    _distributed_is_initialized,
+    _init_dist_connection,
+)
+from lightning.fabric.utilities.distributed import group as _group
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
@@ -854,25 +861,21 @@ class DatasetOptimizer:
         if os.path.exists(cache_dir):
             rmtree(cache_dir)
 
+        os.makedirs(cache_dir, exist_ok=True)
+
         cache_data_dir = _get_cache_data_dir(self.name)
 
         # Cleanup the cache data folder to avoid corrupted files from previous run to be there.
         if os.path.exists(cache_data_dir):
             rmtree(cache_data_dir)
 
+        os.makedirs(cache_data_dir, exist_ok=True)
+
     def _broadcast_object(self, obj: Any) -> Any:
         """Enable to synchornize an object across machines using torch.distributed.collectives."""
         num_nodes = _get_num_nodes()
         if num_nodes == 1:
             return obj
-
-        from lightning.fabric.accelerators.cuda import is_cuda_available
-        from lightning.fabric.plugins.environments import LightningEnvironment
-        from lightning.fabric.utilities.distributed import (
-            _distributed_is_initialized,
-            _init_dist_connection,
-        )
-        from lightning.fabric.utilities.distributed import group as _group
 
         if not _distributed_is_initialized():
             process_group_backend = "nccl" if is_cuda_available() else "gloo"

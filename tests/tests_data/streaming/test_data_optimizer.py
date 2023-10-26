@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 import torch
 from lightning import LightningDataModule, seed_everything
+from lightning.data.streaming import dataset_optimizer as dataset_optimizer_module
 from lightning.data.streaming.dataset_optimizer import (
     DatasetOptimizer,
     _download_data_target,
@@ -159,6 +160,40 @@ def test_wait_for_file_to_exist():
 
     with pytest.raises(ValueError, match="HERE"):
         _wait_for_file_to_exist(s3, obj, sleep_time=0.01)
+
+
+def test_broadcast_object(tmpdir, monkeypatch):
+    dataset_optimizer = DatasetOptimizer(name="dummy", src_dir=tmpdir)
+    assert dataset_optimizer._broadcast_object("dummy") == "dummy"
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+    monkeypatch.setattr(dataset_optimizer_module, "_distributed_is_initialized", lambda: True)
+    torch_mock = mock.MagicMock()
+    monkeypatch.setattr(dataset_optimizer_module, "torch", torch_mock)
+    assert dataset_optimizer._broadcast_object("dummy") == "dummy"
+    assert torch_mock.distributed.broadcast_object_list._mock_call_args.args == (["dummy"], 0)
+
+
+def test_cache_dir_cleanup(tmpdir, monkeypatch):
+    cache_dir = os.path.join(tmpdir, "dummy")
+    cache_data_dir = os.path.join(tmpdir, "data", "dummy")
+    os.makedirs(cache_dir, exist_ok=True)
+    os.makedirs(cache_data_dir, exist_ok=True)
+
+    with open(os.path.join(cache_dir, "a.txt"), "w") as f:
+        f.write("Hello World !")
+
+    with open(os.path.join(cache_data_dir, "b.txt"), "w") as f:
+        f.write("Hello World !")
+
+    assert os.listdir(cache_dir) == ["a.txt"]
+    assert os.listdir(cache_data_dir) == ["b.txt"]
+
+    dataset_optimizer = DatasetOptimizer(name="dummy", src_dir=tmpdir)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(tmpdir))
+    dataset_optimizer._cleanup_cache()
+
+    assert os.listdir(cache_dir) == []
+    assert os.listdir(cache_data_dir) == []
 
 
 class DataModuleImage(LightningDataModule):
