@@ -191,10 +191,7 @@ class _PredictionLoop(_Loop):
     def on_run_start(self) -> None:
         """Calls ``_on_predict_model_eval``, ``_on_predict_start`` and ``_on_predict_epoch_start`` hooks."""
         self._verify_dataloader_idx_requirement()
-
-        trainer = self.trainer
-        call._call_lightning_module_hook(trainer, "on_predict_model_eval")
-        trainer.lightning_module.zero_grad()
+        call._call_lightning_module_hook(self.trainer, "on_predict_model_eval")
         self._on_predict_start()
         self._on_predict_epoch_start()
 
@@ -282,6 +279,7 @@ class _PredictionLoop(_Loop):
 
         Returns:
             the dictionary containing all the keyboard arguments for the predict step
+
         """
         step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
         if dataloader_idx is not None:
@@ -353,6 +351,7 @@ class _PredictionLoop(_Loop):
 
         Returns:
             the results for all dataloaders
+
         """
         trainer = self.trainer
         call._call_callback_hooks(trainer, "on_predict_epoch_end")

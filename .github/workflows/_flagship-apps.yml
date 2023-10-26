@@ -57,7 +57,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: basic setup
         timeout-minutes: 20
@@ -71,7 +71,7 @@ jobs:
           python -m playwright install  # --with-deps
 
       - name: Clone the Repo/App
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: ${{ matrix.repo }}
           path: tests/_flagship-app

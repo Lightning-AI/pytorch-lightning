@@ -1,11 +1,10 @@
 import contextlib
 import logging
 import os
-import sys
 import time
 from contextlib import nullcontext
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union
 
 import fsspec.utils
 import torch
@@ -14,7 +13,7 @@ from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.data import _num_cpus_available
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
@@ -168,7 +167,7 @@ def _sync_ddp_if_available(
         reduced value
 
     """
-    if torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         return _sync_ddp(result, group=group, reduce_op=reduce_op)
     return result
 
@@ -231,37 +230,6 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     return result.div_(world_size)
 
 
-class _AllGather(torch.autograd.Function):
-    @staticmethod
-    def forward(  # type: ignore[override]
-        ctx: Any,
-        tensor: Tensor,
-        group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
-    ) -> Tensor:
-        ctx.group = group
-        gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size(group=group))]
-        torch.distributed.all_gather(gathered_tensor, tensor, group=group)
-        gathered_tensor = torch.stack(gathered_tensor, dim=0)
-        return gathered_tensor
-
-    @staticmethod
-    def backward(ctx: Any, *grad_output: Tensor) -> Tuple[Tensor, None]:
-        grad_output = torch.cat(grad_output)
-        torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
-        return grad_output[torch.distributed.get_rank()], None
-
-
-def _functional_all_gather(tensor: Any, group: Any) -> Any:
-    """Compatibility layer with Windows."""
-    if sys.platform == "win32" and not _TORCH_GREATER_EQUAL_1_12:
-        # TODO: also remove `_AllGather` when support for 1.12 is dropped
-        return _AllGather.apply(tensor, group)
-
-    import torch.distributed.nn
-
-    return torch.distributed.nn.functional.all_gather(tensor, group)
-
-
 def _all_gather_ddp_if_available(
     tensor: Tensor, group: Optional["torch.distributed.ProcessGroup"] = None, sync_grads: bool = False
 ) -> Tensor:
@@ -276,11 +244,14 @@ def _all_gather_ddp_if_available(
         A tensor of shape (world_size, batch, ...)
 
     """
-    if not torch.distributed.is_initialized():
+    if not _distributed_is_initialized():
         return tensor
+
+    from torch.distributed.nn.functional import all_gather
+
     tensor = tensor.contiguous()  # https://github.com/pytorch/pytorch/issues/73515
     with nullcontext() if sync_grads else torch.no_grad():
-        gathered_tensors = _functional_all_gather(tensor, group)
+        gathered_tensors = all_gather(tensor, group)
     return torch.stack(gathered_tensors)
 
 
@@ -380,6 +351,7 @@ class DistributedSamplerWrapper(DistributedSampler):
         The purpose of this wrapper is to take care of sharding the sampler indices. It is up to the underlying
         sampler to handle randomness and shuffling. The ``shuffle`` and ``seed`` arguments on this wrapper won't
         have any effect.
+
     """
 
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
@@ -388,3 +360,23 @@ class DistributedSamplerWrapper(DistributedSampler):
     def __iter__(self) -> Iterator:
         self.dataset.reset()
         return (self.dataset[index] for index in super().__iter__())
+
+
+def _suggested_max_num_threads(num_processes: int = 1) -> int:
+    if num_processes < 1:
+        raise ValueError(f"`num_processes` should be >= 1, got {num_processes}.")
+    return max(1, _num_cpus_available() // num_processes)
+
+
+def _set_num_threads_if_needed(num_processes: int = 1) -> None:
+    if "OMP_NUM_THREADS" not in os.environ:
+        num_threads = _suggested_max_num_threads(num_processes)
+        torch.set_num_threads(num_threads)
+        os.environ["OMP_NUM_THREADS"] = str(num_threads)
+
+
+def _distributed_is_initialized() -> bool:
+    # `is_initialized` is only defined conditionally
+    # https://github.com/pytorch/pytorch/blob/v2.1.0/torch/distributed/__init__.py#L25
+    # this might happen to MacOS builds from source (default) or any build from source that sets `USE_DISTRIBUTED=0`
+    return torch.distributed.is_available() and torch.distributed.is_initialized()

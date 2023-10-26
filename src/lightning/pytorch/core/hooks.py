@@ -19,6 +19,7 @@ import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities import move_data_to_device
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
@@ -151,6 +152,11 @@ class ModelHooks:
 
         """
 
+    def on_validation_model_zero_grad(self) -> None:
+        """Called by the training loop to release gradients before entering the validation loop."""
+        zero_grad_kwargs = {} if _TORCH_GREATER_EQUAL_2_0 else {"set_to_none": True}
+        self.zero_grad(**zero_grad_kwargs)
+
     def on_validation_model_eval(self) -> None:
         """Sets the model to eval during the val loop."""
         self.trainer.model.eval()
@@ -237,6 +243,7 @@ class ModelHooks:
 
         Args:
             optimizer: The optimizer for which grads should be zeroed.
+
         """
 
     def on_before_backward(self, loss: Tensor) -> None:
@@ -244,6 +251,7 @@ class ModelHooks:
 
         Args:
             loss: Loss divided by number of batches for gradient accumulation and scaled if using AMP.
+
         """
         pass
 
@@ -253,6 +261,7 @@ class ModelHooks:
         Note:
             If using native AMP, the gradients will not be unscaled at this point.
             Use the ``on_before_optimizer_step`` if you need the unscaled gradients.
+
         """
 
     def on_before_optimizer_step(self, optimizer: Optimizer) -> None:
@@ -279,6 +288,7 @@ class ModelHooks:
                         self.logger.experiment.add_histogram(
                             tag=k, values=v.grad, global_step=self.trainer.global_step
                         )
+
         """
 
     def configure_sharded_model(self) -> None:

@@ -56,7 +56,15 @@ def _setup_args() -> Dict[str, Any]:
     )
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    assistant._download_frontend(_PACKAGE_ROOT)
+    ui_ver_file = os.path.join(_SOURCE_ROOT, "app-ui-version.info")
+    if os.path.isfile(ui_ver_file):
+        with open(ui_ver_file, encoding="utf-8") as fo:
+            ui_version = fo.readlines()[0].strip()
+        download_fe_version = {"version": ui_version}
+    else:
+        print(f"Missing file with FE version: {ui_ver_file}")
+        download_fe_version = {}
+    assistant._download_frontend(_PACKAGE_ROOT, **download_fe_version)
 
     return {
         "name": "lightning-app",

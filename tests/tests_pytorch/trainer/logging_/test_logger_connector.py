@@ -211,6 +211,7 @@ def test_fx_validator_integration(tmpdir):
         "on_sanity_check_end": "You can't",
         "prepare_data": "You can't",
         "configure_callbacks": "You can't",
+        "on_validation_model_zero_grad": "You can't",
         "on_validation_model_eval": "You can't",
         "on_validation_model_train": "You can't",
         "lr_scheduler_step": "You can't",

@@ -502,7 +502,7 @@ class Strategy(ABC):
         """
         device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
         empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
-        with empty_init_context, device_context, self.precision_plugin.init_context():
+        with empty_init_context, device_context, self.precision_plugin.tensor_init_context():
             yield
 
     @contextmanager

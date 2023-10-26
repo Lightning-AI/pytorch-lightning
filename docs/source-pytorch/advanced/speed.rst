@@ -88,18 +88,8 @@ The question of how many workers to specify in ``num_workers`` is tricky. Here's
 
 The best thing to do is to increase the ``num_workers`` slowly and stop once there is no more improvement in your training speed.
 
-For debugging purposes or for dataloaders that load very small datasets, it is desirable to set ``num_workers=0``. However, this will log a warning that you're not using enough workers. In such cases, you can specifically filter this warning by using:
-
-.. code-block:: python
-
-    import warnings
-
-    warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*")
-
-    # or to ignore all warnings that could be false positives
-    from lightning.pytorch.utilities.warnings import PossibleUserWarning
-
-    warnings.filterwarnings("ignore", category=PossibleUserWarning)
+For debugging purposes or for dataloaders that load very small datasets, it is desirable to set ``num_workers=0``.
+However, this may log a warning that you're not using enough workers. See :doc:`warnings` if you need to disable such warnings.
 
 
 Persistent Workers

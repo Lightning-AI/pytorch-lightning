@@ -70,20 +70,12 @@ if _COPY_NOTEBOOKS:
         _PATH_HERE,
         "notebooks",
         patterns=[".", "course_UvA-DL", "lightning_examples"],
+        # TODO(@aniketmaurya): Complete converting the missing items and add them back
+        ignore=[
+            # "course_UvA-DL/13-contrastive-learning",
+            "lightning_examples/warp-drive",
+        ],
     )
-    # TODO(@aniketmaurya): Complete converting the missing items and add them back
-    ignore = [
-        "course_UvA-DL/13-contrastive-learning",
-        "lightning_examples/augmentation_kornia",
-        "lightning_examples/finetuning-scheduler",
-        "lightning_examples/reinforce-learning-DQN",
-        "lightning_examples/text-transformers",
-        "lightning_examples/warp-drive",
-    ]
-    for file in ignore:
-        file = os.path.join(_PATH_HERE, "notebooks", file)
-        if os.path.exists(file):
-            os.remove(file)
 
 
 os.makedirs(os.path.join(_PATH_HERE, _FOLDER_GENERATED), exist_ok=True)
@@ -477,6 +469,7 @@ nitpick_ignore = [
     ("py:class", "torch.utils.data.DistributedSampler"),
     ("py:class", "torch_xla.distributed.parallel_loader.MpDeviceLoader"),
     ("py:func", "torch_xla.distributed.xla_multiprocessing.spawn"),
+    ("py:class", "torch._dynamo.OptimizedModule"),
     ("py:mod", "tqdm"),
     ("py:meth", "training_step"),
     ("py:meth", "transfer_batch_to_device"),

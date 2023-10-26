@@ -23,9 +23,11 @@ from typing_extensions import TypedDict
 
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.pytorch.utilities.memory import recursive_detach
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
@@ -210,7 +212,10 @@ class _ResultMetric(Metric):
                 warning_cache.warn(
                     # do not include the value to avoid cache misses
                     f"You called `self.log({self.meta.name!r}, ...)` in your `{self.meta.fx}` but the value needs to"
-                    f" be floating point. Converting it to {dtype}."
+                    f" be floating to be reduced. Converting it to {dtype}."
+                    " You can silence this warning by converting the value to floating point yourself."
+                    " If you don't intend to reduce the value (for instance when logging the global step or epoch) then"
+                    f" you can use `self.logger.log_metrics({{{self.meta.name!r}: ...}})` instead."
                 )
                 value = value.to(dtype)
             if value.dtype not in (torch.float32, torch.float64):
@@ -265,7 +270,8 @@ class _ResultMetric(Metric):
         # Override to avoid syncing - we handle it ourselves.
         @wraps(compute)
         def wrapped_func(*args: Any, **kwargs: Any) -> Optional[Any]:
-            if not self._update_called:
+            update_called = self.update_called if _TORCHMETRICS_GREATER_EQUAL_1_0_0 else self._update_called
+            if not update_called:
                 rank_zero_warn(
                     f"The ``compute`` method of metric {self.__class__.__name__}"
                     " was called before the ``update`` method which may lead to errors,"
@@ -299,8 +305,7 @@ class _ResultMetric(Metric):
 
 
 class _ResultCollection(dict):
-    """Collection (dictionary) of
-    :class:`~lightning.pytorch.trainer.connectors.logger_connector.result._ResultMetric`
+    """Collection (dictionary) of :class:`~lightning.pytorch.trainer.connectors.logger_connector.result._ResultMetric`
 
     Example::
 
@@ -310,6 +315,7 @@ class _ResultCollection(dict):
         result = _ResultCollection(training=True)
         result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
         result.log('validation_step', 'recall', torch.tensor(...), on_step=True, on_epoch=True)
+
     """
 
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
@@ -423,7 +429,7 @@ class _ResultCollection(dict):
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
                 should = result_metric.meta.sync.should
-                if not should and result_metric.is_tensor and torch.distributed.is_initialized():
+                if not should and result_metric.is_tensor and _distributed_is_initialized():
                     warning_cache.warn(
                         f"It is recommended to use `self.log({result_metric.meta.name!r}, ..., sync_dist=True)`"
                         " when logging on epoch level in distributed setting to accumulate the metric across"

@@ -423,6 +423,7 @@ def test_custom_torch_batch_sampler():
 
     It also asserts, that during the reinstantiation, the wrapper of `__init__` method is not present anymore, therefore
     not setting `__pl_saved_{args,arg_names,kwargs}` attributes.
+
     """
 
     class MyBatchSampler(BatchSampler):
@@ -587,14 +588,13 @@ def test_set_sampler_epoch():
     [
         (0, 1, 1),
         (1, 1, 1),
-        (2, 1, 2),
-        (1, 2, 1),
+        (2, 1, 2 - 1),
         (1, 2, 1),
         (2, 2, 1),
         (3, 2, 1),
-        (4, 2, 2),
+        (4, 2, 2 - 1),
         (4, 3, 1),
-        (4, 1, 4),
+        (4, 1, 4 - 1),
     ],
 )
 @pytest.mark.parametrize(

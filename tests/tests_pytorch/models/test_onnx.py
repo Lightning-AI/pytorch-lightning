@@ -19,7 +19,6 @@ import numpy as np
 import onnxruntime
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning_utilities import compare_version
@@ -110,16 +109,11 @@ def test_verbose_param(tmpdir, capsys):
     model.example_input_array = torch.randn(5, 32)
     file_path = os.path.join(tmpdir, "model.onnx")
 
-    if _TORCH_GREATER_EQUAL_1_12:
-        with patch("torch.onnx.log", autospec=True) as test:
-            model.to_onnx(file_path, verbose=True)
-        args, kwargs = test.call_args
-        prefix, graph = args
-        assert prefix == "Exported graph: "
-    else:
+    with patch("torch.onnx.log", autospec=True) as test:
         model.to_onnx(file_path, verbose=True)
-        captured = capsys.readouterr()
-        assert "graph(%" in captured.out
+    args, kwargs = test.call_args
+    prefix, graph = args
+    assert prefix == "Exported graph: "
 
 
 @RunIf(onnx=True)

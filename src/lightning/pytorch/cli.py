@@ -30,7 +30,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.18.0")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.26.1")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
@@ -582,8 +582,7 @@ class LightningCLI:
     def configure_optimizers(
         lightning_module: LightningModule, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
     ) -> Any:
-        """Override to customize the :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`
-        method.
+        """Override to customize the :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` method.
 
         Args:
             lightning_module: A reference to the model.
@@ -601,8 +600,8 @@ class LightningCLI:
         return [optimizer], [lr_scheduler]
 
     def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
-        """Overrides the model's :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` method if
-        a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
+        """Overrides the model's :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` method if a
+        single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
         if not self.auto_configure_optimizers:
             return
 

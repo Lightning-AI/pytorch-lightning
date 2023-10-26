@@ -10,6 +10,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import pickle
 import warnings
 from functools import partial
@@ -153,8 +154,8 @@ class _NotYetLoadedTensor:
         }:
             return getattr(self.metatensor, name)
 
-        # Materialization with contiguous is needed for quantization (see lit-gpt)
-        if name in {"contiguous"}:
+        # materializing these is needed for quantization (see lit-gpt)
+        if name in {"contiguous", "cuda", "half"}:
             return getattr(self._load_tensor(), name)
 
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
@@ -193,6 +194,8 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
 def _lazy_load(filename: _PATH) -> Any:
     if not _TORCH_GREATER_EQUAL_2_0:
         raise NotImplementedError("Lazy-loading is only supported with PyTorch >= 2.0.")
+    if not os.path.isfile(filename):
+        raise FileNotFoundError(f"Path {str(filename)!r} does not exist or is not a file.")
     file_reader = torch.PyTorchFileReader(str(filename))
     with BytesIO(file_reader.get_record("data.pkl")) as pkl:
         mup = _LazyLoadingUnpickler(pkl, file_reader)

@@ -82,7 +82,7 @@ class _AcceleratorConnector:
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        precision: _PRECISION_INPUT = "32-true",
+        precision: Optional[_PRECISION_INPUT] = None,
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         use_distributed_sampler: bool = True,
@@ -174,7 +174,7 @@ class _AcceleratorConnector:
         self,
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
-        precision: _PRECISION_INPUT,
+        precision: Optional[_PRECISION_INPUT],
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
         sync_batchnorm: bool,
     ) -> None:
@@ -237,7 +237,7 @@ class _AcceleratorConnector:
 
         self._accelerator_flag = accelerator
 
-        self._precision_flag = _convert_precision_to_unified_args(precision)
+        precision_flag = _convert_precision_to_unified_args(precision)
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -271,6 +271,14 @@ class _AcceleratorConnector:
                     f"Received multiple values for {', '.join(duplicated_plugin_key)} flags in `plugins`."
                     " Expected one value for each type at most."
                 )
+
+            if plugins_flags_types.get(PrecisionPlugin.__name__) and precision_flag is not None:
+                raise ValueError(
+                    f"Received both `precision={precision_flag}` and `plugins={self._precision_plugin_flag}`."
+                    f" Choose one."
+                )
+
+        self._precision_flag = "32-true" if precision_flag is None else precision_flag
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
@@ -528,7 +536,7 @@ class _AcceleratorConnector:
             if isinstance(self.strategy, ColossalAIStrategy):
                 return ColossalAIPrecisionPlugin(self._precision_flag)
 
-        if isinstance(self.accelerator, XLAAccelerator):
+        if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)):
             return XLAPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
@@ -563,15 +571,6 @@ class _AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        if (
-            isinstance(self.accelerator, XLAAccelerator)
-            and self._precision_plugin_flag
-            and not isinstance(self._precision_plugin_flag, XLAPrecisionPlugin)
-        ):
-            raise ValueError(
-                f"The `XLAAccelerator` can only be used with a `XLAPrecisionPlugin`,"
-                f" found: {self._precision_plugin_flag}."
-            )
         if _lightning_habana_available():
             from lightning_habana import HPUAccelerator
 
