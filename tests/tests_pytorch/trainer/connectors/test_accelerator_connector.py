@@ -53,16 +53,16 @@ from lightning.pytorch.strategies import (
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _lightning_graphcore_available, _lightning_habana_available
+from lightning.pytorch.utilities.imports import _graphcore_available_and_importable, _habana_available_and_importable
 from lightning_utilities.core.imports import package_available
 
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 
-if _lightning_graphcore_available():
+if _graphcore_available_and_importable():
     from lightning_graphcore import IPUAccelerator, IPUStrategy
 
-if _lightning_habana_available():
+if _habana_available_and_importable():
     pass
 
 
@@ -630,7 +630,7 @@ class MockHPUPrecisionPlugin(Mock):
 
 def mock_hpu_count(monkeypatch, n=1):
     monkeypatch.setattr(
-        "lightning.pytorch.trainer.connectors.accelerator_connector._lightning_habana_available", lambda: n > 0
+        "lightning.pytorch.trainer.connectors.accelerator_connector._habana_available_and_importable", lambda: n > 0
     )
     if n < 1:
         return
@@ -995,7 +995,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     assert connector.strategy.launcher.is_interactive_compatible
 
     # Single/Multi IPU: strategy is the same
-    if _lightning_graphcore_available():
+    if _graphcore_available_and_importable():
         with monkeypatch.context():
             mock_cuda_count(monkeypatch, 0)
             mock_mps_count(monkeypatch, 0)
