@@ -171,7 +171,8 @@ class ThroughputMonitor(Callback):
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any
     ) -> None:
         self._update(trainer, pl_module, batch, trainer.fit_loop.total_batch_idx + 1)
-        # log when gradient accumulation is over. this avoids
+        # log only when gradient accumulation is over. this ensures that we only measure when the effective batch has
+        # finished and the `optimizer.step()` time is included
         if not trainer.fit_loop._should_accumulate():
             self._compute(trainer)
 
