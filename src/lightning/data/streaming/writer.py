@@ -346,7 +346,6 @@ class BinaryWriter:
     def merge(self, num_workers: int = 1, node_rank: Optional[int] = None) -> None:
         """Once all the workers have written their own index, the merge function is responsible to read and merge them
         into a single index."""
-        node_rank: Optional[int] = node_rank if node_rank is not None else _get_data_optimizer_node_rank()
         num_workers = num_workers or 1
 
         # Only for non rank 0
@@ -367,11 +366,7 @@ class BinaryWriter:
             index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
 
             # When using the Data Optimizer, we don't use multi processes.
-            data_optimizer_num_workers = os.getenv("DATA_OPTIMIZER_NUM_WORKERS", None)
-            if data_optimizer_num_workers is not None:
-                is_done = len(index_files) == int(data_optimizer_num_workers)
-            else:
-                is_done = len(index_files) == self._distributed_env.world_size * num_workers
+            is_done = len(index_files) == self._distributed_env.world_size * num_workers
             sleep(0.001)
 
         self._merge_no_wait(node_rank=node_rank)
