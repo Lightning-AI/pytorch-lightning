@@ -13,9 +13,10 @@
 # limitations under the License.
 # Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
 from collections import deque
-from typing import TYPE_CHECKING, Any, Callable, Dict, Literal, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Literal, Optional, Union
 
 import torch
+from typing_extensions import Self
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -24,8 +25,11 @@ if TYPE_CHECKING:
     from lightning.fabric import Fabric
     from lightning.fabric.plugins import Precision
 
+_THROUGHPUT_METRICS = Dict[str, Union[int, float]]
 
-# FIXME update and compute
+
+# The API design of this class follows `torchmetrics.Metric` but it doesn't need to be an actual Metric because there's
+# no need for synchronization or reduction as it doesn't use Tensors at all.
 class Throughput:
     """Computes throughput.
 
@@ -92,10 +96,11 @@ class Throughput:
         assert world_size > 0
         self.world_size = world_size
 
-        # throughput is computed over a window of batches
+        # throughput is computed over a window of values. at least 2 is enforced since it looks at the difference
+        # between the first and last elements
         assert window_size > 0
         # custom class instead of `deque(maxlen=)` because it's easy for users to mess up their timer/counters and log
-        # values that do not increase monotonically. this class will raise an error if that happens
+        # values that do not increase monotonically. this class will raise an error if that happens.
         self._samples = _MonotonicWindow(maxlen=window_size + 1)
         self._time = _MonotonicWindow(maxlen=window_size + 1)
         self._lengths = _MonotonicWindow(maxlen=window_size + 1)
@@ -114,15 +119,15 @@ class Throughput:
                 f'Invalid time_unit: {time_unit}. Must be one of "seconds", "minutes", "hours", or "days".'
             )
 
-    def compute(
+    def update(
         self,
         *,
         time: float,
         samples: int,
         lengths: Optional[int] = None,
         flops_per_batch: Optional[int] = None,
-    ) -> Dict:
-        """Compute and return throughput metrics.
+    ) -> Self:
+        """Update throughput metrics.
 
         Args:
             time: Total elapsed time in seconds. Monotonically increasing.
@@ -135,11 +140,7 @@ class Throughput:
 
         """
         self._time.append(time)
-        metrics = {"time": time / self._divider}
-
         self._samples.append(samples)
-        metrics["samples"] = samples
-
         if lengths is not None:
             self._lengths.append(lengths)
             if len(self._samples) != len(self._lengths):
@@ -147,8 +148,17 @@ class Throughput:
                     f"If lengths are passed ({len(self._lengths)}), there needs to be the same number of samples"
                     f" ({len(self._samples)})"
                 )
+        if flops_per_batch is not None:
+            # sum of flops per batch across ranks
+            self._flops.append(flops_per_batch * self.world_size)
+        return self
 
+    def compute(self) -> _THROUGHPUT_METRICS:
+        """Compute throughput metrics."""
+        metrics = {"time": self._time[-1] / self._divider, "samples": self._samples[-1]}
         add_global_metrics = self.world_size > 1
+        # a different but valid design choice would be to still compute all these metrics even if the window of values
+        # has not been filled
         if len(self._time) == self._time.maxlen:
             elapsed_batches = len(self._samples) - 1
             elapsed_samples = self._samples[-1] - self._samples[0]
@@ -170,16 +180,14 @@ class Throughput:
                         "samples_per_sec": dev_samples_per_sec * self.world_size,
                     }
                 )
-            if lengths is not None:
+
+            if len(self._lengths) == self._lengths.maxlen:
                 elapsed_lengths = int(self._lengths[-1]) - int(self._lengths[0])
                 avg_length = elapsed_lengths / elapsed_batches
                 if add_global_metrics:
                     metrics["items_per_sec"] = samples_per_sec * avg_length
                 metrics[f"device{self.separator}items_per_sec"] = dev_samples_per_sec * avg_length
 
-        if flops_per_batch is not None:
-            # sum of flops per batch across ranks
-            self._flops.append(flops_per_batch * self.world_size)
         if len(self._flops) == self._flops.maxlen:
             elapsed_flops = sum(self._flops) - self._flops[0]
             elapsed_time = self._time[-1] - self._time[0]
@@ -193,9 +201,16 @@ class Throughput:
 
         return metrics
 
+    def reset(self) -> Self:
+        self._samples.clear()
+        self._time.clear()
+        self._lengths.clear()
+        self._flops.clear()
+        return self
 
-class ThroughputMonitor:
-    r"""Tracks and logs throughput with the :class:`Throughput`
+
+class ThroughputMonitor(Throughput):
+    r"""Computes throughput.
 
     This class will automatically keep a count of the number of log calls (``step``). But that can be modified as
     desired. For manual logging, using :class:`Throughput` directly might be desired.
@@ -216,12 +231,16 @@ class ThroughputMonitor:
         fabric._validate_launched()  # otherwise world_size might be incorrect
         dtype = _plugin_to_compute_dtype(fabric.strategy.precision)
         flops_available = _get_flops_available(fabric.device, dtype)
+        super().__init__(flops_available=flops_available, world_size=fabric.world_size, **kwargs)
         self._fabric = fabric
         self.step = -1
-        self._throughput = Throughput(flops_available=flops_available, world_size=fabric.world_size, **kwargs)
+
+        self.update = rank_zero_only(self.update)
+        self.compute = rank_zero_only(self.compute)
+        self.reset = rank_zero_only(self.reset)
 
     @rank_zero_only
-    def compute_and_log(self, step: Optional[int] = None, **kwargs: Any) -> Dict:
+    def compute_and_log(self, step: Optional[int] = None, **kwargs: Any) -> _THROUGHPUT_METRICS:
         r"""See :meth:`Throughput.compute`
 
         Args:
@@ -230,7 +249,7 @@ class ThroughputMonitor:
 
         """
         self.step = (self.step + 1) if step is None else step
-        metrics = self._throughput.compute(**kwargs)
+        metrics = self.compute(**kwargs)
         self._fabric.log_dict(metrics=metrics, step=self.step)
         return metrics
 

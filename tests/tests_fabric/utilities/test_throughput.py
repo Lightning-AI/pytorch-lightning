@@ -64,19 +64,16 @@ def test_flops_available(xla_available):
 def test_throughput():
     # required args only
     throughput = Throughput()
-    metrics = throughput.compute(time=2.0, samples=2)
-    assert metrics == {"time": 2.0, "samples": 2}
+    throughput.update(time=2.0, samples=2)
+    assert throughput.compute() == {"time": 2.0, "samples": 2}
 
     # different lengths and samples
     with pytest.raises(RuntimeError, match="same number of samples"):
-        throughput.compute(time=2.1, samples=3, lengths=4)
+        throughput.update(time=2.1, samples=3, lengths=4)
 
     # lengths and samples
-    throughput = Throughput(window_size=1)
-    metrics = throughput.compute(time=2, samples=2, lengths=4)
-    assert metrics == {"time": 2.0, "samples": 2}
-    metrics = throughput.compute(time=2.5, samples=4, lengths=8)
-    assert metrics == {
+    throughput = Throughput(window_size=1).update(time=2, samples=2, lengths=4).update(time=2.5, samples=4, lengths=8)
+    assert throughput.compute() == {
         "time": 2.5,
         "samples": 4,
         "device/batches_per_sec": 2.0,
@@ -85,14 +82,15 @@ def test_throughput():
     }
 
     with pytest.raises(ValueError, match="Expected the value to increase"):
-        throughput.compute(time=2.5, samples=2, lengths=4)
+        throughput.update(time=2.5, samples=2, lengths=4)
 
     # flops
-    throughput = Throughput(flops_available=50, window_size=1)
-    metrics = throughput.compute(time=1, samples=2, flops_per_batch=10, lengths=10)
-    assert metrics == {"samples": 2, "time": 1.0}
-    metrics = throughput.compute(time=2, samples=4, flops_per_batch=10, lengths=20)
-    assert metrics == {
+    throughput = (
+        Throughput(flops_available=50, window_size=1)
+        .update(time=1, samples=2, flops_per_batch=10, lengths=10)
+        .update(time=2, samples=4, flops_per_batch=10, lengths=20)
+    )
+    assert throughput.compute() == {
         "device/batches_per_sec": 1.0,
         "device/flops_per_sec": 10.0,
         "device/items_per_sec": 20.0,
@@ -103,11 +101,11 @@ def test_throughput():
     }
 
     # flops without available
-    throughput = Throughput(flops_available=None, window_size=1)
-    metrics = throughput.compute(time=1, samples=2, flops_per_batch=10, lengths=10)
-    assert metrics == {"samples": 2, "time": 1.0}
-    metrics = throughput.compute(time=2, samples=4, flops_per_batch=10, lengths=20)
-    assert metrics == {
+    throughput.flops_available = None
+    throughput.reset().update(time=1, samples=2, flops_per_batch=10, lengths=10).update(
+        time=2, samples=4, flops_per_batch=10, lengths=20
+    )
+    assert throughput.compute() == {
         "device/batches_per_sec": 1.0,
         "device/flops_per_sec": 10.0,
         "device/items_per_sec": 20.0,
@@ -126,12 +124,13 @@ def mock_train_loop(monitor):
         # forward + backward + step + zero_grad ...
         t1 = iter_num + 0.5
         total_lengths += 2
-        monitor.compute_and_log(
+        monitor.update(
             time=t1 - total_t0,
             samples=iter_num * micro_batch_size,
             flops_per_batch=10,
             lengths=total_lengths,
         )
+        monitor.compute_and_log()
 
 
 def test_throughput_monitor():
@@ -171,16 +170,20 @@ def test_throughput_monitor():
     ]
 
 
-def test_throughput_monitor_manual_step():
+def test_throughput_monitor_step():
     fabric_mock = Mock()
     fabric_mock.world_size = 1
     fabric_mock.strategy.precision = Precision()
     monitor = ThroughputMonitor(fabric_mock)
+
+    # automatic step increase
     assert monitor.step == -1
-    metrics = monitor.compute_and_log(time=0.5, samples=3)
+    metrics = monitor.update(time=0.5, samples=3).compute_and_log()
     assert metrics == {"time": 0.5, "samples": 3}
     assert monitor.step == 0
-    monitor.compute_and_log(time=1.5, samples=4, step=5)
+
+    # manual step
+    metrics = monitor.update(time=1.5, samples=4).compute_and_log(step=5)
     assert metrics == {"time": 1.5, "samples": 4}
     assert monitor.step == 5
     assert fabric_mock.log_dict.mock_calls == [
@@ -195,7 +198,7 @@ def test_throughput_monitor_world_size():
     with mock.patch("lightning.fabric.utilities.throughput._get_flops_available", return_value=100):
         monitor = ThroughputMonitor(fabric, window_size=3)
         # simulate that there are 2 devices
-        monitor._throughput.world_size = 2
+        monitor.world_size = 2
     mock_train_loop(monitor)
     assert logger_mock.log_metrics.mock_calls == [
         call(metrics={"time": 1.5, "samples": 3}, step=0),

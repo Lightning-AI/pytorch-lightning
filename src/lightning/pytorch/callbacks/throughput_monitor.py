@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 import torch
 
 from lightning.fabric.plugins import Precision
-from lightning.fabric.utilities.throughput import Throughput, _get_flops_available
+from lightning.fabric.utilities.throughput import _THROUGHPUT_METRICS, Throughput, _get_flops_available
 from lightning.fabric.utilities.throughput import (
     _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype,
 )
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 
 class ThroughputMonitor(Callback):
-    r"""Tracks and logs throughput with the :class:`lightning.fabric.utilities.throughput.Throughput`
+    r"""Computes and logs throughput with the :class:`lightning.fabric.utilities.throughput.Throughput`
 
     # FIXME example
 
@@ -99,24 +99,29 @@ class ThroughputMonitor(Callback):
         train_elapsed = time.perf_counter() - self._train_t0
         if self.length_fn is not None:
             self._total_lengths += self.length_fn(batch)
-        if trainer.fit_loop._should_accumulate():
-            # FIXME: double check this after `update` is implemented
-            # returning here assumes that `flops_per_batch` will include the backward flops
-            return
         flops_per_batch = pl_module.flops_per_batch if hasattr(pl_module, "flops_per_batch") else None
         batch_size = self.batch_size_fn(batch)
         iter_num = trainer.fit_loop.total_batch_idx + 1
         assert self._throughput is not None
-        metrics = self._throughput.compute(
+        self._throughput.update(
             time=train_elapsed,
             # this assumes that all iterations used the same batch size
             samples=iter_num * batch_size,
             flops_per_batch=flops_per_batch,
             lengths=None if self.length_fn is None else self._total_lengths,
         )
-        # prefix with the stage to avoid collisions
-        metrics = {f"{trainer.state.stage.value}{self._throughput.separator}{k}": v for k, v in metrics.items()}
+        if trainer.fit_loop._should_accumulate():
+            # log when gradient accumulation is over
+            return
+        metrics = self._throughput.compute()
+        metrics = self._add_metrics_prefix(trainer, metrics)
         trainer._logger_connector.log_metrics(metrics)
+
+    def _add_metrics_prefix(self, trainer: "Trainer", metrics: _THROUGHPUT_METRICS) -> _THROUGHPUT_METRICS:
+        # prefix with the stage to avoid collisions
+        stage = trainer.state.stage
+        assert stage is not None
+        return {f"{stage.value}{self._throughput.separator}{k}": v for k, v in metrics.items()}
 
 
 def _plugin_to_compute_dtype(plugin: Union[Precision, PrecisionPlugin]) -> torch.dtype:
