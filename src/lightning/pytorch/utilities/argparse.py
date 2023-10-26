@@ -64,7 +64,7 @@ def _defaults_from_env_vars(fn: _T) -> _T:
             kwargs.update(dict(zip(cls_arg_names, args)))
         env_variables = vars(_parse_env_variables(cls))
         # update the kwargs by env variables
-        kwargs = dict(list(env_variables.items()) + list(kwargs.items()))
+        kwargs = dict(list(kwargs.items()) + list(env_variables.items()))
 
         # all args were already moved to kwargs
         return fn(self, **kwargs)
