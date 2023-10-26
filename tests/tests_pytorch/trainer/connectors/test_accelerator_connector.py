@@ -51,6 +51,7 @@ from lightning.pytorch.strategies import (
     XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
+from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import (
@@ -1047,6 +1048,12 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         assert isinstance(connector.accelerator, HPUAccelerator)
         assert isinstance(connector.strategy, HPUParallelStrategy)
         assert connector._devices_flag == 8
+        if _LIGHTNING_HABANA_AVAILABLE:
+            # these are not mocked because it's an implementation detail of HPUs that doesn't relate to our
+            # connector logic. so this needs to be run only when habana is installed
+            assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
+            assert isinstance(connector.strategy.launcher, _SubprocessScriptLauncher)
+            assert not connector.strategy.launcher.is_interactive_compatible
 
     # TPU and CUDA: prefers TPU
     with monkeypatch.context():
