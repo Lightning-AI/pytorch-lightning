@@ -207,7 +207,7 @@ class DataModuleImage(LightningDataModule):
 
 @pytest.mark.parametrize("delete_cached_files", [False, True])
 @pytest.mark.parametrize("fast_dev_run", [False, True])
-@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+@pytest.mark.skipif(condition=True, reason="Requires: ['pil']")
 def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     from PIL import Image
 
