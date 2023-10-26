@@ -355,11 +355,14 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     assert len(files) == expected
 
 
+class TestDatasetOptimizer(DatasetOptimizer):
+    def _broadcast_object(self, obj: Any) -> Any:
+        return obj
+
+
 @pytest.mark.parametrize("delete_cached_files", [False])
 @pytest.mark.parametrize("fast_dev_run", [False])
-@pytest.mark.skipif(
-    condition=not _PIL_AVAILABLE or sys.platform == "win32" or sys.platform == "darwin", reason="Requires: ['pil']"
-)
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
 def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     """This test ensures the data optimizer works in a fully distributed settings."""
 
@@ -382,7 +385,7 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
-    dataset_optimizer = DatasetOptimizer(
+    dataset_optimizer = TestDatasetOptimizer(
         name="dummy_dataset",
         src_dir=tmpdir,
         chunk_size=2,
@@ -416,7 +419,7 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
-    dataset_optimizer = DatasetOptimizer(
+    dataset_optimizer = TestDatasetOptimizer(
         name="dummy_dataset",
         src_dir=tmpdir,
         chunk_size=2,
