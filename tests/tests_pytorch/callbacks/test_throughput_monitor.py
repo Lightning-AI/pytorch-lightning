@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import Mock, call
+from unittest.mock import ANY, Mock, call
 
 import pytest
 import torch
@@ -79,6 +79,58 @@ def test_throughput_monitor_fit(tmp_path):
                 "epoch": 0,
             },
             step=4,
+        ),
+    ]
+
+
+def test_throughput_monitor_fit_no_length_fn(tmp_path):
+    logger_mock = Mock()
+    logger_mock.save_dir = tmp_path
+    monitor = ThroughputMonitor(batch_size_fn=lambda x: 3, window_size=1, time_unit="days")
+    model = BoringModel()
+    model.flops_per_batch = 33
+    trainer = Trainer(
+        devices=1,
+        logger=logger_mock,
+        callbacks=monitor,
+        max_steps=3,
+        limit_val_batches=0,
+        num_sanity_val_steps=0,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    with mock.patch(
+        "lightning.pytorch.callbacks.throughput_monitor._get_flops_available", return_value=100
+    ), mock.patch("time.perf_counter", side_effect=range(0, 40_000, 10_000)):
+        trainer.fit(model)
+
+    assert logger_mock.log_metrics.mock_calls == [
+        call(metrics={"train/time": ANY, "train/samples": 3, "epoch": 0}, step=0),
+        call(
+            metrics={
+                # using ANY to avoid issues with comparing floating numbers
+                "train/time": ANY,
+                "train/samples": 6,
+                "train/device/batches_per_sec": ANY,
+                "train/device/samples_per_sec": ANY,
+                "train/device/flops_per_sec": ANY,
+                "train/device/mfu": ANY,
+                "epoch": 0,
+            },
+            step=1,
+        ),
+        call(
+            metrics={
+                "train/time": ANY,
+                "train/samples": 9,
+                "train/device/batches_per_sec": ANY,
+                "train/device/samples_per_sec": ANY,
+                "train/device/flops_per_sec": ANY,
+                "train/device/mfu": ANY,
+                "epoch": 0,
+            },
+            step=2,
         ),
     ]
 

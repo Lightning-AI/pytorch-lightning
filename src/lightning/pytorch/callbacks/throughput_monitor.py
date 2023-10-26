@@ -41,23 +41,32 @@ if TYPE_CHECKING:
 
 
 class ThroughputMonitor(Callback):
-    r"""Tracks and logs throughput with the :class:`lightning.fabric.utilities.throughput.Throughput`.
+    r"""Tracks and logs throughput with the :class:`lightning.fabric.utilities.throughput.Throughput`
 
-    Only support for ``trainer.fit`` is currently implemented.
+    # FIXME example
+
+    Notes:
+        - Only support for :meth:`~lightning.pytorch.trainer.trainer.Trainer.fit` is currently implemented.
+        - It assumes that the batch size is the same during all iterations.
+        - It will try to access a ``flops_per_batch`` attribute on your ``LightningModule`` on every iteration.
+            We suggest using the :func:`lightning.fabric.utilities.throughput.measure_flops` function for this.
+            You might want to compute it differently each time based on your setup.
 
     Args:
-        length_fn: A function to compute the number of items in a sample given a batch.
         batch_size_fn: A function to compute the number of samples given a batch.
+        length_fn: A function to compute the number of items in a sample given a batch.
         \**kwargs: See available parameters in
             :class:`lightning.fabric.utilities.throughput.Throughput`
 
     """
 
-    def __init__(self, length_fn: Callable[[Any], int], batch_size_fn: Callable[[Any], int], **kwargs: Any) -> None:
+    def __init__(
+        self, batch_size_fn: Callable[[Any], int], length_fn: Optional[Callable[[Any], int]] = None, **kwargs: Any
+    ) -> None:
         super().__init__()
         self.kwargs = kwargs
-        self.length_fn = length_fn
         self.batch_size_fn = batch_size_fn
+        self.length_fn = length_fn
         self._throughput: Optional[Throughput] = None
         self._train_t0 = 0.0
         self._total_lengths = 0
@@ -88,9 +97,10 @@ class ThroughputMonitor(Callback):
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, batch_idx: int
     ) -> None:
         train_elapsed = time.perf_counter() - self._train_t0
-        self._total_lengths += self.length_fn(batch)
+        if self.length_fn is not None:
+            self._total_lengths += self.length_fn(batch)
         if trainer.fit_loop._should_accumulate():
-            # FIXME: double check this
+            # FIXME: double check this after `update` is implemented
             # returning here assumes that `flops_per_batch` will include the backward flops
             return
         flops_per_batch = pl_module.flops_per_batch if hasattr(pl_module, "flops_per_batch") else None
@@ -99,12 +109,13 @@ class ThroughputMonitor(Callback):
         assert self._throughput is not None
         metrics = self._throughput.compute(
             time=train_elapsed,
+            # this assumes that all iterations used the same batch size
             samples=iter_num * batch_size,
             flops_per_batch=flops_per_batch,
-            lengths=self._total_lengths,
+            lengths=None if self.length_fn is None else self._total_lengths,
         )
         # prefix with the stage to avoid collisions
-        metrics = {f"{trainer.state.stage}{self._throughput.separator}{k}": v for k, v in metrics.items()}
+        metrics = {f"{trainer.state.stage.value}{self._throughput.separator}{k}": v for k, v in metrics.items()}
         trainer._logger_connector.log_metrics(metrics)
 
 

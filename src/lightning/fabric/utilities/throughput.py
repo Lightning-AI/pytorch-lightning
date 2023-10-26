@@ -119,17 +119,19 @@ class Throughput:
         *,
         time: float,
         samples: int,
-        flops_per_batch: Optional[int] = None,
         lengths: Optional[int] = None,
+        flops_per_batch: Optional[int] = None,
     ) -> Dict:
         """Compute and return throughput metrics.
 
         Args:
             time: Total elapsed time in seconds. Monotonically increasing.
             samples: Total samples seen per device. Monotonically increasing.
-            flops_per_batch: Flops per batch per device. This might be different in each device if the batch size is not
-                the same.
             lengths: Total length of the samples seen. Monotonically increasing.
+            flops_per_batch: Flops per batch per device. You can easily compute this by using :func:`measure_flops`.
+                The value might be different in each device if the batch size is not the same.
+                It should be also be different in iterations that accumulate gradients versus iterations that
+                ``backward``.
 
         """
         self._time.append(time)
@@ -196,7 +198,7 @@ class ThroughputMonitor:
     r"""Tracks and logs throughput with the :class:`Throughput`
 
     This class will automatically keep a count of the number of log calls (``step``). But that can be modified as
-    desired.
+    desired. For manual logging, using :class:`Throughput` directly might be desired.
 
     Example::
 
@@ -219,16 +221,18 @@ class ThroughputMonitor:
         self._throughput = Throughput(flops_available=flops_available, world_size=fabric.world_size, **kwargs)
 
     @rank_zero_only
-    def compute_and_log(self, step: Optional[int] = None, **kwargs: Any) -> None:
-        """See :meth:`Throughput.compute`
+    def compute_and_log(self, step: Optional[int] = None, **kwargs: Any) -> Dict:
+        r"""See :meth:`Throughput.compute`
 
         Args:
             step: Can be used to override the logging step.
+            \**kwargs: See available parameters in :meth:`Throughput.compute`
 
         """
         self.step = (self.step + 1) if step is None else step
         metrics = self._throughput.compute(**kwargs)
         self._fabric.log_dict(metrics=metrics, step=self.step)
+        return metrics
 
 
 def measure_flops(

@@ -62,20 +62,20 @@ def test_flops_available(xla_available):
 
 
 def test_throughput():
-    # just samples
-    tracker = Throughput()
-    metrics = tracker.compute(time=2.0, samples=2)
+    # required args only
+    throughput = Throughput()
+    metrics = throughput.compute(time=2.0, samples=2)
     assert metrics == {"time": 2.0, "samples": 2}
 
     # different lengths and samples
     with pytest.raises(RuntimeError, match="same number of samples"):
-        tracker.compute(time=2.1, samples=3, lengths=4)
+        throughput.compute(time=2.1, samples=3, lengths=4)
 
     # lengths and samples
-    tracker = Throughput(window_size=1)
-    metrics = tracker.compute(time=2, samples=2, lengths=4)
+    throughput = Throughput(window_size=1)
+    metrics = throughput.compute(time=2, samples=2, lengths=4)
     assert metrics == {"time": 2.0, "samples": 2}
-    metrics = tracker.compute(time=2.5, samples=4, lengths=8)
+    metrics = throughput.compute(time=2.5, samples=4, lengths=8)
     assert metrics == {
         "time": 2.5,
         "samples": 4,
@@ -85,9 +85,36 @@ def test_throughput():
     }
 
     with pytest.raises(ValueError, match="Expected the value to increase"):
-        tracker.compute(time=2.5, samples=2, lengths=4)
+        throughput.compute(time=2.5, samples=2, lengths=4)
 
-    # FIXME test flops
+    # flops
+    throughput = Throughput(flops_available=50, window_size=1)
+    metrics = throughput.compute(time=1, samples=2, flops_per_batch=10, lengths=10)
+    assert metrics == {"samples": 2, "time": 1.0}
+    metrics = throughput.compute(time=2, samples=4, flops_per_batch=10, lengths=20)
+    assert metrics == {
+        "device/batches_per_sec": 1.0,
+        "device/flops_per_sec": 10.0,
+        "device/items_per_sec": 20.0,
+        "device/mfu": 0.2,
+        "device/samples_per_sec": 2.0,
+        "samples": 4,
+        "time": 2.0,
+    }
+
+    # flops without available
+    throughput = Throughput(flops_available=None, window_size=1)
+    metrics = throughput.compute(time=1, samples=2, flops_per_batch=10, lengths=10)
+    assert metrics == {"samples": 2, "time": 1.0}
+    metrics = throughput.compute(time=2, samples=4, flops_per_batch=10, lengths=20)
+    assert metrics == {
+        "device/batches_per_sec": 1.0,
+        "device/flops_per_sec": 10.0,
+        "device/items_per_sec": 20.0,
+        "device/samples_per_sec": 2.0,
+        "samples": 4,
+        "time": 2.0,
+    }
 
 
 def mock_train_loop(monitor):
@@ -150,9 +177,11 @@ def test_throughput_monitor_manual_step():
     fabric_mock.strategy.precision = Precision()
     monitor = ThroughputMonitor(fabric_mock)
     assert monitor.step == -1
-    monitor.compute_and_log(time=0.5, samples=3)
+    metrics = monitor.compute_and_log(time=0.5, samples=3)
+    assert metrics == {"time": 0.5, "samples": 3}
     assert monitor.step == 0
     monitor.compute_and_log(time=1.5, samples=4, step=5)
+    assert metrics == {"time": 1.5, "samples": 4}
     assert monitor.step == 5
     assert fabric_mock.log_dict.mock_calls == [
         call(metrics={"time": 0.5, "samples": 3}, step=0),
