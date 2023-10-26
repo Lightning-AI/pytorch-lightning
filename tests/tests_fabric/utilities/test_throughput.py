@@ -125,10 +125,7 @@ def mock_train_loop(monitor):
         t1 = iter_num + 0.5
         total_lengths += 2
         monitor.update(
-            time=t1 - total_t0,
-            samples=iter_num * micro_batch_size,
-            flops_per_batch=10,
-            lengths=total_lengths,
+            time=t1 - total_t0, samples=iter_num * micro_batch_size, flops_per_batch=10, lengths=total_lengths
         )
         monitor.compute_and_log()
 
@@ -243,6 +240,7 @@ def test_monotonic_window():
     w = _MonotonicWindow(maxlen=3)
     assert w == []
     assert len(w) == 0
+
     w.append(1)
     w.append(2)
     w.append(3)

@@ -79,11 +79,7 @@ class Throughput:
     """
 
     def __init__(
-        self,
-        available_flops: Optional[float] = None,
-        world_size: int = 1,
-        window_size: int = 100,
-        separator: str = "/",
+        self, available_flops: Optional[float] = None, world_size: int = 1, window_size: int = 100, separator: str = "/"
     ) -> None:
         self.available_flops = available_flops
         self.separator = separator
@@ -101,12 +97,7 @@ class Throughput:
         self._flops = deque(maxlen=window_size)
 
     def update(
-        self,
-        *,
-        time: float,
-        samples: int,
-        lengths: Optional[int] = None,
-        flops_per_batch: Optional[int] = None,
+        self, *, time: float, samples: int, lengths: Optional[int] = None, flops_per_batch: Optional[int] = None
     ) -> Self:
         """Update throughput metrics.
 
@@ -156,10 +147,7 @@ class Throughput:
             if add_global_metrics:
                 samples_per_sec = dev_batches_per_sec * self.world_size
                 metrics.update(
-                    {
-                        "batches_per_sec": samples_per_sec,
-                        "samples_per_sec": dev_samples_per_sec * self.world_size,
-                    }
+                    {"batches_per_sec": samples_per_sec, "samples_per_sec": dev_samples_per_sec * self.world_size}
                 )
 
             if len(self._lengths) == self._lengths.maxlen:
@@ -421,7 +409,7 @@ class _MonotonicWindow(list):
             return self[-1]
         return None
 
-    def append(self, x) -> None:
+    def append(self, x: Any) -> None:
         last = self.last
         if last is not None and last >= x:
             raise ValueError(f"Expected the value to increase, last: {last}, current: {x}")
@@ -430,6 +418,6 @@ class _MonotonicWindow(list):
         if len(self) > self.maxlen:
             del self[0]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: int, value: Any) -> None:
         # assigning is not implemented since we don't use it. it could be by checking all previous values
         raise NotImplementedError("__setitem__ is not supported")

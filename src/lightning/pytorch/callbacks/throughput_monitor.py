@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 import torch
+from lightning_utilities.core.rank_zero import rank_zero_warn
 
 from lightning.fabric.plugins import Precision
-from lightning.fabric.utilities.throughput import _THROUGHPUT_METRICS, Throughput, get_available_flops
-from lightning.fabric.utilities.throughput import (
-    _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype,
-)
+from lightning.fabric.utilities.throughput import Throughput, get_available_flops
+from lightning.fabric.utilities.throughput import _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.plugins import (
     DoublePrecisionPlugin,
@@ -33,8 +32,8 @@ from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecisi
 from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from lightning.pytorch.plugins.precision.half import HalfPrecisionPlugin
 from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
-from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
+from lightning.pytorch.trainer.states import RunningStage, TrainerFn
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 if TYPE_CHECKING:
     from lightning.pytorch import LightningModule, Trainer
@@ -67,61 +66,134 @@ class ThroughputMonitor(Callback):
         self.kwargs = kwargs
         self.batch_size_fn = batch_size_fn
         self.length_fn = length_fn
-        self._throughput: Optional[Throughput] = None
-        self._train_t0 = 0.0
-        self._total_lengths = 0
+        self.available_flops: Optional[int] = None
+        self._throughputs: Dict[RunningStage, Throughput] = {}
+        self._t0s: Dict[RunningStage, float] = {}
+        self._lengths: Dict[RunningStage, int] = {}
 
-    def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:
-        if stage is not TrainerFn.FITTING:
-            # TODO: this could use a monitor per stage
-            raise NotImplementedError(f"`trainer.{stage}()` is not supported")
-
-        if self._throughput is not None:
-            return  # already setup
+    def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: TrainerFn) -> None:
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
-        available_flops = get_available_flops(trainer.strategy.root_device, dtype)
-        if available_flops is not None and not hasattr(pl_module, "flops_per_batch"):
-            rank_zero_info(
-                "When using the `ThroughputMonitor`, you need to define a `flops_per_batch` attribute or property"
-                f" in {pl_module} to compute the FLOPs."
-            )
-        self._throughput = Throughput(available_flops=available_flops, world_size=trainer.world_size, **self.kwargs)
+        self.available_flops = get_available_flops(trainer.strategy.root_device, dtype)
 
-    @rank_zero_only
-    def on_train_start(self, trainer: "Trainer", pl_module: "LightningModule") -> None:
-        self._train_t0 = time.perf_counter()
+        if stage == TrainerFn.FITTING and trainer.enable_validation:
+            # `fit` includes validation inside
+            throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
+            self._throughputs[RunningStage.VALIDATING] = throughput
 
-    @rank_zero_only
-    @torch.no_grad()
-    def on_train_batch_end(
-        self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, batch_idx: int
-    ) -> None:
-        train_elapsed = time.perf_counter() - self._train_t0
+        throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
+        stage = trainer.state.stage
+        assert stage is not None
+        self._throughputs[stage] = throughput
+
+    def _start(self, trainer: "Trainer") -> None:
+        stage = trainer.state.stage
+        assert stage is not None
+        self._throughputs[stage].reset()
+        self._lengths[stage] = 0
+        self._t0s[stage] = time.perf_counter()
+
+    @torch.inference_mode()  # in case `length_fn` or `batch_size_fn` computes grads
+    def _update(self, trainer: "Trainer", pl_module: "LightningModule", batch: Any, iter_num: int) -> None:
+        stage = trainer.state.stage
+        assert stage is not None
+        throughput = self._throughputs[stage]
+
+        if trainer.strategy.root_device.type == "cuda":
+            # required or else perf_counter() won't be correct
+            torch.cuda.synchronize()
+
+        elapsed = time.perf_counter() - self._t0s[stage]
         if self.length_fn is not None:
-            self._total_lengths += self.length_fn(batch)
-        flops_per_batch = pl_module.flops_per_batch if hasattr(pl_module, "flops_per_batch") else None
+            self._lengths[stage] += self.length_fn(batch)
+
+        if hasattr(pl_module, "flops_per_batch"):
+            flops_per_batch = pl_module.flops_per_batch
+        else:
+            rank_zero_warn(
+                "When using the `ThroughputMonitor`, you need to define a `flops_per_batch` attribute or property"
+                f" in {type(pl_module).__name__} to compute the FLOPs."
+            )
+            flops_per_batch = None
+
         batch_size = self.batch_size_fn(batch)
-        iter_num = trainer.fit_loop.total_batch_idx + 1
-        assert self._throughput is not None
-        self._throughput.update(
-            time=train_elapsed,
+        throughput.update(
+            time=elapsed,
             # this assumes that all iterations used the same batch size
             samples=iter_num * batch_size,
             flops_per_batch=flops_per_batch,
-            lengths=None if self.length_fn is None else self._total_lengths,
+            lengths=None if self.length_fn is None else self._lengths[stage],
         )
-        if trainer.fit_loop._should_accumulate():
-            # log when gradient accumulation is over
-            return
-        metrics = self._throughput.compute()
-        metrics = self._add_metrics_prefix(trainer, metrics)
-        trainer._logger_connector.log_metrics(metrics)
 
-    def _add_metrics_prefix(self, trainer: "Trainer", metrics: _THROUGHPUT_METRICS) -> _THROUGHPUT_METRICS:
-        # prefix with the stage to avoid collisions
+    def _compute(self, trainer: "Trainer", step: Optional[int] = None) -> None:
+        if not trainer._logger_connector.should_update_logs:
+            return
         stage = trainer.state.stage
         assert stage is not None
-        return {f"{stage.value}{self._throughput.separator}{k}": v for k, v in metrics.items()}
+        throughput = self._throughputs[stage]
+        metrics = throughput.compute()
+        # prefix with the stage to avoid collisions
+        metrics = {f"{stage.value}{throughput.separator}{k}": v for k, v in metrics.items()}
+        trainer._logger_connector.log_metrics(metrics, step=step)
+
+    @rank_zero_only
+    def on_train_start(self, trainer: "Trainer", *_) -> None:
+        self._start(trainer)
+
+    @rank_zero_only
+    def on_train_batch_end(
+        self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_
+    ) -> None:
+        self._update(trainer, pl_module, batch, trainer.fit_loop.total_batch_idx + 1)
+        # log when gradient accumulation is over
+        if not trainer.fit_loop._should_accumulate():
+            self._compute(trainer)
+
+    @rank_zero_only
+    def on_validation_start(self, trainer: "Trainer", *_: Any) -> None:
+        if trainer.sanity_checking:
+            return
+        self._start(trainer)
+
+    @rank_zero_only
+    def on_validation_batch_end(
+        self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any, **__: Any
+    ) -> None:
+        if trainer.sanity_checking:
+            return
+        self._update(trainer, pl_module, batch, trainer._evaluation_loop.batch_progress.total.ready)
+        self._compute(trainer, trainer._evaluation_loop.batch_progress.current.ready)
+
+    def on_validation_end(self, trainer: "Trainer", *_: Any) -> None:
+        if trainer.sanity_checking or trainer.state.fn != TrainerFn.FITTING:
+            return
+        # add the validation time to the training time before continuing to avoid sinking the training throughput
+        time_between_train_and_val = (
+            self._t0s[RunningStage.VALIDATING] - self._throughputs[RunningStage.TRAINING]._time[-1]
+        )
+        val_time = self._throughputs[RunningStage.VALIDATING]._time[-1]
+        self._t0s[RunningStage.TRAINING] += time_between_train_and_val + val_time
+
+    @rank_zero_only
+    def on_test_start(self, trainer: "Trainer", *_: Any) -> None:
+        self._start(trainer)
+
+    @rank_zero_only
+    def on_test_batch_end(
+        self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any, **__: Any
+    ) -> None:
+        self._update(trainer, pl_module, batch, trainer._evaluation_loop.batch_progress.total.ready)
+        self._compute(trainer, trainer._evaluation_loop.batch_progress.current.ready)
+
+    @rank_zero_only
+    def on_predict_start(self, trainer: "Trainer", *_: Any) -> None:
+        self._start(trainer)
+
+    @rank_zero_only
+    def on_predict_batch_end(
+        self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any, **__: Any
+    ) -> None:
+        self._update(trainer, pl_module, batch, trainer.predict_loop.batch_progress.total.ready)
+        self._compute(trainer, trainer.predict_loop.batch_progress.current.ready)
 
 
 def _plugin_to_compute_dtype(plugin: Union[Precision, PrecisionPlugin]) -> torch.dtype:

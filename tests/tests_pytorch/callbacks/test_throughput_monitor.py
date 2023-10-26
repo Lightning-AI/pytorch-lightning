@@ -37,7 +37,8 @@ def test_throughput_monitor_fit(tmp_path):
         logger=logger_mock,
         callbacks=monitor,
         max_steps=5,
-        val_check_interval=2,
+        log_every_n_steps=1,
+        limit_val_batches=0,
         num_sanity_val_steps=2,
         enable_checkpointing=False,
         enable_model_summary=False,
@@ -49,6 +50,9 @@ def test_throughput_monitor_fit(tmp_path):
         "time.perf_counter", side_effect=timings
     ):
         trainer.fit(model)
+
+    # since limit_val_batches==0, we didn't init the validation throughput
+    assert "validate" not in monitor._throughputs
 
     assert logger_mock.log_metrics.mock_calls == [
         call(metrics={"train|time": 1.5, "train|samples": 3, "epoch": 0}, step=0),
@@ -83,6 +87,51 @@ def test_throughput_monitor_fit(tmp_path):
     ]
 
 
+def test_throughput_monitor_fit_with_validation(tmp_path):
+    logger_mock = Mock()
+    logger_mock.save_dir = tmp_path
+    monitor = ThroughputMonitor(batch_size_fn=lambda x: 1, window_size=2)
+    model = BoringModel()
+    trainer = Trainer(
+        devices=1,
+        logger=logger_mock,
+        callbacks=monitor,
+        max_steps=2,
+        # validation runs in between the 2 training steps
+        val_check_interval=1,
+        log_every_n_steps=1,
+        limit_val_batches=1,
+        num_sanity_val_steps=2,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    timings = [
+        0,  # train t0
+        7,  # train t1
+        11,  # val t0
+        13,  # val t1
+        19,  # train t1
+    ]
+    with mock.patch("time.perf_counter", side_effect=timings):
+        trainer.fit(model)
+
+    assert logger_mock.log_metrics.mock_calls == [
+        call(metrics={"train/time": 7, "train/samples": 1, "epoch": 0}, step=0),
+        call(metrics={"validate/time": 13 - 11, "validate/samples": 1}, step=1),
+        call(
+            metrics={
+                "train/time": 7 + (19 - 13),
+                "train/samples": 2,
+                "train/device/batches_per_sec": ANY,
+                "train/device/samples_per_sec": ANY,
+                "epoch": 0,
+            },
+            step=1,
+        ),
+    ]
+
+
 def test_throughput_monitor_fit_no_length_fn(tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
@@ -94,6 +143,7 @@ def test_throughput_monitor_fit_no_length_fn(tmp_path):
         logger=logger_mock,
         callbacks=monitor,
         max_steps=3,
+        log_every_n_steps=1,
         limit_val_batches=0,
         num_sanity_val_steps=0,
         enable_checkpointing=False,
@@ -144,9 +194,10 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
         logger=logger_mock,
         callbacks=monitor,
         limit_train_batches=5,
+        limit_val_batches=0,
         max_epochs=2,
+        log_every_n_steps=1,
         accumulate_grad_batches=2,
-        val_check_interval=2,
         num_sanity_val_steps=2,
         enable_checkpointing=False,
         enable_model_summary=False,
@@ -232,18 +283,45 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
 def test_throughput_monitor_eval(tmp_path, fn):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
-    monitor = ThroughputMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=4, separator="|")
+    monitor = ThroughputMonitor(batch_size_fn=lambda x: 3, window_size=3, separator="|")
     model = BoringModel()
     model.flops_per_batch = 10
     trainer = Trainer(
         devices=1,
         logger=logger_mock,
         callbacks=monitor,
-        max_steps=5,
+        limit_val_batches=6,
+        limit_test_batches=6,
+        limit_predict_batches=6,
+        log_every_n_steps=3,
         enable_checkpointing=False,
         enable_model_summary=False,
         enable_progress_bar=False,
     )
     trainer_fn = getattr(trainer, fn)
-    with pytest.raises(NotImplementedError, match=fn):
-        trainer_fn(model)
+    trainer_fn(model)
+
+    assert logger_mock.log_metrics.mock_calls == [
+        call(
+            metrics={
+                f"{fn}|time": ANY,
+                f"{fn}|samples": 9,
+                f"{fn}|device|batches_per_sec": ANY,
+                f"{fn}|device|samples_per_sec": ANY,
+                f"{fn}|device|flops_per_sec": ANY,
+                f"{fn}|device|mfu": ANY,
+            },
+            step=3,
+        ),
+        call(
+            metrics={
+                f"{fn}|time": ANY,
+                f"{fn}|samples": 18,
+                f"{fn}|device|batches_per_sec": ANY,
+                f"{fn}|device|samples_per_sec": ANY,
+                f"{fn}|device|flops_per_sec": ANY,
+                f"{fn}|device|mfu": ANY,
+            },
+            step=6,
+        ),
+    ]

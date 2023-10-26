@@ -51,8 +51,16 @@ class _LoggerConnector:
         trainer = self.trainer
         if trainer.log_every_n_steps == 0:
             return False
-        # `+ 1` because it can be checked before a step is executed, for example, in `on_train_batch_start`
-        should_log = (trainer.fit_loop.epoch_loop._batches_that_stepped + 1) % trainer.log_every_n_steps == 0
+        if (loop := trainer._active_loop) is None:
+            return True
+        if isinstance(loop, pl.loops._FitLoop):
+            # `+ 1` because it can be checked before a step is executed, for example, in `on_train_batch_start`
+            step = loop.epoch_loop._batches_that_stepped + 1
+        elif isinstance(loop, (pl.loops._EvaluationLoop, pl.loops._PredictionLoop)):
+            step = loop.batch_progress.current.ready
+        else:
+            raise NotImplementedError(loop)
+        should_log = step % trainer.log_every_n_steps == 0
         return should_log or trainer.should_stop
 
     def configure_logger(self, logger: Union[bool, Logger, Iterable[Logger]]) -> None:
