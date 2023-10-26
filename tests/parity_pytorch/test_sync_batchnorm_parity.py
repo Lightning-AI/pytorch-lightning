@@ -15,7 +15,6 @@ import torch
 import torch.nn as nn
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from torch.utils.data import DataLoader, DistributedSampler
-from typing_extensions import override
 
 from parity_pytorch import RunIf
 
@@ -31,7 +30,6 @@ class SyncBNModule(LightningModule):
     def on_train_start(self) -> None:
         assert isinstance(self.bn_layer, torch.nn.modules.batchnorm.SyncBatchNorm)
 
-    @override
     def training_step(self, batch, batch_idx):
         with torch.no_grad():
             out_bn = self.bn_layer(batch)
@@ -39,7 +37,6 @@ class SyncBNModule(LightningModule):
         out = self.linear(out_bn)
         return out.sum()
 
-    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.02)
 

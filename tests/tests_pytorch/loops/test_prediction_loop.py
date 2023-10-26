@@ -18,7 +18,6 @@ from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler
-from typing_extensions import override
 
 
 def test_prediction_loop_stores_predictions(tmp_path):
@@ -120,7 +119,6 @@ def test_prediction_loop_with_iterable_dataset(tmp_path):
         def on_predict_batch_start(self, batch, batch_idx, dataloader_idx):
             self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
 
-        @override
         def predict_step(self, dataloader_iter):
             self.step_outs.append(next(dataloader_iter))
 

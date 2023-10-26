@@ -21,7 +21,6 @@ from fsspec.implementations.local import LocalFileSystem
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel
-from typing_extensions import override
 
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
@@ -179,7 +178,6 @@ def test_torchscript_script_recursively():
             super().__init__()
             self.model = torch.nn.Linear(1, 1)
 
-        @override
         def forward(self, inputs):
             return self.model(inputs)
 
@@ -188,7 +186,6 @@ def test_torchscript_script_recursively():
             super().__init__()
             self.model = torch.nn.Sequential(GrandChild(), GrandChild())
 
-        @override
         def forward(self, inputs):
             return self.model(inputs)
 
@@ -197,7 +194,6 @@ def test_torchscript_script_recursively():
             super().__init__()
             self.model = Child()
 
-        @override
         def forward(self, inputs):
             return self.model(inputs)
 

@@ -55,7 +55,6 @@ from lightning.pytorch.trainer.connectors.accelerator_connector import _Accelera
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _lightning_graphcore_available, _lightning_habana_available
 from lightning_utilities.core.imports import package_available
-from typing_extensions import override
 
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
@@ -179,7 +178,6 @@ def test_custom_accelerator(cuda_count_0):
         def setup_device(self, device: torch.device) -> None:
             pass
 
-        @override
         def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
             pass
 

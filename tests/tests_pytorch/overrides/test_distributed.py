@@ -19,7 +19,6 @@ from lightning.fabric.utilities.data import has_len
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
 from torch.utils.data import BatchSampler, SequentialSampler
-from typing_extensions import override
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -30,7 +29,6 @@ class MyModel(LightningModule):
         weights = self.layer.weight.item(), self.layer.bias.item()
         self.rank_0_weights = self.trainer.strategy.broadcast(weights)
 
-    @override
     def test_step(self, batch, batch_idx):
         current = self.layer.weight.item(), self.layer.bias.item()
         assert self.rank_0_weights == current

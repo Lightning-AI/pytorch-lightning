@@ -27,7 +27,6 @@ from lightning.pytorch.loggers import Logger, TensorBoardLogger
 from lightning.pytorch.loggers.logger import DummyExperiment, DummyLogger
 from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
-from typing_extensions import override
 
 
 class CustomLogger(Logger):
@@ -57,7 +56,6 @@ class CustomLogger(Logger):
     def finalize(self, status):
         self.finalized_status = status
 
-    @override
     @property
     def save_dir(self) -> Optional[str]:
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
@@ -72,7 +70,6 @@ class CustomLogger(Logger):
     def version(self):
         return self._version
 
-    @override
     def after_save_checkpoint(self, checkpoint_callback):
         self.after_save_checkpoint_called = True
 

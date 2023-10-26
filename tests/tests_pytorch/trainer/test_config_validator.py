@@ -23,7 +23,6 @@ from lightning.pytorch.trainer.configuration_validator import (
     __verify_train_val_loop_configuration,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from typing_extensions import override
 
 
 def test_wrong_train_setting(tmpdir):
@@ -99,7 +98,6 @@ def test_trainer_predict_verify_config(tmpdir, datamodule):
             super().__init__()
             self.layer = torch.nn.Linear(32, 2)
 
-        @override
         def forward(self, x):
             return self.layer(x)
 

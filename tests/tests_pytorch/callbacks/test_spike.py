@@ -6,7 +6,6 @@ import torch
 from lightning.fabric.utilities.spike import _TORCHMETRICS_GREATER_EQUAL_1_0_0, TrainingSpikeException
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks.spike import SpikeDetection
-from typing_extensions import override
 
 
 class IdentityModule(LightningModule):
@@ -16,7 +15,6 @@ class IdentityModule(LightningModule):
         self.spike_global_rank = spike_global_rank
         self.spike_value = spike_value
 
-    @override
     def training_step(self, batch, batch_idx: int):
         # initialize it all to weights one so that input = output but with gradients
         with torch.no_grad():
@@ -32,7 +30,6 @@ class IdentityModule(LightningModule):
         loss = self.layer(torch.tensor(curr_loss_val, device=self.device, dtype=self.dtype).view(1, 1))
         return loss
 
-    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=1e-3)
 

@@ -25,7 +25,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import _BaseProgress
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
-from typing_extensions import override
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -86,11 +85,9 @@ def test_loop_restore():
 
             self.outputs.append(value)
 
-        @override
         def state_dict(self) -> Dict:
             return {"iteration_count": self.iteration_count, "outputs": self.outputs}
 
-        @override
         def load_state_dict(self, state_dict: Dict) -> None:
             self.iteration_count = state_dict["iteration_count"]
             self.outputs = state_dict["outputs"]
@@ -141,11 +138,9 @@ def test_loop_hierarchy():
                 return
             loop.run()
 
-        @override
         def on_save_checkpoint(self) -> Dict:
             return {"a": self.a}
 
-        @override
         def on_load_checkpoint(self, state_dict: Dict) -> None:
             self.a = state_dict["a"]
 
@@ -630,17 +625,14 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         def step(self, batch):
             return sum(self.layer(b).sum() for b in batch)
 
-        @override
         def training_step(self, batch, batch_idx):
             return self.step(batch)
 
-        @override
         def validation_step(self, batch, batch_idx, dataloader_idx=0):
             if self.should_fail and dataloader_idx == stop_dataloader and batch_idx == stop_batch:
                 raise CustomException
             return self.step(batch)
 
-        @override
         def configure_optimizers(self):
             return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 

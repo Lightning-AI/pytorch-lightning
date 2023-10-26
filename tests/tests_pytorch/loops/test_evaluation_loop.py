@@ -22,7 +22,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.utilities import CombinedLoader
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import BatchSampler, RandomSampler
-from typing_extensions import override
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -181,7 +180,6 @@ def test_evaluation_loop_dataloader_iter_multiple_dataloaders(tmp_path):
         def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
             self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
 
-        @override
         def validation_step(self, dataloader_iter):
             self.step_outs.append(next(dataloader_iter))
 
