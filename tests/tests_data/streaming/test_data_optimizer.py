@@ -12,6 +12,7 @@ from lightning.data.streaming.dataset_optimizer import (
     _download_data_target,
     _remove_target,
     _upload_fn,
+    _wait_for_file_to_exist,
 )
 from lightning_utilities.core.imports import RequirementCache
 
@@ -129,6 +130,35 @@ def test_download_data_target(tmpdir):
     assert queue_out.put._mock_call_args_list[1].args == (None,)
 
     assert os.listdir(cache_dir) == ["a.txt"]
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+def test_wait_for_file_to_exist():
+    import botocore
+
+    s3 = mock.MagicMock()
+    obj = mock.MagicMock()
+    raise_error = [True, True, False]
+
+    def fn(*_, **__):
+        value = raise_error.pop(0)
+        if value:
+            raise botocore.exceptions.ClientError({"Error": {"Code": "404", "Message": "Not Found"}}, "HeadObject")
+        return
+
+    s3.head_object = fn
+
+    _wait_for_file_to_exist(s3, obj, sleep_time=0.01)
+
+    assert len(raise_error) == 0
+
+    def fn(*_, **__):
+        raise ValueError("HERE")
+
+    s3.head_object = fn
+
+    with pytest.raises(ValueError, match="HERE"):
+        _wait_for_file_to_exist(s3, obj, sleep_time=0.01)
 
 
 class DataModuleImage(LightningDataModule):

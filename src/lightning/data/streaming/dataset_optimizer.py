@@ -35,7 +35,7 @@ if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42:
 
 if _BOTO3_AVAILABLE:
     import boto3
-    from botocore.config import Config
+    import botocore
 
 logger = logging.Logger(__name__)
 
@@ -65,12 +65,35 @@ def _get_home_folder() -> str:
     return os.getenv("DATA_OPTIMIZER_HOME_FOLDER", os.path.expanduser("~"))
 
 
+def _get_cache_dir(name: str) -> str:
+    """Returns the cache directory used by the Cache to store the chunks."""
+    return os.path.join(_get_cache_folder(), name)
+
+
+def _get_cache_data_dir(name: str) -> str:
+    """Returns the cache data directory used by the DatasetOptimizer workers to download the files."""
+    return os.path.join(_get_cache_folder(), "data", name)
+
+
+def _get_s3_client() -> Any:
+    return boto3.client("s3", config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "standard"}))
+
+
+def _wait_for_file_to_exist(s3: Any, obj: parse.ParseResult, sleep_time: int = 2) -> Any:
+    """This function check."""
+    while True:
+        try:
+            return s3.head_object(Bucket=obj.netloc, Key=obj.path.lstrip("/"))
+        except botocore.exceptions.ClientError as e:
+            if "the HeadObject operation: Not Found" in str(e):
+                sleep(sleep_time)
+            else:
+                raise e
+
+
 def _download_data_target(src_dir: str, remote_src_dir: str, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
     """This function is used to download data from a remote directory to a cache directory to optimise reading."""
-    # 1. Create client
-    config = Config(retries={"max_attempts": 1000, "mode": "standard"})
-
-    s3 = boto3.client("s3", config=config)
+    s3 = _get_s3_client()
 
     while True:
         # 2. Fetch from the queue
@@ -136,9 +159,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
     obj = parse.urlparse(remote_dst_dir)
 
     if obj.scheme == "s3":
-        config = Config(retries={"max_attempts": 1000, "mode": "standard"})
-
-        s3 = boto3.client("s3", config=config)
+        s3 = _get_s3_client()
 
     while True:
         local_filepath: Optional[str] = upload_queue.get()
@@ -303,7 +324,7 @@ class BaseWorker:
         os.environ["DATA_OPTIMIZER_NUM_WORKERS"] = str(self.num_workers)
 
     def _create_cache(self) -> None:
-        self.cache_chunks_dir = os.path.join(_get_cache_folder(), self.dataset_name)
+        self.cache_chunks_dir = _get_cache_dir(self.dataset_name)
 
         os.makedirs(self.cache_chunks_dir, exist_ok=True)
 
@@ -314,7 +335,7 @@ class BaseWorker:
             compression=self.compression,
         )
         self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
-        self.cache_data_dir = os.path.join(_get_cache_folder(), "data", self.dataset_name)
+        self.cache_data_dir = _get_cache_data_dir(self.dataset_name)
 
         os.makedirs(self.cache_data_dir, exist_ok=True)
 
@@ -627,7 +648,7 @@ class DatasetOptimizer:
 
         print("Workers are finished.")
 
-        cache_dir = os.path.join(_get_cache_folder(), self.name)
+        cache_dir = _get_cache_dir(self.name)
 
         chunks = [file for file in os.listdir(cache_dir) if file.endswith(".bin")]
         if chunks and self.delete_cached_files and self.remote_dst_dir:
@@ -638,9 +659,6 @@ class DatasetOptimizer:
         merge_cache._merge_no_wait(node_rank if num_nodes > 1 else None)
         self._upload_index(cache_dir, num_nodes, node_rank)
         print("Finished data processing!")
-
-        if num_nodes > 1:
-            os._exit(0)
 
     def _exit_on_error(self, error: str) -> None:
         for w in self.workers:
@@ -799,7 +817,7 @@ class DatasetOptimizer:
             local_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
 
         if obj.scheme == "s3":
-            s3 = boto3.client("s3")
+            s3 = _get_s3_client()
             s3.upload_file(
                 local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
             )
@@ -819,16 +837,7 @@ class DatasetOptimizer:
                 node_index_filepath = os.path.join(cache_dir, os.path.basename(remote_filepath))
                 if obj.scheme == "s3":
                     obj = parse.urlparse(remote_filepath)
-                    # Wait for the index to exist on s3.
-                    while True:
-                        try:
-                            s3.head_object(Bucket=obj.netloc, Key=obj.path.lstrip("/"))
-                            break
-                        except Exception as e:
-                            print(e)
-                            # Sleep to avoid getting rate limited.
-                            sleep(2)
-                            pass
+                    _wait_for_file_to_exist(s3, obj)
                     with open(node_index_filepath, "wb") as f:
                         s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
                 elif os.path.isdir(self.remote_dst_dir):
@@ -839,15 +848,15 @@ class DatasetOptimizer:
             self._upload_index(cache_dir, 1, None)
 
     def _cleanup_cache(self) -> None:
-        cache_chunks_dir = os.path.join(_get_cache_folder(), self.name)
+        cache_dir = _get_cache_dir(self.name)
 
-        # Cleanup the cache folder to avoid corrupted files from previous run to be there.
-        if os.path.exists(cache_chunks_dir):
-            rmtree(cache_chunks_dir)
+        # Cleanup the cache dir folder to avoid corrupted files from previous run to be there.
+        if os.path.exists(cache_dir):
+            rmtree(cache_dir)
 
-        cache_data_dir = os.path.join(_get_cache_folder(), "data", self.name)
+        cache_data_dir = _get_cache_data_dir(self.name)
 
-        # Cleanup the cache folder to avoid corrupted files from previous run to be there.
+        # Cleanup the cache data folder to avoid corrupted files from previous run to be there.
         if os.path.exists(cache_data_dir):
             rmtree(cache_data_dir)
 
