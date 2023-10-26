@@ -16,7 +16,17 @@ from lightning.pytorch.loggers.csv_logs import CSVLogger
 from lightning.pytorch.loggers.logger import Logger
 from lightning.pytorch.loggers.mlflow import MLFlowLogger
 from lightning.pytorch.loggers.neptune import NeptuneLogger
+from lightning.pytorch.loggers.sagemaker import SagemakerExperimentsLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.loggers.wandb import WandbLogger
 
-__all__ = ["CometLogger", "CSVLogger", "Logger", "MLFlowLogger", "TensorBoardLogger", "WandbLogger", "NeptuneLogger"]
+__all__ = [
+    "CometLogger",
+    "CSVLogger",
+    "Logger",
+    "MLFlowLogger",
+    "TensorBoardLogger",
+    "WandbLogger",
+    "NeptuneLogger",
+    "SagemakerExperimentsLogger",
+]

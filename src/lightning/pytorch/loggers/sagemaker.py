@@ -1,4 +1,4 @@
-# Copyright 2023 Tobias Senst
+# Copyright The Lightning AI team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,18 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Sagemaker Experiments Logger
+----------------------------
+"""
 import json
 import logging
 from argparse import Namespace
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Union
 
-from lightning_fabric.utilities.logger import _convert_params
-from pytorch_lightning.loggers.logger import Logger
+from lightning_utilities.core.imports import RequirementCache
+from pydantic import BaseModel
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from sagemaker.experiments import load_run
-from sagemaker.experiments.run import Run
-from sagemaker.session import Session
 from torch import Tensor
+
+from lightning.fabric.utilities.logger import _convert_params
+from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
+
+if TYPE_CHECKING:
+    import sagemaker
+
+_SAGEMAKER_AVAILABLE = RequirementCache("sagemaker>=2.190.0")
 
 log = logging.getLogger(__name__)
 
@@ -39,9 +48,16 @@ def _prep_param_for_serialization(param: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
+class ExperimentConfig(BaseModel):
+    experiment_name: str
+    run_name: str
+    run_within_context: bool
+
+
 class SagemakerExperimentsLogger(Logger):
     r"""
-    Log to `AWS Sagemaker Experiments <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html#run>`_ .
+    Log to `AWS Sagemaker Experiments
+    <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html#run>`_ .
 
     Implemented using :mod:`~sagemaker.experiments` API. Install api with pip:
 
@@ -76,7 +92,6 @@ class SagemakerExperimentsLogger(Logger):
     .. code:: python
 
         from pytorch_lightning import Trainer
-        from sagemaker.experiments.run import Run:
         from experiments_addon.logger import SagemakerExperimentsLogger
 
         logger = SagemakerExperimentsLogger()
@@ -117,54 +132,68 @@ class SagemakerExperimentsLogger(Logger):
         self,
         run_name: Optional[str] = None,
         experiment_name: Optional[str] = None,
-        sagemaker_session: Optional[Session] = None,
+        sagemaker_session: Optional["sagemaker.session.Session"] = None,
     ) -> None:
+        if not _SAGEMAKER_AVAILABLE:
+            raise ModuleNotFoundError(str(_SAGEMAKER_AVAILABLE))
         super().__init__()
-        self._sagemaker_session: Session = sagemaker_session
-        self._disable_logging: bool = True
-        self._experiment_name: Union[str, None] = experiment_name
-        self._run_name: Union[str, None] = run_name
-        self._name: str = ""
-        self._version: str = ""
-        self._sagemaker_run: Union[Run, None] = None
+        from sagemaker.experiments import load_run
+        from sagemaker.experiments.run import Run
+
+        self._sagemaker_session: sagemaker.Session = sagemaker_session
+        self._run: Union[Run, None] = None
         try:
             if experiment_name and run_name:
-                self._name = experiment_name
-                self._version = run_name
+                self._experiment = ExperimentConfig(
+                    experiment_name=experiment_name,
+                    run_name=run_name,
+                    run_within_context=False,
+                )
             else:
-                with load_run(
-                    sagemaker_session=self._sagemaker_session
-                ) as sagemaker_run:
-                    self._name = sagemaker_run.experiment_name
-                    self._version = sagemaker_run.run_name
-                    self._run_name = None
-                    self._experiment_name = None
+                with load_run(sagemaker_session=self._sagemaker_session) as sagemaker_run:
+                    self._experiment = ExperimentConfig(
+                        experiment_name=sagemaker_run.experiment_name,
+                        run_name=sagemaker_run.run_name,
+                        run_within_context=True,
+                    )
 
         except RuntimeError as e:
-            error_str = f"Disable SagemakerExperimentsLogger. No current run context has been found ({e}). To create a sagemaker.experiments.run explicit use experiment_name and run_name argument."
+            error_str = (
+                f"Disable SagemakerExperimentsLogger. No current run "
+                f"context has been found ({e}). To create a "
+                f"sagemaker.experiments.run explicit use "
+                f"experiment_name and run_name argument."
+            )
 
             raise RuntimeError(error_str)
 
     def _sagemaker_run(fn: Callable) -> Callable:
         @rank_zero_only
         def log_fun(self, *args, **kwargs):
+            from sagemaker.experiments import load_run
+
+            experiment_name = None
+            run_name = None
+            if not self._experiment.run_within_context:
+                experiment_name = self._experiment.experiment_name
+                run_name = self._experiment.run_name
             with load_run(
-                experiment_name=self._experiment_name,
-                run_name=self._run_name,
+                experiment_name=experiment_name,
+                run_name=run_name,
                 sagemaker_session=self._sagemaker_session,
-            ) as self._sagemaker_run:
+            ) as self._run:
                 fn(self, *args, **kwargs)
-                self._sagemaker_run.close()
+                self._run.close()
 
         return log_fun
 
     @_sagemaker_run
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        r"""
-        Log hyperparameters.
+        r"""Log hyperparameters.
 
         Function map to :py:meth:`sagemaker.experiments.run.Run.log_parameters`
-        of the `SageMaker Experiments API <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_ .
+        of the `SageMaker Experiments API
+        <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_ .
         Implements the abstract function of the :class:`pytorch_lightning.loggers.logger.Logger` base class
         and will be called automatically from :class:`pytorch_lightning.Trainer`.
         To being compatible to :py:meth:`~sagemaker.experiments.Run.log_parameters`, the hyperparameters will be
@@ -172,10 +201,11 @@ class SagemakerExperimentsLogger(Logger):
 
         Args:
             params (dict or namespace): a dictionary-like container with the hyperparameters
+
         """
         params_dict = _convert_params(params)
         params_dict = _prep_param_for_serialization(params_dict)
-        self._sagemaker_run.log_parameters(params_dict)
+        self._run.log_parameters(params_dict)
 
     @_sagemaker_run
     def log_metrics(
@@ -186,19 +216,19 @@ class SagemakerExperimentsLogger(Logger):
         """Log evaluation metrics.
 
         Function map to :py:meth:`sagemaker.experiments.run.Run.log_metric`
-        of the `SageMaker Experiments API <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_ .
+        of the `SageMaker Experiments API
+        <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_ .
         Implementes the abstract function of the :class:`pytorch_lightning.loggers.logger.Logger` base class
         and will be called automatically from :class:`pytorch_lightning.Trainer`.
 
         Args:
             metrics (dict of str and Tensor or float): a dictionary containing metric values.
             step (int): Determines the iteration step of the metric (default: None)
+
         """
         for metric_name, value in metrics.items():
             metric_value = value.item() if isinstance(value, Tensor) else value
-            self._sagemaker_run.log_metric(
-                name=metric_name, value=metric_value, step=step
-            )
+            self._run.log_metric(name=metric_name, value=metric_value, step=step)
 
     @_sagemaker_run
     def log_precision_recall(
@@ -231,8 +261,9 @@ class SagemakerExperimentsLogger(Logger):
         Example::
 
             self.logger.log_precision_recall(...)
+
         """
-        self._sagemaker_run.log_precision_recall(
+        self._run.log_precision_recall(
             y_true=y_true,
             predicted_probabilities=predicted_probabilities,
             positive_label=positive_label,
@@ -266,10 +297,9 @@ class SagemakerExperimentsLogger(Logger):
         Example::
 
             self.logger.log_roc_curve(...)
+
         """
-        self._sagemaker_run.log_roc_curve(
-            y_true=y_true, y_score=y_score, title=title, is_output=is_output
-        )
+        self._run.log_roc_curve(y_true=y_true, y_score=y_score, title=title, is_output=is_output)
 
     @_sagemaker_run
     def log_confusion_matrix(
@@ -296,10 +326,9 @@ class SagemakerExperimentsLogger(Logger):
         Example::
 
             self.logger.log_confusion_matrix(...)
+
         """
-        self._sagemaker_run.log_confusion_matrix(
-            y_true=y_true, y_pred=y_pred, title=title, is_output=is_output
-        )
+        self._run.log_confusion_matrix(y_true=y_true, y_pred=y_pred, title=title, is_output=is_output)
 
     @_sagemaker_run
     def log_artifact(
@@ -325,10 +354,9 @@ class SagemakerExperimentsLogger(Logger):
         Example::
 
             self.logger.log_artifact(...)
+
         """
-        self._sagemaker_run.log_artifact(
-            name=name, value=value, media_type=media_type, is_output=is_output
-        )
+        self._run.log_artifact(name=name, value=value, media_type=media_type, is_output=is_output)
 
     @_sagemaker_run
     def log_file(
@@ -352,8 +380,9 @@ class SagemakerExperimentsLogger(Logger):
             is_output (bool): Determines direction of association to the
                 run. Defaults to True (output artifact).
                 If set to False then represented as input association.
+
         """
-        self._sagemaker_run.log_file(
+        self._run.log_file(
             file_path=file_path,
             name=name,
             media_type=media_type,
@@ -364,19 +393,37 @@ class SagemakerExperimentsLogger(Logger):
         # self.logger.log_file(...)
 
     @property
+    @rank_zero_experiment
+    def experiment(self) -> "sagemaker.experiments.Run":
+        return self._experiment
+
+    @property
     def name(self) -> str:
         """Get the name of the experiment.
 
         Returns:
-            ``experiment_name`` of the current run.
+            Rxperiment name of the current run.
+
         """
-        return self._name
+        return self._experiment.experiment_name
 
     @property
     def version(self) -> Union[int, str]:
         """Get the version which is similar to the run name.
 
         Returns:
-            ``run_name`` of the current run.
+            Run name of the current run.
+
         """
-        return self._version
+        return self._experiment.run_name
+
+    def __getstate__(self) -> Dict:
+        """Overwrite get state for serializing the object e.g. using pickle.
+
+        Returns:
+            Dictionary containing class attributes excluding ``_run`` attribute
+
+        """
+        state = self.__dict__.copy()
+        del state["_run"]
+        return state

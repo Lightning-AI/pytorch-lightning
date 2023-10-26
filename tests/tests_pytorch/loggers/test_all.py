@@ -26,6 +26,7 @@ from lightning.pytorch.loggers import (
     CSVLogger,
     MLFlowLogger,
     NeptuneLogger,
+    SagemakerExperimentsLogger,
     TensorBoardLogger,
     WandbLogger,
 )
@@ -42,6 +43,7 @@ ALL_LOGGER_CLASSES = (
     CSVLogger,
     MLFlowLogger,
     NeptuneLogger,
+    SagemakerExperimentsLogger,
     TensorBoardLogger,
     WandbLogger,
 )
@@ -58,6 +60,9 @@ def _get_logger_args(logger_class, save_dir):
         logger_args.update(offline=True)
     if issubclass(logger_class, NeptuneLogger):
         logger_args.update(mode="offline")
+    if issubclass(logger_class, SagemakerExperimentsLogger):
+        logger_args.update(experiment_name="TestExperiment")
+        logger_args.update(run_name="TestRun")
     return logger_args
 
 
@@ -70,7 +75,9 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
 @mock.patch.dict(os.environ, {})
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
-def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock, neptune_mock, tmp_path):
+def test_loggers_fit_test_all(
+    logger_class, mlflow_mock, wandb_mock, comet_mock, neptune_mock, sagemaker_mock, tmp_path
+):
     """Verify that basic functionality of all loggers."""
 
     class CustomModel(BoringModel):
@@ -147,7 +154,7 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
 @pytest.mark.parametrize(
     "logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE
 )  # WandbLogger and NeptuneLogger get tested separately
-def test_loggers_pickle_all(tmp_path, monkeypatch, logger_class):
+def test_loggers_pickle_all(tmp_path, monkeypatch, sagemaker_mock, logger_class):
     """Test that the logger objects can be pickled.
 
     This test only makes sense if the packages are installed.
@@ -155,12 +162,12 @@ def test_loggers_pickle_all(tmp_path, monkeypatch, logger_class):
     """
     _patch_comet_atexit(monkeypatch)
     try:
-        _test_loggers_pickle(tmp_path, monkeypatch, logger_class)
+        _test_loggers_pickle(tmp_path, monkeypatch, sagemaker_mock, logger_class)
     except (ImportError, ModuleNotFoundError):
         pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
 
 
-def _test_loggers_pickle(tmp_path, monkeypatch, logger_class):
+def _test_loggers_pickle(tmp_path, monkeypatch, sagemaker_mock, logger_class):
     """Verify that pickling trainer with logger works."""
     _patch_comet_atexit(monkeypatch)
 

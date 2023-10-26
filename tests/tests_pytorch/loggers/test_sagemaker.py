@@ -1,61 +1,41 @@
 from typing import Any, List, Tuple, Union
+from unittest.mock import patch
 
-import boto3
 import numpy as np
 import pytest
 import torch
-from moto import mock_sagemaker
-from sagemaker.experiments.run import Run
-from sagemaker.session import Session
-
-from experiments_addon.logger import (
+from lightning.pytorch.loggers.sagemaker import (
     SagemakerExperimentsLogger,
     _prep_param_for_serialization,
 )
+from sagemaker.experiments.run import Run
 
 EXPERIMENT_NAME = "testexperiment"
 RUN_NAME = "testrunname"
 
 
-
-
-
-@pytest.fixture
-def sagemaker_session():
-    with mock_sagemaker():
-        session = Session(boto3.Session(region_name="eu-central-1"))
-        client = boto3.client("sagemaker", region_name="eu-central-1")
-        yield session, client
-
-
-@pytest.fixture
-def sme_logger(
-    sagemaker_session, mocker
-) -> Tuple[SagemakerExperimentsLogger, Run]:
-    mocker.patch("sagemaker.experiments.trial_component._TrialComponent.save")
+@pytest.fixture()
+def sme_logger(sagemaker_mock) -> Tuple[SagemakerExperimentsLogger, Run]:
     with Run(
         experiment_name=EXPERIMENT_NAME,
         run_name=RUN_NAME,
-        sagemaker_session=sagemaker_session[0],
+        sagemaker_session=sagemaker_mock[0],
     ) as run:
-        yield SagemakerExperimentsLogger(
-            sagemaker_session=sagemaker_session[0]
-        ), run
+        yield SagemakerExperimentsLogger(sagemaker_session=sagemaker_mock[0]), run
 
 
-@pytest.fixture
+@pytest.fixture()
 def binary_labels() -> Tuple[List, List]:
     y_true = [1, 0, 1, 0, 1]
     pred_proba = [0.8, 0.2, 0.2, 0.7, 0.9]
     return y_true, pred_proba
 
 
-def test_create_logger_raise_exception(sagemaker_session) -> None:
+def test_create_logger_raise_exception(sagemaker_mock) -> None:
     with pytest.raises(RuntimeError) as e:
-        SagemakerExperimentsLogger(sagemaker_session=sagemaker_session[0])
+        SagemakerExperimentsLogger(sagemaker_session=sagemaker_mock[0])
     assert (
-        e.value.args[0]
-        == "Disable SagemakerExperimentsLogger. No current run context has "
+        e.value.args[0] == "Disable SagemakerExperimentsLogger. No current run context has "
         "been found (Failed to load a Run object. Please make sure a Run "
         "object has been initialized already.). To create a "
         "sagemaker.experiments.run explicit use experiment_name and "
@@ -63,50 +43,38 @@ def test_create_logger_raise_exception(sagemaker_session) -> None:
     )
 
 
-def test_create_logger_explicit(sagemaker_session, mocker) -> None:
+def test_create_logger_explicit(sagemaker_mock) -> None:
     logger = SagemakerExperimentsLogger(
         experiment_name=EXPERIMENT_NAME,
         run_name=RUN_NAME,
-        sagemaker_session=sagemaker_session[0],
+        sagemaker_session=sagemaker_mock[0],
     )
-    assert logger._experiment_name == EXPERIMENT_NAME
-    assert logger._run_name == RUN_NAME
-    assert logger._name == EXPERIMENT_NAME
-    assert logger._version == RUN_NAME
-    mocker.patch("sagemaker.experiments.trial_component._TrialComponent.save")
+    assert logger._experiment.experiment_name == EXPERIMENT_NAME
+    assert logger._experiment.run_name == RUN_NAME
+    assert not logger._experiment.run_within_context
     logger.log_hyperparams({"test": "param"})
-    experiments = sagemaker_session[1].list_experiments()
+    experiments = sagemaker_mock[1].list_experiments()
     assert len(experiments["ExperimentSummaries"]) == 1
-    assert (
-        experiments["ExperimentSummaries"][0]["ExperimentName"]
-        == EXPERIMENT_NAME.lower()
-    )
+    assert experiments["ExperimentSummaries"][0]["ExperimentName"] == EXPERIMENT_NAME.lower()
 
 
-def test_create_logger_with_context(sagemaker_session, mocker) -> None:
-    mocker.patch("sagemaker.experiments.trial_component._TrialComponent.save")
+def test_create_logger_with_context(sagemaker_mock) -> None:
     with Run(
         experiment_name=EXPERIMENT_NAME,
         run_name=RUN_NAME,
-        sagemaker_session=sagemaker_session[0],
+        sagemaker_session=sagemaker_mock[0],
     ):
-        logger = SagemakerExperimentsLogger(
-            sagemaker_session=sagemaker_session[0]
-        )
-        experiments = sagemaker_session[1].list_experiments()
-        assert logger._experiment_name is None
-        assert logger._run_name is None
+        logger = SagemakerExperimentsLogger(sagemaker_session=sagemaker_mock[0])
+        experiments = sagemaker_mock[1].list_experiments()
+        assert logger._experiment.run_within_context
         assert logger.name == EXPERIMENT_NAME.lower()
         assert logger.version == RUN_NAME.lower()
         assert len(experiments["ExperimentSummaries"]) == 1
-        assert (
-            experiments["ExperimentSummaries"][0]["ExperimentName"]
-            == EXPERIMENT_NAME.lower()
-        )
+        assert experiments["ExperimentSummaries"][0]["ExperimentName"] == EXPERIMENT_NAME.lower()
 
 
 @pytest.mark.parametrize(
-    "inp_value, out_value",
+    ("inp_value", "out_value"),
     [
         (0.1, 0.1),
         (1, 1),
@@ -118,13 +86,11 @@ def test_create_logger_with_context(sagemaker_session, mocker) -> None:
     ],
 )
 def test__prep_param_for_serialization(inp_value: Any, out_value: Any) -> None:
-    assert {"value": out_value} == _prep_param_for_serialization(
-        param={"value": inp_value}
-    )
+    assert {"value": out_value} == _prep_param_for_serialization(param={"value": inp_value})
 
 
 @pytest.mark.parametrize(
-    "inp_value, out_value",
+    ("inp_value", "out_value"),
     [
         (0.1, 0.1),
         (1, 1),
@@ -150,13 +116,12 @@ def test_log_hyperparam(
 def test_log_metrics(
     step: Union[int, None],
     sme_logger: Tuple[SagemakerExperimentsLogger, Run],
-    mocker,
+    sagemaker_mock,
 ) -> None:
-    # since moto does not support sagemaker metric service we have to mock the injection of the metric
-    mock_log_metric = mocker.patch(
-        "sagemaker.experiments._metrics._MetricsManager.log_metric"
-    )
+    # since moto does not support sagemaker metric service we have to mock the
+    # injection of the metric
     metrics = {"F1-Score": torch.Tensor([1]), "Acc": 2.3}
+    mock_log_metric = sagemaker_mock[2]
     sme_logger[0].log_metrics(metrics=metrics, step=step)
     assert mock_log_metric.call_args_list[0].kwargs == {
         "metric_name": "F1-Score",
@@ -173,7 +138,7 @@ def test_log_metrics(
 
 
 @pytest.mark.parametrize(
-    "title, is_output, no_skill, pos_label",
+    ("title", "is_output", "no_skill", "pos_label"),
     [
         ("my-title", True, 2, None),
         ("my-title", True, 2, 0),
@@ -187,32 +152,31 @@ def test_log_precision_recall(
     no_skill: Union[int, None],
     pos_label: Union[int, None],
     binary_labels: Tuple[List, List],
-    mocker,
 ) -> None:
     y_true, pred_proba = binary_labels
-    # since create_artifact has not implemented by moto we have to mock the sagemaker function
-    mock_func = mocker.patch("sagemaker.experiments.Run.log_precision_recall")
-
-    sme_logger[0].log_precision_recall(
-        y_true=y_true,
-        predicted_probabilities=pred_proba,
-        positive_label=pos_label,
-        title=title,
-        is_output=is_output,
-        no_skill=no_skill,
-    )
-    assert mock_func.call_args.kwargs == {
-        "y_true": y_true,
-        "predicted_probabilities": pred_proba,
-        "positive_label": pos_label,
-        "title": title,
-        "is_output": is_output,
-        "no_skill": no_skill,
-    }
+    # since create_artifact has not implemented by moto we have to mock the
+    # sagemaker function
+    with patch("sagemaker.experiments.Run.log_precision_recall") as mock_func:
+        sme_logger[0].log_precision_recall(
+            y_true=y_true,
+            predicted_probabilities=pred_proba,
+            positive_label=pos_label,
+            title=title,
+            is_output=is_output,
+            no_skill=no_skill,
+        )
+        assert mock_func.call_args.kwargs == {
+            "y_true": y_true,
+            "predicted_probabilities": pred_proba,
+            "positive_label": pos_label,
+            "title": title,
+            "is_output": is_output,
+            "no_skill": no_skill,
+        }
 
 
 @pytest.mark.parametrize(
-    "title, is_output",
+    ("title", "is_output"),
     [
         ("my-title", True),
         (None, False),
@@ -223,27 +187,27 @@ def test_log_roc_curve(
     title: Union[str, None],
     is_output: bool,
     binary_labels: Tuple[np.ndarray, np.ndarray],
-    mocker,
 ) -> None:
     y_true, pred_proba = binary_labels
-    # since create_artifact has not implemented by moto we have to mock the sagemaker function
-    mock_func = mocker.patch("sagemaker.experiments.Run.log_roc_curve")
-    sme_logger[0].log_roc_curve(
-        y_true=y_true,
-        y_score=pred_proba,
-        title=title,
-        is_output=is_output,
-    )
-    assert mock_func.call_args.kwargs == {
-        "y_true": y_true,
-        "y_score": pred_proba,
-        "title": title,
-        "is_output": is_output,
-    }
+    # since create_artifact has not implemented by moto we have to mock the
+    # sagemaker function
+    with patch("sagemaker.experiments.Run.log_roc_curve") as mock_func:
+        sme_logger[0].log_roc_curve(
+            y_true=y_true,
+            y_score=pred_proba,
+            title=title,
+            is_output=is_output,
+        )
+        assert mock_func.call_args.kwargs == {
+            "y_true": y_true,
+            "y_score": pred_proba,
+            "title": title,
+            "is_output": is_output,
+        }
 
 
 @pytest.mark.parametrize(
-    "title, is_output",
+    ("title", "is_output"),
     [
         ("my-title", True),
         (None, False),
@@ -254,27 +218,27 @@ def test_log_confusion_matrix(
     title: Union[str, None],
     is_output: bool,
     binary_labels: Tuple[np.ndarray, np.ndarray],
-    mocker,
 ) -> None:
     y_true, pred_proba = binary_labels
-    # since create_artifact has not implemented by moto we have to mock the sagemaker function
-    mock_func = mocker.patch("sagemaker.experiments.Run.log_confusion_matrix")
-    sme_logger[0].log_confusion_matrix(
-        y_true=y_true,
-        y_pred=pred_proba,
-        title=title,
-        is_output=is_output,
-    )
-    assert mock_func.call_args.kwargs == {
-        "y_true": y_true,
-        "y_pred": pred_proba,
-        "title": title,
-        "is_output": is_output,
-    }
+    # since create_artifact has not implemented by moto we have to mock the
+    # sagemaker function
+    with patch("sagemaker.experiments.Run.log_confusion_matrix") as mock_func:
+        sme_logger[0].log_confusion_matrix(
+            y_true=y_true,
+            y_pred=pred_proba,
+            title=title,
+            is_output=is_output,
+        )
+        assert mock_func.call_args.kwargs == {
+            "y_true": y_true,
+            "y_pred": pred_proba,
+            "title": title,
+            "is_output": is_output,
+        }
 
 
 @pytest.mark.parametrize(
-    "media_type, is_output",
+    ("media_type", "is_output"),
     [("text/plain", True), (None, False)],
 )
 def test_log_artifact(
@@ -291,50 +255,42 @@ def test_log_artifact(
         media_type=media_type,
     )
     artefact = (
-        sme_logger[1]._trial_component.output_artifacts
-        if is_output
-        else sme_logger[1]._trial_component.input_artifacts
+        sme_logger[1]._trial_component.output_artifacts if is_output else sme_logger[1]._trial_component.input_artifacts
     )
     assert artefact[artefact_name].media_type == media_type
     assert artefact[artefact_name].value == artefact_value
 
 
 @pytest.mark.parametrize(
-    "media_type, is_output",
+    ("media_type", "is_output"),
     [("text/plain", True), (None, False)],
 )
 def test_log_file(
     sme_logger: Tuple[SagemakerExperimentsLogger, Run],
     media_type: Union[str, None],
     is_output: bool,
-    mocker,
 ) -> None:
     artefact_name = "TestArtefact"
     file_path = "dumpfile.csv"
     s3_uri = "s3://testbucket/dumpfile.csv"
-    mocker.patch.object(
+    with patch.object(
         sme_logger[1]._artifact_uploader,
         "upload_artifact",
         return_value=(s3_uri, None),
-    )
-
-    sme_logger[0].log_file(
-        file_path=file_path,
-        name=artefact_name,
-        media_type=media_type,
-        is_output=is_output,
-    )
-    artefact = (
-        sme_logger[1]._trial_component.output_artifacts
-        if is_output
-        else sme_logger[1]._trial_component.input_artifacts
-    )
-    assert (
-        artefact[artefact_name].media_type == media_type
-        if media_type
-        else "text/csv"
-    )
-    assert artefact[artefact_name].value == s3_uri
+    ):
+        sme_logger[0].log_file(
+            file_path=file_path,
+            name=artefact_name,
+            media_type=media_type,
+            is_output=is_output,
+        )
+        artefact = (
+            sme_logger[1]._trial_component.output_artifacts
+            if is_output
+            else sme_logger[1]._trial_component.input_artifacts
+        )
+        assert artefact[artefact_name].media_type == media_type if media_type else "text/csv"
+        assert artefact[artefact_name].value == s3_uri
 
 
 def test_name(sme_logger: Tuple[SagemakerExperimentsLogger, Run]) -> None:

@@ -7,4 +7,3 @@ fsspec[http]>2021.06.0, <2023.10.0
 packaging >=20.0, <=23.1
 typing-extensions >=4.0.0, <4.8.0
 lightning-utilities >=0.8.0, <0.10.0
-sagemaker>=2.190.0
