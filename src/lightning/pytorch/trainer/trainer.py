@@ -66,7 +66,7 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DI
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
-from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
+from lightning.pytorch.utilities.argparse import _overrides_from_env_vars
 from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -89,7 +89,7 @@ warnings.filterwarnings(
 
 
 class Trainer:
-    @_defaults_from_env_vars
+    @_overrides_from_env_vars
     def __init__(
         self,
         *,

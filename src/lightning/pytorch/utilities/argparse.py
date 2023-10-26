@@ -53,9 +53,9 @@ def _parse_env_variables(cls: Type, template: str = "PL_%(cls_name)s_%(cls_argum
     return Namespace(**env_args)
 
 
-def _defaults_from_env_vars(fn: _T) -> _T:
+def _overrides_from_env_vars(fn: _T) -> _T:
     @wraps(fn)
-    def insert_env_defaults(self: Any, *args: Any, **kwargs: Any) -> Any:
+    def update_kwargs_from_env(self: Any, *args: Any, **kwargs: Any) -> Any:
         cls = self.__class__  # get the class
         if args:  # in case any args passed move them to kwargs
             # parse the argument names
@@ -69,4 +69,4 @@ def _defaults_from_env_vars(fn: _T) -> _T:
         # all args were already moved to kwargs
         return fn(self, **kwargs)
 
-    return cast(_T, insert_env_defaults)
+    return cast(_T, update_kwargs_from_env)
