@@ -898,7 +898,7 @@ class DatasetOptimizer:
         os.makedirs(cache_data_dir, exist_ok=True)
 
     def _broadcast_object(self, obj: Any) -> Any:
-        """Enable to synchornize an object across machines using torch.distributed.collectives."""
+        """Enable to synchronize an object across machines using torch.distributed.collectives."""
         num_nodes = _get_num_nodes()
         if num_nodes == 1:
             return obj
