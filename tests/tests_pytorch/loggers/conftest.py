@@ -18,7 +18,6 @@ from unittest.mock import MagicMock, Mock, patch
 import boto3
 import pytest
 from moto import mock_sagemaker
-from sagemaker.session import Session
 
 
 @pytest.fixture()
@@ -146,6 +145,8 @@ def neptune_mock(monkeypatch):
 
 @pytest.fixture()
 def sagemaker_mock(monkeypatch):
+    from sagemaker.session import Session
+
     # since moto does not support sagemaker metric service we have to mock the
     # injection of the metric and the trial component update function
     with patch("sagemaker.experiments._metrics._MetricsManager.log_metric") as mock_log_metric, patch(

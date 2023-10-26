@@ -21,11 +21,11 @@ from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from torch import Tensor
 
 from lightning.fabric.utilities.logger import _convert_params
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
 if TYPE_CHECKING:
     import sagemaker
