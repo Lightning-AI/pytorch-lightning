@@ -69,6 +69,7 @@ Use the above approach when you need to couple this behavior to your LightningMo
 
     import lightning as L
 
+
     class LitCallback(L.Callback):
         def on_save_checkpoint(self, checkpoint):
             checkpoint["something_cool_i_want_to_save"] = my_cool_pickable_object
