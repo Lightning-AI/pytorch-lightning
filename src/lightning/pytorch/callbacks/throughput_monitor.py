@@ -39,22 +39,21 @@ if TYPE_CHECKING:
 
 
 class ThroughputMonitor(Callback):
-    r"""Computes and logs throughput with the :class:`lightning.fabric.utilities.throughput.Throughput`
+    r"""Computes and logs throughput with the :class:`~lightning.fabric.utilities.throughput.Throughput`
 
     # FIXME example
 
     Notes:
-        - Only support for :meth:`~lightning.pytorch.trainer.trainer.Trainer.fit` is currently implemented.
         - It assumes that the batch size is the same during all iterations.
         - It will try to access a ``flops_per_batch`` attribute on your ``LightningModule`` on every iteration.
-            We suggest using the :func:`lightning.fabric.utilities.throughput.measure_flops` function for this.
-            You might want to compute it differently each time based on your setup.
+          We suggest using the :func:`~lightning.fabric.utilities.throughput.measure_flops` function for this.
+          You might want to compute it differently each time based on your setup.
 
     Args:
         batch_size_fn: A function to compute the number of samples given a batch.
         length_fn: A function to compute the number of items in a sample given a batch.
         \**kwargs: See available parameters in
-            :class:`lightning.fabric.utilities.throughput.Throughput`
+            :class:`~lightning.fabric.utilities.throughput.Throughput`
 
     """
 

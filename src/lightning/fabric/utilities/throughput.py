@@ -33,32 +33,32 @@ _THROUGHPUT_METRICS = Dict[str, Union[int, float]]
 class Throughput:
     """Computes throughput.
 
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | Key                      | Value                                                                                 |
-    +==========================+=======================================================================================+
-    | `batches_per_sec`        | Rolling average (over `window_size` most recent batches) of the number of batches     |
-    |                          | processed per second                                                                  |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `samples_per_sec`        | Rolling average (over `window_size` most recent batches) of the number of samples     |
-    |                          | processed per second                                                                  |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `items_per_sec`          | Rolling average (over `window_size` most recent batches) of the number of items       |
-    |                          | processed per second                                                                  |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `flops_per_sec`          | Estimates flops by `flops_per_batch * batches_per_sec`                                |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `device/batches_per_sec` | `batches_per_sec` divided by world size                                               |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `device/samples_per_sec` | `samples_per_sec` divided by world size                                               |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `device/items_per_sec`   | `items_per_sec` divided by world size. This may include padding depending on the data |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `device/flops_per_sec`   | `flops_per_sec` divided by world size.                                                |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `device/mfu`             | `device/flops_per_sec` divided by world size.                                         |
-    +--------------------------+---------------------------------------------------------------------------------------+
-    | `time`                   | Total elapsed time                                                                    |
-    +--------------------------+---------------------------------------------------------------------------------------+
+    +------------------------+-------------------------------------------------------------------------------------+
+    | Key                    | Value                                                                               |
+    +========================+=====================================================================================+
+    | batches_per_sec        | Rolling average (over ``window_size`` most recent batches) of the number of batches |
+    |                        | processed per second                                                                |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | samples_per_sec        | Rolling average (over ``window_size`` most recent batches) of the number of samples |
+    |                        | processed per second                                                                |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | items_per_sec          | Rolling average (over ``window_size`` most recent batches) of the number of items   |
+    |                        | processed per second                                                                |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | flops_per_sec          | Estimates flops by flops_per_batch * batches_per_sec                                |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | device/batches_per_sec | batches_per_sec divided by world size                                               |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | device/samples_per_sec | samples_per_sec divided by world size                                               |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | device/items_per_sec   | items_per_sec divided by world size. This may include padding depending on the data |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | device/flops_per_sec   | flops_per_sec divided by world size.                                                |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | device/mfu             | device/flops_per_sec divided by world size.                                         |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | time                   | Total elapsed time                                                                  |
+    +--------------------------+-----------------------------------------------------------------------------------+
 
     Example::
 
@@ -66,9 +66,9 @@ class Throughput:
 
     Notes:
         - The implementation assumes that devices FLOPs are all the same as it normalizes by the world size and only
-            takes a single ``available_flops`` value.
+          takes a single ``available_flops`` value.
         - items_per_sec, flops_per_sec and MFU do not account for padding if present. We suggest using
-            samples_per_sec or batches_per_sec to measure throughput under this circumstance.
+          samples_per_sec or batches_per_sec to measure throughput under this circumstance.
 
     Args:
         available_flops: Number of theoretical flops available for a single device.
