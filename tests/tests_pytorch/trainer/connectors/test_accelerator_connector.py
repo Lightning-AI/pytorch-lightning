@@ -581,6 +581,7 @@ def test_unsupported_tpu_choice(xla_available, tpu_available):
 
 
 def mock_ipu_available(monkeypatch, value=True):
+    # TODO: this isn't really mocking. it should be implemented and used as `mock_hpu_count`
     try:
         import lightning_graphcore
     except ModuleNotFoundError:
