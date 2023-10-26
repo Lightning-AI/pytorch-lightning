@@ -229,7 +229,7 @@ class _ExperimentWriter:
         if rewrite_file and file_exists:
             self._append_recorded_metrics()
 
-        with self._fs.open(self.metrics_file_path, "a" if not rewrite_file else "w", newline="") as file:
+        with self._fs.open(self.metrics_file_path, mode=("a" if not rewrite_file else "w"), newline="") as file:
             writer = csv.DictWriter(file, fieldnames=self.metrics_keys)
             if rewrite_file:
                 writer.writeheader()
