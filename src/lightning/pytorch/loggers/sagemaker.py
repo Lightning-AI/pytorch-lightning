@@ -21,7 +21,6 @@ from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
-from pydantic import BaseModel
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from torch import Tensor
 
@@ -48,10 +47,15 @@ def _prep_param_for_serialization(param: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
-class ExperimentConfig(BaseModel):
+class ExperimentConfig:
     experiment_name: str
     run_name: str
     run_within_context: bool
+
+    def __init__(self, experiment_name: str, run_name: str, run_within_context: bool):
+        self.experiment_name = experiment_name
+        self.run_name = run_name
+        self.run_within_context = run_within_context
 
 
 class SagemakerExperimentsLogger(Logger):
@@ -244,7 +248,8 @@ class SagemakerExperimentsLogger(Logger):
         """Create and log a precision recall graph artifact for Sagemaker Studio UI to render.
 
         Function map to :py:meth:`sagemaker.experiments.run.Run.log_precision_recall`
-        of the `SageMaker Experiments API <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_
+        of the `SageMaker Experiments API
+        <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_
 
         Args:
             y_true (list or array): True labels. If labels are not binary
@@ -284,7 +289,8 @@ class SagemakerExperimentsLogger(Logger):
         """Create and log a receiver operating characteristic (ROC curve) artifact.
 
         Function map to :py:meth:`sagemaker.experiments.run.Run.log_roc_curve`
-        of the `SageMaker Experiments API <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_
+        of the `SageMaker Experiments API
+        <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_
 
         Args:
             y_true (list or array): True labels. If labels are not binary
@@ -313,7 +319,8 @@ class SagemakerExperimentsLogger(Logger):
         """Create and log a confusion matrix artifact.
 
         Function map to :py:meth:`sagemaker.experiments.run.Run.log_confusion_matrix`
-        of the `SageMaker Experiments API <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_
+        of the `SageMaker Experiments API
+        <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_
 
         Args:
             y_true (list or array): True labels. If labels are not binary
@@ -342,7 +349,8 @@ class SagemakerExperimentsLogger(Logger):
         """Record a single artifact.
 
         Function map to :py:meth:`sagemaker.experiments.run.Run.log_artifact`
-        of the `SageMaker Experiments API <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_
+        of the `SageMaker Experiments API
+        <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_
 
         Args:
             name (str): The name of the artifact.
@@ -370,7 +378,8 @@ class SagemakerExperimentsLogger(Logger):
         """Upload a file to s3 and store it as an input/output artifact.
 
         Function map to :py:meth:`sagemaker.experiments.run.Run.log_file`
-        of the `SageMaker Experiments API <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_
+        of the `SageMaker Experiments API
+        <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html>`_
 
         Args:
             file_path (str): The path of the local file to upload.
