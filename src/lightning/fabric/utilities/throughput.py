@@ -13,7 +13,7 @@
 # limitations under the License.
 # Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
 from collections import deque
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, List, Optional, TypeVar, Union
 
 import torch
 from typing_extensions import Self
@@ -91,10 +91,10 @@ class Throughput:
         assert window_size > 1
         # custom class instead of `deque(maxlen=)` because it's easy for users to mess up their timer/counters and log
         # values that do not increase monotonically. this class will raise an error if that happens.
-        self._samples = _MonotonicWindow(maxlen=window_size)
-        self._time = _MonotonicWindow(maxlen=window_size)
-        self._lengths = _MonotonicWindow(maxlen=window_size)
-        self._flops = deque(maxlen=window_size)
+        self._samples: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
+        self._time: _MonotonicWindow[float] = _MonotonicWindow(maxlen=window_size)
+        self._lengths: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
+        self._flops: Deque[int] = deque(maxlen=window_size)
 
     def update(
         self, *, time: float, samples: int, lengths: Optional[int] = None, flops_per_batch: Optional[int] = None
@@ -204,9 +204,9 @@ class ThroughputMonitor(Throughput):
         self._fabric = fabric
         self.step = -1
 
-        self.update = rank_zero_only(self.update)
-        self.compute = rank_zero_only(self.compute)
-        self.reset = rank_zero_only(self.reset)
+        self.update = rank_zero_only(self.update, default=self)  # type: ignore[method-assign]
+        self.compute = rank_zero_only(self.compute, default={})  # type: ignore[method-assign]
+        self.reset = rank_zero_only(self.reset, default=self)  # type: ignore[method-assign]
 
     @rank_zero_only
     def compute_and_log(self, step: Optional[int] = None, **kwargs: Any) -> _THROUGHPUT_METRICS:
@@ -396,7 +396,10 @@ def _plugin_to_compute_dtype(plugin: "Precision") -> torch.dtype:
     raise NotImplementedError(plugin)
 
 
-class _MonotonicWindow(list):
+T = TypeVar("T", bound=float)
+
+
+class _MonotonicWindow(List[T]):
     """Custom fixed size list that only supports right-append and ensures that all values increase monotonically."""
 
     def __init__(self, maxlen: int) -> None:
@@ -404,12 +407,12 @@ class _MonotonicWindow(list):
         self.maxlen = maxlen
 
     @property
-    def last(self) -> Optional[Any]:
+    def last(self) -> Optional[T]:
         if len(self) > 0:
             return self[-1]
         return None
 
-    def append(self, x: Any) -> None:
+    def append(self, x: T) -> None:
         last = self.last
         if last is not None and last >= x:
             raise ValueError(f"Expected the value to increase, last: {last}, current: {x}")
@@ -418,6 +421,6 @@ class _MonotonicWindow(list):
         if len(self) > self.maxlen:
             del self[0]
 
-    def __setitem__(self, key: int, value: Any) -> None:
+    def __setitem__(self, key: Any, value: Any) -> None:
         # assigning is not implemented since we don't use it. it could be by checking all previous values
         raise NotImplementedError("__setitem__ is not supported")

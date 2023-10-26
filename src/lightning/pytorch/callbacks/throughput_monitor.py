@@ -71,7 +71,7 @@ class ThroughputMonitor(Callback):
         self._t0s: Dict[RunningStage, float] = {}
         self._lengths: Dict[RunningStage, int] = {}
 
-    def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: TrainerFn) -> None:
+    def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
         self.available_flops = get_available_flops(trainer.strategy.root_device, dtype)
 
@@ -133,15 +133,15 @@ class ThroughputMonitor(Callback):
         metrics = throughput.compute()
         # prefix with the stage to avoid collisions
         metrics = {f"{stage.value}{throughput.separator}{k}": v for k, v in metrics.items()}
-        trainer._logger_connector.log_metrics(metrics, step=step)
+        trainer._logger_connector.log_metrics(metrics, step=step)  # type: ignore[arg-type]
 
     @rank_zero_only
-    def on_train_start(self, trainer: "Trainer", *_) -> None:
+    def on_train_start(self, trainer: "Trainer", *_: Any) -> None:
         self._start(trainer)
 
     @rank_zero_only
     def on_train_batch_end(
-        self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_
+        self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any
     ) -> None:
         self._update(trainer, pl_module, batch, trainer.fit_loop.total_batch_idx + 1)
         # log when gradient accumulation is over
