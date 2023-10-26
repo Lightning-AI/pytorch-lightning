@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `seed_everything()` without passing in a seed no longer randomly selects a seed, and now defaults to `0` ([#18846](https://github.com/Lightning-AI/lightning/pull/18846))
 - `LightningCLI` no longer allows setting a normal class instance as default. A `lazy_instance` can be used instead ([#18822](https://github.com/Lightning-AI/lightning/pull/18822))
 
+- The `PL_TRAINER_*` env variables now takes precendence over the arguments passed to the Trainer ([#18876](https://github.com/Lightning-AI/lightning/issues/18876))
+
+
 
 ### Deprecated
 
@@ -35,6 +38,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issue when `BatchSizeFinder` `steps_per_trial` parameter ends up defining how many validation batches to run during the entire training ([#18394](https://github.com/Lightning-AI/lightning/issues/18394))
 
+
+- Fixed an issue that would prevent the user to override the Trainer arguments with the `PL_TRAINER_*` env variable ([#18876](https://github.com/Lightning-AI/lightning/issues/18876))
 
 
 ## [2.1.0] - 2023-10-11
