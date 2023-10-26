@@ -91,10 +91,21 @@ class ThroughputMonitor(Callback):
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
         self.available_flops = get_available_flops(trainer.strategy.root_device, dtype)
 
-        if stage == TrainerFn.FITTING and trainer.enable_validation:
-            # `fit` includes validation inside
-            throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
-            self._throughputs[RunningStage.VALIDATING] = throughput
+        if stage == TrainerFn.FITTING:
+            if trainer.accumulate_grad_batches % trainer.log_every_n_steps != 0:
+                raise ValueError(
+                    "The `ThroughputMonitor` only logs when gradient accumulation is finished. You set"
+                    f" `Trainer(accumulate_grad_batches={trainer.accumulate_grad_batches},"
+                    f" log_every_n_steps={trainer.log_every_n_steps})` but these are not divisible and thus will not"
+                    " log anything."
+                )
+
+            if trainer.enable_validation:
+                # `fit` includes validation inside
+                throughput = Throughput(
+                    available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs
+                )
+                self._throughputs[RunningStage.VALIDATING] = throughput
 
         throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
         stage = trainer.state.stage
@@ -140,7 +151,7 @@ class ThroughputMonitor(Callback):
             lengths=None if self.length_fn is None else self._lengths[stage],
         )
 
-    def _compute(self, trainer: "Trainer", step: Optional[int] = None) -> None:
+    def _compute(self, trainer: "Trainer", iter_num: Optional[int] = None) -> None:
         if not trainer._logger_connector.should_update_logs:
             return
         stage = trainer.state.stage
@@ -149,7 +160,7 @@ class ThroughputMonitor(Callback):
         metrics = throughput.compute()
         # prefix with the stage to avoid collisions
         metrics = {f"{stage.value}{throughput.separator}{k}": v for k, v in metrics.items()}
-        trainer._logger_connector.log_metrics(metrics, step=step)  # type: ignore[arg-type]
+        trainer._logger_connector.log_metrics(metrics, step=iter_num)  # type: ignore[arg-type]
 
     @rank_zero_only
     def on_train_start(self, trainer: "Trainer", *_: Any) -> None:
@@ -160,7 +171,7 @@ class ThroughputMonitor(Callback):
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any
     ) -> None:
         self._update(trainer, pl_module, batch, trainer.fit_loop.total_batch_idx + 1)
-        # log when gradient accumulation is over
+        # log when gradient accumulation is over. this avoids
         if not trainer.fit_loop._should_accumulate():
             self._compute(trainer)
 
@@ -176,8 +187,9 @@ class ThroughputMonitor(Callback):
     ) -> None:
         if trainer.sanity_checking:
             return
-        self._update(trainer, pl_module, batch, trainer._evaluation_loop.batch_progress.total.ready)
-        self._compute(trainer, trainer._evaluation_loop.batch_progress.current.ready)
+        iter_num = trainer._evaluation_loop.batch_progress.total.ready
+        self._update(trainer, pl_module, batch, iter_num)
+        self._compute(trainer, iter_num)
 
     def on_validation_end(self, trainer: "Trainer", *_: Any) -> None:
         if trainer.sanity_checking or trainer.state.fn != TrainerFn.FITTING:
@@ -197,8 +209,9 @@ class ThroughputMonitor(Callback):
     def on_test_batch_end(
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any, **__: Any
     ) -> None:
-        self._update(trainer, pl_module, batch, trainer._evaluation_loop.batch_progress.total.ready)
-        self._compute(trainer, trainer._evaluation_loop.batch_progress.current.ready)
+        iter_num = trainer._evaluation_loop.batch_progress.total.ready
+        self._update(trainer, pl_module, batch, iter_num)
+        self._compute(trainer, iter_num)
 
     @rank_zero_only
     def on_predict_start(self, trainer: "Trainer", *_: Any) -> None:
@@ -208,8 +221,9 @@ class ThroughputMonitor(Callback):
     def on_predict_batch_end(
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any, **__: Any
     ) -> None:
-        self._update(trainer, pl_module, batch, trainer.predict_loop.batch_progress.total.ready)
-        self._compute(trainer, trainer.predict_loop.batch_progress.current.ready)
+        iter_num = trainer.predict_loop.batch_progress.total.ready
+        self._update(trainer, pl_module, batch, iter_num)
+        self._compute(trainer, iter_num)
 
 
 def _plugin_to_compute_dtype(plugin: Union[Precision, PrecisionPlugin]) -> torch.dtype:

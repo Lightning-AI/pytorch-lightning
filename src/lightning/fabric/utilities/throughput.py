@@ -109,13 +109,14 @@ class Throughput:
         """Update throughput metrics.
 
         Args:
-            time: Total elapsed time in seconds. Monotonically increasing.
-            samples: Total samples seen per device. Monotonically increasing.
-            lengths: Total length of the samples seen. Monotonically increasing.
+            time: Total elapsed time in seconds. It should monotonically increase by the iteration time with each
+                call.
+            samples: Total samples seen per device. It should monotonically increase by the batch size with each
+                call.
+            lengths: Total length of the samples seen. It should monotonically increase by the length of a batch with
+                each call.
             flops_per_batch: Flops per batch per device. You can easily compute this by using :func:`measure_flops`.
                 The value might be different in each device if the batch size is not the same.
-                It should be also be different in iterations that accumulate gradients versus iterations that
-                ``backward``.
 
         """
         self._time.append(time)
