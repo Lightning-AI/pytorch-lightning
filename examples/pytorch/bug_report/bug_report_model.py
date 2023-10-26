@@ -4,6 +4,8 @@ import torch
 from lightning.pytorch import LightningModule, Trainer
 from torch.utils.data import DataLoader, Dataset
 
+from pytorch.cli import LightningCLI
+
 
 class RandomDataset(Dataset):
     def __init__(self, size, length):
@@ -45,20 +47,13 @@ class BoringModel(LightningModule):
 def run():
     train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
-    test_data = DataLoader(RandomDataset(32, 64), batch_size=2)
 
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=os.getcwd(),
-        limit_train_batches=1,
-        limit_val_batches=1,
-        limit_test_batches=1,
-        num_sanity_val_steps=0,
-        max_epochs=1,
-        enable_model_summary=False,
-    )
-    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
-    trainer.test(model, dataloaders=test_data)
+    import os
+    os.environ["PL_TRAINER_ACCELERATOR"] = "cpu"
+    os.environ["PL_TRAINER_DEVICES"] = "2"
+
+    cli = LightningCLI(BoringModel, run=False, trainer_defaults={"max_epochs": 1})
+    cli.trainer.fit(cli.model, train_data, val_data)
 
 
 if __name__ == "__main__":
