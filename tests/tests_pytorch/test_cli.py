@@ -58,6 +58,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from tests_pytorch.helpers.runif import RunIf
 
+from lightning.pytorch.accelerators import CPUAccelerator
+
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     from jsonargparse import Namespace, lazy_instance
 else:
@@ -286,6 +288,21 @@ def test_lightning_env_parse(cleandir):
     assert cli.config.fit.trainer.default_root_dir == "."
     assert cli.config.fit.trainer.max_epochs == 1
     assert cli.config.fit.trainer.logger is False
+
+
+def test_lightning_cli_and_trainer_kwargs_override(cleandir):
+    env_vars = {
+        "PL_TRAINER_ACCELERATOR": "cpu",
+        "PL_TRAINER_DEVICES": "2",
+        "PL_TRAINER_NUM_NODES": "4",
+        "PL_TRAINER_PRECISION": "16-true",
+    }
+    with mock.patch.dict(os.environ, env_vars), mock.patch("sys.argv", [""]):
+        cli = LightningCLI(BoringModel, run=False)
+    assert isinstance(cli.trainer.accelerator, CPUAccelerator)
+    assert cli.trainer.num_devices == 2
+    assert cli.trainer.num_nodes == 4
+    assert cli.trainer.precision == "16-true"
 
 
 def test_lightning_cli_save_config_cases(cleandir):
