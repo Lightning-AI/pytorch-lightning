@@ -29,6 +29,7 @@ import torch
 import yaml
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__, seed_everything
+from lightning.pytorch.accelerators import CPUAccelerator
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.cli import (
     _JSONARGPARSE_SIGNATURES_AVAILABLE,
@@ -57,8 +58,6 @@ from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from tests_pytorch.helpers.runif import RunIf
-
-from lightning.pytorch.accelerators import CPUAccelerator
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     from jsonargparse import Namespace, lazy_instance
