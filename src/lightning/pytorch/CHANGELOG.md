@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `seed_everything()` without passing in a seed no longer randomly selects a seed, and now defaults to `0` ([#18846](https://github.com/Lightning-AI/lightning/pull/18846))
 - `LightningCLI` no longer allows setting a normal class instance as default. A `lazy_instance` can be used instead ([#18822](https://github.com/Lightning-AI/lightning/pull/18822))
 
-- The `PL_TRAINER_*` env variables now takes precendence over the arguments passed to the Trainer ([#18876](https://github.com/Lightning-AI/lightning/issues/18876))
+- The `PL_TRAINER_*` env variables now takes precedence over the arguments passed to the Trainer ([#18876](https://github.com/Lightning-AI/lightning/issues/18876))
 
 
 
