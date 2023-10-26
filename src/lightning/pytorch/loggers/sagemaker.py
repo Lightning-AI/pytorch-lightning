@@ -55,8 +55,7 @@ class ExperimentConfig(BaseModel):
 
 
 class SagemakerExperimentsLogger(Logger):
-    r"""
-    Log to `AWS Sagemaker Experiments
+    r"""Log to `AWS Sagemaker Experiments
     <https://sagemaker.readthedocs.io/en/stable/experiments/sagemaker.experiments.html#run>`_ .
 
     Implemented using :mod:`~sagemaker.experiments` API. Install api with pip:
@@ -65,9 +64,11 @@ class SagemakerExperimentsLogger(Logger):
 
         pip install sagemaker
 
-    It can be used in several ways:
+    **How to use SagemakerExperimentsLogger**
 
-    1. Use ``SagemakerExperimentsLogger`` by explicitly passing in ``run_name`` and ``experiment_name``.
+    SagemakerExperimentsLogger can be used in several ways:
+
+    1. Use SagemakerExperimentsLogger by explicitly passing in ``run_name`` and ``experiment_name``.
 
     If ``run_name`` and ``experiment_name`` are passed in, they are honored over
     the default experiment_name config of the loffer. A new experiment_name with run job will be created.

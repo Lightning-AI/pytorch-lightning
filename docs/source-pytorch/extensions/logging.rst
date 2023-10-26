@@ -31,6 +31,7 @@ The following are loggers we support:
     CSVLogger
     MLFlowLogger
     NeptuneLogger
+    SagemakerExperimentsLogger
     TensorBoardLogger
     WandbLogger
 
