@@ -17,4 +17,5 @@ uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in
 
 tensorboard >=2.9.1, <2.15.0  # for `TensorBoardLogger`
 
-moto>=4.2
+moto>=4.2  # for `SagemakerExperimentsLogger`
+sagemaker>=2.190.0  # for `SagemakerExperimentsLogger`
