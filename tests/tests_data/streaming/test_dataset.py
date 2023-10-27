@@ -68,8 +68,16 @@ def test_streaming_dataset_distributed_min_shuffle(tmpdir):
     for i in range(101):
         assert dataset[i] == i
 
+    dataset.distributed_env = _DistributedEnv(1, 0)
+    assert len(dataset) == 101
+
+    assert len(DataLoader(dataset)) == 101
+
     dataset.distributed_env = _DistributedEnv(2, 0)
     assert len(dataset) == 41
+
+    assert len(DataLoader(dataset)) == 41
+
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 41
     process_1_1 = list(dataset_iter)
@@ -114,6 +122,9 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
 
     for i in range(101):
         assert dataset[i] == i
+
+    dataset.distributed_env = _DistributedEnv(1, 0)
+    assert len(dataset) == 101
 
     dataset.distributed_env = _DistributedEnv(2, 0)
     assert len(dataset) == 50

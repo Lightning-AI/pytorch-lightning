@@ -78,6 +78,8 @@ class Cache:
             if cache_dir:
                 os.makedirs(cache_dir, exist_ok=True)
 
+            self._cache_dir = cache_dir
+
         self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
         self._reader = BinaryReader(cache_dir, remote_dir=remote_dir, compression=compression, item_loader=item_loader)
         self._is_done = False
