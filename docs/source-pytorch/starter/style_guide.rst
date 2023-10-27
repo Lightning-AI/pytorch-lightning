@@ -139,7 +139,7 @@ In practice, the code looks like this:
 
 .. code-block::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(L.LightningModule):
 
         def __init__(...):
 

@@ -54,9 +54,9 @@ Modify a checkpoint anywhere
 ****************************
 When you need to change the components of a checkpoint before saving or loading, use the :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_save_checkpoint` and :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_load_checkpoint` of your ``LightningModule``.
 
-.. code:: python
+.. code-block:: python
 
-    class LitModel(pl.LightningModule):
+    class LitModel(L.LightningModule):
         def on_save_checkpoint(self, checkpoint):
             checkpoint["something_cool_i_want_to_save"] = my_cool_pickable_object
 
@@ -65,9 +65,12 @@ When you need to change the components of a checkpoint before saving or loading,
 
 Use the above approach when you need to couple this behavior to your LightningModule for reproducibility reasons. Otherwise, Callbacks also have the :meth:`~lightning.pytorch.callbacks.callback.Callback.on_save_checkpoint` and :meth:`~lightning.pytorch.callbacks.callback.Callback.on_load_checkpoint` which you should use instead:
 
-.. code:: python
+.. code-block:: python
 
-    class LitCallback(pl.Callback):
+    import lightning as L
+
+
+    class LitCallback(L.Callback):
         def on_save_checkpoint(self, checkpoint):
             checkpoint["something_cool_i_want_to_save"] = my_cool_pickable_object
 
