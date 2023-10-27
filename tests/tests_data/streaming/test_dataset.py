@@ -22,7 +22,7 @@ from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.item_loader import TokensLoader
-from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, TruncatedShuffle
+from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from torch.utils.data import DataLoader
 
@@ -51,7 +51,8 @@ def test_streaming_dataset(tmpdir, monkeypatch):
     assert len(dataloader) == 408
 
 
-def test_streaming_dataset_distributed_min_shuffle(tmpdir):
+@pytest.mark.parametrize("drop_last", [False, True])
+def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     seed_everything(42)
 
     cache = Cache(tmpdir, chunk_size=10)
@@ -61,62 +62,7 @@ def test_streaming_dataset_distributed_min_shuffle(tmpdir):
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True)
-
-    assert isinstance(dataset.shuffle, TruncatedShuffle)
-
-    for i in range(101):
-        assert dataset[i] == i
-
-    dataset.distributed_env = _DistributedEnv(1, 0)
-    assert len(dataset) == 101
-
-    assert len(DataLoader(dataset)) == 101
-
-    dataset.distributed_env = _DistributedEnv(2, 0)
-    assert len(dataset) == 41
-
-    assert len(DataLoader(dataset)) == 41
-
-    dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 41
-    process_1_1 = list(dataset_iter)
-    assert process_1_1[:10] == [50, 56, 59, 51, 58, 55, 52, 53, 54, 57]
-    assert len(process_1_1) == 41
-    dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 50
-    process_1_2 = list(dataset_iter)
-    assert process_1_2[:10] == [100, 68, 66, 64, 61, 65, 69, 62, 63, 60]
-    assert len(process_1_2) == 50
-
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir)
-    dataset.distributed_env = _DistributedEnv(2, 1)
-    assert len(dataset) == 41
-    dataset_iter = iter(dataset)
-    process_2_1 = list(dataset_iter)
-    assert process_2_1[:10] == [0, 6, 9, 1, 8, 5, 2, 3, 4, 7]
-    assert len(process_2_1) == 41
-    dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 50
-    process_2_2 = list(dataset_iter)
-    assert process_2_2[:10] == [78, 76, 74, 71, 75, 79, 72, 73, 70, 77]
-    assert len(process_2_2) == 50
-
-    assert len([i for i in process_1_1 if i in process_2_1]) == 0
-    assert len([i for i in process_1_2 if i in process_2_2]) == 0
-
-
-def test_streaming_dataset_distributed_no_shuffle(tmpdir):
-    seed_everything(42)
-
-    cache = Cache(tmpdir, chunk_size=10)
-    for i in range(101):
-        cache[i] = i
-
-    cache.done()
-    cache.merge()
-
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=False)
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=False, drop_last=drop_last)
 
     assert isinstance(dataset.shuffle, NoShuffle)
 
@@ -127,19 +73,19 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
     assert len(dataset) == 101
 
     dataset.distributed_env = _DistributedEnv(2, 0)
-    assert len(dataset) == 50
+    assert len(dataset) == 50 + int(not drop_last)
     dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 50
+    assert len(dataset_iter) == 50 + int(not drop_last)
     process_1_1 = list(dataset_iter)
-    assert len(process_1_1) == 50
+    assert len(process_1_1) == 50 + int(not drop_last)
     assert process_1_1[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 50
+    assert len(dataset_iter) == 50 + int(not drop_last)
     process_1_2 = list(dataset_iter)
     assert process_1_2[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    assert len(process_1_2) == 50
+    assert len(process_1_2) == 50 + int(not drop_last)
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=False)
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=False, drop_last=drop_last)
     dataset.distributed_env = _DistributedEnv(2, 1)
     assert len(dataset) == 50
     dataset_iter = iter(dataset)
@@ -153,7 +99,7 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
 
     assert len(process_2_2) == 50
 
-    _, intervals_per_process = dataset.shuffle.get_chunks_and_intervals_per_process(
+    _, intervals_per_ranks = dataset.shuffle.get_chunks_and_intervals_per_ranks(
         dataset.distributed_env, dataset.current_epoch
     )
 
@@ -162,7 +108,7 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
     found_list = []
     for i in process_1_1:
         found = False
-        for interval in intervals_per_process[0]:
+        for interval in intervals_per_ranks[0]:
             if interval[0] <= i <= interval[1]:
                 found = True
                 break
@@ -173,7 +119,7 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
     found_list = []
     for i in process_2_1:
         found = False
-        for interval in intervals_per_process[1]:
+        for interval in intervals_per_ranks[1]:
             if interval[0] <= i <= interval[1]:
                 found = True
                 break
@@ -185,7 +131,8 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
     assert len([i for i in process_1_2 if i in process_2_2]) == 0
 
 
-def test_streaming_dataset_distributed_full_shuffle(tmpdir):
+@pytest.mark.parametrize("drop_last", [False, True])
+def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     seed_everything(42)
 
     cache = Cache(tmpdir, chunk_size=10)
@@ -195,7 +142,7 @@ def test_streaming_dataset_distributed_full_shuffle(tmpdir):
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="full")
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True, drop_last=drop_last)
 
     assert isinstance(dataset.shuffle, FullShuffle)
 
@@ -210,14 +157,52 @@ def test_streaming_dataset_distributed_full_shuffle(tmpdir):
     assert process_1_1[:10] == [785, 788, 782, 783, 789, 787, 786, 781, 784, 780]
     assert len(process_1_1) == 548
 
-    dataset_2 = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle="full")
+    dataset_2 = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True, drop_last=drop_last)
     assert isinstance(dataset_2.shuffle, FullShuffle)
     dataset_2.distributed_env = _DistributedEnv(2, 1)
-    assert len(dataset_2) == 548
+    assert len(dataset_2) == 548 + int(not drop_last)
     dataset_2_iter = iter(dataset_2)
-    assert len(dataset_2_iter) == 548
+    assert len(dataset_2_iter) == 548 + int(not drop_last)
     process_2_1 = list(dataset_2_iter)
-    assert process_2_1[:10] == [939, 255, 258, 252, 253, 259, 257, 256, 251, 254]
-    assert len(process_2_1) == 548
+    assert process_2_1[:10] == [939, 938, 252, 259, 257, 255, 258, 253, 250, 251]
+    assert len(process_2_1) == 548 + int(not drop_last)
+    assert len([i for i in process_1_1 if i in process_2_1]) == 0
+
+
+@pytest.mark.parametrize("drop_last", [False, True])
+def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
+    seed_everything(42)
+
+    cache = Cache(tmpdir, chunk_size=10)
+    for i in range(1222):
+        cache[i] = i
+
+    cache.done()
+    cache.merge()
+
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True, drop_last=drop_last)
+
+    assert isinstance(dataset.shuffle, FullShuffle)
+
+    for i in range(1222):
+        assert dataset[i] == i
+
+    dataset.distributed_env = _DistributedEnv(2, 0)
+    assert len(dataset) == 611
+    dataset_iter = iter(dataset)
+    assert len(dataset_iter) == 611
+    process_1_1 = list(dataset_iter)
+    assert process_1_1[:10] == [185, 184, 182, 189, 187, 181, 183, 180, 186, 188]
+    assert len(process_1_1) == 611
+
+    dataset_2 = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True, drop_last=drop_last)
+    assert isinstance(dataset_2.shuffle, FullShuffle)
+    dataset_2.distributed_env = _DistributedEnv(2, 1)
+    assert len(dataset_2) == 611
+    dataset_2_iter = iter(dataset_2)
+    assert len(dataset_2_iter) == 611
+    process_2_1 = list(dataset_2_iter)
+    assert process_2_1[:10] == [813, 815, 816, 812, 818, 811, 817, 814, 819, 277]
+    assert len(process_2_1) == 611
 
     assert len([i for i in process_1_1 if i in process_2_1]) == 0

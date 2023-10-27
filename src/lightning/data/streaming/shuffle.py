@@ -24,17 +24,27 @@ from lightning.data.streaming import Cache
 class Shuffle(ABC):
     """Shuffle describe how to distribute chunked datasets across processes and workers."""
 
-    def __init__(self, cache: Cache, seed: int):
+    def __init__(self, cache: Cache, seed: int, drop_last: bool):
         self.cache = cache
         self.seed = seed
+        self.drop_last = drop_last
         self.random_state = None
 
-    @abstractmethod
+    @lru_cache(maxsize=10)
     def get_len(self, distributed_env: _DistributedEnv, current_epoch: int) -> int:
-        pass
+        _, intervals_per_ranks = self.get_chunks_and_intervals_per_ranks(distributed_env, current_epoch)
+
+        if self.drop_last:
+            items_per_process = [
+                sum((interval[-1] - interval[0]) for interval in intervals) for intervals in intervals_per_ranks
+            ]
+            min_items_per_process = min(items_per_process)
+            return min_items_per_process
+
+        return sum((interval[-1] - interval[0]) for interval in intervals_per_ranks[distributed_env.global_rank])
 
     @abstractmethod
-    def get_chunks_and_intervals_per_process(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
+    def get_chunks_and_intervals_per_ranks(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
         pass
 
     @abstractmethod
@@ -43,77 +53,27 @@ class Shuffle(ABC):
 
 
 class NoShuffle(Shuffle):
-    """NoShuffle doesn't shuffle the items and ensure all the processes receive the same number of items."""
+    """NoShuffle doesn't shuffle the items and ensure all the processes receive the same number of items if drop_last
+    is True."""
 
     @lru_cache(maxsize=10)
-    def get_len(self, distributed_env: _DistributedEnv, current_epoch: int) -> int:
-        _, intervals_per_process = self.get_chunks_and_intervals_per_process(distributed_env, current_epoch)
-        min_items_per_process = min(
-            [sum([(interval[-1] - interval[0]) for interval in intervals]) for intervals in intervals_per_process]
-        )
-        return min_items_per_process
-
-    @lru_cache(maxsize=10)
-    def get_chunks_and_intervals_per_process(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
+    def get_chunks_and_intervals_per_ranks(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
         self.random_state = np.random.RandomState(seed=self.seed + current_epoch)  # type: ignore
         chunk_intervals = self.cache.get_chunk_intervals()
         indexes = list(range(len(chunk_intervals)))
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[indexes]
 
-        chunks_per_process: List[List[int]] = [[] for _ in range(distributed_env.world_size)]
-        intervals_per_process: List[List[List[int]]] = [[] for _ in range(distributed_env.world_size)]
+        chunks_per_ranks: List[List[int]] = [[] for _ in range(distributed_env.world_size)]
+        intervals_per_ranks: List[List[List[int]]] = [[] for _ in range(distributed_env.world_size)]
         for index, (chunk_index, chunk_interval) in enumerate(zip(indexes, shuffled_chunk_intervals)):
             replica_index = index % distributed_env.world_size
-            chunks_per_process[replica_index].append(chunk_index)
-            intervals_per_process[replica_index].append(chunk_interval)
+            chunks_per_ranks[replica_index].append(chunk_index)
+            intervals_per_ranks[replica_index].append(chunk_interval)
 
-        return chunks_per_process, intervals_per_process
+        return chunks_per_ranks, intervals_per_ranks
 
     def __call__(self, array: np.ndarray) -> List[int]:
         return array.tolist()
-
-
-class TruncatedShuffle(Shuffle):
-    """TruncatedShuffle shuffles the chunks and associates them to the ranks.
-
-    As the number of items in a chunk varies, it is possible for a rank to end up with more or less items.
-
-    To ensure the same fixed dataset length for all ranks, we compute the minimum number of items across all ranks.
-
-    For the ranks with more items than the minimum, the remaining items are dropped.
-
-    Note: This is the fastest sampling strategy but at the cost of losing items.
-
-    """
-
-    @lru_cache(maxsize=10)
-    def get_len(self, distributed_env: _DistributedEnv, current_epoch: int) -> int:
-        _, intervals_per_process = self.get_chunks_and_intervals_per_process(distributed_env, current_epoch)
-        min_items_per_process = min(
-            [sum([(interval[-1] - interval[0]) for interval in intervals]) for intervals in intervals_per_process]
-        )
-        return min_items_per_process
-
-    @lru_cache(maxsize=10)
-    def get_chunks_and_intervals_per_process(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
-        self.random_state = np.random.RandomState(seed=self.seed + current_epoch)  # type: ignore
-        chunk_intervals = self.cache.get_chunk_intervals()
-        indexes = range(len(chunk_intervals))
-        shuffled_indexes = self.random_state.permutation(indexes)
-        shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
-
-        chunks_per_process: List[List[int]] = [[] for _ in range(distributed_env.world_size)]
-        intervals_per_process: List[List[List[int]]] = [[] for _ in range(distributed_env.world_size)]
-        for index, (chunk_index, chunk_interval) in enumerate(zip(shuffled_indexes, shuffled_chunk_intervals)):
-            replica_index = index % distributed_env.world_size
-            chunks_per_process[replica_index].append(chunk_index)
-            intervals_per_process[replica_index].append(chunk_interval)
-
-        return chunks_per_process, intervals_per_process
-
-    def __call__(self, array: np.ndarray) -> List[int]:
-        assert self.random_state
-        return self.random_state.permutation(array).tolist()
 
 
 class FullShuffle(Shuffle):
@@ -135,36 +95,40 @@ class FullShuffle(Shuffle):
     """
 
     @lru_cache(maxsize=10)
-    def get_len(self, distributed_env: _DistributedEnv, current_epoch: int) -> int:
-        _, intervals_per_process = self.get_chunks_and_intervals_per_process(distributed_env, current_epoch)
-        min_items_per_process = min([sum([(i[-1] - i[0]) for i in intervals]) for intervals in intervals_per_process])
-        return min_items_per_process
-
-    @lru_cache(maxsize=10)
-    def get_chunks_and_intervals_per_process(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
+    def get_chunks_and_intervals_per_ranks(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
         self.random_state = np.random.RandomState(seed=self.seed + current_epoch)  # type: ignore
+
+        # 1. Get the intervals
         chunk_intervals = self.cache.get_chunk_intervals()
+
+        # 2. Shuffle them
         indexes = range(len(chunk_intervals))
         shuffled_indexes = self.random_state.permutation(indexes)
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
 
+        # 3. Compute the items budget of each rank
         num_items = sum([(interval[-1] - interval[0]) for interval in chunk_intervals])
-        num_items_per_process: List[int] = [
-            num_items // distributed_env.world_size for _ in range(distributed_env.world_size)
+        num_items_per_ranks: List[int] = [
+            num_items // distributed_env.world_size + num_items % distributed_env.world_size
+            if rank == distributed_env.world_size - 1 and not self.drop_last
+            else num_items // distributed_env.world_size
+            for rank in range(distributed_env.world_size)
         ]
-        chunks_per_process: List[List[int]] = [[] for _ in range(distributed_env.world_size)]
-        intervals_per_process: List[List[List[int]]] = [[] for _ in range(distributed_env.world_size)]
+        chunks_per_ranks: List[List[int]] = [[] for _ in range(distributed_env.world_size)]
+        intervals_per_ranks: List[List[List[int]]] = [[] for _ in range(distributed_env.world_size)]
+
+        # 4. Assign the chunk & intervals to each rank
         for chunk_index, chunk_interval in zip(shuffled_indexes, shuffled_chunk_intervals):
-            process_index = 0
+            rank = 0
 
             while True:
-                if process_index == len(num_items_per_process):
+                if rank == len(num_items_per_ranks):
                     break
 
-                items_left_to_assign = num_items_per_process[process_index]
+                items_left_to_assign = num_items_per_ranks[rank]
 
                 if items_left_to_assign == 0:
-                    process_index += 1
+                    rank += 1
                     continue
 
                 items_in_chunk = chunk_interval[-1] - chunk_interval[0]
@@ -173,19 +137,19 @@ class FullShuffle(Shuffle):
                     break
 
                 if items_in_chunk > items_left_to_assign:
-                    chunks_per_process[process_index].append(chunk_index)
+                    chunks_per_ranks[rank].append(chunk_index)
                     begin, end = chunk_interval
-                    intervals_per_process[process_index].append([begin, begin + items_left_to_assign])
-                    chunk_interval = (begin + items_left_to_assign + 1, end)
-                    num_items_per_process[process_index] = 0
-                    process_index += 1
+                    intervals_per_ranks[rank].append([begin, begin + items_left_to_assign])
+                    chunk_interval = (begin + items_left_to_assign, end)
+                    num_items_per_ranks[rank] = 0
+                    rank += 1
                 else:
-                    chunks_per_process[process_index].append(chunk_index)
-                    intervals_per_process[process_index].append(chunk_interval)
-                    num_items_per_process[process_index] -= items_in_chunk
+                    chunks_per_ranks[rank].append(chunk_index)
+                    intervals_per_ranks[rank].append(chunk_interval)
+                    num_items_per_ranks[rank] -= items_in_chunk
                     break
 
-        return chunks_per_process, intervals_per_process
+        return chunks_per_ranks, intervals_per_ranks
 
     def __call__(self, array: np.ndarray) -> List[int]:
         assert self.random_state
