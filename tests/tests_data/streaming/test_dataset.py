@@ -51,7 +51,8 @@ def test_streaming_dataset(tmpdir, monkeypatch):
     assert len(dataloader) == 408
 
 
-def test_streaming_dataset_distributed_no_shuffle(tmpdir):
+@pytest.mark.parametrize("drop_last", [False, True])
+def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     seed_everything(42)
 
     cache = Cache(tmpdir, chunk_size=10)
@@ -61,7 +62,7 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=False)
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=False, drop_last=drop_last)
 
     assert isinstance(dataset.shuffle, NoShuffle)
 
@@ -72,19 +73,19 @@ def test_streaming_dataset_distributed_no_shuffle(tmpdir):
     assert len(dataset) == 101
 
     dataset.distributed_env = _DistributedEnv(2, 0)
-    assert len(dataset) == 51
+    assert len(dataset) == 50 + int(not drop_last)
     dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 51
+    assert len(dataset_iter) == 50 + int(not drop_last)
     process_1_1 = list(dataset_iter)
-    assert len(process_1_1) == 51
+    assert len(process_1_1) == 50 + int(not drop_last)
     assert process_1_1[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 51
+    assert len(dataset_iter) == 50 + int(not drop_last)
     process_1_2 = list(dataset_iter)
     assert process_1_2[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    assert len(process_1_2) == 51
+    assert len(process_1_2) == 50 + int(not drop_last)
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=False)
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=False, drop_last=drop_last)
     dataset.distributed_env = _DistributedEnv(2, 1)
     assert len(dataset) == 50
     dataset_iter = iter(dataset)
