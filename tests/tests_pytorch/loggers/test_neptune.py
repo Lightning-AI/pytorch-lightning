@@ -27,8 +27,8 @@ from lightning.pytorch.loggers import NeptuneLogger
 from lightning.pytorch.loggers.neptune import _sanitize_expected_model_path
 
 IS_WINDOWS = sys.platform == "win32"
-skip_if_on_windows = pytest.mark.skipif(IS_WINDOWS, reason="Those tests are specific to non-windows systems")
-skip_if_not_windows = pytest.mark.skipif(not IS_WINDOWS, reason="Those tests are specific to windows os")
+skip_if_on_windows = pytest.mark.skipif(IS_WINDOWS, reason="These tests are specific to non-Windows systems")
+skip_if_not_windows = pytest.mark.skipif(not IS_WINDOWS, reason="These tests are specific to Windows OS")
 
 
 def _fetchable_paths(value):
