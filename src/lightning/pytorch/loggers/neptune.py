@@ -46,13 +46,13 @@ _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 def _sanitize_expected_model_path(dir_path: str) -> str:
     """Sanitize the expected model path so that it is correct irrespective of the underlying os.
 
-    >>> _sanitize_expected_model_path("my_model/checkpoints//")  # unix-like path separator os
-    "my_model/checkpoints/"
-    >>> _sanitize_expected_model_path("my_model/checkpoints")
-    "my_model/checkpoints/"
+    >>> _sanitize_expected_model_path('my_model/checkpoints//')  # unix-like path separator os
+    'my_model/checkpoints/'
+    >>> _sanitize_expected_model_path('my_model/checkpoints')
+    'my_model/checkpoints/'
 
-    >>> _sanitize_expected_model_path("my_model\\checkpoints")  # windows
-    "my_model\\checkpoints\\"
+    >>> _sanitize_expected_model_path('my_model\\checkpoints')  # windows
+    'my_model\\checkpoints\\'
 
     """
     expected_model_path = dir_path
