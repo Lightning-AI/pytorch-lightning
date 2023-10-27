@@ -6,6 +6,7 @@ When a checkpoint is created, it asks every DataModule for their state. If your 
 
     import lightning as L
 
+
     class LitDataModule(L.LightningDataModule):
         def state_dict(self):
             # track whatever you want here
