@@ -97,33 +97,35 @@ class FullShuffle(Shuffle):
     @lru_cache(maxsize=10)
     def get_chunks_and_intervals_per_ranks(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
         self.random_state = np.random.RandomState(seed=self.seed + current_epoch)  # type: ignore
+
+        # 1. Get the intervals
         chunk_intervals = self.cache.get_chunk_intervals()
+
+        # 2. Shuffle them
         indexes = range(len(chunk_intervals))
         shuffled_indexes = self.random_state.permutation(indexes)
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
 
+        # 3. Compute the items budget of each rank
         num_items = sum([(interval[-1] - interval[0]) for interval in chunk_intervals])
-        if self.drop_last:
-            num_items_per_process: List[int] = [
-                num_items // distributed_env.world_size for _ in range(distributed_env.world_size)
-            ]
-        else:
-            num_items_per_process: List[int] = [
-                num_items // distributed_env.world_size + num_items % distributed_env.world_size
-                if rank == distributed_env.world_size - 1
-                else num_items // distributed_env.world_size
-                for rank in range(distributed_env.world_size)
-            ]
+        num_items_per_ranks: List[int] = [
+            num_items // distributed_env.world_size + num_items % distributed_env.world_size
+            if rank == distributed_env.world_size - 1 and not self.drop_last
+            else num_items // distributed_env.world_size
+            for rank in range(distributed_env.world_size)
+        ]
         chunks_per_ranks: List[List[int]] = [[] for _ in range(distributed_env.world_size)]
         intervals_per_ranks: List[List[List[int]]] = [[] for _ in range(distributed_env.world_size)]
+
+        # 4. Assign the chunk & intervals to each rank
         for chunk_index, chunk_interval in zip(shuffled_indexes, shuffled_chunk_intervals):
             rank = 0
 
             while True:
-                if rank == len(num_items_per_process):
+                if rank == len(num_items_per_ranks):
                     break
 
-                items_left_to_assign = num_items_per_process[rank]
+                items_left_to_assign = num_items_per_ranks[rank]
 
                 if items_left_to_assign == 0:
                     rank += 1
@@ -139,12 +141,12 @@ class FullShuffle(Shuffle):
                     begin, end = chunk_interval
                     intervals_per_ranks[rank].append([begin, begin + items_left_to_assign])
                     chunk_interval = (begin + items_left_to_assign, end)
-                    num_items_per_process[rank] = 0
+                    num_items_per_ranks[rank] = 0
                     rank += 1
                 else:
                     chunks_per_ranks[rank].append(chunk_index)
                     intervals_per_ranks[rank].append(chunk_interval)
-                    num_items_per_process[rank] -= items_in_chunk
+                    num_items_per_ranks[rank] -= items_in_chunk
                     break
 
         return chunks_per_ranks, intervals_per_ranks
