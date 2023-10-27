@@ -456,23 +456,25 @@ def test_wandb_log_media(wandb_mock, tmp_path):
         logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1"])
 
     # test log_audio
-    wandb.init().log.reset_mock()
+    wandb_mock.init().log.reset_mock()
     logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"])
-    wandb.Audio.assert_called_with("2.mp3")
-    wandb.init().log.assert_called_once_with({"samples": [wandb.Audio(), wandb.Audio()]})
+    wandb_mock.Audio.assert_called_with("2.mp3")
+    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Audio(), wandb_mock.Audio()]})
 
     # test log_audio with step
-    wandb.init().log.reset_mock()
+    wandb_mock.init().log.reset_mock()
     logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], step=5)
-    wandb.Audio.assert_called_with("2.mp3")
-    wandb.init().log.assert_called_once_with({"samples": [wandb.Audio(), wandb.Audio()], "trainer/global_step": 5})
+    wandb_mock.Audio.assert_called_with("2.mp3")
+    wandb_mock.init().log.assert_called_once_with(
+        {"samples": [wandb_mock.Audio(), wandb_mock.Audio()], "trainer/global_step": 5}
+    )
 
     # test log_audio with captions
-    wandb.init().log.reset_mock()
-    wandb.Audio.reset_mock()
+    wandb_mock.init().log.reset_mock()
+    wandb_mock.Audio.reset_mock()
     logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], caption=["caption 1", "caption 2"])
-    wandb.Audio.assert_called_with("2.mp3", caption="caption 2")
-    wandb.init().log.assert_called_once_with({"samples": [wandb.Audio(), wandb.Audio()]})
+    wandb_mock.Audio.assert_called_with("2.mp3", caption="caption 2")
+    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Audio(), wandb_mock.Audio()]})
 
     # test log_audio without a list
     with pytest.raises(TypeError, match="""Expected a list as "audios", found <class 'str'>"""):
@@ -483,23 +485,25 @@ def test_wandb_log_media(wandb_mock, tmp_path):
         logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], caption=["caption 1"])
 
     # test log_video
-    wandb.init().log.reset_mock()
+    wandb_mock.init().log.reset_mock()
     logger.log_video(key="samples", videos=["1.mp4", "2.mp4"])
-    wandb.Video.assert_called_with("2.mp4")
-    wandb.init().log.assert_called_once_with({"samples": [wandb.Video(), wandb.Video()]})
+    wandb_mock.Video.assert_called_with("2.mp4")
+    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Video(), wandb_mock.Video()]})
 
     # test log_video with step
-    wandb.init().log.reset_mock()
+    wandb_mock.init().log.reset_mock()
     logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], step=5)
-    wandb.Video.assert_called_with("2.mp4")
-    wandb.init().log.assert_called_once_with({"samples": [wandb.Video(), wandb.Video()], "trainer/global_step": 5})
+    wandb_mock.Video.assert_called_with("2.mp4")
+    wandb_mock.init().log.assert_called_once_with(
+        {"samples": [wandb_mock.Video(), wandb_mock.Video()], "trainer/global_step": 5}
+    )
 
     # test log_video with captions
-    wandb.init().log.reset_mock()
-    wandb.Video.reset_mock()
+    wandb_mock.init().log.reset_mock()
+    wandb_mock.Video.reset_mock()
     logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], caption=["caption 1", "caption 2"])
-    wandb.Video.assert_called_with("2.mp4", caption="caption 2")
-    wandb.init().log.assert_called_once_with({"samples": [wandb.Video(), wandb.Video()]})
+    wandb_mock.Video.assert_called_with("2.mp4", caption="caption 2")
+    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Video(), wandb_mock.Video()]})
 
     # test log_video without a list
     with pytest.raises(TypeError, match="""Expected a list as "videos", found <class 'str'>"""):
