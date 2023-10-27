@@ -162,12 +162,15 @@ def test_cache_with_simple_format(tmpdir):
 
     cache = Cache(cache_dir, chunk_bytes=90)
 
+    # you encode data
     for i in range(100):
         cache[i] = i
 
+    # I am done, write the index ...
     cache.done()
     cache.merge()
 
+    # please, decode the data for me.
     for i in range(100):
         assert i == cache[i]
 
