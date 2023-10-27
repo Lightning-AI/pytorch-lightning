@@ -44,7 +44,7 @@ class StreamingDataset(IterableDataset):
             cache_dir: The cache dir where the data would be stored.
             item_loader: The logic to load an item from a chunk.
             shuffle: Whether to shuffle the data.
-            drop_last: Whether to drop the last items.
+            drop_last: If `True`, drops the last items to ensure that all processes/workers return the same amount of data.
             seed: Random seed for shuffling.
 
         """
