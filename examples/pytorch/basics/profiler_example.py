@@ -32,7 +32,6 @@ from lightning.pytorch import LightningDataModule, LightningModule, cli_lightnin
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.profilers.pytorch import PyTorchProfiler
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
-from typing_extensions import override
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
@@ -66,19 +65,16 @@ class ModelToProfile(LightningModule):
         self.manual_backward(loss)
         opt.step()
 
-    @override
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.criterion(outputs, labels)
         self.log("val_loss", loss)
 
-    @override
     def predict_step(self, batch, batch_idx, dataloader_idx: int = None):
         inputs = batch[0]
         return self.model(inputs)
 
-    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.001, momentum=0.9)
 

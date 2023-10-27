@@ -13,7 +13,6 @@ from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.serve import ServableModule, ServableModuleValidator
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from PIL import Image as PILImage
-from typing_extensions import override
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
@@ -25,7 +24,6 @@ class LitModule(LightningModule):
         self.model.fc = torch.nn.Linear(self.model.fc.in_features, 10)
         self.criterion = torch.nn.CrossEntropyLoss()
 
-    @override
     def training_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
@@ -33,14 +31,12 @@ class LitModule(LightningModule):
         self.log("train_loss", loss)
         return loss
 
-    @override
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.criterion(outputs, labels)
         self.log("val_loss", loss)
 
-    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.001, momentum=0.9)
 

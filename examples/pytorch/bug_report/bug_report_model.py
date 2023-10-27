@@ -3,7 +3,6 @@ import os
 import torch
 from lightning.pytorch import LightningModule, Trainer
 from torch.utils.data import DataLoader, Dataset
-from typing_extensions import override
 
 
 class RandomDataset(Dataset):
@@ -23,27 +22,22 @@ class BoringModel(LightningModule):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
 
-    @override
     def forward(self, x):
         return self.layer(x)
 
-    @override
     def training_step(self, batch, batch_idx):
         loss = self(batch).sum()
         self.log("train_loss", loss)
         return {"loss": loss}
 
-    @override
     def validation_step(self, batch, batch_idx):
         loss = self(batch).sum()
         self.log("valid_loss", loss)
 
-    @override
     def test_step(self, batch, batch_idx):
         loss = self(batch).sum()
         self.log("test_loss", loss)
 
-    @override
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 

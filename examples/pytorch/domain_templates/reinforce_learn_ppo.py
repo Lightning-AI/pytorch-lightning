@@ -38,7 +38,6 @@ from torch import nn
 from torch.distributions import Categorical, Normal
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, IterableDataset
-from typing_extensions import override
 
 
 def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
@@ -227,7 +226,6 @@ class PPOLightning(LightningModule):
 
         self.state = torch.FloatTensor(self.env.reset())
 
-    @override
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Passes in a state x through the network and returns the policy and a sampled action.
 
@@ -376,7 +374,6 @@ class PPOLightning(LightningModule):
         value = self.critic(state)
         return (qval - value).pow(2).mean()
 
-    @override
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor]):
         """Carries out a single update to actor and critic network from a batch of replay buffer.
 
@@ -408,14 +405,12 @@ class PPOLightning(LightningModule):
         self.log("loss_critic", loss_critic, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         self.log("loss_actor", loss_actor, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
-    @override
     def configure_optimizers(self) -> List[Optimizer]:
         """Initialize Adam optimizer."""
         optimizer_actor = torch.optim.Adam(self.actor.parameters(), lr=self.lr_actor)
         optimizer_critic = torch.optim.Adam(self.critic.parameters(), lr=self.lr_critic)
         return optimizer_actor, optimizer_critic
 
-    @override
     def optimizer_step(self, *args, **kwargs):
         """Run 'nb_optim_iters' number of iterations of gradient descent on actor and critic for each data sample."""
         for _ in range(self.nb_optim_iters):

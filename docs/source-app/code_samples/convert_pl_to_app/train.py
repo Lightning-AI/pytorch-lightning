@@ -1,5 +1,4 @@
 import os
-from typing_extensions import override
 
 import torch
 import torch.nn.functional as F
@@ -17,14 +16,12 @@ class LitAutoEncoder(pl.LightningModule):
         self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 3))
         self.decoder = nn.Sequential(nn.Linear(3, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
 
-    @override
     def forward(self, x):
         # in lightning,
         # forward defines the prediction/inference actions
         embedding = self.encoder(x)
         return embedding
 
-    @override
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
         # It is independent of forward
@@ -36,7 +33,6 @@ class LitAutoEncoder(pl.LightningModule):
         self.log("train_loss", loss)
         return loss
 
-    @override
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer

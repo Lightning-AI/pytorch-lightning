@@ -11,7 +11,6 @@ from lightning import LightningModule, Trainer
 from lightning.data import LightningDataset
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from torch.utils.data import Dataset
-from typing_extensions import override
 
 parser = ArgumentParser()
 parser.add_argument("--workers", default=4, type=int)
@@ -60,11 +59,9 @@ class ImageNetLightningModel(LightningModule):
         self.train_dataset: Optional[Dataset] = None
         self.eval_dataset: Optional[Dataset] = None
 
-    @override
     def forward(self, x):
         return self.model(x)
 
-    @override
     def training_step(self, batch, batch_idx):
         images, target = batch
         output = self.model(images)
@@ -79,15 +76,12 @@ class ImageNetLightningModel(LightningModule):
         self.log(f"{prefix}_loss", loss_val)
         return loss_val
 
-    @override
     def validation_step(self, batch, batch_idx):
         return self.eval_step(batch, batch_idx, "val")
 
-    @override
     def test_step(self, batch, batch_idx):
         return self.eval_step(batch, batch_idx, "test")
 
-    @override
     def configure_optimizers(self):
         optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay)
         scheduler = lr_scheduler.LambdaLR(optimizer, lambda epoch: 0.1 ** (epoch // 30))

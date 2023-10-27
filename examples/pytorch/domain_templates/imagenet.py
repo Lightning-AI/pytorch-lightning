@@ -49,7 +49,6 @@ from lightning.pytorch.strategies import ParallelStrategy
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from torch.utils.data import Dataset
 from torchmetrics import Accuracy
-from typing_extensions import override
 
 
 class ImageNetLightningModel(LightningModule):
@@ -89,11 +88,9 @@ class ImageNetLightningModel(LightningModule):
         self.eval_acc1 = Accuracy(task="multiclass", num_classes=1000, top_k=1)
         self.eval_acc5 = Accuracy(task="multiclass", num_classes=1000, top_k=5)
 
-    @override
     def forward(self, x):
         return self.model(x)
 
-    @override
     def training_step(self, batch, batch_idx):
         images, target = batch
         output = self.model(images)
@@ -124,7 +121,6 @@ class ImageNetLightningModel(LightningModule):
     def test_step(self, batch, batch_idx):
         return self.eval_step(batch, batch_idx, "test")
 
-    @override
     def configure_optimizers(self):
         optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay)
         scheduler = lr_scheduler.LambdaLR(optimizer, lambda epoch: 0.1 ** (epoch // 30))

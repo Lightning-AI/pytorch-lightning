@@ -24,7 +24,6 @@ from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo
 from PIL import Image
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
-from typing_extensions import override
 
 DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
 DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33)
@@ -345,11 +344,9 @@ class SegModel(LightningModule):
         self.trainset = KITTI(self.data_path, split="train", transform=self.transform)
         self.validset = KITTI(self.data_path, split="valid", transform=self.transform)
 
-    @override
     def forward(self, x):
         return self.net(x)
 
-    @override
     def training_step(self, batch, batch_nb):
         img, mask = batch
         img = img.float()
@@ -359,7 +356,6 @@ class SegModel(LightningModule):
         log_dict = {"train_loss": loss}
         return {"loss": loss, "log": log_dict, "progress_bar": log_dict}
 
-    @override
     def validation_step(self, batch, batch_idx):
         img, mask = batch
         img = img.float()
@@ -368,7 +364,6 @@ class SegModel(LightningModule):
         val_loss = F.cross_entropy(out, mask, ignore_index=250)
         self.log("val_loss", val_loss, prog_bar=True)
 
-    @override
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
         sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=10)

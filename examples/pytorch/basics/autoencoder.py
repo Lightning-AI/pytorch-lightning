@@ -28,7 +28,6 @@ from lightning.pytorch.utilities import rank_zero_only
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from torch import nn
 from torch.utils.data import DataLoader, random_split
-from typing_extensions import override
 
 if _TORCHVISION_AVAILABLE:
     import torchvision
@@ -121,29 +120,23 @@ class LitAutoEncoder(LightningModule):
         self.encoder = nn.Sequential(nn.Linear(28 * 28, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 3))
         self.decoder = nn.Sequential(nn.Linear(3, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 28 * 28))
 
-    @override
     def forward(self, x):
         z = self.encoder(x)
         return self.decoder(z)
 
-    @override
     def training_step(self, batch, batch_idx):
         return self._common_step(batch, batch_idx, "train")
 
-    @override
     def validation_step(self, batch, batch_idx):
         self._common_step(batch, batch_idx, "val")
 
-    @override
     def test_step(self, batch, batch_idx):
         self._common_step(batch, batch_idx, "test")
 
-    @override
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         x = self._prepare_batch(batch)
         return self(x)
 
-    @override
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 

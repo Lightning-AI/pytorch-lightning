@@ -45,7 +45,6 @@ from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo, seed
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
-from typing_extensions import override
 
 
 class DQN(nn.Module):
@@ -284,7 +283,6 @@ class DQNLightning(LightningModule):
         for i in range(steps):
             self.agent.play_step(self.net, epsilon=1.0)
 
-    @override
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Passes in a state `x` through the network and gets the `q_values` of each action as an output.
 
@@ -320,7 +318,6 @@ class DQNLightning(LightningModule):
 
         return nn.MSELoss()(state_action_values, expected_state_action_values)
 
-    @override
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], nb_batch) -> OrderedDict:
         """Carries out a single step through the environment to update the replay buffer. Then calculates loss based on
         the minibatch received.
@@ -359,7 +356,6 @@ class DQNLightning(LightningModule):
 
         return OrderedDict({"loss": loss, "log": log, "progress_bar": log})
 
-    @override
     def configure_optimizers(self) -> List[Optimizer]:
         """Initialize Adam optimizer."""
         optimizer = optim.Adam(self.net.parameters(), lr=self.lr)

@@ -2,7 +2,6 @@ from lightning.app.components import TracerPythonScript
 from lightning.app.storage.path import Path
 from lightning.app.utilities.tracer import Tracer
 from lightning.pytorch import Trainer
-from typing_extensions import override
 
 
 class PLTracerPythonScript(TracerPythonScript):
@@ -22,13 +21,11 @@ class PLTracerPythonScript(TracerPythonScript):
             def __init__(self, lightning_work):
                 self.lightning_work = lightning_work
 
-            @override
             def on_train_start(self, trainer, pl_module) -> None:
                 print("This code doesn't belong to the script but was injected.")
                 print("Even the Lightning Work is available and state transfer works !")
                 print(self.lightning_work)
 
-            @override
             def on_batch_train_end(self, trainer, *_) -> None:
                 # On every batch end, collects some information.
                 # This is communicated automatically to the rest of the app,

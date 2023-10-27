@@ -18,7 +18,6 @@ from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
 from tests_pytorch import _PATH_DATASETS
 from torch.utils.data import DataLoader
-from typing_extensions import override
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
@@ -42,7 +41,6 @@ class ParityModuleCIFAR(LightningModule):
         )
         self._loss = []  # needed for checking if the loss is the same as vanilla torch
 
-    @override
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.backbone(x)
@@ -51,7 +49,6 @@ class ParityModuleCIFAR(LightningModule):
         self._loss.append(loss.item())
         return {"loss": loss}
 
-    @override
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
