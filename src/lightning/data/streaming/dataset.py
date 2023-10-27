@@ -20,7 +20,7 @@ from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
-from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle, TruncatedShuffle
+from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
 
 
 class StreamingDataset(IterableDataset):
@@ -32,7 +32,8 @@ class StreamingDataset(IterableDataset):
         version: Optional[Union[int, Literal["latest"]]] = "latest",
         cache_dir: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
-        shuffle: Union[bool, Literal["truncated", "full"]] = "truncated",
+        shuffle: bool = False,
+        drop_last: bool = False,
         seed: int = 42,
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
@@ -43,10 +44,15 @@ class StreamingDataset(IterableDataset):
             cache_dir: The cache dir where the data would be stored.
             item_loader: The logic to load an item from a chunk.
             shuffle: Whether to shuffle the data.
+            drop_last: If `True`, drops the last items to ensure that
+                all processes/workers return the same amount of data.
             seed: Random seed for shuffling.
 
         """
         super().__init__()
+        if not isinstance(shuffle, bool):
+            raise ValueError(f"Shuffle should be a boolean. Found {shuffle}")
+
         self.cache = Cache(name=name, version=version, cache_dir=cache_dir, item_loader=item_loader, chunk_bytes=1)
 
         self.cache._reader._try_load_config()
@@ -56,18 +62,10 @@ class StreamingDataset(IterableDataset):
 
         self.distributed_env = _DistributedEnv.detect()
 
-        if isinstance(shuffle, bool):
-            _shuffle = TruncatedShuffle(self.cache, seed) if shuffle else NoShuffle(self.cache, seed)
-
-        if isinstance(shuffle, str):
-            if shuffle == "truncated":
-                _shuffle = TruncatedShuffle(self.cache, seed)
-            elif shuffle == "full":
-                _shuffle = FullShuffle(self.cache, seed)
-            else:
-                raise ValueError(f"The provided shuffle doesn't exist. Found {shuffle}")
-
-        self.shuffle: Shuffle = _shuffle
+        self.shuffle: Shuffle = (
+            FullShuffle(self.cache, seed, drop_last) if shuffle else NoShuffle(self.cache, seed, drop_last)
+        )
+        self.drop_last = drop_last
         self.worker_env: Optional[_WorkerEnv] = None
         self.worker_chunks: List[int] = []
         self.worker_intervals: List[List[int]] = []
@@ -84,7 +82,7 @@ class StreamingDataset(IterableDataset):
         return self.shuffle.get_len(self.distributed_env, self.current_epoch)
 
     def __iter__(self) -> "StreamingDataset":
-        chunks_per_replica, intervals_per_replica = self.shuffle.get_chunks_and_intervals_per_process(
+        chunks_per_replica, intervals_per_replica = self.shuffle.get_chunks_and_intervals_per_ranks(
             self.distributed_env, self.current_epoch
         )
         current_chunks = chunks_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
