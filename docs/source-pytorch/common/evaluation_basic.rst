@@ -127,5 +127,5 @@ To run the validation loop, pass in the validation set to **.fit**
    model = LitAutoEncoder(...)
 
    # train with both splits
-   trainer = pl.Trainer()
+   trainer = L.Trainer()
    trainer.fit(model, train_loader, valid_loader)
