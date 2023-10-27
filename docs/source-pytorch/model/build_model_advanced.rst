@@ -16,7 +16,10 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 
 .. testcode::
 
-    class LitModel(pl.LightningModule):
+    import lightning as L
+
+
+    class LitModel(L.LightningModule):
         def backward(self, loss):
             loss.backward()
 
