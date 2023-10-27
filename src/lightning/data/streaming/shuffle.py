@@ -36,7 +36,7 @@ class Shuffle(ABC):
 
         if self.drop_last:
             items_per_process = [
-                sum([(interval[-1] - interval[0]) for interval in intervals]) for intervals in intervals_per_ranks
+                sum((interval[-1] - interval[0]) for interval in intervals) for intervals in intervals_per_ranks
             ]
             min_items_per_process = min(items_per_process)
             return min_items_per_process
