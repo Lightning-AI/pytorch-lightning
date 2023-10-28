@@ -262,7 +262,7 @@ class _LoadBalancer(LightningWork):
                 # https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
                 task = asyncio.create_task(self.send_batch(batch, server_url))  # noqa: F841
                 # resetting the batch array, TODO - not locking the array
-                self._batch = self._batch[len(batch) :]
+                self._batch = self._batch[len(batch):]
                 self._last_batch_sent = time.time()
 
     async def process_request(self, data: BaseModel, request_id=None):

@@ -164,8 +164,8 @@ class TensorSerializer(Serializer):
         shape_size = np.frombuffer(data[4:8], np.uint32).item()
         shape = []
         for shape_idx in range(shape_size):
-            shape.append(np.frombuffer(data[8 + 4 * shape_idx : 8 + 4 * (shape_idx + 1)], np.uint32).item())
-        tensor = torch.frombuffer(data[8 + 4 * (shape_idx + 1) : len(data)], dtype=dtype)
+            shape.append(np.frombuffer(data[8 + 4 * shape_idx: 8 + 4 * (shape_idx + 1)], np.uint32).item())
+        tensor = torch.frombuffer(data[8 + 4 * (shape_idx + 1): len(data)], dtype=dtype)
         shape = torch.Size(shape)
         if tensor.shape == shape:
             return tensor

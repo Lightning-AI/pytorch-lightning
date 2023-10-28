@@ -66,7 +66,7 @@ class Path(PathlibPath):
         """
         if args and isinstance(args[0], str) and args[0].startswith("lit://"):
             parts = list(args)
-            parts[0] = parts[0][len("lit://") :]
+            parts[0] = parts[0][len("lit://"):]
             args = (_storage_root_dir(), *parts)
 
         if (sys.version_info.major, sys.version_info.minor) < (3, 10):

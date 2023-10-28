@@ -45,7 +45,7 @@ def load_requirements(
         # filer all comments
         comment = ""
         if comment_char in ln:
-            comment = ln[ln.index(comment_char) :]
+            comment = ln[ln.index(comment_char):]
             ln = ln[: ln.index(comment_char)]
         req = ln.strip()
         # skip directly installed dependencies

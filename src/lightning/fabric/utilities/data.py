@@ -402,7 +402,7 @@ def _replace_value_in_saved_args(
 
     if replace_key in arg_names:
         replace_index = arg_names.index(replace_key)
-        args = args[:replace_index] + (replace_value,) + args[replace_index + 1 :]
+        args = args[:replace_index] + (replace_value,) + args[replace_index + 1:]
         return True, args, kwargs
     if replace_key in kwargs or replace_key in default_kwargs:
         kwargs[replace_key] = replace_value

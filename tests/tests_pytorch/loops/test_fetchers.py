@@ -67,7 +67,7 @@ def test_prefetch_iterator(multiple_iterables, dataset_cls, prefetch_batches):
     # we can only know the last batch with sized iterables or when we prefetch
     is_last_batch = [False, False, prefetch_batches > 0 or dataset_cls is SizedDataset]
     fetched = (
-        [1, 2, 3] if dataset_cls is SizedDataset else [1, 2, 3, 3, 3, 3, 3][prefetch_batches : prefetch_batches + 3]
+        [1, 2, 3] if dataset_cls is SizedDataset else [1, 2, 3, 3, 3, 3, 3][prefetch_batches: prefetch_batches + 3]
     )
     batches = [[1, 1], [2, 2], [3, 3]] if multiple_iterables else [1, 2, 3]
     expected = list(zip(fetched, batches, is_last_batch))
@@ -159,7 +159,7 @@ def get_cycles_per_ms() -> float:
     for _ in range(num):
         vals.append(measure())
     vals = sorted(vals)
-    stats = vals[2 : num - 2]
+    stats = vals[2: num - 2]
     return sum(stats) / len(stats)
 
 

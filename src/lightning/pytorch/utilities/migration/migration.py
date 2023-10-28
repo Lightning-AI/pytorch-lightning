@@ -323,6 +323,6 @@ def _migrate_loop_structure_after_dataloader_loop_removal(checkpoint: _CHECKPOIN
         loop = loops[loop_key]
         loop.pop("dataloader_progress", None)  # no longer used
         epoch_loop_key = "epoch_loop."
-        epoch_loop_dict = {k[len(epoch_loop_key) :]: loop.pop(k) for k in list(loop) if k.startswith(epoch_loop_key)}
+        epoch_loop_dict = {k[len(epoch_loop_key):]: loop.pop(k) for k in list(loop) if k.startswith(epoch_loop_key)}
         loop.update(epoch_loop_dict)
     return checkpoint
