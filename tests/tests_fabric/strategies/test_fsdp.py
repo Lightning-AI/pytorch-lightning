@@ -284,7 +284,7 @@ def test_fsdp_save_checkpoint_storage_options(tmp_path):
 @mock.patch("lightning.fabric.strategies.fsdp.shutil", return_value=MagicMock())
 def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, ____, tmp_path):
     strategy = FSDPStrategy(state_dict_type="full")
-    
+
     # state_dict_type='full', path exists, path is not a sharded checkpoint: error
     path = tmp_path / "not-empty"
     path.mkdir()
@@ -313,7 +313,7 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     torch_save_mock.assert_called_once()
 
     strategy = FSDPStrategy(state_dict_type="sharded")
-    
+
     # state_dict_type='sharded', path exists, path is a folder: no error (overwrite)
     path = tmp_path / "not-empty-2"
     path.mkdir()

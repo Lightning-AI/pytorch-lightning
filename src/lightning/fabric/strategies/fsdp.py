@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 import shutil
 from contextlib import ExitStack
 from datetime import timedelta
@@ -458,7 +457,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             if path.is_file():
                 path.unlink()
             path.mkdir(parents=True, exist_ok=True)
-            
+
             state_dict_ctx = _get_sharded_state_dict_context(module)
 
             # replace the modules and optimizer objects in the state with their local state dict

@@ -12,9 +12,8 @@ from unittest.mock import ANY, MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
-
-from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
 from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
