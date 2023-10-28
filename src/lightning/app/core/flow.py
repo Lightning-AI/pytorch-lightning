@@ -390,7 +390,7 @@ class LightningFlow:
         if end_msg:
             print(end_msg)
         raise ExitAppException
-    
+
     def fail(self, end_msg: str = "") -> None:
         """Method used to exit and fail the application."""
         if end_msg:
