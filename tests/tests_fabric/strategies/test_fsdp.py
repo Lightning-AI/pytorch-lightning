@@ -27,6 +27,7 @@ from lightning.fabric.strategies.fsdp import (
     _FSDPBackwardSyncControl,
     _get_full_state_dict_context,
     _has_meta_device_parameters,
+    _is_sharded_checkpoint,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
@@ -276,13 +277,25 @@ def test_fsdp_save_checkpoint_storage_options(tmp_path):
 
 @RunIf(min_torch="2.0.0")
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
-def test_fsdp_save_checkpoint_folder_exists(tmp_path):
-    path = tmp_path / "exists"
+@mock.patch("lightning.fabric.strategies.fsdp._get_sharded_state_dict_context", return_value=MagicMock())
+@mock.patch("torch.distributed.checkpoint.save_state_dict", return_value=MagicMock())
+def test_fsdp_save_checkpoint_folder_exists(_, __, tmp_path):
+    # as a safety measure, if the directory doesn't look like a checkpoint, we shouldn't overwrite it
+    path = tmp_path / "not_empty"
     path.mkdir()
     (path / "file").touch()
     strategy = FSDPStrategy()
-    with pytest.raises(FileExistsError, match="exists and is not empty"):
+    with pytest.raises(IsADirectoryError, match="is a directory and is not empty"):
         strategy.save_checkpoint(path=path, state=Mock())
+
+    # no error if the path looks like a sharded checkpoint (overwrite)
+    path = tmp_path / "sharded_checkpoint"
+    path.mkdir()
+    (path / "meta.pt").touch()
+    assert _is_sharded_checkpoint(path)
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(path=path, state={"model": model})
 
 
 @RunIf(min_torch="2.0.0")
