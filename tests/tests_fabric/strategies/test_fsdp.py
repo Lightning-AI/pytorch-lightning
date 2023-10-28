@@ -277,22 +277,50 @@ def test_fsdp_save_checkpoint_storage_options(tmp_path):
 
 @RunIf(min_torch="2.0.0")
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+@mock.patch("lightning.fabric.strategies.fsdp._get_full_state_dict_context", return_value=MagicMock())
 @mock.patch("lightning.fabric.strategies.fsdp._get_sharded_state_dict_context", return_value=MagicMock())
+@mock.patch("lightning.fabric.strategies.fsdp.torch.save", return_value=Mock())
 @mock.patch("torch.distributed.checkpoint.save_state_dict", return_value=MagicMock())
-def test_fsdp_save_checkpoint_folder_exists(_, __, tmp_path):
-    # as a safety measure, if the directory doesn't look like a checkpoint, we shouldn't overwrite it
-    path = tmp_path / "not_empty"
+def test_fsdp_save_checkpoint_folder_exists(_, __, ___, ____, tmp_path):
+    strategy = FSDPStrategy(state_dict_type="full")
+    
+    # state_dict_type='full', path exists, path is not a sharded checkpoint: error
+    path = tmp_path / "not-empty"
     path.mkdir()
     (path / "file").touch()
-    strategy = FSDPStrategy()
-    with pytest.raises(IsADirectoryError, match="is a directory and is not empty"):
+    assert not _is_sharded_checkpoint(path)
+    with pytest.raises(IsADirectoryError, match="exists and is a directory"):
         strategy.save_checkpoint(path=path, state=Mock())
 
-    # no error if the path looks like a sharded checkpoint (overwrite)
-    path = tmp_path / "sharded_checkpoint"
+    # state_dict_type='full', path exists, path is a sharded checkpoint: no error (overwrite)
+    path = tmp_path / "sharded-checkpoint"
     path.mkdir()
     (path / "meta.pt").touch()
     assert _is_sharded_checkpoint(path)
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(path=path, state={"model": model})
+
+    # state_dict_type='full', path exists, path is a file: no error (overwrite)
+    path = tmp_path / "file.pt"
+    path.touch()
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(path=path, state={"model": model})
+
+    strategy = FSDPStrategy(state_dict_type="sharded")
+    
+    # state_dict_type='sharded', path exists, path is a folder: no error (overwrite)
+    path = tmp_path / "not-empty-2"
+    path.mkdir()
+    (path / "file").touch()
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(path=path, state={"model": model})
+
+    # state_dict_type='sharded', path exists, path is a file: no error (overwrite)
+    path = tmp_path / "file-2.pt"
+    path.touch()
     model = Mock(spec=FullyShardedDataParallel)
     model.modules.return_value = [model]
     strategy.save_checkpoint(path=path, state={"model": model})
