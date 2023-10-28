@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import os
+import shutil
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
@@ -522,12 +523,14 @@ class FSDPStrategy(ParallelStrategy):
             )
 
         path = Path(self.broadcast(filepath))
-        if path.is_dir() and os.listdir(path):
-            raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
+        if path.is_dir() and self._state_dict_type == "full" and not _is_sharded_checkpoint(path):
+            raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
         if self._state_dict_type == "sharded":
             from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
 
+            if path.is_file():
+                path.unlink()
             path.mkdir(parents=True, exist_ok=True)
 
             converted_state = {"model": checkpoint.pop("state_dict")}
@@ -542,6 +545,8 @@ class FSDPStrategy(ParallelStrategy):
             if self.global_rank == 0:
                 torch.save(checkpoint, path / _METADATA_FILENAME)
         elif self._state_dict_type == "full":
+            if _is_sharded_checkpoint(path):
+                shutil.rmtree(path)
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
