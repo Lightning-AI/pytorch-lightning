@@ -1,7 +1,8 @@
 import sys
-from typing import Any, Literal, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
 from lightning.pytorch.plugins.precision import (
     BitsandbytesPrecision,
     DeepSpeedPrecision,
@@ -13,7 +14,6 @@ from lightning.pytorch.plugins.precision import (
     TransformerEnginePrecision,
     XLAPrecision,
 )
-from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
@@ -52,7 +52,7 @@ def _create_class(deprecated_name: str, new_class: type):
         )
         super(type(self), self).__init__(*args, **kwargs)
 
-    return type(deprecated_name, (new_class,), {'__init__': init})
+    return type(deprecated_name, (new_class,), {"__init__": init})
 
 
 def _patch_classes() -> None:
