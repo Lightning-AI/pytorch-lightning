@@ -64,8 +64,8 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import (
     _LIGHTNING_BAGUA_AVAILABLE,
     _LIGHTNING_COLOSSALAI_AVAILABLE,
-    _lightning_graphcore_available,
-    _lightning_habana_available,
+    _graphcore_available_and_importable,
+    _habana_available_and_importable,
 )
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
@@ -347,12 +347,12 @@ class _AcceleratorConnector:
         """Choose the accelerator type (str) based on availability."""
         if XLAAccelerator.is_available():
             return "tpu"
-        if _lightning_graphcore_available():
+        if _graphcore_available_and_importable():
             from lightning_graphcore import IPUAccelerator
 
             if IPUAccelerator.is_available():
                 return "ipu"
-        if _lightning_habana_available():
+        if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 
             if HPUAccelerator.is_available():
@@ -435,7 +435,7 @@ class _AcceleratorConnector:
 
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
-            if not _lightning_graphcore_available():
+            if not _graphcore_available_and_importable():
                 raise ImportError(
                     "You have passed `accelerator='ipu'` but the IPU integration  is not installed."
                     " Please run `pip install lightning-graphcore` or check out"
@@ -445,7 +445,7 @@ class _AcceleratorConnector:
 
             return IPUStrategy.strategy_name
         if self._accelerator_flag == "hpu":
-            if not _lightning_habana_available():
+            if not _habana_available_and_importable():
                 raise ImportError(
                     "You have asked for HPU but you miss install related integration."
                     " Please run `pip install lightning-habana` or see for further instructions"
@@ -514,7 +514,7 @@ class _AcceleratorConnector:
         if isinstance(self._precision_plugin_flag, Precision):
             return self._precision_plugin_flag
 
-        if _lightning_graphcore_available():
+        if _graphcore_available_and_importable():
             from lightning_graphcore import IPUAccelerator, IPUPrecision
 
             # TODO: For the strategies that have a fixed precision class, we don't really need this logic
@@ -524,7 +524,7 @@ class _AcceleratorConnector:
             if isinstance(self.accelerator, IPUAccelerator):
                 return IPUPrecision(self._precision_flag)
 
-        if _lightning_habana_available():
+        if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator, HPUPrecisionPlugin
 
             if isinstance(self.accelerator, HPUAccelerator):
@@ -571,7 +571,7 @@ class _AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        if _lightning_habana_available():
+        if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 
             if isinstance(self.accelerator, HPUAccelerator) and self._precision_flag not in (
@@ -626,7 +626,7 @@ class _AcceleratorConnector:
                 f" found {self.strategy.__class__.__name__}."
             )
 
-        if _lightning_habana_available():
+        if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator, HPUParallelStrategy, SingleHPUStrategy
 
             if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
@@ -645,7 +645,7 @@ class _AcceleratorConnector:
             DeepSpeedStrategy,
             XLAStrategy,
         ]
-        if _lightning_habana_available():
+        if _habana_available_and_importable():
             from lightning_habana import HPUParallelStrategy
 
             distributed_strategies.append(HPUParallelStrategy)
@@ -698,7 +698,7 @@ def _register_external_accelerators_and_strategies() -> None:
         if "bagua" not in StrategyRegistry:
             BaguaStrategy.register_strategies(StrategyRegistry)
 
-    if _lightning_habana_available():
+    if _habana_available_and_importable():
         from lightning_habana import HPUAccelerator, HPUParallelStrategy, SingleHPUStrategy
 
         # TODO: Prevent registering multiple times
@@ -709,7 +709,7 @@ def _register_external_accelerators_and_strategies() -> None:
         if "hpu_single" not in StrategyRegistry:
             SingleHPUStrategy.register_strategies(StrategyRegistry)
 
-    if _lightning_graphcore_available():
+    if _graphcore_available_and_importable():
         from lightning_graphcore import IPUAccelerator, IPUStrategy
 
         # TODO: Prevent registering multiple times

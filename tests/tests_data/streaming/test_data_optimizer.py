@@ -6,12 +6,15 @@ from unittest import mock
 import numpy as np
 import pytest
 import torch
-from lightning import seed_everything
+from lightning import LightningDataModule, seed_everything
+from lightning.data.streaming import dataset_optimizer as dataset_optimizer_module
 from lightning.data.streaming.dataset_optimizer import (
     DatasetOptimizer,
+    _associated_items_to_workers,
     _download_data_target,
     _remove_target,
     _upload_fn,
+    _wait_for_file_to_exist,
 )
 from lightning_utilities.core.imports import RequirementCache
 
@@ -131,10 +134,147 @@ def test_download_data_target(tmpdir):
     assert os.listdir(cache_dir) == ["a.txt"]
 
 
-class TestDatasetOptimizer(DatasetOptimizer):
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+def test_wait_for_file_to_exist():
+    import botocore
+
+    s3 = mock.MagicMock()
+    obj = mock.MagicMock()
+    raise_error = [True, True, False]
+
+    def fn(*_, **__):
+        value = raise_error.pop(0)
+        if value:
+            raise botocore.exceptions.ClientError({"Error": {"Code": "404", "Message": "Not Found"}}, "HeadObject")
+        return
+
+    s3.head_object = fn
+
+    _wait_for_file_to_exist(s3, obj, sleep_time=0.01)
+
+    assert len(raise_error) == 0
+
+    def fn(*_, **__):
+        raise ValueError("HERE")
+
+    s3.head_object = fn
+
+    with pytest.raises(ValueError, match="HERE"):
+        _wait_for_file_to_exist(s3, obj, sleep_time=0.01)
+
+
+def test_broadcast_object(tmpdir, monkeypatch):
+    dataset_optimizer = DatasetOptimizer(name="dummy", src_dir=tmpdir)
+    assert dataset_optimizer._broadcast_object("dummy") == "dummy"
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+    monkeypatch.setattr(dataset_optimizer_module, "_distributed_is_initialized", lambda: True)
+    torch_mock = mock.MagicMock()
+    monkeypatch.setattr(dataset_optimizer_module, "torch", torch_mock)
+    assert dataset_optimizer._broadcast_object("dummy") == "dummy"
+    assert torch_mock.distributed.broadcast_object_list._mock_call_args.args == (["dummy"], 0)
+
+
+def test_cache_dir_cleanup(tmpdir, monkeypatch):
+    cache_dir = os.path.join(tmpdir, "dummy")
+    cache_data_dir = os.path.join(tmpdir, "data", "dummy")
+    os.makedirs(cache_dir, exist_ok=True)
+    os.makedirs(cache_data_dir, exist_ok=True)
+
+    with open(os.path.join(cache_dir, "a.txt"), "w") as f:
+        f.write("Hello World !")
+
+    with open(os.path.join(cache_data_dir, "b.txt"), "w") as f:
+        f.write("Hello World !")
+
+    assert os.listdir(cache_dir) == ["a.txt"]
+    assert os.listdir(cache_data_dir) == ["b.txt"]
+
+    dataset_optimizer = DatasetOptimizer(name="dummy", src_dir=tmpdir)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(tmpdir))
+    dataset_optimizer._cleanup_cache()
+
+    assert os.listdir(cache_dir) == []
+    assert os.listdir(cache_data_dir) == []
+
+
+def test_associated_items_to_workers(monkeypatch):
+    _, workers_user_items = _associated_items_to_workers(1, range(105))
+    assert workers_user_items == [range(0, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(2, range(105))
+    assert workers_user_items == [range(0, 52), range(52, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(3, range(105))
+    assert workers_user_items == [range(0, 35), range(35, 70), range(70, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(4, range(105))
+    assert workers_user_items == [range(0, 26), range(26, 52), range(52, 78), range(78, 105)]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+
+    _, workers_user_items = _associated_items_to_workers(1, range(105))
+    assert workers_user_items == [range(0, 52)]
+
+    _, workers_user_items = _associated_items_to_workers(2, range(105))
+    assert workers_user_items == [range(0, 26), range(26, 52)]
+
+    _, workers_user_items = _associated_items_to_workers(3, range(105))
+    assert workers_user_items == [range(0, 17), range(17, 34), range(34, 52)]
+
+    _, workers_user_items = _associated_items_to_workers(4, range(105))
+    assert workers_user_items == [range(0, 13), range(13, 26), range(26, 39), range(39, 52)]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
+
+    _, workers_user_items = _associated_items_to_workers(1, range(105))
+    assert workers_user_items == [range(52, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(2, range(105))
+    assert workers_user_items == [range(52, 78), range(78, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(3, range(105))
+    assert workers_user_items == [range(52, 69), range(69, 86), range(86, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(4, range(105))
+    assert workers_user_items == [range(52, 65), range(65, 78), range(78, 91), range(91, 105)]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
+
+    _, workers_user_items = _associated_items_to_workers(1, range(105))
+    assert workers_user_items == [range(0, 26)]
+
+    _, workers_user_items = _associated_items_to_workers(2, range(105))
+    assert workers_user_items == [range(0, 13), range(13, 26)]
+
+    _, workers_user_items = _associated_items_to_workers(3, range(105))
+    assert workers_user_items == [range(0, 8), range(8, 16), range(16, 26)]
+
+    _, workers_user_items = _associated_items_to_workers(4, range(105))
+    assert workers_user_items == [range(0, 6), range(6, 12), range(12, 18), range(18, 26)]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "3")
+
+    _, workers_user_items = _associated_items_to_workers(1, range(105))
+    assert workers_user_items == [range(78, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(2, range(105))
+    assert workers_user_items == [range(78, 91), range(91, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(3, range(105))
+    assert workers_user_items == [range(78, 87), range(87, 96), range(96, 105)]
+
+    _, workers_user_items = _associated_items_to_workers(4, range(105))
+    assert workers_user_items == [range(78, 84), range(84, 90), range(90, 96), range(96, 105)]
+
+
+class DataModuleImage(LightningDataModule):
     def prepare_dataset_structure(self, src_dir: str, filepaths: List[str]) -> List[Any]:
         assert len(filepaths) == 30
         return filepaths
+
+    def prepare_item(self, item):
+        return item
 
 
 @pytest.mark.parametrize("delete_cached_files", [False, True])
@@ -154,7 +294,7 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     cache_dir = os.path.join(tmpdir, "cache")
     monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
-    datasetOptimizer = TestDatasetOptimizer(
+    dataset_optimizer = DatasetOptimizer(
         name="dummy_dataset",
         src_dir=tmpdir,
         chunk_size=2,
@@ -165,7 +305,7 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
     )
-    datasetOptimizer.run()
+    dataset_optimizer.run(DataModuleImage())
 
     assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
 
@@ -215,11 +355,14 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     assert len(files) == expected
 
 
+class TestDatasetOptimizer(DatasetOptimizer):
+    def _broadcast_object(self, obj: Any) -> Any:
+        return obj
+
+
 @pytest.mark.parametrize("delete_cached_files", [False])
 @pytest.mark.parametrize("fast_dev_run", [False])
-@pytest.mark.skipif(
-    condition=not _PIL_AVAILABLE or sys.platform == "win32" or sys.platform == "darwin", reason="Requires: ['pil']"
-)
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
 def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     """This test ensures the data optimizer works in a fully distributed settings."""
 
@@ -242,7 +385,7 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
-    datasetOptimizer = TestDatasetOptimizer(
+    dataset_optimizer = TestDatasetOptimizer(
         name="dummy_dataset",
         src_dir=tmpdir,
         chunk_size=2,
@@ -254,7 +397,7 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
         fast_dev_run=fast_dev_run,
         remote_dst_dir=remote_dst_dir,
     )
-    datasetOptimizer.run()
+    dataset_optimizer.run(DataModuleImage())
 
     assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
 
@@ -276,7 +419,7 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
-    datasetOptimizer = TestDatasetOptimizer(
+    dataset_optimizer = TestDatasetOptimizer(
         name="dummy_dataset",
         src_dir=tmpdir,
         chunk_size=2,
@@ -288,7 +431,7 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
         fast_dev_run=fast_dev_run,
         remote_dst_dir=remote_dst_dir,
     )
-    datasetOptimizer.run()
+    dataset_optimizer.run(DataModuleImage())
 
     assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
 
@@ -309,11 +452,13 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     assert sorted(os.listdir(remote_dst_dir)) == expected
 
 
-class NlpDatasetOptimizer(DatasetOptimizer):
-    def prepare_dataset_structure(self, src_dir: str, filepaths: List[str]) -> List[Any]:
+class DataModule(LightningDataModule):
+    @staticmethod
+    def prepare_dataset_structure(src_dir: str, filepaths: List[str]) -> List[Any]:
         return [os.path.join(src_dir, "dummy2")]
 
-    def prepare_item(self, filepath):
+    @staticmethod
+    def prepare_item(filepath):
         for _ in range(100):
             yield torch.randint(0, 1000, (np.random.randint(0, 1000),)).to(torch.int)
 
@@ -327,7 +472,15 @@ def test_data_optimizer_nlp(tmpdir, monkeypatch):
     with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
         f.write("Hello World !")
 
-    dataset_optimizer = NlpDatasetOptimizer(
+    dataset_optimizer = DatasetOptimizer(
         name="dummy2", src_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
     )
-    dataset_optimizer.run()
+    dataset_optimizer.run(DataModule())
+
+
+def test_data_optimizer_api(tmpdir):
+    dataset_optimizer = DatasetOptimizer(
+        name="dummy2", src_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
+    )
+    with pytest.raises(ValueError, match="prepare_dataset_structure"):
+        dataset_optimizer.run(None)

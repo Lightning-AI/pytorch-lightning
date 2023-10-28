@@ -47,7 +47,7 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
     )
 
     result = MagicMock()
-    result.get.return_value = V1UploadProjectArtifactResponse(upload_url="http://foo.bar")
+    result.get.return_value = V1UploadProjectArtifactResponse(urls=["http://foo.bar"])
     client.lightningapp_instance_service_upload_project_artifact.return_value = result
 
     monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))
