@@ -15,7 +15,7 @@ from lightning.pytorch.plugins.precision.amp import MixedPrecision
 from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecision
 from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning.pytorch.plugins.precision.double import DoublePrecision
-from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin, FSDPPrecision
+from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
 from lightning.pytorch.plugins.precision.half import HalfPrecision
 from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecision
@@ -25,7 +25,6 @@ __all__ = [
     "BitsandbytesPrecision",
     "DeepSpeedPrecision",
     "DoublePrecision",
-    "FSDPMixedPrecisionPlugin",
     "FSDPPrecision",
     "HalfPrecision",
     "MixedPrecision",
