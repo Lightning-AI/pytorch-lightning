@@ -44,8 +44,8 @@ class FSDPMixedPrecisionPlugin(FSDPPrecision):
         super().__init__(precision=precision, scaler=scaler)
 
 
-def _create_class(deprecated_name: str, new_class: type):
-    def init(self, *args: Any, **kwargs: Any) -> None:
+def _create_class(deprecated_name: str, new_class: type) -> type:
+    def init(self: type, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
             f"The `{deprecated_name}` is deprecated."
             f" Use `lightning.pytorch.plugins.precision.{new_class.__name__}` instead."
