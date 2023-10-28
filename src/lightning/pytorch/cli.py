@@ -627,8 +627,8 @@ class LightningCLI:
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
             raise MisconfigurationException(
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model` expects at most one optimizer "
-                f"and one lr_scheduler to be 'AUTOMATIC', but found {optimizers + lr_schedulers}. In this case the user "
-                "is expected to link the argument groups and implement `configure_optimizers`, see "
+                f"and one lr_scheduler to be 'AUTOMATIC', but found {optimizers + lr_schedulers}. In this case the "
+                "user is expected to link the argument groups and implement `configure_optimizers`, see "
                 "https://lightning.ai/docs/pytorch/stable/common/lightning_cli.html"
                 "#optimizers-and-learning-rate-schedulers"
             )
