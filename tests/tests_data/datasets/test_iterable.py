@@ -529,7 +529,7 @@ class MyDataset(_StatefulIterableDataset):
         self.curr_iter = 0
 
     def __iter__(self):
-        for sample in self.samples[self.curr_iter:]:
+        for sample in self.samples[self.curr_iter :]:
             yield sample
             self.curr_iter += 1
 

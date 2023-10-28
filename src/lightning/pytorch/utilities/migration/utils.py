@@ -201,5 +201,5 @@ def _patch_pl_to_mirror_if_necessary(module: str) -> str:
     if module.startswith(_pl):
         # for the standalone package this won't do anything,
         # for the unified mirror package it will redirect the imports
-        return "lightning.pytorch" + module[len(_pl):]
+        return "lightning.pytorch" + module[len(_pl) :]
     return module

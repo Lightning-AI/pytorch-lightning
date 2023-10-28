@@ -113,7 +113,7 @@ class WikiText2(Dataset):
         start = index * self.block_size
         end = start + self.block_size
         inputs = self.data[start:end]
-        target = self.data[(start + 1): (end + 1)]
+        target = self.data[(start + 1) : (end + 1)]
         return inputs, target
 
     @staticmethod

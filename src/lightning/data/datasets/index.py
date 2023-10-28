@@ -14,9 +14,9 @@ def get_index(s3_connection_path: str, index_file_path: str) -> bool:
     """
 
     if s3_connection_path.startswith("/data/"):
-        s3_connection_path = s3_connection_path[len("/data/"):]
+        s3_connection_path = s3_connection_path[len("/data/") :]
     if s3_connection_path.startswith("s3://"):
-        s3_connection_path = s3_connection_path[len("s3://"):]
+        s3_connection_path = s3_connection_path[len("s3://") :]
 
     try:
         index_exists = _get_index(s3_connection_path, index_file_path)

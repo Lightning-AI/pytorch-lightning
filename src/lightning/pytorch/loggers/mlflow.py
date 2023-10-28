@@ -230,7 +230,7 @@ class MLFlowLogger(Logger):
 
         # Log in chunks of 100 parameters (the maximum allowed by MLflow).
         for idx in range(0, len(params_list), 100):
-            self.experiment.log_batch(run_id=self.run_id, params=params_list[idx: idx + 100])
+            self.experiment.log_batch(run_id=self.run_id, params=params_list[idx : idx + 100])
 
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:

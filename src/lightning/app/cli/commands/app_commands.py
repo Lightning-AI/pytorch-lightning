@@ -95,7 +95,7 @@ def _handle_command_without_client(command: str, metadata: Dict, url: str) -> No
             print(f"  {param}: Add description")
         return
 
-    provided_params = [param.replace("--", "") for param in sys.argv[1 + len(command.split("_")):]]
+    provided_params = [param.replace("--", "") for param in sys.argv[1 + len(command.split("_")) :]]
 
     # TODO: Add support for more argument types.
     if any("=" not in param for param in provided_params):
@@ -131,5 +131,5 @@ def _handle_command_with_client(command: str, metadata: Dict, app_name: str, app
         target_file=target_file if debug_mode else _resolve_command_path(command),
     )
     client_command._setup(command_name=command, app_url=url)
-    sys.argv = sys.argv[len(command.split("_")):]
+    sys.argv = sys.argv[len(command.split("_")) :]
     client_command.run()

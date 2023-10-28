@@ -338,7 +338,7 @@ class LightningIterableDataset(_StatefulIterableDataset, _Dataset):
 
             # every shard must have the same number of chunks -> truncate if not evenly divisible
             max_chunks = len(self._chunks) // num_shards * num_shards
-            self._local_chunks = self._chunks[self._env.shard_rank: max_chunks: num_shards]
+            self._local_chunks = self._chunks[self._env.shard_rank : max_chunks : num_shards]
 
         # if state-dict was set, the curr chunk index was the global number across all shards
         # --> divide it to get local number

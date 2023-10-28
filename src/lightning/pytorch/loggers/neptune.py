@@ -555,7 +555,7 @@ class NeptuneLogger(Logger):
             if not model_path.startswith(expected_model_path):
                 raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
             # Remove extension from filepath
-            filepath, _ = os.path.splitext(model_path[len(expected_model_path):])
+            filepath, _ = os.path.splitext(model_path[len(expected_model_path) :])
             return filepath
         return model_path
 
