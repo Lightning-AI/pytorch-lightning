@@ -1,5 +1,3 @@
-
-
 def test_precision_plugin_renamed_imports():
     # base class
     from lightning.pytorch.plugins import PrecisionPlugin as PrecisionPlugin2
