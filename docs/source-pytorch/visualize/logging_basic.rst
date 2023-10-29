@@ -27,7 +27,7 @@ To track a metric, simply use the *self.log* method available inside the *Lightn
 
 .. code-block:: python
 
-    class LitModel(pl.LightningModule):
+    class LitModel(L.LightningModule):
         def training_step(self, batch, batch_idx):
             value = ...
             self.log("some_value", value)

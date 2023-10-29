@@ -55,7 +55,7 @@ jobs:
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           token: ${{ secrets.PAT_GHOST }}
           add-paths: _notebooks
-          commit-message: "update tutorials to `${{ env.SHA_SHORT }}`"
+          commit-message: "update tutorials to `${{ env.SHA_LATEST }}`"
           branch: "docs/update-tutorials"
           # Delete the branch when closing pull requests, and when undeleted after merging.
           delete-branch: true

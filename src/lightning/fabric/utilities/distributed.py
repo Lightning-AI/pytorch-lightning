@@ -167,7 +167,7 @@ def _sync_ddp_if_available(
         reduced value
 
     """
-    if torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         return _sync_ddp(result, group=group, reduce_op=reduce_op)
     return result
 
@@ -244,7 +244,7 @@ def _all_gather_ddp_if_available(
         A tensor of shape (world_size, batch, ...)
 
     """
-    if not torch.distributed.is_initialized():
+    if not _distributed_is_initialized():
         return tensor
 
     from torch.distributed.nn.functional import all_gather
@@ -373,3 +373,10 @@ def _set_num_threads_if_needed(num_processes: int = 1) -> None:
         num_threads = _suggested_max_num_threads(num_processes)
         torch.set_num_threads(num_threads)
         os.environ["OMP_NUM_THREADS"] = str(num_threads)
+
+
+def _distributed_is_initialized() -> bool:
+    # `is_initialized` is only defined conditionally
+    # https://github.com/pytorch/pytorch/blob/v2.1.0/torch/distributed/__init__.py#L25
+    # this might happen to MacOS builds from source (default) or any build from source that sets `USE_DISTRIBUTED=0`
+    return torch.distributed.is_available() and torch.distributed.is_initialized()

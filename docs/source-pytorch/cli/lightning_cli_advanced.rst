@@ -164,7 +164,7 @@ to the class constructor. For example, your model is defined as:
 .. code:: python
 
     # model.py
-    class MyModel(pl.LightningModule):
+    class MyModel(L.LightningModule):
         def __init__(self, criterion: torch.nn.Module):
             self.criterion = criterion
 

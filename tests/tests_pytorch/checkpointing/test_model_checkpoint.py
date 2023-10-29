@@ -1488,7 +1488,7 @@ def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
     callback = ModelCheckpoint(dirpath=first, monitor="step", mode="max", save_top_k=2, every_n_train_steps=2)
     trainer = Trainer(callbacks=callback, max_steps=5, **trainer_kwargs)
     trainer.fit(model)
-    assert os.listdir(first) == ["epoch=0-step=2.ckpt", "epoch=0-step=4.ckpt"]
+    assert set(os.listdir(first)) == {"epoch=0-step=2.ckpt", "epoch=0-step=4.ckpt"}
 
     # Continue training from checkpoint
     callback = ModelCheckpoint(dirpath=new_dirpath, monitor="step", mode="max", save_top_k=2, every_n_train_steps=2)

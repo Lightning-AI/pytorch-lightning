@@ -92,7 +92,7 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="tags/1.1.0",
+    checkout="tags/1.2.0",
 )
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Graphcore",

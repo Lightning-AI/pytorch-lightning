@@ -21,6 +21,7 @@ from lightning.data.streaming.constants import (
     _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
+from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.writer import BinaryWriter
@@ -41,6 +42,7 @@ class Cache:
         compression: Optional[str] = None,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
+        item_loader: Optional[BaseItemLoader] = None,
     ):
         """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements
         together in order to accelerate fetching.
@@ -54,26 +56,32 @@ class Cache:
             compression: The name of the algorithm to reduce the size of the chunks.
             chunk_bytes: The maximum number of bytes within a chunk.
             chunk_size: The maximum number of items within a chunk.
+            item_loader: The object responsible to generate the chunk intervals and load an item froma chunk.
 
         """
         super().__init__()
         if not _TORCH_GREATER_EQUAL_2_1_0:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
 
-        cache_dir = cache_dir if cache_dir else _try_create_cache_dir(name)
+        self._cache_dir = cache_dir = str(cache_dir) if cache_dir else _try_create_cache_dir(name)
         if not remote_dir:
             remote_dir, has_index_file = _find_remote_dir(name, version)
 
             # When the index exists, we don't care about the chunk_size anymore.
             if has_index_file and (chunk_size is None and chunk_bytes is None):
                 chunk_size = 2
-        self._writer = BinaryWriter(
-            str(cache_dir), chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression
-        )
-        self._reader = BinaryReader(
-            str(cache_dir), remote_dir=remote_dir, compression=compression, name=name, version=version
-        )
-        self._cache_dir = str(cache_dir)
+
+            # Add the version to the cache_dir to avoid collisions.
+            if remote_dir and os.path.basename(remote_dir).startswith("version_"):
+                cache_dir = os.path.join(cache_dir, os.path.basename(remote_dir))
+
+            if cache_dir:
+                os.makedirs(cache_dir, exist_ok=True)
+
+            self._cache_dir = cache_dir
+
+        self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
+        self._reader = BinaryReader(cache_dir, remote_dir=remote_dir, compression=compression, item_loader=item_loader)
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
 
@@ -114,8 +122,8 @@ class Cache:
     def __len__(self) -> int:
         return self._reader.get_length()
 
-    def get_chunk_interval(self) -> List[Tuple[int, int]]:
-        return self._reader.get_chunk_interval()
+    def get_chunk_intervals(self) -> List[Tuple[int, int]]:
+        return self._reader.get_chunk_intervals()
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         return self._reader._get_chunk_index_from_index(index)

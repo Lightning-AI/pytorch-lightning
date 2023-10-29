@@ -43,6 +43,7 @@ from lightning.fabric.strategies.fsdp import (
     _setup_activation_checkpointing,
 )
 from lightning.fabric.utilities.distributed import (
+    _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
@@ -382,7 +383,7 @@ class FSDPStrategy(ParallelStrategy):
             yield
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_device_ids())
@@ -390,7 +391,7 @@ class FSDPStrategy(ParallelStrategy):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return obj
 
         obj = [obj]
