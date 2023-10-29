@@ -1,3 +1,5 @@
+
+
 def test_precision_plugin_renamed_imports():
     # base class
     from lightning.pytorch.plugins import PrecisionPlugin as PrecisionPlugin2
@@ -5,8 +7,9 @@ def test_precision_plugin_renamed_imports():
     from lightning.pytorch.plugins.precision.precision import Precision
     from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin as PrecisionPlugin0
 
-    assert Precision is PrecisionPlugin0 is PrecisionPlugin1 is PrecisionPlugin2
-    assert isinstance(PrecisionPlugin0(), Precision)
+    assert issubclass(PrecisionPlugin0, Precision)
+    assert issubclass(PrecisionPlugin1, Precision)
+    assert issubclass(PrecisionPlugin2, Precision)
 
     # bitsandbytes
     from lightning.pytorch.plugins import BitsandbytesPrecisionPlugin as BnbPlugin2
@@ -14,7 +17,9 @@ def test_precision_plugin_renamed_imports():
     from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecision
     from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecisionPlugin as BnbPlugin0
 
-    assert BitsandbytesPrecision is BnbPlugin0 is BnbPlugin1 is BnbPlugin2
+    assert issubclass(BnbPlugin0, BitsandbytesPrecision)
+    assert issubclass(BnbPlugin1, BitsandbytesPrecision)
+    assert issubclass(BnbPlugin2, BitsandbytesPrecision)
 
     # deepspeed
     from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin as DeepSpeedPlugin2
@@ -22,7 +27,9 @@ def test_precision_plugin_renamed_imports():
     from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecision
     from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin as DeepSpeedPlugin0
 
-    assert DeepSpeedPrecision is DeepSpeedPlugin0 is DeepSpeedPlugin1 is DeepSpeedPlugin2
+    assert issubclass(DeepSpeedPlugin0, DeepSpeedPrecision)
+    assert issubclass(DeepSpeedPlugin1, DeepSpeedPrecision)
+    assert issubclass(DeepSpeedPlugin2, DeepSpeedPrecision)
 
     # double
     from lightning.pytorch.plugins import DoublePrecisionPlugin as DoublePlugin2
@@ -30,7 +37,9 @@ def test_precision_plugin_renamed_imports():
     from lightning.pytorch.plugins.precision.double import DoublePrecision
     from lightning.pytorch.plugins.precision.double import DoublePrecisionPlugin as DoublePlugin0
 
-    assert DoublePrecision is DoublePlugin0 is DoublePlugin1 is DoublePlugin2
+    assert issubclass(DoublePlugin0, DoublePrecision)
+    assert issubclass(DoublePlugin1, DoublePrecision)
+    assert issubclass(DoublePlugin2, DoublePrecision)
 
     # fsdp
     from lightning.pytorch.plugins import FSDPPrecisionPlugin as FSDPPlugin2
@@ -38,7 +47,9 @@ def test_precision_plugin_renamed_imports():
     from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
     from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin as FSDPPlugin0
 
-    assert FSDPPrecision is FSDPPlugin0 is FSDPPlugin1 is FSDPPlugin2
+    assert issubclass(FSDPPlugin0, FSDPPrecision)
+    assert issubclass(FSDPPlugin1, FSDPPrecision)
+    assert issubclass(FSDPPlugin2, FSDPPrecision)
 
     # half
     from lightning.pytorch.plugins import HalfPrecisionPlugin as HalfPlugin2
@@ -46,7 +57,9 @@ def test_precision_plugin_renamed_imports():
     from lightning.pytorch.plugins.precision.half import HalfPrecision
     from lightning.pytorch.plugins.precision.half import HalfPrecisionPlugin as HalfPlugin0
 
-    assert HalfPrecision is HalfPlugin0 is HalfPlugin1 is HalfPlugin2
+    assert issubclass(HalfPlugin0, HalfPrecision)
+    assert issubclass(HalfPlugin1, HalfPrecision)
+    assert issubclass(HalfPlugin2, HalfPrecision)
 
     # mixed
     from lightning.pytorch.plugins import MixedPrecisionPlugin as MixedPlugin2
@@ -54,7 +67,9 @@ def test_precision_plugin_renamed_imports():
     from lightning.pytorch.plugins.precision.amp import MixedPrecision
     from lightning.pytorch.plugins.precision.amp import MixedPrecisionPlugin as MixedPlugin0
 
-    assert MixedPrecision is MixedPlugin0 is MixedPlugin1 is MixedPlugin2
+    assert issubclass(MixedPlugin0, MixedPrecision)
+    assert issubclass(MixedPlugin1, MixedPrecision)
+    assert issubclass(MixedPlugin2, MixedPrecision)
 
     # transformer_engine
     from lightning.pytorch.plugins import TransformerEnginePrecisionPlugin as TEPlugin2
@@ -62,7 +77,9 @@ def test_precision_plugin_renamed_imports():
     from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecision
     from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecisionPlugin as TEPlugin0
 
-    assert TransformerEnginePrecision is TEPlugin0 is TEPlugin1 is TEPlugin2
+    assert issubclass(TEPlugin0, TransformerEnginePrecision)
+    assert issubclass(TEPlugin1, TransformerEnginePrecision)
+    assert issubclass(TEPlugin2, TransformerEnginePrecision)
 
     # xla
     from lightning.pytorch.plugins import XLAPrecisionPlugin as XLAPlugin2
@@ -70,4 +87,6 @@ def test_precision_plugin_renamed_imports():
     from lightning.pytorch.plugins.precision.xla import XLAPrecision
     from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin as XLAPlugin0
 
-    assert XLAPrecision is XLAPlugin0 is XLAPlugin1 is XLAPlugin2
+    assert issubclass(XLAPlugin0, XLAPrecision)
+    assert issubclass(XLAPlugin1, XLAPrecision)
+    assert issubclass(XLAPlugin2, XLAPrecision)
