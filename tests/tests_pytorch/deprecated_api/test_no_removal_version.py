@@ -113,7 +113,7 @@ def test_precision_plugin():
 
 
 @pytest.mark.skipif(not _TRANSFORMER_ENGINE_AVAILABLE, reason="transformer-engine unavailable")
-def test_transformer_engine_plugin():
+def test_transformer_engine_precision_plugin():
     from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `TransformerEnginePrecisionPlugin` is deprecated"):
@@ -121,7 +121,7 @@ def test_transformer_engine_plugin():
 
 
 @RunIf(tpu=True)
-def test_transformer_engine_plugin():
+def test_xla_precision_plugin():
     from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `XLAPrecisionPlugin` is deprecated"):
