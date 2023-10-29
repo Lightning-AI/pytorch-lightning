@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-import sys
 from collections import namedtuple
 from unittest import mock
 from unittest.mock import MagicMock, call
@@ -24,11 +23,6 @@ import torch
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import NeptuneLogger
-from lightning.pytorch.loggers.neptune import _sanitize_expected_model_path
-
-IS_WINDOWS = sys.platform == "win32"
-skip_if_on_windows = pytest.mark.skipif(IS_WINDOWS, reason="These tests are specific to non-Windows systems")
-skip_if_not_windows = pytest.mark.skipif(not IS_WINDOWS, reason="These tests are specific to Windows OS")
 
 
 def _fetchable_paths(value):
@@ -309,16 +303,3 @@ def test_get_full_model_names_from_exp_structure():
     }
     expected_keys = {"lvl1_1/lvl2/lvl3_1", "lvl1_1/lvl2/lvl3_2", "lvl1_2"}
     assert NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar") == expected_keys
-
-
-@skip_if_on_windows
-def test_get_expected_model_path():
-    assert _sanitize_expected_model_path("my_model/checkpoints") == "my_model/checkpoints/"
-    assert _sanitize_expected_model_path("my_model/checkpoints/") == "my_model/checkpoints/"
-    assert _sanitize_expected_model_path("my_model/checkpoints//") == "my_model/checkpoints/"
-
-
-@skip_if_not_windows
-def test_get_expected_model_path_windows():
-    assert _sanitize_expected_model_path("my_model\\checkpoints\\") == "my_model\\checkpoints\\"
-    assert _sanitize_expected_model_path("my_model\\checkpoints") == "my_model\\checkpoints\\"
