@@ -112,7 +112,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
     from torch import optim, nn, utils, Tensor
     from torchvision.datasets import MNIST
     from torchvision.transforms import ToTensor
-    import lightning.pytorch as pl
+    import lightning as L
 
     # define any number of nn.Modules (or use your current ones)
     encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
@@ -120,7 +120,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
 
 
     # define the LightningModule
-    class LitAutoEncoder(pl.LightningModule):
+    class LitAutoEncoder(L.LightningModule):
         def __init__(self, encoder, decoder):
             super().__init__()
             self.encoder = encoder
@@ -171,7 +171,7 @@ The Lightning :doc:`Trainer <../common/trainer>` "mixes" any :doc:`LightningModu
 .. code-block:: python
 
     # train the model (hint: here are some helpful Trainer arguments for rapid idea iteration)
-    trainer = pl.Trainer(limit_train_batches=100, max_epochs=1)
+    trainer = L.Trainer(limit_train_batches=100, max_epochs=1)
     trainer.fit(model=autoencoder, train_dataloaders=train_loader)
 
 The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../common/trainer.html#trainer-flags>`_ including:
@@ -237,7 +237,7 @@ Enable advanced training features using Trainer arguments. These are state-of-th
     )
 
    # train 1TB+ parameter models with Deepspeed/fsdp
-   trainer = Trainer(
+   trainer = L.Trainer(
        devices=4,
        accelerator="gpu",
        strategy="deepspeed_stage_2",
@@ -245,7 +245,7 @@ Enable advanced training features using Trainer arguments. These are state-of-th
     )
 
    # 20+ helpful flags for rapid idea iteration
-   trainer = Trainer(
+   trainer = L.Trainer(
        max_epochs=10,
        min_epochs=5,
        overfit_batches=1
@@ -276,7 +276,7 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 
 .. testcode::
 
-    class LitAutoEncoder(pl.LightningModule):
+    class LitAutoEncoder(L.LightningModule):
         def backward(self, loss):
             loss.backward()
 

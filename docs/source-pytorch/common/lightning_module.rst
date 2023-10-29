@@ -84,13 +84,13 @@ Here are the only required methods.
 
 .. code-block:: python
 
-    import lightning.pytorch as pl
+    import lightning as L
     import torch
 
     from lightning.pytorch.demos import Transformer
 
 
-    class LightningTransformer(pl.LightningModule):
+    class LightningTransformer(L.LightningModule):
         def __init__(self, vocab_size):
             super().__init__()
             self.model = Transformer(vocab_size=vocab_size)
@@ -118,7 +118,7 @@ Which you can train by doing:
     dataloader = DataLoader(dataset)
     model = LightningTransformer(vocab_size=dataset.vocab_size)
 
-    trainer = pl.Trainer(fast_dev_run=100)
+    trainer = L.Trainer(fast_dev_run=100)
     trainer.fit(model=model, train_dataloaders=dataloader)
 
 The LightningModule has many convenient methods, but the core ones you need to know about are:
@@ -157,7 +157,7 @@ To activate the training loop, override the :meth:`~lightning.pytorch.core.Light
 
 .. code-block:: python
 
-    class LightningTransformer(pl.LightningModule):
+    class LightningTransformer(L.LightningModule):
         def __init__(self, vocab_size):
             super().__init__()
             self.model = Transformer(vocab_size=vocab_size)
@@ -235,7 +235,7 @@ override the :meth:`~lightning.pytorch.LightningModule.on_train_epoch_end` metho
 
 .. code-block:: python
 
-    class LightningTransformer(pl.LightningModule):
+    class LightningTransformer(L.LightningModule):
         def __init__(self, vocab_size):
             super().__init__()
             self.model = Transformer(vocab_size=vocab_size)
@@ -269,7 +269,7 @@ To activate the validation loop while training, override the :meth:`~lightning.p
 
 .. code-block:: python
 
-    class LightningTransformer(pl.LightningModule):
+    class LightningTransformer(L.LightningModule):
         def validation_step(self, batch, batch_idx):
             inputs, target = batch
             output = self.model(inputs, target)
@@ -306,7 +306,7 @@ and calling :meth:`~lightning.pytorch.trainer.trainer.Trainer.validate`.
 .. code-block:: python
 
     model = LightningTransformer(vocab_size=dataset.vocab_size)
-    trainer = pl.Trainer()
+    trainer = L.Trainer()
     trainer.validate(model)
 
 .. note::
@@ -327,7 +327,7 @@ Note that this method is called before :meth:`~lightning.pytorch.LightningModule
 
 .. code-block:: python
 
-    class LightningTransformer(pl.LightningModule):
+    class LightningTransformer(L.LightningModule):
         def __init__(self, vocab_size):
             super().__init__()
             self.model = Transformer(vocab_size=vocab_size)
@@ -366,7 +366,7 @@ The only difference is that the test loop is only called when :meth:`~lightning.
 
     model = LightningTransformer(vocab_size=dataset.vocab_size)
     dataloader = DataLoader(dataset)
-    trainer = pl.Trainer()
+    trainer = L.Trainer()
     trainer.fit(model=model, train_dataloaders=dataloader)
 
     # automatically loads the best weights for you
@@ -377,7 +377,7 @@ There are two ways to call ``test()``:
 .. code-block:: python
 
     # call after training
-    trainer = pl.Trainer()
+    trainer = L.Trainer()
     trainer.fit(model=model, train_dataloaders=dataloader)
 
     # automatically auto-loads the best weights from the previous run
@@ -387,7 +387,7 @@ There are two ways to call ``test()``:
     model = LightningTransformer.load_from_checkpoint(PATH)
     dataset = WikiText2()
     test_dataloader = DataLoader(dataset)
-    trainer = pl.Trainer()
+    trainer = L.Trainer()
     trainer.test(model, dataloaders=test_dataloader)
 
 .. note::
@@ -420,7 +420,7 @@ For the example let's override ``predict_step``:
 
 .. code-block:: python
 
-    class LightningTransformer(pl.LightningModule):
+    class LightningTransformer(L.LightningModule):
         def __init__(self, vocab_size):
             super().__init__()
             self.model = Transformer(vocab_size=vocab_size)
@@ -447,7 +447,7 @@ There are two ways to call ``predict()``:
 .. code-block:: python
 
     # call after training
-    trainer = pl.Trainer()
+    trainer = L.Trainer()
     trainer.fit(model=model, train_dataloaders=dataloader)
 
     # automatically auto-loads the best weights from the previous run
@@ -457,7 +457,7 @@ There are two ways to call ``predict()``:
     model = LightningTransformer.load_from_checkpoint(PATH)
     dataset = WikiText2()
     test_dataloader = DataLoader(dataset)
-    trainer = pl.Trainer()
+    trainer = L.Trainer()
     predictions = trainer.predict(model, dataloaders=test_dataloader)
 
 Inference in Research
@@ -469,7 +469,7 @@ If you want to perform inference with the system, you can add a ``forward`` meth
 
 .. code-block:: python
 
-    class LightningTransformer(pl.LightningModule):
+    class LightningTransformer(L.LightningModule):
         def __init__(self, vocab_size):
             super().__init__()
             self.model = Transformer(vocab_size=vocab_size)
@@ -500,7 +500,7 @@ such as text generation:
 
 .. code-block:: python
 
-    class Seq2Seq(pl.LightningModule):
+    class Seq2Seq(L.LightningModule):
         def forward(self, x):
             embeddings = self(x)
             hidden_states = self.encoder(embeddings)
@@ -514,7 +514,7 @@ In the case where you want to scale your inference, you should be using
 
 .. code-block:: python
 
-    class Autoencoder(pl.LightningModule):
+    class Autoencoder(L.LightningModule):
         def forward(self, x):
             return self.decoder(x)
 
@@ -538,7 +538,7 @@ For cases like production, you might want to iterate different models inside a L
     from torchmetrics.functional import accuracy
 
 
-    class ClassificationTask(pl.LightningModule):
+    class ClassificationTask(L.LightningModule):
         def __init__(self, model):
             super().__init__()
             self.model = model
@@ -590,7 +590,7 @@ Tasks can be arbitrarily complex such as implementing GAN training, self-supervi
 
 .. code-block:: python
 
-    class GANTask(pl.LightningModule):
+    class GANTask(L.LightningModule):
         def __init__(self, generator, discriminator):
             super().__init__()
             self.generator = generator
@@ -643,7 +643,7 @@ checkpoint, which simplifies model re-instantiation after training.
 
 .. code-block:: python
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(L.LightningModule):
         def __init__(self, layer_1_dim=128, learning_rate=1e-2):
             super().__init__()
             # call this to save (layer_1_dim=128, learning_rate=1e-4) to the checkpoint
@@ -667,7 +667,7 @@ parameters should be provided back when reloading the LightningModule. In this c
 
 .. code-block:: python
 
-    class LitMNIST(pl.LightningModule):
+    class LitMNIST(L.LightningModule):
         def __init__(self, loss_fx, generator_network, layer_1_dim=128):
             super().__init__()
             self.layer_1_dim = layer_1_dim
