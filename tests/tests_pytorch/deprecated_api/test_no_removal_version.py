@@ -1,4 +1,3 @@
-
 import lightning.fabric
 import pytest
 import torch.nn
