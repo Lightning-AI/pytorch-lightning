@@ -1,14 +1,13 @@
-from unittest import mock
 
 import lightning.fabric
 import pytest
 import torch.nn
+from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE
+from lightning.fabric.plugins.precision.transformer_engine import _TRANSFORMER_ENGINE_AVAILABLE
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision.double import LightningDoublePrecisionModule
 from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
-from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE
-from lightning.fabric.plugins.precision.transformer_engine import _TRANSFORMER_ENGINE_AVAILABLE
 
 from tests_pytorch.helpers.runif import RunIf
 
