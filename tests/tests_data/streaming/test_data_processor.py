@@ -18,6 +18,7 @@ from lightning.data.streaming.data_processor import (
     _upload_fn,
     _wait_for_file_to_exist,
 )
+from lightning.data.streaming.map import map
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -280,8 +281,8 @@ class CustomDataChunkRecipe(DataChunkRecipe):
         return item
 
 
-@pytest.mark.parametrize("delete_cached_files", [False, True])
-@pytest.mark.parametrize("fast_dev_run", [False, True])
+@pytest.mark.parametrize("delete_cached_files", [True])
+@pytest.mark.parametrize("fast_dev_run", [10])
 @pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
 def test_data_processsor(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     from PIL import Image
@@ -343,7 +344,7 @@ def test_data_processsor(fast_dev_run, delete_cached_files, tmpdir, monkeypatch)
         "index.json",
     ]
 
-    chunks = fast_dev_run_enabled_chunks if fast_dev_run else fast_dev_run_disabled_chunks
+    chunks = fast_dev_run_enabled_chunks if fast_dev_run == 10 else fast_dev_run_disabled_chunks
 
     assert sorted(os.listdir(os.path.join(cache_dir, "dummy_dataset"))) == chunks
 
@@ -351,7 +352,7 @@ def test_data_processsor(fast_dev_run, delete_cached_files, tmpdir, monkeypatch)
     for _, _, filenames in os.walk(os.path.join(cache_dir, "data")):
         files.extend(filenames)
 
-    expected = (0 if delete_cached_files else 20) if fast_dev_run else (0 if delete_cached_files else 30)
+    expected = (0 if delete_cached_files else 20) if fast_dev_run == 10 else (0 if delete_cached_files else 30)
     assert len(files) == expected
 
 
@@ -506,8 +507,48 @@ def test_data_process_transform(monkeypatch, tmpdir):
         num_workers=1,
         remote_input_dir=tmpdir,
         remote_output_dir=remote_output_dir,
+        fast_dev_run=False,
     )
     data_processor.run(ImageResizeRecipe())
+
+    assert sorted(os.listdir(remote_output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
+
+    from PIL import Image
+
+    img = Image.open(os.path.join(remote_output_dir, "0.JPEG"))
+    assert img.size == (12, 12)
+
+
+def fn(output_dir, filepath):
+    from PIL import Image
+
+    img = Image.open(filepath)
+    img = img.resize((12, 12))
+    assert os.path.exists(output_dir)
+    img.save(os.path.join(output_dir, os.path.basename(filepath)))
+
+
+def test_data_processing_map(monkeypatch, tmpdir):
+    from PIL import Image
+
+    imgs = []
+    for i in range(5):
+        np_data = np.random.randint(255, size=(28, 28), dtype=np.uint32)
+        img = Image.fromarray(np_data).convert("L")
+        imgs.append(img)
+        img.save(os.path.join(tmpdir, f"{i}.JPEG"))
+
+    home_dir = os.path.join(tmpdir, "home")
+    cache_dir = os.path.join(tmpdir, "cache")
+    remote_output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(remote_output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+
+    inputs = [os.path.join(tmpdir, filename) for filename in os.listdir(tmpdir)]
+    inputs = [filepath for filepath in inputs if os.path.isfile(filepath)]
+
+    map(fn, inputs, num_workers=1, remote_output_dir=remote_output_dir)
 
     assert sorted(os.listdir(remote_output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
 

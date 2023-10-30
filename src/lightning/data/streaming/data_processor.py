@@ -6,7 +6,6 @@ import traceback
 import types
 from abc import abstractmethod
 from multiprocessing import Process, Queue
-from pathlib import Path
 from queue import Empty
 from shutil import copyfile, rmtree
 from time import sleep, time
@@ -71,13 +70,17 @@ def _get_home_folder() -> str:
     return os.getenv("DATA_OPTIMIZER_HOME_FOLDER", os.path.expanduser("~"))
 
 
-def _get_cache_dir(name: str) -> str:
+def _get_cache_dir(name: Optional[str]) -> str:
     """Returns the cache directory used by the Cache to store the chunks."""
+    if name is None:
+        return _get_cache_folder()
     return os.path.join(_get_cache_folder(), name)
 
 
 def _get_cache_data_dir(name: str) -> str:
     """Returns the cache data directory used by the DataProcessor workers to download the files."""
+    if name is None:
+        return os.path.join(_get_cache_folder(), "data")
     return os.path.join(_get_cache_folder(), "data", name)
 
 
@@ -116,7 +119,7 @@ def _download_data_target(
         index, paths = r
 
         # 5. Check whether all the files are already downloaded
-        if all(os.path.exists(p.replace(input_dir, cache_dir)) for p in paths):
+        if all(os.path.exists(p.replace(input_dir, cache_dir) if input_dir else p) for p in paths):
             queue_out.put(index)
             continue
 
@@ -156,10 +159,11 @@ def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
 
         # 3. Iterate through the paths and delete them sequentially.
         for path in paths:
-            cached_filepath = path.replace(input_dir, cache_dir)
+            if input_dir:
+                cached_filepath = path.replace(input_dir, cache_dir)
 
-            if os.path.exists(cached_filepath):
-                os.remove(cached_filepath)
+                if os.path.exists(cached_filepath):
+                    os.remove(cached_filepath)
 
 
 def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_output_dir: str) -> None:
@@ -369,13 +373,17 @@ class BaseWorker:
         items = []
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
+
             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
                 index: element
                 for index, element in enumerate(flattened_item)
-                if isinstance(element, str) and element.startswith(self.input_dir)  # For speed reasons
+                if isinstance(element, str)
+                and (
+                    element.startswith(self.input_dir) if self.input_dir is not None else os.path.exists(element)
+                )  # For speed reasons
             }
 
             if len(indexed_paths) == 0:
@@ -383,9 +391,10 @@ class BaseWorker:
 
             paths = []
             for index, path in indexed_paths.items():
-                tmp_path = path.replace(self.input_dir, self.cache_data_dir)
-                flattened_item[index] = tmp_path
                 paths.append(path)
+                if self.input_dir:
+                    path = path.replace(self.input_dir, self.cache_data_dir)
+                flattened_item[index] = path
 
             self.paths.append(paths)
 
@@ -642,8 +651,8 @@ class DataTransformRecipe(DataRecipe):
 class DataProcessor:
     def __init__(
         self,
-        name: str,
-        input_dir: str,
+        name: Optional[str] = None,
+        input_dir: Optional[str] = None,
         num_workers: Optional[int] = None,
         num_downloaders: Optional[int] = None,
         delete_cached_files: bool = True,
@@ -669,7 +678,7 @@ class DataProcessor:
 
         """
         self.name = name
-        self.input_dir = str(input_dir)
+        self.input_dir = str(input_dir) if input_dir else None
         self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
         self.num_downloaders = num_downloaders or 1
         self.delete_cached_files = delete_cached_files
@@ -684,7 +693,7 @@ class DataProcessor:
         self.remote_input_dir = (
             str(remote_input_dir)
             if remote_input_dir is not None
-            else (self.src_resolver(input_dir) if self.src_resolver else None)
+            else ((self.src_resolver(input_dir) if input_dir else None) if self.src_resolver else None)
         )
         self.remote_output_dir = (
             remote_output_dir
@@ -723,11 +732,9 @@ class DataProcessor:
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
 
         if self.fast_dev_run:
-            workers_user_items = [
-                w[: self.fast_dev_run if isinstance(self.fast_dev_run, int) else _DEFAULT_FAST_DEV_RUN_ITEMS]
-                for w in workers_user_items
-            ]
-            print(f"Fast dev run is enabled. Limiting to {_DEFAULT_FAST_DEV_RUN_ITEMS} items per process.")
+            items_to_keep = self.fast_dev_run if isinstance(self.fast_dev_run, int) else _DEFAULT_FAST_DEV_RUN_ITEMS
+            workers_user_items = [w[:items_to_keep] for w in workers_user_items]
+            print(f"Fast dev run is enabled. Limiting to {items_to_keep} items per process.")
 
         num_items = sum([len(items) for items in workers_user_items])
 
@@ -735,7 +742,7 @@ class DataProcessor:
 
         print(f"Starting {self.num_workers} workers")
 
-        if self.remote_input_dir is None and self.src_resolver is not None:
+        if self.remote_input_dir is None and self.src_resolver is not None and self.input_dir:
             self.remote_input_dir = self.src_resolver(self.input_dir)
             print(f"The remote_dir is `{self.remote_input_dir}`.")
 
@@ -847,8 +854,6 @@ class DataProcessor:
                 for line in f.readlines():
                     lines.append(line.replace("\n", ""))
             return lines
-
-        str(Path(self.input_dir).resolve())
 
         filepaths = []
         for dirpath, _, filenames in os.walk(self.input_dir):
