@@ -104,8 +104,6 @@ class StreamingDataset(IterableDataset):
         self.chunk_index = 0
         self.index = 0
 
-        self.cache._reader._prepare_thread = None
-
         return self
 
     def __getitem__(self, index: Union[ChunkedIndex, int]) -> Any:
