@@ -1,13 +1,9 @@
-import os
 import sys
-from unittest import mock
 from unittest.mock import Mock
 
 import lightning.fabric
 import pytest
 import torch.nn
-from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE
-from lightning.fabric.plugins.precision.transformer_engine import _TRANSFORMER_ENGINE_AVAILABLE
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision.double import LightningDoublePrecisionModule
