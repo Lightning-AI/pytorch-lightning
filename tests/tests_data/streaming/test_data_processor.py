@@ -25,16 +25,16 @@ _PIL_AVAILABLE = RequirementCache("PIL")
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_upload_fn(tmpdir):
-    source_dir = os.path.join(tmpdir, "source_dir")
-    os.makedirs(source_dir, exist_ok=True)
+    input_dir = os.path.join(tmpdir, "input_dir")
+    os.makedirs(input_dir, exist_ok=True)
 
     cache_dir = os.path.join(tmpdir, "cache_dir")
     os.makedirs(cache_dir, exist_ok=True)
 
-    remote_target_dir = os.path.join(tmpdir, "remote_target_dir")
-    os.makedirs(remote_target_dir, exist_ok=True)
+    remote_output_dir = os.path.join(tmpdir, "remote_output_dir")
+    os.makedirs(remote_output_dir, exist_ok=True)
 
-    filepath = os.path.join(source_dir, "a.txt")
+    filepath = os.path.join(input_dir, "a.txt")
 
     with open(filepath, "w") as f:
         f.write("HERE")
@@ -53,17 +53,17 @@ def test_upload_fn(tmpdir):
 
     remove_queue = mock.MagicMock()
 
-    assert os.listdir(remote_target_dir) == []
+    assert os.listdir(remote_output_dir) == []
 
-    _upload_fn(upload_queue, remove_queue, cache_dir, remote_target_dir)
+    _upload_fn(upload_queue, remove_queue, cache_dir, remote_output_dir)
 
-    assert os.listdir(remote_target_dir) == ["a.txt"]
+    assert os.listdir(remote_output_dir) == ["a.txt"]
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_remove_target(tmpdir):
-    source_dir = os.path.join(tmpdir, "source_dir")
-    os.makedirs(source_dir, exist_ok=True)
+    input_dir = os.path.join(tmpdir, "input_dir")
+    os.makedirs(input_dir, exist_ok=True)
 
     cache_dir = os.path.join(tmpdir, "cache_dir")
     os.makedirs(cache_dir, exist_ok=True)
@@ -73,7 +73,7 @@ def test_remove_target(tmpdir):
     with open(filepath, "w") as f:
         f.write("HERE")
 
-    filepath = os.path.join(source_dir, "a.txt")
+    filepath = os.path.join(input_dir, "a.txt")
 
     queue_in = mock.MagicMock()
 
@@ -89,28 +89,28 @@ def test_remove_target(tmpdir):
 
     assert os.listdir(cache_dir) == ["a.txt"]
 
-    _remove_target(source_dir, cache_dir, queue_in)
+    _remove_target(input_dir, cache_dir, queue_in)
 
     assert os.listdir(cache_dir) == []
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_download_data_target(tmpdir):
-    source_dir = os.path.join(tmpdir, "source_dir")
-    os.makedirs(source_dir, exist_ok=True)
+    input_dir = os.path.join(tmpdir, "input_dir")
+    os.makedirs(input_dir, exist_ok=True)
 
-    remote_source_dir = os.path.join(tmpdir, "remote_source_dir")
-    os.makedirs(remote_source_dir, exist_ok=True)
+    remote_input_dir = os.path.join(tmpdir, "remote_input_dir")
+    os.makedirs(remote_input_dir, exist_ok=True)
 
     cache_dir = os.path.join(tmpdir, "cache_dir")
     os.makedirs(cache_dir, exist_ok=True)
 
-    filepath = os.path.join(remote_source_dir, "a.txt")
+    filepath = os.path.join(remote_input_dir, "a.txt")
 
     with open(filepath, "w") as f:
         f.write("HERE")
 
-    filepath = os.path.join(source_dir, "a.txt")
+    filepath = os.path.join(input_dir, "a.txt")
 
     with open(filepath, "w") as f:
         f.write("HERE")
@@ -128,7 +128,7 @@ def test_download_data_target(tmpdir):
     queue_in.get = fn
 
     queue_out = mock.MagicMock()
-    _download_data_target(source_dir, remote_source_dir, cache_dir, queue_in, queue_out)
+    _download_data_target(input_dir, remote_input_dir, cache_dir, queue_in, queue_out)
 
     assert queue_out.put._mock_call_args_list[0].args == (0,)
     assert queue_out.put._mock_call_args_list[1].args == (None,)
@@ -166,7 +166,7 @@ def test_wait_for_file_to_exist():
 
 
 def test_broadcast_object(tmpdir, monkeypatch):
-    data_processor = DataProcessor(name="dummy", source_dir=tmpdir)
+    data_processor = DataProcessor(name="dummy", input_dir=tmpdir)
     assert data_processor._broadcast_object("dummy") == "dummy"
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setattr(data_processor_module, "_distributed_is_initialized", lambda: True)
@@ -191,7 +191,7 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
     assert os.listdir(cache_dir) == ["a.txt"]
     assert os.listdir(cache_data_dir) == ["b.txt"]
 
-    data_processor = DataProcessor(name="dummy", source_dir=tmpdir)
+    data_processor = DataProcessor(name="dummy", input_dir=tmpdir)
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(tmpdir))
     data_processor._cleanup_cache()
 
@@ -271,8 +271,8 @@ def test_associated_items_to_workers(monkeypatch):
 
 
 class CustomDataChunkRecipe(DataChunkRecipe):
-    def prepare_structure(self, source_dir: str) -> List[Any]:
-        filepaths = self.listdir(source_dir)
+    def prepare_structure(self, input_dir: str) -> List[Any]:
+        filepaths = self.listdir(input_dir)
         assert len(filepaths) == 30
         return filepaths
 
@@ -299,9 +299,9 @@ def test_data_processsor(fast_dev_run, delete_cached_files, tmpdir, monkeypatch)
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     data_processor = DataProcessor(
         name="dummy_dataset",
-        source_dir=tmpdir,
+        input_dir=tmpdir,
         num_workers=2,
-        remote_source_dir=tmpdir,
+        remote_input_dir=tmpdir,
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
     )
@@ -378,8 +378,8 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     home_dir = os.path.join(tmpdir, "home")
     monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
 
-    remote_target_dir = os.path.join(tmpdir, "dst")
-    os.makedirs(remote_target_dir, exist_ok=True)
+    remote_output_dir = os.path.join(tmpdir, "dst")
+    os.makedirs(remote_output_dir, exist_ok=True)
 
     cache_dir = os.path.join(tmpdir, "cache_1")
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
@@ -387,12 +387,12 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
     data_processor = TestDataProcessor(
         name="dummy_dataset",
-        source_dir=tmpdir,
+        input_dir=tmpdir,
         num_workers=2,
-        remote_source_dir=tmpdir,
+        remote_input_dir=tmpdir,
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
-        remote_target_dir=remote_target_dir,
+        remote_output_dir=remote_output_dir,
     )
     data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
@@ -418,13 +418,13 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
     data_processor = TestDataProcessor(
         name="dummy_dataset",
-        source_dir=tmpdir,
+        input_dir=tmpdir,
         num_workers=2,
         num_downloaders=1,
-        remote_source_dir=tmpdir,
+        remote_input_dir=tmpdir,
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
-        remote_target_dir=remote_target_dir,
+        remote_output_dir=remote_output_dir,
     )
     data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
@@ -444,12 +444,12 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     assert sorted(os.listdir(os.path.join(cache_dir, "dummy_dataset"))) == fast_dev_run_disabled_chunks_1
 
     expected = sorted(fast_dev_run_disabled_chunks_0 + fast_dev_run_disabled_chunks_1 + ["1-index.json"])
-    assert sorted(os.listdir(remote_target_dir)) == expected
+    assert sorted(os.listdir(remote_output_dir)) == expected
 
 
 class TextTokenizeRecipe(DataChunkRecipe):
-    def prepare_structure(self, source_dir: str) -> List[Any]:
-        return [os.path.join(source_dir, "dummy2")]
+    def prepare_structure(self, input_dir: str) -> List[Any]:
+        return [os.path.join(input_dir, "dummy2")]
 
     def prepare_item(self, filepath):
         for _ in range(100):
@@ -465,13 +465,13 @@ def test_data_processsor_nlp(tmpdir, monkeypatch):
     with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
         f.write("Hello World !")
 
-    data_processor = DataProcessor(name="dummy2", source_dir=tmpdir, num_workers=1, num_downloaders=1)
+    data_processor = DataProcessor(name="dummy2", input_dir=tmpdir, num_workers=1, num_downloaders=1)
     data_processor.run(TextTokenizeRecipe(chunk_size=1024 * 11))
 
 
 class ImageResizeRecipe(DataTransformRecipe):
-    def prepare_structure(self, root: str):
-        filepaths = [os.path.join(root, filename) for filename in os.listdir(root)]
+    def prepare_structure(self, input_dir: str):
+        filepaths = [os.path.join(input_dir, filename) for filename in os.listdir(input_dir)]
         return [filepath for filepath in filepaths if os.path.isfile(filepath)]
 
     def prepare_item(self, output_dir: str, filepath: Any) -> None:
@@ -496,22 +496,22 @@ def test_data_process_transform(monkeypatch, tmpdir):
 
     home_dir = os.path.join(tmpdir, "home")
     cache_dir = os.path.join(tmpdir, "cache")
-    remote_target_dir = os.path.join(tmpdir, "target_dir")
-    os.makedirs(remote_target_dir, exist_ok=True)
+    remote_output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(remote_output_dir, exist_ok=True)
     monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     data_processor = DataProcessor(
         name="dummy_dataset",
-        source_dir=tmpdir,
+        input_dir=tmpdir,
         num_workers=1,
-        remote_source_dir=tmpdir,
-        remote_target_dir=remote_target_dir,
+        remote_input_dir=tmpdir,
+        remote_output_dir=remote_output_dir,
     )
     data_processor.run(ImageResizeRecipe())
 
-    assert sorted(os.listdir(remote_target_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
+    assert sorted(os.listdir(remote_output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
 
     from PIL import Image
 
-    img = Image.open(os.path.join(remote_target_dir, "0.JPEG"))
+    img = Image.open(os.path.join(remote_output_dir, "0.JPEG"))
     assert img.size == (12, 12)

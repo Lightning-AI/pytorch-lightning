@@ -98,7 +98,7 @@ def _wait_for_file_to_exist(s3: Any, obj: parse.ParseResult, sleep_time: int = 2
 
 
 def _download_data_target(
-    source_dir: str, remote_source_dir: str, cache_dir: str, queue_in: Queue, queue_out: Queue
+    input_dir: str, remote_input_dir: str, cache_dir: str, queue_in: Queue, queue_out: Queue
 ) -> None:
     """This function is used to download data from a remote directory to a cache directory to optimise reading."""
     s3 = _get_s3_client()
@@ -116,16 +116,16 @@ def _download_data_target(
         index, paths = r
 
         # 5. Check whether all the files are already downloaded
-        if all(os.path.exists(p.replace(source_dir, cache_dir)) for p in paths):
+        if all(os.path.exists(p.replace(input_dir, cache_dir)) for p in paths):
             queue_out.put(index)
             continue
 
-        if remote_source_dir is not None:
+        if remote_input_dir is not None:
             # 6. Download all the required paths to unblock the current index
             for path in paths:
-                remote_path = path.replace(source_dir, remote_source_dir)
+                remote_path = path.replace(input_dir, remote_input_dir)
                 obj = parse.urlparse(remote_path)
-                local_path = path.replace(source_dir, cache_dir)
+                local_path = path.replace(input_dir, cache_dir)
 
                 if obj.scheme == "s3":
                     dirpath = os.path.dirname(local_path)
@@ -138,13 +138,13 @@ def _download_data_target(
                 elif os.path.isfile(remote_path):
                     copyfile(remote_path, local_path)
                 else:
-                    raise ValueError(f"The provided {remote_source_dir} isn't supported.")
+                    raise ValueError(f"The provided {remote_input_dir} isn't supported.")
 
         # 7. Inform the worker the current files are available
         queue_out.put(index)
 
 
-def _remove_target(source_dir: str, cache_dir: str, queue_in: Queue) -> None:
+def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
     """This function is used to delete files from the cache directory to minimise disk space."""
     while True:
         # 1. Collect paths
@@ -156,15 +156,15 @@ def _remove_target(source_dir: str, cache_dir: str, queue_in: Queue) -> None:
 
         # 3. Iterate through the paths and delete them sequentially.
         for path in paths:
-            cached_filepath = path.replace(source_dir, cache_dir)
+            cached_filepath = path.replace(input_dir, cache_dir)
 
             if os.path.exists(cached_filepath):
                 os.remove(cached_filepath)
 
 
-def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_target_dir: str) -> None:
+def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_output_dir: str) -> None:
     """This function is used to upload optimised chunks from a local to remote dataset directory."""
-    obj = parse.urlparse(remote_target_dir)
+    obj = parse.urlparse(remote_output_dir)
 
     if obj.scheme == "s3":
         s3 = _get_s3_client()
@@ -184,10 +184,10 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
             s3.upload_file(
                 local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
             )
-        elif os.path.isdir(remote_target_dir):
-            copyfile(local_filepath, os.path.join(remote_target_dir, os.path.basename(local_filepath)))
+        elif os.path.isdir(remote_output_dir):
+            copyfile(local_filepath, os.path.join(remote_output_dir, os.path.basename(local_filepath)))
         else:
-            raise ValueError(f"The provided {remote_target_dir} isn't supported.")
+            raise ValueError(f"The provided {remote_output_dir} isn't supported.")
 
         # Inform the remover to delete the file
         if remove_queue:
@@ -228,9 +228,9 @@ class BaseWorker:
         dataset_name: str,
         node_rank: int,
         data_recipe: "DataRecipe",
-        source_dir: str,
-        remote_source_dir: str,
-        remote_target_dir: Optional[str],
+        input_dir: str,
+        remote_input_dir: str,
+        remote_output_dir: Optional[str],
         items: List[Any],
         progress_queue: Queue,
         error_queue: Queue,
@@ -245,9 +245,9 @@ class BaseWorker:
         self.dataset_name = dataset_name
         self.node_rank = node_rank
         self.data_recipe = data_recipe
-        self.source_dir = source_dir
-        self.remote_source_dir = remote_source_dir
-        self.remote_target_dir = remote_target_dir
+        self.input_dir = input_dir
+        self.remote_input_dir = remote_input_dir
+        self.remote_output_dir = remote_output_dir
         self.items = items
         self.num_items = len(self.items)
         self.num_downloaders = num_downloaders
@@ -299,7 +299,7 @@ class BaseWorker:
                     if isinstance(self.data_recipe, DataChunkRecipe):
                         self._handle_data_chunk_recipe_end()
 
-                    if self.remote_target_dir:
+                    if self.remote_output_dir:
                         assert self.uploader
                         self.upload_queue.put(None)
                         self.uploader.join()
@@ -359,7 +359,7 @@ class BaseWorker:
         self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
 
     def _try_upload(self, filepath: Optional[str]) -> None:
-        if not filepath or self.remote_target_dir is None:
+        if not filepath or self.remote_output_dir is None:
             return
 
         assert os.path.exists(filepath), filepath
@@ -369,13 +369,13 @@ class BaseWorker:
         items = []
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
-            # For speed reasons, we assume starting with `self.source_dir` is enough to be a real file.
+            # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
                 index: element
                 for index, element in enumerate(flattened_item)
-                if isinstance(element, str) and element.startswith(self.source_dir)  # For speed reasons
+                if isinstance(element, str) and element.startswith(self.input_dir)  # For speed reasons
             }
 
             if len(indexed_paths) == 0:
@@ -383,7 +383,7 @@ class BaseWorker:
 
             paths = []
             for index, path in indexed_paths.items():
-                tmp_path = path.replace(self.source_dir, self.cache_data_dir)
+                tmp_path = path.replace(self.input_dir, self.cache_data_dir)
                 flattened_item[index] = tmp_path
                 paths.append(path)
 
@@ -400,8 +400,8 @@ class BaseWorker:
             p = Process(
                 target=_download_data_target,
                 args=(
-                    self.source_dir,
-                    self.remote_source_dir,
+                    self.input_dir,
+                    self.remote_input_dir,
                     self.cache_data_dir,
                     to_download_queue,
                     self.ready_to_process_queue,
@@ -423,7 +423,7 @@ class BaseWorker:
         self.remover = Process(
             target=_remove_target,
             args=(
-                self.source_dir,
+                self.input_dir,
                 self.cache_data_dir,
                 self.remove_queue,
             ),
@@ -431,7 +431,7 @@ class BaseWorker:
         self.remover.start()
 
     def _start_uploader(self) -> None:
-        if self.remote_target_dir is None:
+        if self.remote_output_dir is None:
             return
         self.uploader = Process(
             target=_upload_fn,
@@ -439,7 +439,7 @@ class BaseWorker:
                 self.upload_queue,
                 self.remove_queue,
                 self.cache_chunks_dir,
-                self.remote_target_dir,
+                self.remote_output_dir,
             ),
         )
         self.uploader.start()
@@ -503,7 +503,7 @@ T = TypeVar("T")
 
 class DataRecipe:
     @abstractmethod
-    def prepare_structure(self, source_dir: str) -> List[T]:
+    def prepare_structure(self, input_dir: str) -> List[T]:
         pass
 
     @abstractmethod
@@ -542,7 +542,7 @@ class DataRecipe:
         self._name = name
         self._fast_dev_run = fast_dev_run
 
-    def _done(self, delete_cached_files: bool, remote_target_dir: str) -> None:
+    def _done(self, delete_cached_files: bool, remote_output_dir: str) -> None:
         pass
 
 
@@ -558,31 +558,31 @@ class DataChunkRecipe(DataRecipe):
         self.chunk_bytes = 1 << 26 if chunk_size is None else chunk_bytes
         self.compression = compression
 
-    def prepare_structure(self, source_dir: str) -> List[T]:
+    def prepare_structure(self, input_dir: str) -> List[T]:
         pass
 
     def prepare_item(self, item_metadata: T) -> Any:
         pass
 
-    def _done(self, delete_cached_files: bool, remote_target_dir: str) -> None:
+    def _done(self, delete_cached_files: bool, remote_output_dir: str) -> None:
         num_nodes = _get_num_nodes()
         cache_dir = _get_cache_dir(self._name)
 
         chunks = [file for file in os.listdir(cache_dir) if file.endswith(".bin")]
-        if chunks and delete_cached_files and remote_target_dir:
+        if chunks and delete_cached_files and remote_output_dir:
             raise RuntimeError(f"All the chunks should have been deleted. Found {chunks}")
 
         merge_cache = Cache(cache_dir, chunk_bytes=1)
         node_rank = _get_node_rank()
         merge_cache._merge_no_wait(node_rank if num_nodes > 1 else None)
-        self._upload_index(remote_target_dir, cache_dir, num_nodes, node_rank)
+        self._upload_index(remote_output_dir, cache_dir, num_nodes, node_rank)
 
-    def _upload_index(self, remote_target_dir: str, cache_dir: str, num_nodes: int, node_rank: Optional[int]) -> None:
+    def _upload_index(self, remote_output_dir: str, cache_dir: str, num_nodes: int, node_rank: Optional[int]) -> None:
         """This method upload the index file to the remote cloud directory."""
-        if not remote_target_dir:
+        if not remote_output_dir:
             return
 
-        obj = parse.urlparse(remote_target_dir)
+        obj = parse.urlparse(remote_output_dir)
         if num_nodes > 1:
             local_filepath = os.path.join(cache_dir, f"{node_rank}-{_INDEX_FILENAME}")
         else:
@@ -593,8 +593,8 @@ class DataChunkRecipe(DataRecipe):
             s3.upload_file(
                 local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
             )
-        elif os.path.isdir(remote_target_dir):
-            copyfile(local_filepath, os.path.join(remote_target_dir, os.path.basename(local_filepath)))
+        elif os.path.isdir(remote_output_dir):
+            copyfile(local_filepath, os.path.join(remote_output_dir, os.path.basename(local_filepath)))
 
         if num_nodes == 1 or node_rank is None:
             return
@@ -605,23 +605,23 @@ class DataChunkRecipe(DataRecipe):
         if num_nodes == node_rank + 1:
             # Get the index file locally
             for node_rank in range(num_nodes - 1):
-                remote_filepath = os.path.join(remote_target_dir, f"{node_rank}-{_INDEX_FILENAME}")
+                remote_filepath = os.path.join(remote_output_dir, f"{node_rank}-{_INDEX_FILENAME}")
                 node_index_filepath = os.path.join(cache_dir, os.path.basename(remote_filepath))
                 if obj.scheme == "s3":
                     obj = parse.urlparse(remote_filepath)
                     _wait_for_file_to_exist(s3, obj)
                     with open(node_index_filepath, "wb") as f:
                         s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
-                elif os.path.isdir(remote_target_dir):
+                elif os.path.isdir(remote_output_dir):
                     copyfile(remote_filepath, node_index_filepath)
 
             merge_cache = Cache(cache_dir, chunk_bytes=1)
             merge_cache._merge_no_wait()
-            self._upload_index(remote_target_dir, cache_dir, 1, None)
+            self._upload_index(remote_output_dir, cache_dir, 1, None)
 
 
 class DataTransformRecipe(DataRecipe):
-    def prepare_structure(self, source_dir: str) -> List[T]:
+    def prepare_structure(self, input_dir: str) -> List[T]:
         pass
 
     def prepare_item(self, output_dir: str, item_metadata: T) -> None:
@@ -632,14 +632,14 @@ class DataProcessor:
     def __init__(
         self,
         name: str,
-        source_dir: str,
+        input_dir: str,
         num_workers: Optional[int] = None,
         num_downloaders: Optional[int] = None,
         delete_cached_files: bool = True,
         src_resolver: Optional[Callable[[str], Optional[str]]] = None,
         fast_dev_run: Optional[bool] = None,
-        remote_source_dir: Optional[str] = None,
-        remote_target_dir: Optional[str] = None,
+        remote_input_dir: Optional[str] = None,
+        remote_output_dir: Optional[str] = None,
         random_seed: Optional[int] = 42,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
@@ -647,18 +647,18 @@ class DataProcessor:
 
         Arguments:
             name: The name of your dataset.
-            source_dir: The path to where the data are stored.
+            input_dir: The path to where the data are stored.
             num_workers: The number of worker threads to use.
             num_downloaders: The number of file downloaders to use.
             delete_cached_files: Whether to delete the cached files.
             fast_dev_run: Whether to run a quick dev run.
-            remote_source_dir: The remote folder where the data are.
-            remote_target_dir: The remote folder where the optimised data will be stored.
+            remote_input_dir: The remote folder where the data are.
+            remote_output_dir: The remote folder where the optimised data will be stored.
             random_seed: The random seed to be set before shuffling the data.
 
         """
         self.name = name
-        self.source_dir = str(source_dir)
+        self.input_dir = str(input_dir)
         self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
         self.num_downloaders = num_downloaders or 1
         self.delete_cached_files = delete_cached_files
@@ -670,20 +670,20 @@ class DataProcessor:
         self.progress_queue: Optional[Queue] = None
         self.error_queue: Queue = Queue()
         self.stop_queues: List[Queue] = []
-        self.remote_source_dir = (
-            str(remote_source_dir)
-            if remote_source_dir is not None
-            else (self.src_resolver(source_dir) if self.src_resolver else None)
+        self.remote_input_dir = (
+            str(remote_input_dir)
+            if remote_input_dir is not None
+            else (self.src_resolver(input_dir) if self.src_resolver else None)
         )
-        self.remote_target_dir = (
-            remote_target_dir
-            if remote_target_dir is not None
+        self.remote_output_dir = (
+            remote_output_dir
+            if remote_output_dir is not None
             else (self.dst_resolver(name) if self.dst_resolver else None)
         )
-        if self.remote_target_dir:
+        if self.remote_output_dir:
             # Ensure the remote src dir is the same across all ranks
-            self.remote_target_dir = self._broadcast_object(self.remote_target_dir)
-            print(f"Storing the files under {self.remote_target_dir}")
+            self.remote_output_dir = self._broadcast_object(self.remote_output_dir)
+            print(f"Storing the files under {self.remote_output_dir}")
 
         self.random_seed = random_seed
 
@@ -702,7 +702,7 @@ class DataProcessor:
         data_recipe._setup(self.name, self.fast_dev_run)
 
         # Call the setup method of the user
-        user_items: List[Any] = data_recipe.prepare_structure(self.source_dir)
+        user_items: List[Any] = data_recipe.prepare_structure(self.input_dir)
 
         if not isinstance(user_items, list):
             raise ValueError("The setup_fn should return a list of item metadata.")
@@ -721,9 +721,9 @@ class DataProcessor:
 
         print(f"Starting {self.num_workers} workers")
 
-        if self.remote_source_dir is None and self.src_resolver is not None:
-            self.remote_source_dir = self.src_resolver(self.source_dir)
-            print(f"The remote_dir is `{self.remote_source_dir}`.")
+        if self.remote_input_dir is None and self.src_resolver is not None:
+            self.remote_input_dir = self.src_resolver(self.input_dir)
+            print(f"The remote_dir is `{self.remote_input_dir}`.")
 
         signal.signal(signal.SIGINT, self._signal_handler)
 
@@ -758,7 +758,7 @@ class DataProcessor:
                 w.join(0)
 
         print("Workers are finished.")
-        data_recipe._done(self.delete_cached_files, self.remote_target_dir)
+        data_recipe._done(self.delete_cached_files, self.remote_output_dir)
         print("Finished data processing!")
 
     def _exit_on_error(self, error: str) -> None:
@@ -781,9 +781,9 @@ class DataProcessor:
                 self.name,
                 _get_node_rank(),
                 data_recipe,
-                self.source_dir,
-                self.remote_source_dir,
-                self.remote_target_dir,
+                self.input_dir,
+                self.remote_input_dir,
+                self.remote_output_dir,
                 worker_user_items,
                 self.progress_queue,
                 self.error_queue,
@@ -834,10 +834,10 @@ class DataProcessor:
                     lines.append(line.replace("\n", ""))
             return lines
 
-        str(Path(self.source_dir).resolve())
+        str(Path(self.input_dir).resolve())
 
         filepaths = []
-        for dirpath, _, filenames in os.walk(self.source_dir):
+        for dirpath, _, filenames in os.walk(self.input_dir):
             for filename in filenames:
                 filepaths.append(os.path.join(dirpath, filename))
 
