@@ -74,7 +74,7 @@ class DeviceStatsMonitor(Callback):
             )
 
     def _get_and_log_device_stats(self, trainer: "pl.Trainer", key: str) -> None:
-        if not trainer._logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs():
             return
 
         device = trainer.strategy.root_device

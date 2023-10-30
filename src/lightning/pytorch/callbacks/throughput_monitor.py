@@ -152,7 +152,7 @@ class ThroughputMonitor(Callback):
         )
 
     def _compute(self, trainer: "Trainer", iter_num: Optional[int] = None) -> None:
-        if not trainer._logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs(iter_num):
             return
         stage = trainer.state.stage
         assert stage is not None
