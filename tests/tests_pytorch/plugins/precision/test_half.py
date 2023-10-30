@@ -14,7 +14,7 @@
 
 import pytest
 import torch
-from lightning.pytorch.plugins import HalfPrecisionPlugin
+from lightning.pytorch.plugins import HalfPrecision
 
 
 @pytest.mark.parametrize(
@@ -25,7 +25,7 @@ from lightning.pytorch.plugins import HalfPrecisionPlugin
     ],
 )
 def test_selected_dtype(precision, expected_dtype):
-    plugin = HalfPrecisionPlugin(precision=precision)
+    plugin = HalfPrecision(precision=precision)
     assert plugin.precision == precision
     assert plugin._desired_input_dtype == expected_dtype
 
@@ -38,7 +38,7 @@ def test_selected_dtype(precision, expected_dtype):
     ],
 )
 def test_module_init_context(precision, expected_dtype):
-    plugin = HalfPrecisionPlugin(precision=precision)
+    plugin = HalfPrecision(precision=precision)
     with plugin.module_init_context():
         model = torch.nn.Linear(2, 2)
         assert torch.get_default_dtype() == expected_dtype
@@ -53,7 +53,7 @@ def test_module_init_context(precision, expected_dtype):
     ],
 )
 def test_forward_context(precision, expected_dtype):
-    precision = HalfPrecisionPlugin(precision=precision)
+    precision = HalfPrecision(precision=precision)
     assert torch.get_default_dtype() == torch.float32
     with precision.forward_context():
         assert torch.get_default_dtype() == expected_dtype
@@ -68,7 +68,7 @@ def test_forward_context(precision, expected_dtype):
     ],
 )
 def test_convert_module(precision, expected_dtype):
-    precision = HalfPrecisionPlugin(precision=precision)
+    precision = HalfPrecision(precision=precision)
     module = torch.nn.Linear(2, 2)
     assert module.weight.dtype == module.bias.dtype == torch.float32
     module = precision.convert_module(module)

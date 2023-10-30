@@ -182,18 +182,18 @@ This is configurable via the dtype argument in the plugin.
 
 Quantizing the model will dramatically reduce the weight's memory requirements but  may have a negative impact on the model's performance or runtime.
 
-The :class:`~lightning.pytorch.plugins.precision.bitsandbytes.BitsandbytesPrecisionPlugin` automatically replaces the :class:`torch.nn.Linear` layers in your model with their BNB alternatives.
+The :class:`~lightning.pytorch.plugins.precision.bitsandbytes.BitsandbytesPrecision` automatically replaces the :class:`torch.nn.Linear` layers in your model with their BNB alternatives.
 
 .. code-block:: python
 
-    from lightning.pytorch.plugins import BitsandbytesPrecisionPlugin
+    from lightning.pytorch.plugins import BitsandbytesPrecision
 
     # this will pick out the compute dtype automatically, by default `bfloat16`
-    precision = BitsandbytesPrecisionPlugin("nf4-dq")
+    precision = BitsandbytesPrecision("nf4-dq")
     trainer = Trainer(plugins=precision)
 
     # Customize the dtype, or skip some modules
-    precision = BitsandbytesPrecisionPlugin("int8-training", dtype=torch.float16, ignore_modules={"lm_head"})
+    precision = BitsandbytesPrecision("int8-training", dtype=torch.float16, ignore_modules={"lm_head"})
     trainer = Trainer(plugins=precision)
 
 
