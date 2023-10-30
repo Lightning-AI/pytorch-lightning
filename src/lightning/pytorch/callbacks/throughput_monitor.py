@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 import torch
 
-from lightning.fabric.plugins import Precision
+from lightning.fabric.plugins import Precision as FabricPrecision
 from lightning.fabric.utilities.throughput import Throughput, get_available_flops
 from lightning.fabric.utilities.throughput import _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype
 from lightning.pytorch.callbacks import Callback
@@ -227,7 +227,7 @@ class ThroughputMonitor(Callback):
         self._compute(trainer, iter_num)
 
 
-def _plugin_to_compute_dtype(plugin: Union[Precision, Precision]) -> torch.dtype:
+def _plugin_to_compute_dtype(plugin: Union[FabricPrecision, Precision]) -> torch.dtype:
     # TODO: integrate this into the precision plugins
     if not isinstance(plugin, Precision):
         return fabric_plugin_to_compute_dtype(plugin)
