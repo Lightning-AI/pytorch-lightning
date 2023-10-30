@@ -13,6 +13,7 @@ import pytest
 import torch
 import torch.nn as nn
 from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
@@ -760,14 +761,61 @@ def test_save_checkpoint_storage_options(tmp_path):
         strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock(), storage_options=Mock())
 
 
+@RunIf(min_torch="2.0.0")
+@mock.patch("torch.distributed.checkpoint.save_state_dict", return_value=MagicMock())
 @mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
-def test_save_checkpoint_folder_exists(tmp_path):
-    path = tmp_path / "exists"
+@mock.patch("lightning.pytorch.strategies.fsdp._get_full_state_dict_context", return_value=MagicMock())
+@mock.patch("lightning.pytorch.strategies.fsdp._get_sharded_state_dict_context", return_value=MagicMock())
+@mock.patch("lightning.fabric.plugins.io.torch_io._atomic_save", return_value=Mock())
+@mock.patch("lightning.pytorch.strategies.fsdp.shutil", return_value=MagicMock())
+def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, ____, tmp_path):
+    strategy = FSDPStrategy(state_dict_type="full")
+
+    # state_dict_type='full', path exists, path is not a sharded checkpoint: error
+    path = tmp_path / "not-empty"
     path.mkdir()
     (path / "file").touch()
-    strategy = FSDPStrategy()
-    with pytest.raises(FileExistsError, match="exists and is not empty"):
-        strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock())
+    assert not _is_sharded_checkpoint(path)
+    with pytest.raises(IsADirectoryError, match="exists and is a directory"):
+        strategy.save_checkpoint(Mock(), filepath=path)
+
+    # state_dict_type='full', path exists, path is a sharded checkpoint: no error (overwrite)
+    path = tmp_path / "sharded-checkpoint"
+    path.mkdir()
+    (path / "meta.pt").touch()
+    assert _is_sharded_checkpoint(path)
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(Mock(), filepath=path)
+    shutil_mock.rmtree.assert_called_once_with(path)
+
+    # state_dict_type='full', path exists, path is a file: no error (overwrite)
+    path = tmp_path / "file.pt"
+    path.touch()
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    torch_save_mock.reset_mock()
+    strategy.save_checkpoint(Mock(), filepath=path)
+    torch_save_mock.assert_called_once()
+
+    strategy = FSDPStrategy(state_dict_type="sharded")
+
+    # state_dict_type='sharded', path exists, path is a folder: no error (overwrite)
+    path = tmp_path / "not-empty-2"
+    path.mkdir()
+    (path / "file").touch()
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint({"state_dict": {}, "optimizer_states": {"": {}}}, filepath=path)
+    assert (path / "file").exists()
+
+    # state_dict_type='sharded', path exists, path is a file: no error (overwrite)
+    path = tmp_path / "file-2.pt"
+    path.touch()
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint({"state_dict": {}, "optimizer_states": {"": {}}}, filepath=path)
+    assert path.is_dir()
 
 
 @mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
