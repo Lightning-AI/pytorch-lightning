@@ -9,7 +9,7 @@ import torch
 from lightning import LightningDataModule, seed_everything
 from lightning.data.streaming import dataset_optimizer as dataset_optimizer_module
 from lightning.data.streaming.dataset_optimizer import (
-    DatasetOptimizer,
+    DataProcessor,
     _associated_items_to_workers,
     _download_data_target,
     _remove_target,
@@ -23,16 +23,16 @@ _PIL_AVAILABLE = RequirementCache("PIL")
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_upload_fn(tmpdir):
-    src_dir = os.path.join(tmpdir, "src_dir")
-    os.makedirs(src_dir, exist_ok=True)
+    source_dir = os.path.join(tmpdir, "source_dir")
+    os.makedirs(source_dir, exist_ok=True)
 
     cache_dir = os.path.join(tmpdir, "cache_dir")
     os.makedirs(cache_dir, exist_ok=True)
 
-    remote_dst_dir = os.path.join(tmpdir, "remote_dst_dir")
-    os.makedirs(remote_dst_dir, exist_ok=True)
+    remote_target_dir = os.path.join(tmpdir, "remote_target_dir")
+    os.makedirs(remote_target_dir, exist_ok=True)
 
-    filepath = os.path.join(src_dir, "a.txt")
+    filepath = os.path.join(source_dir, "a.txt")
 
     with open(filepath, "w") as f:
         f.write("HERE")
@@ -51,17 +51,17 @@ def test_upload_fn(tmpdir):
 
     remove_queue = mock.MagicMock()
 
-    assert os.listdir(remote_dst_dir) == []
+    assert os.listdir(remote_target_dir) == []
 
-    _upload_fn(upload_queue, remove_queue, cache_dir, remote_dst_dir)
+    _upload_fn(upload_queue, remove_queue, cache_dir, remote_target_dir)
 
-    assert os.listdir(remote_dst_dir) == ["a.txt"]
+    assert os.listdir(remote_target_dir) == ["a.txt"]
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_remove_target(tmpdir):
-    src_dir = os.path.join(tmpdir, "src_dir")
-    os.makedirs(src_dir, exist_ok=True)
+    source_dir = os.path.join(tmpdir, "source_dir")
+    os.makedirs(source_dir, exist_ok=True)
 
     cache_dir = os.path.join(tmpdir, "cache_dir")
     os.makedirs(cache_dir, exist_ok=True)
@@ -71,7 +71,7 @@ def test_remove_target(tmpdir):
     with open(filepath, "w") as f:
         f.write("HERE")
 
-    filepath = os.path.join(src_dir, "a.txt")
+    filepath = os.path.join(source_dir, "a.txt")
 
     queue_in = mock.MagicMock()
 
@@ -87,28 +87,28 @@ def test_remove_target(tmpdir):
 
     assert os.listdir(cache_dir) == ["a.txt"]
 
-    _remove_target(src_dir, cache_dir, queue_in)
+    _remove_target(source_dir, cache_dir, queue_in)
 
     assert os.listdir(cache_dir) == []
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_download_data_target(tmpdir):
-    src_dir = os.path.join(tmpdir, "src_dir")
-    os.makedirs(src_dir, exist_ok=True)
+    source_dir = os.path.join(tmpdir, "source_dir")
+    os.makedirs(source_dir, exist_ok=True)
 
-    remote_src_dir = os.path.join(tmpdir, "remote_src_dir")
-    os.makedirs(remote_src_dir, exist_ok=True)
+    remote_source_dir = os.path.join(tmpdir, "remote_source_dir")
+    os.makedirs(remote_source_dir, exist_ok=True)
 
     cache_dir = os.path.join(tmpdir, "cache_dir")
     os.makedirs(cache_dir, exist_ok=True)
 
-    filepath = os.path.join(remote_src_dir, "a.txt")
+    filepath = os.path.join(remote_source_dir, "a.txt")
 
     with open(filepath, "w") as f:
         f.write("HERE")
 
-    filepath = os.path.join(src_dir, "a.txt")
+    filepath = os.path.join(source_dir, "a.txt")
 
     with open(filepath, "w") as f:
         f.write("HERE")
@@ -126,7 +126,7 @@ def test_download_data_target(tmpdir):
     queue_in.get = fn
 
     queue_out = mock.MagicMock()
-    _download_data_target(src_dir, remote_src_dir, cache_dir, queue_in, queue_out)
+    _download_data_target(source_dir, remote_source_dir, cache_dir, queue_in, queue_out)
 
     assert queue_out.put._mock_call_args_list[0].args == (0,)
     assert queue_out.put._mock_call_args_list[1].args == (None,)
@@ -164,7 +164,7 @@ def test_wait_for_file_to_exist():
 
 
 def test_broadcast_object(tmpdir, monkeypatch):
-    dataset_optimizer = DatasetOptimizer(name="dummy", src_dir=tmpdir)
+    dataset_optimizer = DataProcessor(name="dummy", source_dir=tmpdir)
     assert dataset_optimizer._broadcast_object("dummy") == "dummy"
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setattr(dataset_optimizer_module, "_distributed_is_initialized", lambda: True)
@@ -189,7 +189,7 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
     assert os.listdir(cache_dir) == ["a.txt"]
     assert os.listdir(cache_data_dir) == ["b.txt"]
 
-    dataset_optimizer = DatasetOptimizer(name="dummy", src_dir=tmpdir)
+    dataset_optimizer = DataProcessor(name="dummy", source_dir=tmpdir)
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(tmpdir))
     dataset_optimizer._cleanup_cache()
 
@@ -269,7 +269,7 @@ def test_associated_items_to_workers(monkeypatch):
 
 
 class DataModuleImage(LightningDataModule):
-    def prepare_dataset_structure(self, src_dir: str, filepaths: List[str]) -> List[Any]:
+    def prepare_dataset_structure(self, source_dir: str, filepaths: List[str]) -> List[Any]:
         assert len(filepaths) == 30
         return filepaths
 
@@ -294,13 +294,13 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     cache_dir = os.path.join(tmpdir, "cache")
     monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
-    dataset_optimizer = DatasetOptimizer(
+    dataset_optimizer = DataProcessor(
         name="dummy_dataset",
-        src_dir=tmpdir,
+        source_dir=tmpdir,
         chunk_size=2,
         num_workers=2,
         num_downloaders=1,
-        remote_src_dir=tmpdir,
+        remote_source_dir=tmpdir,
         worker_type="process",
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
@@ -355,7 +355,7 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     assert len(files) == expected
 
 
-class TestDatasetOptimizer(DatasetOptimizer):
+class TestDataProcessor(DataProcessor):
     def _broadcast_object(self, obj: Any) -> Any:
         return obj
 
@@ -378,24 +378,24 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     home_dir = os.path.join(tmpdir, "home")
     monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
 
-    remote_dst_dir = os.path.join(tmpdir, "dst")
-    os.makedirs(remote_dst_dir, exist_ok=True)
+    remote_target_dir = os.path.join(tmpdir, "dst")
+    os.makedirs(remote_target_dir, exist_ok=True)
 
     cache_dir = os.path.join(tmpdir, "cache_1")
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
-    dataset_optimizer = TestDatasetOptimizer(
+    dataset_optimizer = TestDataProcessor(
         name="dummy_dataset",
-        src_dir=tmpdir,
+        source_dir=tmpdir,
         chunk_size=2,
         num_workers=2,
         num_downloaders=1,
-        remote_src_dir=tmpdir,
+        remote_source_dir=tmpdir,
         worker_type="process",
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
-        remote_dst_dir=remote_dst_dir,
+        remote_target_dir=remote_target_dir,
     )
     dataset_optimizer.run(DataModuleImage())
 
@@ -419,17 +419,17 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
-    dataset_optimizer = TestDatasetOptimizer(
+    dataset_optimizer = TestDataProcessor(
         name="dummy_dataset",
-        src_dir=tmpdir,
+        source_dir=tmpdir,
         chunk_size=2,
         num_workers=2,
         num_downloaders=1,
-        remote_src_dir=tmpdir,
+        remote_source_dir=tmpdir,
         worker_type="process",
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
-        remote_dst_dir=remote_dst_dir,
+        remote_target_dir=remote_target_dir,
     )
     dataset_optimizer.run(DataModuleImage())
 
@@ -449,13 +449,13 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     assert sorted(os.listdir(os.path.join(cache_dir, "dummy_dataset"))) == fast_dev_run_disabled_chunks_1
 
     expected = sorted(fast_dev_run_disabled_chunks_0 + fast_dev_run_disabled_chunks_1 + ["1-index.json"])
-    assert sorted(os.listdir(remote_dst_dir)) == expected
+    assert sorted(os.listdir(remote_target_dir)) == expected
 
 
 class DataModule(LightningDataModule):
     @staticmethod
-    def prepare_dataset_structure(src_dir: str, filepaths: List[str]) -> List[Any]:
-        return [os.path.join(src_dir, "dummy2")]
+    def prepare_dataset_structure(source_dir: str, filepaths: List[str]) -> List[Any]:
+        return [os.path.join(source_dir, "dummy2")]
 
     @staticmethod
     def prepare_item(filepath):
@@ -472,15 +472,15 @@ def test_data_optimizer_nlp(tmpdir, monkeypatch):
     with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
         f.write("Hello World !")
 
-    dataset_optimizer = DatasetOptimizer(
-        name="dummy2", src_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
+    dataset_optimizer = DataProcessor(
+        name="dummy2", source_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
     )
     dataset_optimizer.run(DataModule())
 
 
 def test_data_optimizer_api(tmpdir):
-    dataset_optimizer = DatasetOptimizer(
-        name="dummy2", src_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
+    dataset_optimizer = DataProcessor(
+        name="dummy2", source_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
     )
     with pytest.raises(ValueError, match="prepare_dataset_structure"):
         dataset_optimizer.run(None)

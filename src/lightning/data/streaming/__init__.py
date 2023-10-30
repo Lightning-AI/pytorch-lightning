@@ -13,6 +13,6 @@
 
 from lightning.data.streaming.cache import Cache
 from lightning.data.streaming.dataloader import StreamingDataLoader
-from lightning.data.streaming.dataset_optimizer import DatasetOptimizer
+from lightning.data.streaming.dataset_optimizer import DataProcessor
 
-__all__ = ["Cache", "DatasetOptimizer", "StreamingDataLoader"]
+__all__ = ["Cache", "DataProcessor", "StreamingDataLoader"]
