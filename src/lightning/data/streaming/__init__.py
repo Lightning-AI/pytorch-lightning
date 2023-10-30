@@ -12,7 +12,8 @@
 # limitations under the License.
 
 from lightning.data.streaming.cache import Cache
-from lightning.data.streaming.dataloader import StreamingDataLoader
-from lightning.data.streaming.dataset_optimizer import DatasetOptimizer
+from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
+from lightning.data.streaming.dataset import StreamingDataset
+from lightning.data.streaming.item_loader import TokensLoader
 
-__all__ = ["Cache", "DatasetOptimizer", "StreamingDataLoader"]
+__all__ = ["Cache", "DataProcessor", "StreamingDataset", "DataTransformRecipe", "DataChunkRecipe", "TokensLoader"]
