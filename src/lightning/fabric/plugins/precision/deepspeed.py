@@ -18,7 +18,7 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
-from typing_extensions import get_args
+from typing_extensions import get_args, override
 
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
