@@ -462,7 +462,7 @@ class BaseWorker:
             print(f"Failed processing {self._current_item}")
             raise e
 
-    def _handle_data_chunk_recipe_end(self):
+    def _handle_data_chunk_recipe_end(self) -> None:
         chunks_filepaths = self.cache.done()
 
         if chunks_filepaths:
@@ -534,13 +534,11 @@ class DataRecipe:
 
         return filepaths
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._name: Optional[str] = None
-        self._fast_dev_run: Optional[bool] = None
 
-    def _setup(self, name: str, fast_dev_run: bool) -> None:
+    def _setup(self, name: str) -> None:
         self._name = name
-        self._fast_dev_run = fast_dev_run
 
     def _done(self, delete_cached_files: bool, remote_output_dir: str) -> None:
         pass
@@ -558,14 +556,21 @@ class DataChunkRecipe(DataRecipe):
         self.chunk_bytes = 1 << 26 if chunk_size is None else chunk_bytes
         self.compression = compression
 
+    @abstractmethod
     def prepare_structure(self, input_dir: str) -> List[T]:
-        pass
+        """Return the structure of your data.
 
-    def prepare_item(self, item_metadata: T) -> Any:
-        pass
+        Each element should contain at least a filepath.
+
+        """
+
+    @abstractmethod
+    def prepare_item(self, item_metadata: T) -> Any:  # type: ignore
+        """The return of this `prepare_item` method is persisted in chunked binary files."""
 
     def _done(self, delete_cached_files: bool, remote_output_dir: str) -> None:
         num_nodes = _get_num_nodes()
+        assert self._name
         cache_dir = _get_cache_dir(self._name)
 
         chunks = [file for file in os.listdir(cache_dir) if file.endswith(".bin")]
@@ -621,11 +626,17 @@ class DataChunkRecipe(DataRecipe):
 
 
 class DataTransformRecipe(DataRecipe):
+    @abstractmethod
     def prepare_structure(self, input_dir: str) -> List[T]:
-        pass
+        """Return the structure of your data.
 
-    def prepare_item(self, output_dir: str, item_metadata: T) -> None:
-        pass
+        Each element should contain at least a filepath.
+
+        """
+
+    @abstractmethod
+    def prepare_item(self, output_dir: str, item_metadata: T) -> None:  # type: ignore
+        """Use your item metadata to process your files and save the file outputs into `output_dir`."""
 
 
 class DataProcessor:
@@ -699,7 +710,7 @@ class DataProcessor:
         seed_everything(self.random_seed)
 
         # Attach the name to the data recipe
-        data_recipe._setup(self.name, self.fast_dev_run)
+        data_recipe._setup(self.name)
 
         # Call the setup method of the user
         user_items: List[Any] = data_recipe.prepare_structure(self.input_dir)
@@ -712,7 +723,10 @@ class DataProcessor:
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
 
         if self.fast_dev_run:
-            workers_user_items = [w[:_DEFAULT_FAST_DEV_RUN_ITEMS] for w in workers_user_items]
+            workers_user_items = [
+                w[: self.fast_dev_run if isinstance(self.fast_dev_run, int) else _DEFAULT_FAST_DEV_RUN_ITEMS]
+                for w in workers_user_items
+            ]
             print(f"Fast dev run is enabled. Limiting to {_DEFAULT_FAST_DEV_RUN_ITEMS} items per process.")
 
         num_items = sum([len(items) for items in workers_user_items])
