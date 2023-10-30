@@ -55,8 +55,6 @@ def map(
             fast_dev_run=fast_dev_run,
             version=version,
         )
-        if data_processor.has_runned:
-            return data_processor.outputs
         data_processor.run(LambdaDataTransformRecipe(fn, inputs() if callable(inputs) else inputs))
     else:
         from lightning_sdk import Machine, Studio
