@@ -172,3 +172,8 @@ class BinaryReader:
             raise Exception("The reader index isn't defined.")
 
         return self.config.intervals
+
+    def __getstate__(self) -> Dict[str, Any]:
+        state = self.__dict__.copy()
+        state["_prepare_thread"] = None
+        return state
