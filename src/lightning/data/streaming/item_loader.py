@@ -52,7 +52,7 @@ class PyTreeLoader(BaseItemLoader):
     """The Pytree Loader is the default loader of the Cache object."""
 
     def __init__(self) -> None:
-        self._chunk_filepaths = {}
+        self._chunk_filepaths: Dict[str, bool] = {}
 
     def generate_intervals(self) -> List[Tuple[int, int]]:
         intervals = []
