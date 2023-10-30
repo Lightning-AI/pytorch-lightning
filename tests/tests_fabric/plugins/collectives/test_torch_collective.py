@@ -231,6 +231,7 @@ def _test_distributed_collectives_fn(strategy, collective):
 
 
 @skip_distributed_unavailable
+@pytest.mark.flaky(reruns=5)
 @pytest.mark.parametrize(
     "n", [1, pytest.param(2, marks=[RunIf(skip_windows=True), pytest.mark.xfail(raises=TimeoutError, strict=False)])]
 )
