@@ -468,8 +468,7 @@ class BaseWorker:
                 self._try_upload(chunk_filepath)
                 self._index_counter += 1
         except Exception as e:
-            print(f"Failed processing {self._current_item}")
-            raise e
+            raise RuntimeError(f"Failed processing {self._current_item}") from e
 
     def _handle_data_chunk_recipe_end(self) -> None:
         chunks_filepaths = self.cache.done()
