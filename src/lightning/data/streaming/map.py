@@ -11,10 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from time import sleep
 import os
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Union
 from datetime import datetime
 from lightning.data.streaming.data_processor import DataProcessor, DataTransformRecipe
+import sys
 
 
 class LambdaDataTransformRecipe(DataTransformRecipe):
@@ -32,18 +34,50 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
 
 def map(
     fn: Callable[[str, Any], None],
-    inputs: Any,
+    inputs: Union[Any, Callable],
     num_workers: Optional[int] = None,
     name: Optional[str] = None,
     remote_output_dir: Optional[str] = None,
     fast_dev_run: bool = False,
+    version: int = 0,
+    num_instances: Optional[int] = None,
+    cloud_compute: Optional[str] = None,
 ) -> None:
     """This function executes a function over a collection of files possibly in a distributed way."""
 
-    data_processor = DataProcessor(
-        name=name or datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
-        num_workers=num_workers or os.cpu_count(),
-        remote_output_dir=remote_output_dir,
-        fast_dev_run=fast_dev_run,
-    )
-    data_processor.run(LambdaDataTransformRecipe(fn, inputs))
+    name = name or datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    if num_instances is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
+        data_processor = DataProcessor(
+            name=name,
+            num_workers=num_workers or os.cpu_count(),
+            remote_output_dir=remote_output_dir,
+            fast_dev_run=fast_dev_run,
+            version=version,
+        )
+        data_processor.run(LambdaDataTransformRecipe(fn, inputs() if callable(inputs) else inputs))
+    else:
+        from lightning_sdk import Machine, Studio
+
+        studio = Studio()
+        job = studio._studio_api.create_data_prep_machine_job(
+            f"cd {os.getcwd()} && python {sys.argv[0]}",
+            name=name,
+            num_instances=num_instances,
+            studio_id=studio._studio.id,
+            teamspace_id=studio._teamspace.id,
+            cluster_id=studio._studio.cluster_id,
+            cloud_compute=cloud_compute,
+        )
+
+        while True:
+            curr_job = studio._studio_api._client.lightningapp_instance_service_get_lightningapp_instance(project_id=studio._teamspace.id, id=job.id)
+            if curr_job.status.phase == "LIGHTNINGAPP_INSTANCE_STATE_FAILED":
+                raise RuntimeError(f"job {job_name} failed!")
+            elif curr_job.status.phase == "LIGHTNINGAPP_INSTANCE_STATE_STOPPED":
+                break
+
+            print("Waiting")
+
+            sleep(1)
+
