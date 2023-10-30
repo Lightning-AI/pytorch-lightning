@@ -215,7 +215,7 @@ class Trainer:
                 Set it to `-1` to run all batches in all validation dataloaders.
                 Default: ``2``.
 
-            log_every_n_steps: How often to log within steps.
+            log_every_n_steps: How often to log within training/testing/validation/prediction steps.
                 Default: ``50``.
 
             enable_checkpointing: If ``True``, enable checkpointing.

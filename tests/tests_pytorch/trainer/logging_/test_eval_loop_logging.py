@@ -527,17 +527,15 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         logger=TensorBoardLogger(tmpdir),
-        limit_train_batches=2,
+        limit_train_batches=1,
         limit_val_batches=2,
         limit_test_batches=2,
+        log_every_n_steps=1,
         max_epochs=2,
     )
 
     # Train the model ⚡
     trainer.fit(model)
-
-    # hp_metric + 2 steps + epoch + 2 steps + epoch
-    1 + 2 + 1 + 2 + 1
 
     assert set(trainer.callback_metrics) == {
         "train_loss",
@@ -547,45 +545,29 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     }
     assert mock_log_metrics.mock_calls == [
         call({"hp_metric": -1}, 0),
+        call(metrics={"train_loss": ANY, "epoch": 0}, step=0),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=0),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=1),
-        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 0}, step=1),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY}, step=2),
+        call(metrics={"train_loss": ANY, "epoch": 1}, step=1),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=2),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=3),
-        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 1}, step=3),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY}, step=2),
     ]
-    assert mock_log_metrics.mock_calls[0] == call({"hp_metric": -1}, 0)
 
     def get_metrics_at_idx(idx):
         mock_call = mock_log_metrics.mock_calls[idx]
         return mock_call.kwargs["metrics"] if _PYTHON_GREATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
 
-    expected = {"valid_loss_0_step", "valid_loss_2"}
-    assert set(get_metrics_at_idx(1)) == expected
-    assert set(get_metrics_at_idx(2)) == expected
-
-    assert get_metrics_at_idx(1)["valid_loss_0_step"] == model.val_losses[2]
-    assert get_metrics_at_idx(2)["valid_loss_0_step"] == model.val_losses[3]
-
-    assert set(get_metrics_at_idx(3)) == {"valid_loss_0_epoch", "valid_loss_1", "epoch"}
-
-    assert get_metrics_at_idx(3)["valid_loss_1"] == torch.stack(model.val_losses[2:4]).mean()
-
-    expected = {"valid_loss_0_step", "valid_loss_2"}
-    assert set(get_metrics_at_idx(4)) == expected
-    assert set(get_metrics_at_idx(5)) == expected
-
-    assert get_metrics_at_idx(4)["valid_loss_0_step"] == model.val_losses[4]
-    assert get_metrics_at_idx(5)["valid_loss_0_step"] == model.val_losses[5]
-
-    assert set(get_metrics_at_idx(6)) == {"valid_loss_0_epoch", "valid_loss_1", "epoch"}
-
-    assert get_metrics_at_idx(6)["valid_loss_1"] == torch.stack(model.val_losses[4:]).mean()
+    assert get_metrics_at_idx(2)["valid_loss_0_step"] == model.val_losses[2]
+    assert get_metrics_at_idx(3)["valid_loss_0_step"] == model.val_losses[3]
+    assert get_metrics_at_idx(4)["valid_loss_1"] == torch.stack(model.val_losses[2:4]).mean()
+    assert get_metrics_at_idx(6)["valid_loss_0_step"] == model.val_losses[4]
+    assert get_metrics_at_idx(7)["valid_loss_0_step"] == model.val_losses[5]
+    assert get_metrics_at_idx(8)["valid_loss_1"] == torch.stack(model.val_losses[4:]).mean()
 
     results = trainer.test(model)
-    assert set(trainer.callback_metrics) == {
-        "test_loss",
-    }
+    assert set(trainer.callback_metrics) == {"test_loss"}
     assert set(results[0]) == {"test_loss"}
 
 
@@ -755,7 +737,6 @@ def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
 
     mock_call = mock_log_metrics.mock_calls[0]
     logged_metrics = mock_call.kwargs["metrics"] if _PYTHON_GREATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
-    cb_metrics.add("epoch")
     assert set(logged_metrics) == cb_metrics
 
 
@@ -972,6 +953,7 @@ def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
         default_root_dir=tmpdir,
         max_epochs=max_epochs,
         limit_train_batches=1,
+        log_every_n_steps=1,
         limit_val_batches=limit_batches,
         limit_test_batches=limit_batches,
         logger=TensorBoardLogger(tmpdir),
