@@ -46,7 +46,6 @@ The actual optimization will start when calling ``forward()`` on the model for t
     input = torch.randint(0, 128, (4, 256), device=fabric.device)
     target = torch.randint(0, 128, (4, 256), device=fabric.device)
 
-    for _ in range(100):
-        output = model(input, target)
+    output = model(input, target)  # compiles when `forward()` runs for the first time
 
 
