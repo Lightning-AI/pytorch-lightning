@@ -700,6 +700,7 @@ class DataProcessor:
             else (self.dst_resolver(name) if self.dst_resolver else None)
         )
         if self.remote_output_dir:
+            self.name = self._broadcast_object(self.name)
             # Ensure the remote src dir is the same across all ranks
             self.remote_output_dir = self._broadcast_object(self.remote_output_dir)
             print(f"Storing the files under {self.remote_output_dir}")

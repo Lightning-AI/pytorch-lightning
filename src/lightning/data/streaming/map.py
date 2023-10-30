@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import os
+from datetime import datetime
 from typing import Any, Callable, List, Optional
 
 from lightning.data.streaming.data_processor import DataProcessor, DataTransformRecipe
@@ -41,7 +42,7 @@ def map(
     """This function executes a function over a collection of files possibly in a distributed way."""
 
     data_processor = DataProcessor(
-        name=name,
+        name=name or datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
         num_workers=num_workers or os.cpu_count(),
         remote_output_dir=remote_output_dir,
         fast_dev_run=fast_dev_run,
