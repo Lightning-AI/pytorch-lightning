@@ -25,7 +25,7 @@ and :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_load_checkpoint` met
 what's saved in the checkpoint.
 
 
-TODO: I don't understand this...
+.. TODO:: I don't understand this...
 
 ******************************
 Built-in Checkpoint IO Plugins

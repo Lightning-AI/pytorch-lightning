@@ -134,7 +134,8 @@ To run the app on the cloud, use the ``--cloud`` argument.
 *****************************************
 Interact with a component from the server
 *****************************************
-TODO: how do we do this?
+
+.. TODO:: how do we do this?
 
 
 ----
@@ -142,7 +143,8 @@ TODO: how do we do this?
 *****************************************
 Interact with the server from a component
 *****************************************
-TODO: how do we do this?
+
+.. TODO:: how do we do this?
 
 ----
 
