@@ -29,8 +29,8 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.plugins.precision import MixedPrecisionPlugin
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
