@@ -51,6 +51,9 @@ class BaseItemLoader(ABC):
 class PyTreeLoader(BaseItemLoader):
     """The Pytree Loader is the default loader of the Cache object."""
 
+    def __init__(self) -> None:
+        self._chunk_filepaths: Dict[str, bool] = {}
+
     def generate_intervals(self) -> List[Tuple[int, int]]:
         intervals = []
         begin = 0
@@ -64,8 +67,10 @@ class PyTreeLoader(BaseItemLoader):
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> bytes:
         offset = (1 + (index - begin) if index >= begin else index + 1) * 4
 
-        while not os.path.exists(chunk_filepath):
-            sleep(0.0001)
+        if chunk_filepath not in self._chunk_filepaths:
+            while not os.path.exists(chunk_filepath):
+                sleep(0.001)
+            self._chunk_filepaths[chunk_filepath] = True
 
         with open(chunk_filepath, "rb", 0) as fp:
             fp.seek(offset)

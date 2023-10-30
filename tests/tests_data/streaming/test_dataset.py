@@ -206,3 +206,32 @@ def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     assert len(process_2_1) == 611
 
     assert len([i for i in process_1_1 if i in process_2_1]) == 0
+
+
+def test_streaming_dataset_deepcopy(tmpdir, monkeypatch):
+    seed_everything(42)
+
+    remote_dir = os.path.join(tmpdir, "remote_dir")
+
+    os.makedirs(remote_dir, exist_ok=True)
+
+    cache = Cache(remote_dir, chunk_size=10)
+    for i in range(10):
+        cache[i] = i
+
+    cache.done()
+    cache.merge()
+
+    monkeypatch.setattr(cache_module, "_find_remote_dir", lambda x, y: (str(remote_dir), True))
+
+    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True)
+    assert dataset.cache._reader._prepare_thread is None
+    _ = dataset[0]
+    assert dataset.cache._reader._prepare_thread
+    dataloader = DataLoader(dataset, num_workers=1)
+
+    batches = []
+    for batch in dataloader:
+        batches.append(batch)
+
+    assert len(batches) == 10
