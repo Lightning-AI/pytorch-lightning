@@ -18,11 +18,11 @@ from functools import lru_cache
 from typing import Generator, List, Optional, Union, cast
 
 import torch
-from lightning_utilities.core.rank_zero import rank_zero_info
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.rank_zero import rank_zero_info
 
 
 class CUDAAccelerator(Accelerator):

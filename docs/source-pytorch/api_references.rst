@@ -44,6 +44,8 @@ callbacks
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
+    SpikeDetection
+    ThroughputMonitor
     Timer
     TQDMProgressBar
 
@@ -248,3 +250,5 @@ utilities
     rank_zero
     seed
     warnings
+
+.. autofunction:: lightning.pytorch.utilities.measure_flops
