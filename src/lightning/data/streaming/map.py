@@ -23,10 +23,10 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
         self._fn = fn
         self._inputs = inputs
 
-    def prepare_structure(self, input_dir: str):
+    def prepare_structure(self, input_dir: Optional[str]) -> Any:
         return self._inputs
 
-    def prepare_item(self, output_dir: str, item_metadata) -> None:
+    def prepare_item(self, output_dir: str, item_metadata: Any) -> None:  # type: ignore
         self._fn(output_dir, item_metadata)
 
 
@@ -37,7 +37,7 @@ def map(
     name: Optional[str] = None,
     remote_output_dir: Optional[str] = None,
     fast_dev_run: bool = False,
-):
+) -> None:
     """This function executes a function over a collection of files possibly in a distributed way."""
 
     data_processor = DataProcessor(

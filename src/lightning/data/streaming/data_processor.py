@@ -77,7 +77,7 @@ def _get_cache_dir(name: Optional[str]) -> str:
     return os.path.join(_get_cache_folder(), name)
 
 
-def _get_cache_data_dir(name: str) -> str:
+def _get_cache_data_dir(name: Optional[str]) -> str:
     """Returns the cache data directory used by the DataProcessor workers to download the files."""
     if name is None:
         return os.path.join(_get_cache_folder(), "data")
@@ -512,7 +512,7 @@ T = TypeVar("T")
 
 class DataRecipe:
     @abstractmethod
-    def prepare_structure(self, input_dir: str) -> List[T]:
+    def prepare_structure(self, input_dir: Optional[str]) -> List[T]:
         pass
 
     @abstractmethod
@@ -546,7 +546,7 @@ class DataRecipe:
     def __init__(self) -> None:
         self._name: Optional[str] = None
 
-    def _setup(self, name: str) -> None:
+    def _setup(self, name: Optional[str]) -> None:
         self._name = name
 
     def _done(self, delete_cached_files: bool, remote_output_dir: str) -> None:
@@ -566,7 +566,7 @@ class DataChunkRecipe(DataRecipe):
         self.compression = compression
 
     @abstractmethod
-    def prepare_structure(self, input_dir: str) -> List[T]:
+    def prepare_structure(self, input_dir: Optional[str]) -> List[T]:
         """Return the structure of your data.
 
         Each element should contain at least a filepath.
@@ -636,7 +636,7 @@ class DataChunkRecipe(DataRecipe):
 
 class DataTransformRecipe(DataRecipe):
     @abstractmethod
-    def prepare_structure(self, input_dir: str) -> List[T]:
+    def prepare_structure(self, input_dir: Optional[str]) -> List[T]:
         """Return the structure of your data.
 
         Each element should contain at least a filepath.
@@ -842,31 +842,6 @@ class DataProcessor:
                 begins.append(begin)
             return begins, workers_user_items
         raise RuntimeError(f"The current_node_rank {current_node_rank} doesn't exist in {num_nodes}.")
-
-    def _cached_list_filepaths(self) -> List[str]:
-        """This method lists and caches the."""
-        home = _get_home_folder()
-        filepath = os.path.join(home, ".cache", f"{self.name}/filepaths.txt")
-
-        if os.path.exists(filepath):
-            lines = []
-            with open(filepath) as f:
-                for line in f.readlines():
-                    lines.append(line.replace("\n", ""))
-            return lines
-
-        filepaths = []
-        for dirpath, _, filenames in os.walk(self.input_dir):
-            for filename in filenames:
-                filepaths.append(os.path.join(dirpath, filename))
-
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-
-        with open(filepath, "w") as f:
-            for filepath in filepaths:
-                f.write(f"{filepath}\n")
-
-        return filepaths
 
     def _signal_handler(self, signal: Any, frame: Any) -> None:
         """On temrination, we stop all the processes to avoid leaking RAM."""
