@@ -552,7 +552,7 @@ class NeptuneLogger(Logger):
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         if hasattr(checkpoint_callback, "dirpath"):
             model_path = os.path.normpath(model_path)
-            expected_model_path = f"{os.path.normpath(checkpoint_callback.dirpath)}"
+            expected_model_path = os.path.normpath(checkpoint_callback.dirpath)
             if not model_path.startswith(expected_model_path):
                 raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
             # Remove extension from filepath
