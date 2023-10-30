@@ -73,7 +73,7 @@ class LocalDownloader(Downloader):
         shutil.copy(remote_filepath, local_filepath)
 
 
-_DOWNLOADERS = OrderedDict(**{"s3://": S3Downloader, "": LocalDownloader})
+_DOWNLOADERS = {"s3://": S3Downloader, "": LocalDownloader}
 
 
 def get_downloader_cls(remote_dir: str) -> Type[Downloader]:
