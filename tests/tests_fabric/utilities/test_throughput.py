@@ -72,7 +72,9 @@ def test_throughput():
         throughput.update(time=2.1, samples=3, lengths=4)
 
     # lengths and samples
-    throughput = Throughput(window_size=2).update(time=2, samples=2, lengths=4).update(time=2.5, samples=4, lengths=8)
+    throughput = Throughput(window_size=2)
+    throughput.update(time=2, samples=2, lengths=4)
+    throughput.update(time=2.5, samples=4, lengths=8)
     assert throughput.compute() == {
         "time": 2.5,
         "samples": 4,
@@ -85,11 +87,9 @@ def test_throughput():
         throughput.update(time=2.5, samples=2, lengths=4)
 
     # flops
-    throughput = (
-        Throughput(available_flops=50, window_size=2)
-        .update(time=1, samples=2, flops_per_batch=10, lengths=10)
-        .update(time=2, samples=4, flops_per_batch=10, lengths=20)
-    )
+    throughput = Throughput(available_flops=50, window_size=2)
+    throughput.update(time=1, samples=2, flops_per_batch=10, lengths=10)
+    throughput.update(time=2, samples=4, flops_per_batch=10, lengths=20)
     assert throughput.compute() == {
         "device/batches_per_sec": 1.0,
         "device/flops_per_sec": 10.0,
@@ -102,9 +102,9 @@ def test_throughput():
 
     # flops without available
     throughput.available_flops = None
-    throughput.reset().update(time=1, samples=2, flops_per_batch=10, lengths=10).update(
-        time=2, samples=4, flops_per_batch=10, lengths=20
-    )
+    throughput.reset()
+    throughput.update(time=1, samples=2, flops_per_batch=10, lengths=10)
+    throughput.update(time=2, samples=4, flops_per_batch=10, lengths=20)
     assert throughput.compute() == {
         "device/batches_per_sec": 1.0,
         "device/flops_per_sec": 10.0,
@@ -175,12 +175,14 @@ def test_throughput_monitor_step():
 
     # automatic step increase
     assert monitor.step == -1
-    metrics = monitor.update(time=0.5, samples=3).compute_and_log()
+    monitor.update(time=0.5, samples=3)
+    metrics = monitor.compute_and_log()
     assert metrics == {"time": 0.5, "samples": 3}
     assert monitor.step == 0
 
     # manual step
-    metrics = monitor.update(time=1.5, samples=4).compute_and_log(step=5)
+    monitor.update(time=1.5, samples=4)
+    metrics = monitor.compute_and_log(step=5)
     assert metrics == {"time": 1.5, "samples": 4}
     assert monitor.step == 5
     assert fabric_mock.log_dict.mock_calls == [

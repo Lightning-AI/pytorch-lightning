@@ -16,7 +16,6 @@ from collections import deque
 from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, List, Optional, TypeVar, Union
 
 import torch
-from typing_extensions import Self
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -105,7 +104,7 @@ class Throughput:
 
     def update(
         self, *, time: float, samples: int, lengths: Optional[int] = None, flops_per_batch: Optional[int] = None
-    ) -> Self:
+    ) -> None:
         """Update throughput metrics.
 
         Args:
@@ -131,7 +130,6 @@ class Throughput:
         if flops_per_batch is not None:
             # sum of flops per batch across ranks
             self._flops.append(flops_per_batch * self.world_size)
-        return self
 
     def compute(self) -> _THROUGHPUT_METRICS:
         """Compute throughput metrics."""
@@ -178,12 +176,11 @@ class Throughput:
 
         return metrics
 
-    def reset(self) -> Self:
+    def reset(self) -> None:
         self._samples.clear()
         self._time.clear()
         self._lengths.clear()
         self._flops.clear()
-        return self
 
 
 class ThroughputMonitor(Throughput):
@@ -219,11 +216,11 @@ class ThroughputMonitor(Throughput):
         self._fabric = fabric
         self.step = -1
 
-        self.update = rank_zero_only(self.update, default=self)  # type: ignore[method-assign]
+        self.update = rank_zero_only(self.update)  # type: ignore[method-assign]
         self.compute = rank_zero_only(self.compute, default={})  # type: ignore[method-assign]
-        self.reset = rank_zero_only(self.reset, default=self)  # type: ignore[method-assign]
+        self.compute_and_log = rank_zero_only(self.compute_and_log, default={})  # type: ignore[method-assign]
+        self.reset = rank_zero_only(self.reset)  # type: ignore[method-assign]
 
-    @rank_zero_only
     def compute_and_log(self, step: Optional[int] = None, **kwargs: Any) -> _THROUGHPUT_METRICS:
         r"""See :meth:`Throughput.compute`
 
