@@ -12,46 +12,47 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-from contextlib import ExitStack, nullcontext
-from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Literal, Optional, Set, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Mapping, Optional, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 
-from lightning.fabric.accelerators import Accelerator
+import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
-from lightning.fabric.plugins import XLAPrecision
+from lightning.fabric.plugins import XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
-from lightning.fabric.plugins.io.xla import XLACheckpointIO
-from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
-from lightning.fabric.strategies.fsdp import _apply_filter
-from lightning.fabric.strategies.launchers.xla import _XLALauncher
-from lightning.fabric.strategies.strategy import (
-    TBroadcast,
-    _BackwardSyncControl,
-    _Sharded,
-    _validate_keys_for_strict_loading,
+from lightning.fabric.strategies import _StrategyRegistry
+from lightning.fabric.strategies.fsdp import _METADATA_FILENAME
+from lightning.fabric.strategies.xla_fsdp import (
+    _POLICY,
+    _POLICY_SET,
+    _activation_checkpointing_kwargs,
+    _auto_wrap_policy_kwargs,
+    _XLAFSDPBackwardSyncControl,
 )
 from lightning.fabric.utilities.cloud_io import get_filesystem
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.init import _EmptyInit
-from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
-from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.optimizer import _optimizers_to_device
+from lightning.fabric.utilities.types import _PATH, ReduceOp
+from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
+from lightning.pytorch.plugins.precision import XLAPrecisionPlugin
+from lightning.pytorch.strategies.ddp import ParallelStrategy
+from lightning.pytorch.strategies.launchers.xla import _XLALauncher
+from lightning.pytorch.strategies.strategy import TBroadcast
+from lightning.pytorch.strategies.xla import _pod_progress_bar_force_stdout
+from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
-_POLICY_SET = Set[Type[Module]]
-_POLICY = Union[_POLICY_SET, Callable[[Module, bool, int], bool]]
 
-
-class XLAFSDPStrategy(ParallelStrategy, _Sharded):
-    r"""Strategy for training multiple XLA devices using the
+class XLAFSDPStrategy(ParallelStrategy):
+    r"""Strategy for training on multiple XLA devices using the
     :func:`torch_xla.distributed.xla_fully_sharded_data_parallel.XlaFullyShardedDataParallel` method.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -66,7 +67,6 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             which you want to enable activation checkpointing. Enabling this can free up a significant amount of memory
             at the cost of speed since activations in these layers need to be recomputed during backpropagation.
             This accepts a set of the layer classes to wrap.
-
         state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
 
             - ``"full"``: The full weights and optimizer states get assembled on rank 0 and saved to a single file.
@@ -82,10 +82,10 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
-        checkpoint_io: Optional[XLACheckpointIO] = None,
-        precision: Optional[XLAPrecision] = None,
+        checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]] = None,
+        precision_plugin: Optional[XLAPrecisionPlugin] = None,
         auto_wrap_policy: Optional[_POLICY] = None,
         activation_checkpointing_policy: Optional[_POLICY_SET] = None,
         state_dict_type: Literal["full", "sharded"] = "sharded",
@@ -99,10 +99,9 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             parallel_devices=parallel_devices,
             cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
-            precision=precision,
+            precision_plugin=precision_plugin,
         )
         self._backward_sync_control = _XLAFSDPBackwardSyncControl()
-
         self._auto_wrap_policy = auto_wrap_policy
         self._activation_checkpointing_policy = activation_checkpointing_policy
         self._fsdp_kwargs = kwargs
@@ -123,32 +122,36 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property  # type: ignore[override]
-    def checkpoint_io(self) -> XLACheckpointIO:
+    def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         plugin = self._checkpoint_io
         if plugin is not None:
-            assert isinstance(plugin, XLACheckpointIO)
+            assert isinstance(plugin, (XLACheckpointIO, _WrappingCheckpointIO))
             return plugin
         return XLACheckpointIO()
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
-        if io is not None and not isinstance(io, XLACheckpointIO):
+    def checkpoint_io(self, io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]]) -> None:
+        if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
     @property  # type: ignore[override]
-    def precision(self) -> XLAPrecision:
-        plugin = self._precision
+    def precision_plugin(self) -> XLAPrecisionPlugin:
+        plugin = self._precision_plugin
         if plugin is not None:
-            assert isinstance(plugin, XLAPrecision)
+            assert isinstance(plugin, XLAPrecisionPlugin)
             return plugin
-        return XLAPrecision("32-true")
+        return XLAPrecisionPlugin()
 
-    @precision.setter
-    def precision(self, precision: Optional[XLAPrecision]) -> None:
-        if precision is not None and not isinstance(precision, XLAPrecision):
-            raise TypeError(f"The XLA FSDP strategy can only work with the `XLAPrecision` plugin, found {precision}")
-        self._precision = precision
+    @precision_plugin.setter
+    def precision_plugin(self, precision_plugin: Optional[XLAPrecisionPlugin]) -> None:
+        if precision_plugin is not None:
+            if not isinstance(precision_plugin, XLAPrecisionPlugin):
+                raise TypeError(
+                    f"The XLAFSDP strategy can only work with the `XLAPrecisionPlugin` plugin, found {precision_plugin}"
+                )
+            precision_plugin._using_fsdp = True
+        self._precision_plugin = precision_plugin
 
     @property
     def global_rank(self) -> int:
@@ -165,6 +168,14 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     @property
     def world_size(self) -> int:
         return super().world_size if self._launched else 1
+
+    @property
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
+
+    @property
+    def restore_checkpoint_after_setup(self) -> bool:
+        return self._state_dict_type == "sharded"
 
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
@@ -183,48 +194,51 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         rank_zero_only.rank = self.global_rank
         super().setup_environment()
 
-    def setup_module_and_optimizers(
-        self, module: Module, optimizers: List[Optimizer]
-    ) -> Tuple[Module, List[Optimizer]]:
-        """Returns NotImplementedError since for XLAFSDP optimizer setup must happen after module setup."""
-        raise NotImplementedError(
-            f"The `{type(self).__name__}` does not support the joint setup of module and optimizer(s)."
-            " Please do it in this order: Create the model, call `setup_module`, create the optimizer,"
-            " call `setup_optimizer`."
-        )
+    def setup(self, trainer: "pl.Trainer") -> None:
+        assert self.accelerator
+        self.accelerator.setup(trainer)
 
-    def setup_module(self, module: Module) -> Module:
+        # we set the device so that optimizers can be created with distributed comms.
+        assert self.lightning_module is not None
+        self.lightning_module._device = self.root_device
+
+        if is_overridden("configure_sharded_model", self.lightning_module):
+            # legacy: we don't skip setup with the `configure_model` alternative
+            rank_zero_warn(
+                "You have overridden `LightningModule.configure_sharded_model` hook. It will assume that all the layers"
+                " are already wrapped for sharding and won't wrap the entire model using `XLAFullyShardedDataParallel`",
+                category=PossibleUserWarning,
+            )
+        else:
+            assert self.model is not None
+            self.model = self._setup_model(self.model)
+        self.barrier()
+
+        self.setup_optimizers(trainer)
+        _optimizers_to_device(self.optimizers, self.root_device)
+
+        self.setup_precision_plugin()
+
+    def _setup_model(self, model: Module) -> Module:  # type: ignore
+        """Wraps the model into a :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel` module."""
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
         kwargs = self._parse_fsdp_kwargs()
-        if any(isinstance(mod, XLAFSDP) for mod in module.modules()) and "auto_wrap_policy" in kwargs:
+        if any(isinstance(mod, XLAFSDP) for mod in model.modules()) and "auto_wrap_policy" in kwargs:
             rank_zero_warn(
                 "A XLAFSDP `auto_wrap_policy` is set, but at least one submodule is already wrapped."
                 " The policy will be ignored."
             )
             del kwargs["auto_wrap_policy"]
         # XLA FSDP requires that the root is wrapped, even if submodules are already wrapped
-        if not isinstance(module, XLAFSDP):
-            module = XLAFSDP(module=module, **kwargs)
-        return module
+        if not isinstance(model, XLAFSDP):
+            model = XLAFSDP(module=model, **kwargs)
+        return model
 
-    def module_to_device(self, module: Module) -> None:
+    def model_to_device(self) -> None:
         pass
 
-    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
-        precision_init_ctx = self.precision.module_init_context()
-        module_sharded_ctx = self.module_sharded_context()
-        stack = ExitStack()
-        if _TORCH_GREATER_EQUAL_1_13:
-            stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
-        stack.enter_context(precision_init_ctx)
-        stack.enter_context(module_sharded_ctx)
-        return stack
-
-    def module_sharded_context(self) -> ContextManager:
-        return nullcontext()
-
-    def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
+    def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
         if isinstance(dataloader, MpDeviceLoader):
@@ -237,54 +251,15 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         dataloader.batch_sampler = getattr(dataloader._loader, "batch_sampler", None)
         return dataloader
 
-    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
-        """Set up an optimizer for a model wrapped with XLAFSDP.
-
-        This setup method doesn't modify the optimizer or wrap the optimizer. The only thing it currently does is verify
-        that the optimizer was created after the model was wrapped with :meth:`setup_module` with a reference to the
-        flattened parameters.
-
-        """
-        if any(getattr(p, "_is_sharded", False) for group in optimizer.param_groups for p in group["params"]):
-            return optimizer
-        raise ValueError(
-            "The optimizer does not seem to reference any XLAFSDP parameters. HINT: Make sure to create the optimizer"
-            " after setting up the model."
-        )
-
-    def optimizer_step(self, optimizer: Optimizable, **kwargs: Any) -> Any:
-        """Overrides default tpu optimizer_step since FSDP should not call `torch_xla.core.xla_model.optimizer_step`.
-        Performs the actual optimizer step.
-
-        Args:
-            optimizer: the optimizer performing the step
-            **kwargs: Any extra arguments to ``optimizer.step``
-
-        """
-        loss = optimizer.step(**kwargs)
-        import torch_xla.core.xla_model as xm
-
-        xm.mark_step()
-        return loss
-
-    def clip_gradients_norm(
-        self,
-        module: Module,
-        optimizer: Optimizer,
-        max_norm: Union[float, int],
-        norm_type: Union[float, int] = 2.0,
-        error_if_nonfinite: bool = True,
-    ) -> Tensor:
-        """Clip gradients by norm."""
-        self.precision.unscale_gradients(optimizer)
-        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
-
-    def clip_gradients_value(self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
-        """Clip gradients by value."""
-        raise NotImplementedError(
-            "XLA's FSDP strategy does not support to clip gradients by value."
-            " Consider clipping by norm instead or choose another strategy!"
-        )
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        super().setup_optimizers(trainer)
+        for optimizer in self.optimizers:
+            if not any(getattr(p, "_is_sharded", False) for group in optimizer.param_groups for p in group["params"]):
+                raise ValueError(
+                    f"The optimizer {optimizer} does not seem to reference any XLAFSDP parameters. HINT: Make sure to"
+                    f" create the optimizer after setting up the model by referencing `self.trainer.model.parameters()`"
+                    f" in the `configure_optimizers()` hook."
+                )
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
@@ -315,7 +290,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         tensor = tensor.to(original_device)
         return tensor
 
-    def all_reduce(
+    def reduce(
         self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
     ) -> Tensor:
         if not isinstance(output, Tensor):
@@ -381,12 +356,11 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
         return obj
 
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
+        _pod_progress_bar_force_stdout(self.global_rank)
+
     def save_checkpoint(
-        self,
-        path: _PATH,
-        state: Dict[str, Union[Module, Optimizer, Any]],
-        storage_options: Optional[Any] = None,
-        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
+        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
         """Save model, optimizer, and other state in the provided checkpoint directory.
 
@@ -395,30 +369,26 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         consolidated checkpoint combining all of the sharded checkpoints.
 
         """
+        if not self._launched:
+            raise NotImplementedError(
+                "Saving checkpoints with `XLAFSDPStrategy` is not supported outside of the Trainer's execution"
+            )
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
                 "Saving and loading checkpoints with the `XLAFSDPStrategy` is not supported in PyTorch < 2.0."
                 " Please upgrade `torch`."
             )
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
-        path = Path(self.broadcast(path))
+        path = Path(self.broadcast(filepath))
         if path.is_dir() and any(path.iterdir()):
             raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
-        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
-        modules = [module for module in state.values() if isinstance(module, XLAFSDP)]
-        if len(modules) == 0:
-            raise ValueError(
-                "Could not find a XLAFSDP model in the provided checkpoint state. Please provide the model as"
-                " part of the state like so: `save_checkpoint(..., state={'model': model, ...})`. Make sure"
-                " you set up the model (and optimizers if any) through the strategy before saving the checkpoint."
-            )
-        if len(modules) > 1:
-            raise ValueError(
-                "Found multiple XLAFSDP modules in the given state. Saving checkpoints with FSDP is"
-                " currently limited to a single model per checkpoint. To save multiple models, call the"
-                " save method for each model separately with a different path."
-            )
+        # this is the output of `self.lightning_module_state_dict`
+        state_dict = checkpoint.pop("state_dict")
+
+        # not needed in ckpt consolidation
+        state_dict["optimizer"] = checkpoint.pop("optimizer_states")
+
         import torch_xla.core.xla_model as xm
 
         # ensure model parameters are updated
@@ -430,10 +400,10 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             # each host runs this in parallel, but the ranks in the host run it sequentially
             for rank in range(len(parallel_devices)):
                 if rank == self.local_rank:
-                    self._save_checkpoint_shard(path, state, storage_options, filter)
+                    self._save_checkpoint_shard(path, state_dict, storage_options)
                 self.barrier(f"wait-for-{rank}-save")
         else:
-            self._save_checkpoint_shard(path, state, storage_options, filter)
+            self._save_checkpoint_shard(path, state_dict, storage_options)
 
         if self._state_dict_type == "full":
             ckpt_prefix = str(path / "checkpoint")
@@ -461,72 +431,41 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
                 get_filesystem(save_path).mv(str(save_path), str(path))
             self.barrier("after_ckpt_consolidation")
 
+            # save metadata separately
+            if self.global_rank == 0:
+                torch.save(checkpoint, path.parent / _METADATA_FILENAME)
+        else:
+            if self.global_rank == 0:
+                torch.save(checkpoint, path / _METADATA_FILENAME)
+
     def _save_checkpoint_shard(
         self,
         path: Path,
-        state: Dict[str, Union[Module, Optimizer, Any]],
+        converted_state: Dict[str, Union[Module, Optimizer, Any]],
         storage_options: Optional[Any],
-        filter: Optional[Dict[str, Callable[[str, Any], bool]]],
     ) -> None:
-        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
-
-        converted_state: Dict[str, Any] = {}
-        for key, obj in state.items():
-            # convert the state
-            if isinstance(obj, Module) and isinstance(obj, XLAFSDP):
-                converted = obj.state_dict()
-                # add shard_metadata to state. this format is defined by
-                # https://github.com/pytorch/xla/blob/v2.1.0/torch_xla/distributed/fsdp/state_dict_utils.py#L122-L125
-                converted_state["shard_metadata"] = obj.get_shard_metadata()
-            elif isinstance(obj, Optimizer):
-                converted = obj.state_dict()
-            else:
-                converted = obj
-            _apply_filter(key, filter or {}, converted, converted_state)
-
         self.checkpoint_io.save_checkpoint(
             converted_state,
             path / f"checkpoint_rank-{self.global_rank:08d}-of-{self.world_size:08d}.pth",
             storage_options=storage_options,
         )
 
-    def load_checkpoint(
-        self,
-        path: _PATH,
-        state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
-        strict: bool = True,
-    ) -> Dict[str, Any]:
-        """Given a folder, load the contents from a checkpoint and restore the state of the given objects.
-
-        The strategy currently only supports saving and loading sharded checkpoints which are stored in form of a
-        directory of multiple files rather than a single file.
-
-        """
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+        if not self._launched:
+            raise NotImplementedError(
+                "Saving checkpoints with `XLAFSDPStrategy` is not supported outside of the Trainer's execution"
+            )
         if not _TORCH_GREATER_EQUAL_2_0:
             raise NotImplementedError(
-                "Saving and loading checkpoints with the `FSDPStrategy` is not supported in PyTorch < 2.0."
+                "Saving and loading checkpoints with the `XLAFSDPStrategy` is not supported in PyTorch < 2.0."
                 " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
-            )
-        if not state:
-            raise ValueError(
-                f"Got `XLAFSDPStrategy.load_checkpoint(..., state={state!r})` but a state with at least "
-                " a model instance to reload is required. Pass it in like so:"
-                " `FSDPStrategy.load_checkpoint(..., state={'model': model, ...})`"
             )
 
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
-        path = Path(self.broadcast(path))
-
-        if isinstance(state, (Module, Optimizer)):
-            raise NotImplementedError(
-                "Loading a single module or optimizer object from a checkpoint"
-                " is not supported yet with the XLAFSDP strategy."
-            )
+        path = Path(self.broadcast(checkpoint_path))
 
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
-        modules = {key: module for key, module in state.items() if isinstance(module, XLAFSDP)}
-        optimizers = {key: optim for key, optim in state.items() if isinstance(optim, Optimizer)}
         if self._state_dict_type == "sharded":
             file = path / f"checkpoint_rank-{self.global_rank:08d}-of-{self.world_size:08d}.pth"
             if not file.is_file():
@@ -534,40 +473,13 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
                     f"The path {str(file)!r} does not point to valid sharded checkpoints. Make sure the path points to"
                     " a directory with XLAFSDP checkpoint shards."
                 )
-            if len(modules) == 0:
-                raise ValueError(
-                    "Could not find a XLAFSDP model in the provided checkpoint state. Please provide the model as"
-                    " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
-                    " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
-                )
-            if len(modules) > 1:
-                raise ValueError(
-                    "Found multiple XLAFSDP modules in the given state. Loading checkpoints with FSDP is"
-                    " currently limited to a single model per checkpoint. To load multiple models, call the"
-                    " load method for each model separately with a different path."
-                )
-
-            _, module = list(modules.items())[0]
+            if self.model is None or not isinstance(self.model, XLAFSDP):
+                raise ValueError(f"Could not find a XLAFSDP model in the provided checkpoint state: {type(self.model)}")
             sharded_ckpt = torch.load(file)
+            self.model.load_state_dict(sharded_ckpt.pop("model"))
 
-            module.load_state_dict(sharded_ckpt["model"], strict=strict)
-            for opt_key, opt in optimizers.items():
-                opt.load_state_dict(sharded_ckpt[opt_key])
-
-            # Load anything leftover from sharded_ckpt
-            loaded_metadata_keys = sharded_ckpt.keys() - modules.keys() - optimizers.keys()
-            requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
-            _validate_keys_for_strict_loading(requested_metadata_keys, loaded_metadata_keys, strict=strict)
-            for key in requested_metadata_keys:
-                if key in loaded_metadata_keys:
-                    state[key] = sharded_ckpt[key]
-                    loaded_metadata_keys.remove(key)
-
-            metadata = {}
-            if len(loaded_metadata_keys):
-                for key in loaded_metadata_keys:
-                    metadata[key] = sharded_ckpt[key]
-            metadata.pop("shard_metadata", None)
+            # Load metadata (anything not a module or optimizer)
+            metadata = torch.load(path / _METADATA_FILENAME)
             return metadata
 
         if self._state_dict_type == "full":
@@ -576,92 +488,59 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
                     f"The path {str(path)!r} does not point to a valid full checkpoint. Make sure the path points to a"
                     " directory with a full XLAFSDP checkpoint."
                 )
-            if len(optimizers) > 0 or len(state.keys() - modules.keys() - optimizers.keys()) > 0:
-                rank_zero_warn(
-                    "Loading a full checkpoint will only load the full model."
-                    " The optimizer and any additional metadata are not included."
-                )
-            if len(modules) > 0:
-                raise ValueError(
-                    "Found a XLAFSDP model in the provided checkpoint state."
-                    " Please provide the model without any XLAFSDP wrapper."
-                )
-            if "model" not in state or not isinstance(model := state["model"], torch.nn.Module):
-                raise NotImplementedError("XLAFSDP only supports a single model instance with 'model' as the key.")
-            if any(isinstance(mod, XLAFSDP) for mod in model.modules()):
+            from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
+
+            assert self.lightning_module is not None
+            if any(isinstance(mod, XLAFSDP) for mod in self.lightning_module.modules()):
                 raise ValueError(
                     "`XLAFSDPStrategy` does not support loading full model checkpoint"
                     " if the model or any submodules are manually wrapped."
                 )
-            full_ckpt = torch.load(path)
-            model.load_state_dict(full_ckpt.pop("model"), strict=strict)
-            return full_ckpt
 
+            full_ckpt = torch.load(path)
+            if is_overridden("configure_model", self.lightning_module):
+                # if the LightningModule only defined the nn.Module in `configure_model` and we "full" load here, it
+                # will error out. Warn the user about this
+                rank_zero_warn(
+                    "You have overridden `LightningModule.configure_model` hook. Full checkpoint loading with XLAFSDP"
+                    " requires that the model is fully defined at `__init__`.",
+                    category=PossibleUserWarning,
+                )
+            self.lightning_module.load_state_dict(full_ckpt.pop("model"))
+
+            # Load metadata (anything not a module or optimizer)
+            metadata = torch.load(path.parent / _METADATA_FILENAME)
+            return metadata
         raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
+
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        # Override to do nothing, FSDP already loaded the states in `load_checkpoint()`
+        pass
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla_fsdp", cls, description=cls.__name__)
 
+    def lightning_module_state_dict(self) -> Dict[str, Any]:
+        assert self.model is not None
+        # this format is defined by:
+        # https://github.com/pytorch/xla/blob/v2.1.0/torch_xla/distributed/fsdp/state_dict_utils.py#L122-L125
+        return {
+            "model": self.model.state_dict(),  # type: ignore
+            "shard_metadata": self.model.get_shard_metadata(),  # type: ignore[operator]
+        }
+
     def _parse_fsdp_kwargs(self) -> Dict:
         # this needs to be delayed because `self.precision` isn't available at init
         kwargs = self._fsdp_kwargs.copy()
-        precision = self.precision
-        if isinstance(precision, XLAPrecision):
+        precision_plugin = self.precision_plugin
+        if isinstance(precision_plugin, XLAPrecisionPlugin):
             # the `compute_dtype` will be passed to the `auto_wrapper_callable` automatically, so we don't need to pass
             # it when creating it
-            kwargs.setdefault("compute_dtype", precision._desired_dtype)
+            kwargs.setdefault("compute_dtype", precision_plugin._desired_dtype)
         kwargs = _auto_wrap_policy_kwargs(self._auto_wrap_policy, kwargs)
         return _activation_checkpointing_kwargs(self._activation_checkpointing_policy, kwargs)
 
-
-def _auto_wrap_policy_kwargs(policy: Optional["_POLICY"], kwargs: Dict) -> Dict:
-    if policy is None:
-        return kwargs
-    if isinstance(policy, set):
-        from torch_xla.distributed.fsdp.wrap import transformer_auto_wrap_policy
-
-        # this is not transformer specific despite the name
-        policy = partial(transformer_auto_wrap_policy, transformer_layer_cls=policy)
-    kwargs["auto_wrap_policy"] = policy
-    return kwargs
-
-
-def _activation_checkpointing_auto_wrapper(policy: _POLICY_SET, module: Module, *args: Any, **kwargs: Any) -> Module:
-    from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
-    from torch_xla.distributed.fsdp import checkpoint_module
-
-    module = checkpoint_module(module) if isinstance(module, tuple(policy)) else module
-    return XLAFSDP(module, *args, **kwargs)
-
-
-def _activation_checkpointing_kwargs(policy: Optional[_POLICY_SET], kwargs: Dict) -> Dict:
-    if not policy:
-        return kwargs
-    if "auto_wrapper_callable" in kwargs:
-        raise ValueError(
-            "You cannot set both `auto_wrapper_callable` and `activation_checkpointing_policy`. Choose one"
-        )
-    if not isinstance(policy, set):
-        raise TypeError(
-            f"`activation_checkpointing_policy` must be a set, found {policy}. You can try defining and"
-            " passing `auto_wrapper_callable` instead."
-        )
-    auto_wrapper_callable = partial(_activation_checkpointing_auto_wrapper, policy)
-    kwargs["auto_wrapper_callable"] = auto_wrapper_callable
-    return kwargs
-
-
-class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
-    def no_backward_sync(self, module: Module) -> ContextManager:
-        """Blocks gradient synchronization inside the :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`
-        wrapper."""
-        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
-
-        if not isinstance(module, XLAFSDP):
-            raise TypeError(
-                "Blocking backward sync is only possible if the module passed to"
-                f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `XlaFullyShardedDataParallel`."
-                f" Got: {module.__class__.__name__}."
-            )
-        return module.no_sync()
+    def teardown(self) -> None:
+        super().teardown()
+        self._launched = False  # after the Trainer finishes, we aren't inside the spawned region

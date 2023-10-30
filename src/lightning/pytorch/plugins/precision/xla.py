@@ -13,9 +13,10 @@
 # limitations under the License.
 import os
 from functools import partial
-from typing import Any, Callable
+from typing import Any, Callable, Union
 
 import torch
+from torch.optim import Optimizer
 from typing_extensions import get_args
 
 import lightning.pytorch as pl
@@ -59,6 +60,9 @@ class XLAPrecisionPlugin(PrecisionPlugin):
         else:
             self._desired_dtype = torch.float32
 
+        # boolean flag for simplicity over an entirely new class
+        self._using_fsdp = False
+
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
@@ -68,7 +72,8 @@ class XLAPrecisionPlugin(PrecisionPlugin):
     ) -> Any:
         import torch_xla.core.xla_model as xm
 
-        closure = partial(self._xla_wrap_closure, optimizer, closure)
+        if not self._using_fsdp:
+            closure = partial(self._reduce_gradients, optimizer, closure)
         closure = partial(self._wrap_closure, model, optimizer, closure)
         closure_result = optimizer.step(closure=closure, **kwargs)
         xm.mark_step()
@@ -87,9 +92,22 @@ class XLAPrecisionPlugin(PrecisionPlugin):
         os.environ.pop("XLA_USE_BF16", None)
         os.environ.pop("XLA_USE_F16", None)
 
-    def _xla_wrap_closure(self, optimizer: Optimizable, closure: Callable[[], Any]) -> Any:
+    def _reduce_gradients(self, optimizer: Optimizable, closure: Callable[[], Any]) -> Any:
         import torch_xla.core.xla_model as xm
 
         closure_result = closure()
         xm.reduce_gradients(optimizer)
         return closure_result
+
+    def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
+        if self._using_fsdp:
+            # Not supported by us because we need a module reference, this would need to go through the Strategy
+            # as in Fabric
+            raise NotImplementedError("XLA's FSDP strategy does not support to clip gradients by norm.")
+        return super().clip_grad_by_value(optimizer, clip_val)
+
+    def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
+        if self._using_fsdp:
+            # Not supported by XLA
+            raise NotImplementedError("XLA's FSDP strategy does not support to clip gradients by value.")
+        return super().clip_grad_by_value(optimizer, clip_val)

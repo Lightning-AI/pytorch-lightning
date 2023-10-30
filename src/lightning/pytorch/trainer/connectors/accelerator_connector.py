@@ -57,6 +57,7 @@ from lightning.pytorch.strategies import (
     SingleDeviceXLAStrategy,
     Strategy,
     StrategyRegistry,
+    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
@@ -486,6 +487,9 @@ class _AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
+        # Change fsdp to xla_fsdp if using TPU
+        if strategy_flag == "fsdp" and self._accelerator_flag == "tpu":
+            strategy_flag = "xla_fsdp"
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
         ) and self._accelerator_flag not in ("cuda", "gpu"):
@@ -536,7 +540,7 @@ class _AcceleratorConnector:
             if isinstance(self.strategy, ColossalAIStrategy):
                 return ColossalAIPrecisionPlugin(self._precision_flag)
 
-        if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)):
+        if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy, XLAFSDPStrategy)):
             return XLAPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
@@ -619,11 +623,11 @@ class _AcceleratorConnector:
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
         if isinstance(self.accelerator, XLAAccelerator) and not isinstance(
-            self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)
+            self.strategy, (SingleDeviceXLAStrategy, XLAStrategy, XLAFSDPStrategy)
         ):
             raise ValueError(
-                "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy`,"
-                f" found {self.strategy.__class__.__name__}."
+                "The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`, `XLAStrategy`, or"
+                f" `XLAFSDPStrategy`. Found {self.strategy.__class__.__name__}."
             )
 
         if _habana_available_and_importable():

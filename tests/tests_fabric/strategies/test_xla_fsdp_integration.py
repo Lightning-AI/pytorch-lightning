@@ -119,6 +119,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
             "step_count": 0,
         }
         metadata = fabric.load(checkpoint_path, state)
+        assert "shard_metadata" not in metadata
 
         # check user data in loaded state
         assert not metadata
@@ -151,7 +152,8 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
 
         # load sharded checkpoints into the second model
         state = {"model": model_2}
-        fabric.load(checkpoint_path, state)
+        metadata = fabric.load(checkpoint_path, state)
+        assert "shard_metadata" not in metadata
 
         # check that loaded state is different
         with pytest.raises(AssertionError, match="do not match"):

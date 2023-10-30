@@ -59,6 +59,7 @@ from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, ReduceOp
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.plugins.precision import PrecisionPlugin
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
@@ -67,7 +68,7 @@ from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
@@ -312,9 +313,10 @@ class FSDPStrategy(ParallelStrategy):
 
         if is_overridden("configure_sharded_model", self.lightning_module):
             # legacy: we don't skip setup with the `configure_model` alternative
-            rank_zero_info(
+            rank_zero_warn(
                 "You have overridden `LightningModule.configure_sharded_model` hook. It will assume that all the layers"
-                " are already wrapped for sharding and won't wrap the entire model using `FullyShardedDataParallel`."
+                " are already wrapped for sharding and won't wrap the entire model using `FullyShardedDataParallel`.",
+                category=PossibleUserWarning,
             )
         else:
             self.model = self._setup_model(self.model)

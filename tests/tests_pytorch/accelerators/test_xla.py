@@ -256,7 +256,9 @@ def test_tpu_invalid_raises(tpu_available, mps_count_0):
     accelerator = XLAAccelerator()
     strategy = DDPStrategy(accelerator=accelerator, precision_plugin=XLAPrecisionPlugin())
     with pytest.raises(
-        ValueError, match="The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy"
+        ValueError,
+        match="The `XLAAccelerator` can only be used with a"
+        " `SingleDeviceXLAStrategy`, `XLAStrategy`, or `XLAFSDPStrategy`",
     ):
         Trainer(strategy=strategy, devices=8)
 
