@@ -12,8 +12,9 @@
 # limitations under the License.
 
 import os
-from typing import Any, Callable, List, Optional
 from datetime import datetime
+from typing import Any, Callable, List, Optional
+
 from lightning.data.streaming.data_processor import DataProcessor, DataTransformRecipe
 
 
