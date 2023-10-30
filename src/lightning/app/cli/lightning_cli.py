@@ -15,7 +15,6 @@
 import os
 import sys
 from pathlib import Path
-from typing import Tuple, Union
 
 import click
 from lightning_utilities.core.imports import RequirementCache
