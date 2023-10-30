@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+import tempfile
 import traceback
 import types
 from abc import abstractmethod
@@ -134,7 +135,7 @@ def _download_data_target(
                     with open(local_path, "wb") as f:
                         s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
 
-                elif os.path.exists(remote_path):
+                elif os.path.isfile(remote_path):
                     copyfile(remote_path, local_path)
                 else:
                     raise ValueError(f"The provided {remote_source_dir} isn't supported.")
@@ -226,7 +227,7 @@ class BaseWorker:
         start_index: int,
         dataset_name: str,
         node_rank: int,
-        prepare_item: Callable,
+        data_recipe: "DataRecipe",
         source_dir: str,
         remote_source_dir: str,
         remote_target_dir: Optional[str],
@@ -236,9 +237,6 @@ class BaseWorker:
         stop_queue: Queue,
         num_downloaders: int,
         remove: bool,
-        chunk_size: Optional[int] = None,
-        chunk_bytes: Optional[int] = None,
-        compression: Optional[str] = None,
     ) -> None:
         """The BaseWorker is responsible to process the user data."""
         self.worker_index = worker_index
@@ -246,7 +244,7 @@ class BaseWorker:
         self.start_index = start_index
         self.dataset_name = dataset_name
         self.node_rank = node_rank
-        self.prepare_item = prepare_item
+        self.data_recipe = data_recipe
         self.source_dir = source_dir
         self.remote_source_dir = remote_source_dir
         self.remote_target_dir = remote_target_dir
@@ -254,9 +252,6 @@ class BaseWorker:
         self.num_items = len(self.items)
         self.num_downloaders = num_downloaders
         self.remove = remove
-        self.chunk_bytes = chunk_bytes
-        self.chunk_size = chunk_size
-        self.compression = compression
         self.paths: List[List[str]] = []
         self.remover: Optional[Process] = None
         self.downloaders: List[Process] = []
@@ -272,6 +267,7 @@ class BaseWorker:
         self._counter = 0
         self._last_time = time()
         self._index_counter = 0
+        self._current_item: Any = None
 
     def run(self) -> None:
         try:
@@ -293,7 +289,6 @@ class BaseWorker:
 
     def _loop(self) -> None:
         num_downloader_finished = 0
-        chunk_filepath: Optional[str] = None
 
         while True:
             index = self.ready_to_process_queue.get()
@@ -301,12 +296,8 @@ class BaseWorker:
             if index is None:
                 num_downloader_finished += 1
                 if num_downloader_finished == self.num_downloaders:
-                    chunks_filepaths = self.cache.done()
-
-                    if chunks_filepaths:
-                        for chunk_filepath in chunks_filepaths:
-                            if isinstance(chunk_filepath, str) and os.path.exists(chunk_filepath):
-                                self.upload_queue.put(chunk_filepath)
+                    if isinstance(self.data_recipe, DataChunkRecipe):
+                        self._handle_data_chunk_recipe_end()
 
                     if self.remote_target_dir:
                         assert self.uploader
@@ -323,17 +314,10 @@ class BaseWorker:
                     return
                 continue
 
-            item_data_or_generator = self.prepare_item(self.items[index]) if self.prepare_item else self.items[index]  # type: ignore
-            if isinstance(item_data_or_generator, types.GeneratorType):
-                for item_data in item_data_or_generator:
-                    if item_data is not None:
-                        chunk_filepath = self.cache._add_item(self._index_counter, item_data)
-                        self._try_upload(chunk_filepath)
-                        self._index_counter += 1
-            elif item_data_or_generator is not None:
-                chunk_filepath = self.cache._add_item(self._index_counter, item_data_or_generator)
-                self._try_upload(chunk_filepath)
-                self._index_counter += 1
+            if isinstance(self.data_recipe, DataChunkRecipe):
+                self._handle_data_chunk_recipe(index)
+            else:
+                self._handle_data_transform_recipe(index)
 
             self._counter += 1
 
@@ -357,20 +341,22 @@ class BaseWorker:
         os.environ["DATA_OPTIMIZER_NUM_WORKERS"] = str(self.num_workers)
 
     def _create_cache(self) -> None:
-        self.cache_chunks_dir = _get_cache_dir(self.dataset_name)
+        self.cache_data_dir = _get_cache_data_dir(self.dataset_name)
+        os.makedirs(self.cache_data_dir, exist_ok=True)
 
+        self.cache_chunks_dir = _get_cache_dir(self.dataset_name)
         os.makedirs(self.cache_chunks_dir, exist_ok=True)
+
+        if isinstance(self.data_recipe, DataTransformRecipe):
+            return
 
         self.cache = Cache(
             self.cache_chunks_dir,
-            chunk_bytes=self.chunk_bytes,
-            chunk_size=self.chunk_size,
-            compression=self.compression,
+            chunk_bytes=self.data_recipe.chunk_bytes,
+            chunk_size=self.data_recipe.chunk_size,
+            compression=self.data_recipe.compression,
         )
         self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
-        self.cache_data_dir = _get_cache_data_dir(self.dataset_name)
-
-        os.makedirs(self.cache_data_dir, exist_ok=True)
 
     def _try_upload(self, filepath: Optional[str]) -> None:
         if not filepath or self.remote_target_dir is None:
@@ -458,6 +444,52 @@ class BaseWorker:
         )
         self.uploader.start()
 
+    def _handle_data_chunk_recipe(self, index: int) -> None:
+        try:
+            self._current_item = self.items[index]
+            item_data_or_generator = self.data_recipe.prepare_item(self._current_item)
+            if isinstance(item_data_or_generator, types.GeneratorType):
+                for item_data in item_data_or_generator:
+                    if item_data is not None:
+                        chunk_filepath = self.cache._add_item(self._index_counter, item_data)
+                        self._try_upload(chunk_filepath)
+                        self._index_counter += 1
+            elif item_data_or_generator is not None:
+                chunk_filepath = self.cache._add_item(self._index_counter, item_data_or_generator)
+                self._try_upload(chunk_filepath)
+                self._index_counter += 1
+        except Exception as e:
+            print(f"Failed processing {self._current_item}")
+            raise e
+
+    def _handle_data_chunk_recipe_end(self):
+        chunks_filepaths = self.cache.done()
+
+        if chunks_filepaths:
+            for chunk_filepath in chunks_filepaths:
+                if isinstance(chunk_filepath, str) and os.path.exists(chunk_filepath):
+                    self.upload_queue.put(chunk_filepath)
+
+    def _handle_data_transform_recipe(self, index: int) -> None:
+        # Don't use a context manager to avoid deleting files that are being uploaded.
+        output_dir = tempfile.mkdtemp()
+        item_data = self.data_recipe.prepare_item(str(output_dir), self.items[index])
+        if item_data is not None:
+            raise ValueError(
+                "When using a `DataTransformRecipe`, the `prepare_item` shouldn't return anything."
+                " Simply store your files under the output_dir."
+            )
+        filepaths = []
+        for directory, _, filenames in os.walk(output_dir):
+            for filename in filenames:
+                filepaths.append(os.path.join(directory, filename))
+
+        if len(filepaths) == 0:
+            raise RuntimeError("You haven't saved any files under the `output_dir`.")
+
+        for filepath in filepaths:
+            self._try_upload(filepath)
+
 
 class DataWorkerProcess(BaseWorker, Process):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -471,20 +503,14 @@ T = TypeVar("T")
 
 class DataRecipe:
     @abstractmethod
-    def prepare_structure(self, root: str) -> List[T]:
+    def prepare_structure(self, source_dir: str) -> List[T]:
         pass
 
     @abstractmethod
     def prepare_item(self, *args: Any) -> Any:
         pass
 
-    def __init__(self):
-        self._name: Optional[str] = None
-
-    def setup(self, name: str) -> None:
-        self._name = name
-
-    def listidir(self, path: str) -> List[str]:
+    def listdir(self, path: str) -> List[str]:
         home = _get_home_folder()
         filepath = os.path.join(home, ".cache", f"{self._name}/filepaths.txt")
 
@@ -508,20 +534,97 @@ class DataRecipe:
 
         return filepaths
 
+    def __init__(self):
+        self._name: Optional[str] = None
+        self._fast_dev_run: Optional[bool] = None
+
+    def _setup(self, name: str, fast_dev_run: bool) -> None:
+        self._name = name
+        self._fast_dev_run = fast_dev_run
+
+    def _done(self, delete_cached_files: bool, remote_target_dir: str) -> None:
+        pass
+
 
 class DataChunkRecipe(DataRecipe):
-    def prepare_structure(self, root: str) -> List[T]:
+    def __init__(
+        self, chunk_size: Optional[int] = None, chunk_bytes: Optional[int] = None, compression: Optional[str] = None
+    ):
+        super().__init__()
+        if chunk_size is not None and chunk_bytes is not None:
+            raise ValueError("Either one of the `chunk_size` or the `chunk_bytes` need to be provided.")
+
+        self.chunk_size = chunk_size
+        self.chunk_bytes = 1 << 26 if chunk_size is None else chunk_bytes
+        self.compression = compression
+
+    def prepare_structure(self, source_dir: str) -> List[T]:
         pass
 
     def prepare_item(self, item_metadata: T) -> Any:
         pass
 
+    def _done(self, delete_cached_files: bool, remote_target_dir: str) -> None:
+        num_nodes = _get_num_nodes()
+        cache_dir = _get_cache_dir(self._name)
+
+        chunks = [file for file in os.listdir(cache_dir) if file.endswith(".bin")]
+        if chunks and delete_cached_files and remote_target_dir:
+            raise RuntimeError(f"All the chunks should have been deleted. Found {chunks}")
+
+        merge_cache = Cache(cache_dir, chunk_bytes=1)
+        node_rank = _get_node_rank()
+        merge_cache._merge_no_wait(node_rank if num_nodes > 1 else None)
+        self._upload_index(remote_target_dir, cache_dir, num_nodes, node_rank)
+
+    def _upload_index(self, remote_target_dir: str, cache_dir: str, num_nodes: int, node_rank: Optional[int]) -> None:
+        """This method upload the index file to the remote cloud directory."""
+        if not remote_target_dir:
+            return
+
+        obj = parse.urlparse(remote_target_dir)
+        if num_nodes > 1:
+            local_filepath = os.path.join(cache_dir, f"{node_rank}-{_INDEX_FILENAME}")
+        else:
+            local_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
+
+        if obj.scheme == "s3":
+            s3 = _get_s3_client()
+            s3.upload_file(
+                local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
+            )
+        elif os.path.isdir(remote_target_dir):
+            copyfile(local_filepath, os.path.join(remote_target_dir, os.path.basename(local_filepath)))
+
+        if num_nodes == 1 or node_rank is None:
+            return
+
+        # Merge the index files generated by each node.
+        # Note: When using the Data Optimizer, they should be a single process on each node executing this section
+        # So no risk to get race conditon.
+        if num_nodes == node_rank + 1:
+            # Get the index file locally
+            for node_rank in range(num_nodes - 1):
+                remote_filepath = os.path.join(remote_target_dir, f"{node_rank}-{_INDEX_FILENAME}")
+                node_index_filepath = os.path.join(cache_dir, os.path.basename(remote_filepath))
+                if obj.scheme == "s3":
+                    obj = parse.urlparse(remote_filepath)
+                    _wait_for_file_to_exist(s3, obj)
+                    with open(node_index_filepath, "wb") as f:
+                        s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
+                elif os.path.isdir(remote_target_dir):
+                    copyfile(remote_filepath, node_index_filepath)
+
+            merge_cache = Cache(cache_dir, chunk_bytes=1)
+            merge_cache._merge_no_wait()
+            self._upload_index(remote_target_dir, cache_dir, 1, None)
+
 
 class DataTransformRecipe(DataRecipe):
-    def prepare_structure(self, root: str) -> List[T]:
+    def prepare_structure(self, source_dir: str) -> List[T]:
         pass
 
-    def prepare_item(self, tmpdir: str, item_metadata: T) -> None:
+    def prepare_item(self, output_dir: str, item_metadata: T) -> None:
         pass
 
 
@@ -532,9 +635,6 @@ class DataProcessor:
         source_dir: str,
         num_workers: Optional[int] = None,
         num_downloaders: Optional[int] = None,
-        chunk_size: Optional[int] = None,
-        chunk_bytes: Optional[int] = None,
-        compression: Optional[str] = None,
         delete_cached_files: bool = True,
         src_resolver: Optional[Callable[[str], Optional[str]]] = None,
         fast_dev_run: Optional[bool] = None,
@@ -550,9 +650,6 @@ class DataProcessor:
             source_dir: The path to where the data are stored.
             num_workers: The number of worker threads to use.
             num_downloaders: The number of file downloaders to use.
-            chunk_size: The maximum number of elements to store within a chunk.
-            chunk_bytes: The maximum number of bytes to store within a chunk.
-            compression: The compression algorithm to apply on over the chunks.
             delete_cached_files: Whether to delete the cached files.
             fast_dev_run: Whether to run a quick dev run.
             remote_source_dir: The remote folder where the data are.
@@ -564,12 +661,7 @@ class DataProcessor:
         self.source_dir = str(source_dir)
         self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
         self.num_downloaders = num_downloaders or 1
-        if chunk_size is not None and chunk_bytes is not None:
-            raise ValueError("Either one of the `chunk_size` or the `chunk_bytes` need to be provided.")
-        self.chunk_size = chunk_size
-        self.chunk_bytes = 1 << 26 if chunk_size is None else chunk_bytes
         self.delete_cached_files = delete_cached_files
-        self.compression = compression
         self.fast_dev_run = _get_fast_dev_run() if fast_dev_run is None else fast_dev_run
         self.workers: Any = []
         self.src_resolver = src_resolver or _LightningSrcResolver()
@@ -607,7 +699,7 @@ class DataProcessor:
         seed_everything(self.random_seed)
 
         # Attach the name to the data recipe
-        data_recipe.setup(self.name)
+        data_recipe._setup(self.name, self.fast_dev_run)
 
         # Call the setup method of the user
         user_items: List[Any] = data_recipe.prepare_structure(self.source_dir)
@@ -666,17 +758,7 @@ class DataProcessor:
                 w.join(0)
 
         print("Workers are finished.")
-
-        cache_dir = _get_cache_dir(self.name)
-
-        chunks = [file for file in os.listdir(cache_dir) if file.endswith(".bin")]
-        if chunks and self.delete_cached_files and self.remote_target_dir:
-            raise RuntimeError(f"All the chunks should have been deleted. Found {chunks}")
-
-        merge_cache = Cache(cache_dir, chunk_bytes=1)
-        node_rank = _get_node_rank()
-        merge_cache._merge_no_wait(node_rank if num_nodes > 1 else None)
-        self._upload_index(cache_dir, num_nodes, node_rank)
+        data_recipe._done(self.delete_cached_files, self.remote_target_dir)
         print("Finished data processing!")
 
     def _exit_on_error(self, error: str) -> None:
@@ -698,7 +780,7 @@ class DataProcessor:
                 begins[worker_idx],
                 self.name,
                 _get_node_rank(),
-                data_recipe.prepare_item,
+                data_recipe,
                 self.source_dir,
                 self.remote_source_dir,
                 self.remote_target_dir,
@@ -708,11 +790,6 @@ class DataProcessor:
                 stop_queues[-1],
                 self.num_downloaders,
                 self.delete_cached_files,
-                (self.chunk_size if self.chunk_size else 2)
-                if self.fast_dev_run
-                else self.chunk_size,  # In dev run, create chunks with 2 items
-                None if self.fast_dev_run else self.chunk_bytes,
-                self.compression,
             )
             worker.start()
             workers.append(worker)
@@ -779,48 +856,6 @@ class DataProcessor:
         for w in self.workers:
             w.join(0)
         os._exit(0)
-
-    def _upload_index(self, cache_dir: str, num_nodes: int, node_rank: Optional[int]) -> None:
-        """This method upload the index file to the remote cloud directory."""
-        if not self.remote_target_dir:
-            return
-
-        obj = parse.urlparse(self.remote_target_dir)
-        if num_nodes > 1:
-            local_filepath = os.path.join(cache_dir, f"{node_rank}-{_INDEX_FILENAME}")
-        else:
-            local_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
-
-        if obj.scheme == "s3":
-            s3 = _get_s3_client()
-            s3.upload_file(
-                local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
-            )
-        elif os.path.isdir(self.remote_target_dir):
-            copyfile(local_filepath, os.path.join(self.remote_target_dir, os.path.basename(local_filepath)))
-
-        if num_nodes == 1 or node_rank is None:
-            return
-
-        # Merge the index files generated by each node.
-        # Note: When using the Data Optimizer, they should be a single process on each node executing this section
-        # So no risk to get race conditon.
-        if num_nodes == node_rank + 1:
-            # Get the index file locally
-            for node_rank in range(num_nodes - 1):
-                remote_filepath = os.path.join(self.remote_target_dir, f"{node_rank}-{_INDEX_FILENAME}")
-                node_index_filepath = os.path.join(cache_dir, os.path.basename(remote_filepath))
-                if obj.scheme == "s3":
-                    obj = parse.urlparse(remote_filepath)
-                    _wait_for_file_to_exist(s3, obj)
-                    with open(node_index_filepath, "wb") as f:
-                        s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
-                elif os.path.isdir(self.remote_target_dir):
-                    copyfile(remote_filepath, node_index_filepath)
-
-            merge_cache = Cache(cache_dir, chunk_bytes=1)
-            merge_cache._merge_no_wait()
-            self._upload_index(cache_dir, 1, None)
 
     def _cleanup_cache(self) -> None:
         cache_dir = _get_cache_dir(self.name)

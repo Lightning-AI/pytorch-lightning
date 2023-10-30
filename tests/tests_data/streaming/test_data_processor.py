@@ -6,10 +6,12 @@ from unittest import mock
 import numpy as np
 import pytest
 import torch
-from lightning import LightningDataModule, seed_everything
-from lightning.data.streaming import dataset_optimizer as dataset_optimizer_module
-from lightning.data.streaming.dataset_optimizer import (
+from lightning import seed_everything
+from lightning.data.streaming import data_processor as data_processor_module
+from lightning.data.streaming.data_processor import (
+    DataChunkRecipe,
     DataProcessor,
+    DataTransformRecipe,
     _associated_items_to_workers,
     _download_data_target,
     _remove_target,
@@ -164,13 +166,13 @@ def test_wait_for_file_to_exist():
 
 
 def test_broadcast_object(tmpdir, monkeypatch):
-    dataset_optimizer = DataProcessor(name="dummy", source_dir=tmpdir)
-    assert dataset_optimizer._broadcast_object("dummy") == "dummy"
+    data_processor = DataProcessor(name="dummy", source_dir=tmpdir)
+    assert data_processor._broadcast_object("dummy") == "dummy"
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
-    monkeypatch.setattr(dataset_optimizer_module, "_distributed_is_initialized", lambda: True)
+    monkeypatch.setattr(data_processor_module, "_distributed_is_initialized", lambda: True)
     torch_mock = mock.MagicMock()
-    monkeypatch.setattr(dataset_optimizer_module, "torch", torch_mock)
-    assert dataset_optimizer._broadcast_object("dummy") == "dummy"
+    monkeypatch.setattr(data_processor_module, "torch", torch_mock)
+    assert data_processor._broadcast_object("dummy") == "dummy"
     assert torch_mock.distributed.broadcast_object_list._mock_call_args.args == (["dummy"], 0)
 
 
@@ -189,9 +191,9 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
     assert os.listdir(cache_dir) == ["a.txt"]
     assert os.listdir(cache_data_dir) == ["b.txt"]
 
-    dataset_optimizer = DataProcessor(name="dummy", source_dir=tmpdir)
+    data_processor = DataProcessor(name="dummy", source_dir=tmpdir)
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(tmpdir))
-    dataset_optimizer._cleanup_cache()
+    data_processor._cleanup_cache()
 
     assert os.listdir(cache_dir) == []
     assert os.listdir(cache_data_dir) == []
@@ -268,8 +270,9 @@ def test_associated_items_to_workers(monkeypatch):
     assert workers_user_items == [range(78, 84), range(84, 90), range(90, 96), range(96, 105)]
 
 
-class DataModuleImage(LightningDataModule):
-    def prepare_dataset_structure(self, source_dir: str, filepaths: List[str]) -> List[Any]:
+class CustomDataChunkRecipe(DataChunkRecipe):
+    def prepare_structure(self, source_dir: str) -> List[Any]:
+        filepaths = self.listdir(source_dir)
         assert len(filepaths) == 30
         return filepaths
 
@@ -280,7 +283,7 @@ class DataModuleImage(LightningDataModule):
 @pytest.mark.parametrize("delete_cached_files", [False, True])
 @pytest.mark.parametrize("fast_dev_run", [False, True])
 @pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
-def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
+def test_data_processsor(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     from PIL import Image
 
     imgs = []
@@ -294,18 +297,15 @@ def test_data_optimizer(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     cache_dir = os.path.join(tmpdir, "cache")
     monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
-    dataset_optimizer = DataProcessor(
+    data_processor = DataProcessor(
         name="dummy_dataset",
         source_dir=tmpdir,
-        chunk_size=2,
         num_workers=2,
-        num_downloaders=1,
         remote_source_dir=tmpdir,
-        worker_type="process",
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
     )
-    dataset_optimizer.run(DataModuleImage())
+    data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
     assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
 
@@ -363,7 +363,7 @@ class TestDataProcessor(DataProcessor):
 @pytest.mark.parametrize("delete_cached_files", [False])
 @pytest.mark.parametrize("fast_dev_run", [False])
 @pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
-def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
+def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     """This test ensures the data optimizer works in a fully distributed settings."""
 
     from PIL import Image
@@ -385,19 +385,16 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
-    dataset_optimizer = TestDataProcessor(
+    data_processor = TestDataProcessor(
         name="dummy_dataset",
         source_dir=tmpdir,
-        chunk_size=2,
         num_workers=2,
-        num_downloaders=1,
         remote_source_dir=tmpdir,
-        worker_type="process",
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
         remote_target_dir=remote_target_dir,
     )
-    dataset_optimizer.run(DataModuleImage())
+    data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
     assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
 
@@ -419,19 +416,17 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
-    dataset_optimizer = TestDataProcessor(
+    data_processor = TestDataProcessor(
         name="dummy_dataset",
         source_dir=tmpdir,
-        chunk_size=2,
         num_workers=2,
         num_downloaders=1,
         remote_source_dir=tmpdir,
-        worker_type="process",
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
         remote_target_dir=remote_target_dir,
     )
-    dataset_optimizer.run(DataModuleImage())
+    data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
     assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
 
@@ -452,19 +447,17 @@ def test_data_optimizer_distributed(fast_dev_run, delete_cached_files, tmpdir, m
     assert sorted(os.listdir(remote_target_dir)) == expected
 
 
-class DataModule(LightningDataModule):
-    @staticmethod
-    def prepare_dataset_structure(source_dir: str, filepaths: List[str]) -> List[Any]:
+class TextTokenizeRecipe(DataChunkRecipe):
+    def prepare_structure(self, source_dir: str) -> List[Any]:
         return [os.path.join(source_dir, "dummy2")]
 
-    @staticmethod
-    def prepare_item(filepath):
+    def prepare_item(self, filepath):
         for _ in range(100):
             yield torch.randint(0, 1000, (np.random.randint(0, 1000),)).to(torch.int)
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
-def test_data_optimizer_nlp(tmpdir, monkeypatch):
+def test_data_processsor_nlp(tmpdir, monkeypatch):
     seed_everything(42)
 
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(tmpdir))
@@ -472,15 +465,53 @@ def test_data_optimizer_nlp(tmpdir, monkeypatch):
     with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
         f.write("Hello World !")
 
-    dataset_optimizer = DataProcessor(
-        name="dummy2", source_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
-    )
-    dataset_optimizer.run(DataModule())
+    data_processor = DataProcessor(name="dummy2", source_dir=tmpdir, num_workers=1, num_downloaders=1)
+    data_processor.run(TextTokenizeRecipe(chunk_size=1024 * 11))
 
 
-def test_data_optimizer_api(tmpdir):
-    dataset_optimizer = DataProcessor(
-        name="dummy2", source_dir=tmpdir, num_workers=1, num_downloaders=1, chunk_size=1024 * 11
+class ImageResizeRecipe(DataTransformRecipe):
+    def prepare_structure(self, root: str):
+        filepaths = [os.path.join(root, filename) for filename in os.listdir(root)]
+        return [filepath for filepath in filepaths if os.path.isfile(filepath)]
+
+    def prepare_item(self, output_dir: str, filepath: Any) -> None:
+        from PIL import Image
+
+        img = Image.open(filepath)
+        img = img.resize((12, 12))
+        assert os.path.exists(output_dir)
+        img.save(os.path.join(output_dir, os.path.basename(filepath)))
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_process_transform(monkeypatch, tmpdir):
+    from PIL import Image
+
+    imgs = []
+    for i in range(5):
+        np_data = np.random.randint(255, size=(28, 28), dtype=np.uint32)
+        img = Image.fromarray(np_data).convert("L")
+        imgs.append(img)
+        img.save(os.path.join(tmpdir, f"{i}.JPEG"))
+
+    home_dir = os.path.join(tmpdir, "home")
+    cache_dir = os.path.join(tmpdir, "cache")
+    remote_target_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(remote_target_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    data_processor = DataProcessor(
+        name="dummy_dataset",
+        source_dir=tmpdir,
+        num_workers=1,
+        remote_source_dir=tmpdir,
+        remote_target_dir=remote_target_dir,
     )
-    with pytest.raises(ValueError, match="prepare_dataset_structure"):
-        dataset_optimizer.run(None)
+    data_processor.run(ImageResizeRecipe())
+
+    assert sorted(os.listdir(remote_target_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
+
+    from PIL import Image
+
+    img = Image.open(os.path.join(remote_target_dir, "0.JPEG"))
+    assert img.size == (12, 12)
