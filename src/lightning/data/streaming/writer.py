@@ -205,7 +205,9 @@ class BinaryWriter:
             max_index = self._max_index
 
         if len(items) == 0:
-            raise RuntimeError("The items shouldn't have an empty length. Something went wrong.")
+            raise RuntimeError(
+                f"The items shouldn't have an empty length. Something went wrong. Found {self._serialized_items}."
+            )
 
         sizes = list(map(len, items))
         offsets = np.array([0] + sizes).cumsum().astype(np.uint32)
