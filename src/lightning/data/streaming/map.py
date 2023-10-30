@@ -35,26 +35,28 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
 def map(
     fn: Callable[[str, Any], None],
     inputs: Union[Any, Callable],
+    output_dir: str,
     num_workers: Optional[int] = None,
     name: Optional[str] = None,
-    remote_output_dir: Optional[str] = None,
     fast_dev_run: bool = False,
     version: int = 0,
-    num_instances: Optional[int] = None,
-    cloud_compute: Optional[str] = None,
+    num_nodes: Optional[int] = None,
+    machine: Optional[str] = None,
 ) -> None:
     """This function executes a function over a collection of files possibly in a distributed way."""
 
     name = name or datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    if num_instances is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
+    if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
         data_processor = DataProcessor(
             name=name,
             num_workers=num_workers or os.cpu_count(),
-            remote_output_dir=remote_output_dir,
+            remote_output_dir=output_dir,
             fast_dev_run=fast_dev_run,
             version=version,
         )
+        if data_processor.has_runned:
+            return data_processor.outputs
         data_processor.run(LambdaDataTransformRecipe(fn, inputs() if callable(inputs) else inputs))
     else:
         from lightning_sdk import Machine, Studio
@@ -63,11 +65,11 @@ def map(
         job = studio._studio_api.create_data_prep_machine_job(
             f"cd {os.getcwd()} && python {sys.argv[0]}",
             name=name,
-            num_instances=num_instances,
+            num_instances=num_nodes,
             studio_id=studio._studio.id,
             teamspace_id=studio._teamspace.id,
             cluster_id=studio._studio.cluster_id,
-            cloud_compute=cloud_compute,
+            cloud_compute=machine,
         )
 
         while True:
