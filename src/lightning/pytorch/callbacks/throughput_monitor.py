@@ -21,16 +21,16 @@ from lightning.fabric.utilities.throughput import Throughput, get_available_flop
 from lightning.fabric.utilities.throughput import _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.plugins import (
-    DoublePrecisionPlugin,
-    FSDPPrecisionPlugin,
-    MixedPrecisionPlugin,
-    PrecisionPlugin,
-    TransformerEnginePrecisionPlugin,
+    DoublePrecision,
+    FSDPPrecision,
+    MixedPrecision,
+    Precision,
+    TransformerEnginePrecision,
+    BitsandbytesPrecision,
+    DeepSpeedPrecision,
+    HalfPrecision,
+    XLAPrecision,
 )
-from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecisionPlugin
-from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
-from lightning.pytorch.plugins.precision.half import HalfPrecisionPlugin
-from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
@@ -227,24 +227,24 @@ class ThroughputMonitor(Callback):
         self._compute(trainer, iter_num)
 
 
-def _plugin_to_compute_dtype(plugin: Union[Precision, PrecisionPlugin]) -> torch.dtype:
+def _plugin_to_compute_dtype(plugin: Union[Precision, Precision]) -> torch.dtype:
     # TODO: integrate this into the precision plugins
-    if not isinstance(plugin, PrecisionPlugin):
+    if not isinstance(plugin, Precision):
         return fabric_plugin_to_compute_dtype(plugin)
-    if isinstance(plugin, BitsandbytesPrecisionPlugin):
+    if isinstance(plugin, BitsandbytesPrecision):
         return plugin.dtype
-    if isinstance(plugin, HalfPrecisionPlugin):
+    if isinstance(plugin, HalfPrecision):
         return plugin._desired_input_dtype
-    if isinstance(plugin, MixedPrecisionPlugin):
+    if isinstance(plugin, MixedPrecision):
         return torch.bfloat16 if plugin.precision == "bf16-mixed" else torch.half
-    if isinstance(plugin, DoublePrecisionPlugin):
+    if isinstance(plugin, DoublePrecision):
         return torch.double
-    if isinstance(plugin, (XLAPrecisionPlugin, DeepSpeedPrecisionPlugin)):
+    if isinstance(plugin, (XLAPrecision, DeepSpeedPrecision)):
         return plugin._desired_dtype
-    if isinstance(plugin, TransformerEnginePrecisionPlugin):
+    if isinstance(plugin, TransformerEnginePrecision):
         return torch.int8
-    if isinstance(plugin, FSDPPrecisionPlugin):
+    if isinstance(plugin, FSDPPrecision):
         return plugin.mixed_precision_config.reduce_dtype or torch.float32
-    if isinstance(plugin, PrecisionPlugin):
+    if isinstance(plugin, Precision):
         return torch.float32
     raise NotImplementedError(plugin)
