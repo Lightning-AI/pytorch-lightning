@@ -21,14 +21,14 @@ from lightning.fabric.utilities.throughput import Throughput, get_available_flop
 from lightning.fabric.utilities.throughput import _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.plugins import (
+    BitsandbytesPrecision,
+    DeepSpeedPrecision,
     DoublePrecision,
     FSDPPrecision,
+    HalfPrecision,
     MixedPrecision,
     Precision,
     TransformerEnginePrecision,
-    BitsandbytesPrecision,
-    DeepSpeedPrecision,
-    HalfPrecision,
     XLAPrecision,
 )
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
